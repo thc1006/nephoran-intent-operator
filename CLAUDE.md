@@ -1,5 +1,21 @@
 # CLAUDE.md
 
+## ⚠️ CRITICAL PROJECT CONTEXT - READ FIRST ⚠️
+
+### 🎯 Project Type: Kubernetes Operator for O-RAN/5G Network Orchestration
+This is the **Nephoran Intent Operator** - a cloud-native Kubernetes operator that:
+- **Runs ONLY on Linux-based Kubernetes clusters** (production target: Ubuntu)
+- **Manages telecommunications network functions** (5G Core, RAN components)
+- **Deploys to cloud providers** (AWS EKS, Azure AKS, Google GKE)
+- **NOT a desktop application** - pure server-side Kubernetes operator
+
+### 🚫 Platform Requirements - NO CROSS-PLATFORM SUPPORT
+- **ONLY Ubuntu Linux testing required** - no Windows/macOS support needed
+- **All GitHub Actions workflows MUST run on `ubuntu-latest` only**
+- **Remove any cross-platform conditionals** (e.g., `if: runner.os != 'Windows'`)
+- **Production deployment target: Linux containers on Kubernetes**
+- **DO NOT add Windows or macOS to any CI matrix strategies**
+
 ## Always import these prompts
 @docs/prompts/00-AGENTS-AND-CLAUDE-BOOT.md
 @docs/prompts/01-PROJECT-GUARDRAILS.md

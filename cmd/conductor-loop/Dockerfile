@@ -181,7 +181,7 @@ RUN apk add --no-cache \
     && rm -rf /var/cache/apk/*
 
 # Install air for hot reloading
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
 # Install delve for debugging
 RUN go install github.com/go-delve/delve/cmd/dlv@latest

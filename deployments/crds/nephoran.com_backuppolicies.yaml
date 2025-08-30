@@ -180,24 +180,24 @@ spec:
                     description: CPU limits
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
-                  maxCPU:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: Maximum CPU allocation (for blueprint engine compatibility)
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
                   maxConcurrency:
                     default: 10
                     description: Maximum concurrent operations
                     format: int32
                     minimum: 1
                     type: integer
+                  maxCpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: MaxCPU limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   maxMemory:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: Maximum memory allocation (for blueprint engine compatibility)
+                    description: MaxMemory limits
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                   memory:

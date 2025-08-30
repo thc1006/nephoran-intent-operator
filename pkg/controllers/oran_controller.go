@@ -13,103 +13,162 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/a1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1"
 )
 
 const (
-	typeReadyManagedElement  = "Ready"
-	O1ConfiguredCondition    = "O1Configured"
+	typeReadyManagedElement = "Ready"
+
+	// O1ConfiguredCondition holds o1configuredcondition value.
+
+	O1ConfiguredCondition = "O1Configured"
+
+	// A1PolicyAppliedCondition holds a1policyappliedcondition value.
+
 	A1PolicyAppliedCondition = "A1PolicyApplied"
 )
 
-// OranAdaptorReconciler reconciles a ManagedElement object
+// OranAdaptorReconciler reconciles a ManagedElement object.
+
 type OranAdaptorReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
+
+	Scheme *runtime.Scheme
+
 	O1Adaptor *o1.O1Adaptor
+
 	A1Adaptor *a1.A1Adaptor
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=managedelements,verbs=get;list;watch;create;update;patch;delete
+
 //+kubebuilder:rbac:groups=nephoran.com,resources=managedelements/status,verbs=get;update;patch
+
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch
 
+// Reconcile performs reconcile operation.
+
 func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	logger := log.FromContext(ctx)
 
 	me := &nephoranv1.ManagedElement{}
+
 	if err := r.Get(ctx, req.NamespacedName, me); err != nil {
+
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+
 	}
 
 	logger.Info("Reconciling ManagedElement", "name", me.Name)
 
-	// O2 Logic: Check the status of the associated Deployment
+	// O2 Logic: Check the status of the associated Deployment.
+
 	deployment := &appsv1.Deployment{}
-	// Use the ManagedElement name as deployment name if no specific field exists
-	deploymentName := me.Name + "-deployment"
-	err := r.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: me.Namespace}, deployment)
+
+	err := r.Get(ctx, types.NamespacedName{Name: me.Spec.DeploymentName, Namespace: me.Namespace}, deployment)
+
 	if err != nil {
-		logger.Error(err, "Failed to get associated Deployment", "DeploymentName", deploymentName)
+
+		logger.Error(err, "Failed to get associated Deployment", "DeploymentName", me.Spec.DeploymentName)
+
 		meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionFalse, Reason: "DeploymentNotFound", Message: err.Error()})
+
 		return r.updateStatus(ctx, me)
+
 	}
 
 	isReady := deployment.Status.AvailableReplicas == *deployment.Spec.Replicas
+
 	if !isReady {
+
 		meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionFalse, Reason: "Progressing", Message: "Deployment is not yet fully available."})
+
 		return r.updateStatus(ctx, me)
+
 	}
+
 	meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionTrue, Reason: "Ready", Message: "Deployment is fully available."})
 
-	// O1 Logic: If ready, apply intent-driven O1 configuration
-	// Check if there's O1 configuration in the general configuration map
-	if o1Config, exists := me.Spec.Configuration["o1Config"]; exists && o1Config != "" {
-		// TODO: Implement O1 configuration application
-		// The O1Adaptor doesn't have ApplyConfiguration method yet
-		// This needs to be implemented based on the actual O1 interface requirements
-		logger.Info("O1 configuration detected but not yet implemented", "ManagedElement", me.Name)
-		meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{
-			Type:    O1ConfiguredCondition,
-			Status:  metav1.ConditionFalse,
-			Reason:  "NotImplemented",
-			Message: "O1 configuration application not yet implemented",
-		})
+	// O1 Logic: If ready, apply intent-driven O1 configuration.
+
+	if me.Spec.O1Config != "" {
+
+		if err := r.O1Adaptor.ApplyConfiguration(ctx, me); err != nil {
+
+			logger.Error(err, "O1 configuration failed")
+
+			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: O1ConfiguredCondition, Status: metav1.ConditionFalse, Reason: "Failed", Message: err.Error()})
+
+		} else {
+
+			logger.Info("O1 configuration applied successfully", "ManagedElement", me.Name)
+
+			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: O1ConfiguredCondition, Status: metav1.ConditionTrue, Reason: "Success", Message: "O1 configuration applied."})
+
+		}
+
 	}
 
-	// A1 Logic: If ready, apply intent-driven A1 policy
+	// A1 Logic: If ready, apply intent-driven A1 policy.
+
 	if me.Spec.A1Policy.Raw != nil {
+
 		if err := r.A1Adaptor.ApplyPolicy(ctx, me); err != nil {
+
 			logger.Error(err, "A1 policy application failed")
+
 			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: A1PolicyAppliedCondition, Status: metav1.ConditionFalse, Reason: "Failed", Message: err.Error()})
+
 		} else {
+
 			logger.Info("A1 policy applied successfully", "ManagedElement", me.Name)
+
 			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: A1PolicyAppliedCondition, Status: metav1.ConditionTrue, Reason: "Success", Message: "A1 policy applied."})
+
 		}
+
 	}
 
 	return r.updateStatus(ctx, me)
+
 }
 
 func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1.ManagedElement) (ctrl.Result, error) {
+
 	if err := r.Status().Update(ctx, me); err != nil {
+
 		log.FromContext(ctx).Error(err, "Failed to update ManagedElement status")
+
 		return ctrl.Result{}, err
+
 	}
+
 	return ctrl.Result{}, nil
+
 }
 
+// SetupWithManager performs setupwithmanager operation.
+
 func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
 	r.O1Adaptor = o1.NewO1Adaptor(nil, mgr.GetClient()) // Use default config with Kubernetes client
+
 	var err error
+
 	r.A1Adaptor, err = a1.NewA1Adaptor(nil) // Use default config
+
 	if err != nil {
+
 		return fmt.Errorf("failed to create A1 adaptor: %w", err)
+
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.ManagedElement{}).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
+
 }

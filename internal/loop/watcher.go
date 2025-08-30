@@ -1,10 +1,9 @@
+// Package loop provides file system watching and processing capabilities for the conductor.
 package loop
 
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,427 +13,515 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
-	"github.com/thc1006/nephoran-intent-operator/internal/porch"
-	"github.com/thc1006/nephoran-intent-operator/internal/security"
+
+	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
 )
 
-// Config holds configuration for the watcher
+// Config holds configuration for the watcher.
+
 type Config struct {
-	PorchPath    string        `json:"porch_path"`
-	PorchURL     string        `json:"porch_url"`
-	Mode         string        `json:"mode"`
-	OutDir       string        `json:"out_dir"`
-	Once         bool          `json:"once"`
-	DebounceDur  time.Duration `json:"debounce_duration"`
-	Period       time.Duration `json:"period"`
-	MaxWorkers   int           `json:"max_workers"`
+	PorchPath string `json:"porch_path"`
+
+	PorchURL string `json:"porch_url"`
+
+	Mode string `json:"mode"`
+
+	OutDir string `json:"out_dir"`
+
+	Once bool `json:"once"`
+
+	DebounceDur time.Duration `json:"debounce_duration"`
+
+	Period time.Duration `json:"period"`
+
+	MaxWorkers int `json:"max_workers"`
+
 	CleanupAfter time.Duration `json:"cleanup_after"`
-	MetricsPort  int           `json:"metrics_port"` // HTTP port for metrics endpoint
-	MetricsAddr  string        `json:"metrics_addr"` // Bind address for metrics (default: localhost)
-	MetricsAuth  bool          `json:"metrics_auth"` // Enable basic auth for metrics
-	MetricsUser  string        `json:"metrics_user"` // Basic auth username
-	MetricsPass  string        `json:"metrics_pass"` // Basic auth password
+
+	GracePeriod time.Duration `json:"grace_period"` // Grace period for graceful shutdown (default: 5s)
+
+	MetricsPort int `json:"metrics_port"` // HTTP port for metrics endpoint
+
+	MetricsAddr string `json:"metrics_addr"` // Bind address for metrics (default: localhost)
+
+	MetricsAuth bool `json:"metrics_auth"` // Enable basic auth for metrics
+
+	MetricsUser string `json:"metrics_user"` // Basic auth username
+
+	MetricsPass string `json:"metrics_pass"` // Basic auth password
 }
 
-// isPathSafe checks if a path is safe from traversal attacks
-// It verifies that the resolved path doesn't escape expected boundaries
-func isPathSafe(absPath, baseDir string) bool {
-	// Normalize paths for comparison
-	absPath = filepath.Clean(absPath)
-	baseDir = filepath.Clean(baseDir)
+// Validate checks if the configuration is valid and secure.
 
-	// Check if the path is under the base directory
-	if strings.HasPrefix(absPath, baseDir+string(filepath.Separator)) || absPath == baseDir {
-		return true
-	}
-
-	// Allow paths under common safe directories
-	// Get temp directory
-	tempDir := os.TempDir()
-	if strings.HasPrefix(absPath, filepath.Clean(tempDir)+string(filepath.Separator)) {
-		return true
-	}
-
-	// On Windows, allow paths under user's home directory
-	if runtime.GOOS == "windows" {
-		if homeDir, err := os.UserHomeDir(); err == nil {
-			homeDir = filepath.Clean(homeDir)
-			if strings.HasPrefix(absPath, homeDir+string(filepath.Separator)) {
-				return true
-			}
-		}
-	}
-
-	// On Unix-like systems, allow paths under /tmp, /var/tmp, or user's home
-	if runtime.GOOS != "windows" {
-		safeDirs := []string{"/tmp", "/var/tmp"}
-		for _, safeDir := range safeDirs {
-			if strings.HasPrefix(absPath, safeDir+string(filepath.Separator)) {
-				return true
-			}
-		}
-
-		if homeDir, err := os.UserHomeDir(); err == nil {
-			homeDir = filepath.Clean(homeDir)
-			if strings.HasPrefix(absPath, homeDir+string(filepath.Separator)) {
-				return true
-			}
-		}
-	}
-
-	// Path is potentially unsafe
-	return false
-}
-
-// Validate checks if the configuration is valid and secure
 func (c *Config) Validate() error {
-	// Validate MaxWorkers - handle extreme values gracefully
+	// Validate MaxWorkers - handle extreme values gracefully.
+
 	maxSafeWorkers := runtime.NumCPU() * 4
+
 	if c.MaxWorkers < 1 {
 		log.Printf("Warning: max_workers %d is too low, using default value 2", c.MaxWorkers)
+
 		c.MaxWorkers = 2
 	}
+
 	if c.MaxWorkers > maxSafeWorkers {
 		log.Printf("Warning: max_workers %d exceeds safe limit of %d (4x CPU cores), capping to safe limit", c.MaxWorkers, maxSafeWorkers)
+
 		c.MaxWorkers = maxSafeWorkers
 	}
 
-	// Validate MetricsPort
+	// Validate MetricsPort.
+
 	if c.MetricsPort != 0 { // 0 means disabled
 		if c.MetricsPort < 1024 || c.MetricsPort > 65535 {
 			return fmt.Errorf("metrics_port must be between 1024-65535 or 0 to disable")
 		}
 	}
 
-	// Validate DebounceDur - handle negative values gracefully
+	// Validate DebounceDur - handle negative values gracefully.
+
 	if c.DebounceDur != 0 {
 		if c.DebounceDur < 0 {
 			log.Printf("Warning: debounce_duration %v is negative, using default 100ms", c.DebounceDur)
+
 			c.DebounceDur = 100 * time.Millisecond
 		} else if c.DebounceDur < 10*time.Millisecond {
 			log.Printf("Warning: debounce_duration %v is too low, setting to 10ms to prevent CPU thrashing", c.DebounceDur)
+
 			c.DebounceDur = 10 * time.Millisecond
 		} else if c.DebounceDur > 5*time.Second {
 			log.Printf("Warning: debounce_duration %v is too high, capping to 5s to prevent processing delays", c.DebounceDur)
+
 			c.DebounceDur = 5 * time.Second
 		}
 	}
 
-	// Validate Period (for periodic mode)
+	// Validate Period (for periodic mode).
+
 	if c.Period != 0 {
 		if c.Period < 100*time.Millisecond {
 			return fmt.Errorf("period must be at least 100ms")
 		}
+
 		if c.Period > 1*time.Hour {
 			return fmt.Errorf("period must not exceed 1 hour")
 		}
 	}
 
-	// Validate CleanupAfter
+	// Validate CleanupAfter.
+
 	if c.CleanupAfter != 0 {
 		if c.CleanupAfter < 1*time.Hour {
 			return fmt.Errorf("cleanup_after must be at least 1 hour")
 		}
+
 		if c.CleanupAfter > 30*24*time.Hour {
 			return fmt.Errorf("cleanup_after must not exceed 30 days")
 		}
 	}
 
-	// Validate metrics authentication
+	// Validate GracePeriod.
+
+	if c.GracePeriod != 0 {
+		if c.GracePeriod < 1*time.Second {
+			return fmt.Errorf("grace_period must be at least 1 second")
+		}
+
+		if c.GracePeriod > 30*time.Second {
+			return fmt.Errorf("grace_period must not exceed 30 seconds")
+		}
+	}
+
+	// Validate metrics authentication.
+
 	if c.MetricsAuth {
 		if c.MetricsUser == "" || c.MetricsPass == "" {
 			return fmt.Errorf("metrics_auth requires both metrics_user and metrics_pass")
 		}
+
 		if len(c.MetricsPass) < 8 {
 			return fmt.Errorf("metrics_pass must be at least 8 characters for security")
 		}
 	}
 
-	// Validate Mode
+	// Validate Mode.
+
 	validModes := map[string]bool{"watch": true, "once": true, "periodic": true, "direct": true, "structured": true}
+
 	if c.Mode != "" && !validModes[c.Mode] {
 		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 
-	// Validate OutDir - check if directory exists or can be created, and is writable
-	// This is critical for preventing runtime failures during file processing
+	// Validate OutDir permissions if specified.
+
 	if c.OutDir != "" {
-		// OWASP Rule 1: Canonicalize the path first
-		cleanPath := filepath.Clean(c.OutDir)
-
-		// Get current working directory as the base for relative paths
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("cannot determine current directory: %w", err)
+		if err := validateOutputDirectory(c.OutDir); err != nil {
+			return fmt.Errorf("cannot write to output directory %q: %w", c.OutDir, err)
 		}
-
-		// OWASP Rule 2: Join with a known base directory
-		// If the path is relative, join it with cwd; if absolute, Clean handles it
-		var finalPath string
-		if filepath.IsAbs(cleanPath) {
-			finalPath = cleanPath
-		} else {
-			finalPath = filepath.Join(cwd, cleanPath)
-		}
-
-		// Canonicalize again after joining
-		finalPath = filepath.Clean(finalPath)
-
-		// OWASP Rule 3: Verify the canonicalized path remains under the base
-		// Check for path traversal attempts
-		if strings.Contains(cleanPath, "..") {
-			// Check if the resolved path is trying to escape the expected boundaries
-			// For absolute paths, we allow them as long as they don't contain ".."
-			// For relative paths with "..", check if they resolve safely
-			absPath, err := filepath.Abs(finalPath)
-			if err != nil {
-				return fmt.Errorf("invalid output directory path %q: %w", c.OutDir, err)
-			}
-
-			// Ensure the path doesn't try to traverse outside safe boundaries
-			// We'll check if it's under common safe locations or the current directory
-			if !isPathSafe(absPath, cwd) {
-				return fmt.Errorf("path traversal detected in output directory: %q", c.OutDir)
-			}
-			finalPath = absPath
-		}
-
-		// Get absolute path for consistency
-		absPath, err := filepath.Abs(finalPath)
-		if err != nil {
-			return fmt.Errorf("invalid output directory path %q: %w", c.OutDir, err)
-		}
-
-		// Update config with the safe, absolute path
-		c.OutDir = absPath
-
-		// Check if directory exists
-		info, err := os.Stat(c.OutDir)
-		if err != nil {
-			if os.IsNotExist(err) {
-				// Directory doesn't exist - check if we can create it
-				parentDir := filepath.Dir(c.OutDir)
-				parentInfo, parentErr := os.Stat(parentDir)
-				if parentErr != nil {
-					if os.IsNotExist(parentErr) {
-						// Parent directory doesn't exist - use expected error message
-						return fmt.Errorf("output directory parent does not exist")
-					}
-					return fmt.Errorf("cannot access output directory parent %q: %w", parentDir, parentErr)
-				}
-
-				// Verify parent is a directory
-				if !parentInfo.IsDir() {
-					return fmt.Errorf("output directory parent is not a directory: %q", parentDir)
-				}
-
-				// OWASP Rule 4: Create directory with secure permissions
-				// Try to create the directory to verify we have write permissions
-				if err := os.MkdirAll(c.OutDir, 0755); err != nil {
-					return fmt.Errorf("cannot create output directory %q: %w", c.OutDir, err)
-				}
-
-				// Directory was created successfully, continue with write test below
-			} else {
-				return fmt.Errorf("cannot access output directory %q: %w", c.OutDir, err)
-			}
-		} else {
-			// Directory exists - verify it's actually a directory
-			if !info.IsDir() {
-				// Use expected error message for file vs directory check
-				return fmt.Errorf("output path is not a directory")
-			}
-		}
-
-		// Check if directory is writable by attempting to create a temp file
-		testFile := filepath.Join(c.OutDir, fmt.Sprintf(".conductor-write-test-%d", time.Now().UnixNano()))
-		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
-			return fmt.Errorf("output directory is not writable: %q (%w)", c.OutDir, err)
-		}
-		// Clean up test file
-		os.Remove(testFile)
 	}
 
 	return nil
 }
 
-// FileProcessingState tracks the state of file processing to prevent duplicates
+// validateOutputDirectory checks if the output directory exists and is writable.
+
+func validateOutputDirectory(outDir string) error {
+	// Check if directory exists.
+
+	info, err := os.Stat(outDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Try to create parent directory to test permissions.
+
+			return validateParentDirectoryWritable(outDir)
+		}
+
+		return fmt.Errorf("cannot access directory: %w", err)
+	}
+
+	// Check if it's actually a directory.
+
+	if !info.IsDir() {
+		return fmt.Errorf("path exists but is not a directory")
+	}
+
+	// Test write permissions by creating a temporary file.
+
+	testFile := filepath.Join(outDir, ".permission-test-"+fmt.Sprintf("%d", time.Now().UnixNano()))
+
+	f, err := os.Create(testFile)
+	if err != nil {
+		return fmt.Errorf("permission denied")
+	}
+
+	f.Close()
+
+	os.Remove(testFile) // Clean up
+
+	return nil
+}
+
+// validateParentDirectoryWritable checks if the parent directory of the given path is writable.
+
+func validateParentDirectoryWritable(path string) error {
+	parentDir := filepath.Dir(path)
+
+	if parentDir == path || parentDir == "." || parentDir == "/" {
+		return fmt.Errorf("output directory parent does not exist")
+	}
+
+	// Check if parent exists.
+
+	info, err := os.Stat(parentDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Recursively check parent's parent.
+
+			return validateParentDirectoryWritable(parentDir)
+		}
+
+		return fmt.Errorf("cannot access parent directory: %w", err)
+	}
+
+	// Check if parent is a directory.
+
+	if !info.IsDir() {
+		return fmt.Errorf("parent path exists but is not a directory")
+	}
+
+	// Test write permissions on parent directory.
+
+	testFile := filepath.Join(parentDir, ".permission-test-"+fmt.Sprintf("%d", time.Now().UnixNano()))
+
+	f, err := os.Create(testFile)
+	if err != nil {
+		return fmt.Errorf("permission denied")
+	}
+
+	f.Close()
+
+	os.Remove(testFile) // Clean up
+
+	return nil
+}
+
+// FileProcessingState tracks the state of file processing to prevent duplicates.
+
 type FileProcessingState struct {
-	processing   map[string]*sync.Mutex // file-level locks
-	recentEvents map[string]time.Time   // recent CREATE/WRITE events
-	mu           sync.RWMutex           // protects the maps above
+	processing map[string]*sync.Mutex // file-level locks
+
+	recentEvents map[string]time.Time // recent CREATE/WRITE events
+
+	mu sync.RWMutex // protects the maps above
 }
 
-// WorkerPool manages a pool of workers with backpressure control
+// WorkerPool manages a pool of workers with backpressure control.
+
 type WorkerPool struct {
-	workQueue       chan WorkItem
-	workers         sync.WaitGroup
-	senders         sync.WaitGroup // tracks all goroutines that send to workQueue
-	stopSignal      chan struct{}
-	maxWorkers      int
-	activeWorkers   int64     // atomic counter
-	processingItems int64     // atomic counter for items being processed
-	queueClosed     sync.Once // ensures queue is only closed once
-	shutdownStarted int32     // atomic flag to prevent sends during shutdown
+	workQueue chan WorkItem
+
+	workers sync.WaitGroup
+
+	stopSignal chan struct{}
+
+	maxWorkers int
+
+	activeWorkers int64 // atomic counter
+
+	closed int32 // atomic flag to prevent double closes
 }
 
-// WorkItem represents a unit of work for the worker pool
+// WorkItem represents a unit of work for the worker pool.
+
 type WorkItem struct {
 	FilePath string
-	Attempt  int
-	Ctx      context.Context
+
+	Attempt int
+
+	Ctx context.Context
 }
 
-// DirectoryManager handles directory creation with sync.Once pattern
+// DirectoryManager handles directory creation with sync.Once pattern.
+
 type DirectoryManager struct {
 	dirOnce map[string]*sync.Once
-	mu      sync.RWMutex
-}
 
-// WatcherMetrics holds comprehensive metrics for monitoring and observability
-type WatcherMetrics struct {
-	// Performance Metrics (atomic counters for thread safety)
-	FilesProcessedTotal     int64 // Total files processed successfully
-	FilesFailedTotal        int64 // Total files that failed processing
-	ProcessingDurationTotal int64 // Total processing time in nanoseconds
-	ValidationFailuresTotal int64 // Total validation failures
-	RetryAttemptsTotal      int64 // Total retry attempts
-	QueueDepthCurrent       int64 // Current queue depth
-	BackpressureEventsTotal int64 // Total backpressure events
-
-	// Latency Metrics (for percentile calculations)
-	ProcessingLatencies []int64 // Ring buffer for latency samples
-	latencyIndex        int64   // Current index in ring buffer
-	latencyMutex        sync.RWMutex
-
-	// Error Metrics
-	ValidationErrorsByType map[string]int64 // Validation errors by type
-	ProcessingErrorsByType map[string]int64 // Processing errors by type
-	TimeoutCount           int64            // Number of timeouts
-
-	// Resource Metrics
-	MemoryUsageBytes    int64 // Current memory usage
-	GoroutineCount      int64 // Current number of goroutines
-	FileDescriptorCount int64 // Current file descriptor usage
-	DirectorySizeBytes  int64 // Watched directory size
-
-	// Business Metrics
-	ThroughputFilesPerSecond float64       // Files processed per second
-	AverageProcessingTime    time.Duration // Average processing time
-	WorkerUtilization        float64       // Worker pool utilization %
-	StatusFileGenerationRate float64       // Status files generated per second
-
-	// Metrics collection metadata
-	StartTime      time.Time
-	LastUpdateTime time.Time
-	MetricsEnabled bool
-
-	// Mutex for non-atomic fields
 	mu sync.RWMutex
 }
 
-// MetricsSample holds a sample for latency calculations
+// WatcherMetrics holds comprehensive metrics for monitoring and observability.
+
+type WatcherMetrics struct {
+	// Performance Metrics (atomic counters for thread safety).
+
+	FilesProcessedTotal int64 // Total files processed successfully
+
+	FilesFailedTotal int64 // Total files that failed processing
+
+	ProcessingDurationTotal int64 // Total processing time in nanoseconds
+
+	ValidationFailuresTotal int64 // Total validation failures
+
+	RetryAttemptsTotal int64 // Total retry attempts
+
+	QueueDepthCurrent int64 // Current queue depth
+
+	BackpressureEventsTotal int64 // Total backpressure events
+
+	// Latency Metrics (for percentile calculations).
+
+	ProcessingLatencies []int64 // Ring buffer for latency samples
+
+	latencyIndex int64 // Current index in ring buffer
+
+	latencyMutex sync.RWMutex
+
+	// Error Metrics.
+
+	ValidationErrorsByType map[string]int64 // Validation errors by type
+
+	ProcessingErrorsByType map[string]int64 // Processing errors by type
+
+	TimeoutCount int64 // Number of timeouts
+
+	// Resource Metrics.
+
+	MemoryUsageBytes int64 // Current memory usage
+
+	GoroutineCount int64 // Current number of goroutines
+
+	FileDescriptorCount int64 // Current file descriptor usage
+
+	DirectorySizeBytes int64 // Watched directory size
+
+	// Business Metrics.
+
+	ThroughputFilesPerSecond float64 // Files processed per second
+
+	AverageProcessingTime time.Duration // Average processing time
+
+	WorkerUtilization float64 // Worker pool utilization %
+
+	StatusFileGenerationRate float64 // Status files generated per second
+
+	// Metrics collection metadata.
+
+	StartTime time.Time
+
+	LastUpdateTime time.Time
+
+	MetricsEnabled bool
+
+	// Mutex for non-atomic fields.
+
+	mu sync.RWMutex
+}
+
+// MetricsSample holds a sample for latency calculations.
+
 type MetricsSample struct {
 	Timestamp time.Time
-	Value     time.Duration
+
+	Value time.Duration
 }
 
-// Security and validation constants
+// Security and validation constants.
+
 const (
-	MaxJSONSize       = 5 * 1024 * 1024 // 5MB max JSON size for handling larger intent files
-	MaxStatusSize     = 256 * 1024      // 256KB max status file size (reduced for efficiency)
-	MaxMessageSize    = 64 * 1024       // 64KB max error message size
-	MaxFileNameLength = 255             // Max filename length
-	MaxPathDepth      = 10              // Max directory depth for path traversal prevention
-	MaxJSONDepth      = 100             // Max JSON nesting depth for JSON bomb prevention
 
-	// Metrics constants
-	LatencyRingBufferSize = 1000             // Size of latency ring buffer
+	// MaxJSONSize holds maxjsonsize value.
+
+	MaxJSONSize = 5 * 1024 * 1024 // 5MB max JSON size for handling larger intent files
+
+	// MaxStatusSize holds maxstatussize value.
+
+	MaxStatusSize = 256 * 1024 // 256KB max status file size (reduced for efficiency)
+
+	// MaxMessageSize holds maxmessagesize value.
+
+	MaxMessageSize = 64 * 1024 // 64KB max error message size
+
+	// MaxFileNameLength holds maxfilenamelength value.
+
+	MaxFileNameLength = 255 // Max filename length
+
+	// MaxPathDepth holds maxpathdepth value.
+
+	MaxPathDepth = 10 // Max directory depth for path traversal prevention
+
+	// MaxJSONDepth holds maxjsondepth value.
+
+	MaxJSONDepth = 100 // Max JSON nesting depth for JSON bomb prevention
+
+	// Metrics constants.
+
+	LatencyRingBufferSize = 1000 // Size of latency ring buffer
+
+	// MetricsUpdateInterval holds metricsupdateinterval value.
+
 	MetricsUpdateInterval = 10 * time.Second // Metrics update frequency
+
 )
 
-var (
-	// MaxJSONBytes is the configurable maximum JSON size (can be overridden via env)
-	MaxJSONBytes int64 = 1 << 20 // 1MB default, configurable via CONDUCTOR_MAX_BYTES
+// IntentSchema defines the expected structure of an intent file.
 
-	// Validation errors
-	ErrFileTooLarge        = fmt.Errorf("file exceeds maximum size limit")
-	ErrInvalidReplicasType = fmt.Errorf("spec.scaling.replicas must be an integer")
-)
-
-// IntentSchema defines the expected structure of an intent file
 type IntentSchema struct {
-	APIVersion string                 `json:"apiVersion"`
-	Kind       string                 `json:"kind"`
-	Metadata   map[string]interface{} `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec"`
+	APIVersion string `json:"apiVersion"`
+
+	Kind string `json:"kind"`
+
+	Metadata map[string]interface{} `json:"metadata"`
+
+	Spec map[string]interface{} `json:"spec"`
 }
 
-// Watcher monitors a directory for intent file changes
-type Watcher struct {
-	watcher      *fsnotify.Watcher
-	dir          string
-	config       Config
-	stateManager *StateManager
-	fileManager  *FileManager
-	executor     *porch.StatefulExecutor
+// Watcher monitors a directory for intent file changes.
 
-	// Enhanced debouncing and file processing state
-	fileState  *FileProcessingState
+type Watcher struct {
+	watcher *fsnotify.Watcher
+
+	dir string
+
+	config Config
+
+	stateManager *StateManager
+
+	fileManager *FileManager
+
+	executor *porch.StatefulExecutor
+
+	// Enhanced debouncing and file processing state.
+
+	fileState *FileProcessingState
+
 	workerPool *WorkerPool
+
 	dirManager *DirectoryManager
 
-	// Metrics and monitoring
-	metrics       *WatcherMetrics
+	// Metrics and monitoring.
+
+	metrics *WatcherMetrics
+
 	metricsServer *http.Server
 
-	// Context for graceful shutdown
-	ctx              context.Context
-	cancel           context.CancelFunc
+	// Context for graceful shutdown.
+
+	ctx context.Context
+
+	cancel context.CancelFunc
+
 	shutdownComplete chan struct{}
 
-	// Graceful shutdown tracking
-	gracefulShutdown  atomic.Bool
-	shutdownStartTime time.Time
-	shutdownMutex     sync.RWMutex
-	shutdownOnce      sync.Once // ensures shutdown operations happen only once
+	// IntentProcessor for new pattern support.
 
-	// Once mode completion tracking
-	onceModeExpectedFiles atomic.Int64 // Track expected files in once mode
-	onceModeQueuedFiles   atomic.Int64 // Track queued files in once mode
-
-	// Idempotent teardown
-	closeOnce sync.Once
+	processor *IntentProcessor
 }
 
-// NewWatcher creates a new file system watcher for the specified directory
+// NewWatcher creates a new file system watcher (backward compatibility with Config approach).
+
 func NewWatcher(dir string, config Config) (*Watcher, error) {
-	// Set defaults before validation
+	return NewWatcherWithConfig(dir, config, nil)
+}
+
+// NewWatcherWithProcessor creates a new file system watcher with processor (new approach).
+
+func NewWatcherWithProcessor(dir string, processor *IntentProcessor) (*Watcher, error) {
+	// Use default config when using processor approach.
+
+	defaultConfig := Config{
+		MaxWorkers: 2,
+
+		CleanupAfter: 7 * 24 * time.Hour,
+
+		DebounceDur: 100 * time.Millisecond,
+
+		MetricsAddr: "127.0.0.1",
+
+		MetricsPort: 8080,
+
+		Mode: "watch",
+	}
+
+	return NewWatcherWithConfig(dir, defaultConfig, processor)
+}
+
+// NewWatcherWithConfig creates a new file system watcher with both config and processor support.
+
+func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor) (*Watcher, error) {
+	// Set defaults before validation.
+
 	if config.MaxWorkers <= 0 {
 		config.MaxWorkers = 2
 	}
+
 	if config.CleanupAfter <= 0 {
 		config.CleanupAfter = 7 * 24 * time.Hour // 7 days
 	}
+
 	if config.DebounceDur <= 0 {
 		config.DebounceDur = 100 * time.Millisecond
 	}
+
 	if config.MetricsAddr == "" {
 		config.MetricsAddr = "127.0.0.1" // Default to localhost only for security
 	}
+
 	if config.MetricsPort < 0 {
 		config.MetricsPort = 8080 // Default metrics port
 	}
 
-	// Validate configuration for security
+	if config.GracePeriod <= 0 {
+		config.GracePeriod = 5 * time.Second // Default grace period
+	}
+
+	// Validate configuration for security.
+
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -444,50 +531,73 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 		return nil, fmt.Errorf("failed to create fsnotify watcher: %w", err)
 	}
 
-	// Add the directory to watch
+	// Add the directory to watch.
+
 	if err := watcher.Add(dir); err != nil {
 		watcher.Close()
+
 		return nil, fmt.Errorf("failed to add directory %s to watcher: %w", dir, err)
 	}
 
-	// Create state manager
-	stateManager, err := NewStateManager(dir)
-	if err != nil {
-		watcher.Close()
-		return nil, fmt.Errorf("failed to create state manager: %w", err)
-	}
+	// Create state manager (only if not using processor approach).
 
-	// Create file manager
-	fileManager, err := NewFileManager(dir)
-	if err != nil {
-		watcher.Close()
-		return nil, fmt.Errorf("failed to create file manager: %w", err)
-	}
+	var stateManager *StateManager
 
-	// Create porch executor
-	executor := porch.NewStatefulExecutor(porch.ExecutorConfig{
-		PorchPath: config.PorchPath,
-		Mode:      config.Mode,
-		OutDir:    config.OutDir,
-		Timeout:   30 * time.Second,
-	})
+	var fileManager *FileManager
 
-	// Validate porch path
-	if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
-		log.Printf("Warning: Porch validation failed: %v", err)
+	var executor *porch.StatefulExecutor
+
+	if processor == nil {
+		stateManager, err = NewStateManager(dir)
+		if err != nil {
+			watcher.Close()
+
+			return nil, fmt.Errorf("failed to create state manager: %w", err)
+		}
+
+		// Create file manager.
+
+		fileManager, err = NewFileManager(dir)
+		if err != nil {
+			watcher.Close()
+
+			return nil, fmt.Errorf("failed to create file manager: %w", err)
+		}
+
+		// Create porch executor.
+
+		executor = porch.NewStatefulExecutor(porch.ExecutorConfig{
+			PorchPath: config.PorchPath,
+
+			Mode: config.Mode,
+
+			OutDir: config.OutDir,
+
+			Timeout: 30 * time.Second,
+		})
+
+		// Validate porch path.
+
+		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
+			log.Printf("Warning: Porch validation failed: %v", err)
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Initialize enhanced components
+	// Initialize enhanced components.
+
 	fileState := &FileProcessingState{
-		processing:   make(map[string]*sync.Mutex),
+		processing: make(map[string]*sync.Mutex),
+
 		recentEvents: make(map[string]time.Time),
 	}
 
 	workerPool := &WorkerPool{
-		workQueue:  make(chan WorkItem, config.MaxWorkers*100), // large buffer to handle bulk loads
+		workQueue: make(chan WorkItem, config.MaxWorkers*3), // increased buffer
+
 		stopSignal: make(chan struct{}),
+
 		maxWorkers: config.MaxWorkers,
 	}
 
@@ -495,36 +605,59 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 		dirOnce: make(map[string]*sync.Once),
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
+
 	metrics := &WatcherMetrics{
-		ProcessingLatencies:    make([]int64, LatencyRingBufferSize),
+		ProcessingLatencies: make([]int64, LatencyRingBufferSize),
+
 		ValidationErrorsByType: make(map[string]int64),
+
 		ProcessingErrorsByType: make(map[string]int64),
-		StartTime:              time.Now(),
-		LastUpdateTime:         time.Now(),
-		MetricsEnabled:         true,
+
+		StartTime: time.Now(),
+
+		LastUpdateTime: time.Now(),
+
+		MetricsEnabled: true,
 	}
 
 	w := &Watcher{
-		watcher:          watcher,
-		dir:              dir,
-		config:           config,
-		stateManager:     stateManager,
-		fileManager:      fileManager,
-		executor:         executor,
-		fileState:        fileState,
-		workerPool:       workerPool,
-		dirManager:       dirManager,
-		metrics:          metrics,
-		ctx:              ctx,
-		cancel:           cancel,
+		watcher: watcher,
+
+		dir: dir,
+
+		config: config,
+
+		stateManager: stateManager,
+
+		fileManager: fileManager,
+
+		executor: executor,
+
+		fileState: fileState,
+
+		workerPool: workerPool,
+
+		dirManager: dirManager,
+
+		metrics: metrics,
+
+		ctx: ctx,
+
+		cancel: cancel,
+
 		shutdownComplete: make(chan struct{}),
+
+		processor: processor, // Support for IntentProcessor pattern
+
 	}
 
-	// Start metrics collection
+	// Start metrics collection.
+
 	w.startMetricsCollection()
 
-	// Start metrics HTTP server
+	// Start metrics HTTP server.
+
 	if err := w.startMetricsServer(); err != nil {
 		log.Printf("Warning: Failed to start metrics server: %v", err)
 	}
@@ -532,64 +665,87 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 	return w, nil
 }
 
-// startMetricsCollection starts background metrics collection
+// startMetricsCollection starts background metrics collection.
+
 func (w *Watcher) startMetricsCollection() {
 	go func() {
 		ticker := time.NewTicker(MetricsUpdateInterval)
+
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-w.ctx.Done():
+
 				return
+
 			case <-ticker.C:
+
 				w.updateMetrics()
 			}
 		}
 	}()
 }
 
-// updateMetrics updates system and runtime metrics
+// updateMetrics updates system and runtime metrics.
+
 func (w *Watcher) updateMetrics() {
 	var m runtime.MemStats
+
 	runtime.ReadMemStats(&m)
 
 	w.metrics.mu.Lock()
+
 	defer w.metrics.mu.Unlock()
 
-	// Update resource metrics
+	// Update resource metrics.
+
 	atomic.StoreInt64(&w.metrics.MemoryUsageBytes, int64(m.Alloc))
+
 	atomic.StoreInt64(&w.metrics.GoroutineCount, int64(runtime.NumGoroutine()))
 
-	// Update business metrics with proper locking
+	// Update business metrics with proper locking.
+
 	now := time.Now()
+
 	duration := now.Sub(w.metrics.StartTime).Seconds()
 
 	w.metrics.mu.Lock()
+
 	if duration > 0 {
 		totalProcessed := atomic.LoadInt64(&w.metrics.FilesProcessedTotal)
+
 		w.metrics.ThroughputFilesPerSecond = float64(totalProcessed) / duration
 	}
 
-	// Update average processing time
+	// Update average processing time.
+
 	totalDuration := atomic.LoadInt64(&w.metrics.ProcessingDurationTotal)
+
 	totalFiles := atomic.LoadInt64(&w.metrics.FilesProcessedTotal)
+
 	if totalFiles > 0 {
 		w.metrics.AverageProcessingTime = time.Duration(totalDuration / totalFiles)
 	}
 
-	// Update worker utilization
+	// Update worker utilization.
+
 	activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
+
 	w.metrics.WorkerUtilization = float64(activeWorkers) / float64(w.workerPool.maxWorkers) * 100
 
-	// Update last update time
+	// Update last update time.
+
 	w.metrics.LastUpdateTime = now
+
 	w.metrics.mu.Unlock()
 
-	// Update queue depth
+	// Update queue depth.
+
 	atomic.StoreInt64(&w.metrics.QueueDepthCurrent, int64(len(w.workerPool.workQueue)))
 
-	// Update directory size
+	// Update directory size.
+
 	if dirSize, err := w.calculateDirectorySize(w.dir); err == nil {
 		atomic.StoreInt64(&w.metrics.DirectorySizeBytes, dirSize)
 	}
@@ -597,7 +753,8 @@ func (w *Watcher) updateMetrics() {
 	w.metrics.LastUpdateTime = now
 }
 
-// calculateDirectorySize calculates the total size of files in a directory
+// calculateDirectorySize calculates the total size of files in a directory.
+
 func (w *Watcher) calculateDirectorySize(dir string) (int64, error) {
 	var totalSize int64
 
@@ -605,80 +762,107 @@ func (w *Watcher) calculateDirectorySize(dir string) (int64, error) {
 		if err != nil {
 			return nil // Skip errors, don't fail the entire calculation
 		}
+
 		if !info.IsDir() {
 			totalSize += info.Size()
 		}
+
 		return nil
 	})
 
 	return totalSize, err
 }
 
-// recordProcessingLatency records a processing latency sample
+// recordProcessingLatency records a processing latency sample.
+
 func (w *Watcher) recordProcessingLatency(duration time.Duration) {
 	w.metrics.latencyMutex.Lock()
+
 	defer w.metrics.latencyMutex.Unlock()
 
-	// Add to ring buffer
+	// Add to ring buffer.
+
 	index := atomic.AddInt64(&w.metrics.latencyIndex, 1) % LatencyRingBufferSize
+
 	w.metrics.ProcessingLatencies[index] = duration.Nanoseconds()
 
-	// Update total processing duration
+	// Update total processing duration.
+
 	atomic.AddInt64(&w.metrics.ProcessingDurationTotal, duration.Nanoseconds())
 }
 
-// recordValidationError records a validation error by type
+// recordValidationError records a validation error by type.
+
 func (w *Watcher) recordValidationError(errorType string) {
 	atomic.AddInt64(&w.metrics.ValidationFailuresTotal, 1)
 
 	w.metrics.mu.Lock()
+
 	w.metrics.ValidationErrorsByType[errorType]++
+
 	w.metrics.mu.Unlock()
 }
 
-// recordProcessingError records a processing error by type
+// recordProcessingError records a processing error by type.
+
 func (w *Watcher) recordProcessingError(errorType string) {
 	atomic.AddInt64(&w.metrics.FilesFailedTotal, 1)
 
 	w.metrics.mu.Lock()
+
 	w.metrics.ProcessingErrorsByType[errorType]++
+
 	w.metrics.mu.Unlock()
 }
 
-// startMetricsServer starts the HTTP metrics server with security features
+// startMetricsServer starts the HTTP metrics server with security features.
+
 func (w *Watcher) startMetricsServer() error {
-	// Skip if metrics are disabled
+	// Skip if metrics are disabled.
+
 	if w.config.MetricsPort == 0 {
 		log.Printf("Metrics server disabled (port=0)")
+
 		return nil
 	}
 
 	mux := http.NewServeMux()
 
-	// Wrap handlers with authentication if enabled
+	// Wrap handlers with authentication if enabled.
+
 	if w.config.MetricsAuth {
 		mux.HandleFunc("/metrics", w.basicAuth(w.handleMetrics))
+
 		mux.HandleFunc("/metrics/prometheus", w.basicAuth(w.handlePrometheusMetrics))
+
 		mux.HandleFunc("/health", w.handleHealth) // Health check doesn't require auth
 	} else {
 		mux.HandleFunc("/metrics", w.handleMetrics)
+
 		mux.HandleFunc("/metrics/prometheus", w.handlePrometheusMetrics)
+
 		mux.HandleFunc("/health", w.handleHealth)
 	}
 
-	// Bind to specific address (default: localhost only)
+	// Bind to specific address (default: localhost only).
+
 	addr := fmt.Sprintf("%s:%d", w.config.MetricsAddr, w.config.MetricsPort)
 
 	w.metricsServer = &http.Server{
-		Addr:         addr,
-		Handler:      mux,
-		ReadTimeout:  5 * time.Second,
+		Addr: addr,
+
+		Handler: mux,
+
+		ReadTimeout: 5 * time.Second,
+
 		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  15 * time.Second,
+
+		IdleTimeout: 15 * time.Second,
 	}
 
 	go func() {
 		log.Printf("Starting metrics server on %s (auth=%v)", addr, w.config.MetricsAuth)
+
 		if err := w.metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Metrics server error: %v", err)
 		}
@@ -687,15 +871,19 @@ func (w *Watcher) startMetricsServer() error {
 	return nil
 }
 
-// basicAuth wraps an HTTP handler with basic authentication
+// basicAuth wraps an HTTP handler with basic authentication.
+
 func (w *Watcher) basicAuth(handler http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		user, pass, ok := req.BasicAuth()
 
 		if !ok || user != w.config.MetricsUser || pass != w.config.MetricsPass {
 			resp.Header().Set("WWW-Authenticate", `Basic realm="Metrics"`)
+
 			http.Error(resp, "Unauthorized", http.StatusUnauthorized)
+
 			atomic.AddInt64(&w.metrics.ValidationFailuresTotal, 1)
+
 			return
 		}
 
@@ -703,243 +891,398 @@ func (w *Watcher) basicAuth(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// handleMetrics handles JSON metrics endpoint
+// handleMetrics handles JSON metrics endpoint.
+
 func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Request) {
 	w.metrics.mu.RLock()
+
 	defer w.metrics.mu.RUnlock()
 
-	// Calculate latency percentiles
+	// Calculate latency percentiles.
+
 	latencies := w.getLatencyPercentiles()
 
 	response := map[string]interface{}{
 		"performance": map[string]interface{}{
-			"files_processed_total":     atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
-			"files_failed_total":        atomic.LoadInt64(&w.metrics.FilesFailedTotal),
-			"throughput_files_per_sec":  w.metrics.ThroughputFilesPerSecond,
-			"average_processing_time":   w.metrics.AverageProcessingTime.String(),
+			"files_processed_total": atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
+
+			"files_failed_total": atomic.LoadInt64(&w.metrics.FilesFailedTotal),
+
+			"throughput_files_per_sec": w.metrics.ThroughputFilesPerSecond,
+
+			"average_processing_time": w.metrics.AverageProcessingTime.String(),
+
 			"validation_failures_total": atomic.LoadInt64(&w.metrics.ValidationFailuresTotal),
-			"retry_attempts_total":      atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
-			"latency_percentiles":       latencies,
+
+			"retry_attempts_total": atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
+
+			"latency_percentiles": latencies,
 		},
+
 		"resources": map[string]interface{}{
-			"memory_usage_bytes":   atomic.LoadInt64(&w.metrics.MemoryUsageBytes),
-			"goroutine_count":      atomic.LoadInt64(&w.metrics.GoroutineCount),
+			"memory_usage_bytes": atomic.LoadInt64(&w.metrics.MemoryUsageBytes),
+
+			"goroutine_count": atomic.LoadInt64(&w.metrics.GoroutineCount),
+
 			"directory_size_bytes": atomic.LoadInt64(&w.metrics.DirectorySizeBytes),
 		},
+
 		"workers": map[string]interface{}{
-			"max_workers":         w.workerPool.maxWorkers,
-			"active_workers":      atomic.LoadInt64(&w.workerPool.activeWorkers),
-			"worker_utilization":  w.metrics.WorkerUtilization,
-			"queue_depth":         atomic.LoadInt64(&w.metrics.QueueDepthCurrent),
+			"max_workers": w.workerPool.maxWorkers,
+
+			"active_workers": atomic.LoadInt64(&w.workerPool.activeWorkers),
+
+			"worker_utilization": w.metrics.WorkerUtilization,
+
+			"queue_depth": atomic.LoadInt64(&w.metrics.QueueDepthCurrent),
+
 			"backpressure_events": atomic.LoadInt64(&w.metrics.BackpressureEventsTotal),
 		},
+
 		"errors": map[string]interface{}{
-			"timeout_count":             atomic.LoadInt64(&w.metrics.TimeoutCount),
+			"timeout_count": atomic.LoadInt64(&w.metrics.TimeoutCount),
+
 			"validation_errors_by_type": w.metrics.ValidationErrorsByType,
+
 			"processing_errors_by_type": w.metrics.ProcessingErrorsByType,
 		},
+
 		"metadata": map[string]interface{}{
-			"start_time":      w.metrics.StartTime.Format(time.RFC3339),
-			"last_update":     w.metrics.LastUpdateTime.Format(time.RFC3339),
-			"uptime_seconds":  time.Since(w.metrics.StartTime).Seconds(),
+			"start_time": w.metrics.StartTime.Format(time.RFC3339),
+
+			"last_update": w.metrics.LastUpdateTime.Format(time.RFC3339),
+
+			"uptime_seconds": time.Since(w.metrics.StartTime).Seconds(),
+
 			"metrics_enabled": w.metrics.MetricsEnabled,
 		},
 	}
 
 	writer.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(writer).Encode(response)
+
+	if err := json.NewEncoder(writer).Encode(response); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
-// handlePrometheusMetrics handles Prometheus-format metrics endpoint
+// handlePrometheusMetrics handles Prometheus-format metrics endpoint.
+
 func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *http.Request) {
 	w.metrics.mu.RLock()
+
 	defer w.metrics.mu.RUnlock()
 
 	var buf bytes.Buffer
 
-	// Write Prometheus-format metrics
+	// Write Prometheus-format metrics.
+
 	buf.WriteString("# HELP conductor_loop_files_processed_total Total number of files processed successfully\n")
+
 	buf.WriteString("# TYPE conductor_loop_files_processed_total counter\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_files_processed_total %d\n", atomic.LoadInt64(&w.metrics.FilesProcessedTotal)))
 
 	buf.WriteString("# HELP conductor_loop_files_failed_total Total number of files that failed processing\n")
+
 	buf.WriteString("# TYPE conductor_loop_files_failed_total counter\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_files_failed_total %d\n", atomic.LoadInt64(&w.metrics.FilesFailedTotal)))
 
 	buf.WriteString("# HELP conductor_loop_validation_failures_total Total number of validation failures\n")
+
 	buf.WriteString("# TYPE conductor_loop_validation_failures_total counter\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_validation_failures_total %d\n", atomic.LoadInt64(&w.metrics.ValidationFailuresTotal)))
 
 	buf.WriteString("# HELP conductor_loop_retry_attempts_total Total number of retry attempts\n")
+
 	buf.WriteString("# TYPE conductor_loop_retry_attempts_total counter\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_retry_attempts_total %d\n", atomic.LoadInt64(&w.metrics.RetryAttemptsTotal)))
 
 	buf.WriteString("# HELP conductor_loop_throughput_files_per_second Files processed per second\n")
+
 	buf.WriteString("# TYPE conductor_loop_throughput_files_per_second gauge\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_throughput_files_per_second %f\n", w.metrics.ThroughputFilesPerSecond))
 
 	buf.WriteString("# HELP conductor_loop_average_processing_time_seconds Average processing time in seconds\n")
+
 	buf.WriteString("# TYPE conductor_loop_average_processing_time_seconds gauge\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_average_processing_time_seconds %f\n", w.metrics.AverageProcessingTime.Seconds()))
 
 	buf.WriteString("# HELP conductor_loop_memory_usage_bytes Current memory usage in bytes\n")
+
 	buf.WriteString("# TYPE conductor_loop_memory_usage_bytes gauge\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_memory_usage_bytes %d\n", atomic.LoadInt64(&w.metrics.MemoryUsageBytes)))
 
 	buf.WriteString("# HELP conductor_loop_goroutine_count Current number of goroutines\n")
+
 	buf.WriteString("# TYPE conductor_loop_goroutine_count gauge\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_goroutine_count %d\n", atomic.LoadInt64(&w.metrics.GoroutineCount)))
 
 	buf.WriteString("# HELP conductor_loop_worker_utilization_percent Worker pool utilization percentage\n")
+
 	buf.WriteString("# TYPE conductor_loop_worker_utilization_percent gauge\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_worker_utilization_percent %f\n", w.metrics.WorkerUtilization))
 
 	buf.WriteString("# HELP conductor_loop_queue_depth Current queue depth\n")
+
 	buf.WriteString("# TYPE conductor_loop_queue_depth gauge\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_queue_depth %d\n", atomic.LoadInt64(&w.metrics.QueueDepthCurrent)))
 
 	buf.WriteString("# HELP conductor_loop_backpressure_events_total Total backpressure events\n")
+
 	buf.WriteString("# TYPE conductor_loop_backpressure_events_total counter\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_backpressure_events_total %d\n", atomic.LoadInt64(&w.metrics.BackpressureEventsTotal)))
 
 	buf.WriteString("# HELP conductor_loop_timeout_count_total Total number of timeouts\n")
+
 	buf.WriteString("# TYPE conductor_loop_timeout_count_total counter\n")
+
 	buf.WriteString(fmt.Sprintf("conductor_loop_timeout_count_total %d\n", atomic.LoadInt64(&w.metrics.TimeoutCount)))
 
-	// Latency histogram
+	// Latency histogram.
+
 	latencies := w.getLatencyPercentiles()
+
 	for percentile, value := range latencies {
 		buf.WriteString(fmt.Sprintf("# HELP conductor_loop_processing_latency_seconds_p%s Processing latency %s percentile in seconds\n", percentile, percentile))
+
 		buf.WriteString(fmt.Sprintf("# TYPE conductor_loop_processing_latency_seconds_p%s gauge\n", percentile))
+
 		buf.WriteString(fmt.Sprintf("conductor_loop_processing_latency_seconds_p%s %f\n", percentile, value))
 	}
 
 	writer.Header().Set("Content-Type", "text/plain")
-	writer.Write(buf.Bytes())
+
+	if _, err := writer.Write(buf.Bytes()); err != nil {
+		log.Printf("Failed to write Prometheus metrics: %v", err)
+	}
 }
 
-// handleHealth handles health check endpoint
+// handleHealth handles health check endpoint.
+
 func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request) {
 	health := map[string]interface{}{
-		"status":    "healthy",
+		"status": "healthy",
+
 		"timestamp": time.Now().Format(time.RFC3339),
-		"uptime":    time.Since(w.metrics.StartTime).String(),
+
+		"uptime": time.Since(w.metrics.StartTime).String(),
+
 		"components": map[string]string{
 			"fsnotify_watcher": "healthy",
-			"worker_pool":      "healthy",
-			"state_manager":    "healthy",
-			"file_manager":     "healthy",
-			"metrics":          "healthy",
+
+			"worker_pool": "healthy",
+
+			"state_manager": "healthy",
+
+			"file_manager": "healthy",
+
+			"metrics": "healthy",
 		},
 	}
 
 	writer.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(writer).Encode(health)
+
+	if err := json.NewEncoder(writer).Encode(health); err != nil {
+		log.Printf("Failed to encode health response: %v", err)
+		http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
-// getLatencyPercentiles calculates latency percentiles from the ring buffer
+// getLatencyPercentiles calculates latency percentiles from the ring buffer.
+
 func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 	w.metrics.latencyMutex.RLock()
+
 	defer w.metrics.latencyMutex.RUnlock()
 
-	// Collect non-zero latencies
-	var latencies []int64
+	// Collect non-zero latencies and convert to float64.
+
+	var latencies []float64
+
 	for _, latency := range w.metrics.ProcessingLatencies {
 		if latency > 0 {
-			latencies = append(latencies, latency)
+			latencies = append(latencies, float64(latency))
 		}
 	}
 
 	if len(latencies) == 0 {
 		return map[string]float64{
 			"50": 0.0,
+
 			"95": 0.0,
+
 			"99": 0.0,
 		}
 	}
 
-	// Simple percentile calculation (for production, consider using a proper algorithm)
+	// Simple percentile calculation (for production, consider using a proper algorithm).
+
 	return map[string]float64{
-		"50": float64(percentileInt64(latencies, 50)) / 1e9, // Convert to seconds
-		"95": float64(percentileInt64(latencies, 95)) / 1e9,
-		"99": float64(percentileInt64(latencies, 99)) / 1e9,
+		"50": percentile(latencies, 50) / 1e9, // Convert to seconds
+
+		"95": percentile(latencies, 95) / 1e9,
+
+		"99": percentile(latencies, 99) / 1e9,
 	}
 }
 
-// percentileInt64 calculates the nth percentile of a slice of int64 values
-func percentileInt64(values []int64, p int) int64 {
-	if len(values) == 0 {
-		return 0
-	}
+// Note: percentile function is defined in bounded_stats.go.
 
-	// Simple percentile calculation - for production use a sorting algorithm
-	index := (len(values) * p) / 100
-	if index >= len(values) {
-		index = len(values) - 1
-	}
+// ProcessExistingFiles processes any existing intent files in the directory (for restart idempotency).
 
-	return values[index]
-}
+func (w *Watcher) ProcessExistingFiles() error {
+	// If using IntentProcessor pattern, delegate to processor.
 
-// Start begins watching for file events
-func (w *Watcher) Start() error {
-	log.Printf("LOOP:START - Starting watcher on directory: %s", w.dir)
-	log.Printf("Configuration: workers=%d, debounce=%v, once=%t, period=%v, metrics_port=%d",
-		w.config.MaxWorkers, w.config.DebounceDur, w.config.Once, w.config.Period, w.config.MetricsPort)
-
-	// Start enhanced worker pool
-	w.startWorkerPool()
-
-	// Start cleanup routine
-	go w.cleanupRoutine()
-
-	// Start file state cleanup routine
-	go w.fileStateCleanupRoutine()
-
-	// If in "once" mode, process existing files first
-	if w.config.Once {
-		if err := w.processExistingFiles(); err != nil {
-			log.Printf("Warning: failed to process existing files: %v", err)
+	if w.processor != nil {
+		entries, err := os.ReadDir(w.dir)
+		if err != nil {
+			return fmt.Errorf("failed to read directory: %w", err)
 		}
 
-		// In once mode, we don't start the file watcher loop
-		w.waitForWorkersToFinish()
+		count := 0
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+
+			if IsIntentFile(entry.Name()) {
+				fullPath := filepath.Join(w.dir, entry.Name())
+
+				if w.processor != nil {
+					if err := w.processor.ProcessFile(fullPath); err != nil {
+						log.Printf("Error processing existing file %s: %v", fullPath, err)
+
+						// Continue processing other files.
+					}
+				}
+
+				count++
+			}
+		}
+
+		if count > 0 {
+			log.Printf("Processed %d existing intent files", count)
+
+			// No need to flush batch - IntentProcessor doesn't use batching.
+		}
+
 		return nil
 	}
 
-	// Use polling if period is set, otherwise use fsnotify
+	// Fallback to legacy processing approach.
+
+	return w.processExistingFiles()
+}
+
+// Start begins watching for file events.
+
+func (w *Watcher) Start() error {
+	log.Printf("LOOP:START - Starting watcher on directory: %s", w.dir)
+
+	log.Printf("Configuration: workers=%d, debounce=%v, once=%t, period=%v, metrics_port=%d, processor=%t",
+
+		w.config.MaxWorkers, w.config.DebounceDur, w.config.Once, w.config.Period, w.config.MetricsPort, w.processor != nil)
+
+	// Start enhanced worker pool (only if not using processor).
+
+	if w.processor == nil {
+		w.startWorkerPool()
+
+		// Start cleanup routine.
+
+		go w.cleanupRoutine()
+	}
+
+	// Start file state cleanup routine.
+
+	go w.fileStateCleanupRoutine()
+
+	// If in "once" mode, process existing files first.
+
+	if w.config.Once {
+		if err := w.ProcessExistingFiles(); err != nil {
+			log.Printf("Warning: failed to process existing files: %v", err)
+		}
+
+		// In once mode, wait for all work to complete before exiting.
+
+		if w.processor == nil {
+			w.waitForWorkersToFinish()
+		}
+
+		// IntentProcessor doesn't use batching, no need to flush.
+
+		return nil
+	}
+
+	// Use polling if period is set, otherwise use fsnotify.
+
 	if w.config.Period > 0 {
 		return w.startPolling()
 	}
 
-	// Main event loop (fsnotify)
+	// Main event loop (fsnotify).
+
 	for {
 		select {
 		case <-w.ctx.Done():
+
 			log.Printf("Watcher context cancelled, shutting down...")
-			w.waitForWorkersToFinish()
+
+			if w.processor == nil {
+				w.waitForWorkersToFinish()
+			}
+
 			return nil
 
 		case event, ok := <-w.watcher.Events:
+
 			if !ok {
 				log.Printf("Watcher events channel closed")
-				w.waitForWorkersToFinish()
+
+				if w.processor == nil {
+					w.waitForWorkersToFinish()
+				}
+
 				return nil
 			}
 
-			// Process only Create and Write events for intent files
+			// Process only Create and Write events for intent files.
+
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
 				if IsIntentFile(filepath.Base(event.Name)) {
-					w.handleIntentFileWithEnhancedDebounce(event.Name, event.Op)
+					// Use hybrid processing approach.
+
+					w.handleIntentFile(event)
 				}
 			}
 
 		case err, ok := <-w.watcher.Errors:
+
 			if !ok {
 				log.Printf("Watcher errors channel closed")
-				w.waitForWorkersToFinish()
+
+				if w.processor == nil {
+					w.waitForWorkersToFinish()
+				}
+
 				return nil
 			}
+
 			if err != nil {
 				log.Printf("Watcher error: %v", err)
 			}
@@ -947,216 +1290,228 @@ func (w *Watcher) Start() error {
 	}
 }
 
-// handleIntentFileWithEnhancedDebounce handles file events with enhanced debouncing to prevent duplicate processing
+// handleIntentFile processes detected intent files using hybrid approach.
+
+func (w *Watcher) handleIntentFile(event fsnotify.Event) {
+	operation := "UNKNOWN"
+
+	if event.Op&fsnotify.Create != 0 {
+		operation = "CREATE"
+	} else if event.Op&fsnotify.Write != 0 {
+		operation = "WRITE"
+	}
+
+	log.Printf("LOOP:%s - Intent file detected: %s", operation, filepath.Base(event.Name))
+
+	// If we have a processor, use it directly.
+
+	if w.processor != nil {
+		if err := w.processor.ProcessFile(event.Name); err != nil {
+			log.Printf("Error processing file %s: %v", event.Name, err)
+		}
+
+		return
+	}
+
+	// Fallback to enhanced legacy processing with debouncing.
+
+	w.handleIntentFileWithEnhancedDebounce(event.Name, event.Op)
+}
+
+// handleIntentFileWithEnhancedDebounce handles file events with enhanced debouncing to prevent duplicate processing.
+
 func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp fsnotify.Op) {
 	w.fileState.mu.Lock()
+
 	defer w.fileState.mu.Unlock()
 
 	now := time.Now()
+
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		log.Printf("Warning: failed to get absolute path for %s: %v", filePath, err)
+
 		absPath = filePath
 	}
 
-	// Check for recent events to prevent duplicate processing of CREATE+WRITE sequences
+	// Check for recent events to prevent duplicate processing of CREATE+WRITE sequences.
+
 	if lastEvent, exists := w.fileState.recentEvents[absPath]; exists {
 		if now.Sub(lastEvent) < w.config.DebounceDur {
 			log.Printf("LOOP:DEBOUNCE - Skipping duplicate event for %s (last: %v ago)",
+
 				filepath.Base(filePath), now.Sub(lastEvent))
+
 			return
 		}
 	}
 
-	// Record this event
+	// Record this event.
+
 	w.fileState.recentEvents[absPath] = now
 
-	// Debounce the processing with cross-platform file system timing
-	// Register this goroutine as a sender to prevent race conditions during shutdown
-	w.workerPool.senders.Add(1)
-	go func() {
-		defer w.workerPool.senders.Done()
+	// Debounce the processing with cross-platform file system timing.
 
-		// Use adaptive debouncing based on runtime OS
+	go func() {
+		// Use adaptive debouncing based on runtime OS.
+
 		debounceTime := w.config.DebounceDur
+
 		if runtime.GOOS == "windows" {
-			// Windows needs longer debounce due to file system latency
+			// Windows needs longer debounce due to file system latency.
+
 			if debounceTime < 200*time.Millisecond {
 				debounceTime = 200 * time.Millisecond
 			}
 		}
 
-		// Sleep with context cancellation check
-		select {
-		case <-time.After(debounceTime):
-			// Debounce period completed normally
-		case <-w.ctx.Done():
-			// Context cancelled during debounce
-			return
-		}
+		time.Sleep(debounceTime)
 
-		// Additional file existence and stability check
+		// Additional file existence and stability check.
+
 		if !w.isFileStable(absPath) {
 			log.Printf("LOOP:UNSTABLE - File %s not stable, skipping", filepath.Base(filePath))
+
 			return
 		}
 
-		// Create work item with timeout context
+		// Create work item with timeout context.
+
 		workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+
 		workItem := WorkItem{
 			FilePath: absPath,
-			Attempt:  1,
-			Ctx:      workCtx,
+
+			Attempt: 1,
+
+			Ctx: workCtx,
 		}
 
-		// Guard against sending on closed channel with double-check
-		select {
-		case <-w.ctx.Done():
-			// Context cancelled, don't send
-			cancel()
-			return
-		default:
-			// Context is still active, proceed to send
-		}
+		// Queue work item with backpressure handling.
 
-		// Check if shutdown has started to prevent sending on closed channel
-		if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
-			cancel()
-			return
-		}
-
-		// Queue work item with backpressure handling
 		select {
 		case w.workerPool.workQueue <- workItem:
-			// Successfully queued
+
+			// Successfully queued - defer cancel to ensure cleanup.
+
+			defer cancel()
+
 		case <-w.ctx.Done():
+
 			cancel()
+
 			return
+
 		default:
-			// Work queue is full, implement backpressure
+
+			// Work queue is full, implement backpressure.
+
 			log.Printf("LOOP:BACKPRESSURE - Work queue full, applying backpressure for %s",
+
 				filepath.Base(filePath))
 
-			// Record backpressure event
+			// Record backpressure event.
+
 			atomic.AddInt64(&w.metrics.BackpressureEventsTotal, 1)
 
-			// Try again with exponential backoff
-			w.workerPool.senders.Add(1) // Track the retry goroutine
-			go func() {
-				defer w.workerPool.senders.Done()
-				w.retryWithBackoff(workItem, cancel)
-			}()
+			// Try again with exponential backoff.
+
+			go w.retryWithBackoff(workItem, cancel)
 		}
 	}()
 }
 
-// processExistingFiles processes all existing intent files in the directory (for -once mode)
-func (w *Watcher) processExistingFiles() error {
-	// Register this function as a sender to the work queue
-	w.workerPool.senders.Add(1)
-	defer w.workerPool.senders.Done()
+// processExistingFiles processes all existing intent files in the directory (for -once mode).
 
+func (w *Watcher) processExistingFiles() error {
 	entries, err := os.ReadDir(w.dir)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	// First pass: count expected files
-	expectedFiles := 0
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		filename := entry.Name()
-		if IsIntentFile(filename) {
-			expectedFiles++
-		}
-	}
-
-	// Set expected files count for drain validation
-	w.onceModeExpectedFiles.Store(int64(expectedFiles))
-	log.Printf("Once mode: expecting to process %d intent files", expectedFiles)
-
-	// If no files to process, we can return immediately
-	if expectedFiles == 0 {
-		log.Printf("Once mode: no intent files found, nothing to process")
-		return nil
-	}
-
-	// Second pass: queue files for processing
 	filesQueued := 0
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
 
 		filename := entry.Name()
+
 		if IsIntentFile(filename) {
 			filePath := filepath.Join(w.dir, filename)
 
-			workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
-			workItem := WorkItem{
-				FilePath: filePath,
-				Attempt:  1,
-				Ctx:      workCtx,
-			}
+			func() {
+				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 
-			// Check if shutdown has started to prevent sending on closed channel
-			if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
-				cancel()
-				return fmt.Errorf("shutdown in progress")
-			}
+				defer cancel() // Ensure cancel is always called
 
-			select {
-			case w.workerPool.workQueue <- workItem:
-				filesQueued++
-				w.onceModeQueuedFiles.Add(1)
-			case <-w.ctx.Done():
-				cancel()
-				return nil
-			default:
-				cancel()
-				log.Printf("Warning: work queue full during startup, skipping %s", filename)
-			}
+				workItem := WorkItem{
+					FilePath: filePath,
+
+					Attempt: 1,
+
+					Ctx: workCtx,
+				}
+
+				select {
+				case w.workerPool.workQueue <- workItem:
+
+					filesQueued++
+
+				case <-w.ctx.Done():
+
+					return
+
+				default:
+
+					log.Printf("Warning: work queue full during startup, skipping %s", filename)
+				}
+			}()
 		}
 	}
 
 	log.Printf("Queued %d existing intent files for processing", filesQueued)
+
 	return nil
 }
 
-// startPolling starts the polling-based file monitoring
-func (w *Watcher) startPolling() error {
-	// Register this function as a sender to the work queue
-	w.workerPool.senders.Add(1)
-	defer w.workerPool.senders.Done()
+// startPolling starts the polling-based file monitoring.
 
+func (w *Watcher) startPolling() error {
 	ticker := time.NewTicker(w.config.Period)
+
 	defer ticker.Stop()
 
 	log.Printf("LOOP:SCAN - Starting polling mode with period: %v", w.config.Period)
 
-	// Track processed files to avoid duplicates
-	processedFiles := make(map[string]bool) // filePath -> processed
+	// Track processed files to avoid duplicates.
+
+	processedFiles := make(map[string]string) // filename -> SHA256
 
 	for {
 		select {
 		case <-w.ctx.Done():
+
 			log.Printf("LOOP:DONE - Polling context cancelled, shutting down...")
+
 			w.waitForWorkersToFinish()
+
 			return nil
 
 		case <-ticker.C:
+
 			log.Printf("LOOP:SCAN - Scanning directory: %s", w.dir)
 
 			entries, err := os.ReadDir(w.dir)
 			if err != nil {
 				log.Printf("LOOP:ERROR - Failed to read directory: %v", err)
+
 				continue
 			}
 
 			filesFound := 0
+
 			filesQueued := 0
 
 			for _, entry := range entries {
@@ -1165,55 +1520,75 @@ func (w *Watcher) startPolling() error {
 				}
 
 				filename := entry.Name()
+
 				if !IsIntentFile(filename) {
 					continue
 				}
 
 				filesFound++
+
 				filePath := filepath.Join(w.dir, filename)
 
-				// Check if this specific file (by path+identity) has already been processed
-				processed, err := w.stateManager.IsProcessedByIdentity(filePath)
+				// Check if file is already being processed.
+
+				sha256Hash, err := w.stateManager.CalculateFileSHA256(filePath)
 				if err != nil {
-					log.Printf("LOOP:ERROR - Failed to check file identity for %s: %v", filePath, err)
+					log.Printf("LOOP:ERROR - Failed to calculate SHA256 for %s: %v", filePath, err)
+
 					continue
+				}
+
+				// Check if this exact file (by SHA) was already processed.
+
+				if prevSHA, exists := processedFiles[filename]; exists && prevSHA == sha256Hash {
+					log.Printf("LOOP:SKIP_DUP - File %s unchanged (SHA: %s), skipping", filename, sha256Hash[:8])
+
+					continue
+				}
+
+				// Check state manager for historical processing.
+
+				processed, err := w.stateManager.IsProcessedBySHA(sha256Hash)
+
+				if err != nil {
+					log.Printf("LOOP:ERROR - Failed to check state for %s: %v", filePath, err)
 				} else if processed {
-					log.Printf("LOOP:SKIP_DUP - File %s already processed by identity, skipping", filename)
+					log.Printf("LOOP:SKIP_DUP - File %s already processed (SHA: %s), skipping", filename, sha256Hash[:8])
+
+					processedFiles[filename] = sha256Hash
+
 					continue
 				}
 
-				// Check if file has been processed in this session (local deduplication)
-				if _, exists := processedFiles[filePath]; exists {
-					log.Printf("LOOP:SKIP_DUP - File %s already processed in this session, skipping", filename)
-					continue
-				}
+				// Queue for processing.
 
-				// Queue for processing
-				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
-				workItem := WorkItem{
-					FilePath: filePath,
-					Attempt:  1,
-					Ctx:      workCtx,
-				}
+				func() {
+					workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 
-				// Check if shutdown has started to prevent sending on closed channel
-				if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
-					cancel()
-					return nil
-				}
+					defer cancel() // Ensure cancel is always called
 
-				select {
-				case w.workerPool.workQueue <- workItem:
-					filesQueued++
-					processedFiles[filePath] = true
-					log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
-				case <-w.ctx.Done():
-					cancel()
-					return nil
-				default:
-					cancel()
-					log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
-				}
+					workItem := WorkItem{
+						FilePath: filePath,
+
+						Attempt: 1,
+
+						Ctx: workCtx,
+					}
+
+					select {
+					case w.workerPool.workQueue <- workItem:
+
+						filesQueued++
+
+						processedFiles[filename] = sha256Hash
+
+						log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
+
+					default:
+
+						log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
+					}
+				}()
 			}
 
 			if filesFound > 0 {
@@ -1223,19 +1598,25 @@ func (w *Watcher) startPolling() error {
 	}
 }
 
-// startWorkerPool starts the enhanced worker pool
+// startWorkerPool starts the enhanced worker pool.
+
 func (w *Watcher) startWorkerPool() {
-	for i := 0; i < w.workerPool.maxWorkers; i++ {
+	for i := range w.workerPool.maxWorkers {
 		w.workerPool.workers.Add(1)
+
 		go w.enhancedWorker(i)
 	}
+
 	log.Printf("Started %d enhanced workers", w.workerPool.maxWorkers)
 }
 
-// enhancedWorker processes work items from the enhanced work queue
+// enhancedWorker processes work items from the enhanced work queue.
+
 func (w *Watcher) enhancedWorker(workerID int) {
 	defer w.workerPool.workers.Done()
+
 	atomic.AddInt64(&w.workerPool.activeWorkers, 1)
+
 	defer atomic.AddInt64(&w.workerPool.activeWorkers, -1)
 
 	log.Printf("Enhanced worker %d started", workerID)
@@ -1243,423 +1624,388 @@ func (w *Watcher) enhancedWorker(workerID int) {
 	for {
 		select {
 		case <-w.ctx.Done():
+
 			log.Printf("Enhanced worker %d cancelled", workerID)
+
 			return
 
 		case workItem, ok := <-w.workerPool.workQueue:
+
 			if !ok {
 				log.Printf("Enhanced worker %d: work queue closed, exiting", workerID)
+
 				return
 			}
+
 			w.processWorkItemWithLocking(workerID, workItem)
 		}
 	}
 }
 
-// processWorkItemWithLocking processes a work item with file-level locking
-func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
-	// Increment processing counter
-	atomic.AddInt64(&w.workerPool.processingItems, 1)
-	defer atomic.AddInt64(&w.workerPool.processingItems, -1)
+// processWorkItemWithLocking processes a work item with file-level locking.
 
+func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
 	defer func() {
 		if workItem.Ctx != nil {
 			workItem.Ctx.Done()
 		}
 	}()
 
-	// Get or create file-level mutex
+	// Get or create file-level mutex.
+
 	fileLock := w.getOrCreateFileLock(workItem.FilePath)
+
 	fileLock.Lock()
+
 	defer fileLock.Unlock()
 
 	w.processIntentFileWithContext(workerID, workItem)
 }
 
-// processIntentFileWithContext processes a single intent file with context and timeout
+// processIntentFileWithContext processes a single intent file with context and timeout.
+
 func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) {
 	startTime := time.Now()
+
 	filePath := workItem.FilePath
+
 	log.Printf("LOOP:PROCESS - Worker %d processing file: %s (attempt %d)",
+
 		workerID, filepath.Base(filePath), workItem.Attempt)
 
-	// Compute file hash upfront before any processing or moving
-	// This prevents race conditions where the file might be moved by another worker
-	fileHash, fileSize, hashErr := w.computeFileHashSafely(filePath)
-	if hashErr != nil {
-		// If file doesn't exist, it was likely already processed by another worker
-		if os.IsNotExist(hashErr) || strings.Contains(hashErr.Error(), "cannot find the file") {
-			log.Printf("LOOP:INFO - Worker %d: File %s disappeared before processing (likely handled by another worker)",
-				workerID, filepath.Base(filePath))
-			return
-		}
-		log.Printf("LOOP:ERROR - Worker %d: Failed to compute hash for %s: %v",
-			workerID, filepath.Base(filePath), hashErr)
-		return
-	}
+	// Validate JSON file before processing.
 
-	// Check if already processed by identity (prevents duplicate processing)
-	processed, err := w.stateManager.IsProcessedByIdentity(filePath)
-	if err != nil {
-		log.Printf("LOOP:ERROR - Worker %d: Error checking file identity for %s: %v",
-			workerID, filepath.Base(filePath), err)
-	} else if processed {
-		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed by identity",
-			workerID, filepath.Base(filePath))
-		return
-	}
-
-	// Validate JSON file before processing
 	if err := w.validateJSONFile(filePath); err != nil {
 		log.Printf("LOOP:ERROR - Worker %d: JSON validation failed for %s: %v",
+
 			workerID, filepath.Base(filePath), err)
 
-		// Record validation error
+		// Record validation error.
+
 		w.recordValidationError(err.Error())
 
-		// Write failure status FIRST (before moving the file)
-		w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err))
+		// Mark as failed and move to failed directory.
 
-		// Mark as failed with precomputed hash
-		w.stateManager.MarkFailedWithHash(filePath, fileHash, fileSize)
+		if err := w.stateManager.MarkFailed(filePath); err != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed %s: %v", workerID, filepath.Base(filePath), err)
+		}
 
-		// Move to failed directory LAST
-		w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err))
+		if err := w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err)); err != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed directory %s: %v", workerID, filepath.Base(filePath), err)
+		}
+
+		if statusErr := w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err)); statusErr != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+		}
+
 		return
 	}
 
-	// Execute porch command with context timeout
-	result, err := w.executor.Execute(workItem.Ctx, filePath)
+	// Check if already processed using state manager.
 
-	// Record processing latency
+	processed, err := w.stateManager.IsProcessed(filePath)
+
+	if err != nil {
+		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v",
+
+			workerID, filepath.Base(filePath), err)
+	} else if processed {
+		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed",
+
+			workerID, filepath.Base(filePath))
+
+		return
+	}
+
+	// Execute porch command with context timeout.
+
+	result, err := w.executor.Execute(workItem.Ctx, filePath)
+	if err != nil {
+		log.Printf("Error: Failed to execute command: %v, file: %s", err, filePath)
+		return
+	}
+
+	// Record processing latency.
+
 	processingDuration := time.Since(startTime)
+
 	w.recordProcessingLatency(processingDuration)
 
 	if result.Success {
-		// Write success status FIRST (before moving the file)
-		w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration))
+		// Mark as processed in state manager.
 
-		// Mark as processed in state manager with precomputed hash
-		if err := w.stateManager.MarkProcessedWithHash(filePath, fileHash, fileSize); err != nil {
+		if err := w.stateManager.MarkProcessed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
 		}
 
-		// Move to processed directory LAST (after status is written)
+		// Move to processed directory.
+
 		if err := w.fileManager.MoveToProcessed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to processed: %v", workerID, err)
 		}
 
-		// Record successful processing
+		// Write success status.
+
+		if statusErr := w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration)); statusErr != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+		}
+
+		// Record successful processing.
+
 		atomic.AddInt64(&w.metrics.FilesProcessedTotal, 1)
 
 		log.Printf("LOOP:DONE - Worker %d: Successfully processed %s", workerID, filepath.Base(filePath))
 	} else {
-		// Create error message
+		// Mark as failed in state manager.
+
+		if err := w.stateManager.MarkFailed(filePath); err != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
+		}
+
+		// Create error message.
+
 		errorMsg := "Unknown error"
+
 		if result.Error != nil {
 			errorMsg = result.Error.Error()
 
-			// Check for timeout
+			// Check for timeout.
+
 			if strings.Contains(errorMsg, "timed out") {
 				atomic.AddInt64(&w.metrics.TimeoutCount, 1)
 			}
 		}
+
 		if result.Stderr != "" {
 			errorMsg += " (stderr: " + result.Stderr + ")"
 		}
 
-		// Check if this is a graceful shutdown failure
-		isShutdownFailure := w.IsShutdownFailure(result.Error, errorMsg)
+		// Record processing error.
 
-		if isShutdownFailure {
-			log.Printf("LOOP:SHUTDOWN - Worker %d: File %s failed due to graceful shutdown (expected): %s",
-				workerID, filepath.Base(filePath), errorMsg)
+		w.recordProcessingError(errorMsg)
 
-			// Write failure status with shutdown marker FIRST
-			w.writeStatusFileAtomic(filePath, "shutdown_failed", fmt.Sprintf("Failed during graceful shutdown: %s", errorMsg))
+		// Move to failed directory.
 
-			// Move to failed directory but mark as shutdown failure LAST
-			shutdownErrorMsg := fmt.Sprintf("SHUTDOWN_FAILURE: %s", errorMsg)
-			if err := w.fileManager.MoveToFailed(filePath, shutdownErrorMsg); err != nil {
-				log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
-			}
-		} else {
-			log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
-
-			// Write failure status FIRST
-			w.writeStatusFileAtomic(filePath, "failed", errorMsg)
-
-			// Mark as failed in state manager with precomputed hash (only for real failures)
-			if err := w.stateManager.MarkFailedWithHash(filePath, fileHash, fileSize); err != nil {
-				log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
-			}
-
-			// Record processing error (only for real failures)
-			w.recordProcessingError(errorMsg)
-
-			// Move to failed directory LAST
-			if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
-				log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
-			}
+		if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
 		}
+
+		// Write failure status.
+
+		if statusErr := w.writeStatusFileAtomic(filePath, "failed", errorMsg); statusErr != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+		}
+
+		log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
 	}
 }
 
-// cleanupRoutine periodically cleans up old processed and failed files
+// cleanupRoutine periodically cleans up old processed and failed files.
+
 func (w *Watcher) cleanupRoutine() {
 	ticker := time.NewTicker(24 * time.Hour) // Run cleanup daily
+
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-w.ctx.Done():
+
 			return
+
 		case <-ticker.C:
+
 			log.Printf("Running periodic cleanup...")
 
-			// Cleanup old state entries
+			// Cleanup old state entries.
+
 			if err := w.stateManager.CleanupOldEntries(w.config.CleanupAfter); err != nil {
 				log.Printf("Warning: cleanup state entries failed: %v", err)
 			}
 
-			// Cleanup old processed/failed files
+			// Cleanup old processed/failed files.
+
 			if err := w.fileManager.CleanupOldFiles(w.config.CleanupAfter); err != nil {
 				log.Printf("Warning: cleanup old files failed: %v", err)
 			}
 
-			// Log statistics
-			if w.executor != nil {
-				stats := w.executor.GetStats()
-				log.Printf("Executor stats: total=%d, success=%d, failed=%d, avg_time=%v",
-					stats.TotalExecutions, stats.SuccessfulExecs, stats.FailedExecs, stats.AverageExecTime)
-			}
+			// Log statistics.
+
+			stats := w.executor.GetStats()
+
+			log.Printf("Executor stats: total=%d, success=%d, failed=%d, avg_time=%v",
+
+				stats.TotalExecutions, stats.SuccessfulExecs, stats.FailedExecs, stats.AverageExecTime)
 		}
 	}
 }
 
-// waitForWorkersToFinish waits for all workers to complete and cleans up
+// waitForWorkersToFinish waits for all workers to complete and cleans up.
+
 func (w *Watcher) waitForWorkersToFinish() {
-	// Use sync.Once to ensure this only runs once, even if called multiple times
-	w.shutdownOnce.Do(func() {
-		w.waitForWorkersToFinishInternal()
-	})
-}
+	log.Printf("Signaling enhanced workers to stop...")
 
-// waitForWorkersToFinishInternal does the actual work of waiting for workers
-func (w *Watcher) waitForWorkersToFinishInternal() {
-	// Signal that shutdown has started to prevent new sends to the channel
-	atomic.StoreInt32(&w.workerPool.shutdownStarted, 1)
+	// Wait for queue to drain first.
 
-	log.Printf("Waiting for workers to process queued files...")
-
-	// In once mode, wait longer for processing to complete
-	// Use a more generous timeout to allow files to be processed
-	var drainTimeout time.Duration
-	if w.config.Once {
-		// In once mode, wait up to 30 seconds for queue to drain
-		drainTimeout = 30 * time.Second
-	} else {
-		// In normal mode, use shorter timeout
-		drainTimeout = 5 * time.Second
-	}
-
-	drainTimer := time.NewTimer(drainTimeout)
-	defer drainTimer.Stop()
-
-	// Wait for queue to drain AND workers to finish processing
 	for {
-		select {
-		case <-drainTimer.C:
-			queueSize := len(w.workerPool.workQueue)
-			activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
-			if queueSize > 0 || activeWorkers > 0 {
-				log.Printf("Drain timeout reached after %v, forcing shutdown with %d items queued and %d workers active",
-					drainTimeout, queueSize, activeWorkers)
-			}
-			goto closeQueue
-		case <-w.ctx.Done():
-			log.Printf("Context cancelled during queue drain")
-			goto closeQueue
-		default:
-			queueSize := len(w.workerPool.workQueue)
-			activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
-			processingItems := atomic.LoadInt64(&w.workerPool.processingItems)
+		queueSize := len(w.workerPool.workQueue)
 
-			// In once mode, wait for both queue to be empty AND no items being processed
-			// AND verify all expected files have been processed by the executor
-			if w.config.Once {
-				// Check if queue is drained and no items are being processed
-				if queueSize == 0 && processingItems == 0 {
-					// Additional validation: ensure all expected files are processed (success or failure)
-					expectedFiles := w.onceModeExpectedFiles.Load()
-					if expectedFiles > 0 && w.fileManager != nil {
-						fileStats, err := w.fileManager.GetStats()
-						if err != nil {
-							log.Printf("Once mode: warning - failed to get file stats: %v", err)
-						} else {
-							processedTotal := int64(fileStats.ProcessedCount + fileStats.FailedCount)
-							if processedTotal < expectedFiles {
-								log.Printf("Once mode: waiting for completion - handled %d of %d expected files (processed: %d, failed: %d)",
-									processedTotal, expectedFiles, fileStats.ProcessedCount, fileStats.FailedCount)
-								time.Sleep(100 * time.Millisecond)
-								continue
-							}
-							log.Printf("Queue drained and all %d expected files handled in once mode (processed: %d, failed: %d), proceeding with shutdown",
-								expectedFiles, fileStats.ProcessedCount, fileStats.FailedCount)
-						}
-					} else {
-						log.Printf("Queue drained and no items processing in once mode, proceeding with shutdown")
-					}
-					goto closeQueue
-				}
-			} else {
-				// In continuous mode, wait for both queue to be empty AND no active workers
-				if queueSize == 0 && activeWorkers == 0 {
-					log.Printf("Queue drained and all workers idle, proceeding with shutdown")
-					goto closeQueue
-				}
-			}
-
-			if queueSize > 0 || processingItems > 0 {
-				if w.config.Once {
-					expectedFiles := w.onceModeExpectedFiles.Load()
-					handledTotal := int64(0)
-					processedCount := 0
-					failedCount := 0
-					if w.fileManager != nil {
-						if fileStats, err := w.fileManager.GetStats(); err == nil {
-							handledTotal = int64(fileStats.ProcessedCount + fileStats.FailedCount)
-							processedCount = fileStats.ProcessedCount
-							failedCount = fileStats.FailedCount
-						}
-					}
-					log.Printf("Once mode: waiting for completion - %d queued, %d processing, %d/%d handled (processed: %d, failed: %d)",
-						queueSize, processingItems, handledTotal, expectedFiles, processedCount, failedCount)
-				} else {
-					log.Printf("Waiting for processing to complete: %d items queued, %d processing, %d workers active",
-						queueSize, processingItems, activeWorkers)
-				}
-			}
-			time.Sleep(100 * time.Millisecond)
+		if queueSize == 0 {
+			break
 		}
-	}
 
-closeQueue:
-	// Give additional time for final status writes in once mode
-	if w.config.Once {
-		log.Printf("Once mode: allowing extra time for final status file writes...")
-		time.Sleep(500 * time.Millisecond) // More generous timing for once mode
-	} else {
+		log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
+
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	// Wait for all senders to finish before closing the channel
-	// This is the canonical Go pattern: only close after all senders are done
-	w.workerPool.senders.Wait()
+	// Give workers time to finish current processing.
 
-	// Close work queue to signal workers to exit (only once)
-	w.workerPool.queueClosed.Do(func() {
+	time.Sleep(200 * time.Millisecond)
+
+	// Close work queue to signal workers to finish processing and exit (if not already closed).
+
+	if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
 		close(w.workerPool.workQueue)
-	})
-
-	// Wait for all workers to finish with a timeout
-	workersDone := make(chan struct{})
-	go func() {
-		w.workerPool.workers.Wait()
-		close(workersDone)
-	}()
-
-	// Use longer timeout for worker shutdown in once mode
-	workerTimeout := 5 * time.Second
-	if w.config.Once {
-		workerTimeout = 10 * time.Second
 	}
 
-	select {
-	case <-workersDone:
-		log.Printf("All workers stopped gracefully")
-	case <-time.After(workerTimeout):
-		log.Printf("Worker shutdown timeout reached after %v, proceeding with shutdown", workerTimeout)
-	}
+	log.Printf("Waiting for enhanced workers to finish...")
+
+	w.workerPool.workers.Wait()
+
+	log.Printf("All enhanced workers stopped")
 
 	close(w.shutdownComplete)
 }
 
-// Close stops the watcher and releases resources
+// Close stops the watcher and releases resources using staged graceful shutdown.
+
 func (w *Watcher) Close() error {
-	// Defensive nil check to prevent panic
+	// Defensive nil check to prevent panic.
+
 	if w == nil {
 		log.Printf("Close() called on nil Watcher - ignoring")
+
 		return nil
 	}
 
-	var closeErr error
+	log.Printf("Starting graceful shutdown...")
 
-	// Use sync.Once to ensure idempotent teardown
-	w.closeOnce.Do(func() {
-		log.Printf("Closing watcher...")
+	// Stage 1: Stop accepting new work - close work queue if using legacy approach.
 
-		// Mark graceful shutdown started
-		w.shutdownMutex.Lock()
-		w.gracefulShutdown.Store(true)
-		w.shutdownStartTime = time.Now()
-		w.shutdownMutex.Unlock()
+	if w.processor == nil && w.workerPool != nil {
+		log.Printf("Stage 1: Stopping new work acceptance...")
 
-		log.Printf("Graceful shutdown initiated at %s", w.shutdownStartTime.Format(time.RFC3339))
+		if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
+			close(w.workerPool.workQueue)
+		}
+	}
 
-		// Cancel context to signal shutdown
+	// Stage 2: Wait for in-flight tasks to complete with timeout.
+
+	if w.processor == nil && w.workerPool != nil {
+		log.Printf("Stage 2: Waiting for in-flight tasks to complete (grace period: %v)...", w.config.GracePeriod)
+
+		// Wait for workers to finish with timeout.
+
+		done := make(chan struct{})
+
+		go func() {
+			defer close(done)
+
+			w.workerPool.workers.Wait()
+		}()
+
+		select {
+		case <-done:
+
+			log.Printf("All workers completed gracefully")
+
+		case <-time.After(w.config.GracePeriod):
+
+			log.Printf("Grace period expired, escalating to forceful shutdown")
+		}
+	}
+
+	// Stage 3: Cancel context to terminate remaining operations.
+
+	log.Printf("Stage 3: Canceling context for remaining operations...")
+
+	if w.cancel != nil {
 		w.cancel()
+	}
 
-		// Close the metrics server
-		if w.metricsServer != nil {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			w.metricsServer.Shutdown(ctx)
+	// Close the file system watcher.
+
+	if w.watcher != nil {
+		w.watcher.Close()
+	}
+
+	// Stop processor if using IntentProcessor pattern.
+
+	if w.processor != nil {
+		w.processor.Stop()
+	}
+
+	// Close the metrics server with its own timeout.
+
+	if w.metricsServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+		defer cancel()
+
+		if err := w.metricsServer.Shutdown(ctx); err != nil {
+			log.Printf("Error: Failed to shutdown metrics server: %v", err)
 		}
+	}
 
-		// Close the file system watcher
-		if w.watcher != nil {
-			w.watcher.Close()
+	// Save state (only if using legacy approach).
+
+	if w.stateManager != nil {
+		if err := w.stateManager.Close(); err != nil {
+			log.Printf("Warning: failed to save state: %v", err)
 		}
+	}
 
-		// Save state
-		if w.stateManager != nil {
-			if err := w.stateManager.Close(); err != nil {
-				log.Printf("Warning: failed to save state: %v", err)
-				closeErr = err
-			}
-		}
+	// Clear file state tracking.
 
-		// Clear file state tracking
+	if w.fileState != nil {
 		w.fileState.mu.Lock()
+
 		w.fileState.recentEvents = make(map[string]time.Time)
+
 		w.fileState.processing = make(map[string]*sync.Mutex)
+
 		w.fileState.mu.Unlock()
+	}
 
-		log.Printf("Watcher closed")
-	})
+	log.Printf("Graceful shutdown completed")
 
-	return closeErr
+	return nil
 }
 
-// validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks
+// validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks.
+
 func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
 	decoder := json.NewDecoder(reader)
+
 	depth := 0
 
 	for {
 		token, err := decoder.Token()
+
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			return err
 		}
 
-		switch token := token.(type) {
-		case json.Delim:
+		if token, ok := token.(json.Delim); ok {
 			if token == '{' || token == '[' {
 				depth++
+
 				if depth > maxDepth {
 					return fmt.Errorf("JSON nesting depth %d exceeds maximum %d", depth, maxDepth)
 				}
@@ -1672,155 +2018,102 @@ func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
 	return nil
 }
 
-// DecodedIntent represents a validated and decoded intent
-type DecodedIntent struct {
-	APIVersion string
-	Kind       string
-	Data       map[string]interface{}
-}
+// validateJSONFile validates that a JSON file is safe to parse and meets requirements.
 
-// ValidateAndLimitJSON validates JSON with size limits and type checks
-func ValidateAndLimitJSON(r io.Reader, maxBytes int64) (*DecodedIntent, error) {
-	// Initialize max bytes from environment if set
-	if envMax := os.Getenv("CONDUCTOR_MAX_BYTES"); envMax != "" {
-		if parsed, err := strconv.ParseInt(envMax, 10, 64); err == nil && parsed > 0 {
-			maxBytes = parsed
-		}
-	}
-
-	// Wrap reader with limit (+1 to detect oversized files)
-	limitedReader := io.LimitReader(r, maxBytes+1)
-
-	// Read all content
-	data, err := io.ReadAll(limitedReader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read JSON: %w", err)
-	}
-
-	// Check if we hit the size limit
-	if int64(len(data)) > maxBytes {
-		return nil, ErrFileTooLarge
-	}
-
-	// Parse JSON
-	var intent map[string]interface{}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.UseNumber() // Preserve number precision
-
-	if err := decoder.Decode(&intent); err != nil {
-		return nil, fmt.Errorf("invalid JSON: %w", err)
-	}
-
-	// Validate required fields
-	apiVersion, ok := intent["apiVersion"].(string)
-	if !ok || apiVersion == "" {
-		return nil, fmt.Errorf("missing or invalid apiVersion field")
-	}
-
-	kind, ok := intent["kind"].(string)
-	if !ok || kind == "" {
-		return nil, fmt.Errorf("missing or invalid kind field")
-	}
-
-	// Validate spec.scaling.replicas if present
-	if spec, hasSpec := intent["spec"].(map[string]interface{}); hasSpec {
-		if scaling, hasScaling := spec["scaling"].(map[string]interface{}); hasScaling {
-			if replicas, hasReplicas := scaling["replicas"]; hasReplicas {
-				switch v := replicas.(type) {
-				case json.Number:
-					if _, err := v.Int64(); err != nil {
-						return nil, fmt.Errorf("%w: got %v", ErrInvalidReplicasType, v)
-					}
-				case float64:
-					if v != float64(int64(v)) {
-						return nil, fmt.Errorf("%w: got non-integer %v", ErrInvalidReplicasType, v)
-					}
-				default:
-					return nil, fmt.Errorf("%w: got type %T", ErrInvalidReplicasType, v)
-				}
-			}
-		}
-	}
-
-	return &DecodedIntent{
-		APIVersion: apiVersion,
-		Kind:       kind,
-		Data:       intent,
-	}, nil
-}
-
-// validateJSONFile validates that a JSON file is safe to parse and meets requirements
 func (w *Watcher) validateJSONFile(filePath string) error {
-	// Normalize the path first for Windows compatibility
-	normalizedPath, err := pathutil.NormalizeUserPath(filePath)
+	// Check file size.
+
+	stat, err := os.Stat(filePath)
 	if err != nil {
-		// Fall back to original path if normalization fails
-		normalizedPath = filePath
+		return fmt.Errorf("failed to stat file: %w", err)
 	}
 
-	// Validate path safety (prevent traversal)
-	if err := w.validatePath(normalizedPath); err != nil {
-		return fmt.Errorf("path validation failed: %w", err)
+	if stat.Size() > MaxJSONSize {
+		return fmt.Errorf("file size %d exceeds maximum %d bytes", stat.Size(), MaxJSONSize)
 	}
 
-	// Open file for reading with retry logic for Windows race conditions
-	file, err := openFileWithRetry(normalizedPath)
-	if err != nil {
-		// Check if file doesn't exist
-		if os.IsNotExist(err) || err == ErrFileGone {
-			return fmt.Errorf("file not found (may have been moved): %w", err)
-		}
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	// Use security helper for robust size validation BEFORE any JSON parsing
-	// This prevents memory exhaustion from maliciously large files
-	jsonData, err := security.ValidateAndLimitJSON(file, security.MaxJSONBytes)
-	if err != nil {
-		return fmt.Errorf("JSON size validation failed: %w", err)
-	}
-
-	if len(jsonData) == 0 {
+	if stat.Size() == 0 {
 		return fmt.Errorf("file is empty")
 	}
 
-	// Check for JSON bomb (excessive nesting) before full parsing
-	reader := bytes.NewReader(jsonData)
-	if err := w.validateJSONDepth(reader, MaxJSONDepth); err != nil {
+	// Validate path safety (prevent traversal).
+
+	if err := w.validatePath(filePath); err != nil {
+		return fmt.Errorf("path validation failed: %w", err)
+	}
+
+	// Read and validate JSON structure.
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+
+	defer file.Close()
+
+	// Use limited reader to prevent memory exhaustion.
+
+	limitedReader := io.LimitReader(file, MaxJSONSize)
+
+	// Check for JSON bomb (excessive nesting) before full parsing.
+
+	if err := w.validateJSONDepth(limitedReader, MaxJSONDepth); err != nil {
 		return fmt.Errorf("JSON bomb detected: %w", err)
 	}
 
-	// Parse JSON with decoder (using the validated data)
-	reader = bytes.NewReader(jsonData)
-	decoder := json.NewDecoder(reader)
+	// Reset reader position.
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to reset file position: %w", err)
+	}
+
+	limitedReader = io.LimitReader(file, MaxJSONSize)
+
+	// Parse JSON with decoder (more memory efficient than ReadAll).
+
+	decoder := json.NewDecoder(limitedReader)
+
 	decoder.DisallowUnknownFields() // Strict validation
 
 	var intent IntentSchema
+
 	if err := decoder.Decode(&intent); err != nil {
-		// Try as generic map if schema validation fails
-		reader = bytes.NewReader(jsonData)
-		decoder = json.NewDecoder(reader)
+		// Try as generic map if schema validation fails.
+
+		if _, err := file.Seek(0, 0); err != nil {
+			return fmt.Errorf("failed to reset file position for fallback: %w", err)
+		}
+
+		limitedReader = io.LimitReader(file, MaxJSONSize)
+
+		decoder = json.NewDecoder(limitedReader)
 
 		var genericIntent map[string]interface{}
+
 		if err := decoder.Decode(&genericIntent); err != nil {
 			return fmt.Errorf("invalid JSON format: %w", err)
 		}
 
-		// Validate required fields exist
+		// Validate required fields exist.
+
 		if err := w.validateIntentFields(genericIntent); err != nil {
 			return fmt.Errorf("intent validation failed: %w", err)
 		}
 	} else {
-		// Convert struct back to map for validation
+		// Convert struct back to map for validation.
+
 		intentMap := map[string]interface{}{
 			"apiVersion": intent.APIVersion,
-			"kind":       intent.Kind,
-			"metadata":   intent.Metadata,
-			"spec":       intent.Spec,
+
+			"kind": intent.Kind,
+
+			"metadata": intent.Metadata,
+
+			"spec": intent.Spec,
 		}
 
-		// Validate the structured intent fields
+		// Validate the structured intent fields.
+
 		if err := w.validateIntentFields(intentMap); err != nil {
 			return fmt.Errorf("intent validation failed: %w", err)
 		}
@@ -1829,137 +2122,83 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 	return nil
 }
 
-// validatePath ensures the file path is safe and within expected boundaries
-// It includes Windows-specific validation for drive letters, UNC paths, and edge cases
+// validatePath ensures the file path is safe and within expected boundaries.
+
 func (w *Watcher) validatePath(filePath string) error {
-	// On Windows, null bytes in paths cause filepath operations to fail
-	// Check this first before any other validation
-	if runtime.GOOS == "windows" && strings.Contains(filePath, "\x00") {
-		// Try to get absolute path to trigger the OS error
-		_, err := filepath.Abs(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path: %w", err)
-		}
+	// Clean the path to remove any ../ or ./ sequences.
+
+	cleanPath := filepath.Clean(filePath)
+
+	// Ensure the path is absolute.
+
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	// Perform Windows-specific validation first on Windows systems
-	// This catches Windows path validation errors before general filename validation
-	if runtime.GOOS == "windows" {
-		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
-			return fmt.Errorf("Windows path validation failed: %w", err)
-		}
-	}
+	// Check if path is within the watched directory.
 
-	// Validate intent filename patterns (after Windows validation)
-	// This ensures Windows-specific errors are caught first
-	filename := filepath.Base(filePath)
-	if err := w.validateIntentFilename(filename); err != nil {
-		return err
-	}
-
-	// Normalize path separators for consistent handling
-	normalizedPath := pathutil.NormalizePathSeparators(filePath)
-
-	// Clean the path to remove any ../ or ./ sequences
-	cleanPath := filepath.Clean(normalizedPath)
-
-	// Ensure the path is absolute - use Windows-aware check
-	var absPath string
-	var err error
-
-	if runtime.GOOS == "windows" && pathutil.IsAbsoluteWindowsPath(cleanPath) {
-		// Path is already absolute on Windows
-		absPath = cleanPath
-	} else {
-		// Convert to absolute path
-		absPath, err = filepath.Abs(cleanPath)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path: %w", err)
-		}
-	}
-
-	// Check if path is within the watched directory
 	watchedDir, err := filepath.Abs(w.dir)
 	if err != nil {
 		return fmt.Errorf("failed to get watched directory absolute path: %w", err)
 	}
 
-	// Windows path comparison needs to be case-insensitive and separator-aware
-	var isWithinWatchedDir bool
-	if runtime.GOOS == "windows" {
-		// Normalize both paths for comparison
-		normAbsPath := strings.ToLower(pathutil.NormalizePathSeparators(absPath))
-		normWatchedDir := strings.ToLower(pathutil.NormalizePathSeparators(watchedDir))
+	// Ensure the file is within the watched directory.
 
-		// Ensure watched directory ends with separator for accurate prefix checking
-		if !strings.HasSuffix(normWatchedDir, "\\") {
-			normWatchedDir += "\\"
-		}
-
-		isWithinWatchedDir = strings.HasPrefix(normAbsPath+"\\", normWatchedDir)
-	} else {
-		// Unix-style path comparison
-		if !strings.HasSuffix(watchedDir, "/") {
-			watchedDir += "/"
-		}
-		isWithinWatchedDir = strings.HasPrefix(absPath+"/", watchedDir)
-	}
-
-	// Ensure the file is within the watched directory
-	if !isWithinWatchedDir {
+	if !strings.HasPrefix(absPath, watchedDir) {
 		return fmt.Errorf("file path %s is outside watched directory %s", absPath, watchedDir)
 	}
 
-	// Check path depth to prevent deep traversal attacks
+	// Check path depth to prevent deep traversal attacks.
+
 	relPath, err := filepath.Rel(watchedDir, absPath)
 	if err != nil {
 		return fmt.Errorf("failed to get relative path: %w", err)
 	}
 
 	depth := len(strings.Split(relPath, string(filepath.Separator)))
+
 	if depth > MaxPathDepth {
 		return fmt.Errorf("path depth %d exceeds maximum %d", depth, MaxPathDepth)
 	}
 
-	// Check filename length - use the original filename for consistency
-	// filename is already declared at the top of the function
+	// Check filename length.
+
+	filename := filepath.Base(absPath)
+
 	if len(filename) > MaxFileNameLength {
 		return fmt.Errorf("filename length %d exceeds maximum %d", len(filename), MaxFileNameLength)
 	}
 
-	return nil
-}
+	// Check for suspicious patterns in filename.
 
-// validateIntentFilename checks for suspicious patterns in intent filenames
-// This includes backup file patterns, shell metacharacters, and other potentially dangerous patterns
-func (w *Watcher) validateIntentFilename(filename string) error {
-	// Check for backup file patterns (trailing tilde before extension, .tmp, .bak, .swp extensions)
-	if strings.Contains(filename, "~") {
-		return fmt.Errorf("filename contains suspicious pattern: backup file indicator ~")
-	}
-
-	// Check for temporary file extensions
-	suspiciousExtensions := []string{".tmp", ".bak", ".swp", ".old", ".backup"}
-	for _, ext := range suspiciousExtensions {
-		if strings.HasSuffix(strings.ToLower(filename), ext) {
-			return fmt.Errorf("filename contains suspicious pattern: temporary/backup file extension %s", ext)
-		}
-	}
-
-	// Check for shell metacharacters and other suspicious patterns
 	suspiciousPatterns := []string{
-		"..",   // path traversal
-		"$",    // shell variable expansion
-		"*",    // shell glob
-		"?",    // shell glob
-		"[",    // shell glob
-		"]",    // shell glob
-		"{",    // shell brace expansion
-		"}",    // shell brace expansion
-		"|",    // shell pipe
-		"<",    // shell redirection
-		">",    // shell redirection
+		"..",
+
+		"~",
+
+		"$",
+
+		"*",
+
+		"?",
+
+		"[",
+
+		"]",
+
+		"{",
+
+		"}",
+
+		"|",
+
+		"<",
+
+		">",
+
 		"\x00", // null byte
+
 	}
 
 	for _, pattern := range suspiciousPatterns {
@@ -1971,55 +2210,70 @@ func (w *Watcher) validateIntentFilename(filename string) error {
 	return nil
 }
 
-// validateIntentFields checks that required fields exist in the intent
+// validateIntentFields checks that required fields exist in the intent.
+
 func (w *Watcher) validateIntentFields(intent map[string]interface{}) error {
-	// Determine intent format and validate accordingly
+	// Determine intent format and validate accordingly.
+
 	if w.isKubernetesStyleIntent(intent) {
 		return w.validateKubernetesStyleIntent(intent)
 	}
 
-	// Fallback to simple scaling intent validation
+	// Fallback to simple scaling intent validation.
+
 	return w.validateScalingIntent(intent)
 }
 
-// isKubernetesStyleIntent determines if the intent follows Kubernetes resource format
+// isKubernetesStyleIntent determines if the intent follows Kubernetes resource format.
+
 func (w *Watcher) isKubernetesStyleIntent(intent map[string]interface{}) bool {
 	_, hasAPIVersion := intent["apiVersion"]
+
 	_, hasKind := intent["kind"]
-	// Check if it has apiVersion and kind (metadata is optional)
+
+	// Check if it has apiVersion and kind (metadata is optional).
+
 	return hasAPIVersion && hasKind
 }
 
-// validateKubernetesStyleIntent validates Kubernetes-style intent structure
+// validateKubernetesStyleIntent validates Kubernetes-style intent structure.
+
 func (w *Watcher) validateKubernetesStyleIntent(intent map[string]interface{}) error {
-	// Validate required top-level fields
+	// Validate required top-level fields.
+
 	requiredFields := []string{"apiVersion", "kind"}
+
 	for _, field := range requiredFields {
 		if _, exists := intent[field]; !exists {
 			return fmt.Errorf("missing required field: %s", field)
 		}
 	}
 
-	// Validate apiVersion format
+	// Validate apiVersion format.
+
 	if err := w.validateAPIVersion(intent["apiVersion"]); err != nil {
 		return fmt.Errorf("apiVersion validation failed: %w", err)
 	}
 
-	// Validate kind
+	// Validate kind.
+
 	if err := w.validateKind(intent["kind"]); err != nil {
 		return fmt.Errorf("kind validation failed: %w", err)
 	}
 
-	// Validate metadata if present
+	// Validate metadata if present.
+
 	if metadata, exists := intent["metadata"]; exists {
 		if err := w.validateMetadata(metadata); err != nil {
 			return fmt.Errorf("metadata validation failed: %w", err)
 		}
 	}
 
-	// Validate spec based on kind
+	// Validate spec based on kind.
+
 	if spec, exists := intent["spec"]; exists {
 		kind, _ := intent["kind"].(string)
+
 		if err := w.validateSpecByKind(kind, spec); err != nil {
 			return fmt.Errorf("spec validation failed: %w", err)
 		}
@@ -2028,76 +2282,65 @@ func (w *Watcher) validateKubernetesStyleIntent(intent map[string]interface{}) e
 	return nil
 }
 
-// validateScalingIntent validates simple scaling intent structure (legacy format)
+// validateScalingIntent validates simple scaling intent structure (legacy format).
+
 func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
-	// Required fields for scaling intent
+	// Required fields for scaling intent.
+
 	requiredFields := []string{"intent_type", "target", "namespace", "replicas"}
+
 	for _, field := range requiredFields {
 		value, exists := intent[field]
+
 		if !exists || value == nil {
 			return fmt.Errorf("missing or null required field: %s", field)
 		}
 	}
 
-	// Validate intent_type
+	// Validate intent_type.
+
 	if intentType, ok := intent["intent_type"].(string); !ok {
 		return fmt.Errorf("intent_type must be a string")
 	} else {
 		validTypes := map[string]bool{"scaling": true, "deployment": true, "service": true}
+
 		if !validTypes[intentType] {
 			return fmt.Errorf("intent_type '%s' is not supported (supported: scaling, deployment, service)", intentType)
 		}
 	}
 
-	// Validate target
+	// Validate target.
+
 	if targetVal := intent["target"]; targetVal == nil {
 		return fmt.Errorf("target cannot be null")
 	} else if target, ok := targetVal.(string); !ok || target == "" {
 		return fmt.Errorf("target must be a non-empty string")
 	}
 
-	// Validate namespace
+	// Validate namespace.
+
 	if namespaceVal := intent["namespace"]; namespaceVal == nil {
 		return fmt.Errorf("namespace cannot be null")
 	} else if namespace, ok := namespaceVal.(string); !ok || namespace == "" {
 		return fmt.Errorf("namespace must be a non-empty string")
 	}
 
-	// Validate replicas - handle both int and float64 from JSON
+	// Validate replicas - handle both int and float64 from JSON.
+
 	if replicasVal, exists := intent["replicas"]; exists {
-		if replicasVal == nil {
-			return fmt.Errorf("replicas cannot be null")
-		}
-
-		var replicas float64
-		var ok bool
-
-		// JSON unmarshaling can produce either int or float64
-		switch v := replicasVal.(type) {
-		case float64:
-			replicas = v
-			ok = true
-		case int:
-			replicas = float64(v)
-			ok = true
-		case int64:
-			replicas = float64(v)
-			ok = true
-		default:
-			ok = false
-		}
-
-		if !ok || replicas < 1 || replicas > 100 {
-			return fmt.Errorf("replicas must be an integer between 1 and 100")
+		if err := validateScalingReplicas(replicasVal); err != nil {
+			return err
 		}
 	}
 
-	// Validate optional fields
+	// Validate optional fields.
+
 	if source, exists := intent["source"]; exists {
 		if sourceStr, ok := source.(string); !ok {
 			return fmt.Errorf("source must be a string")
 		} else {
 			validSources := map[string]bool{"user": true, "planner": true, "test": true}
+
 			if !validSources[sourceStr] {
 				return fmt.Errorf("source must be one of: user, planner, test")
 			}
@@ -2107,18 +2350,24 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 	return nil
 }
 
-// validateAPIVersion validates the apiVersion field format
+// validateAPIVersion validates the apiVersion field format.
+
 func (w *Watcher) validateAPIVersion(apiVersion interface{}) error {
 	apiVersionStr, ok := apiVersion.(string)
+
 	if !ok || apiVersionStr == "" {
 		return fmt.Errorf("apiVersion must be a non-empty string")
 	}
 
-	// Expected formats: "group/version" or "version" for core resources
+	// Expected formats: "group/version" or "version" for core resources.
+
 	validPatterns := []*regexp.Regexp{
-		regexp.MustCompile(`^[a-z0-9.-]+/v[0-9]+([a-z]+[0-9]*)?$`),   // group/version format (e.g., "intent.nephio.org/v1alpha1")
-		regexp.MustCompile(`^v[0-9]+([a-z]+[0-9]*)?$`),               // version only format (e.g., "v1")
+		regexp.MustCompile(`^[a-z0-9.-]+/v[0-9]+([a-z]+[0-9]*)?$`), // group/version format (e.g., "intent.nephio.org/v1alpha1")
+
+		regexp.MustCompile(`^v[0-9]+([a-z]+[0-9]*)?$`), // version only format (e.g., "v1")
+
 		regexp.MustCompile(`^nephoran\.com/v[0-9]+([a-z]+[0-9]*)?$`), // nephoran-specific format
+
 	}
 
 	for _, pattern := range validPatterns {
@@ -2127,7 +2376,8 @@ func (w *Watcher) validateAPIVersion(apiVersion interface{}) error {
 		}
 	}
 
-	// Simple check for basic format requirements
+	// Simple check for basic format requirements.
+
 	if len(apiVersionStr) < 2 || (!strings.Contains(apiVersionStr, "/") && !strings.HasPrefix(apiVersionStr, "v")) {
 		return fmt.Errorf("apiVersion format invalid: expected 'group/version' or 'version' format")
 	}
@@ -2135,20 +2385,27 @@ func (w *Watcher) validateAPIVersion(apiVersion interface{}) error {
 	return nil
 }
 
-// validateKind validates the kind field
+// validateKind validates the kind field.
+
 func (w *Watcher) validateKind(kind interface{}) error {
 	kindStr, ok := kind.(string)
+
 	if !ok || kindStr == "" {
 		return fmt.Errorf("kind must be a non-empty string")
 	}
 
-	// Validate known intent kinds
+	// Validate known intent kinds.
+
 	validKinds := map[string]bool{
-		"NetworkIntent":    true,
-		"ResourceIntent":   true,
-		"ScalingIntent":    true,
+		"NetworkIntent": true,
+
+		"ResourceIntent": true,
+
+		"ScalingIntent": true,
+
 		"DeploymentIntent": true,
-		"ServiceIntent":    true,
+
+		"ServiceIntent": true,
 	}
 
 	if !validKinds[kindStr] {
@@ -2158,32 +2415,39 @@ func (w *Watcher) validateKind(kind interface{}) error {
 	return nil
 }
 
-// validateMetadata validates the metadata field structure
+// validateMetadata validates the metadata field structure.
+
 func (w *Watcher) validateMetadata(metadata interface{}) error {
 	metaMap, ok := metadata.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("metadata must be an object")
 	}
 
-	// Note: metadata.name is not strictly required for all intent types
-	// but if present, it must be valid
+	// Note: metadata.name is not strictly required for all intent types.
 
-	// Validate name if present
+	// but if present, it must be valid.
+
+	// Validate name if present.
+
 	if name, exists := metaMap["name"]; exists {
 		if nameStr, ok := name.(string); !ok || nameStr == "" {
 			return fmt.Errorf("metadata.name must be a non-empty string")
 		} else {
-			// Validate name format (Kubernetes naming conventions)
+			// Validate name format (Kubernetes naming conventions).
+
 			if len(nameStr) > 253 {
 				return fmt.Errorf("metadata.name too long (max 253 characters)")
 			}
+
 			if !isValidKubernetesName(nameStr) {
 				return fmt.Errorf("metadata.name contains invalid characters (must be lowercase alphanumeric, hyphens, dots)")
 			}
 		}
 	}
 
-	// Validate namespace if present
+	// Validate namespace if present.
+
 	if namespace, exists := metaMap["namespace"]; exists {
 		if namespaceStr, ok := namespace.(string); !ok || namespaceStr == "" {
 			return fmt.Errorf("metadata.namespace must be a non-empty string")
@@ -2192,7 +2456,8 @@ func (w *Watcher) validateMetadata(metadata interface{}) error {
 		}
 	}
 
-	// Validate labels if present
+	// Validate labels if present.
+
 	if labels, exists := metaMap["labels"]; exists {
 		if err := w.validateLabels(labels); err != nil {
 			return fmt.Errorf("metadata.labels validation failed: %w", err)
@@ -2202,59 +2467,79 @@ func (w *Watcher) validateMetadata(metadata interface{}) error {
 	return nil
 }
 
-// validateSpecByKind validates the spec field based on the intent kind
+// validateSpecByKind validates the spec field based on the intent kind.
+
 func (w *Watcher) validateSpecByKind(kind string, spec interface{}) error {
 	specMap, ok := spec.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("spec must be an object")
 	}
 
 	switch kind {
 	case "NetworkIntent":
+
 		return w.validateNetworkIntentSpec(specMap)
+
 	case "ResourceIntent":
+
 		return w.validateResourceIntentSpec(specMap)
+
 	case "ScalingIntent":
+
 		return w.validateScalingIntentSpec(specMap)
+
 	case "DeploymentIntent":
+
 		return w.validateDeploymentIntentSpec(specMap)
+
 	case "ServiceIntent":
+
 		return w.validateServiceIntentSpec(specMap)
+
 	default:
-		// For unknown kinds, perform basic validation
+
+		// For unknown kinds, perform basic validation.
+
 		return w.validateGenericSpec(specMap)
 	}
 }
 
-// validateNetworkIntentSpec validates NetworkIntent spec fields
+// validateNetworkIntentSpec validates NetworkIntent spec fields.
+
 func (w *Watcher) validateNetworkIntentSpec(spec map[string]interface{}) error {
-	// Validate action field
+	// Validate action field.
+
 	if action, exists := spec["action"]; exists {
 		if actionStr, ok := action.(string); !ok {
 			return fmt.Errorf("spec.action must be a string")
 		} else {
 			validActions := map[string]bool{"deploy": true, "scale": true, "update": true, "delete": true}
+
 			if !validActions[actionStr] {
 				return fmt.Errorf("spec.action must be one of: deploy, scale, update, delete")
 			}
 		}
 	}
 
-	// Validate target configuration
+	// Validate target configuration.
+
 	if target, exists := spec["target"]; exists {
 		if err := w.validateTargetSpec(target); err != nil {
 			return fmt.Errorf("spec.target validation failed: %w", err)
 		}
 	}
 
-	// Validate parameters
+	// Validate parameters.
+
 	if parameters, exists := spec["parameters"]; exists {
 		if err := w.validateNetworkParameters(parameters); err != nil {
 			return fmt.Errorf("spec.parameters validation failed: %w", err)
 		}
 	}
 
-	// Validate constraints
+	// Validate constraints.
+
 	if constraints, exists := spec["constraints"]; exists {
 		if err := w.validateConstraints(constraints); err != nil {
 			return fmt.Errorf("spec.constraints validation failed: %w", err)
@@ -2264,14 +2549,17 @@ func (w *Watcher) validateNetworkIntentSpec(spec map[string]interface{}) error {
 	return nil
 }
 
-// validateTargetSpec validates target configuration
+// validateTargetSpec validates target configuration.
+
 func (w *Watcher) validateTargetSpec(target interface{}) error {
 	targetMap, ok := target.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("target must be an object")
 	}
 
-	// Validate required target fields
+	// Validate required target fields.
+
 	if targetType, exists := targetMap["type"]; exists {
 		if typeStr, ok := targetType.(string); !ok || typeStr == "" {
 			return fmt.Errorf("target.type must be a non-empty string")
@@ -2287,14 +2575,17 @@ func (w *Watcher) validateTargetSpec(target interface{}) error {
 	return nil
 }
 
-// validateNetworkParameters validates network function parameters
+// validateNetworkParameters validates network function parameters.
+
 func (w *Watcher) validateNetworkParameters(parameters interface{}) error {
 	paramMap, ok := parameters.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("parameters must be an object")
 	}
 
-	// Validate network functions if present
+	// Validate network functions if present.
+
 	if nfs, exists := paramMap["networkFunctions"]; exists {
 		if nfList, ok := nfs.([]interface{}); ok {
 			for i, nf := range nfList {
@@ -2307,14 +2598,16 @@ func (w *Watcher) validateNetworkParameters(parameters interface{}) error {
 		}
 	}
 
-	// Validate connectivity if present
+	// Validate connectivity if present.
+
 	if connectivity, exists := paramMap["connectivity"]; exists {
 		if err := w.validateConnectivity(connectivity); err != nil {
 			return fmt.Errorf("connectivity validation failed: %w", err)
 		}
 	}
 
-	// Validate SLA if present
+	// Validate SLA if present.
+
 	if sla, exists := paramMap["sla"]; exists {
 		if err := w.validateSLA(sla); err != nil {
 			return fmt.Errorf("sla validation failed: %w", err)
@@ -2324,15 +2617,19 @@ func (w *Watcher) validateNetworkParameters(parameters interface{}) error {
 	return nil
 }
 
-// validateNetworkFunction validates individual network function configuration
+// validateNetworkFunction validates individual network function configuration.
+
 func (w *Watcher) validateNetworkFunction(nf interface{}) error {
 	nfMap, ok := nf.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("network function must be an object")
 	}
 
-	// Validate required fields
+	// Validate required fields.
+
 	requiredFields := []string{"name", "type"}
+
 	for _, field := range requiredFields {
 		if value, exists := nfMap[field]; !exists {
 			return fmt.Errorf("missing required field: %s", field)
@@ -2341,7 +2638,8 @@ func (w *Watcher) validateNetworkFunction(nf interface{}) error {
 		}
 	}
 
-	// Validate resources if present
+	// Validate resources if present.
+
 	if resources, exists := nfMap["resources"]; exists {
 		if err := w.validateResourceRequirements(resources); err != nil {
 			return fmt.Errorf("resources validation failed: %w", err)
@@ -2351,38 +2649,47 @@ func (w *Watcher) validateNetworkFunction(nf interface{}) error {
 	return nil
 }
 
-// validateResourceRequirements validates resource requirements
+// validateResourceRequirements validates resource requirements.
+
 func (w *Watcher) validateResourceRequirements(resources interface{}) error {
 	resMap, ok := resources.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("resources must be an object")
 	}
 
-	// Validate resource fields format
+	// Validate resource fields format.
+
 	resourceFields := []string{"cpu", "memory", "storage"}
+
 	for _, field := range resourceFields {
 		if value, exists := resMap[field]; exists {
 			if str, ok := value.(string); !ok || str == "" {
 				return fmt.Errorf("%s must be a non-empty string", field)
 			}
-			// Could add more specific validation for Kubernetes resource format here
+
+			// Could add more specific validation for Kubernetes resource format here.
 		}
 	}
 
 	return nil
 }
 
-// validateConnectivity validates connectivity configuration
+// validateConnectivity validates connectivity configuration.
+
 func (w *Watcher) validateConnectivity(connectivity interface{}) error {
 	connMap, ok := connectivity.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("connectivity must be an object")
 	}
 
-	// Validate connectivity sections
+	// Validate connectivity sections.
+
 	for section, config := range connMap {
 		if configMap, ok := config.(map[string]interface{}); ok {
-			// Validate interface field
+			// Validate interface field.
+
 			if iface, exists := configMap["interface"]; exists {
 				if ifaceStr, ok := iface.(string); !ok || ifaceStr == "" {
 					return fmt.Errorf("%s.interface must be a non-empty string", section)
@@ -2396,15 +2703,19 @@ func (w *Watcher) validateConnectivity(connectivity interface{}) error {
 	return nil
 }
 
-// validateSLA validates SLA configuration
+// validateSLA validates SLA configuration.
+
 func (w *Watcher) validateSLA(sla interface{}) error {
 	slaMap, ok := sla.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("sla must be an object")
 	}
 
-	// Validate SLA fields are strings (could be more specific)
+	// Validate SLA fields are strings (could be more specific).
+
 	slaFields := []string{"availability", "throughput", "latency", "jitter"}
+
 	for _, field := range slaFields {
 		if value, exists := slaMap[field]; exists {
 			if str, ok := value.(string); !ok || str == "" {
@@ -2416,21 +2727,25 @@ func (w *Watcher) validateSLA(sla interface{}) error {
 	return nil
 }
 
-// validateConstraints validates constraints configuration
+// validateConstraints validates constraints configuration.
+
 func (w *Watcher) validateConstraints(constraints interface{}) error {
 	constMap, ok := constraints.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("constraints must be an object")
 	}
 
-	// Validate placement constraints
+	// Validate placement constraints.
+
 	if placement, exists := constMap["placement"]; exists {
 		if _, ok := placement.(map[string]interface{}); !ok {
 			return fmt.Errorf("constraints.placement must be an object")
 		}
 	}
 
-	// Validate security constraints
+	// Validate security constraints.
+
 	if security, exists := constMap["security"]; exists {
 		if _, ok := security.(map[string]interface{}); !ok {
 			return fmt.Errorf("constraints.security must be an object")
@@ -2440,20 +2755,24 @@ func (w *Watcher) validateConstraints(constraints interface{}) error {
 	return nil
 }
 
-// validateLabels validates Kubernetes labels
+// validateLabels validates Kubernetes labels.
+
 func (w *Watcher) validateLabels(labels interface{}) error {
 	labelMap, ok := labels.(map[string]interface{})
+
 	if !ok {
 		return fmt.Errorf("labels must be an object")
 	}
 
 	for key, value := range labelMap {
-		// Validate label key
+		// Validate label key.
+
 		if !isValidLabelKey(key) {
 			return fmt.Errorf("invalid label key: %s", key)
 		}
 
-		// Validate label value
+		// Validate label value.
+
 		if valueStr, ok := value.(string); !ok {
 			return fmt.Errorf("label value must be a string")
 		} else if !isValidLabelValue(valueStr) {
@@ -2464,89 +2783,165 @@ func (w *Watcher) validateLabels(labels interface{}) error {
 	return nil
 }
 
-// validateResourceIntentSpec validates ResourceIntent spec (placeholder)
+// validateResourceIntentSpec validates ResourceIntent spec (placeholder).
+
 func (w *Watcher) validateResourceIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for ResourceIntent
+	// Basic validation for ResourceIntent.
+
 	if action, exists := spec["action"]; exists {
 		if actionStr, ok := action.(string); !ok || actionStr == "" {
 			return fmt.Errorf("spec.action must be a non-empty string")
 		}
 	}
+
 	return nil
 }
 
-// validateScalingIntentSpec validates ScalingIntent spec (placeholder)
+// validateScalingReplicas safely validates replicas field with defensive checks.
+
+func validateScalingReplicas(replicasVal interface{}) error {
+	// Handle null/nil replicas.
+
+	if replicasVal == nil {
+		return fmt.Errorf("replicas cannot be null")
+	}
+
+	var replicas float64
+
+	var ok bool
+
+	// JSON unmarshaling can produce either int or float64.
+
+	switch v := replicasVal.(type) {
+	case float64:
+
+		replicas = v
+
+		ok = true
+
+	case int:
+
+		replicas = float64(v)
+
+		ok = true
+
+	case int64:
+
+		replicas = float64(v)
+
+		ok = true
+
+	default:
+
+		ok = false
+	}
+
+	// Check type conversion success and bounds.
+
+	if !ok {
+		return fmt.Errorf("replicas must be a numeric value")
+	}
+
+	// Apply bounds check (1-100 to match test expectations).
+
+	if replicas < 1 || replicas > 100 {
+		return fmt.Errorf("replicas must be an integer between 1 and 100")
+	}
+
+	return nil
+}
+
+// validateScalingIntentSpec validates ScalingIntent spec (placeholder).
+
 func (w *Watcher) validateScalingIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for ScalingIntent
+	// Basic validation for ScalingIntent.
+
 	if replicas, exists := spec["replicas"]; exists {
-		if replicasNum, ok := replicas.(float64); !ok || replicasNum < 1 {
-			return fmt.Errorf("spec.replicas must be a positive number")
+		if err := validateScalingReplicas(replicas); err != nil {
+			return fmt.Errorf("spec error: %w", err)
 		}
 	}
+
 	return nil
 }
 
-// validateDeploymentIntentSpec validates DeploymentIntent spec (placeholder)
+// validateDeploymentIntentSpec validates DeploymentIntent spec (placeholder).
+
 func (w *Watcher) validateDeploymentIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for DeploymentIntent
+	// Basic validation for DeploymentIntent.
+
 	if target, exists := spec["target"]; exists {
 		if targetStr, ok := target.(string); !ok || targetStr == "" {
 			return fmt.Errorf("spec.target must be a non-empty string")
 		}
 	}
+
 	return nil
 }
 
-// validateServiceIntentSpec validates ServiceIntent spec (placeholder)
+// validateServiceIntentSpec validates ServiceIntent spec (placeholder).
+
 func (w *Watcher) validateServiceIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for ServiceIntent
+	// Basic validation for ServiceIntent.
+
 	if ports, exists := spec["ports"]; exists {
 		if _, ok := ports.([]interface{}); !ok {
 			return fmt.Errorf("spec.ports must be an array")
 		}
 	}
+
 	return nil
 }
 
-// validateGenericSpec performs basic validation for unknown spec types
+// validateGenericSpec performs basic validation for unknown spec types.
+
 func (w *Watcher) validateGenericSpec(spec map[string]interface{}) error {
-	// Perform basic validation that can apply to any spec
+	// Perform basic validation that can apply to any spec.
+
 	if len(spec) == 0 {
 		return fmt.Errorf("spec cannot be empty")
 	}
+
 	return nil
 }
 
-// isValidKubernetesName validates Kubernetes resource names
+// isValidKubernetesName validates Kubernetes resource names.
+
 func isValidKubernetesName(name string) bool {
-	if len(name) == 0 || len(name) > 253 {
+	if name == "" || len(name) > 253 {
 		return false
 	}
 
-	// Kubernetes names must be lowercase alphanumeric, hyphens, and dots
+	// Kubernetes names must be lowercase alphanumeric, hyphens, and dots.
+
 	for _, char := range name {
 		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-' || char == '.') {
 			return false
 		}
 	}
 
-	// Cannot start or end with hyphen or dot
+	// Cannot start or end with hyphen or dot.
+
 	return name[0] != '-' && name[0] != '.' && name[len(name)-1] != '-' && name[len(name)-1] != '.'
 }
 
-// isValidLabelKey validates Kubernetes label keys
+// isValidLabelKey validates Kubernetes label keys.
+
 func isValidLabelKey(key string) bool {
-	if len(key) == 0 || len(key) > 253 {
+	if key == "" || len(key) > 253 {
 		return false
 	}
 
-	// Split on '/' to check prefix and name separately
+	// Split on '/' to check prefix and name separately.
+
 	parts := strings.Split(key, "/")
+
 	if len(parts) > 2 {
 		return false
 	}
 
-	// Validate each part
+	// Validate each part.
+
 	for _, part := range parts {
 		if !isValidKubernetesName(part) {
 			return false
@@ -2556,39 +2951,51 @@ func isValidLabelKey(key string) bool {
 	return true
 }
 
-// isValidLabelValue validates Kubernetes label values
+// isValidLabelValue validates Kubernetes label values.
+
 func isValidLabelValue(value string) bool {
 	if len(value) > 63 {
 		return false
 	}
 
-	// Empty values are allowed
-	if len(value) == 0 {
+	// Empty values are allowed.
+
+	if value == "" {
 		return true
 	}
 
-	// Must be alphanumeric, hyphens, underscores, dots
+	// Must be alphanumeric, hyphens, underscores, dots.
+
 	for _, char := range value {
 		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') ||
+
 			(char >= '0' && char <= '9') || char == '-' || char == '_' || char == '.') {
 			return false
 		}
 	}
 
-	// Cannot start or end with non-alphanumeric characters
+	// Cannot start or end with non-alphanumeric characters.
+
 	first := value[0]
+
 	last := value[len(value)-1]
+
 	return ((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || (first >= '0' && first <= '9')) &&
+
 		((last >= 'a' && last <= 'z') || (last >= 'A' && last <= 'Z') || (last >= '0' && last <= '9'))
 }
 
-// safeMarshalJSON marshals JSON with size limits
+// safeMarshalJSON marshals JSON with size limits.
+
 func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
-	// Use a buffer with size limit
+	// Use a buffer with size limit.
+
 	var buf bytes.Buffer
+
 	buf.Grow(4096) // Pre-allocate reasonable size
 
 	encoder := json.NewEncoder(&buf)
+
 	encoder.SetIndent("", "  ")
 
 	if err := encoder.Encode(v); err != nil {
@@ -2596,11 +3003,13 @@ func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
 	}
 
 	data := buf.Bytes()
+
 	if len(data) > maxSize {
 		return nil, fmt.Errorf("data too large: %d bytes > %d limit", len(data), maxSize)
 	}
 
-	// Remove trailing newline added by encoder
+	// Remove trailing newline added by encoder.
+
 	if len(data) > 0 && data[len(data)-1] == '\n' {
 		data = data[:len(data)-1]
 	}
@@ -2608,255 +3017,353 @@ func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
 	return data, nil
 }
 
-// GetStats returns processing statistics
+// GetStats returns processing statistics (only if using legacy approach).
+
 func (w *Watcher) GetStats() (ProcessingStats, error) {
 	if w.fileManager != nil {
 		return w.fileManager.GetStats()
 	}
-	return ProcessingStats{}, fmt.Errorf("stats not available - no file manager configured")
+
+	return ProcessingStats{}, fmt.Errorf("stats not available when using IntentProcessor approach")
 }
 
-// GetMetrics returns a copy of the current metrics
+// GetMetrics returns a copy of the current metrics.
+
 func (w *Watcher) GetMetrics() *WatcherMetrics {
 	if w == nil {
 		return nil
 	}
+
 	if w.metrics == nil {
 		return &WatcherMetrics{}
 	}
 
 	w.metrics.mu.RLock()
+
 	defer w.metrics.mu.RUnlock()
 
-	// Create a copy to avoid race conditions
+	// Create a copy to avoid race conditions.
+
 	return &WatcherMetrics{
-		FilesProcessedTotal:      atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
-		FilesFailedTotal:         atomic.LoadInt64(&w.metrics.FilesFailedTotal),
-		ValidationFailuresTotal:  atomic.LoadInt64(&w.metrics.ValidationFailuresTotal),
-		RetryAttemptsTotal:       atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
-		QueueDepthCurrent:        atomic.LoadInt64(&w.metrics.QueueDepthCurrent),
-		BackpressureEventsTotal:  atomic.LoadInt64(&w.metrics.BackpressureEventsTotal),
-		TimeoutCount:             atomic.LoadInt64(&w.metrics.TimeoutCount),
-		MemoryUsageBytes:         atomic.LoadInt64(&w.metrics.MemoryUsageBytes),
-		GoroutineCount:           atomic.LoadInt64(&w.metrics.GoroutineCount),
-		DirectorySizeBytes:       atomic.LoadInt64(&w.metrics.DirectorySizeBytes),
+		FilesProcessedTotal: atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
+
+		FilesFailedTotal: atomic.LoadInt64(&w.metrics.FilesFailedTotal),
+
+		ValidationFailuresTotal: atomic.LoadInt64(&w.metrics.ValidationFailuresTotal),
+
+		RetryAttemptsTotal: atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
+
+		QueueDepthCurrent: atomic.LoadInt64(&w.metrics.QueueDepthCurrent),
+
+		BackpressureEventsTotal: atomic.LoadInt64(&w.metrics.BackpressureEventsTotal),
+
+		TimeoutCount: atomic.LoadInt64(&w.metrics.TimeoutCount),
+
+		MemoryUsageBytes: atomic.LoadInt64(&w.metrics.MemoryUsageBytes),
+
+		GoroutineCount: atomic.LoadInt64(&w.metrics.GoroutineCount),
+
+		DirectorySizeBytes: atomic.LoadInt64(&w.metrics.DirectorySizeBytes),
+
 		ThroughputFilesPerSecond: w.metrics.ThroughputFilesPerSecond,
-		AverageProcessingTime:    w.metrics.AverageProcessingTime,
-		WorkerUtilization:        w.metrics.WorkerUtilization,
-		StartTime:                w.metrics.StartTime,
-		LastUpdateTime:           w.metrics.LastUpdateTime,
-		MetricsEnabled:           w.metrics.MetricsEnabled,
+
+		AverageProcessingTime: w.metrics.AverageProcessingTime,
+
+		WorkerUtilization: w.metrics.WorkerUtilization,
+
+		StartTime: w.metrics.StartTime,
+
+		LastUpdateTime: w.metrics.LastUpdateTime,
+
+		MetricsEnabled: w.metrics.MetricsEnabled,
 	}
 }
 
-// computeFileHashSafely computes the hash of a file safely with retries
-// This is used to compute the hash once before any processing to avoid race conditions
-func (w *Watcher) computeFileHashSafely(filePath string) (string, int64, error) {
-	// Read the entire file content into memory to compute the hash with retry logic
-	// This prevents issues if the file is moved while we're hashing
-	data, err := readFileWithRetry(filePath)
-	if err != nil {
-		return "", 0, err
-	}
+// getOrCreateFileLock gets or creates a file-level mutex for the given path.
 
-	// Compute SHA256 hash
-	hash := sha256.New()
-	hash.Write(data)
-	hashStr := hex.EncodeToString(hash.Sum(nil))
-
-	return hashStr, int64(len(data)), nil
-}
-
-// getOrCreateFileLock gets or creates a file-level mutex for the given path
 func (w *Watcher) getOrCreateFileLock(filePath string) *sync.Mutex {
 	w.fileState.mu.Lock()
+
 	defer w.fileState.mu.Unlock()
 
 	if lock, exists := w.fileState.processing[filePath]; exists {
 		return lock
 	}
 
-	// Create new mutex for this file
+	// Create new mutex for this file.
+
 	lock := &sync.Mutex{}
+
 	w.fileState.processing[filePath] = lock
+
 	return lock
 }
 
-// retryWithBackoff implements exponential backoff for work item retry
+// retryWithBackoff implements exponential backoff for work item retry.
+
 func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelFunc) {
 	maxRetries := 3
+
 	baseDelay := 100 * time.Millisecond
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		// Record retry attempt
+		// Record retry attempt.
+
 		atomic.AddInt64(&w.metrics.RetryAttemptsTotal, 1)
 
 		delay := time.Duration(attempt*attempt) * baseDelay
+
 		timer := time.NewTimer(delay)
 
 		select {
 		case <-w.ctx.Done():
-			timer.Stop()
-			cancelFunc()
-			return
-		case <-timer.C:
-			// Check if shutdown has started to prevent sending on closed channel
-			if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
-				log.Printf("LOOP:RETRY_ABORT - Shutdown in progress, aborting retry for %s",
-					filepath.Base(workItem.FilePath))
-				cancelFunc()
-				return
-			}
 
-			// Try to queue again
+			timer.Stop()
+
+			cancelFunc()
+
+			return
+
+		case <-timer.C:
+
+			// Try to queue again.
+
 			select {
 			case w.workerPool.workQueue <- workItem:
+
 				log.Printf("LOOP:RETRY_SUCCESS - Queued %s after %d attempts",
+
 					filepath.Base(workItem.FilePath), attempt)
+
 				return
+
 			case <-w.ctx.Done():
+
 				cancelFunc()
+
 				return
+
 			default:
+
 				if attempt == maxRetries {
 					log.Printf("LOOP:RETRY_FAILED - Failed to queue %s after %d attempts",
+
 						filepath.Base(workItem.FilePath), maxRetries)
+
 					cancelFunc()
+
 					return
 				}
-				// Continue to next retry
+
+				// Continue to next retry.
 			}
 		}
 	}
 }
 
-// cleanupOldFileState performs a single cleanup of old file state entries (for testing)
+// cleanupOldFileState performs a single cleanup of old file state entries (for testing).
+
 func (w *Watcher) cleanupOldFileState() {
 	w.fileState.mu.Lock()
+
 	defer w.fileState.mu.Unlock()
 
 	now := time.Now()
+
 	cleanedEvents := 0
+
 	cleanedLocks := 0
 
-	// Clean up old events (older than 1 minute)
+	// Clean up old events (older than 1 minute).
+
 	for filePath, timestamp := range w.fileState.recentEvents {
 		if now.Sub(timestamp) > time.Minute {
 			delete(w.fileState.recentEvents, filePath)
+
 			cleanedEvents++
 		}
 	}
 
-	// Clean up old processing locks (older than 30 seconds)
-	for filePath, _ := range w.fileState.processing {
-		// For simplicity, we remove locks that exist but we don't track their creation time
-		// In a real scenario, you might want to add timestamps to track lock age
+	// Clean up old processing locks (older than 30 seconds).
+
+	for filePath := range w.fileState.processing {
+		// For simplicity, we remove locks that exist but we don't track their creation time.
+
+		// In a real scenario, you might want to add timestamps to track lock age.
+
 		delete(w.fileState.processing, filePath)
+
 		cleanedLocks++
 	}
 }
 
-// fileStateCleanupRoutine periodically cleans up old file state entries
+// fileStateCleanupRoutine periodically cleans up old file state entries.
+
 func (w *Watcher) fileStateCleanupRoutine() {
 	ticker := time.NewTicker(5 * time.Minute)
+
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-w.ctx.Done():
+
 			return
+
 		case <-ticker.C:
+
 			w.cleanupOldFileState()
 		}
 	}
 }
 
-// writeStatusFileAtomic atomically writes a status file with directory creation
-func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
-	// Truncate message if too large
+// writeStatusFileAtomic atomically writes a status file with directory creation.
+
+func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) error {
+	// Truncate message if too large.
+
 	if len(message) > MaxMessageSize {
 		message = message[:MaxMessageSize-3] + "..."
+
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
 	statusData := map[string]interface{}{
-		"intent_file":  filepath.Base(intentFile),
-		"status":       status,
-		"message":      message,
-		"timestamp":    time.Now().Format(time.RFC3339),
+		"intent_file": filepath.Base(intentFile),
+
+		"status": status,
+
+		"message": message,
+
+		"timestamp": time.Now().Format(time.RFC3339),
+
 		"processed_by": "conductor-loop",
-		"mode":         w.config.Mode,
-		"porch_path":   w.config.PorchPath,
-		"worker_id":    fmt.Sprintf("worker-%d", atomic.LoadInt64(&w.workerPool.activeWorkers)),
+
+		"mode": w.config.Mode,
+
+		"porch_path": w.config.PorchPath,
+
+		"worker_id": fmt.Sprintf("worker-%d", atomic.LoadInt64(&w.workerPool.activeWorkers)),
 	}
 
-	// Use safe JSON marshaling with size limits
+	// Use safe JSON marshaling with size limits.
+
 	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
-		return
+
+		return fmt.Errorf("failed to marshal status data: %w", err)
 	}
 
-	// Create versioned status filename using centralized sanitizer
-	// Format: <sanitizedBase>-YYYYMMDD-HHMMSS.status
+	// Create versioned status filename based on intent filename.
+
 	baseName := filepath.Base(intentFile)
-	// Remove extension from status filename while keeping it in the content
-	baseNameWithoutExt := strings.TrimSuffix(baseName, filepath.Ext(baseName))
-	// Sanitize the filename for cross-platform compatibility
-	sanitizedName := sanitizeStatusFilename(baseNameWithoutExt)
-	timestamp := time.Now().Format("20060102-150405")
-	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", sanitizedName, timestamp))
 
-	// Ensure status directory exists using robust path utility
-	if err := pathutil.EnsureParentDirectory(statusFile); err != nil {
-		log.Printf("Failed to create status directory: %v", err)
-		return
+	timestamp := time.Now().Format("20060102-150405")
+
+	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseName, timestamp))
+
+	// Ensure status directory exists using enhanced directory manager.
+
+	statusDir := filepath.Dir(statusFile)
+
+	if err := w.ensureDirectoryExists(statusDir); err != nil {
+		log.Printf("Failed to create status directory %s: %v", statusDir, err)
+
+		return fmt.Errorf("failed to create status directory: %w", err)
 	}
 
-	// Use robust atomic write with proper syncing and retry logic
-	if err := atomicWriteFile(statusFile, data, 0644); err != nil {
-		log.Printf("Failed to write status file atomically: %v", err)
-		return
+	// Write atomically using temp file + rename.
+
+	tempFile := statusFile + ".tmp"
+
+	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
+		log.Printf("Failed to write temporary status file: %v", err)
+
+		return fmt.Errorf("failed to write temporary status file: %w", err)
+	}
+
+	// Atomic rename.
+
+	if err := os.Rename(tempFile, statusFile); err != nil {
+		os.Remove(tempFile) // Clean up on failure
+
+		log.Printf("Failed to rename temporary status file: %v", err)
+
+		return fmt.Errorf("failed to rename temporary status file: %w", err)
 	}
 
 	log.Printf("Status written atomically to: %s", statusFile)
+
+	return nil
 }
 
-// ensureDirectoryExists ensures a directory exists using sync.Once pattern
-func (w *Watcher) ensureDirectoryExists(dir string) {
+// ensureDirectoryExists ensures a directory exists using sync.Once pattern.
+
+func (w *Watcher) ensureDirectoryExists(dir string) error {
 	w.dirManager.mu.RLock()
+
 	onceFunc, exists := w.dirManager.dirOnce[dir]
+
 	w.dirManager.mu.RUnlock()
 
 	if !exists {
 		w.dirManager.mu.Lock()
-		// Double-check locking pattern
+
+		// Double-check locking pattern.
+
 		if onceFunc, exists = w.dirManager.dirOnce[dir]; !exists {
 			onceFunc = &sync.Once{}
+
 			w.dirManager.dirOnce[dir] = onceFunc
 		}
+
 		w.dirManager.mu.Unlock()
 	}
 
-	// Use sync.Once to ensure directory is created only once
+	// Use sync.Once to ensure directory is created only once.
+
+	var creationError error
+
 	onceFunc.Do(func() {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			creationError = err
+
 			log.Printf("Failed to create directory %s: %v", dir, err)
 		} else {
 			log.Printf("Created directory: %s", dir)
 		}
 	})
+
+	// If directory creation failed in sync.Once, check if it exists now.
+
+	if creationError != nil {
+		if _, err := os.Stat(dir); err != nil {
+			return fmt.Errorf("directory creation failed and directory does not exist: %w", creationError)
+		}
+
+		// Directory exists now, so ignore the creation error.
+
+		creationError = nil
+	}
+
+	return creationError
 }
 
-// isFileStable checks if a file exists and is stable (not being written to)
+// Note: IsIntentFile function is defined in filter.go.
+
+// isFileStable checks if a file exists and is stable (not being written to).
+
 func (w *Watcher) isFileStable(filePath string) bool {
-	// Check if file exists
+	// Check if file exists.
+
 	stat1, err := os.Stat(filePath)
 	if err != nil {
 		return false
 	}
 
-	// Wait a small amount of time and check again
+	// Wait a small amount of time and check again.
+
 	time.Sleep(50 * time.Millisecond)
 
 	stat2, err := os.Stat(filePath)
@@ -2864,143 +3371,7 @@ func (w *Watcher) isFileStable(filePath string) bool {
 		return false
 	}
 
-	// File is stable if size and modification time haven't changed
+	// File is stable if size and modification time haven't changed.
+
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
-}
-
-// IsShutdownFailure determines if a processing failure was caused by graceful shutdown
-func (w *Watcher) IsShutdownFailure(err error, errorMsg string) bool {
-	// Check if graceful shutdown is active
-	if !w.gracefulShutdown.Load() {
-		return false
-	}
-
-	// If graceful shutdown is active, any failure is likely due to shutdown
-	// unless it's clearly a validation or configuration error
-
-	// Check for context cancellation patterns
-	contextCancelPatterns := []string{
-		"context canceled",
-		"context cancelled",
-		"signal: killed",
-		"signal: interrupt",
-		"signal: terminated",
-		"exit status -1",
-		"exit status 1", // Added: Windows process termination
-		"process was killed",
-		"operation was canceled",
-		"the operation was canceled",
-	}
-
-	for _, pattern := range contextCancelPatterns {
-		if strings.Contains(strings.ToLower(errorMsg), pattern) {
-			return true
-		}
-	}
-
-	// Check the actual error for context cancellation
-	if err != nil {
-		if err == context.Canceled {
-			return true
-		}
-
-		// Check error chain for context cancellation
-		errorStr := strings.ToLower(err.Error())
-		for _, pattern := range contextCancelPatterns {
-			if strings.Contains(errorStr, pattern) {
-				return true
-			}
-		}
-	}
-
-	// Check timing - if failure occurs after shutdown was initiated,
-	// and it's not a clear validation error, consider it a shutdown failure
-	w.shutdownMutex.RLock()
-	shutdownTime := w.shutdownStartTime
-	w.shutdownMutex.RUnlock()
-
-	if !shutdownTime.IsZero() {
-		// If error occurred after shutdown and is not a validation error,
-		// it's likely due to process termination
-		validationErrorPatterns := []string{
-			"json",
-			"validation failed",
-			"invalid format",
-			"schema",
-			"missing field",
-			"bad request",
-		}
-
-		isValidationError := false
-		errorMsgLower := strings.ToLower(errorMsg)
-		for _, pattern := range validationErrorPatterns {
-			if strings.Contains(errorMsgLower, pattern) {
-				isValidationError = true
-				break
-			}
-		}
-
-		// If it's not a validation error and shutdown is active, treat as shutdown failure
-		if !isValidationError {
-			return true
-		}
-	}
-
-	return false
-}
-
-// safeQueueWorkItem safely queues a work item with comprehensive checks to prevent
-// "send on closed channel" panics. It checks shutdown state, context cancellation,
-// and handles backpressure gracefully.
-func (w *Watcher) safeQueueWorkItem(workItem WorkItem, cancelFunc context.CancelFunc) error {
-	// First check - shutdown has started
-	if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
-		if cancelFunc != nil {
-			cancelFunc()
-		}
-		return fmt.Errorf("shutdown in progress")
-	}
-
-	// Second check - context is already done
-	select {
-	case <-w.ctx.Done():
-		if cancelFunc != nil {
-			cancelFunc()
-		}
-		return fmt.Errorf("context cancelled")
-	default:
-		// Context is still active, continue
-	}
-
-	// Third check - try to queue with proper cancellation handling
-	select {
-	case w.workerPool.workQueue <- workItem:
-		// Successfully queued
-		return nil
-	case <-w.ctx.Done():
-		if cancelFunc != nil {
-			cancelFunc()
-		}
-		return fmt.Errorf("context cancelled during queue")
-	default:
-		// Work queue is full, implement backpressure
-		log.Printf("LOOP:BACKPRESSURE - Work queue full, applying backpressure for %s",
-			filepath.Base(workItem.FilePath))
-
-		// Record backpressure event
-		atomic.AddInt64(&w.metrics.BackpressureEventsTotal, 1)
-
-		// For once mode, we should retry; for regular mode, it's optional
-		if w.config.Once {
-			// Try again with exponential backoff in once mode
-			w.workerPool.senders.Add(1)
-			go func() {
-				defer w.workerPool.senders.Done()
-				w.retryWithBackoff(workItem, cancelFunc)
-			}()
-			return nil
-		}
-
-		return fmt.Errorf("work queue full")
-	}
 }

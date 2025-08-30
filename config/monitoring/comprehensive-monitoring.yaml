@@ -1,0 +1,415 @@
+# Comprehensive monitoring and observability stack for Nephoran Intent Operator
+# This includes Prometheus, Grafana, Jaeger, and custom dashboards
+
+---
+# ServiceMonitor for controller metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-controller-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    honorLabels: true
+    metricRelabelings:
+    # Add cluster and namespace labels
+    - sourceLabels: [__name__]
+      targetLabel: cluster
+      replacement: "nephoran-cluster"
+    - sourceLabels: [__name__]
+      targetLabel: operator_namespace
+      replacement: "nephoran-system"
+  - port: health
+    interval: 30s
+    path: /healthz
+    honorLabels: true
+
+---
+# ServiceMonitor for webhook metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-webhook-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: nephoran-webhook
+  endpoints:
+  - port: metrics
+    interval: 10s  # More frequent for admission controller
+    path: /metrics
+    honorLabels: true
+
+---
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nephoran-operator-alerts
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: nephoran-operator
+    interval: 30s
+    rules:
+    # Controller health alerts
+    - alert: NephoranControllerDown
+      expr: up{job="nephoran-controller-metrics"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        component: controller
+      annotations:
+        summary: "Nephoran controller is down"
+        description: "Nephoran Intent Operator controller has been down for more than 5 minutes"
+        runbook_url: "https://docs.nephoran.io/runbooks/controller-down"
+        
+    - alert: NephoranWebhookDown
+      expr: up{job="nephoran-webhook-metrics"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: webhook
+      annotations:
+        summary: "Nephoran webhook is down"
+        description: "Nephoran admission webhook has been down for more than 2 minutes"
+        runbook_url: "https://docs.nephoran.io/runbooks/webhook-down"
+        
+    # Performance alerts
+    - alert: NephoranHighLatency
+      expr: |
+        histogram_quantile(0.99, sum(rate(nephoran_reconcile_duration_seconds_bucket[5m])) by (le)) > 30
+      for: 10m
+      labels:
+        severity: warning
+        component: controller
+      annotations:
+        summary: "High reconciliation latency"
+        description: "99th percentile reconciliation time is above 30 seconds"
+        
+    - alert: NephoranHighErrorRate
+      expr: |
+        sum(rate(nephoran_reconcile_errors_total[5m])) / sum(rate(nephoran_reconcile_total[5m])) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: controller
+      annotations:
+        summary: "High error rate in reconciliation"
+        description: "Error rate is above 10% for the last 5 minutes"
+        
+    # Resource alerts
+    - alert: NephoranHighMemoryUsage
+      expr: |
+        container_memory_working_set_bytes{pod=~"nephoran-operator-controller-manager-.*"} 
+        / container_spec_memory_limit_bytes{pod=~"nephoran-operator-controller-manager-.*"} > 0.9
+      for: 15m
+      labels:
+        severity: warning
+        component: controller
+      annotations:
+        summary: "High memory usage"
+        description: "Controller memory usage is above 90%"
+        
+    - alert: NephoranHighCPUUsage
+      expr: |
+        rate(container_cpu_usage_seconds_total{pod=~"nephoran-operator-controller-manager-.*"}[5m])
+        / container_spec_cpu_quota{pod=~"nephoran-operator-controller-manager-.*"} * 100 > 90
+      for: 15m
+      labels:
+        severity: warning
+        component: controller
+      annotations:
+        summary: "High CPU usage"
+        description: "Controller CPU usage is above 90%"
+        
+    # Circuit breaker alerts
+    - alert: NephoranCircuitBreakerOpen
+      expr: nephoran_circuit_breaker_state{state="open"} == 1
+      for: 1m
+      labels:
+        severity: warning
+        component: circuit-breaker
+      annotations:
+        summary: "Circuit breaker is open"
+        description: "Circuit breaker {{ $labels.name }} is in open state"
+        
+    # LLM processing alerts
+    - alert: NephoranLLMQueueHigh
+      expr: nephoran_llm_queue_depth > 50
+      for: 5m
+      labels:
+        severity: warning
+        component: llm-processor
+      annotations:
+        summary: "LLM processing queue is high"
+        description: "LLM processing queue depth is above 50"
+        
+    - alert: NephoranLLMTimeout
+      expr: increase(nephoran_llm_timeout_total[5m]) > 5
+      for: 1m
+      labels:
+        severity: warning
+        component: llm-processor
+      annotations:
+        summary: "Frequent LLM timeouts"
+        description: "More than 5 LLM timeouts in the last 5 minutes"
+
+---
+# Grafana Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-grafana-dashboard
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+    grafana_dashboard: "1"
+data:
+  nephoran-operator.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator",
+        "tags": ["nephoran", "operator", "kubernetes"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Reconciliation Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_reconcile_total[5m]))",
+                "legendFormat": "Reconciliations/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Error Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_reconcile_errors_total[5m])) / sum(rate(nephoran_reconcile_total[5m])) * 100",
+                "legendFormat": "Error Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 5},
+                    {"color": "red", "value": 10}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Reconciliation Duration",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(nephoran_reconcile_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "50th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_reconcile_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(nephoran_reconcile_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "99th percentile"
+              }
+            ],
+            "yAxes": [
+              {"unit": "s", "label": "Duration"}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "NetworkIntent Status Distribution",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "sum by (phase) (nephoran_networkintent_status_phase)",
+                "legendFormat": "{{ phase }}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "LLM Processing Metrics",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran_llm_queue_depth",
+                "legendFormat": "Queue Depth"
+              },
+              {
+                "expr": "rate(nephoran_llm_requests_total[5m])",
+                "legendFormat": "Requests/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Resource Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{pod=~\"nephoran-operator-controller-manager-.*\"} / 1024 / 1024",
+                "legendFormat": "Memory (MB)"
+              },
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"nephoran-operator-controller-manager-.*\"}[5m]) * 1000",
+                "legendFormat": "CPU (millicores)"
+              }
+            ],
+            "yAxes": [
+              {"unit": "short", "label": "Usage"}
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+---
+# Jaeger tracing configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: tracing
+data:
+  jaeger-config.yaml: |
+    tracing:
+      enabled: true
+      jaeger:
+        endpoint: "http://jaeger-collector.observability.svc.cluster.local:14268/api/traces"
+        service_name: "nephoran-intent-operator"
+        tags:
+          cluster: "nephoran-cluster"
+          version: "latest"
+      sampling:
+        type: "probabilistic"
+        param: 0.1  # Sample 10% of traces
+      spans:
+        # Trace reconciliation operations
+        reconciliation:
+          enabled: true
+          include_spec: true
+          include_status: true
+        # Trace LLM interactions
+        llm_processing:
+          enabled: true
+          include_request: true
+          include_response: false  # Don't log response for privacy
+        # Trace external API calls
+        external_apis:
+          enabled: true
+          include_headers: false
+      baggage:
+        # Propagate important context
+        - "user.id"
+        - "request.id"
+        - "intent.type"
+
+---
+# AlertManager configuration for Nephoran-specific alerts
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-nephoran-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: alerting
+type: Opaque
+stringData:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'nephoran-alerts'
+      routes:
+      # Critical alerts go to PagerDuty
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 5s
+        repeat_interval: 30m
+      # Warning alerts go to Slack
+      - match:
+          severity: warning
+        receiver: 'warning-alerts'
+        
+    receivers:
+    - name: 'nephoran-alerts'
+      webhook_configs:
+      - url: 'http://webhook.nephoran-system.svc.cluster.local:8080/alerts'
+        
+    - name: 'critical-alerts'
+      pagerduty_configs:
+      - service_key: '<PAGERDUTY_SERVICE_KEY>'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+      slack_configs:
+      - api_url: '<SLACK_WEBHOOK_URL>'
+        channel: '#critical-alerts'
+        title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+        
+    - name: 'warning-alerts'
+      slack_configs:
+      - api_url: '<SLACK_WEBHOOK_URL>'
+        channel: '#nephoran-alerts'
+        title: 'Warning: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'

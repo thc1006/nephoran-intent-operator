@@ -1,0 +1,184 @@
+# Temporary bypass configuration for formatting issues
+# Use with: golangci-lint run -c .golangci-bypass.yml
+
+run:
+  timeout: 30m
+  tests: true
+  build-tags:
+    - integration
+
+linters:
+  enable:
+    # Keep critical linters only
+    - govet
+    - errcheck
+    - staticcheck
+    - gosec
+    - ineffassign
+    - typecheck
+    - gocritic
+    - gosimple
+    - stylecheck
+    - bodyclose
+    - noctx
+    - contextcheck
+    - errorlint
+    - prealloc
+    - unconvert
+    - nolintlint
+
+  disable:
+    # TEMPORARILY DISABLE formatting linters
+    - gofmt        # BYPASS: Code formatting
+    - gofumpt      # BYPASS: Enhanced formatting  
+    - gci          # BYPASS: Import organization
+    - whitespace   # BYPASS: Whitespace issues
+    - godot        # BYPASS: Comment formatting
+    - revive       # BYPASS: Style issues
+    
+    # Keep existing disables
+    - unused
+    - unparam
+    - dupl
+    - gocyclo
+    - funlen
+    - lll
+    - gocognit
+    - nestif
+    - goconst
+    - exhaustive
+    - wsl
+    - nlreturn
+    - forcetypeassert
+    - tagliatelle
+    - varnamelen
+    - wrapcheck
+    - intrange
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+    exclude-functions:
+      - io.Copy
+      - io.WriteString
+      - fmt.Print
+      - fmt.Printf
+      - fmt.Println
+      - fmt.Fprint
+      - fmt.Fprintf
+      - fmt.Fprintln
+
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+
+  gosec:
+    excludes:
+      - G104
+      - G304
+      - G307
+      - G401
+      - G501
+      - G601
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance  # Keep performance, skip style
+    disabled-checks:
+      - hugeParam
+      - rangeValCopy
+      - appendAssign
+      - commentedOutCode
+
+  staticcheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+
+  stylecheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+    initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", 
+                  "HTTP", "HTTPS", "ID", "IP", "JSON", "JWT", "LHS", "QPS", "RAM", 
+                  "RHS", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", 
+                  "UDP", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", 
+                  "XMPP", "XSRF", "XSS", "CNF", "VNF", "AMF", "SMF", "UPF", "RIC",
+                  "O1", "O2", "E2", "A1", "ORAN", "KPM", "FCAPS", "VES", "LLM", "RAG"]
+
+  prealloc:
+    simple: false
+    range-loops: false
+    for-loops: false
+
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+
+  exclude-dirs:
+    - vendor
+    - third_party
+    - testdata
+    - examples
+    - docs
+
+  exclude-rules:
+    # Exclude test files from certain linters
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - dupl
+        - funlen
+        - goconst
+        - unparam
+
+    # Exclude generated files
+    - path: _generated\.go
+      linters:
+        - all
+
+    # Exclude certain patterns
+    - path: "api/.*\\.go"
+      linters:
+        - revive
+      text: "exported"
+
+    # Allow TODO comments
+    - text: "TODO"
+      linters:
+        - godot
+
+    # Allow large functions in main packages
+    - path: "cmd/.*/main\\.go"
+      linters:
+        - funlen
+        - gocyclo
+        - gocognit
+
+    # Allow unused parameters in interface implementations
+    - path: ".*"
+      text: "unused-parameter"
+      linters:
+        - revive
+
+    # Allow certain gosec issues in non-critical code
+    - path: "internal/.*"
+      linters:
+        - gosec
+      text: "G115"
+
+    # Contextcheck exceptions for background workers
+    - path: ".*"
+      text: "Non-inherited new context"
+      linters:
+        - contextcheck
+
+  exclude-use-default: false
+  exclude:
+    # Common false positives
+    - "Error return value of .((Close|Write|Flush|Remove|Rollback)|(.*\\.Wait)) is not checked"
+    - "exported (type|method|function|const|var) .* should have comment or be unexported"
+    - "should have a package comment"
+    - "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+    - "at least one file in a package should have a package comment"

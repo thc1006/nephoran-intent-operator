@@ -1,12 +1,19 @@
 {
   "version": "1.0",
-  "saved_at": "2025-08-24T08:31:08.5412076+08:00",
+  "saved_at": "2025-08-28T17:15:41.386577+08:00",
   "states": {
     "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\internal\\loop\\.conductor\\test.json": {
       "file_path": "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\internal\\loop\\.conductor\\test.json",
       "sha256": "file-disappeared",
       "size": 0,
       "processed_at": "2025-08-24T08:31:08.5382089+08:00",
+      "status": "processed"
+    },
+    "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\internal\\loop\\test.json": {
+      "file_path": "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\internal\\loop\\test.json",
+      "sha256": "80f65706d935d3b928d95207937dd81bad43ab56cd4d3b7ed41772318e734168",
+      "size": 14,
+      "processed_at": "2025-08-28T17:15:41.382542+08:00",
       "status": "processed"
     }
   }

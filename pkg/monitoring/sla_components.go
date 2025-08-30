@@ -1,1096 +1,1668 @@
-// Package monitoring provides detailed implementation of SLA monitoring components
+// Package monitoring provides detailed implementation of SLA monitoring components.
+
 package monitoring
 
 import (
 	"context"
 	"fmt"
 	"math"
-	"net/http"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
-// Missing SLI and SLO types to resolve compilation errors
-type LatencySLI struct {
-	EndToEndLatency      *prometheus.HistogramVec
-	LLMProcessingLatency *prometheus.HistogramVec
-	RAGRetrievalLatency  *prometheus.HistogramVec
-	GitOpsLatency        *prometheus.HistogramVec
-	DeploymentLatency    *prometheus.HistogramVec
-	P50Latency           prometheus.Gauge
-	P95Latency           prometheus.Gauge
-	P99Latency           prometheus.Gauge
-	SLAComplianceRate    prometheus.Gauge
-	LatencyViolations    prometheus.Counter
-}
+// AvailabilityStatus represents current availability metrics.
 
-type BusinessImpactErrorSLI struct {
-	CriticalErrorWeight float64
-	MajorErrorWeight    float64
-	MinorErrorWeight    float64
-	TotalErrorBudget    prometheus.Gauge
-	ConsumedErrorBudget prometheus.Gauge
-	ErrorBudgetBurnRate *prometheus.GaugeVec
-	BusinessImpactScore prometheus.Gauge
-	RevenueImpactMetric prometheus.Gauge
-	UserImpactMetric    prometheus.Gauge
-}
-
-type CapacityUtilizationSLI struct {
-	CapacityUtilization prometheus.Gauge
-	QueueDepth          prometheus.Gauge
-	ProcessingBacklog   prometheus.Gauge
-	ResourceUtilization *prometheus.GaugeVec
-}
-
-type HeadroomTrackingSLI struct {
-	HeadroomCapacity      prometheus.Gauge
-	HeadroomUtilization   prometheus.Gauge
-	HeadroomBurnRate      prometheus.Gauge
-	HeadroomForecast      *prometheus.GaugeVec
-	CapacityPlanningAlert prometheus.Counter
-}
-
-type ThroughputSLI struct {
-	RequestsPerSecond             *prometheus.HistogramVec
-	IntentsProcessedPerMinute     prometheus.Gauge
-	DeploymentsPerHour            prometheus.Gauge
-	SustainedThroughputCompliance prometheus.Gauge
-	BurstCapacityUtilization      prometheus.Gauge
-	ThroughputViolations          prometheus.Counter
-}
-
-type ComponentAvailabilitySLI struct {
-	ServiceUptime          *prometheus.GaugeVec
-	ComponentReadiness     *prometheus.GaugeVec
-	HealthCheckSuccess     *prometheus.CounterVec
-	DependencyAvailability *prometheus.GaugeVec
-	AvailabilityCompliance prometheus.Gauge
-	DowntimeDuration       prometheus.Counter
-}
-
-// SLO (Service Level Objectives) types
-type LatencySLO struct {
-	P50Target             time.Duration
-	P95Target             time.Duration
-	P99Target             time.Duration
-	ComplianceThreshold   float64
-	MeasurementWindow     time.Duration
-	AlertingEnabled       bool
-	EscalationPolicy      string
-	BusinessJustification string
-}
-
-type AvailabilitySLO struct {
-	AvailabilityTarget      float64 // e.g., 99.9%
-	MaxDowntimePerMonth     time.Duration
-	MeasurementWindow       time.Duration
-	ErrorBudget             float64
-	ErrorBudgetBurnRate     float64
-	MaintenanceWindowExempt bool
-	DependencyRequirements  []string
-}
-
-type ErrorBudgetSLO struct {
-	ErrorBudgetPercentage       float64 // e.g., 0.1% for 99.9% SLO
-	BurnRateThreshold           float64 // Alert when burn rate > threshold
-	FastBurnThreshold           float64 // Quick depletion alerting
-	ErrorBudgetLookbackWindow   time.Duration
-	BusinessImpactWeight        map[string]float64 // Weight errors by business impact
-	AlertOnBudgetDepletion      bool
-	AutoScaleOnBudgetExhaustion bool
-}
-
-type ThroughputSLO struct {
-	MinThroughputRPS       float64
-	SustainedThroughputRPS float64
-	BurstCapacityRPS       float64
-	ComplianceWindow       time.Duration
-	DegradationThreshold   float64
-	RecoveryTimeObjective  time.Duration
-}
-
-// Status types for SLI reporting
 type AvailabilityStatus struct {
-	ComponentAvailability   float64
-	ServiceAvailability     float64
-	UserJourneyAvailability float64
-	CompliancePercentage    float64
-	ErrorBudgetRemaining    float64
-	ErrorBudgetBurnRate     float64
-	LastIncidentTime        time.Time
-	CurrentDowntime         time.Duration
+	ComponentAvailability float64 `json:"component_availability"`
+
+	ServiceAvailability float64 `json:"service_availability"`
+
+	UserJourneyAvailability float64 `json:"user_journey_availability"`
+
+	CompliancePercentage float64 `json:"compliance_percentage"`
+
+	ErrorBudgetRemaining float64 `json:"error_budget_remaining"`
+
+	ErrorBudgetBurnRate float64 `json:"error_budget_burn_rate"`
 }
+
+// LatencyStatus represents current latency metrics.
 
 type LatencyStatus struct {
-	P50Latency             time.Duration
-	P95Latency             time.Duration
-	P99Latency             time.Duration
-	CompliancePercentage   float64
-	ViolationCount         int64
-	SustainedViolationTime time.Duration
-	LatencyTrend           string // "improving", "degrading", "stable"
-	PredictedViolationRisk float64
+	P50Latency time.Duration `json:"p50_latency"`
+
+	P95Latency time.Duration `json:"p95_latency"`
+
+	P99Latency time.Duration `json:"p99_latency"`
+
+	CompliancePercentage float64 `json:"compliance_percentage"`
+
+	ViolationCount int `json:"violation_count"`
+
+	SustainedViolationTime time.Duration `json:"sustained_violation_time"`
 }
 
-type ErrorStatus struct {
-	TotalErrors          int64
-	ErrorRate            float64
-	CriticalErrorRate    float64
-	ErrorBudgetConsumed  float64
-	ErrorBudgetRemaining float64
-	BusinessImpactScore  float64
-	RevenueImpact        float64
-	UserExperienceImpact float64
-	ErrorTrend           string
-	TopErrorCategories   []ErrorCategory
-}
+// ThroughputStatus represents current throughput metrics.
 
 type ThroughputStatus struct {
-	CurrentThroughputRPS   float64
-	SustainedThroughputRPS float64
-	PeakThroughputRPS      float64
-	CompliancePercentage   float64
-	CapacityUtilization    float64
-	QueueDepth             int64
-	ProcessingBacklog      int64
-	ThroughputTrend        string
-	CapacityForecast       []CapacityForecastPoint
+	CurrentThroughput float64 `json:"current_throughput"`
+
+	PeakThroughput float64 `json:"peak_throughput"`
+
+	SustainedThroughput float64 `json:"sustained_throughput"`
+
+	CapacityUtilization float64 `json:"capacity_utilization"`
+
+	QueueDepth int `json:"queue_depth"`
+
+	CompliancePercentage float64 `json:"compliance_percentage"`
 }
 
-// Supporting types
-type ErrorCategory struct {
-	Name           string
-	Count          int64
-	Percentage     float64
-	Severity       string
-	BusinessImpact float64
+// ErrorBudgetStatus represents current error budget status.
+
+type ErrorBudgetStatus struct {
+	TotalErrorBudget float64 `json:"total_error_budget"`
+
+	ConsumedErrorBudget float64 `json:"consumed_error_budget"`
+
+	RemainingErrorBudget float64 `json:"remaining_error_budget"`
+
+	BurnRate float64 `json:"burn_rate"`
+
+	BusinessImpactScore float64 `json:"business_impact_score"`
 }
 
-type CapacityForecastPoint struct {
-	Timestamp           time.Time
-	PredictedThroughput float64
-	ConfidenceInterval  float64
+// PredictedViolation represents a predicted SLA violation.
+
+type PredictedViolation struct {
+	ViolationType string `json:"violation_type"`
+
+	PredictedTime time.Time `json:"predicted_time"`
+
+	Confidence float64 `json:"confidence"`
+
+	EstimatedImpact float64 `json:"estimated_impact"`
+
+	Recommendations []string `json:"recommendations"`
 }
 
-// Advanced SLA monitoring components
-type SLAMetricsCalculator struct {
-	logger           *zap.Logger
-	metricsCollector *SLAMetricsCollector
-	alertManager     *SLAAlertManager
-	reportGenerator  *SLAReportGenerator
-	costCalculator   *SLACostCalculator
+// SLARecommendation represents automated optimization recommendations.
 
-	// Historical data tracking
-	availabilityHistory *SLATimeSeries
-	latencyHistory      *SLATimeSeries
-	errorHistory        *SLATimeSeries
-	throughputHistory   *SLATimeSeries
+type SLARecommendation struct {
+	Type string `json:"type"`
+
+	Priority string `json:"priority"`
+
+	Description string `json:"description"`
+
+	EstimatedImpact float64 `json:"estimated_impact"`
+
+	ImplementationCost float64 `json:"implementation_cost"`
+
+	ROI float64 `json:"roi"`
 }
 
-// Multi-objective SLA optimizer
-type MultiObjectiveSLAOptimizer struct {
-	objectives          []SLAObjective
-	constraints         []SLAConstraint
-	pareto              *ParetoFrontTracker
-	optimizationHistory []OptimizationResult
-	mu                  sync.RWMutex
+// StreamingMetricsCollector provides ultra-low latency metric collection.
+
+type StreamingMetricsCollector struct {
+	metricsBuffer chan *MetricsSample
+
+	processingRate prometheus.Gauge
+
+	bufferUtilization prometheus.Gauge
+
+	collectionLatency *prometheus.HistogramVec
+
+	batchSize int
+
+	flushInterval time.Duration
+
+	maxBufferSize int
+
+	mu sync.RWMutex
+
+	logger *zap.Logger
 }
 
-type SLAObjective struct {
-	Name      string
-	Type      string // "minimize", "maximize"
-	Weight    float64
-	Current   float64
-	Target    float64
-	Tolerance float64
-}
+// MetricsSample represents a single metrics sample.
 
-type SLAConstraint struct {
-	Name      string
-	Type      string // "hard", "soft"
-	Condition string
-	Threshold float64
-	Penalty   float64
-}
-
-// Advanced alerting and escalation
-type SLAAlertManager struct {
-	alertRules    []*SLAAlertRule
-	escalations   []*EscalationPolicy
-	notifications chan *SLAAlert
-	silences      map[string]*AlertSilence
-	correlations  *AlertCorrelator
-	mu            sync.RWMutex
-}
-
-type SLAAlertRule struct {
-	ID          string
-	Name        string
-	Query       string
-	Condition   AlertCondition
-	Severity    AlertSeverity
-	Labels      map[string]string
-	Annotations map[string]string
-	Duration    time.Duration
-	Enabled     bool
-}
-
-type EscalationPolicy struct {
-	ID            string
-	Name          string
-	Steps         []*EscalationStep
-	DefaultDelay  time.Duration
-	MaxEscalation int
-}
-
-type EscalationStep struct {
-	Level      int
-	Recipients []string
-	Channels   []string
-	Delay      time.Duration
-	Conditions []string
-}
-
-// Historical data analysis and prediction
-type SLATrendAnalyzer struct {
-	historicalData  *SLAHistoricalDataStore
-	trendModels     map[string]*TrendModel
-	seasonality     *SeasonalityDetector
-	anomalyDetector *AnomalyDetector
-	predictor       *SLAPredictor
-	mu              sync.RWMutex
-}
-
-// TrendModel is defined in types.go
-
-// SeasonalityDetector is defined in types.go
-
-// SeasonalPattern is defined in types.go
-
-// Business impact and cost analysis
-type BusinessImpactAnalyzer struct {
-	impactModels    map[string]*ImpactModel
-	costCalculator  *CostCalculator
-	riskAssessment  *RiskAssessment
-	businessMetrics *BusinessMetricsCollector
-	mu              sync.RWMutex
-}
-
-type ImpactModel struct {
-	Name          string
-	Type          string // "revenue", "user_experience", "operational"
-	Parameters    map[string]float64
-	Calculations  []ImpactCalculation
-	WeightFactors map[string]float64
-}
-
-type ImpactCalculation struct {
-	Metric     string
-	Formula    string
-	Impact     float64
-	Confidence float64
-	TimeRange  time.Duration
-}
-
-// Compliance and audit tracking
-type SLAComplianceTracker struct {
-	complianceRules []*ComplianceRule
-	auditTrail      *AuditTrail
-	reportScheduler *ComplianceReportScheduler
-	attestations    map[string]*Attestation
-	violations      []*ComplianceViolation
-	mu              sync.RWMutex
-}
-
-type ComplianceRule struct {
-	ID                string
-	Name              string
-	Standard          string // "SOC2", "ISO27001", "PCI-DSS"
-	Requirements      []string
-	MeasurementPeriod time.Duration
-	ThresholdValues   map[string]float64
-	Mandatory         bool
-}
-
-type AuditTrail struct {
-	entries    []*AuditEntry
-	retention  time.Duration
-	encryption bool
-	mu         sync.RWMutex
-}
-
-type AuditEntry struct {
+type MetricsSample struct {
 	Timestamp time.Time
-	Actor     string
-	Action    string
-	Resource  string
-	Outcome   string
-	Context   map[string]interface{}
+
+	MetricName string
+
+	Value float64
+
+	Labels map[string]string
+
+	SampleType string
 }
 
-// Advanced quantile estimation using P² algorithm
-type P2QuantileEstimator struct {
-	quantile   float64
-	count      int64
-	markers    [5]float64
-	positions  [5]int64
+// NewStreamingMetricsCollector creates a high-performance streaming collector.
+
+func NewStreamingMetricsCollector(bufferSize, batchSize int, flushInterval time.Duration) *StreamingMetricsCollector {
+
+	return &StreamingMetricsCollector{
+
+		metricsBuffer: make(chan *MetricsSample, bufferSize),
+
+		batchSize: batchSize,
+
+		flushInterval: flushInterval,
+
+		maxBufferSize: bufferSize,
+
+		processingRate: prometheus.NewGauge(prometheus.GaugeOpts{
+
+			Name: "sla_streaming_collector_processing_rate",
+
+			Help: "Current processing rate of streaming collector",
+		}),
+
+		bufferUtilization: prometheus.NewGauge(prometheus.GaugeOpts{
+
+			Name: "sla_streaming_collector_buffer_utilization",
+
+			Help: "Buffer utilization percentage",
+		}),
+
+		collectionLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+
+			Name: "sla_streaming_collector_latency_seconds",
+
+			Help: "Latency of metrics collection operations",
+
+			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 10), // 0.1ms to ~100ms
+
+		}, []string{"operation"}),
+	}
+
+}
+
+// Start begins the streaming collection process.
+
+func (smc *StreamingMetricsCollector) Start(ctx context.Context) error {
+
+	// Start batch processor goroutines.
+
+	for range 4 { // 4 parallel processors for high throughput
+
+		go smc.processBatch(ctx)
+
+	}
+
+	// Start buffer monitoring.
+
+	go smc.monitorBuffer(ctx)
+
+	return nil
+
+}
+
+// CollectMetric adds a metric to the streaming buffer.
+
+func (smc *StreamingMetricsCollector) CollectMetric(sample *MetricsSample) error {
+
+	start := time.Now()
+
+	defer func() {
+
+		smc.collectionLatency.WithLabelValues("collect").Observe(time.Since(start).Seconds())
+
+	}()
+
+	select {
+
+	case smc.metricsBuffer <- sample:
+
+		return nil
+
+	default:
+
+		// Buffer full - drop metric or use overflow handling.
+
+		return ErrBufferFull
+
+	}
+
+}
+
+// processBatch processes metrics in batches for efficiency.
+
+func (smc *StreamingMetricsCollector) processBatch(ctx context.Context) {
+
+	batch := make([]*MetricsSample, 0, smc.batchSize)
+
+	ticker := time.NewTicker(smc.flushInterval)
+
+	defer ticker.Stop()
+
+	for {
+
+		select {
+
+		case <-ctx.Done():
+
+			return
+
+		case sample := <-smc.metricsBuffer:
+
+			batch = append(batch, sample)
+
+			if len(batch) >= smc.batchSize {
+
+				smc.processBatchData(batch)
+
+				batch = batch[:0] // Clear batch
+
+			}
+
+		case <-ticker.C:
+
+			if len(batch) > 0 {
+
+				smc.processBatchData(batch)
+
+				batch = batch[:0]
+
+			}
+
+		}
+
+	}
+
+}
+
+// processBatchData processes a batch of metrics.
+
+func (smc *StreamingMetricsCollector) processBatchData(batch []*MetricsSample) {
+
+	start := time.Now()
+
+	defer func() {
+
+		smc.collectionLatency.WithLabelValues("batch_process").Observe(time.Since(start).Seconds())
+
+		smc.processingRate.Set(float64(len(batch)) / time.Since(start).Seconds())
+
+	}()
+
+	// Process batch with parallel workers for high throughput.
+
+	// This would integrate with Prometheus, time series DB, etc.
+
+}
+
+// monitorBuffer monitors buffer utilization.
+
+func (smc *StreamingMetricsCollector) monitorBuffer(ctx context.Context) {
+
+	ticker := time.NewTicker(1 * time.Second)
+
+	defer ticker.Stop()
+
+	for {
+
+		select {
+
+		case <-ctx.Done():
+
+			return
+
+		case <-ticker.C:
+
+			utilization := float64(len(smc.metricsBuffer)) / float64(smc.maxBufferSize) * 100
+
+			smc.bufferUtilization.Set(utilization)
+
+		}
+
+	}
+
+}
+
+// CardinalityManager optimizes metric cardinality for high-volume scenarios.
+
+type CardinalityManager struct {
+	maxCardinality int
+
+	currentCardinality map[string]int
+
+	cardinalityLimits map[string]int
+
+	cardinalityMetric *prometheus.GaugeVec
+
+	droppedMetrics *prometheus.CounterVec
+
+	mu sync.RWMutex
+}
+
+// NewCardinalityManager creates a new cardinality manager.
+
+func NewCardinalityManager(maxCardinality int) *CardinalityManager {
+
+	return &CardinalityManager{
+
+		maxCardinality: maxCardinality,
+
+		currentCardinality: make(map[string]int),
+
+		cardinalityLimits: make(map[string]int),
+
+		cardinalityMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+
+			Name: "sla_metrics_cardinality",
+
+			Help: "Current cardinality by metric family",
+		}, []string{"metric_family"}),
+
+		droppedMetrics: prometheus.NewCounterVec(prometheus.CounterOpts{
+
+			Name: "sla_dropped_metrics_total",
+
+			Help: "Total number of dropped metrics due to cardinality limits",
+		}, []string{"metric_family", "reason"}),
+	}
+
+}
+
+// ShouldAcceptMetric determines if a metric should be accepted based on cardinality.
+
+func (cm *CardinalityManager) ShouldAcceptMetric(metricName string, labels map[string]string) bool {
+
+	cm.mu.RLock()
+
+	defer cm.mu.RUnlock()
+
+	// Calculate metric key for cardinality tracking.
+
+	metricKey := cm.generateMetricKey(metricName, labels)
+
+	// Check if metric already exists.
+
+	if _, exists := cm.currentCardinality[metricKey]; exists {
+
+		return true
+
+	}
+
+	// Check total cardinality limit.
+
+	totalCardinality := cm.getTotalCardinality()
+
+	if totalCardinality >= cm.maxCardinality {
+
+		cm.droppedMetrics.WithLabelValues(metricName, "total_limit").Inc()
+
+		return false
+
+	}
+
+	// Check per-metric family limit.
+
+	if limit, exists := cm.cardinalityLimits[metricName]; exists {
+
+		familyCardinality := cm.getFamilyCardinality(metricName)
+
+		if familyCardinality >= limit {
+
+			cm.droppedMetrics.WithLabelValues(metricName, "family_limit").Inc()
+
+			return false
+
+		}
+
+	}
+
+	return true
+
+}
+
+// generateMetricKey generates a unique key for metric cardinality tracking.
+
+func (cm *CardinalityManager) generateMetricKey(metricName string, labels map[string]string) string {
+
+	// Implementation would generate a unique key based on metric name and label values.
+
+	return metricName + ":" + cm.hashLabels(labels)
+
+}
+
+// hashLabels creates a hash of label values for cardinality calculation.
+
+func (cm *CardinalityManager) hashLabels(labels map[string]string) string {
+
+	// Simplified implementation - in production would use proper hashing.
+
+	result := ""
+
+	for k, v := range labels {
+
+		result += k + "=" + v + ","
+
+	}
+
+	return result
+
+}
+
+// getTotalCardinality returns the current total cardinality.
+
+func (cm *CardinalityManager) getTotalCardinality() int {
+
+	total := 0
+
+	for _, count := range cm.currentCardinality {
+
+		total += count
+
+	}
+
+	return total
+
+}
+
+// getFamilyCardinality returns cardinality for a specific metric family.
+
+func (cm *CardinalityManager) getFamilyCardinality(metricName string) int {
+
+	count := 0
+
+	for key := range cm.currentCardinality {
+
+		if len(key) > len(metricName) && key[:len(metricName)] == metricName {
+
+			count++
+
+		}
+
+	}
+
+	return count
+
+}
+
+// RealTimeSLICalculator computes SLIs in real-time.
+
+type RealTimeSLICalculator struct {
+
+	// Availability calculation.
+
+	availabilityCalculator *AvailabilityCalculator
+
+	// Latency calculation.
+
+	latencyCalculator *LatencyCalculator
+
+	// Throughput calculation.
+
+	throughputCalculator *ThroughputCalculator
+
+	// Error rate calculation.
+
+	errorRateCalculator *ErrorRateCalculator
+
+	// Real-time state.
+
+	currentState *SLIState
+
+	stateHistory *CircularBuffer
+
+	// Performance metrics.
+
+	calculationLatency *prometheus.HistogramVec
+
+	calculationRate prometheus.Gauge
+
+	mu sync.RWMutex
+}
+
+// SLIState represents the current state of all SLIs.
+
+type SLIState struct {
+	Timestamp time.Time
+
+	Availability float64
+
+	P95Latency time.Duration
+
+	P99Latency time.Duration
+
+	Throughput float64
+
+	ErrorRate float64
+
+	ErrorBudgetBurn float64
+}
+
+// AvailabilityCalculator computes multi-dimensional availability.
+
+type AvailabilityCalculator struct {
+
+	// Component availability tracking.
+
+	componentStates map[string]bool
+
+	componentWeights map[string]float64
+
+	// Dependency tracking.
+
+	dependencyStates map[string]bool
+
+	dependencyWeights map[string]float64
+
+	// User journey tracking.
+
+	journeySuccessRates map[string]float64
+
+	journeyWeights map[string]float64
+
+	// Historical data for trend analysis.
+
+	availabilityHistory *TimeSeries
+}
+
+// CalculateAvailability computes the current multi-dimensional availability.
+
+func (ac *AvailabilityCalculator) CalculateAvailability(timestamp time.Time) float64 {
+
+	// Component availability weighted calculation.
+
+	componentAvailability := ac.calculateComponentAvailability()
+
+	// Dependency availability weighted calculation.
+
+	dependencyAvailability := ac.calculateDependencyAvailability()
+
+	// User journey success rate weighted calculation.
+
+	journeyAvailability := ac.calculateJourneyAvailability()
+
+	// Composite availability calculation with weights.
+
+	compositeAvailability := (componentAvailability * 0.4) +
+
+		(dependencyAvailability * 0.3) +
+
+		(journeyAvailability * 0.3)
+
+	// Store in history for trend analysis.
+
+	ac.availabilityHistory.Add(timestamp, compositeAvailability)
+
+	return compositeAvailability
+
+}
+
+// calculateComponentAvailability calculates weighted component availability.
+
+func (ac *AvailabilityCalculator) calculateComponentAvailability() float64 {
+
+	totalWeight := 0.0
+
+	weightedSum := 0.0
+
+	for component, available := range ac.componentStates {
+
+		weight := ac.componentWeights[component]
+
+		totalWeight += weight
+
+		if available {
+
+			weightedSum += weight
+
+		}
+
+	}
+
+	if totalWeight == 0 {
+
+		return 1.0 // Default to available if no components tracked
+
+	}
+
+	return weightedSum / totalWeight
+
+}
+
+// calculateDependencyAvailability calculates weighted dependency availability.
+
+func (ac *AvailabilityCalculator) calculateDependencyAvailability() float64 {
+
+	totalWeight := 0.0
+
+	weightedSum := 0.0
+
+	for dependency, available := range ac.dependencyStates {
+
+		weight := ac.dependencyWeights[dependency]
+
+		totalWeight += weight
+
+		if available {
+
+			weightedSum += weight
+
+		}
+
+	}
+
+	if totalWeight == 0 {
+
+		return 1.0
+
+	}
+
+	return weightedSum / totalWeight
+
+}
+
+// calculateJourneyAvailability calculates weighted user journey availability.
+
+func (ac *AvailabilityCalculator) calculateJourneyAvailability() float64 {
+
+	totalWeight := 0.0
+
+	weightedSum := 0.0
+
+	for journey, successRate := range ac.journeySuccessRates {
+
+		weight := ac.journeyWeights[journey]
+
+		totalWeight += weight
+
+		weightedSum += weight * successRate
+
+	}
+
+	if totalWeight == 0 {
+
+		return 1.0
+
+	}
+
+	return weightedSum / totalWeight
+
+}
+
+// LatencyCalculator computes real-time latency percentiles.
+
+type LatencyCalculator struct {
+
+	// Latency tracking by component.
+
+	endToEndLatencies *LatencyTracker
+
+	llmLatencies *LatencyTracker
+
+	ragLatencies *LatencyTracker
+
+	gitopsLatencies *LatencyTracker
+
+	deploymentLatencies *LatencyTracker
+
+	// Percentile calculation.
+
+	percentileCalculator *PercentileCalculator
+
+	// SLA compliance tracking.
+
+	slaComplianceTracker *SLAComplianceTracker
+}
+
+// LatencyTracker tracks latency measurements for a specific component.
+
+type LatencyTracker struct {
+	measurements *CircularBuffer
+
+	histogram *prometheus.HistogramVec
+
+	// Real-time percentiles (using quantile estimator).
+
+	quantileEstimator *QuantileEstimator
+}
+
+// QuantileEstimator provides efficient real-time quantile estimation.
+
+type QuantileEstimator struct {
+
+	// P2 algorithm or similar for real-time quantile estimation.
+
+	p50Estimator *P2Estimator
+
+	p95Estimator *P2Estimator
+
+	p99Estimator *P2Estimator
+}
+
+// P2Estimator implements the P² algorithm for quantile estimation.
+
+type P2Estimator struct {
+	quantile float64
+
+	markers [5]float64
+
+	positions [5]int
+
 	increments [5]float64
-	mu         sync.Mutex
+
+	count int
 }
 
-func NewP2QuantileEstimator(quantile float64) *P2QuantileEstimator {
-	p2 := &P2QuantileEstimator{
-		quantile:   quantile,
-		increments: [5]float64{0, quantile / 2, quantile, (1 + quantile) / 2, 1},
+// NewP2Estimator creates a new P² quantile estimator.
+
+func NewP2Estimator(quantile float64) *P2Estimator {
+
+	p2 := &P2Estimator{
+
+		quantile: quantile,
 	}
 
-	for i := range p2.positions {
-		p2.positions[i] = int64(i + 1)
+	// Initialize positions.
+
+	for i := range 5 {
+
+		p2.positions[i] = i
+
 	}
+
+	// Initialize increments.
+
+	p2.increments[0] = 0
+
+	p2.increments[1] = quantile / 2
+
+	p2.increments[2] = quantile
+
+	p2.increments[3] = (1 + quantile) / 2
+
+	p2.increments[4] = 1
 
 	return p2
+
 }
 
-func (p2 *P2QuantileEstimator) Add(value float64) {
-	p2.mu.Lock()
-	defer p2.mu.Unlock()
+// Add adds a new observation to the quantile estimator.
+
+func (p2 *P2Estimator) Add(value float64) {
 
 	if p2.count < 5 {
+
+		// Initialization phase.
+
 		p2.markers[p2.count] = value
+
 		p2.count++
+
 		if p2.count == 5 {
-			// Sort initial markers
-			for i := 0; i < 4; i++ {
+
+			// Sort markers.
+
+			for i := range 4 {
+
 				for j := i + 1; j < 5; j++ {
+
 					if p2.markers[i] > p2.markers[j] {
+
 						p2.markers[i], p2.markers[j] = p2.markers[j], p2.markers[i]
+
 					}
+
 				}
+
 			}
+
 		}
+
 		return
+
 	}
 
-	// Find position to insert
-	k := -1
+	// Find cell k such that markers[k] <= value < markers[k+1].
+
+	k := 0
+
 	if value < p2.markers[0] {
+
 		p2.markers[0] = value
+
 		k = 0
+
 	} else if value >= p2.markers[4] {
+
 		p2.markers[4] = value
-		k = 4
+
+		k = 3
+
 	} else {
+
 		for i := 1; i < 4; i++ {
+
 			if value < p2.markers[i] {
+
 				k = i - 1
+
 				break
+
 			}
+
 		}
+
 	}
 
-	if k >= 0 {
-		// Increment positions
-		for i := k + 1; i < 5; i++ {
-			p2.positions[i]++
-		}
+	// Increment positions.
 
-		// Increment desired positions
-		for i := 0; i < 5; i++ {
-			p2.increments[i] += float64(i) / 4.0
-		}
+	for i := k + 1; i < 5; i++ {
 
-		// Adjust heights of markers if necessary
-		for i := 1; i < 4; i++ {
-			d := p2.increments[i] - float64(p2.positions[i])
-			if (d >= 1 && p2.positions[i+1]-p2.positions[i] > 1) ||
-				(d <= -1 && p2.positions[i-1]-p2.positions[i] < -1) {
+		p2.positions[i]++
 
-				sign := 1.0
-				if d < 0 {
-					sign = -1.0
-				}
-
-				// Parabolic formula
-				newHeight := p2.markers[i] + sign/(float64(p2.positions[i+1]-p2.positions[i-1]))*
-					((float64(p2.positions[i])-float64(p2.positions[i-1])+sign)*
-						(p2.markers[i+1]-p2.markers[i])/float64(p2.positions[i+1]-p2.positions[i])+
-						(float64(p2.positions[i+1])-float64(p2.positions[i])-sign)*
-							(p2.markers[i]-p2.markers[i-1])/float64(p2.positions[i]-p2.positions[i-1]))
-
-				// Use linear formula if parabolic gives bad result
-				if (newHeight <= p2.markers[i-1]) || (newHeight >= p2.markers[i+1]) {
-					newHeight = p2.markers[i] + sign*(p2.markers[int(i)+int(sign)]-p2.markers[i])/
-						float64(p2.positions[int(i)+int(sign)]-p2.positions[i])
-				}
-
-				p2.markers[i] = newHeight
-				p2.positions[i] += int64(sign)
-			}
-		}
 	}
 
 	p2.count++
+
+	// Update desired positions.
+
+	for i := range 5 {
+
+		p2.increments[i] = float64(p2.count-1) * p2.getDesiredPosition(i)
+
+	}
+
+	// Adjust heights of markers if necessary.
+
+	for i := 1; i < 4; i++ {
+
+		diff := p2.increments[i] - float64(p2.positions[i])
+
+		if (diff >= 1 && p2.positions[i+1]-p2.positions[i] > 1) ||
+
+			(diff <= -1 && p2.positions[i-1]-p2.positions[i] < -1) {
+
+			d := 1.0
+
+			if diff < 0 {
+
+				d = -1.0
+
+			}
+
+			// Parabolic formula.
+
+			newHeight := p2.parabolic(i, d)
+
+			if p2.markers[i-1] < newHeight && newHeight < p2.markers[i+1] {
+
+				p2.markers[i] = newHeight
+
+			} else {
+
+				// Linear formula.
+
+				p2.markers[i] = p2.linear(i, d)
+
+			}
+
+			p2.positions[i] += int(d)
+
+		}
+
+	}
+
 }
 
-func (p2 *P2QuantileEstimator) Quantile() float64 {
-	p2.mu.Lock()
-	defer p2.mu.Unlock()
+// GetQuantile returns the current quantile estimate.
+
+func (p2 *P2Estimator) GetQuantile() float64 {
 
 	if p2.count < 5 {
-		// Use exact calculation for small samples
-		return p2.exactQuantile()
+
+		// Not enough samples, return approximate.
+
+		if p2.count == 0 {
+
+			return 0
+
+		}
+
+		// Simple approximation for small samples.
+
+		return p2.markers[int(p2.quantile*float64(p2.count-1))]
+
 	}
 
-	return p2.markers[2]
+	return p2.markers[2] // Middle marker contains the quantile estimate
+
 }
 
-func (p2 *P2QuantileEstimator) exactQuantile() float64 {
-	if p2.count == 0 {
+// getDesiredPosition calculates desired position for marker i.
+
+func (p2 *P2Estimator) getDesiredPosition(i int) float64 {
+
+	switch i {
+
+	case 0:
+
 		return 0
+
+	case 1:
+
+		return 2 * p2.quantile
+
+	case 2:
+
+		return 4 * p2.quantile
+
+	case 3:
+
+		return 2 + 2*p2.quantile
+
+	case 4:
+
+		return 4
+
 	}
 
-	// Sort markers
-	sorted := make([]float64, p2.count)
-	copy(sorted, p2.markers[:p2.count])
+	return 0
 
-	for i := 0; i < int(p2.count)-1; i++ {
-		for j := i + 1; j < int(p2.count); j++ {
-			if sorted[i] > sorted[j] {
-				sorted[i], sorted[j] = sorted[j], sorted[i]
-			}
-		}
-	}
+}
 
-	index := p2.quantile * float64(p2.count-1)
-	i := int(index)
-	d := index - float64(i)
+// parabolic calculates new height using parabolic formula.
 
-	if i >= int(p2.count)-1 {
-		return sorted[p2.count-1]
+func (p2 *P2Estimator) parabolic(i int, d float64) float64 {
+
+	return p2.markers[i] + d*(p2.markers[i+1]-p2.markers[i-1])/(float64(p2.positions[i+1]-p2.positions[i-1]))
+
+}
+
+// linear calculates new height using linear formula.
+
+func (p2 *P2Estimator) linear(i int, d float64) float64 {
+
+	if d > 0 {
+
+		return p2.markers[i] + d*(p2.markers[i+1]-p2.markers[i])/float64(p2.positions[i+1]-p2.positions[i])
+
 	}
 
 	return p2.markers[i] - d*(p2.markers[i]-p2.markers[i-1])/float64(p2.positions[i]-p2.positions[i-1])
+
 }
 
-// CircularBuffer is defined in types.go
+// CircularBuffer provides efficient ring buffer for time series data.
 
-// Add adds a new value to the circular buffer
+type CircularBuffer struct {
+	data []float64
+
+	times []time.Time
+
+	capacity int
+
+	size int
+
+	head int
+
+	tail int
+
+	mu sync.RWMutex
+}
+
+// NewCircularBuffer creates a new circular buffer.
+
+func NewCircularBuffer(capacity int) *CircularBuffer {
+
+	return &CircularBuffer{
+
+		data: make([]float64, capacity),
+
+		times: make([]time.Time, capacity),
+
+		capacity: capacity,
+	}
+
+}
+
+// Add adds a new value to the circular buffer.
+
 func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
+
 	cb.mu.Lock()
+
 	defer cb.mu.Unlock()
 
 	cb.data[cb.head] = value
+
 	cb.times[cb.head] = timestamp
 
 	cb.head = (cb.head + 1) % cb.capacity
 
 	if cb.size < cb.capacity {
+
 		cb.size++
+
 	} else {
+
 		cb.tail = (cb.tail + 1) % cb.capacity
+
 	}
+
 }
 
-// GetRecent returns the most recent n values
+// GetRecent returns the most recent n values.
+
 func (cb *CircularBuffer) GetRecent(n int) ([]time.Time, []float64) {
+
 	cb.mu.RLock()
+
 	defer cb.mu.RUnlock()
 
 	if n > cb.size {
+
 		n = cb.size
+
 	}
 
 	times := make([]time.Time, n)
+
 	values := make([]float64, n)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
+
 		idx := (cb.head - 1 - i + cb.capacity) % cb.capacity
+
 		times[n-1-i] = cb.times[idx]
+
 		values[n-1-i] = cb.data[idx]
+
 	}
 
 	return times, values
+
 }
 
-// Range iterates over all values in the circular buffer
+// Range iterates over all values in the circular buffer.
+
 func (cb *CircularBuffer) Range(fn func(float64) bool) {
+
 	cb.mu.RLock()
+
 	defer cb.mu.RUnlock()
 
 	if cb.size == 0 {
+
 		return
+
 	}
 
-	// Iterate from tail to head (oldest to newest)
-	for i := 0; i < cb.size; i++ {
+	// Iterate from tail to head (oldest to newest).
+
+	for i := range cb.size {
+
 		idx := (cb.tail + i) % cb.capacity
+
 		if !fn(cb.data[idx]) {
+
 			break
+
 		}
+
 	}
+
 }
 
-// RangeWithTime iterates over all timestamp-value pairs in the circular buffer
+// RangeWithTime iterates over all timestamp-value pairs in the circular buffer.
+
 func (cb *CircularBuffer) RangeWithTime(fn func(time.Time, float64) bool) {
+
 	cb.mu.RLock()
+
 	defer cb.mu.RUnlock()
 
 	if cb.size == 0 {
+
 		return
+
 	}
 
-	// Iterate from tail to head (oldest to newest)
-	for i := 0; i < cb.size; i++ {
+	// Iterate from tail to head (oldest to newest).
+
+	for i := range cb.size {
+
 		idx := (cb.tail + i) % cb.capacity
+
 		if !fn(cb.times[idx], cb.data[idx]) {
+
 			break
+
 		}
+
 	}
+
 }
 
-// Common errors
+// Common errors.
+
 var (
+
+	// ErrBufferFull holds errbufferfull value.
+
 	ErrBufferFull = fmt.Errorf("metrics buffer is full")
 )
 
-// SLATimeSeries represents a time series for historical SLA data tracking
-type SLATimeSeries struct {
-	points    []TimePoint
+// TimeSeries represents a time series for historical data tracking.
+
+type TimeSeries struct {
+	points []TimePoint
+
 	maxPoints int
-	mu        sync.RWMutex
+
+	mu sync.RWMutex
 }
 
-// TimePoint represents a single point in time series
+// TimePoint represents a single point in time series.
+
 type TimePoint struct {
 	Timestamp time.Time
-	Value     float64
+
+	Value float64
 }
 
-// NewSLATimeSeries creates a new SLA time series
-func NewSLATimeSeries(maxPoints int) *SLATimeSeries {
-	return &SLATimeSeries{
-		points:    make([]TimePoint, 0, maxPoints),
+// NewTimeSeries creates a new time series.
+
+func NewTimeSeries(maxPoints int) *TimeSeries {
+
+	return &TimeSeries{
+
+		points: make([]TimePoint, 0, maxPoints),
+
 		maxPoints: maxPoints,
 	}
+
 }
 
-// Add adds a new point to the time series
-func (ts *SLATimeSeries) Add(timestamp time.Time, value float64) {
+// Add adds a new point to the time series.
+
+func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
+
 	ts.mu.Lock()
+
 	defer ts.mu.Unlock()
 
 	point := TimePoint{
+
 		Timestamp: timestamp,
-		Value:     value,
+
+		Value: value,
 	}
 
 	ts.points = append(ts.points, point)
 
-	// Remove oldest points if exceeded max
+	// Remove old points if exceeding maximum.
+
 	if len(ts.points) > ts.maxPoints {
-		ts.points = ts.points[len(ts.points)-ts.maxPoints:]
+
+		ts.points = ts.points[1:]
+
 	}
+
 }
 
-// GetRecent returns the most recent n time points
-func (ts *SLATimeSeries) GetRecent(n int) ([]time.Time, []float64) {
+// GetRecent returns the most recent n time points.
+
+func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
+
 	ts.mu.RLock()
+
 	defer ts.mu.RUnlock()
 
 	if n > len(ts.points) {
+
 		n = len(ts.points)
+
 	}
 
 	if n == 0 {
+
 		return []time.Time{}, []float64{}
+
 	}
 
-	// Get the last n points
+	// Get the last n points.
+
 	startIdx := len(ts.points) - n
+
 	times := make([]time.Time, n)
+
 	values := make([]float64, n)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
+
 		point := ts.points[startIdx+i]
+
 		times[i] = point.Timestamp
+
 		values[i] = point.Value
+
 	}
 
 	return times, values
+
 }
 
-// GetTrend calculates the trend over the specified duration
-func (ts *SLATimeSeries) GetTrend(duration time.Duration) float64 {
+// GetTrend calculates the trend over the specified duration.
+
+func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
+
 	ts.mu.RLock()
+
 	defer ts.mu.RUnlock()
 
-	now := time.Now()
-	cutoff := now.Add(-duration)
+	if len(ts.points) < 2 {
+
+		return 0
+
+	}
+
+	cutoff := time.Now().Add(-duration)
+
+	// Find relevant points.
 
 	var relevantPoints []TimePoint
+
 	for _, point := range ts.points {
+
 		if point.Timestamp.After(cutoff) {
+
 			relevantPoints = append(relevantPoints, point)
+
 		}
+
 	}
 
 	if len(relevantPoints) < 2 {
-		return 0.0
+
+		return 0
+
 	}
 
-	// Calculate linear regression slope
+	// Calculate linear regression slope.
+
 	return ts.calculateSlope(relevantPoints)
+
 }
 
-func (ts *SLATimeSeries) calculateSlope(points []TimePoint) float64 {
+// calculateSlope calculates the slope using linear regression.
+
+func (ts *TimeSeries) calculateSlope(points []TimePoint) float64 {
+
 	n := float64(len(points))
-	if n < 2 {
-		return 0.0
-	}
+
+	// Convert timestamps to seconds for calculation.
+
+	baseTime := points[0].Timestamp.Unix()
 
 	var sumX, sumY, sumXY, sumXX float64
 
 	for _, point := range points {
-		x := float64(point.Timestamp.Unix())
+
+		x := float64(point.Timestamp.Unix() - baseTime)
+
 		y := point.Value
 
 		sumX += x
+
 		sumY += y
+
 		sumXY += x * y
+
 		sumXX += x * x
+
 	}
+
+	// Linear regression: slope = (n*sumXY - sumX*sumY) / (n*sumXX - sumX*sumX).
 
 	denominator := n*sumXX - sumX*sumX
+
 	if math.Abs(denominator) < 1e-10 {
-		return 0.0
+
+		return 0
+
 	}
 
-	slope := (n*sumXY - sumX*sumY) / denominator
-	return slope
+	return (n*sumXY - sumX*sumY) / denominator
+
 }
 
-// TimeSeries is defined in types.go
+// ThroughputCalculator calculates throughput metrics.
 
-// NewTimeSeries is defined in types.go
-
-// TimeSeries methods are defined in types.go
-
-// GetStatus methods for SLI types
-func (sli *ComponentAvailabilitySLI) GetStatus(ctx context.Context) (*AvailabilityStatus, error) {
-	return &AvailabilityStatus{
-		ComponentAvailability:   0.995,
-		ServiceAvailability:     0.995,
-		UserJourneyAvailability: 0.995,
-		CompliancePercentage:    99.5,
-		ErrorBudgetRemaining:    0.8,
-		ErrorBudgetBurnRate:     0.1,
-	}, nil
-}
-
-func (sli *LatencySLI) GetStatus(ctx context.Context) (*LatencyStatus, error) {
-	return &LatencyStatus{
-		P50Latency:             500 * time.Millisecond,
-		P95Latency:             1500 * time.Millisecond,
-		P99Latency:             3000 * time.Millisecond,
-		CompliancePercentage:   95.0,
-		ViolationCount:         5,
-		SustainedViolationTime: 30 * time.Second,
-		LatencyTrend:           "stable",
-		PredictedViolationRisk: 0.15,
-	}, nil
-}
-
-func (sli *BusinessImpactErrorSLI) GetStatus(ctx context.Context) (*ErrorStatus, error) {
-	return &ErrorStatus{
-		TotalErrors:          1234,
-		ErrorRate:            0.001,
-		CriticalErrorRate:    0.0001,
-		ErrorBudgetConsumed:  0.2,
-		ErrorBudgetRemaining: 0.8,
-		BusinessImpactScore:  0.1,
-		RevenueImpact:        1000.0,
-		UserExperienceImpact: 0.05,
-		ErrorTrend:           "improving",
-		TopErrorCategories: []ErrorCategory{
-			{Name: "timeout", Count: 500, Percentage: 40.5, Severity: "medium", BusinessImpact: 0.3},
-			{Name: "validation", Count: 300, Percentage: 24.3, Severity: "low", BusinessImpact: 0.1},
-		},
-	}, nil
-}
-
-func (sli *ThroughputSLI) GetStatus(ctx context.Context) (*ThroughputStatus, error) {
-	return &ThroughputStatus{
-		CurrentThroughputRPS:   1500.0,
-		SustainedThroughputRPS: 1200.0,
-		PeakThroughputRPS:      2000.0,
-		CompliancePercentage:   98.5,
-		CapacityUtilization:    0.75,
-		QueueDepth:             10,
-		ProcessingBacklog:      25,
-		ThroughputTrend:        "stable",
-		CapacityForecast: []CapacityForecastPoint{
-			{Timestamp: time.Now().Add(time.Hour), PredictedThroughput: 1600.0, ConfidenceInterval: 0.95},
-		},
-	}, nil
-}
-
-// Implementation stubs for complex types
-type SLAMetricsCollector struct{}
-type SLAReportGenerator struct{}
-type ParetoFrontTracker struct{}
-type OptimizationResult struct{}
-type SLAAlert struct{}
-type AlertSilence struct{}
-type AlertCorrelator struct{}
-type AlertCondition struct{}
-
-// AlertSeverity is defined in types.go
-type SLAHistoricalDataStore struct{}
-type SLAPredictor struct{}
-
-// AnomalyDetector is defined in types.go
-type CostCalculator struct{}
-type RiskAssessment struct{}
-type BusinessMetricsCollector struct{}
-type ComplianceReportScheduler struct{}
-type Attestation struct{}
-type ComplianceViolation struct{}
-
-// Embedded monitoring components
-type SLAMonitoringManager struct {
-	calculator        *SLAMetricsCalculator
-	optimizer         *MultiObjectiveSLAOptimizer
-	alertManager      *SLAAlertManager
-	trendAnalyzer     *SLATrendAnalyzer
-	impactAnalyzer    *BusinessImpactAnalyzer
-	complianceTracker *SLAComplianceTracker
-	syntheticMonitor  *SyntheticMonitor
-	remediationEngine *AutomatedRemediationEngine
-	ctx               context.Context
-	cancel            context.CancelFunc
-	logger            *zap.Logger
-	mu                sync.RWMutex
-}
-
-// Storage and persistence layer
-type SLADataStore struct {
-	timeSeriesDB      TimeSeriesDatabase
-	metadataStore     MetadataStore
-	configStore       ConfigurationStore
-	auditStore        AuditStore
-	cacheLayer        CacheLayer
-	compressionEngine CompressionEngine
-	encryptionLayer   EncryptionLayer
-	mu                sync.RWMutex
-}
-
-type WindowAggregator struct {
-	windows     map[string]*TimeWindow
-	aggregators map[string]AggregatorFunc
-	mu          sync.RWMutex
-}
-
-type RealTimeSLOEvaluator struct {
-	sloRules     []*SLORule
-	currentState *SLOState
-	violations   chan *SLOViolation
-	mu           sync.RWMutex
-}
-
-// Supporting types
-type EdgeCollector struct{}
-type PruningPolicy struct{}
-type CachedMetric struct{}
-type AggregatorFunc func([]float64) float64
-type SLORule struct{}
-type SLOState struct{}
-type SLOViolation struct{}
-
-// Additional missing storage types
-type StateStore struct{}
-type CheckpointManager struct{}
-type PrometheusStorageConfig struct{}
-type LongTermStorageConfig struct{}
-type ComplianceStorageConfig struct{}
-type AuditLogStorage struct{}
-type DataRetentionPolicy struct{}
-type DataArchivalStrategy struct{}
-type DataCompactionConfig struct{}
-type StorageCompressionConfig struct{}
-type DataPartitioningStrategy struct{}
-
-// Testing and synthetic monitoring types
-type IntentProcessingTestSuite struct{}
-type APIEndpointTestSuite struct{}
-type UserJourneyTestSuite struct{}
-type TestScheduler struct{}
-type TestExecutor struct{}
-type TestResultProcessor struct{}
-
-// Chaos engineering types
-type ChaosExperiment struct{}
-type ChaosExperimentScheduler struct{}
-type ResilienceValidator struct{}
-type RecoveryTimeTracker struct{}
-
-// Cost optimization types
-type SLACostCalculator struct{}
-type ResourceCostTracker struct{}
-type CostOptimizationEngine struct{}
-type RightSizingEngine struct{}
-
-// Remediation types
-type AutoScalingActions struct{}
-type TrafficShapingActions struct{}
-type CircuitBreakerActions struct{}
-type LoadBalancingActions struct{}
-type CacheOptimizationActions struct{}
-type DatabaseOptimizationActions struct{}
-type ResourceReallocationActions struct{}
-
-// Interfaces for modular design
-type TimeSeriesDatabase interface{}
-type MetadataStore interface{}
-type ConfigurationStore interface{}
-type AuditStore interface{}
-type CacheLayer interface{}
-type CompressionEngine interface{}
-type EncryptionLayer interface{}
-
-// Mock implementations for interfaces
-type MockTimeSeriesDatabase struct{}
-type MockMetadataStore struct{}
-type MockConfigurationStore struct{}
-type MockAuditStore struct{}
-type MockCacheLayer struct{}
-type MockCompressionEngine struct{}
-type MockEncryptionLayer struct{}
-
-func NewSLAMonitoringManager(logger *zap.Logger) *SLAMonitoringManager {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &SLAMonitoringManager{
-		ctx:    ctx,
-		cancel: cancel,
-		logger: logger,
-	}
-}
-
-func (smm *SLAMonitoringManager) Start() error {
-	return nil
-}
-
-func (smm *SLAMonitoringManager) Stop() error {
-	if smm.cancel != nil {
-		smm.cancel()
-	}
-	return nil
-}
-
-func (sd *SLADataStore) Start(ctx context.Context) error {
-	return nil
-}
-
-func (moa *MultiObjectiveSLAOptimizer) Start(ctx context.Context) error {
-	return nil
-}
-
-func (sam *SLAAlertManager) Start(ctx context.Context) error {
-	return nil
-}
-
-func (sta *SLATrendAnalyzer) Start(ctx context.Context) error {
-	return nil
-}
-
-func (bia *BusinessImpactAnalyzer) Start(ctx context.Context) error {
-	return nil
-}
-
-func (sct *SLAComplianceTracker) Start(ctx context.Context) error {
-	return nil
-}
-
-// SyntheticMonitor performs synthetic availability checks (also defined in availability/synthetic.go)
-type SyntheticMonitor struct {
-	checks     map[string]*SyntheticCheck
-	results    map[string]*CheckResult
-	mutex      sync.RWMutex
-	logger     logr.Logger
-	httpClient *http.Client
-}
-type AutomatedRemediationEngine struct{}
-
-func (sm *SyntheticMonitor) Start(ctx context.Context) error {
-	return nil
-}
-
-func (are *AutomatedRemediationEngine) Start(ctx context.Context) error {
-	return nil
-}
-
-// ThroughputCalculator calculates throughput metrics
 type ThroughputCalculator struct {
 	windowSize time.Duration
-	requests   *CircularBuffer
-	mu         sync.RWMutex
+
+	requests *CircularBuffer
+
+	mu sync.RWMutex
 }
 
-// NewThroughputCalculator creates a new throughput calculator
+// NewThroughputCalculator creates a new throughput calculator.
+
 func NewThroughputCalculator(windowSize time.Duration) *ThroughputCalculator {
+
 	return &ThroughputCalculator{
+
 		windowSize: windowSize,
-		requests:   NewCircularBuffer(1000),
+
+		requests: NewCircularBuffer(1000),
 	}
+
 }
 
-// RecordRequest records a new request for throughput calculation
+// RecordRequest records a new request for throughput calculation.
+
 func (tc *ThroughputCalculator) RecordRequest(timestamp time.Time) {
+
 	tc.mu.Lock()
+
 	defer tc.mu.Unlock()
+
 	tc.requests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
+
 }
 
-// Calculate calculates current throughput (requests per second)
+// Calculate calculates current throughput (requests per second).
+
 func (tc *ThroughputCalculator) Calculate() float64 {
+
 	tc.mu.RLock()
+
 	defer tc.mu.RUnlock()
 
 	now := time.Now()
+
 	cutoff := now.Add(-tc.windowSize)
-	
+
 	count := 0
+
 	tc.requests.RangeWithTime(func(timestamp time.Time, value float64) bool {
+
 		if timestamp.After(cutoff) {
+
 			count++
+
 		}
+
 		return true
+
 	})
 
 	return float64(count) / tc.windowSize.Seconds()
+
 }
 
-// ErrorRateCalculator calculates error rate metrics
+// ErrorRateCalculator calculates error rate metrics.
+
 type ErrorRateCalculator struct {
-	windowSize    time.Duration
+	windowSize time.Duration
+
 	totalRequests *CircularBuffer
+
 	errorRequests *CircularBuffer
-	mu            sync.RWMutex
+
+	mu sync.RWMutex
 }
 
-// NewErrorRateCalculator creates a new error rate calculator
+// NewErrorRateCalculator creates a new error rate calculator.
+
 func NewErrorRateCalculator(windowSize time.Duration) *ErrorRateCalculator {
+
 	return &ErrorRateCalculator{
-		windowSize:    windowSize,
+
+		windowSize: windowSize,
+
 		totalRequests: NewCircularBuffer(1000),
+
 		errorRequests: NewCircularBuffer(1000),
 	}
+
 }
 
-// RecordRequest records a request (total and error status)
+// RecordRequest records a request (total and error status).
+
 func (erc *ErrorRateCalculator) RecordRequest(timestamp time.Time, isError bool) {
+
 	erc.mu.Lock()
+
 	defer erc.mu.Unlock()
-	
+
 	erc.totalRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
+
 	if isError {
+
 		erc.errorRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent an error
+
 	}
+
 }
 
-// Calculate calculates current error rate (0.0 to 1.0)
+// Calculate calculates current error rate (0.0 to 1.0).
+
 func (erc *ErrorRateCalculator) Calculate() float64 {
+
 	erc.mu.RLock()
+
 	defer erc.mu.RUnlock()
 
 	now := time.Now()
+
 	cutoff := now.Add(-erc.windowSize)
-	
+
 	totalCount := 0
+
 	errorCount := 0
-	
+
 	erc.totalRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
+
 		if timestamp.After(cutoff) {
+
 			totalCount++
+
 		}
+
 		return true
+
 	})
-	
+
 	erc.errorRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
+
 		if timestamp.After(cutoff) {
+
 			errorCount++
+
 		}
+
 		return true
+
 	})
 
 	if totalCount == 0 {
+
 		return 0.0
+
 	}
 
 	return float64(errorCount) / float64(totalCount)
+
 }
 
-// PercentileCalculator calculates percentile metrics for latency
+// PercentileCalculator calculates percentile metrics for latency.
+
 type PercentileCalculator struct {
 	windowSize time.Duration
-	values     *CircularBuffer
-	mu         sync.RWMutex
+
+	values *CircularBuffer
+
+	mu sync.RWMutex
 }
 
-// NewPercentileCalculator creates a new percentile calculator
+// NewPercentileCalculator creates a new percentile calculator.
+
 func NewPercentileCalculator(windowSize time.Duration) *PercentileCalculator {
+
 	return &PercentileCalculator{
+
 		windowSize: windowSize,
-		values:     NewCircularBuffer(1000),
+
+		values: NewCircularBuffer(1000),
 	}
+
 }
 
-// RecordValue records a latency value
+// RecordValue records a latency value.
+
 func (pc *PercentileCalculator) RecordValue(value float64) {
+
 	pc.mu.Lock()
+
 	defer pc.mu.Unlock()
+
 	pc.values.Add(time.Now(), value)
+
 }
 
-// Calculate calculates the specified percentile
+// Calculate calculates the specified percentile.
+
 func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
+
 	pc.mu.RLock()
+
 	defer pc.mu.RUnlock()
 
 	var values []float64
+
 	pc.values.Range(func(value float64) bool {
+
 		values = append(values, value)
+
 		return true
+
 	})
 
 	if len(values) == 0 {
+
 		return 0.0
+
 	}
 
-	// Sort values
+	// Sort values.
+
 	sort.Float64s(values)
 
-	// Calculate percentile index
+	// Calculate percentile index.
+
 	index := percentile / 100.0 * float64(len(values)-1)
-	
+
 	if index == float64(int(index)) {
+
 		return values[int(index)]
+
 	}
 
-	// Linear interpolation
+	// Linear interpolation.
+
 	lower := int(index)
+
 	upper := lower + 1
+
 	if upper >= len(values) {
+
 		return values[len(values)-1]
+
 	}
 
 	weight := index - float64(lower)
+
 	return values[lower]*(1-weight) + values[upper]*weight
+
 }
 
-// SLAComplianceTracker tracks SLA compliance over time
+// SLAComplianceTracker tracks SLA compliance over time.
+
+type SLAComplianceTracker struct {
+	violations *CircularBuffer
+
+	windowSize time.Duration
+
+	mu sync.RWMutex
+}
+
+// NewSLAComplianceTracker creates a new SLA compliance tracker.
+
+func NewSLAComplianceTracker(windowSize time.Duration) *SLAComplianceTracker {
+
+	return &SLAComplianceTracker{
+
+		violations: NewCircularBuffer(1000),
+
+		windowSize: windowSize,
+	}
+
+}
+
+// RecordViolation records an SLA violation.
+
+func (sct *SLAComplianceTracker) RecordViolation(timestamp time.Time, severity float64) {
+
+	sct.mu.Lock()
+
+	defer sct.mu.Unlock()
+
+	sct.violations.Add(timestamp, severity)
+
+}
+
+// GetComplianceRate returns the current compliance rate (0.0 to 1.0).
+
+func (sct *SLAComplianceTracker) GetComplianceRate() float64 {
+
+	sct.mu.RLock()
+
+	defer sct.mu.RUnlock()
+
+	now := time.Now()
+
+	cutoff := now.Add(-sct.windowSize)
+
+	violationCount := 0
+
+	totalMeasurements := 0
+
+	sct.violations.RangeWithTime(func(timestamp time.Time, value float64) bool {
+
+		if timestamp.After(cutoff) {
+
+			totalMeasurements++
+
+			if value > 0 {
+
+				violationCount++
+
+			}
+
+		}
+
+		return true
+
+	})
+
+	if totalMeasurements == 0 {
+
+		return 1.0 // 100% compliance when no measurements
+
+	}
+
+	return 1.0 - (float64(violationCount) / float64(totalMeasurements))
+
+}

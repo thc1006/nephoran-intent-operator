@@ -315,4 +315,10 @@ kind
 
 # Large bundle files (safety bundles)
 safety-*.bundle
+<<<<<<< HEAD
 *.bundle
+=======
+*.bundle
+
+*.bundle
+>>>>>>> origin/integrate/mvp

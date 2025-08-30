@@ -1,0 +1,264 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: networkintent-controller-role
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/managed-by: kustomize
+rules:
+# Core resources - ConfigMaps and Secrets for storing processed data
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# Event creation for audit trail and monitoring
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+# Service management for CNF deployments
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# NetworkIntent resource management - full lifecycle permissions
+- apiGroups:
+  - intent.nephoran.com
+  - nephoran.io
+  resources:
+  - networkintents
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# NetworkIntent status subresource - controller needs to update status
+- apiGroups:
+  - intent.nephoran.com
+  - nephoran.io
+  resources:
+  - networkintents/status
+  verbs:
+  - get
+  - update
+  - patch
+
+# NetworkIntent finalizers - for cleanup operations
+- apiGroups:
+  - intent.nephoran.com
+  - nephoran.io
+  resources:
+  - networkintents/finalizers
+  verbs:
+  - update
+
+# CNFDeployment resource management
+- apiGroups:
+  - nephoran.io
+  resources:
+  - cnfdeployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# CNFDeployment status and finalizers
+- apiGroups:
+  - nephoran.io
+  resources:
+  - cnfdeployments/status
+  - cnfdeployments/finalizers
+  verbs:
+  - get
+  - update
+  - patch
+
+# Deployment and ReplicaSet management for CNFs
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# Pod management for monitoring and debugging
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+
+# ServiceAccount management for CNFs
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+
+# RBAC management for CNF deployments
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+
+# HPA management for auto-scaling
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# NetworkPolicy management for security
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# Ingress management for service exposure
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# PVC management for persistent storage
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# CustomResourceDefinition access for dynamic CRD management
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+
+# Node and namespace information for scheduling decisions
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+
+# Metrics access for monitoring integration
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - nodes
+  - pods
+  verbs:
+  - get
+  - list
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: networkintent-controller-rolebinding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/managed-by: kustomize
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: networkintent-controller-role
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller-manager
+  namespace: nephoran-system

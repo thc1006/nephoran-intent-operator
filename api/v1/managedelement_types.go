@@ -1,125 +1,132 @@
 /*
-Copyright 2024.
+
+Copyright 2025.
+
+
 
 Licensed under the Apache License, Version 2.0 (the "License");
+
 you may not use this file except in compliance with the License.
+
 You may obtain a copy of the License at
+
+
 
     http://www.apache.org/licenses/LICENSE-2.0
 
+
+
 Unless required by applicable law or agreed to in writing, software
+
 distributed under the License is distributed on an "AS IS" BASIS,
+
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 See the License for the specific language governing permissions and
+
 limitations under the License.
+
 */
 
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Credentials defines authentication credentials for managed elements
-type Credentials struct {
-	// Username reference
-	// +optional
-	UsernameRef *corev1.SecretKeySelector `json:"usernameRef,omitempty"`
+// SecretReference references a Kubernetes Secret for authentication credentials.
 
-	// Password reference
-	// +optional
-	PasswordRef *corev1.SecretKeySelector `json:"passwordRef,omitempty"`
+// SecretReference is defined in audittrail_types.go to avoid duplication.
 
-	// SSH private key reference
-	// +optional
-	PrivateKeyRef *corev1.SecretKeySelector `json:"privateKeyRef,omitempty"`
+// ManagedElementCredentials defines authentication credentials for a managed element.
 
-	// Client certificate reference for mTLS
-	// +optional
-	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
+// Credentials should be stored in Kubernetes Secrets and referenced here.
 
-	// Client key reference for mTLS
-	// +optional
-	ClientKeyRef *corev1.SecretKeySelector `json:"clientKeyRef,omitempty"`
+type ManagedElementCredentials struct {
 
-	// CA certificate reference
-	// +optional
-	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
+	// UsernameRef references a secret containing the username.
+
+	UsernameRef *SecretReference `json:"usernameRef,omitempty"`
+
+	// PasswordRef references a secret containing the password.
+
+	PasswordRef *SecretReference `json:"passwordRef,omitempty"`
+
+	// PrivateKeyRef references a secret containing the private key.
+
+	PrivateKeyRef *SecretReference `json:"privateKeyRef,omitempty"`
+
+	// ClientCertificateRef references a secret containing the client certificate.
+
+	ClientCertificateRef *SecretReference `json:"clientCertificateRef,omitempty"`
+
+	// ClientKeyRef references a secret containing the client key.
+
+	ClientKeyRef *SecretReference `json:"clientKeyRef,omitempty"`
 }
 
-// ManagedElementSpec defines the desired state of ManagedElement
+// ManagedElementSpec defines the desired state of ManagedElement.
+
 type ManagedElementSpec struct {
-	// NetworkElementType specifies the type of network element (e.g., "DU", "CU", "RU")
-	NetworkElementType string `json:"networkElementType"`
+	DeploymentName string `json:"deploymentName"`
 
-	// Endpoint is the management endpoint URL for the network element
-	Endpoint string `json:"endpoint"`
+	Host string `json:"host"`
 
-	// Credentials contains authentication information for the network element
-	Credentials *Credentials `json:"credentials,omitempty"`
+	Port int `json:"port,omitempty"`
 
-	// Version specifies the software version of the network element
-	Version string `json:"version,omitempty"`
+	Credentials ManagedElementCredentials `json:"credentials"`
 
-	// Configuration holds network element specific configuration
-	Configuration map[string]string `json:"configuration,omitempty"`
+	O1Config string `json:"o1Config,omitempty"`
 
-	// A1Policy contains A1 policy configuration for the managed element
-	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+
 	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
 
-	// E2Configuration contains E2 interface configuration for the managed element
-	// +optional
-	E2Configuration map[string]string `json:"e2Configuration,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+
+	E2Configuration runtime.RawExtension `json:"e2Configuration,omitempty"`
 }
 
-// ManagedElementStatus defines the observed state of ManagedElement
+// ManagedElementStatus defines the observed state of ManagedElement.
+
 type ManagedElementStatus struct {
-	// Phase represents the current lifecycle phase of the managed element
-	Phase string `json:"phase,omitempty"`
 
-	// ConnectionStatus indicates whether the element is reachable
-	ConnectionStatus string `json:"connectionStatus,omitempty"`
+	// +optional.
 
-	// LastSeen timestamp of the last successful communication
-	LastSeen *metav1.Time `json:"lastSeen,omitempty"`
-
-	// OperationalStatus indicates if the element is operational
-	OperationalStatus string `json:"operationalStatus,omitempty"`
-
-	// ConfigurationStatus indicates if configuration is applied successfully
-	ConfigurationStatus string `json:"configurationStatus,omitempty"`
-
-	// Message provides human-readable status information
-	Message string `json:"message,omitempty"`
-
-	// Conditions represent the latest available observations of the element's state
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
+
 //+kubebuilder:subresource:status
 
-// ManagedElement is the Schema for the managedelements API
+// ManagedElement is the Schema for the managedelements API.
+
 type ManagedElement struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ManagedElementSpec   `json:"spec,omitempty"`
+	Spec ManagedElementSpec `json:"spec,omitempty"`
+
 	Status ManagedElementStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// ManagedElementList contains a list of ManagedElement
+// ManagedElementList contains a list of ManagedElement.
+
 type ManagedElementList struct {
 	metav1.TypeMeta `json:",inline"`
+
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ManagedElement `json:"items"`
+
+	Items []ManagedElement `json:"items"`
 }
 
 func init() {
-	// SchemeBuilder.Register(&ManagedElement{}, &ManagedElementList{}) // TODO: Fix DeepCopyObject methods
+
+	SchemeBuilder.Register(&ManagedElement{}, &ManagedElementList{})
+
 }
