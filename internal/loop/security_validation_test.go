@@ -70,7 +70,7 @@ func TestPathTraversalPrevention(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := validateSafePath(tt.baseDir, tt.filename)
-			
+
 			if tt.shouldError {
 				assert.Error(t, err, tt.description)
 				assert.Empty(t, result)
@@ -127,7 +127,7 @@ func TestJSONBombProtection(t *testing.T) {
 
 			// Test parsing with security checks
 			_, err = ParseIntentFile(testFile)
-			
+
 			if tt.shouldError {
 				assert.Error(t, err, tt.description)
 			} else {
@@ -186,7 +186,7 @@ func TestCommandInjectionPrevention(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validatePathSafety(tt.path)
-			
+
 			if tt.shouldError {
 				assert.Error(t, err, tt.description)
 			} else {
@@ -199,22 +199,22 @@ func TestCommandInjectionPrevention(t *testing.T) {
 // TestRateLimiting tests rate limiting functionality
 func TestRateLimiting(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	config := Config{
 		MaxWorkers:  2,
 		DebounceDur: 10 * time.Millisecond,
 	}
-	
+
 	watcher, err := NewRateLimitedWatcher(tempDir, config)
 	require.NoError(t, err)
 	defer watcher.Close()
-	
+
 	// Try to process many files rapidly
 	for i := 0; i < 100; i++ {
 		filePath := filepath.Join(tempDir, fmt.Sprintf("intent-%d.json", i))
 		watcher.handleIntentFileWithRateLimit(filePath)
 	}
-	
+
 	// Check that rate limiting occurred
 	assert.Greater(t, watcher.metrics.filesRejected, int64(0), "should have rejected some files due to rate limiting")
 }
@@ -224,29 +224,29 @@ func TestFilePermissions(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping permission test in CI environment")
 	}
-	
+
 	tempDir := t.TempDir()
-	
+
 	// Test directory creation
 	testDir := filepath.Join(tempDir, "secure-dir")
 	err := os.MkdirAll(testDir, SecureDirPerm)
 	require.NoError(t, err)
-	
+
 	dirInfo, err := os.Stat(testDir)
 	require.NoError(t, err)
-	
+
 	// Check directory permissions (platform-specific)
 	dirMode := dirInfo.Mode().Perm()
 	assert.Equal(t, os.FileMode(0700), dirMode, "directory should have 0700 permissions")
-	
+
 	// Test file creation
 	testFile := filepath.Join(testDir, "secure-file.json")
 	err = os.WriteFile(testFile, []byte("{}"), SecureFilePerm)
 	require.NoError(t, err)
-	
+
 	fileInfo, err := os.Stat(testFile)
 	require.NoError(t, err)
-	
+
 	fileMode := fileInfo.Mode().Perm()
 	assert.Equal(t, os.FileMode(0600), fileMode, "file should have 0600 permissions")
 }
@@ -254,7 +254,7 @@ func TestFilePermissions(t *testing.T) {
 // TestIntentValidation tests intent content validation
 func TestIntentValidation(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	tests := []struct {
 		name        string
 		intent      map[string]interface{}
@@ -318,7 +318,7 @@ func TestIntentValidation(t *testing.T) {
 			description: "should reject intent with missing fields",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Write intent to file
@@ -327,10 +327,10 @@ func TestIntentValidation(t *testing.T) {
 			require.NoError(t, err)
 			err = os.WriteFile(intentFile, data, 0644)
 			require.NoError(t, err)
-			
+
 			// Validate intent
 			err = validateIntent(intentFile)
-			
+
 			if tt.shouldError {
 				assert.Error(t, err, tt.description)
 			} else {
@@ -367,49 +367,49 @@ func generateLargeArrayJSON(size int) string {
 func validateSafePath(baseDir, filename string) (string, error) {
 	// Clean the filename to remove any path components
 	cleanName := filepath.Base(filename)
-	
+
 	// Reject if the cleaned name differs from original (contains path separators)
 	if cleanName != filename {
 		return "", fmt.Errorf("invalid filename: contains path separators")
 	}
-	
+
 	// Check for null bytes
 	if strings.Contains(filename, "\x00") {
 		return "", fmt.Errorf("invalid filename: contains null bytes")
 	}
-	
+
 	// Build the full path
 	fullPath := filepath.Join(baseDir, cleanName)
-	
+
 	// Get absolute paths for comparison
 	absBase, err := filepath.Abs(baseDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve base directory: %w", err)
 	}
-	
+
 	absPath, err := filepath.Abs(fullPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve file path: %w", err)
 	}
-	
+
 	// Ensure the resolved path is within the base directory
 	if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) {
 		return "", fmt.Errorf("path traversal detected: %s is outside %s", absPath, absBase)
 	}
-	
+
 	return absPath, nil
 }
 
 func validatePathSafety(path string) error {
 	// Check for shell metacharacters
 	dangerousChars := []string{";", "|", "&", "$", "`", "(", ")", "{", "}", "[", "]", "<", ">", "*", "?", "!", "\n", "\r"}
-	
+
 	for _, char := range dangerousChars {
 		if strings.Contains(path, char) {
 			return fmt.Errorf("path contains dangerous character: %s", char)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -427,34 +427,34 @@ func ParseIntentFile(filePath string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
-	
+
 	// First, check file size before reading to prevent memory exhaustion
 	stat, err := file.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat file: %w", err)
 	}
-	
+
 	if stat.Size() > MaxJSONSize {
 		return nil, fmt.Errorf("file exceeds maximum size of %d bytes (got %d bytes)", MaxJSONSize, stat.Size())
 	}
-	
+
 	// Read the file content with size limit
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Check for JSON bomb (excessive nesting) before full parsing
 	if err := validateJSONDepth(data, 100); err != nil {
 		return nil, fmt.Errorf("JSON bomb detected: %w", err)
 	}
-	
+
 	// Parse the JSON
 	var result map[string]interface{}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
-	
+
 	return result, nil
 }
 
@@ -464,7 +464,7 @@ func validateIntent(filePath string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Check required fields
 	requiredFields := []string{"version", "timestamp", "action", "target", "params"}
 	for _, field := range requiredFields {
@@ -472,7 +472,7 @@ func validateIntent(filePath string) error {
 			return fmt.Errorf("missing required field: %s", field)
 		}
 	}
-	
+
 	// Validate action
 	validActions := map[string]bool{
 		"scale-up":   true,
@@ -480,25 +480,25 @@ func validateIntent(filePath string) error {
 		"deploy":     true,
 		"undeploy":   true,
 	}
-	
+
 	action, ok := intent["action"].(string)
 	if !ok || !validActions[action] {
 		return fmt.Errorf("invalid action: %v", intent["action"])
 	}
-	
+
 	// Check for malicious patterns in target
 	target, ok := intent["target"].(string)
 	if !ok {
 		return fmt.Errorf("invalid target type")
 	}
-	
+
 	dangerousPatterns := []string{";", "|", "&", "$", "`", "..", "\n", "\r"}
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(target, pattern) {
 			return fmt.Errorf("dangerous pattern '%s' detected in target", pattern)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -506,7 +506,7 @@ func validateIntent(filePath string) error {
 func validateJSONDepth(data []byte, maxDepth int) error {
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
 	depth := 0
-	
+
 	for {
 		token, err := decoder.Token()
 		if err != nil {
@@ -515,7 +515,7 @@ func validateJSONDepth(data []byte, maxDepth int) error {
 			}
 			return fmt.Errorf("failed to parse JSON: %w", err)
 		}
-		
+
 		switch token := token.(type) {
 		case json.Delim:
 			if token == '{' || token == '[' {
@@ -531,11 +531,11 @@ func validateJSONDepth(data []byte, maxDepth int) error {
 			}
 		}
 	}
-	
+
 	if depth != 0 {
 		return fmt.Errorf("invalid JSON structure: unclosed delimiters")
 	}
-	
+
 	return nil
 }
 
@@ -556,7 +556,7 @@ func NewRateLimitedWatcher(dir string, config Config) (*RateLimitedWatcher, erro
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &RateLimitedWatcher{
 		Watcher: w,
 		metrics: &SecurityMetrics{},

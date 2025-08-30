@@ -1,4 +1,4 @@
-package o2models
+package models
 
 import (
 	"time"

@@ -48,7 +48,7 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 // writeFullManifest writes a complete Kubernetes manifest
 func writeFullManifest(intent Intent, outDir string) error {
 	manifest := generateKubernetesManifest(intent)
-	
+
 	filename := filepath.Join(outDir, "deployment.yaml")
 	if err := os.WriteFile(filename, []byte(manifest), 0644); err != nil {
 		return fmt.Errorf("failed to write manifest: %w", err)
@@ -61,7 +61,7 @@ func writeFullManifest(intent Intent, outDir string) error {
 // writeStrategicMergePatch writes a strategic merge patch
 func writeStrategicMergePatch(intent Intent, outDir string) error {
 	patch := generateStrategicMergePatch(intent)
-	
+
 	filename := filepath.Join(outDir, "patch.yaml")
 	if err := os.WriteFile(filename, []byte(patch), 0644); err != nil {
 		return fmt.Errorf("failed to write patch: %w", err)

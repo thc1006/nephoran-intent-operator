@@ -53,33 +53,33 @@ type Validator interface {
 
 // IntentProcessor handles validation and submission of intents
 type IntentProcessor struct {
-	config     *ProcessorConfig
-	validator  Validator
-	porchFunc  PorchSubmitFunc
-	processed  *SafeSet // for idempotency
-	ctx        context.Context
-	cancel     context.CancelFunc
-	wg         sync.WaitGroup
-	
+	config    *ProcessorConfig
+	validator Validator
+	porchFunc PorchSubmitFunc
+	processed *SafeSet // for idempotency
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+
 	// Batch coordinator channels
-	inCh       chan string     // Input channel for file paths
-	stopCh     chan struct{}   // Stop signal for coordinator
-	coordReady chan struct{}   // Signals coordinator is ready
-	
+	inCh       chan string   // Input channel for file paths
+	stopCh     chan struct{} // Stop signal for coordinator
+	coordReady chan struct{} // Signals coordinator is ready
+
 	// Task tracking for graceful shutdown
-	taskWg     sync.WaitGroup  // Tracks in-flight tasks
-	tasksQueued atomic.Int64    // Number of tasks queued
-	
+	taskWg      sync.WaitGroup // Tracks in-flight tasks
+	tasksQueued atomic.Int64   // Number of tasks queued
+
 	// Stats tracking (atomic for thread safety)
 	processedCount      int64
 	failedCount         int64
 	realFailedCount     int64
 	shutdownFailedCount int64
-	
+
 	// Graceful shutdown tracking
-	gracefulShutdown    atomic.Bool
-	shutdownStartTime   time.Time
-	shutdownMutex      sync.RWMutex
+	gracefulShutdown  atomic.Bool
+	shutdownStartTime time.Time
+	shutdownMutex     sync.RWMutex
 }
 
 // PorchSubmitFunc is a function type for submitting to porch
@@ -153,7 +153,7 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 	// Track this task AFTER shutdown check to avoid phantom tasks
 	p.taskWg.Add(1)
 	p.tasksQueued.Add(1)
-	
+
 	// Double-check shutdown after task tracking to handle race condition
 	if p.gracefulShutdown.Load() {
 		p.taskWg.Done()
@@ -192,7 +192,7 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 	// Try to send with exponential backoff
 	backoff := time.Millisecond * 100
 	maxBackoff := sendTimeout / 2
-	
+
 	// During shutdown, use shorter timeout; during normal ops, try immediate send first
 	if !p.gracefulShutdown.Load() {
 		// Normal operation: try immediate send, then short backoff
@@ -207,7 +207,7 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 			// Channel full, but during normal ops this should be rare
 		}
 	}
-	
+
 	deadline := time.Now().Add(sendTimeout)
 	for time.Now().Before(deadline) {
 		select {
@@ -225,7 +225,7 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 			}
 		}
 	}
-	
+
 	p.taskWg.Done()
 	p.tasksQueued.Add(-1)
 	return fmt.Errorf("timeout sending file to batch coordinator (buffer full after %v)", sendTimeout)
@@ -236,9 +236,9 @@ func (p *IntentProcessor) processBatch(files []string) {
 	if len(files) == 0 {
 		return
 	}
-	
+
 	log.Printf("Processing batch of %d files", len(files))
-	
+
 	for _, file := range files {
 		if err := p.processSingleFile(file); err != nil {
 			log.Printf("Error processing %s: %v", file, err)
@@ -278,7 +278,7 @@ func (p *IntentProcessor) processSingleFile(filename string) error {
 		if retry > 0 {
 			time.Sleep(time.Duration(retry) * time.Second)
 		}
-		
+
 		submitErr = p.porchFunc(ctx, intent, p.config.PorchMode)
 		if submitErr == nil {
 			break
@@ -293,7 +293,7 @@ func (p *IntentProcessor) processSingleFile(filename string) error {
 	// Mark as processed
 	p.markProcessed(filename)
 	log.Printf("Successfully processed: %s", filename)
-	
+
 	return nil
 }
 
@@ -301,10 +301,10 @@ func (p *IntentProcessor) processSingleFile(filename string) error {
 func (p *IntentProcessor) handleError(filename string, err error) error {
 	basename := filepath.Base(filename)
 	timestamp := time.Now().Format("20060102T150405")
-	
+
 	// Check if this is a shutdown failure
 	isShutdownErr := p.IsShutdownFailure(err)
-	
+
 	// Increment appropriate counter atomically
 	if isShutdownErr {
 		atomic.AddInt64(&p.shutdownFailedCount, 1)
@@ -312,19 +312,19 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 		atomic.AddInt64(&p.realFailedCount, 1)
 	}
 	atomic.AddInt64(&p.failedCount, 1)
-	
+
 	// Prepare error content with shutdown marker if needed
 	var errorContent string
 	if isShutdownErr {
-		errorContent = fmt.Sprintf("SHUTDOWN_FAILURE: %v\nFile: %s\nTime: %s\nError: %v\n", 
+		errorContent = fmt.Sprintf("SHUTDOWN_FAILURE: %v\nFile: %s\nTime: %s\nError: %v\n",
 			err, filename, time.Now().Format(time.RFC3339), err)
-		log.Printf("Processor: File %s failed due to graceful shutdown (expected): %s", 
+		log.Printf("Processor: File %s failed due to graceful shutdown (expected): %s",
 			filename, err.Error())
 	} else {
 		errorContent = fmt.Sprintf("File: %s\nTime: %s\nError: %v\n", filename, time.Now().Format(time.RFC3339), err)
 		log.Printf("Processor: File %s failed with real error: %s", filename, err.Error())
 	}
-	
+
 	// Ensure error directory exists before writing files
 	if err := os.MkdirAll(p.config.ErrorDir, 0o755); err != nil {
 		log.Printf("Failed to create error directory %s: %v", p.config.ErrorDir, err)
@@ -353,7 +353,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 func (p *IntentProcessor) markProcessed(filename string) {
 	basename := filepath.Base(filename)
 	p.processed.Add(basename)
-	
+
 	// Increment processed count atomically
 	atomic.AddInt64(&p.processedCount, 1)
 
@@ -365,7 +365,7 @@ func (p *IntentProcessor) markProcessed(filename string) {
 		return
 	}
 	defer f.Close()
-	
+
 	if _, err := f.WriteString(basename + "\n"); err != nil {
 		log.Printf("Failed to write to processed file: %v", err)
 	}
@@ -376,41 +376,41 @@ func (p *IntentProcessor) StartBatchProcessor() {
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
-		
+
 		// Single owner of the batch slice
 		batch := make([]string, 0, p.config.BatchSize)
 		ticker := time.NewTicker(p.config.BatchInterval)
 		defer ticker.Stop()
-		
+
 		// Signal that coordinator is ready
 		close(p.coordReady)
-		
+
 		for {
 			select {
 			case file := <-p.inCh:
 				// Append to batch (only this goroutine touches the batch)
 				batch = append(batch, file)
-				
+
 				// Check if batch is full
 				if len(batch) >= p.config.BatchSize {
 					p.processBatch(batch)
 					batch = batch[:0] // Reset batch
 				}
-				
+
 			case <-ticker.C:
 				// Flush batch on interval
 				if len(batch) > 0 {
 					p.processBatch(batch)
 					batch = batch[:0] // Reset batch
 				}
-				
+
 			case <-p.stopCh:
 				// Flush remaining batch before stopping
 				if len(batch) > 0 {
 					p.processBatch(batch)
 				}
 				return
-				
+
 			case <-p.ctx.Done():
 				// Context cancelled, flush and exit
 				if len(batch) > 0 {
@@ -430,7 +430,7 @@ func (p *IntentProcessor) StartBatchProcessor() {
 // 5. Wait for all goroutines to finish
 func (p *IntentProcessor) Stop() {
 	log.Printf("Processor shutdown initiated")
-	
+
 	// Phase 0: Allow queued tasks to start processing before blocking new ones
 	// This prevents the race where tasks are queued but shutdown begins immediately
 	queuedBeforeShutdown := p.tasksQueued.Load()
@@ -439,24 +439,24 @@ func (p *IntentProcessor) Stop() {
 		// Give workers a moment to pick up queued work
 		time.Sleep(100 * time.Millisecond)
 	}
-	
+
 	// Phase 1: Stop accepting new files (mark shutdown)
 	log.Printf("Stopping new file acceptance")
 	p.MarkGracefulShutdown()
-	
+
 	// Phase 2: Wait for all queued tasks to drain with timeout
 	queuedCount := p.tasksQueued.Load()
 	log.Printf("Processor drain phase: waiting for %d queued tasks to complete", queuedCount)
-	
+
 	// Use a timeout channel to prevent indefinite blocking
 	drainTimeout := 8 * time.Second
 	drainDone := make(chan struct{})
-	
+
 	go func() {
 		p.taskWg.Wait()
 		close(drainDone)
 	}()
-	
+
 	select {
 	case <-drainDone:
 		log.Printf("Processor drain completed - all tasks processed")
@@ -464,7 +464,7 @@ func (p *IntentProcessor) Stop() {
 		remaining := p.tasksQueued.Load()
 		log.Printf("Processor drain timeout after %v - %d tasks may still be processing", drainTimeout, remaining)
 	}
-	
+
 	// Phase 3: Stop coordinator and cancel context
 	log.Printf("Processor shutdown phase: stopping coordinator and cancelling context")
 	select {
@@ -474,10 +474,10 @@ func (p *IntentProcessor) Stop() {
 		close(p.stopCh)
 	}
 	p.cancel()
-	
+
 	// Phase 4: Wait for all background goroutines
 	p.wg.Wait()
-	
+
 	log.Printf("Processor stopped gracefully")
 }
 
@@ -501,16 +501,16 @@ func (p *IntentProcessor) GetStats() (ProcessingStats, error) {
 	if err != nil {
 		return ProcessingStats{}, fmt.Errorf("failed to get processed files: %w", err)
 	}
-	
+
 	failedFiles, err := p.getFailedFiles()
 	if err != nil {
 		return ProcessingStats{}, fmt.Errorf("failed to get failed files: %w", err)
 	}
-	
+
 	// Categorize failed files into shutdown failures vs real failures
 	var shutdownFailedFiles []string
 	var realFailedFiles []string
-	
+
 	for _, failedFile := range failedFiles {
 		// Check error log to determine failure type
 		if p.isShutdownFailure(failedFile) {
@@ -519,16 +519,16 @@ func (p *IntentProcessor) GetStats() (ProcessingStats, error) {
 			realFailedFiles = append(realFailedFiles, failedFile)
 		}
 	}
-	
+
 	return ProcessingStats{
-		ProcessedCount:       len(processedFiles),
-		FailedCount:          len(failedFiles),
-		ShutdownFailedCount:  len(shutdownFailedFiles),
-		RealFailedCount:      len(realFailedFiles),
-		ProcessedFiles:       processedFiles,
-		FailedFiles:          failedFiles,
-		ShutdownFailedFiles:  shutdownFailedFiles,
-		RealFailedFiles:      realFailedFiles,
+		ProcessedCount:      len(processedFiles),
+		FailedCount:         len(failedFiles),
+		ShutdownFailedCount: len(shutdownFailedFiles),
+		RealFailedCount:     len(realFailedFiles),
+		ProcessedFiles:      processedFiles,
+		FailedFiles:         failedFiles,
+		ShutdownFailedFiles: shutdownFailedFiles,
+		RealFailedFiles:     realFailedFiles,
 	}, nil
 }
 
@@ -542,7 +542,7 @@ func (p *IntentProcessor) getProcessedFiles() ([]string, error) {
 		}
 		return nil, err
 	}
-	
+
 	lines := strings.Split(string(data), "\n")
 	var files []string
 	for _, line := range lines {
@@ -563,15 +563,15 @@ func (p *IntentProcessor) getFailedFiles() ([]string, error) {
 		}
 		return nil, err
 	}
-	
+
 	var files []string
 	seen := make(map[string]bool)
-	
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
-		
+
 		name := entry.Name()
 		// Look for .json files (original files copied to error dir)
 		if strings.HasSuffix(name, ".json") {
@@ -587,7 +587,7 @@ func (p *IntentProcessor) getFailedFiles() ([]string, error) {
 			}
 		}
 	}
-	
+
 	return files, nil
 }
 
@@ -595,17 +595,17 @@ func (p *IntentProcessor) getFailedFiles() ([]string, error) {
 func (p *IntentProcessor) isShutdownFailure(failedFilePath string) bool {
 	// Look for corresponding error file
 	basename := filepath.Base(failedFilePath)
-	
+
 	// Remove .json suffix and find .error file
 	if strings.HasSuffix(basename, ".json") {
 		baseWithoutExt := strings.TrimSuffix(basename, ".json")
-		
+
 		// Find the corresponding .error file
 		entries, err := os.ReadDir(p.config.ErrorDir)
 		if err != nil {
 			return false
 		}
-		
+
 		for _, entry := range entries {
 			name := entry.Name()
 			if strings.HasPrefix(name, baseWithoutExt) && strings.HasSuffix(name, ".error") {
@@ -614,20 +614,20 @@ func (p *IntentProcessor) isShutdownFailure(failedFilePath string) bool {
 				if err != nil {
 					continue
 				}
-				
+
 				errorMsg := string(errorContent)
-				
+
 				// Check for shutdown failure patterns
 				return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
-					   strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
-					   strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
-					   strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
-					   strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
-					   strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
+					strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
+					strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
+					strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
+					strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
+					strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
 			}
 		}
 	}
-	
+
 	return false
 }
 
@@ -637,7 +637,7 @@ func (p *IntentProcessor) MarkGracefulShutdown() {
 	p.gracefulShutdown.Store(true)
 	p.shutdownStartTime = time.Now()
 	p.shutdownMutex.Unlock()
-	
+
 	log.Printf("Processor graceful shutdown initiated at %s", p.shutdownStartTime.Format(time.RFC3339))
 }
 
@@ -647,7 +647,7 @@ func (p *IntentProcessor) IsShutdownFailure(err error) bool {
 	if !p.gracefulShutdown.Load() {
 		return false
 	}
-	
+
 	// If graceful shutdown is active, any failure is likely due to shutdown
 	errorMsg := strings.ToLower(err.Error())
 	shutdownPatterns := []string{
@@ -657,32 +657,32 @@ func (p *IntentProcessor) IsShutdownFailure(err error) bool {
 		"signal: interrupt",
 		"signal: terminated",
 	}
-	
+
 	for _, pattern := range shutdownPatterns {
 		if strings.Contains(errorMsg, pattern) {
 			return true
 		}
 	}
-	
-	// Check timing - if failure occurs after shutdown was initiated, 
+
+	// Check timing - if failure occurs after shutdown was initiated,
 	// and it's not a clear validation error, consider it a shutdown failure
 	p.shutdownMutex.RLock()
 	shutdownTime := p.shutdownStartTime
 	p.shutdownMutex.RUnlock()
-	
+
 	if !shutdownTime.IsZero() {
-		// If error occurred after shutdown and is not a validation error, 
+		// If error occurred after shutdown and is not a validation error,
 		// treat as shutdown failure
 		isValidationError := strings.Contains(errorMsg, "validation") ||
 			strings.Contains(errorMsg, "invalid") ||
 			strings.Contains(errorMsg, "schema") ||
 			strings.Contains(errorMsg, "format")
-		
+
 		// If it's not a validation error and shutdown is active, treat as shutdown failure
 		if !isValidationError {
 			return true
 		}
 	}
-	
+
 	return false
 }

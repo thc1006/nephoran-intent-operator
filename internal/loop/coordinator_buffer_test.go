@@ -16,10 +16,10 @@ import (
 // is properly sized to handle burst load without send timeouts
 func TestCoordinatorChannelBackpressure(t *testing.T) {
 	handoffDir := t.TempDir()
-	
+
 	mockValidator := &MockValidator{}
 	var processedCount int64
-	
+
 	// Slow porch function to create backpressure
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
 		atomic.AddInt64(&processedCount, 1)
@@ -59,7 +59,7 @@ func TestCoordinatorChannelBackpressure(t *testing.T) {
 	}
 	sendDuration := time.Since(start)
 
-	t.Logf("Burst send completed in %v: %d successful, %d errors", 
+	t.Logf("Burst send completed in %v: %d successful, %d errors",
 		sendDuration, successfulSends, sendErrors)
 
 	// With proper channel sizing, most sends should succeed immediately

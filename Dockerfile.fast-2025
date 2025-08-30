@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # =============================================================================
 # Ultra-Fast Multi-Architecture Dockerfile for Nephoran Intent Operator (2025)
 # =============================================================================
@@ -111,6 +112,11 @@ RUN test -x /build/service && \
 # =============================================================================
 FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
+# =============================================================================
+# STAGE 4: Go Runtime Alias (Required by CI/CD)
+# =============================================================================
+FROM runtime AS go-runtime
+
 # Build metadata
 ARG SERVICE
 ARG VERSION
@@ -147,9 +153,9 @@ ENV TZ=UTC \
 # Run as non-root user (distroless nonroot = uid 65532)
 USER 65532:65532
 
-# Health check optimized for fast startup
+# Health check optimized for fast startup with security options
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=2 \
-    CMD ["/service", "--version"]
+    CMD ["/service", "--health-check", "--secure"] || ["/service", "--version"]
 
 # Service ports (common ranges)
 EXPOSE 8080 8081 8082

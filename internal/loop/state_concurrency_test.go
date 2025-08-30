@@ -64,7 +64,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 		// Concurrent operations: mark some as processed while checking others
 		for i := 0; i < numFiles; i++ {
 			wg.Add(2)
-			
+
 			// Worker 1: Mark as processed
 			go func(id int) {
 				defer wg.Done()
@@ -76,7 +76,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 			go func(id int) {
 				defer wg.Done()
 				filename := fmt.Sprintf("concurrent-%d.json", id)
-				
+
 				// Should never error, regardless of state
 				_, err := sm.IsProcessed(filename)
 				assert.NoError(t, err, "IsProcessed should never error during concurrent operations")

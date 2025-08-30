@@ -23,7 +23,7 @@ import (
 // TestCriticalFixes_NilPointerDereference validates Fix 1: Nil pointer dereference protection
 func TestCriticalFixes_NilPointerDereference(t *testing.T) {
 	t.Log("Validating Fix 1: Nil Pointer Dereference Protection")
-	
+
 	// Test 1: Close on nil watcher should not panic
 	t.Run("nil_watcher_close", func(t *testing.T) {
 		var nilWatcher *Watcher
@@ -132,7 +132,7 @@ func TestCriticalFixes_CrossPlatformScripting(t *testing.T) {
 
 		executor := porch.NewExecutor(config)
 		ctx := context.Background()
-		
+
 		// Create dummy intent file for testing
 		intentFile := filepath.Join(tempDir, "test-intent.json")
 		require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
@@ -246,7 +246,7 @@ func TestCriticalFixes_DataRaceConditions(t *testing.T) {
 		var sharedCounter int64
 		var mu sync.RWMutex
 		var wg sync.WaitGroup
-		
+
 		numGoroutines := 50
 		numIncrementsPerGoroutine := 100
 
@@ -279,7 +279,7 @@ func TestCriticalFixes_DataRaceConditions(t *testing.T) {
 		wg.Wait()
 
 		expectedValue := int64(numGoroutines * numIncrementsPerGoroutine)
-		assert.Equal(t, expectedValue, sharedCounter, 
+		assert.Equal(t, expectedValue, sharedCounter,
 			"Shared counter should equal expected value if mutex protection works")
 	})
 }
@@ -287,7 +287,7 @@ func TestCriticalFixes_DataRaceConditions(t *testing.T) {
 // TestAllFixesIntegration tests all three fixes working together
 func TestAllFixesIntegration(t *testing.T) {
 	t.Log("Integration test: All three critical fixes working together")
-	
+
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
@@ -314,7 +314,7 @@ func TestAllFixesIntegration(t *testing.T) {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	
+
 	// Test nil safety (Fix 1) - safe defer pattern
 	defer func() {
 		if watcher != nil {
@@ -343,7 +343,7 @@ func TestAllFixesIntegration(t *testing.T) {
 		wg.Add(1)
 		go func(fileID int) {
 			defer wg.Done()
-			
+
 			fileName := fmt.Sprintf("integration-test-%d.json", fileID)
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{
@@ -352,10 +352,10 @@ func TestAllFixesIntegration(t *testing.T) {
 				"metadata": {"name": "integration-%d"},
 				"spec": {"action": "scale", "replicas": %d}
 			}`, fileID, fileID%5+1)
-			
+
 			err := os.WriteFile(filePath, []byte(content), 0644)
 			require.NoError(t, err)
-			
+
 			// Small delay to trigger concurrent processing
 			time.Sleep(time.Duration(fileID%20) * time.Millisecond)
 		}(i)
@@ -395,7 +395,7 @@ func TestPerformanceRegression(t *testing.T) {
 	}
 
 	t.Log("Performance regression test: Verifying fixes don't impact performance significantly")
-	
+
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
@@ -457,7 +457,7 @@ func TestStressTest(t *testing.T) {
 	}
 
 	t.Log("Stress test: High concurrency validation for all fixes")
-	
+
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
@@ -508,7 +508,7 @@ func TestStressTest(t *testing.T) {
 			fileName := fmt.Sprintf("stress-test-%d.json", i)
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"id": %d}`, i)
-			
+
 			os.WriteFile(filePath, []byte(content), 0644)
 			if i%25 == 0 {
 				time.Sleep(5 * time.Millisecond)

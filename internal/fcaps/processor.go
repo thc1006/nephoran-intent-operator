@@ -213,14 +213,23 @@ func (p *Processor) GenerateIntent(decision ScalingDecision) (*ingest.Intent, er
 		return nil, fmt.Errorf("no scaling needed")
 	}
 
+	correlationID := fmt.Sprintf("fcaps-%d", time.Now().Unix())
+	
 	intent := &ingest.Intent{
-		IntentType:    "scaling",
-		Target:        p.target,
-		Namespace:     p.namespace,
-		Replicas:      decision.NewReplicas,
-		Reason:        decision.Reason,
-		Source:        "planner",
-		CorrelationID: fmt.Sprintf("fcaps-%d", time.Now().Unix()),
+		ID:          fmt.Sprintf("scale-%s-%s", p.target, correlationID),
+		Type:        "scaling",
+		Description: fmt.Sprintf("Scale %s to %d replicas due to: %s", p.target, decision.NewReplicas, decision.Reason),
+		Parameters: map[string]interface{}{
+			"target_replicas": decision.NewReplicas,
+			"target":          p.target,
+			"namespace":       p.namespace,
+			"source":          "planner",
+			"correlation_id":  correlationID,
+			"reason":          decision.Reason,
+			"severity":        decision.Severity,
+		},
+		TargetResources: []string{fmt.Sprintf("deployment/%s", p.target)},
+		Status:          "pending",
 	}
 
 	// Update current replicas to new value

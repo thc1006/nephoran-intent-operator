@@ -14,16 +14,16 @@ import (
 func TestValidatorInitialization(t *testing.T) {
 	logger := logr.Discard()
 	validator, err := NewValidator(logger)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, validator)
 }
 
 func TestValidIntent(t *testing.T) {
 	testCases := []struct {
-		name         string
-		intentJSON   string
-		expectError  bool
+		name        string
+		intentJSON  string
+		expectError bool
 	}{
 		{
 			name: "Valid Scaling Intent",
@@ -95,7 +95,7 @@ func TestValidIntent(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			intent, err := validator.ValidateIntent([]byte(tc.intentJSON))
-			
+
 			if tc.expectError {
 				assert.Error(t, err, "Should generate validation error")
 				assert.Nil(t, intent)
@@ -131,7 +131,7 @@ func TestValidateIntentFile(t *testing.T) {
 	t.Run("Non-existent File", func(t *testing.T) {
 		nonExistentPath := filepath.Join(tempDir, "does_not_exist.json")
 		intent, err := validator.ValidateIntentFile(nonExistentPath)
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, intent)
 	})
@@ -142,9 +142,9 @@ func TestValidateIntentMap(t *testing.T) {
 	validator, _ := NewValidator(logger)
 
 	testCases := []struct {
-		name         string
-		intentMap    map[string]interface{}
-		expectError  bool
+		name        string
+		intentMap   map[string]interface{}
+		expectError bool
 	}{
 		{
 			name: "Valid Intent Map",
@@ -169,7 +169,7 @@ func TestValidateIntentMap(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := validator.ValidateIntentMap(tc.intentMap)
-			
+
 			if tc.expectError {
 				assert.Error(t, err, "Should generate validation error")
 			} else {
@@ -183,9 +183,9 @@ func TestLoadIntent(t *testing.T) {
 	tempDir := t.TempDir()
 
 	testCases := []struct {
-		name         string
-		intentJSON   string
-		expectError  bool
+		name        string
+		intentJSON  string
+		expectError bool
 	}{
 		{
 			name: "Valid Scaling Intent",
@@ -225,7 +225,7 @@ func TestLoadIntent(t *testing.T) {
 			require.NoError(t, err)
 
 			intent, err := LoadIntent(intentPath)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, intent)

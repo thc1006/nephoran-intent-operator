@@ -50,7 +50,7 @@ func TestSafeJoin(t *testing.T) {
 			expectError: false,
 			description: "Should clean paths with redundant separators",
 		},
-		
+
 		// Path traversal attempts
 		{
 			name:        "simple parent directory",
@@ -80,7 +80,7 @@ func TestSafeJoin(t *testing.T) {
 			expectError: true,
 			description: "Should reject traversal to specific files",
 		},
-		
+
 		// Absolute paths (should be rejected as they ignore root)
 		{
 			name:        "absolute unix path",
@@ -89,7 +89,7 @@ func TestSafeJoin(t *testing.T) {
 			expectError: true,
 			description: "Should reject absolute Unix paths",
 		},
-		
+
 		// Edge cases
 		{
 			name:        "empty root",
@@ -151,7 +151,7 @@ func TestSafeJoin(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := SafeJoin(tt.root, tt.path)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("Expected error for %s, but got none. Result: %s", tt.description, result)
@@ -211,7 +211,7 @@ func TestSafeJoinBenchmark(t *testing.T) {
 	// This is a simple performance test to ensure the function isn't too slow
 	root := "/tmp"
 	path := "subdir/file.txt"
-	
+
 	for i := 0; i < 1000; i++ {
 		_, err := SafeJoin(root, path)
 		if err != nil {
@@ -224,12 +224,12 @@ func TestSafeJoinBenchmark(t *testing.T) {
 func isWithinRoot(root, path string) bool {
 	root = filepath.Clean(root)
 	path = filepath.Clean(path)
-	
+
 	rel, err := filepath.Rel(root, path)
 	if err != nil {
 		return false
 	}
-	
+
 	return !filepath.IsAbs(rel) && !filepath.HasPrefix(rel, "..")
 }
 
@@ -276,7 +276,7 @@ func TestSafeJoinCrossPlatform(t *testing.T) {
 func BenchmarkSafeJoin(b *testing.B) {
 	root := "/tmp"
 	path := "subdir/file.txt"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = SafeJoin(root, path)
@@ -286,7 +286,7 @@ func BenchmarkSafeJoin(b *testing.B) {
 func BenchmarkSafeJoinTraversal(b *testing.B) {
 	root := "/tmp"
 	path := "../../../etc/passwd"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = SafeJoin(root, path)
@@ -300,7 +300,7 @@ func FuzzSafeJoin(f *testing.F) {
 	f.Add("/tmp", "../etc/passwd")
 	f.Add("", "file.txt")
 	f.Add("/tmp", "")
-	
+
 	f.Fuzz(func(t *testing.T, root, path string) {
 		// The function should never panic, regardless of input
 		defer func() {
@@ -308,9 +308,9 @@ func FuzzSafeJoin(f *testing.F) {
 				t.Errorf("SafeJoin panicked with root=%q, path=%q: %v", root, path, r)
 			}
 		}()
-		
+
 		result, err := SafeJoin(root, path)
-		
+
 		// If no error, the result should be within the root (if root is not empty)
 		if err == nil && root != "" {
 			if !isWithinRoot(root, result) {

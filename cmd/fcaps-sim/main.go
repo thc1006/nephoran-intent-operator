@@ -46,7 +46,6 @@ func main() {
 		}
 	}
 
-
 	// Read FCAPS events from file
 	events, err := loadFCAPSEvents(config.InputFile)
 	if err != nil {
@@ -57,23 +56,23 @@ func main() {
 
 	// Create processor
 	processor := fcaps.NewProcessor(config.Target, config.Namespace)
-	
+
 	// Create reducer if in local mode
 	var reducer *fcaps.Reducer
 	if config.OutHandoff != "" {
 		reducer = fcaps.NewReducer(config.Burst, config.OutHandoff)
 		log.Printf("Local reducer enabled: burst=%d, handoff=%s", config.Burst, config.OutHandoff)
 	}
-	
+
 	// If collector URL is provided, send VES events there as well
 	if config.CollectorURL != "" {
 		log.Printf("VES collector enabled at %s", config.CollectorURL)
 	}
-	
+
 	// Process events with configurable delay
 	for i, event := range events {
 		log.Printf("\n=== Processing Event %d/%d ===", i+1, len(events))
-		
+
 		// Send to VES collector if configured
 		if config.CollectorURL != "" {
 			if err := sendVESEvent(config.CollectorURL, event, config.Verbose); err != nil {
@@ -82,13 +81,13 @@ func main() {
 				log.Printf("Sent VES event to collector %s", config.CollectorURL)
 			}
 		}
-		
+
 		// Process with local reducer if enabled
 		if reducer != nil {
 			if intent := reducer.ProcessEvent(event); intent != nil {
 				filename := writeReducerIntent(config.OutHandoff, intent)
 				log.Printf("*** BURST DETECTED *** Intent written: %s", filename)
-				log.Printf("    Scaling %s to %d replicas (reason: %s)", 
+				log.Printf("    Scaling %s to %d replicas (reason: %s)",
 					intent.Target, intent.Replicas, intent.Reason)
 			}
 		}
@@ -143,7 +142,7 @@ func parseFlags() Config {
 	flag.StringVar(&config.Namespace, "namespace", "ran-a", "Target namespace for scaling")
 	flag.StringVar(&config.IntentURL, "intent-url", "http://localhost:8080/intent", "URL for posting scaling intents")
 	flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose logging")
-	
+
 	// VES collector flags
 	flag.StringVar(&config.CollectorURL, "collector-url", "http://localhost:9999/eventListener/v7", "VES collector URL")
 	flag.IntVar(&config.Period, "period", 10, "Period in seconds between event batches")
@@ -250,28 +249,27 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 	if verbose {
 		log.Printf("VES collector response: %s", strings.TrimSpace(string(responseBody)))
 	}
-	
+
 	return nil
 }
 
 func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
 	timestamp := time.Now().UTC().Format("20060102T150405Z")
 	filename := filepath.Join(outDir, fmt.Sprintf("intent-%s.json", timestamp))
-	
+
 	data, err := json.MarshalIndent(intent, "", "  ")
 	if err != nil {
 		log.Printf("Failed to marshal reducer intent: %v", err)
 		return ""
 	}
-	
+
 	if err := os.WriteFile(filename, data, 0644); err != nil {
 		log.Printf("Failed to write reducer intent: %v", err)
 		return ""
 	}
-	
+
 	return filename
 }
-
 
 func sendIntent(intentURL string, intent *ingest.Intent) error {
 	// Convert intent to JSON

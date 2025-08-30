@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims"
 	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
@@ -141,7 +142,7 @@ type O2Config struct {
 	AuthConfig *AuthConfig     `yaml:"authConfig"`
 
 	// Performance and resilience
-	CircuitBreakerConfig *llm.CircuitBreakerConfig `yaml:"circuitBreakerConfig"`
+	CircuitBreakerConfig *shared.CircuitBreakerConfig `yaml:"circuitBreakerConfig"`
 	RetryConfig          *RetryConfig              `yaml:"retryConfig"`
 }
 
@@ -255,7 +256,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 
 	// Set up circuit breaker configuration
 	if config.CircuitBreakerConfig == nil {
-		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
+		config.CircuitBreakerConfig = &shared.CircuitBreakerConfig{
 			FailureThreshold:    5,
 			FailureRate:         0.5,
 			MinimumRequestCount: 10,

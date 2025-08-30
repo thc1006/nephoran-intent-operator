@@ -118,7 +118,7 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 		// Verify results
 		expectedOps := int64(numWorkers * numOperationsPerWorker)
 		assert.Equal(t, expectedOps, atomic.LoadInt64(&totalOperations), "All operations should be counted")
-		
+
 		// Error rate should be very low (< 1%)
 		errorRate := float64(atomic.LoadInt64(&totalErrors)) / float64(atomic.LoadInt64(&totalOperations))
 		assert.Less(t, errorRate, 0.01, "Error rate should be less than 1%")
@@ -180,7 +180,7 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 
 					// Pick random intent file
 					intentFile := intentFiles[r.Intn(numIntentFiles)]
-					
+
 					// Generate unique status
 					status := []string{"success", "failed", "processing", "pending"}[r.Intn(4)]
 					message := fmt.Sprintf("Worker %d operation %d at %s", workerID, i, time.Now().Format("15:04:05.000"))
@@ -239,7 +239,7 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 			if i >= 10 { // Check first 10 for performance
 				break
 			}
-			
+
 			statusFile := filepath.Join(statusDir, entry.Name())
 			content, err := os.ReadFile(statusFile)
 			if err == nil && len(content) > 0 {
@@ -298,7 +298,7 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 						switch operation {
 						case 0: // Create/Write
 							atomic.AddInt64(&createOperations, 1)
-							content := fmt.Sprintf(`{"worker": %d, "op": %d, "time": "%s"}`, 
+							content := fmt.Sprintf(`{"worker": %d, "op": %d, "time": "%s"}`,
 								workerID, op, time.Now().Format(time.RFC3339Nano))
 							atomicWriteFile(filePath, []byte(content), 0644)
 
@@ -337,8 +337,8 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 		t.Logf("Move operations: %d", atomic.LoadInt64(&moveOperations))
 		t.Logf("Race errors: %d", atomic.LoadInt64(&raceErrors))
 
-		totalOps := atomic.LoadInt64(&createOperations) + atomic.LoadInt64(&readOperations) + 
-					atomic.LoadInt64(&deleteOperations) + atomic.LoadInt64(&moveOperations)
+		totalOps := atomic.LoadInt64(&createOperations) + atomic.LoadInt64(&readOperations) +
+			atomic.LoadInt64(&deleteOperations) + atomic.LoadInt64(&moveOperations)
 		t.Logf("Operations per second: %.2f", float64(totalOps)/duration.Seconds())
 
 		// Race errors should be acceptable (< 10% due to expected file system races)
@@ -355,13 +355,13 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 
 		numWorkers := 15
 		numFiles := 100
-		
+
 		// Create many files to increase memory usage
 		for i := 0; i < numFiles; i++ {
 			filename := fmt.Sprintf("memory-test-%d.json", i)
 			filePath := filepath.Join(baseDir, filename)
 			// Create larger file content to increase memory pressure
-			largeContent := fmt.Sprintf(`{"id": %d, "data": "%s"}`, i, 
+			largeContent := fmt.Sprintf(`{"id": %d, "data": "%s"}`, i,
 				strings.Repeat("x", 1000)) // 1KB per file
 			require.NoError(t, os.WriteFile(filePath, []byte(largeContent), 0644))
 		}
@@ -433,7 +433,7 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 		t.Logf("Memory pressure test completed in %v", duration)
 		t.Logf("Memory errors: %d", atomic.LoadInt64(&memoryErrors))
 		t.Logf("Successful operations: %d", atomic.LoadInt64(&successfulOps))
-		t.Logf("Memory usage increase: %.2f MB", 
+		t.Logf("Memory usage increase: %.2f MB",
 			float64(endMemStats.Alloc-startMemStats.Alloc)/(1024*1024))
 
 		// Verify reasonable behavior under memory pressure
@@ -442,7 +442,7 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 		assert.Less(t, errorRate, 0.1, "Memory pressure error rate should be reasonable")
 
 		// Memory usage should not be excessive
-		memoryIncrease := float64(endMemStats.Alloc-startMemStats.Alloc) / (1024*1024)
+		memoryIncrease := float64(endMemStats.Alloc-startMemStats.Alloc) / (1024 * 1024)
 		assert.Less(t, memoryIncrease, 100.0, "Memory usage should not exceed 100MB")
 	})
 
@@ -609,9 +609,9 @@ func TestWindowsConcurrencyRegressionPrevention(t *testing.T) {
 		wg.Wait()
 
 		// The critical assertion: IsProcessed should NEVER return errors due to ENOENT
-		assert.Equal(t, int64(0), atomic.LoadInt64(&enoentErrors), 
+		assert.Equal(t, int64(0), atomic.LoadInt64(&enoentErrors),
 			"IsProcessed should handle ENOENT gracefully without errors")
-		assert.Greater(t, atomic.LoadInt64(&successfulChecks), int64(0), 
+		assert.Greater(t, atomic.LoadInt64(&successfulChecks), int64(0),
 			"Should have successful checks")
 	})
 

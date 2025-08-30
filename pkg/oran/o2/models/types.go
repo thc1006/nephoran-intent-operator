@@ -1,7 +1,43 @@
-package o2models
+package models
 
 import (
 	"time"
+)
+
+// Resource State Constants
+const (
+	ResourceStatePending    = "PENDING"
+	ResourceStateActive     = "ACTIVE"
+	ResourceStateInactive   = "INACTIVE"
+	ResourceStateDeleting   = "DELETING"
+	ResourceStateDeleted    = "DELETED"
+	ResourceStateError      = "ERROR"
+)
+
+// Operational State Constants
+const (
+	OpStateEnabled  = "ENABLED"
+	OpStateDisabled = "DISABLED"
+)
+
+// Administrative State Constants
+const (
+	AdminStateLocked   = "LOCKED"
+	AdminStateUnlocked = "UNLOCKED"
+)
+
+// Usage State Constants
+const (
+	UsageStateIdle   = "IDLE"
+	UsageStateActive = "ACTIVE"
+	UsageStateBusy   = "BUSY"
+)
+
+// Health State Constants
+const (
+	HealthStateHealthy   = "HEALTHY"
+	HealthStateUnhealthy = "UNHEALTHY"
+	HealthStateUnknown   = "UNKNOWN"
 )
 
 // Event type constants for notifications (moved from duplicated type)

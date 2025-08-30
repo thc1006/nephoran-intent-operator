@@ -727,7 +727,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				tempDir := t.TempDir()
 				intentFile := filepath.Join(tempDir, "intent.json")
 				outDir := filepath.Join(tempDir, "output")
-				
+
 				// Create valid intent file first
 				intent := intent.ScalingIntent{
 					IntentType: "scaling",
@@ -740,13 +740,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
-				
+
 				// Remove read permissions
 				err = os.Chmod(intentFile, 0000)
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
-				
+
 				return intentFile, outDir
 			},
 			expectError: "failed to load intent file",
@@ -758,7 +758,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				intentFile := filepath.Join(tempDir, "intent.json")
 				restrictedDir := filepath.Join(tempDir, "restricted")
 				outDir := filepath.Join(restrictedDir, "output")
-				
+
 				// Create valid intent file
 				intent := intent.ScalingIntent{
 					IntentType: "scaling",
@@ -771,19 +771,19 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
-				
+
 				// Create restricted directory
 				err = os.Mkdir(restrictedDir, 0755)
 				if err != nil {
 					t.Fatalf("Failed to create restricted directory: %v", err)
 				}
-				
+
 				// Remove write permissions
 				err = os.Chmod(restrictedDir, 0444)
 				if err != nil {
 					t.Skipf("Cannot modify directory permissions on this system: %v", err)
 				}
-				
+
 				return intentFile, outDir
 			},
 			expectError: "failed to write package",
@@ -794,7 +794,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				tempDir := t.TempDir()
 				intentFile := filepath.Join(tempDir, "intent.json")
 				outDir := filepath.Join(tempDir, "output")
-				
+
 				// Create valid intent file
 				intent := intent.ScalingIntent{
 					IntentType: "scaling",
@@ -807,13 +807,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
-				
+
 				// Create file where directory should be
 				err = os.WriteFile(outDir, []byte("not a directory"), 0644)
 				if err != nil {
 					t.Fatalf("Failed to create file: %v", err)
 				}
-				
+
 				return intentFile, outDir
 			},
 			expectError: "failed to write package",
@@ -823,14 +823,14 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) (string, string) {
 				tempDir := t.TempDir()
 				intentFile := filepath.Join(tempDir, "intent.json")
-				
+
 				// Create very long output path
 				longPath := tempDir
 				for i := 0; i < 50; i++ {
 					longPath = filepath.Join(longPath, "very-long-directory-name-that-exceeds-normal-filesystem-limits")
 				}
 				outDir := longPath
-				
+
 				// Create valid intent file
 				intent := intent.ScalingIntent{
 					IntentType: "scaling",
@@ -843,7 +843,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
-				
+
 				return intentFile, outDir
 			},
 			expectError: "failed to write package",
@@ -853,28 +853,34 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			intentFile, outDir := tt.setupFunc(t)
-			
+
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
-				os.Chmod(filepath.Dir(intentFile), 0755)
-				os.Chmod(intentFile, 0644)
-				os.Chmod(filepath.Dir(outDir), 0755)
+				if err := os.Chmod(filepath.Dir(intentFile), 0755); err != nil {
+					t.Logf("Failed to restore intent dir permissions: %v", err)
+				}
+				if err := os.Chmod(intentFile, 0644); err != nil {
+					t.Logf("Failed to restore intent file permissions: %v", err)
+				}
+				if err := os.Chmod(filepath.Dir(outDir), 0755); err != nil {
+					t.Logf("Failed to restore out dir permissions: %v", err)
+				}
 			}()
-			
+
 			cfg := &Config{
 				IntentPath: intentFile,
 				OutDir:     outDir,
 				DryRun:     false,
 				Minimal:    false,
 			}
-			
+
 			err := run(cfg)
 			if err == nil {
 				t.Errorf("Expected error but got nil")
 				return
 			}
-			
+
 			if !strings.Contains(err.Error(), tt.expectError) {
 				t.Errorf("Expected error containing '%s' but got: %v", tt.expectError, err)
 			}
@@ -937,22 +943,22 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 			tempDir := t.TempDir()
 			intentFile := filepath.Join(tempDir, "intent.json")
 			outDir := filepath.Join(tempDir, "output")
-			
+
 			// Write malformed intent file
 			err := os.WriteFile(intentFile, []byte(tt.fileContent), 0644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
-			
+
 			cfg := &Config{
 				IntentPath: intentFile,
 				OutDir:     outDir,
 				DryRun:     false,
 				Minimal:    false,
 			}
-			
+
 			err = run(cfg)
-			
+
 			if tt.expectError == "" {
 				if err != nil {
 					t.Errorf("Expected no error but got: %v", err)
@@ -972,9 +978,9 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 func TestRunWithResourceExhaustion(t *testing.T) {
 	// Test with many concurrent runs to potentially exhaust resources
 	const numConcurrentRuns = 100
-	
+
 	done := make(chan error, numConcurrentRuns)
-	
+
 	for i := 0; i < numConcurrentRuns; i++ {
 		go func(id int) {
 			intent := intent.ScalingIntent{
@@ -984,11 +990,11 @@ func TestRunWithResourceExhaustion(t *testing.T) {
 				Replicas:   1,
 				Source:     "test",
 			}
-			
+
 			tempDir := os.TempDir()
 			intentFile := filepath.Join(tempDir, fmt.Sprintf("intent-%d.json", id))
 			outDir := filepath.Join(tempDir, fmt.Sprintf("output-%d", id))
-			
+
 			// Write intent file
 			intentData, _ := json.MarshalIndent(intent, "", "  ")
 			err := os.WriteFile(intentFile, intentData, 0644)
@@ -996,24 +1002,24 @@ func TestRunWithResourceExhaustion(t *testing.T) {
 				done <- fmt.Errorf("failed to write intent file: %v", err)
 				return
 			}
-			
+
 			// Cleanup function
 			defer func() {
 				os.RemoveAll(intentFile)
 				os.RemoveAll(outDir)
 			}()
-			
+
 			cfg := &Config{
 				IntentPath: intentFile,
 				OutDir:     outDir,
 				DryRun:     true, // Use dry-run to avoid actual file writes
 				Minimal:    true,
 			}
-			
+
 			done <- run(cfg)
 		}(i)
 	}
-	
+
 	// Wait for all goroutines to complete
 	errorCount := 0
 	for i := 0; i < numConcurrentRuns; i++ {
@@ -1024,11 +1030,11 @@ func TestRunWithResourceExhaustion(t *testing.T) {
 			}
 		}
 	}
-	
+
 	// Allow some failures due to resource constraints, but not all
 	maxAllowedErrors := numConcurrentRuns / 10 // Allow 10% failure rate
 	if errorCount > maxAllowedErrors {
-		t.Errorf("Too many concurrent runs failed: %d/%d (max allowed: %d)", 
+		t.Errorf("Too many concurrent runs failed: %d/%d (max allowed: %d)",
 			errorCount, numConcurrentRuns, maxAllowedErrors)
 	}
 }
@@ -1040,15 +1046,19 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get current working directory: %v", err)
 	}
-	defer os.Chdir(origWd)
-	
+	defer func() {
+		if err := os.Chdir(origWd); err != nil {
+			t.Logf("Failed to restore working directory: %v", err)
+		}
+	}()
+
 	// Create temporary directory without go.mod
 	tempDir := t.TempDir()
 	err = os.Chdir(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to change to temp directory: %v", err)
 	}
-	
+
 	// Create valid intent file
 	intent := intent.ScalingIntent{
 		IntentType: "scaling",
@@ -1058,20 +1068,20 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 	}
 	intentFile := filepath.Join(tempDir, "intent.json")
 	outDir := filepath.Join(tempDir, "output")
-	
+
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
 	err = os.WriteFile(intentFile, intentData, 0644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
-	
+
 	cfg := &Config{
 		IntentPath: intentFile,
 		OutDir:     outDir,
 		DryRun:     false,
 		Minimal:    false,
 	}
-	
+
 	err = run(cfg)
 	if err == nil {
 		t.Error("Expected project root discovery error but got nil")
@@ -1084,7 +1094,7 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 // Helper function to create deeply nested JSON for testing
 func createDeeplyNestedIntentJSON(depth int) string {
 	json := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 1, "nested":`
-	
+
 	for i := 0; i < depth; i++ {
 		json += `{"level": `
 	}
@@ -1093,7 +1103,7 @@ func createDeeplyNestedIntentJSON(depth int) string {
 		json += `}`
 	}
 	json += `}`
-	
+
 	return json
 }
 
@@ -1113,7 +1123,9 @@ func BenchmarkRunValidIntent(b *testing.B) {
 
 	// Write intent file
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
-	os.WriteFile(intentFile, intentData, 0644)
+	if err := os.WriteFile(intentFile, intentData, 0644); err != nil {
+		b.Fatalf("Failed to write intent file: %v", err)
+	}
 
 	b.ResetTimer()
 

@@ -13,10 +13,10 @@ import (
 type SecurityConfig struct {
 	// Container image security
 	ImageConfig ImageSecurityConfig `json:"imageConfig"`
-	
+
 	// Input validation rules
 	ValidationRules ValidationConfig `json:"validationRules"`
-	
+
 	// Repository allowlist
 	RepositoryAllowlist map[string]RepositoryConfig `json:"repositoryAllowlist"`
 }
@@ -25,19 +25,19 @@ type SecurityConfig struct {
 type ImageSecurityConfig struct {
 	// Default registry to use
 	DefaultRegistry string `json:"defaultRegistry"`
-	
+
 	// Default image version (never use 'latest')
 	DefaultVersion string `json:"defaultVersion"`
-	
+
 	// Require image digest verification
 	RequireDigest bool `json:"requireDigest"`
-	
+
 	// Require signature verification (Sigstore/cosign)
 	RequireSignature bool `json:"requireSignature"`
-	
+
 	// Trusted image digests map[image:tag]digest
 	TrustedDigests map[string]string `json:"trustedDigests"`
-	
+
 	// Cosign public key for signature verification
 	CosignPublicKey string `json:"cosignPublicKey"`
 }
@@ -46,13 +46,13 @@ type ImageSecurityConfig struct {
 type ValidationConfig struct {
 	// Allowed pattern for target names
 	TargetNamePattern string `json:"targetNamePattern"`
-	
+
 	// Maximum length for target names
 	MaxTargetLength int `json:"maxTargetLength"`
-	
+
 	// Allowed characters in repository names
 	RepoNamePattern string `json:"repoNamePattern"`
-	
+
 	// Maximum replicas allowed
 	MaxReplicas int `json:"maxReplicas"`
 }
@@ -61,10 +61,10 @@ type ValidationConfig struct {
 type RepositoryConfig struct {
 	// Repository name
 	Name string `json:"name"`
-	
+
 	// Allowed targets for this repository
 	AllowedTargets []string `json:"allowedTargets"`
-	
+
 	// Description
 	Description string `json:"description"`
 }
@@ -130,20 +130,20 @@ func (sc *SecurityConfig) GetSecureImage(baseImage string) (string, error) {
 	parts := strings.Split(baseImage, ":")
 	imageName := parts[0]
 	imageTag := sc.ImageConfig.DefaultVersion
-	
+
 	if len(parts) > 1 && parts[1] != "latest" {
 		imageTag = parts[1]
 	}
-	
+
 	// Build full image reference
 	fullImage := fmt.Sprintf("%s/%s:%s", sc.ImageConfig.DefaultRegistry, imageName, imageTag)
-	
+
 	// Check for trusted digest
 	digestKey := fmt.Sprintf("%s:%s", imageName, imageTag)
 	if digest, ok := sc.ImageConfig.TrustedDigests[digestKey]; ok && sc.ImageConfig.RequireDigest {
 		fullImage = fmt.Sprintf("%s@%s", fullImage, digest)
 	}
-	
+
 	return fullImage, nil
 }
 
@@ -152,26 +152,26 @@ func (sc *SecurityConfig) ValidateTarget(target string) error {
 	if target == "" {
 		return fmt.Errorf("target name cannot be empty")
 	}
-	
+
 	if len(target) > sc.ValidationRules.MaxTargetLength {
 		return fmt.Errorf("target name exceeds maximum length of %d characters", sc.ValidationRules.MaxTargetLength)
 	}
-	
+
 	// Additional security checks first (before pattern check)
 	if containsSQLInjectionPattern(target) {
 		return fmt.Errorf("target name contains potential SQL injection pattern")
 	}
-	
+
 	if containsPathTraversal(target) {
 		return fmt.Errorf("target name contains potential path traversal pattern")
 	}
-	
+
 	// Check against pattern last (after security checks)
 	pattern := regexp.MustCompile(sc.ValidationRules.TargetNamePattern)
 	if !pattern.MatchString(target) {
 		return fmt.Errorf("target name contains invalid characters or format, must match pattern: %s", sc.ValidationRules.TargetNamePattern)
 	}
-	
+
 	return nil
 }
 
@@ -181,10 +181,10 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 	if err := sc.ValidateTarget(target); err != nil {
 		return "", fmt.Errorf("invalid target: %w", err)
 	}
-	
+
 	// Normalize target to lowercase for comparison
 	normalizedTarget := strings.ToLower(target)
-	
+
 	// Check each repository's allowed targets
 	for _, repo := range sc.RepositoryAllowlist {
 		for _, allowedTarget := range repo.AllowedTargets {
@@ -193,12 +193,12 @@ func (sc *SecurityConfig) ResolveRepository(target string) (string, error) {
 			}
 		}
 	}
-	
+
 	// Return default repository if no specific match
 	if defaultRepo, ok := sc.RepositoryAllowlist["default"]; ok {
 		return defaultRepo.Name, nil
 	}
-	
+
 	return "", fmt.Errorf("no repository mapping found for target: %s", target)
 }
 
@@ -221,14 +221,14 @@ func containsSQLInjectionPattern(input string) bool {
 		"delete",
 		"drop",
 	}
-	
+
 	lowerInput := strings.ToLower(input)
 	for _, pattern := range sqlPatterns {
 		if strings.Contains(lowerInput, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -244,14 +244,14 @@ func containsPathTraversal(input string) bool {
 		"%252e",
 		"0x2e",
 	}
-	
+
 	lowerInput := strings.ToLower(input)
 	for _, pattern := range pathPatterns {
 		if strings.Contains(lowerInput, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

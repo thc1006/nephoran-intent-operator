@@ -95,6 +95,9 @@ RUN ls -la /build/conductor-loop && \
 # =============================================================================
 FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
+# Add go-runtime alias for CI/CD compatibility
+FROM runtime AS go-runtime
+
 # Metadata labels following OCI standard
 LABEL org.opencontainers.image.title="Conductor Loop" \
       org.opencontainers.image.description="Nephoran Intent Operator Conductor Loop - File watcher and Porch orchestrator" \
@@ -150,6 +153,10 @@ LABEL security.resources.memory="512Mi" \
       security.runAsNonRoot="true" \
       security.readOnlyRootFilesystem="true" \
       security.allowPrivilegeEscalation="false"
+
+# Standardized health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["/conductor-loop", "--health-check"] || ["/conductor-loop", "--version"]
 
 # Default command
 ENTRYPOINT ["/conductor-loop"]

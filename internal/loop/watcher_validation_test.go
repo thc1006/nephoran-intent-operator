@@ -172,12 +172,12 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 			// Start the watcher first
 			_, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			
+
 			go func() {
 				watcher.Start()
 			}()
 			time.Sleep(50 * time.Millisecond) // Let watcher start
-			
+
 			// First event
 			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
@@ -254,7 +254,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_ConcurrentEven
 }
 
 // =============================================================================
-// 2. DIRECTORY CREATION RACE CONDITION TESTS  
+// 2. DIRECTORY CREATION RACE CONDITION TESTS
 // =============================================================================
 
 func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_ConcurrentCreation() {
@@ -365,7 +365,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_SyncOncePattern()
 		go func() {
 			defer wg.Done()
 			atomic.AddInt64(&callCount, 1)
-			
+
 			// Simulate the sync.Once pattern
 			once.Do(func() {
 				atomic.AddInt64(&actualMkdirCalls, 1)
@@ -398,12 +398,12 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_NestedDirectories
 			wg.Add(1)
 			go func(depth int) {
 				defer wg.Done()
-				
+
 				var dirPath string = baseDir
 				for i := 0; i < depth; i++ {
 					dirPath = filepath.Join(dirPath, fmt.Sprintf("level%d", i))
 				}
-				
+
 				watcher.ensureDirectoryExists(dirPath)
 			}(level)
 		}
@@ -540,10 +540,10 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 	defer watcher.Close()
 
 	invalidCases := []struct {
-		name         string
-		content      string
-		expectedErr  string
-		desc         string
+		name        string
+		content     string
+		expectedErr string
+		desc        string
 	}{
 		{
 			name:        "malformed_json",
@@ -679,7 +679,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 
 			err := watcher.validatePath(tc.path)
 			assert.Error(t, err, "Should reject path traversal: %s", tc.desc)
-			assert.Contains(t, err.Error(), "outside watched directory", 
+			assert.Contains(t, err.Error(), "outside watched directory",
 				"Error should mention path restriction")
 		})
 	}
@@ -697,17 +697,17 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 	defer watcher.Close()
 
 	windowsPathCases := []struct {
-		name        string
-		path        string
-		desc        string
-		shouldError bool
+		name          string
+		path          string
+		desc          string
+		shouldError   bool
 		errorContains string
 	}{
 		{
-			name:        "drive_letter_only",
-			path:        "C:",
-			desc:        "Drive letter only (relative path)",
-			shouldError: true,
+			name:          "drive_letter_only",
+			path:          "C:",
+			desc:          "Drive letter only (relative path)",
+			shouldError:   true,
 			errorContains: "Windows path validation failed",
 		},
 		{
@@ -723,45 +723,45 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 			shouldError: false, // Should be normalized
 		},
 		{
-			name:        "unc_path_outside_watched",
-			path:        "\\\\server\\share\\file.json",
-			desc:        "UNC path outside watched directory",
-			shouldError: true,
+			name:          "unc_path_outside_watched",
+			path:          "\\\\server\\share\\file.json",
+			desc:          "UNC path outside watched directory",
+			shouldError:   true,
 			errorContains: "outside watched directory",
 		},
 		{
-			name:        "long_device_path",
-			path:        "\\\\?\\C:\\temp\\file.json",
-			desc:        "Long device path outside watched directory",
-			shouldError: true,
+			name:          "long_device_path",
+			path:          "\\\\?\\C:\\temp\\file.json",
+			desc:          "Long device path outside watched directory",
+			shouldError:   true,
 			errorContains: "outside watched directory",
 		},
 		{
-			name:        "invalid_chars_lt_gt",
-			path:        filepath.Join(s.tempDir, "file<test>.json"),
-			desc:        "Invalid characters < and >",
-			shouldError: true,
+			name:          "invalid_chars_lt_gt",
+			path:          filepath.Join(s.tempDir, "file<test>.json"),
+			desc:          "Invalid characters < and >",
+			shouldError:   true,
 			errorContains: "Windows path validation failed",
 		},
 		{
-			name:        "invalid_chars_pipe",
-			path:        filepath.Join(s.tempDir, "file|test.json"),
-			desc:        "Invalid character pipe",
-			shouldError: true,
+			name:          "invalid_chars_pipe",
+			path:          filepath.Join(s.tempDir, "file|test.json"),
+			desc:          "Invalid character pipe",
+			shouldError:   true,
 			errorContains: "Windows path validation failed",
 		},
 		{
-			name:        "reserved_filename_con",
-			path:        filepath.Join(s.tempDir, "CON.json"),
-			desc:        "Reserved filename CON",
-			shouldError: true,
+			name:          "reserved_filename_con",
+			path:          filepath.Join(s.tempDir, "CON.json"),
+			desc:          "Reserved filename CON",
+			shouldError:   true,
 			errorContains: "Windows path validation failed",
 		},
 		{
-			name:        "reserved_filename_com1",
-			path:        filepath.Join(s.tempDir, "COM1.log"),
-			desc:        "Reserved filename COM1",
-			shouldError: true,
+			name:          "reserved_filename_com1",
+			path:          filepath.Join(s.tempDir, "COM1.log"),
+			desc:          "Reserved filename COM1",
+			shouldError:   true,
 			errorContains: "Windows path validation failed",
 		},
 		{
@@ -771,10 +771,10 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 			shouldError: false, // Windows paths should be case-insensitive
 		},
 		{
-			name:        "very_long_path_without_prefix",
-			path:        filepath.Join(s.tempDir, strings.Repeat("a", 250), "file.json"),
-			desc:        "Very long path without \\\\?\\ prefix",
-			shouldError: true,
+			name:          "very_long_path_without_prefix",
+			path:          filepath.Join(s.tempDir, strings.Repeat("a", 250), "file.json"),
+			desc:          "Very long path without \\\\?\\ prefix",
+			shouldError:   true,
 			errorContains: "Windows path validation failed",
 		},
 	}
@@ -796,7 +796,7 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 			if tc.shouldError {
 				assert.Error(t, err, "Should reject path: %s", tc.desc)
 				if tc.errorContains != "" {
-					assert.Contains(t, err.Error(), tc.errorContains, 
+					assert.Contains(t, err.Error(), tc.errorContains,
 						"Error should contain expected message for: %s", tc.desc)
 				}
 			} else {
@@ -847,11 +847,11 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				baseJSON := `{"apiVersion": "v1", "kind": "NetworkIntent", "data": ""}`
 				baseSizeWithoutData := len(baseJSON) - 2 // Subtract 2 for the empty quotes
 				paddingSize := tt.size - baseSizeWithoutData
-				
+
 				// Generate deterministic padding with 'A' characters for consistency
 				padding := strings.Repeat("A", paddingSize)
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
-				
+
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				require.NoError(t, err)
 			}
@@ -861,7 +861,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				assert.NoError(t, err, "File of size %d should pass", tt.size)
 			} else {
 				assert.Error(t, err, "File of size %d should fail", tt.size)
-				assert.Contains(t, err.Error(), "exceeds maximum", 
+				assert.Contains(t, err.Error(), "exceeds maximum",
 					"Error should mention size limit")
 			}
 		})
@@ -877,7 +877,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 
 	suspiciousPatterns := []string{
 		"intent-test..json",
-		"intent-test~.json", 
+		"intent-test~.json",
 		"intent-test$.json",
 		"intent-test*.json",
 		"intent-test?.json",
@@ -894,13 +894,13 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 	for _, pattern := range suspiciousPatterns {
 		s.T().Run(fmt.Sprintf("suspicious_%s", pattern), func(t *testing.T) {
 			filePath := filepath.Join(s.tempDir, pattern)
-			
+
 			// Create the file
 			os.WriteFile(filePath, []byte(validContent), 0644)
 
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", pattern)
-			
+
 			// On Windows, handle OS-specific validation behavior
 			if runtime.GOOS == "windows" {
 				// Windows-invalid characters get caught by Windows path validation first
@@ -912,9 +912,9 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 						break
 					}
 				}
-				
+
 				if pattern == "intent-test\x00.json" {
-					// Null bytes cause filepath.Abs to fail with "invalid argument" 
+					// Null bytes cause filepath.Abs to fail with "invalid argument"
 					// before we reach any validation check
 					if err != nil {
 						assert.Contains(t, err.Error(), "failed to get absolute path",
@@ -1251,10 +1251,10 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 func BenchmarkWatcherValidation_DirectoryCreation(b *testing.B) {
 	tempDir := b.TempDir()
 	config := Config{
-		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
-		Mode:        porch.ModeDirect,
-		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
+		PorchPath:  createMockPorch(b, tempDir, 0, "processed", ""),
+		Mode:       porch.ModeDirect,
+		OutDir:     filepath.Join(tempDir, "out"),
+		MaxWorkers: 3, // Production-like worker count for realistic concurrency testing
 	}
 
 	watcher, err := NewWatcher(tempDir, config)
@@ -1274,7 +1274,7 @@ func BenchmarkWatcherValidation_EventDebouncing(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
+		MaxWorkers:  3,                    // Production-like worker count for realistic concurrency testing
 		DebounceDur: 1 * time.Millisecond, // Very short for benchmarking
 	}
 

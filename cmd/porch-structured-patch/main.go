@@ -82,7 +82,7 @@ func getAllowedBaseDirs() []string {
 	if runtime.GOOS == "windows" {
 		return []string{
 			"C:\\temp",
-			"C:\\tmp", 
+			"C:\\tmp",
 			os.TempDir(), // Allow system temp directory for tests
 			".",
 			".\\examples",
@@ -95,7 +95,7 @@ func getAllowedBaseDirs() []string {
 		"/var/tmp",
 		os.TempDir(), // Allow system temp directory for tests
 		".",
-		"./examples", 
+		"./examples",
 		"./packages",
 		"./output",
 	}
@@ -105,29 +105,29 @@ func getAllowedBaseDirs() []string {
 func validateFilePath(filePath string) error {
 	// Clean the path
 	cleanPath := filepath.Clean(filePath)
-	
+
 	// Convert to absolute path for better validation
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve absolute path: %w", err)
 	}
-	
+
 	// Check for path traversal attempts in the original path
 	if strings.Contains(filePath, "..") {
 		return fmt.Errorf("path traversal detected in file path: %s", filePath)
 	}
-	
+
 	// Validate path format - stricter for file paths
 	validFilePattern := regexp.MustCompile(`^[a-zA-Z0-9._/\\:-]+$`)
 	if !validFilePattern.MatchString(absPath) {
 		return fmt.Errorf("invalid characters in file path: %s", filePath)
 	}
-	
+
 	// Check if file exists and is readable
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
 		return fmt.Errorf("file does not exist: %s", absPath)
 	}
-	
+
 	return nil
 }
 
@@ -135,18 +135,18 @@ func validateFilePath(filePath string) error {
 func validateOutputDir(outputDir string) error {
 	// Clean the path to resolve any ".." or other unsafe elements
 	cleanPath := filepath.Clean(outputDir)
-	
+
 	// Convert to absolute path for proper validation
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve absolute path: %w", err)
 	}
-	
+
 	// Check for path traversal attempts in the original path
 	if strings.Contains(outputDir, "..") {
 		return fmt.Errorf("path traversal detected in output directory: %s", outputDir)
 	}
-	
+
 	// Validate against whitelist of allowed base directories
 	allowedBaseDirs := getAllowedBaseDirs()
 	isAllowed := false
@@ -155,35 +155,35 @@ func validateOutputDir(outputDir string) error {
 		if err != nil {
 			continue
 		}
-		
+
 		// Check if the path is within an allowed directory
 		if strings.HasPrefix(absPath, allowedAbs) {
 			isAllowed = true
 			break
 		}
 	}
-	
+
 	if !isAllowed {
 		return fmt.Errorf("output directory %s is not within allowed base directories", outputDir)
 	}
-	
+
 	// Validate path format (allow alphanumeric, hyphens, underscores, dots, and path separators)
 	validPathPattern := regexp.MustCompile(`^[a-zA-Z0-9._/\\:-]+$`)
 	if !validPathPattern.MatchString(absPath) {
 		return fmt.Errorf("invalid characters in output directory path: %s", outputDir)
 	}
-	
+
 	// Ensure the path is not empty after cleaning
 	if cleanPath == "" {
 		return fmt.Errorf("output directory path cannot be empty")
 	}
-	
+
 	// Additional security: prevent writing to system directories
 	systemDirs := []string{"/bin", "/boot", "/dev", "/etc", "/lib", "/proc", "/root", "/sys", "/usr/bin", "/usr/lib"}
 	if runtime.GOOS == "windows" {
 		systemDirs = []string{"C:\\Windows", "C:\\Program Files", "C:\\Program Files (x86)"}
 	}
-	
+
 	for _, sysDir := range systemDirs {
 		sysDirAbs, err := filepath.Abs(sysDir)
 		if err != nil {
@@ -193,7 +193,7 @@ func validateOutputDir(outputDir string) error {
 			return fmt.Errorf("cannot write to system directory: %s", outputDir)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -204,13 +204,13 @@ func validateBinaryPath(binaryName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("binary %s not found in PATH: %w", binaryName, err)
 	}
-	
+
 	// Get absolute path for validation
 	absBinaryPath, err := filepath.Abs(binaryPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve absolute path for binary: %w", err)
 	}
-	
+
 	// Basic security: ensure it's not in a suspicious location
 	suspiciousPaths := []string{"/tmp", "/var/tmp", "temp", "Temp"}
 	for _, suspicious := range suspiciousPaths {
@@ -218,7 +218,7 @@ func validateBinaryPath(binaryName string) (string, error) {
 			return "", fmt.Errorf("binary in suspicious location: %s", absBinaryPath)
 		}
 	}
-	
+
 	return absBinaryPath, nil
 }
 
@@ -228,60 +228,60 @@ func applyWithPorchDirect(outputDir string) error {
 	if err := validateOutputDir(outputDir); err != nil {
 		return fmt.Errorf("output directory validation failed: %w", err)
 	}
-	
+
 	// Validate the binary path
 	binaryPath, err := validateBinaryPath("porch-direct")
 	if err != nil {
 		return fmt.Errorf("binary validation failed: %w", err)
 	}
-	
+
 	// Clean the path to prevent injection
 	cleanOutputDir := filepath.Clean(outputDir)
-	
+
 	fmt.Printf("Calling porch-direct (%s) to apply patch...\n", binaryPath)
-	
+
 	// Create a context with timeout to prevent hanging
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	
+
 	// Create command with context for timeout support
 	// Use the validated binary path directly to prevent PATH manipulation
 	cmd := exec.CommandContext(ctx, binaryPath, "--package", cleanOutputDir)
-	
+
 	// Set up secure environment - inherit minimal environment
 	cmd.Env = []string{
 		"PATH=" + os.Getenv("PATH"),
 		"HOME=" + os.Getenv("HOME"),
 		"USER=" + os.Getenv("USER"),
 	}
-	
+
 	// Set working directory to a safe location
 	if wd, err := os.Getwd(); err == nil {
 		cmd.Dir = wd
 	}
-	
+
 	// Capture output for better error reporting
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	// Log command execution for audit trail
 	fmt.Printf("Executing: %s --package %s\n", binaryPath, cleanOutputDir)
-	
+
 	// Execute with timeout
 	if err := cmd.Run(); err != nil {
 		// Check if it was a timeout
 		if ctx.Err() == context.DeadlineExceeded {
 			return fmt.Errorf("porch-direct command timed out after 5 minutes")
 		}
-		
+
 		// Check for specific error types
 		if exitError, ok := err.(*exec.ExitError); ok {
 			return fmt.Errorf("porch-direct command failed with exit code %d: %w", exitError.ExitCode(), err)
 		}
-		
+
 		return fmt.Errorf("porch-direct command failed: %w", err)
 	}
-	
+
 	fmt.Println("Patch applied successfully")
 	return nil
 }

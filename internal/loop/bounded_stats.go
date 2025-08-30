@@ -9,65 +9,65 @@ import (
 // BoundedStats implements memory-efficient statistics collection with rolling windows
 type BoundedStats struct {
 	mu sync.RWMutex
-	
+
 	// Counters (atomic for lock-free access)
-	totalProcessed   atomic.Int64
-	successCount     atomic.Int64
-	failureCount     atomic.Int64
-	timeoutCount     atomic.Int64
-	
+	totalProcessed atomic.Int64
+	successCount   atomic.Int64
+	failureCount   atomic.Int64
+	timeoutCount   atomic.Int64
+
 	// Rolling windows for time-series data
 	processingTimes  *RingBuffer
 	queueDepths      *RingBuffer
 	throughputWindow *ThroughputWindow
-	
+
 	// Aggregated metrics (updated periodically)
-	aggregates       *AggregatedMetrics
-	lastAggregation  time.Time
-	
+	aggregates      *AggregatedMetrics
+	lastAggregation time.Time
+
 	// Memory-efficient file tracking
-	recentFiles      *BoundedFileList
-	errorSummary     *ErrorSummary
-	
+	recentFiles  *BoundedFileList
+	errorSummary *ErrorSummary
+
 	// Resource metrics
-	memorySnapshots  *RingBuffer
-	cpuSnapshots     *RingBuffer
+	memorySnapshots *RingBuffer
+	cpuSnapshots    *RingBuffer
 }
 
 // AggregatedMetrics holds pre-computed aggregate values
 type AggregatedMetrics struct {
-	AvgProcessingTime   time.Duration
-	P50ProcessingTime   time.Duration
-	P95ProcessingTime   time.Duration
-	P99ProcessingTime   time.Duration
-	AvgQueueDepth       float64
-	MaxQueueDepth       int
-	Throughput          float64 // items per second
-	SuccessRate         float64
-	LastUpdate          time.Time
+	AvgProcessingTime time.Duration
+	P50ProcessingTime time.Duration
+	P95ProcessingTime time.Duration
+	P99ProcessingTime time.Duration
+	AvgQueueDepth     float64
+	MaxQueueDepth     int
+	Throughput        float64 // items per second
+	SuccessRate       float64
+	LastUpdate        time.Time
 }
 
 // ThroughputWindow tracks throughput over a sliding window
 type ThroughputWindow struct {
-	mu          sync.Mutex
-	buckets     []int64
-	bucketSize  time.Duration
-	windowSize  int
-	currentIdx  int
-	lastUpdate  time.Time
+	mu         sync.Mutex
+	buckets    []int64
+	bucketSize time.Duration
+	windowSize int
+	currentIdx int
+	lastUpdate time.Time
 }
 
 // BoundedFileList maintains a bounded list of recent files
 type BoundedFileList struct {
-	mu       sync.RWMutex
-	files    []FileInfo
-	maxSize  int
-	current  int
+	mu      sync.RWMutex
+	files   []FileInfo
+	maxSize int
+	current int
 }
 
 // FileInfo stores minimal file information
 type FileInfo struct {
-	Name      string    // Just filename, not full path
+	Name      string // Just filename, not full path
 	Size      int64
 	Timestamp time.Time
 	Status    string
@@ -118,18 +118,18 @@ func NewBoundedStats(config *BoundedStatsConfig) *BoundedStats {
 	if config == nil {
 		config = DefaultBoundedStatsConfig()
 	}
-	
+
 	stats := &BoundedStats{
-		processingTimes:  NewRingBuffer(config.ProcessingWindowSize),
-		queueDepths:      NewRingBuffer(config.QueueWindowSize),
-		memorySnapshots:  NewRingBuffer(60), // Last 60 samples
-		cpuSnapshots:     NewRingBuffer(60),
-		recentFiles:      NewBoundedFileList(config.MaxRecentFiles),
-		errorSummary:     NewErrorSummary(config.MaxErrorTypes),
-		aggregates:       &AggregatedMetrics{},
-		lastAggregation:  time.Now(),
+		processingTimes: NewRingBuffer(config.ProcessingWindowSize),
+		queueDepths:     NewRingBuffer(config.QueueWindowSize),
+		memorySnapshots: NewRingBuffer(60), // Last 60 samples
+		cpuSnapshots:    NewRingBuffer(60),
+		recentFiles:     NewBoundedFileList(config.MaxRecentFiles),
+		errorSummary:    NewErrorSummary(config.MaxErrorTypes),
+		aggregates:      &AggregatedMetrics{},
+		lastAggregation: time.Now(),
 	}
-	
+
 	// Initialize throughput window
 	stats.throughputWindow = &ThroughputWindow{
 		buckets:    make([]int64, config.ThroughputBuckets),
@@ -137,10 +137,10 @@ func NewBoundedStats(config *BoundedStatsConfig) *BoundedStats {
 		windowSize: config.ThroughputBuckets,
 		lastUpdate: time.Now(),
 	}
-	
+
 	// Start aggregation goroutine
 	go stats.aggregationLoop(config.AggregationInterval)
-	
+
 	return stats
 }
 
@@ -148,13 +148,13 @@ func NewBoundedStats(config *BoundedStatsConfig) *BoundedStats {
 func (s *BoundedStats) RecordProcessing(filename string, size int64, duration time.Duration) {
 	s.totalProcessed.Add(1)
 	s.successCount.Add(1)
-	
+
 	// Add to processing times window
 	s.processingTimes.Add(float64(duration.Milliseconds()))
-	
+
 	// Update throughput
 	s.throughputWindow.Increment()
-	
+
 	// Add to recent files (memory-efficient)
 	s.recentFiles.Add(FileInfo{
 		Name:      extractFileName(filename),
@@ -168,10 +168,10 @@ func (s *BoundedStats) RecordProcessing(filename string, size int64, duration ti
 func (s *BoundedStats) RecordFailure(filename string, errorType string) {
 	s.totalProcessed.Add(1)
 	s.failureCount.Add(1)
-	
+
 	// Update error summary
 	s.errorSummary.Increment(errorType)
-	
+
 	// Add to recent files
 	s.recentFiles.Add(FileInfo{
 		Name:      extractFileName(filename),
@@ -207,22 +207,22 @@ func (s *BoundedStats) GetSnapshot() StatsSnapshot {
 	s.mu.RLock()
 	aggregates := *s.aggregates
 	s.mu.RUnlock()
-	
+
 	return StatsSnapshot{
-		TotalProcessed:      s.totalProcessed.Load(),
-		SuccessCount:        s.successCount.Load(),
-		FailureCount:        s.failureCount.Load(),
-		TimeoutCount:        s.timeoutCount.Load(),
-		AvgProcessingTime:   aggregates.AvgProcessingTime,
-		P95ProcessingTime:   aggregates.P95ProcessingTime,
-		Throughput:          aggregates.Throughput,
-		SuccessRate:         aggregates.SuccessRate,
-		CurrentQueueDepth:   int(s.queueDepths.Last()),
-		AvgMemoryUsage:      s.memorySnapshots.Average(),
-		AvgCPUUsage:         s.cpuSnapshots.Average(),
-		RecentFiles:         s.recentFiles.GetRecent(10),
-		TopErrors:           s.errorSummary.GetTop(5),
-		LastUpdate:          aggregates.LastUpdate,
+		TotalProcessed:    s.totalProcessed.Load(),
+		SuccessCount:      s.successCount.Load(),
+		FailureCount:      s.failureCount.Load(),
+		TimeoutCount:      s.timeoutCount.Load(),
+		AvgProcessingTime: aggregates.AvgProcessingTime,
+		P95ProcessingTime: aggregates.P95ProcessingTime,
+		Throughput:        aggregates.Throughput,
+		SuccessRate:       aggregates.SuccessRate,
+		CurrentQueueDepth: int(s.queueDepths.Last()),
+		AvgMemoryUsage:    s.memorySnapshots.Average(),
+		AvgCPUUsage:       s.cpuSnapshots.Average(),
+		RecentFiles:       s.recentFiles.GetRecent(10),
+		TopErrors:         s.errorSummary.GetTop(5),
+		LastUpdate:        aggregates.LastUpdate,
 	}
 }
 
@@ -254,7 +254,7 @@ type ErrorCount struct {
 func (s *BoundedStats) aggregationLoop(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		s.computeAggregates()
 	}
@@ -264,7 +264,7 @@ func (s *BoundedStats) aggregationLoop(interval time.Duration) {
 func (s *BoundedStats) computeAggregates() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// Calculate processing time percentiles
 	times := s.processingTimes.GetAll()
 	if len(times) > 0 {
@@ -273,23 +273,23 @@ func (s *BoundedStats) computeAggregates() {
 		s.aggregates.P95ProcessingTime = time.Duration(percentile(times, 95)) * time.Millisecond
 		s.aggregates.P99ProcessingTime = time.Duration(percentile(times, 99)) * time.Millisecond
 	}
-	
+
 	// Calculate queue depth metrics
 	depths := s.queueDepths.GetAll()
 	if len(depths) > 0 {
 		s.aggregates.AvgQueueDepth = average(depths)
 		s.aggregates.MaxQueueDepth = int(maximum(depths))
 	}
-	
+
 	// Calculate throughput
 	s.aggregates.Throughput = s.throughputWindow.GetThroughput()
-	
+
 	// Calculate success rate
 	total := s.totalProcessed.Load()
 	if total > 0 {
 		s.aggregates.SuccessRate = float64(s.successCount.Load()) / float64(total)
 	}
-	
+
 	s.aggregates.LastUpdate = time.Now()
 }
 
@@ -305,7 +305,7 @@ func NewRingBuffer(size int) *RingBuffer {
 func (r *RingBuffer) Add(value float64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	r.data[r.position] = value
 	r.position = (r.position + 1) % r.size
 	if r.count < r.size {
@@ -317,11 +317,11 @@ func (r *RingBuffer) Add(value float64) {
 func (r *RingBuffer) GetAll() []float64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	if r.count == 0 {
 		return nil
 	}
-	
+
 	result := make([]float64, r.count)
 	if r.count < r.size {
 		copy(result, r.data[:r.count])
@@ -337,7 +337,7 @@ func (r *RingBuffer) GetAll() []float64 {
 			idx++
 		}
 	}
-	
+
 	return result
 }
 
@@ -354,11 +354,11 @@ func (r *RingBuffer) Average() float64 {
 func (r *RingBuffer) Last() float64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	if r.count == 0 {
 		return 0
 	}
-	
+
 	idx := r.position - 1
 	if idx < 0 {
 		idx = r.size - 1
@@ -378,7 +378,7 @@ func NewBoundedFileList(maxSize int) *BoundedFileList {
 func (l *BoundedFileList) Add(info FileInfo) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	l.files[l.current] = info
 	l.current = (l.current + 1) % l.maxSize
 }
@@ -387,11 +387,11 @@ func (l *BoundedFileList) Add(info FileInfo) {
 func (l *BoundedFileList) GetRecent(n int) []FileInfo {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	if n > l.maxSize {
 		n = l.maxSize
 	}
-	
+
 	result := make([]FileInfo, 0, n)
 	idx := l.current - 1
 	for i := 0; i < n && i < l.maxSize; i++ {
@@ -403,7 +403,7 @@ func (l *BoundedFileList) GetRecent(n int) []FileInfo {
 		}
 		idx--
 	}
-	
+
 	return result
 }
 
@@ -419,9 +419,9 @@ func NewErrorSummary(maxKeys int) *ErrorSummary {
 func (e *ErrorSummary) Increment(errorType string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	
+
 	e.counts[errorType]++
-	
+
 	// Prune if too many keys
 	if len(e.counts) > e.maxKeys {
 		e.pruneLocked()
@@ -439,7 +439,7 @@ func (e *ErrorSummary) pruneLocked() {
 			minKey = key
 		}
 	}
-	
+
 	// Remove minimum
 	if minKey != "" {
 		delete(e.counts, minKey)
@@ -450,13 +450,13 @@ func (e *ErrorSummary) pruneLocked() {
 func (e *ErrorSummary) GetTop(n int) []ErrorCount {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	// Convert to slice for sorting
 	errors := make([]ErrorCount, 0, len(e.counts))
 	for typ, count := range e.counts {
 		errors = append(errors, ErrorCount{Type: typ, Count: count})
 	}
-	
+
 	// Simple selection sort for top N (efficient for small N)
 	for i := 0; i < n && i < len(errors); i++ {
 		maxIdx := i
@@ -467,11 +467,11 @@ func (e *ErrorSummary) GetTop(n int) []ErrorCount {
 		}
 		errors[i], errors[maxIdx] = errors[maxIdx], errors[i]
 	}
-	
+
 	if len(errors) > n {
 		errors = errors[:n]
 	}
-	
+
 	return errors
 }
 
@@ -479,10 +479,10 @@ func (e *ErrorSummary) GetTop(n int) []ErrorCount {
 func (t *ThroughputWindow) Increment() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	now := time.Now()
 	elapsed := now.Sub(t.lastUpdate)
-	
+
 	// Move to new bucket if needed
 	bucketsToAdvance := int(elapsed / t.bucketSize)
 	if bucketsToAdvance > 0 {
@@ -493,7 +493,7 @@ func (t *ThroughputWindow) Increment() {
 		}
 		t.lastUpdate = now
 	}
-	
+
 	// Increment current bucket
 	t.buckets[t.currentIdx]++
 }
@@ -502,12 +502,12 @@ func (t *ThroughputWindow) Increment() {
 func (t *ThroughputWindow) GetThroughput() float64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	sum := int64(0)
 	for _, count := range t.buckets {
 		sum += count
 	}
-	
+
 	// Calculate average per second
 	windowDuration := float64(t.windowSize) * t.bucketSize.Seconds()
 	return float64(sum) / windowDuration
@@ -552,11 +552,11 @@ func percentile(values []float64, p float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
-	
+
 	// Simple implementation - for production use a proper sorting algorithm
 	sorted := make([]float64, len(values))
 	copy(sorted, values)
-	
+
 	// Bubble sort (ok for small datasets)
 	for i := 0; i < len(sorted)-1; i++ {
 		for j := 0; j < len(sorted)-i-1; j++ {
@@ -565,7 +565,7 @@ func percentile(values []float64, p float64) float64 {
 			}
 		}
 	}
-	
+
 	idx := int(float64(len(sorted)-1) * p / 100.0)
 	return sorted[idx]
 }

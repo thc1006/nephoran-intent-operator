@@ -2,6 +2,7 @@ package a1sim
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -58,6 +59,8 @@ func SavePolicyHandler(dir string) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"status":"accepted","saved":"` + path + `"}`))
+		if _, err := w.Write([]byte(`{"status":"accepted","saved":"` + path + `"}`)); err != nil {
+			log.Printf("Failed to write response: %v", err)
+		}
 	}
 }

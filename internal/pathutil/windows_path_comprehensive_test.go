@@ -66,7 +66,7 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 				// Create a path of the specified length
 				baseDir := "C:\\"
 				remaining := tc.pathLength - len(baseDir) - 4 // Leave room for ".txt"
-				
+
 				if remaining > 0 {
 					// Build path with segments to reach desired length
 					var pathSegments []string
@@ -79,9 +79,9 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 						pathSegments = append(pathSegments, segment)
 						remaining -= segmentLen + 1 // +1 for separator
 					}
-					
+
 					testPath := filepath.Join(baseDir, filepath.Join(pathSegments...), "test.txt")
-					
+
 					// Adjust length to be more precise
 					if len(testPath) < tc.pathLength-5 {
 						// Add padding to the last segment
@@ -95,7 +95,7 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 					t.Logf("Testing path length %d (actual: %d): %s", tc.pathLength, len(testPath), testPath)
 
 					err := ValidateWindowsPath(testPath)
-					
+
 					if tc.shouldPass {
 						assert.NoError(t, err, "Path should be valid: %s", tc.description)
 					} else {
@@ -158,7 +158,7 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 				for _, tc := range testCases {
 					t.Run(tc.description, func(t *testing.T) {
 						err := ValidateWindowsPath(tc.path)
-						
+
 						if tc.shouldFail {
 							assert.Error(t, err, "Should fail for %s: %s", reservedName, tc.description)
 							if err != nil {
@@ -235,7 +235,7 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 				for _, tc := range testPaths {
 					t.Run(tc.description, func(t *testing.T) {
 						err := ValidateWindowsPath(tc.path)
-						
+
 						if tc.shouldFail {
 							assert.Error(t, err, "Should fail for invalid char %s: %s", invalid.char, tc.description)
 						} else {
@@ -295,22 +295,22 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				normalized, err := NormalizeUserPath(tc.input)
-				
+
 				if tc.shouldError {
 					assert.Error(t, err, "Should error for %s: %s", tc.input, tc.description)
 				} else {
 					assert.NoError(t, err, "Should not error for %s: %s", tc.input, tc.description)
-					
+
 					if err == nil {
 						t.Logf("Normalized %s to %s", tc.input, normalized)
-						
+
 						// Verify the normalized path is absolute
 						assert.True(t, filepath.IsAbs(normalized) || IsAbsoluteWindowsPath(normalized),
 							"Normalized path should be absolute")
-						
+
 						// Verify it doesn't contain traversal elements
 						assert.NotContains(t, normalized, "..", "Normalized path should not contain ..")
-						
+
 						// Verify it's a valid Windows path
 						err := ValidateWindowsPath(normalized)
 						assert.NoError(t, err, "Normalized path should be valid")
@@ -511,12 +511,12 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				fullPath := filepath.Join(tempDir, tc.name, tc.path)
-				
+
 				err := EnsureParentDir(fullPath)
-				
+
 				if tc.shouldWork {
 					assert.NoError(t, err, "Should succeed: %s", tc.description)
-					
+
 					if err == nil {
 						// Verify parent directory was created
 						parentDir := filepath.Dir(fullPath)
@@ -550,7 +550,7 @@ func TestWindowsPathLimitsComprehensive(t *testing.T) {
 				defer wg.Done()
 
 				testPath := testPaths[id%len(testPaths)]
-				
+
 				// Test validation
 				err := ValidateWindowsPath(testPath)
 				if err != nil {
@@ -596,7 +596,7 @@ func TestWindowsPathRegressionPrevention(t *testing.T) {
 	t.Run("Status_File_Path_Length_Regression", func(t *testing.T) {
 		// Test the scenario where status file paths might exceed Windows limits
 		baseDir := t.TempDir()
-		
+
 		// Create a watch directory with a long name
 		longDirName := strings.Repeat("verylongdirectoryname", 5) // 125 chars
 		watchDir := filepath.Join(baseDir, longDirName)
@@ -621,8 +621,8 @@ func TestWindowsPathRegressionPrevention(t *testing.T) {
 	t.Run("Intent_File_Name_Validation", func(t *testing.T) {
 		// Test various intent file names that might cause path issues
 		testNames := []struct {
-			name       string
-			valid      bool
+			name        string
+			valid       bool
 			description string
 		}{
 			{
@@ -659,9 +659,9 @@ func TestWindowsPathRegressionPrevention(t *testing.T) {
 		for _, tc := range testNames {
 			t.Run("name_"+tc.name, func(t *testing.T) {
 				intentPath := filepath.Join(watchDir, tc.name)
-				
+
 				err := ValidateWindowsPath(intentPath)
-				
+
 				if tc.valid {
 					assert.NoError(t, err, "Should be valid: %s", tc.description)
 				} else {
@@ -684,11 +684,11 @@ func TestWindowsPathRegressionPrevention(t *testing.T) {
 				// Normalize the path
 				normalized, err := NormalizeUserPath(testPath)
 				assert.NoError(t, err, "Path normalization should succeed")
-				
+
 				// Verify it uses Windows separators
 				assert.Contains(t, normalized, "\\", "Normalized path should use Windows separators")
 				assert.NotContains(t, normalized, "/", "Normalized path should not contain forward slashes")
-				
+
 				// Verify it's valid
 				err = ValidateWindowsPath(normalized)
 				assert.NoError(t, err, "Normalized path should be valid")
@@ -699,7 +699,7 @@ func TestWindowsPathRegressionPrevention(t *testing.T) {
 	t.Run("Long_Path_Normalization_Regression", func(t *testing.T) {
 		// Test that long path normalization doesn't break
 		baseDir := t.TempDir()
-		
+
 		// Create a path that's just under the limit
 		longPath := baseDir
 		for len(longPath) < WindowsMaxPath-50 {
@@ -716,7 +716,7 @@ func TestWindowsPathRegressionPrevention(t *testing.T) {
 		// Normalization should work
 		normalized, err := NormalizeUserPath(longPath)
 		assert.NoError(t, err, "Long path normalization should succeed")
-		
+
 		t.Logf("Normalized to length %d: %s", len(normalized), normalized)
 
 		// Very long path should get prefix

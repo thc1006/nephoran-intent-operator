@@ -43,13 +43,13 @@ func TestBatCommandSeparation(t *testing.T) {
 		t.Logf("Generated script content:\n%s", scriptContent)
 
 		// Check that Start-Sleep command exists and is properly terminated
-		assert.Contains(t, scriptContent, "Start-Sleep -Milliseconds 50", 
+		assert.Contains(t, scriptContent, "Start-Sleep -Milliseconds 50",
 			"Should contain the PowerShell Start-Sleep command")
-		
+
 		// Verify that commands don't get concatenated like '50echo'
-		assert.NotContains(t, scriptContent, "50echo", 
+		assert.NotContains(t, scriptContent, "50echo",
 			"Commands should not be concatenated without proper separation")
-		assert.NotContains(t, scriptContent, "Milliseconds 50echo", 
+		assert.NotContains(t, scriptContent, "Milliseconds 50echo",
 			"Sleep and echo commands should be properly separated")
 
 		// Check that each command is on its own line or properly terminated
@@ -98,7 +98,7 @@ func TestBatCommandSeparation(t *testing.T) {
 		// Validate no command concatenation
 		assert.NotContains(t, scriptContent, "100echo", "No concatenation between sleep and echo")
 		assert.NotContains(t, scriptContent, "message>&2", "No concatenation in stderr redirection")
-		
+
 		// Ensure each command type is present
 		assert.Contains(t, scriptContent, "Start-Sleep -Milliseconds 100")
 		assert.Contains(t, scriptContent, "echo Success message")
@@ -130,7 +130,7 @@ func TestBatCommandSeparation(t *testing.T) {
 		// For generic scripts, it uses timeout instead of PowerShell
 		assert.Contains(t, scriptContent, "timeout /t 2")
 		assert.Contains(t, scriptContent, "echo Generic output")
-		
+
 		// Ensure no command concatenation
 		assert.NotContains(t, scriptContent, "2echo", "Timeout and echo should be separated")
 	})
@@ -138,7 +138,7 @@ func TestBatCommandSeparation(t *testing.T) {
 	t.Run("regression_test_powershell_parameter_parsing", func(t *testing.T) {
 		// This test specifically validates the original issue:
 		// "Start-Sleep : Cannot bind parameter 'Milliseconds' ... cannot convert value '50echo' to type 'Int32'."
-		
+
 		tempDir, err := os.MkdirTemp("", "regression_test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tempDir)
@@ -165,7 +165,7 @@ func TestBatCommandSeparation(t *testing.T) {
 		// Verify correct structure instead
 		assert.Contains(t, scriptContent, "Start-Sleep -Milliseconds 50")
 		assert.Contains(t, scriptContent, "echo Regression test output")
-		
+
 		// Ensure the PowerShell command is properly quoted and terminated
 		lines := strings.Split(scriptContent, "\n")
 		for _, line := range lines {

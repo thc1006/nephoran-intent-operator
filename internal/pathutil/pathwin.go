@@ -73,7 +73,7 @@ func IsValidWindowsPath(p string) bool {
 	// Examples of allowed patterns:
 	// - "./././tmp/test" -> "tmp/test" after cleaning
 	// - "../parent/file" -> "../parent/file" if legitimately outside current dir
-	
+
 	// Check for truly invalid characters (but allow : in drive position)
 	invalidChars := []string{"<", ">", "\"", "|", "?", "*"}
 	for _, char := range invalidChars {
@@ -100,16 +100,16 @@ func IsValidWindowsPath(p string) bool {
 	}
 
 	// Check for reserved names
-	reservedNames := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", 
-		"COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", 
+	reservedNames := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
+		"COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4",
 		"LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
-	
+
 	baseName := strings.ToUpper(filepath.Base(p))
 	// Remove extension for checking
 	if dotIndex := strings.LastIndex(baseName, "."); dotIndex != -1 {
 		baseName = baseName[:dotIndex]
 	}
-	
+
 	for _, reserved := range reservedNames {
 		if baseName == reserved {
 			return false
@@ -165,7 +165,6 @@ func EnsureParentDirectory(path string) error {
 
 	return nil
 }
-
 
 // IsExtendedLengthPath checks if a path uses the \\?\ prefix for long paths.
 func IsExtendedLengthPath(path string) bool {

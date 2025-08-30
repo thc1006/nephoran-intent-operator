@@ -1,4 +1,4 @@
-package o2models
+package models
 
 import (
 	"time"
@@ -317,11 +317,8 @@ const (
 	NodePhaseMaintenance  = "MAINTENANCE"
 	NodePhaseProvisioning = "PROVISIONING"
 
-	// Health States
-	HealthStateHealthy   = "HEALTHY"
+	// Health States - defined in types.go, keeping only Degraded here
 	HealthStateDegraded  = "DEGRADED"
-	HealthStateUnhealthy = "UNHEALTHY"
-	HealthStateUnknown   = "UNKNOWN"
 
 	// O-Cloud States
 	OCloudStateAvailable   = "AVAILABLE"

@@ -19,26 +19,26 @@ func isExpectedShutdownError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	errorMsg := strings.ToLower(err.Error())
-	
+
 	// Expected shutdown patterns - these indicate graceful cleanup is in progress
 	expectedPatterns := []string{
 		"stats not available - no file manager configured",
-		"failed to read directory", // Directory may be temporarily inaccessible during cleanup
-		"permission denied",        // Cleanup processes may temporarily lock resources
-		"file does not exist",      // Status files may be cleaned up during shutdown
+		"failed to read directory",  // Directory may be temporarily inaccessible during cleanup
+		"permission denied",         // Cleanup processes may temporarily lock resources
+		"file does not exist",       // Status files may be cleaned up during shutdown
 		"no such file or directory", // Similar to above, for different OS error formats
-		"directory not found",      // Status directories may be cleaned up
-		"access is denied",         // Windows equivalent of permission denied
+		"directory not found",       // Status directories may be cleaned up
+		"access is denied",          // Windows equivalent of permission denied
 	}
-	
+
 	for _, pattern := range expectedPatterns {
 		if strings.Contains(errorMsg, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -52,56 +52,56 @@ func validateHandoffDir(path string) error {
 
 	// Clean the path to handle various path formats consistently across platforms
 	cleanPath := filepath.Clean(path)
-	
+
 	// Check if the path exists
 	info, err := os.Stat(cleanPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Path doesn't exist - check if parent directory exists and is accessible
 			parent := filepath.Dir(cleanPath)
-			
+
 			// Special case: if parent is the same as path, we've reached the root
 			if parent == cleanPath {
 				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
 			}
-			
+
 			// Recursively check if parent is valid for directory creation
 			if err := validateHandoffDir(parent); err != nil {
 				return fmt.Errorf("invalid parent directory for %s: %v", cleanPath, err)
 			}
-			
+
 			// Parent exists and is valid, so we can create the directory
 			return nil
 		}
-		
+
 		// Other error (e.g., permission denied, invalid path format)
 		return fmt.Errorf("cannot access path %s: %v", cleanPath, err)
 	}
-	
+
 	// Path exists - verify it's a directory
 	if !info.IsDir() {
 		return fmt.Errorf("path %s exists but is not a directory", cleanPath)
 	}
-	
+
 	// Test read permission by attempting to read the directory
 	_, err = os.ReadDir(cleanPath)
 	if err != nil {
 		return fmt.Errorf("directory %s exists but is not readable: %v", cleanPath, err)
 	}
-	
+
 	return nil
 }
 
 // Config holds all command-line configuration
 type Config struct {
-	HandoffDir     string
-	PorchPath      string
-	PorchURL       string
-	Mode          string
-	OutDir        string
-	Once          bool
-	DebounceDur   time.Duration
-	Period        time.Duration
+	HandoffDir  string
+	PorchPath   string
+	PorchURL    string
+	Mode        string
+	OutDir      string
+	Once        bool
+	DebounceDur time.Duration
+	Period      time.Duration
 }
 
 func main() {
@@ -153,18 +153,18 @@ func main() {
 
 	// Create and start the watcher
 	watcher, err := loop.NewWatcher(config.HandoffDir, loop.Config{
-		PorchPath:     config.PorchPath,
-		PorchURL:      config.PorchURL,
-		Mode:         config.Mode,
-		OutDir:       config.OutDir,
-		Once:         config.Once,
-		DebounceDur:  config.DebounceDur,
-		Period:       config.Period,
+		PorchPath:   config.PorchPath,
+		PorchURL:    config.PorchURL,
+		Mode:        config.Mode,
+		OutDir:      config.OutDir,
+		Once:        config.Once,
+		DebounceDur: config.DebounceDur,
+		Period:      config.Period,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
-	
+
 	// Safe defer pattern - only register Close() after successful creation
 	defer func() {
 		if watcher != nil {
@@ -210,7 +210,7 @@ func main() {
 				}
 			} else if stats.RealFailedCount > 0 {
 				// Only real failures should affect exit code, not shutdown failures
-				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)",
 					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
 			} else if stats.ShutdownFailedCount > 0 {
@@ -225,7 +225,7 @@ func main() {
 	case sig := <-sigChan:
 		log.Printf("Received signal %v, shutting down gracefully", sig)
 		watcher.Close()
-		
+
 		// Check stats after graceful shutdown to distinguish shutdown vs real failures
 		stats, statsErr := watcher.GetStats()
 		if statsErr != nil {
@@ -240,7 +240,7 @@ func main() {
 			}
 		} else if stats.RealFailedCount > 0 {
 			// Only real failures should affect exit code, not shutdown failures
-			log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+			log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)",
 				stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 			exitCode = 8
 		} else if stats.ShutdownFailedCount > 0 {
@@ -263,7 +263,7 @@ func parseFlags() Config {
 	if err != nil {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
-	
+
 	// Note: directory creation is done in main() after validation
 	return config
 }
@@ -278,10 +278,10 @@ func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 	fs.StringVar(&config.Mode, "mode", "direct", "Processing mode: direct or structured")
 	fs.StringVar(&config.OutDir, "out", "./out", "Output directory for processed files")
 	fs.BoolVar(&config.Once, "once", false, "Process current backlog then exit")
-	
+
 	var debounceDurStr string
 	fs.StringVar(&debounceDurStr, "debounce", "500ms", "Debounce duration for file events (Windows optimization)")
-	
+
 	var periodStr string
 	fs.StringVar(&periodStr, "period", "2s", "Polling period for scanning directory (default 2s)")
 

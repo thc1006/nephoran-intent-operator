@@ -356,7 +356,7 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	result := &porch.TransitionResult{
 		Success:         true,
 		NewStage:        porch.PackageRevisionLifecycleProposed,
-		TransitionTime:  time.Now(),
+		TransitionTime:  &metav1.Time{Time: time.Now()},
 		Duration:        2 * time.Second,
 	}
 	err := error(nil)
@@ -382,7 +382,7 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 		PreviousStage: result.PreviousStage,
 		Progress:      100,
 		Message:       "Package proposed successfully",
-		Timestamp:     result.TransitionTime,
+		Timestamp:     result.TransitionTime.Time,
 		EventType:     "transition",
 	})
 
@@ -453,7 +453,7 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	result := &porch.TransitionResult{
 		Success:         true,
 		NewStage:        porch.PackageRevisionLifecyclePublished,
-		TransitionTime:  time.Now(),
+		TransitionTime:  &metav1.Time{Time: time.Now()},
 		Duration:        3 * time.Second,
 	}
 	err := error(nil)
@@ -479,7 +479,7 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 		PreviousStage: result.PreviousStage,
 		Progress:      100,
 		Message:       "Package approved and published successfully",
-		Timestamp:     result.TransitionTime,
+		Timestamp:     result.TransitionTime.Time,
 		EventType:     "transition",
 	})
 

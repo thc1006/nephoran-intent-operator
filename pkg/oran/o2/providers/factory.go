@@ -1,4 +1,4 @@
-package o2providers
+package providers
 
 import (
 	"fmt"

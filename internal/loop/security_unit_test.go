@@ -89,7 +89,7 @@ func TestIsIntentFile_SecurityValidation(t *testing.T) {
 // TestStateManager_SecurityBehavior tests security aspects of state management
 func TestStateManager_SecurityBehavior(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
 	defer sm.Close()
@@ -108,12 +108,12 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 				err := sm.MarkProcessed(filePath)
 				// Should succeed even though file doesn't exist (creates placeholder entry)
 				assert.NoError(t, err, "should handle missing file gracefully")
-				
+
 				// Verify no files were created outside the temp directory
 				parentDir := filepath.Dir(tempDir)
 				entries, err := os.ReadDir(parentDir)
 				require.NoError(t, err)
-				
+
 				for _, entry := range entries {
 					if strings.Contains(entry.Name(), "passwd") {
 						t.Errorf("Suspicious file created outside temp dir: %s", entry.Name())
@@ -136,7 +136,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 							assert.Contains(t, err.Error(), "path", "should be a path-related error")
 							return
 						}
-						
+
 						// If directory creation succeeded, create the file
 						testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
 						err = os.WriteFile(filePath, testContent, 0644)
@@ -145,11 +145,11 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 							assert.Contains(t, err.Error(), "path", "should be a path-related error")
 							return
 						}
-						
+
 						// If file creation succeeded, test state management
 						err = sm.MarkProcessed(filePath)
 						assert.NoError(t, err, "should handle long paths that were successfully created")
-						
+
 						processed, err := sm.IsProcessed(filePath)
 						assert.NoError(t, err)
 						assert.True(t, processed, "should remember long paths")
@@ -158,14 +158,14 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 						parentDir := filepath.Dir(filePath)
 						err := os.MkdirAll(parentDir, 0755)
 						require.NoError(t, err)
-						
+
 						testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
 						err = os.WriteFile(filePath, testContent, 0644)
 						require.NoError(t, err)
-						
+
 						err = sm.MarkProcessed(filePath)
 						assert.NoError(t, err, "should handle moderately long paths on Windows")
-						
+
 						processed, err := sm.IsProcessed(filePath)
 						assert.NoError(t, err)
 						assert.True(t, processed, "should remember moderately long paths on Windows")
@@ -175,11 +175,11 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 					parentDir := filepath.Dir(filePath)
 					err := os.MkdirAll(parentDir, 0755)
 					require.NoError(t, err)
-					
+
 					testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
 					err = os.WriteFile(filePath, testContent, 0644)
 					require.NoError(t, err)
-					
+
 					err = sm.MarkProcessed(filePath)
 					assert.NoError(t, err, "should handle very long paths")
 
@@ -203,7 +203,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 					}
 					require.NoError(t, err)
 				}
-				
+
 				testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
 				err = os.WriteFile(filePath, testContent, 0644)
 				if err != nil {
@@ -213,7 +213,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 					}
 					require.NoError(t, err)
 				}
-				
+
 				err = sm.MarkProcessed(filePath)
 				assert.NoError(t, err, "should handle unicode paths")
 
@@ -231,7 +231,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 				err := sm.MarkProcessed(filePath)
 				// Should succeed even though file doesn't exist (creates placeholder entry)
 				assert.NoError(t, err, "should handle missing file gracefully")
-				
+
 				// Verify the path was sanitized by checking if the null byte was removed
 				processed, err := sm.IsProcessed(filePath)
 				assert.NoError(t, err, "should handle sanitized path checking")
@@ -266,7 +266,7 @@ func generateLongPath(baseDir string) string {
 // TestFileManager_SecurityBehavior tests security aspects of file management
 func TestFileManager_SecurityBehavior(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	fm, err := NewFileManager(tempDir)
 	require.NoError(t, err)
 
@@ -321,7 +321,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 				errorFile := filepath.Join(tempDir, "failed", "test-intent-2.json.error.log")
 				content, err := os.ReadFile(errorFile)
 				assert.NoError(t, err, "error file should exist")
-				
+
 				errorContent := string(content)
 				assert.Contains(t, errorContent, "error occurred", "should contain original error message")
 				// Check that dangerous content is present but in a safe context (as text, not executable)
@@ -360,7 +360,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 				require.NoError(t, os.MkdirAll(processedDir, 0755))
 
 				oldTime := time.Now().Add(-48 * time.Hour)
-				
+
 				for i := 0; i < 5; i++ {
 					oldFile := filepath.Join(processedDir, fmt.Sprintf("old-intent-%d.json", i))
 					require.NoError(t, os.WriteFile(oldFile, []byte(intentContent), 0644))
@@ -609,39 +609,39 @@ func TestWindowsPathValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testPath := tt.pathGenerator(tempDir)
-			
+
 			// Special handling for MAX_PATH test case
 			if tt.name == "path exceeding MAX_PATH without prefix" {
 				// Empirically detect if long paths are supported on this system
 				// by attempting to create a long path without the \\?\ prefix
 				parentDir := filepath.Dir(testPath)
 				err := os.MkdirAll(parentDir, 0755)
-				
+
 				if err == nil {
 					// Long paths are enabled on this system (e.g., Windows Server 2022 with long path support)
 					// Clean up the test directory
 					os.RemoveAll(parentDir)
-					
+
 					// Skip this negative test or convert to positive assertion
 					t.Skipf("Long path support is enabled on this system (path length: %d chars). Skipping MAX_PATH negative test.", len(testPath))
 					return
 				}
 				// If MkdirAll failed, continue with the negative test as the system enforces MAX_PATH
 			}
-			
+
 			if !tt.expectError {
 				// For valid paths, create the file first
 				parentDir := filepath.Dir(testPath)
 				err := os.MkdirAll(parentDir, 0755)
 				require.NoError(t, err)
-				
+
 				testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
 				err = os.WriteFile(testPath, testContent, 0644)
 				require.NoError(t, err)
 			}
-			
+
 			err := sm.MarkProcessed(testPath)
-			
+
 			if tt.expectError {
 				// Use require.Error to prevent nil dereference panic
 				require.Error(t, err, "should reject invalid Windows path")
@@ -650,7 +650,7 @@ func TestWindowsPathValidation(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err, "should accept valid Windows path")
-				
+
 				processed, err := sm.IsProcessed(testPath)
 				assert.NoError(t, err)
 				assert.True(t, processed, "should remember valid path")
@@ -756,7 +756,7 @@ func TestValidateIntentContent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateIntentContent([]byte(tt.content))
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMessage != "" {
@@ -774,7 +774,7 @@ func TestValidateIntentContent(t *testing.T) {
 func sanitizeInput(input string) string {
 	// Remove null bytes
 	input = strings.ReplaceAll(input, "\x00", "")
-	
+
 	// Replace control characters with spaces
 	var result strings.Builder
 	for _, r := range input {
@@ -786,13 +786,13 @@ func sanitizeInput(input string) string {
 			result.WriteRune(r)
 		}
 	}
-	
+
 	// Truncate if too long
 	output := result.String()
 	if len(output) > 255 {
 		output = output[:255]
 	}
-	
+
 	return output
 }
 
@@ -802,51 +802,51 @@ func validateIntentContent(content []byte) error {
 	if err := json.Unmarshal(content, &intent); err != nil {
 		return fmt.Errorf("invalid JSON: %w", err)
 	}
-	
+
 	// Validate required fields
 	intentType, ok := intent["intent_type"].(string)
 	if !ok {
 		return fmt.Errorf("missing required field: intent_type")
 	}
-	
+
 	target, ok := intent["target"].(string)
 	if !ok {
 		return fmt.Errorf("missing required field: target")
 	}
-	
+
 	namespace, ok := intent["namespace"].(string)
 	if !ok {
 		return fmt.Errorf("missing required field: namespace")
 	}
-	
+
 	replicas, ok := intent["replicas"].(float64)
 	if !ok {
 		return fmt.Errorf("missing required field: replicas")
 	}
-	
+
 	// Validate intent type
 	if intentType != "scaling" {
 		return fmt.Errorf("invalid intent type: %s", intentType)
 	}
-	
+
 	// Validate target (check for path traversal and command injection)
-	if strings.Contains(target, "..") || strings.Contains(target, "/") || 
-	   strings.Contains(target, "\\") || strings.Contains(target, ";") ||
-	   strings.Contains(target, "&") || strings.Contains(target, "|") {
+	if strings.Contains(target, "..") || strings.Contains(target, "/") ||
+		strings.Contains(target, "\\") || strings.Contains(target, ";") ||
+		strings.Contains(target, "&") || strings.Contains(target, "|") {
 		return fmt.Errorf("invalid target: contains suspicious characters")
 	}
-	
+
 	// Validate namespace
 	if strings.Contains(namespace, "..") || strings.Contains(namespace, "/") ||
-	   strings.Contains(namespace, "\\") || strings.Contains(namespace, ";") ||
-	   strings.Contains(namespace, "&") || strings.Contains(namespace, "|") {
+		strings.Contains(namespace, "\\") || strings.Contains(namespace, ";") ||
+		strings.Contains(namespace, "&") || strings.Contains(namespace, "|") {
 		return fmt.Errorf("invalid namespace: contains suspicious characters")
 	}
-	
+
 	// Validate replicas - match the real validation logic bounds
 	if replicas < 1 || replicas > 100 {
 		return fmt.Errorf("replicas must be an integer between 1 and 100")
 	}
-	
+
 	return nil
 }

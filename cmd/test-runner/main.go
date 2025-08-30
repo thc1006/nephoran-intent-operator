@@ -17,26 +17,26 @@ import (
 
 // TestRunner manages parallel test execution with sharding
 type TestRunner struct {
-	ShardIndex    int
-	TotalShards   int
-	Pattern       string
-	Parallel      int
-	Timeout       time.Duration
-	Coverage      bool
-	Verbose       bool
-	OutputDir     string
-	MaxRetries    int
-	FailFast      bool
+	ShardIndex  int
+	TotalShards int
+	Pattern     string
+	Parallel    int
+	Timeout     time.Duration
+	Coverage    bool
+	Verbose     bool
+	OutputDir   string
+	MaxRetries  int
+	FailFast    bool
 }
 
 // TestResult represents the result of a test execution
 type TestResult struct {
-	Package   string
-	Duration  time.Duration
-	Success   bool
-	Output    string
-	Coverage  string
-	Error     error
+	Package  string
+	Duration time.Duration
+	Success  bool
+	Output   string
+	Coverage string
+	Error    error
 }
 
 // TestShard contains tests assigned to a specific shard
@@ -108,7 +108,7 @@ Features:
 // Run executes the test runner
 func (r *TestRunner) Run() error {
 	log.Printf("Starting test runner (shard %d/%d)", r.ShardIndex+1, r.TotalShards)
-	
+
 	// Discover test packages
 	packages, err := r.discoverPackages()
 	if err != nil {
@@ -212,7 +212,7 @@ func (r *TestRunner) createShard(packages []string) TestShard {
 
 	// Use smart sharding based on package characteristics if available
 	packageWeights := r.calculatePackageWeights(packages)
-	
+
 	// Distribute packages using weighted round-robin
 	for i, pkg := range packages {
 		if r.shouldAssignToShard(i, packageWeights[pkg]) {
@@ -226,10 +226,10 @@ func (r *TestRunner) createShard(packages []string) TestShard {
 // calculatePackageWeights estimates relative execution time for packages
 func (r *TestRunner) calculatePackageWeights(packages []string) map[string]int {
 	weights := make(map[string]int)
-	
+
 	for _, pkg := range packages {
 		weight := 1 // Default weight
-		
+
 		// Adjust weight based on package characteristics
 		if strings.Contains(pkg, "integration") || strings.Contains(pkg, "e2e") {
 			weight = 3 // Integration tests are typically slower
@@ -240,17 +240,17 @@ func (r *TestRunner) calculatePackageWeights(packages []string) map[string]int {
 		} else if strings.Contains(pkg, "security") {
 			weight = 2 // Security tests may involve crypto operations
 		}
-		
+
 		weights[pkg] = weight
 	}
-	
+
 	return weights
 }
 
 // getPackageTimeout calculates appropriate timeout for a specific package
 func (r *TestRunner) getPackageTimeout(pkg string) time.Duration {
 	baseTimeout := r.Timeout
-	
+
 	// Apply package-specific timeout scaling for Windows optimization
 	multiplier := 1.0
 	if strings.Contains(pkg, "integration") || strings.Contains(pkg, "e2e") {
@@ -262,7 +262,7 @@ func (r *TestRunner) getPackageTimeout(pkg string) time.Duration {
 	} else if strings.Contains(pkg, "controller") || strings.Contains(pkg, "manager") {
 		multiplier = 1.3 // Controller tests with more setup
 	}
-	
+
 	return time.Duration(float64(baseTimeout) * multiplier)
 }
 
@@ -278,7 +278,7 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 	results := make([]TestResult, len(packages))
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, r.Parallel)
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), r.Timeout*time.Duration(len(packages)))
 	defer cancel()
 
@@ -286,30 +286,30 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 		wg.Add(1)
 		go func(index int, packageName string) {
 			defer wg.Done()
-			
+
 			// Acquire semaphore
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
-			
+
 			result := r.runSingleTest(ctx, packageName)
 			results[index] = result
-			
+
 			// Log progress
 			status := "✅"
 			if !result.Success {
 				status = "❌"
 			}
 			log.Printf("%s %s (%v)", status, packageName, result.Duration.Round(time.Millisecond))
-			
+
 			// Fail fast if enabled
 			if r.FailFast && !result.Success {
 				cancel()
 			}
 		}(i, pkg)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Filter out empty results if context was cancelled
 	var filteredResults []TestResult
 	for _, result := range results {
@@ -317,7 +317,7 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 			filteredResults = append(filteredResults, result)
 		}
 	}
-	
+
 	return filteredResults, nil
 }
 
@@ -326,17 +326,17 @@ func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
 	result := TestResult{
 		Package: pkg,
 	}
-	
+
 	start := time.Now()
 	defer func() {
 		result.Duration = time.Since(start)
 	}()
-	
+
 	// Create package-specific timeout context
 	packageTimeout := r.getPackageTimeout(pkg)
 	pkgCtx, pkgCancel := context.WithTimeout(ctx, packageTimeout)
 	defer pkgCancel()
-	
+
 	// Retry logic for flaky tests
 	var lastErr error
 	for attempt := 0; attempt <= r.MaxRetries; attempt++ {
@@ -344,61 +344,61 @@ func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
 			log.Printf("Retrying %s (attempt %d/%d)", pkg, attempt+1, r.MaxRetries+1)
 			time.Sleep(time.Duration(attempt) * time.Second) // Exponential backoff
 		}
-		
+
 		success, output, coverage, err := r.executeTest(pkgCtx, pkg)
 		result.Success = success
 		result.Output = output
 		result.Coverage = coverage
 		result.Error = err
-		
+
 		if success || err == context.Canceled {
 			break // Success or cancelled
 		}
-		
+
 		lastErr = err
 	}
-	
+
 	if !result.Success && lastErr != nil {
 		result.Error = fmt.Errorf("failed after %d attempts: %w", r.MaxRetries+1, lastErr)
 	}
-	
+
 	return result
 }
 
 // executeTest runs the actual go test command
 func (r *TestRunner) executeTest(ctx context.Context, pkg string) (bool, string, string, error) {
 	args := []string{"test"}
-	
+
 	if r.Verbose {
 		args = append(args, "-v")
 	}
-	
+
 	args = append(args, "-count=1") // Disable test caching
-	
+
 	if r.Coverage {
 		coverFile := filepath.Join(r.OutputDir, strings.ReplaceAll(pkg, "/", "_")+".coverage")
 		args = append(args, "-coverprofile="+coverFile, "-covermode=atomic")
 	}
-	
+
 	args = append(args, pkg)
-	
+
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = "."
-	
+
 	// Set environment variables
 	cmd.Env = append(os.Environ(),
 		"GOMAXPROCS=1", // Limit per-test parallelism to avoid resource contention
 	)
-	
+
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
-	
+
 	if ctx.Err() == context.Canceled {
 		return false, outputStr, "", context.Canceled
 	}
-	
+
 	success := err == nil
-	
+
 	// Extract coverage if available
 	var coverage string
 	if r.Coverage {
@@ -407,7 +407,7 @@ func (r *TestRunner) executeTest(ctx context.Context, pkg string) (bool, string,
 			coverage = coverFile
 		}
 	}
-	
+
 	return success, outputStr, coverage, err
 }
 
@@ -417,84 +417,84 @@ func (r *TestRunner) generateReports(results []TestResult) error {
 	if err := r.generateJUnitReport(results); err != nil {
 		log.Printf("Warning: failed to generate JUnit report: %v", err)
 	}
-	
+
 	// Generate coverage report
 	if r.Coverage {
 		if err := r.generateCoverageReport(results); err != nil {
 			log.Printf("Warning: failed to generate coverage report: %v", err)
 		}
 	}
-	
+
 	// Generate timing report
 	if err := r.generateTimingReport(results); err != nil {
 		log.Printf("Warning: failed to generate timing report: %v", err)
 	}
-	
+
 	return nil
 }
 
 // generateJUnitReport creates a JUnit XML report
 func (r *TestRunner) generateJUnitReport(results []TestResult) error {
 	reportFile := filepath.Join(r.OutputDir, fmt.Sprintf("junit-shard-%d.xml", r.ShardIndex))
-	
+
 	file, err := os.Create(reportFile)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	
+
 	fmt.Fprintf(file, `<?xml version="1.0" encoding="UTF-8"?>`)
 	fmt.Fprintf(file, `<testsuite name="shard-%d" tests="%d" failures="%d" time="%.2f">`,
 		r.ShardIndex, len(results), r.countFailures(results), r.totalDuration(results).Seconds())
-	
+
 	for _, result := range results {
 		fmt.Fprintf(file, `<testcase classname="%s" name="%s" time="%.2f">`,
 			result.Package, result.Package, result.Duration.Seconds())
-		
+
 		if !result.Success {
-			fmt.Fprintf(file, `<failure message="Test failed">%s</failure>`, 
+			fmt.Fprintf(file, `<failure message="Test failed">%s</failure>`,
 				strings.ReplaceAll(result.Output, "&", "&amp;"))
 		}
-		
+
 		fmt.Fprintf(file, `</testcase>`)
 	}
-	
+
 	fmt.Fprintf(file, `</testsuite>`)
-	
+
 	return nil
 }
 
 // generateCoverageReport combines coverage files and generates reports
 func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 	var coverageFiles []string
-	
+
 	for _, result := range results {
 		if result.Coverage != "" {
 			coverageFiles = append(coverageFiles, result.Coverage)
 		}
 	}
-	
+
 	if len(coverageFiles) == 0 {
 		return nil
 	}
-	
+
 	// Combine coverage files
 	combinedFile := filepath.Join(r.OutputDir, fmt.Sprintf("coverage-shard-%d.out", r.ShardIndex))
-	
+
 	file, err := os.Create(combinedFile)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	
+
 	fmt.Fprintln(file, "mode: atomic")
-	
+
 	for _, coverFile := range coverageFiles {
 		content, err := os.ReadFile(coverFile)
 		if err != nil {
 			continue
 		}
-		
+
 		lines := strings.Split(string(content), "\n")
 		for _, line := range lines[1:] { // Skip mode line
 			if strings.TrimSpace(line) != "" {
@@ -502,34 +502,34 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 			}
 		}
 	}
-	
+
 	// Generate HTML report
 	htmlFile := filepath.Join(r.OutputDir, fmt.Sprintf("coverage-shard-%d.html", r.ShardIndex))
 	cmd := exec.Command("go", "tool", "cover", "-html="+combinedFile, "-o", htmlFile)
 	if err := cmd.Run(); err != nil {
 		log.Printf("Warning: failed to generate HTML coverage report: %v", err)
 	}
-	
+
 	return nil
 }
 
 // generateTimingReport creates a report of test execution times
 func (r *TestRunner) generateTimingReport(results []TestResult) error {
 	reportFile := filepath.Join(r.OutputDir, fmt.Sprintf("timing-shard-%d.txt", r.ShardIndex))
-	
+
 	file, err := os.Create(reportFile)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	
+
 	fmt.Fprintf(file, "Test Timing Report - Shard %d\n", r.ShardIndex)
 	fmt.Fprintf(file, "=====================================\n\n")
-	
+
 	// Sort by duration (slowest first)
 	sortedResults := make([]TestResult, len(results))
 	copy(sortedResults, results)
-	
+
 	for i := 0; i < len(sortedResults)-1; i++ {
 		for j := i + 1; j < len(sortedResults); j++ {
 			if sortedResults[i].Duration < sortedResults[j].Duration {
@@ -537,7 +537,7 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 			}
 		}
 	}
-	
+
 	for _, result := range sortedResults {
 		status := "PASS"
 		if !result.Success {
@@ -545,9 +545,9 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 		}
 		fmt.Fprintf(file, "%-6s %8s %s\n", status, result.Duration.Round(time.Millisecond), result.Package)
 	}
-	
+
 	fmt.Fprintf(file, "\nTotal: %v\n", r.totalDuration(results).Round(time.Millisecond))
-	
+
 	return nil
 }
 

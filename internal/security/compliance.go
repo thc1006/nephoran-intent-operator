@@ -24,11 +24,11 @@ type ComplianceRequirement struct {
 
 // ComplianceResult contains compliance assessment results
 type ComplianceResult struct {
-	RequirementID   string                 `json:"requirement_id"`
-	Status          ComplianceStatus       `json:"status"`
-	Evidence        []ComplianceEvidence   `json:"evidence"`
-	Recommendations []string               `json:"recommendations"`
-	LastAssessed    time.Time              `json:"last_assessed"`
+	RequirementID   string               `json:"requirement_id"`
+	Status          ComplianceStatus     `json:"status"`
+	Evidence        []ComplianceEvidence `json:"evidence"`
+	Recommendations []string             `json:"recommendations"`
+	LastAssessed    time.Time            `json:"last_assessed"`
 }
 
 // ComplianceStatus represents compliance state
@@ -51,12 +51,12 @@ type ComplianceEvidence struct {
 
 // ComplianceReport contains overall compliance assessment
 type ComplianceReport struct {
-	AssessmentID    string              `json:"assessment_id"`
-	Timestamp       time.Time           `json:"timestamp"`
-	Results         []ComplianceResult  `json:"results"`
-	OverallScore    float64             `json:"overall_score"`
-	CriticalIssues  int                 `json:"critical_issues"`
-	Recommendations []string            `json:"recommendations"`
+	AssessmentID    string             `json:"assessment_id"`
+	Timestamp       time.Time          `json:"timestamp"`
+	Results         []ComplianceResult `json:"results"`
+	OverallScore    float64            `json:"overall_score"`
+	CriticalIssues  int                `json:"critical_issues"`
+	Recommendations []string           `json:"recommendations"`
 }
 
 // ComplianceAuditor provides compliance audit logging
@@ -71,7 +71,7 @@ func NewORANComplianceChecker() (*ORANComplianceChecker, error) {
 		enabled: true,
 		logFile: "oran-compliance-audit.json",
 	}
-	
+
 	return &ORANComplianceChecker{
 		wg11Requirements: getORANWG11Requirements(),
 		auditLogger:      auditor,
@@ -82,7 +82,7 @@ func NewORANComplianceChecker() (*ORANComplianceChecker, error) {
 func (c *ORANComplianceChecker) AssessCompliance(system interface{}) (*ComplianceReport, error) {
 	assessmentID := generateAssessmentID()
 	startTime := time.Now()
-	
+
 	report := &ComplianceReport{
 		AssessmentID:    assessmentID,
 		Timestamp:       startTime,
@@ -91,15 +91,15 @@ func (c *ORANComplianceChecker) AssessCompliance(system interface{}) (*Complianc
 		CriticalIssues:  0,
 		Recommendations: []string{},
 	}
-	
+
 	// Assess each O-RAN WG11 requirement
 	totalScore := 0.0
 	mandatoryRequirements := 0
-	
+
 	for reqID, requirement := range c.wg11Requirements {
 		result := c.assessRequirement(reqID, requirement, system)
 		report.Results = append(report.Results, result)
-		
+
 		// Calculate scoring
 		if requirement.Mandatory {
 			mandatoryRequirements++
@@ -110,20 +110,20 @@ func (c *ORANComplianceChecker) AssessCompliance(system interface{}) (*Complianc
 				totalScore += 50.0
 			case StatusNonCompliant:
 				report.CriticalIssues++
-				report.Recommendations = append(report.Recommendations, 
+				report.Recommendations = append(report.Recommendations,
 					fmt.Sprintf("CRITICAL: Fix %s - %s", reqID, requirement.Title))
 			}
 		}
 	}
-	
+
 	// Calculate overall compliance score
 	if mandatoryRequirements > 0 {
 		report.OverallScore = totalScore / float64(mandatoryRequirements)
 	}
-	
+
 	// Log compliance assessment
 	c.auditLogger.LogAssessment(report)
-	
+
 	return report, nil
 }
 
@@ -136,7 +136,7 @@ func (c *ORANComplianceChecker) assessRequirement(reqID string, req ComplianceRe
 		Recommendations: []string{},
 		LastAssessed:    time.Now(),
 	}
-	
+
 	// Execute requirement-specific tests
 	switch reqID {
 	case "WG11-SEC-001":
@@ -157,10 +157,10 @@ func (c *ORANComplianceChecker) assessRequirement(reqID string, req ComplianceRe
 		result = c.assessThreatProtection(system)
 	default:
 		result.Status = StatusNotTested
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Test implementation needed for requirement "+reqID)
 	}
-	
+
 	return result
 }
 
@@ -171,14 +171,14 @@ func (c *ORANComplianceChecker) assessMutualTLS(system interface{}) ComplianceRe
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check for TLS configuration
 	hasMTLS := false
 	tlsVersion := ""
-	
+
 	// In a real implementation, this would inspect the system configuration
 	// For now, we'll check for indicators in the codebase
-	
+
 	if hasMTLS && tlsVersion == "1.3" {
 		result.Status = StatusCompliant
 		result.Evidence = append(result.Evidence, ComplianceEvidence{
@@ -189,10 +189,10 @@ func (c *ORANComplianceChecker) assessMutualTLS(system interface{}) ComplianceRe
 		})
 	} else {
 		result.Status = StatusNonCompliant
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement mutual TLS 1.3 for all O-RAN interfaces")
 	}
-	
+
 	return result
 }
 
@@ -203,12 +203,12 @@ func (c *ORANComplianceChecker) assessCertificateManagement(system interface{}) 
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check certificate rotation, validation, and storage
 	hasAutoRotation := false
 	certValidation := false
 	secureStorage := false
-	
+
 	if hasAutoRotation && certValidation && secureStorage {
 		result.Status = StatusCompliant
 		result.Evidence = append(result.Evidence, ComplianceEvidence{
@@ -219,10 +219,10 @@ func (c *ORANComplianceChecker) assessCertificateManagement(system interface{}) 
 		})
 	} else {
 		result.Status = StatusNonCompliant
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement automated certificate rotation and validation")
 	}
-	
+
 	return result
 }
 
@@ -233,16 +233,16 @@ func (c *ORANComplianceChecker) assessAccessControl(system interface{}) Complian
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check for proper access control implementation
 	hasRBAC := false
 	hasZeroTrust := false
 	hasPrincipleOfLeastPrivilege := false
-	
+
 	// In our current system, we have some path validation
 	// but need full RBAC implementation
 	hasBasicValidation := true
-	
+
 	if hasRBAC && hasZeroTrust && hasPrincipleOfLeastPrivilege {
 		result.Status = StatusCompliant
 	} else if hasBasicValidation {
@@ -253,14 +253,14 @@ func (c *ORANComplianceChecker) assessAccessControl(system interface{}) Complian
 			Value:       "partial",
 			Timestamp:   time.Now(),
 		})
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement full RBAC and zero-trust architecture")
 	} else {
 		result.Status = StatusNonCompliant
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement comprehensive access control system")
 	}
-	
+
 	return result
 }
 
@@ -271,12 +271,12 @@ func (c *ORANComplianceChecker) assessAuditLogging(system interface{}) Complianc
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check audit logging capabilities
-	hasSecurityEventLogging := true  // We have some audit logging
+	hasSecurityEventLogging := true // We have some audit logging
 	hasIntegrityProtection := false
 	hasLogRetention := false
-	
+
 	if hasSecurityEventLogging && hasIntegrityProtection && hasLogRetention {
 		result.Status = StatusCompliant
 	} else if hasSecurityEventLogging {
@@ -287,14 +287,14 @@ func (c *ORANComplianceChecker) assessAuditLogging(system interface{}) Complianc
 			Value:       "enabled",
 			Timestamp:   time.Now(),
 		})
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Add log integrity protection and retention policies")
 	} else {
 		result.Status = StatusNonCompliant
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement comprehensive security audit logging")
 	}
-	
+
 	return result
 }
 
@@ -305,12 +305,12 @@ func (c *ORANComplianceChecker) assessEncryption(system interface{}) ComplianceR
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check encryption implementation
 	hasDataAtRestEncryption := false
 	hasDataInTransitEncryption := false
-	usesApprovedCrypto := true  // We use Go's crypto/rand
-	
+	usesApprovedCrypto := true // We use Go's crypto/rand
+
 	if hasDataAtRestEncryption && hasDataInTransitEncryption && usesApprovedCrypto {
 		result.Status = StatusCompliant
 	} else if usesApprovedCrypto {
@@ -321,14 +321,14 @@ func (c *ORANComplianceChecker) assessEncryption(system interface{}) ComplianceR
 			Value:       "Go crypto/rand",
 			Timestamp:   time.Now(),
 		})
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement comprehensive data encryption at rest and in transit")
 	} else {
 		result.Status = StatusNonCompliant
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Implement O-RAN approved encryption standards")
 	}
-	
+
 	return result
 }
 
@@ -339,32 +339,32 @@ func (c *ORANComplianceChecker) assessInputValidation(system interface{}) Compli
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Our system has good input validation
 	hasSchemaValidation := true
 	hasPathTraversalProtection := true
 	hasInjectionProtection := true
 	hasSanitization := true
-	
+
 	if hasSchemaValidation && hasPathTraversalProtection && hasInjectionProtection && hasSanitization {
 		result.Status = StatusCompliant
 		result.Evidence = append(result.Evidence, ComplianceEvidence{
 			Type:        "input_validation",
 			Description: "Comprehensive input validation implemented",
 			Value: map[string]bool{
-				"schema_validation":       hasSchemaValidation,
+				"schema_validation":         hasSchemaValidation,
 				"path_traversal_protection": hasPathTraversalProtection,
 				"injection_protection":      hasInjectionProtection,
-				"sanitization":             hasSanitization,
+				"sanitization":              hasSanitization,
 			},
 			Timestamp: time.Now(),
 		})
 	} else {
 		result.Status = StatusPartial
-		result.Recommendations = append(result.Recommendations, 
+		result.Recommendations = append(result.Recommendations,
 			"Enhance input validation and sanitization")
 	}
-	
+
 	return result
 }
 
@@ -375,21 +375,21 @@ func (c *ORANComplianceChecker) assessSecureCommunication(system interface{}) Co
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check secure communication implementation
 	hasE2InterfaceSecurity := false
 	hasA1InterfaceSecurity := false
 	hasO1InterfaceSecurity := false
 	hasO2InterfaceSecurity := false
-	
+
 	// Suppress unused variable warnings - these will be implemented later
 	_, _, _, _ = hasE2InterfaceSecurity, hasA1InterfaceSecurity, hasO1InterfaceSecurity, hasO2InterfaceSecurity
-	
+
 	// Currently partial implementation
 	result.Status = StatusPartial
-	result.Recommendations = append(result.Recommendations, 
+	result.Recommendations = append(result.Recommendations,
 		"Implement secure communication for all O-RAN interfaces (E2, A1, O1, O2)")
-	
+
 	return result
 }
 
@@ -400,20 +400,20 @@ func (c *ORANComplianceChecker) assessThreatProtection(system interface{}) Compl
 		LastAssessed:  time.Now(),
 		Evidence:      []ComplianceEvidence{},
 	}
-	
+
 	// Check threat protection capabilities
 	hasAnomalyDetection := false
 	hasIntrusionDetection := false
 	hasIncidentResponse := false
 	hasThreatIntelligence := false
-	
+
 	// Suppress unused variable warnings - these will be implemented later
 	_, _, _, _ = hasAnomalyDetection, hasIntrusionDetection, hasIncidentResponse, hasThreatIntelligence
-	
+
 	result.Status = StatusNonCompliant
-	result.Recommendations = append(result.Recommendations, 
+	result.Recommendations = append(result.Recommendations,
 		"Implement comprehensive threat detection and response system")
-	
+
 	return result
 }
 
@@ -429,7 +429,7 @@ func getORANWG11Requirements() map[string]ComplianceRequirement {
 			Tests:       []string{"tls_version_check", "mutual_auth_check", "certificate_validation"},
 		},
 		"WG11-SEC-002": {
-			ID:          "WG11-SEC-002", 
+			ID:          "WG11-SEC-002",
 			Title:       "Certificate Management",
 			Description: "Automated certificate lifecycle management with rotation",
 			Category:    "PKI",
@@ -446,7 +446,7 @@ func getORANWG11Requirements() map[string]ComplianceRequirement {
 		},
 		"WG11-SEC-004": {
 			ID:          "WG11-SEC-004",
-			Title:       "Security Audit Logging", 
+			Title:       "Security Audit Logging",
 			Description: "Comprehensive security event logging with integrity protection",
 			Category:    "Logging",
 			Mandatory:   true,
@@ -497,17 +497,17 @@ func (a *ComplianceAuditor) LogAssessment(report *ComplianceReport) {
 	if !a.enabled {
 		return
 	}
-	
+
 	// Serialize to JSON for audit trail
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		fmt.Printf("[COMPLIANCE AUDIT ERROR] Failed to serialize report: %v\n", err)
 		return
 	}
-	
-	fmt.Printf("[COMPLIANCE AUDIT] Assessment %s completed. Score: %.1f%%, Critical Issues: %d\n", 
+
+	fmt.Printf("[COMPLIANCE AUDIT] Assessment %s completed. Score: %.1f%%, Critical Issues: %d\n",
 		report.AssessmentID, report.OverallScore, report.CriticalIssues)
-	
+
 	// In production, this would write to secure audit logs
 	// For now, we'll output to console
 	if report.CriticalIssues > 0 {

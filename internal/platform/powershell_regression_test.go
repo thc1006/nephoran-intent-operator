@@ -13,7 +13,7 @@ import (
 )
 
 // TestPowerShellCommandRegression validates the fix for PowerShell command separation issues
-// This test specifically targets the issue: "Start-Sleep : Cannot bind parameter 'Milliseconds'. 
+// This test specifically targets the issue: "Start-Sleep : Cannot bind parameter 'Milliseconds'.
 // Cannot convert value '50echo' to type 'System.Int32'"
 func TestPowerShellCommandRegression(t *testing.T) {
 	if runtime.GOOS != "windows" {
@@ -38,7 +38,7 @@ func TestPowerShellCommandRegression(t *testing.T) {
 		scriptContent := string(content)
 
 		// Verify the -NoProfile flag is present for better PowerShell performance
-		assert.Contains(t, scriptContent, "powershell -NoProfile -Command", 
+		assert.Contains(t, scriptContent, "powershell -NoProfile -Command",
 			"PowerShell should use -NoProfile flag for consistency and performance")
 
 		// Verify the Start-Sleep command is properly formatted
@@ -119,27 +119,27 @@ func TestPowerShellCommandRegression(t *testing.T) {
 		// Execute the script to ensure no PowerShell errors occur
 		cmd := exec.Command("cmd.exe", "/C", scriptPath)
 		output, err := cmd.CombinedOutput()
-		
+
 		// Log output for debugging
 		t.Logf("Script execution output: %s", string(output))
-		
+
 		if err != nil {
 			t.Logf("Script execution error: %v", err)
 		}
 
 		// Check that the specific PowerShell parameter binding error doesn't occur
 		outputStr := string(output)
-		assert.NotContains(t, outputStr, "cannot convert value", 
+		assert.NotContains(t, outputStr, "cannot convert value",
 			"Should not have PowerShell parameter conversion errors")
-		assert.NotContains(t, outputStr, "Cannot bind parameter", 
+		assert.NotContains(t, outputStr, "Cannot bind parameter",
 			"Should not have PowerShell parameter binding errors")
-		assert.NotContains(t, outputStr, "Int32", 
+		assert.NotContains(t, outputStr, "Int32",
 			"Should not have Int32 type conversion errors")
-		
+
 		// Script should complete successfully
 		if err != nil {
 			// If there's an error, it shouldn't be related to PowerShell parameter issues
-			assert.NotContains(t, err.Error(), "50echo", 
+			assert.NotContains(t, err.Error(), "50echo",
 				"Error should not be related to command concatenation")
 		}
 	})

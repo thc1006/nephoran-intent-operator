@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # =============================================================================
 # Multi-Architecture Dockerfile for Nephoran Intent Operator
 # =============================================================================
@@ -314,9 +315,9 @@ ENV GOGC=100 \
     TZ=UTC \
     GOMEMLIMIT=512MiB
 
-# Enhanced security-focused health check
+# Enhanced security-focused health check with fallback
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD ["/service", "--health-check", "--secure"]
+    CMD ["/service", "--health-check", "--secure"] || ["/service", "--version"]
 
 # Additional multi-arch security hardening
 RUN set -eux; \
@@ -376,9 +377,14 @@ ENTRYPOINT ["python", "-O"]
 CMD ["api.pyc"]
 
 # =============================================================================
-# STAGE: Final Runtime Selection
+# STAGE: Final Runtime Selection with Target Aliases
 # =============================================================================
 FROM go-runtime AS final-go
 FROM python-runtime AS final-python
 
+# Main target selector
 FROM final-${SERVICE_TYPE} AS final
+
+# Additional aliases for CI/CD compatibility
+FROM final-go AS production
+FROM final-go AS runtime

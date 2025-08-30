@@ -31,7 +31,7 @@ func generatePackageName(target string) string {
 		pid := os.Getpid() % 10000 // Keep PID within 4 digits
 		return fmt.Sprintf("%s-scaling-patch-%s-%04d", target, nanoTime, pid)
 	}
-	
+
 	// Create a timestamp with random suffix that's valid for Kubernetes names
 	timestamp := fmt.Sprintf("%s-%04d", now.Format("20060102-150405"), randomSuffix.Int64())
 	return fmt.Sprintf("%s-scaling-patch-%s", target, timestamp)
@@ -70,8 +70,8 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 				Namespace: intent.Namespace,
 				Annotations: map[string]string{
 					"config.kubernetes.io/merge-policy": "replace",
-					"nephoran.io/intent-type":          intent.IntentType,
-					"nephoran.io/generated-at":         generateCollisionResistantTimestamp(),
+					"nephoran.io/intent-type":           intent.IntentType,
+					"nephoran.io/generated-at":          generateCollisionResistantTimestamp(),
 				},
 			},
 			Spec: PatchSpec{
@@ -84,7 +84,7 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 // Generate creates the patch package files in the output directory
 func (p *PatchPackage) Generate() error {
 	packageDir := filepath.Join(p.OutputDir, p.Kptfile.Metadata.Name)
-	
+
 	// Ensure output directory is valid and accessible
 	if info, err := os.Stat(p.OutputDir); os.IsNotExist(err) {
 		return fmt.Errorf("output directory %s does not exist", p.OutputDir)
@@ -150,15 +150,15 @@ This package contains a structured patch to scale the %s deployment.
 - **Intent Type**: %s
 
 ## Files
-- ` + "`Kptfile`" + `: Package metadata and pipeline configuration
-- ` + "`scaling-patch.yaml`" + `: Strategic merge patch for deployment scaling
+- `+"`Kptfile`"+`: Package metadata and pipeline configuration
+- `+"`scaling-patch.yaml`"+`: Strategic merge patch for deployment scaling
 
 ## Usage
 Apply this patch package using kpt or Porch:
 
-` + "```bash" + `
+`+"```bash"+`
 kpt fn eval . --image gcr.io/kpt-fn/apply-replacements:v0.1.1
-` + "```" + `
+`+"```"+`
 
 ## Generated
 Generated at: %s

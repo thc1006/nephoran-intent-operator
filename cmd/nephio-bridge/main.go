@@ -44,12 +44,12 @@ func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.L
 	for _, msg := range request.Messages {
 		prompt += msg.Role + ": " + msg.Content + "\n"
 	}
-	
+
 	result, err := a.client.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &shared.LLMResponse{
 		ID:      "adapter-" + time.Now().Format("20060102150405"),
 		Content: result,
@@ -69,7 +69,7 @@ func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	chan_result := make(chan *shared.StreamingChunk, 1)
 	chan_result <- &shared.StreamingChunk{
 		ID:        response.ID,
@@ -124,13 +124,13 @@ func (a *llmClientAdapter) Close() error {
 
 // dependencyImpl implements the Dependencies interface
 type dependencyImpl struct {
-	gitClient              git.ClientInterface
-	llmClient              shared.ClientInterface
-	packageGen             *nephio.PackageGenerator
-	httpClient             *http.Client
-	eventRecorder          record.EventRecorder
-	telecomKnowledgeBase   *telecom.TelecomKnowledgeBase
-	metricsCollector       *monitoring.MetricsCollector
+	gitClient            git.ClientInterface
+	llmClient            shared.ClientInterface
+	packageGen           *nephio.PackageGenerator
+	httpClient           *http.Client
+	eventRecorder        record.EventRecorder
+	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
+	metricsCollector     *monitoring.MetricsCollector
 }
 
 func (d *dependencyImpl) GetGitClient() git.ClientInterface {
@@ -251,18 +251,18 @@ func main() {
 		SliceTypes:       make(map[string]*telecom.SliceTypeSpec),
 		PerformanceKPIs:  make(map[string]*telecom.KPISpec),
 	}
-	
+
 	metricsCollector := &monitoring.MetricsCollector{}
-	
+
 	// Create dependencies struct that implements Dependencies interface
 	deps := &dependencyImpl{
-		gitClient:              gitClient,
-		llmClient:              &llmClientAdapter{client: llmClient},
-		packageGen:             packageGen,
-		httpClient:             &http.Client{Timeout: 30 * time.Second},
-		eventRecorder:          mgr.GetEventRecorderFor("network-intent-controller"),
-		telecomKnowledgeBase:   telecomKB,
-		metricsCollector:       metricsCollector,
+		gitClient:            gitClient,
+		llmClient:            &llmClientAdapter{client: llmClient},
+		packageGen:           packageGen,
+		httpClient:           &http.Client{Timeout: 30 * time.Second},
+		eventRecorder:        mgr.GetEventRecorderFor("network-intent-controller"),
+		telecomKnowledgeBase: telecomKB,
+		metricsCollector:     metricsCollector,
 	}
 
 	// Create controller configuration

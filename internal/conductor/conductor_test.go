@@ -60,7 +60,7 @@ type PorchCallRecord struct {
 
 func (m *MockPorchExecutorSimple) ExecutePorch(ctx context.Context, porchPath string, args []string, outputDir string, intentFile string, mode string) error {
 	m.Calls++
-	
+
 	call := PorchCallRecord{
 		PorchPath:  porchPath,
 		Args:       args,
@@ -116,14 +116,14 @@ func (m *MockPorchExecutorSimple) Reset() {
 
 func TestConductorReconcileFlow(t *testing.T) {
 	tests := []struct {
-		name                   string
-		intent                 string
-		expectedTarget         string
-		expectedReplicas       int
-		expectError            bool
-		expectRequeue          bool
-		porchShouldFail        bool
-		porchFailOnCall        int
+		name             string
+		intent           string
+		expectedTarget   string
+		expectedReplicas int
+		expectError      bool
+		expectRequeue    bool
+		porchShouldFail  bool
+		porchFailOnCall  int
 	}{
 		{
 			name:             "successful scaling intent",
@@ -208,10 +208,10 @@ func TestConductorReconcileFlow(t *testing.T) {
 
 			// Setup mock porch executor
 			mockExecutor := &MockPorchExecutorSimple{
-				ShouldFail:  tt.porchShouldFail,
-				FailOnCall:  tt.porchFailOnCall,
+				ShouldFail: tt.porchShouldFail,
+				FailOnCall: tt.porchFailOnCall,
 			}
-			
+
 			if !tt.expectRequeue && !tt.porchShouldFail {
 				mockExecutor.On("ExecutePorch", mock.Anything, "/fake/porch", mock.Anything, tempDir, mock.Anything, "test").Return(nil)
 			} else if tt.porchShouldFail {
@@ -245,7 +245,7 @@ func TestConductorReconcileFlow(t *testing.T) {
 				assert.Error(t, err, "Expected error but got none")
 				return
 			}
-			
+
 			assert.NoError(t, err, "Unexpected error: %v", err)
 
 			if tt.expectRequeue {
@@ -289,7 +289,7 @@ func TestConductorReconcileFlow(t *testing.T) {
 
 			// Verify porch was called correctly
 			assert.Equal(t, 1, mockExecutor.GetCalls(), "Expected exactly one porch call")
-			
+
 			lastCall := mockExecutor.GetLastCall()
 			require.NotNil(t, lastCall)
 			assert.Equal(t, "/fake/porch", lastCall.PorchPath)
@@ -370,7 +370,7 @@ func TestConductorIdempotency(t *testing.T) {
 	assert.False(t, result2.Requeue)
 	assert.Zero(t, result2.RequeueAfter)
 
-	// In the current implementation, it will process again 
+	// In the current implementation, it will process again
 	// In a real implementation, you might want to add status tracking for idempotency
 	finalCallCount := mockExecutor.GetCalls()
 	assert.Equal(t, 2, finalCallCount, "Current implementation processes on every reconcile")
@@ -645,7 +645,7 @@ func TestPorchExecutorInterface(t *testing.T) {
 		// This test verifies the defaultPorchExecutor interface compliance
 		var executor PorchExecutor = &defaultPorchExecutor{}
 		assert.NotNil(t, executor, "Default porch executor should implement PorchExecutor interface")
-		
+
 		// We can't easily test the actual execution without real porch CLI
 		// But we can verify the interface is correctly implemented
 		assert.Implements(t, (*PorchExecutor)(nil), &defaultPorchExecutor{})

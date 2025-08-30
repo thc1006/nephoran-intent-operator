@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,7 +80,7 @@ func TestMain_FlagParsing(t *testing.T) {
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 
 			config, err := parseFlagsWithFlagSet(fs, tt.args)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -99,7 +100,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -146,7 +147,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 				statusFiles, err := os.ReadDir(statusDir)
 				require.NoError(t, err)
 				assert.Len(t, statusFiles, 1)
-				
+
 				// Status file should follow pattern: intent-scale-YYYYMMDD-HHMMSS.status
 				// Rather than checking filename contains original filename, check content
 				statusContent, err := os.ReadFile(filepath.Join(statusDir, statusFiles[0].Name()))
@@ -218,7 +219,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 
 			// Build the conductor-loop binary
 			binaryPath := buildConductorLoop(t, tempDir)
-			
+
 			// Clean up binary after test to prevent file locking issues
 			defer func() {
 				if err := os.Remove(binaryPath); err != nil {
@@ -235,7 +236,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 
 			// Capture output for debugging
 			output, err := cmd.CombinedOutput()
-			
+
 			// In once mode, the command should exit successfully
 			if strings.Contains(strings.Join(tt.args, " "), "-once") {
 				if err != nil {
@@ -269,7 +270,7 @@ func TestMain_SignalHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -309,7 +310,7 @@ func TestMain_SignalHandling(t *testing.T) {
 
 	// Wait for the process to exit gracefully
 	err := cmd.Wait()
-	
+
 	// Process should exit cleanly after signal
 	if err != nil {
 		// On some systems, SIGTERM may result in exit status
@@ -330,11 +331,11 @@ func TestMain_WindowsPathHandling(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
-	
+
 	// Test with Windows paths containing spaces and special characters
 	handoffDir := filepath.Join(tempDir, "handoff dir with spaces")
 	outDir := filepath.Join(tempDir, "out-dir_with-special.chars")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -353,7 +354,7 @@ func TestMain_WindowsPathHandling(t *testing.T) {
 	}
 
 	config := parseFlags()
-	
+
 	// Verify paths are handled correctly
 	assert.True(t, filepath.IsAbs(config.HandoffDir))
 	assert.True(t, filepath.IsAbs(config.OutDir))
@@ -400,10 +401,10 @@ func TestMain_ExitCodes(t *testing.T) {
 				testDir := filepath.Join(tempDir, "success-test")
 				handoffDir := filepath.Join(testDir, "handoff")
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
-				
+
 				// Create mock porch
 				mockPorch := createMockPorch(t, testDir, 0, "success", "")
-				
+
 				// Create a valid intent file with all required fields
 				intentContent := `{
 					"intent_type": "scaling",
@@ -414,7 +415,7 @@ func TestMain_ExitCodes(t *testing.T) {
 				}`
 				intentFile := filepath.Join(handoffDir, "intent-test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
-				
+
 				return testDir, []string{
 					"-handoff", handoffDir,
 					"-porch", mockPorch,
@@ -427,7 +428,7 @@ func TestMain_ExitCodes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			workDir, args := tt.setupFunc(t)
-			
+
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
@@ -435,7 +436,7 @@ func TestMain_ExitCodes(t *testing.T) {
 			cmd.Dir = workDir
 
 			err := cmd.Run()
-			
+
 			if tt.expectedExit == 0 {
 				assert.NoError(t, err)
 			} else {
@@ -460,7 +461,7 @@ var (
 func buildConductorLoop(t *testing.T, tempDir string) string {
 	// Calculate a cache key based on source files modification time for cache invalidation
 	cacheKey := calculateSourceCacheKey()
-	
+
 	// Check cache first
 	testBinaryCacheMutex.RLock()
 	if cachedPath, exists := testBinaryCache[cacheKey]; exists {
@@ -472,7 +473,7 @@ func buildConductorLoop(t *testing.T, tempDir string) string {
 			if runtime.GOOS == "windows" {
 				binaryName += ".exe"
 			}
-			
+
 			newPath := filepath.Join(tempDir, binaryName)
 			if err := copyFile(cachedPath, newPath); err == nil {
 				testBinaryCacheMutex.RUnlock()
@@ -481,7 +482,7 @@ func buildConductorLoop(t *testing.T, tempDir string) string {
 		}
 	}
 	testBinaryCacheMutex.RUnlock()
-	
+
 	// Build new binary
 	testName := strings.ReplaceAll(t.Name(), "/", "_")
 	testName = strings.ReplaceAll(testName, " ", "_")
@@ -489,28 +490,28 @@ func buildConductorLoop(t *testing.T, tempDir string) string {
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
-	
+
 	binaryPath := filepath.Join(tempDir, binaryName)
-	
+
 	// Build the binary with optimized flags for faster builds
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "." // Current directory should be cmd/conductor-loop
-	
+
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build conductor-loop: %s", string(output))
-	
+
 	// Cache the binary for reuse
 	testBinaryCacheMutex.Lock()
 	testBinaryCache[cacheKey] = binaryPath
 	testBinaryCacheMutex.Unlock()
-	
+
 	return binaryPath
 }
 
 // calculateSourceCacheKey creates a cache key based on source file modification times
 func calculateSourceCacheKey() string {
 	var modTimes []int64
-	
+
 	// Check main.go and other critical files for modifications
 	files := []string{"main.go", "../internal/loop/processor.go", "../internal/loop/watcher.go"}
 	for _, file := range files {
@@ -518,11 +519,13 @@ func calculateSourceCacheKey() string {
 			modTimes = append(modTimes, stat.ModTime().Unix())
 		}
 	}
-	
+
 	// Create hash of modification times
 	h := sha256.New()
 	for _, t := range modTimes {
-		binary.Write(h, binary.LittleEndian, t)
+		if err := binary.Write(h, binary.LittleEndian, t); err != nil {
+			log.Printf("Failed to write time to hash: %v", err)
+		}
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)[:8])
 }
@@ -534,13 +537,13 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	defer source.Close()
-	
+
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer destination.Close()
-	
+
 	_, err = io.Copy(destination, source)
 	return err
 }
@@ -567,13 +570,13 @@ func cleanupDirs(t *testing.T, dir string) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return
 	}
-	
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Logf("Warning: failed to read directory %s: %v", dir, err)
 		return
 	}
-	
+
 	for _, entry := range entries {
 		path := filepath.Join(dir, entry.Name())
 		if err := os.RemoveAll(path); err != nil {
@@ -587,7 +590,7 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 	tempDir := b.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(b, os.MkdirAll(handoffDir, 0755))
 	require.NoError(b, os.MkdirAll(outDir, 0755))
 
@@ -607,23 +610,23 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		
+
 		// Clean up and setup for each iteration
 		cleanupDirsB(b, handoffDir)
 		require.NoError(b, os.MkdirAll(handoffDir, 0755))
-		
+
 		intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
 		require.NoError(b, os.WriteFile(intentFile, []byte(intentContent), 0644))
-		
+
 		b.StartTimer()
-		
+
 		// Run conductor-loop
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		cmd := exec.CommandContext(ctx, binaryPath, args...)
 		cmd.Dir = tempDir
 		_ = cmd.Run()
 		cancel()
-		
+
 		b.StopTimer()
 	}
 }
@@ -651,16 +654,16 @@ func buildConductorLoopB(b *testing.B, tempDir string) string {
 	benchName := strings.ReplaceAll(b.Name(), "/", "_")
 	benchName = strings.ReplaceAll(benchName, " ", "_")
 	timestamp := time.Now().UnixNano()
-	
+
 	binaryName := fmt.Sprintf("conductor-loop-%s-%d", benchName, timestamp)
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
-	
+
 	binaryPath := filepath.Join(tempDir, binaryName)
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = filepath.Dir(tempDir) // Go to the main package directory
-	
+
 	require.NoError(b, cmd.Run())
 	return binaryPath
 }

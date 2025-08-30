@@ -66,7 +66,7 @@ func TestWindowsCIIntegration(t *testing.T) {
 		// Verify the script doesn't have the PowerShell concatenation issue
 		scriptContent, err := os.ReadFile(mockPorchScript)
 		require.NoError(t, err)
-		assert.NotContains(t, string(scriptContent), "100echo", 
+		assert.NotContains(t, string(scriptContent), "100echo",
 			"Mock porch script should not have PowerShell concatenation issues")
 
 		// Step 3: Create state manager
@@ -94,7 +94,7 @@ func TestWindowsCIIntegration(t *testing.T) {
 				}`,
 			},
 			{
-				name: "config-intent.json", 
+				name: "config-intent.json",
 				content: `{
 					"api_version": "intent.nephoran.io/v1",
 					"kind": "ConfigIntent",
@@ -148,14 +148,14 @@ func TestWindowsCIIntegration(t *testing.T) {
 				cmd := exec.CommandContext(ctx, "cmd.exe", "/C", mockPorchScript)
 				cmd.Dir = watchDir
 				output, err := cmd.CombinedOutput()
-				
+
 				t.Logf("Mock porch output for %s: %s", intent.name, string(output))
-				
+
 				// Should not have PowerShell errors
 				outputStr := string(output)
-				assert.NotContains(t, outputStr, "Cannot bind parameter", 
+				assert.NotContains(t, outputStr, "Cannot bind parameter",
 					"Should not have PowerShell parameter binding errors")
-				assert.NotContains(t, outputStr, "cannot convert value", 
+				assert.NotContains(t, outputStr, "cannot convert value",
 					"Should not have PowerShell conversion errors")
 
 				if err != nil {
@@ -167,7 +167,7 @@ func TestWindowsCIIntegration(t *testing.T) {
 				require.NoError(t, err, "Should mark file as processed")
 
 				// Write status file (this tests parent directory creation)
-				watcher.writeStatusFileAtomic(intentPath, "success", 
+				watcher.writeStatusFileAtomic(intentPath, "success",
 					fmt.Sprintf("CI pipeline processed %s successfully", intent.name))
 
 				// Verify status file was created
@@ -205,7 +205,7 @@ func TestWindowsCIIntegration(t *testing.T) {
 			// Status directory should exist with files
 			statusEntries, err := os.ReadDir(statusDir)
 			require.NoError(t, err, "Should read final status directory")
-			assert.GreaterOrEqual(t, len(statusEntries), len(intentFiles), 
+			assert.GreaterOrEqual(t, len(statusEntries), len(intentFiles),
 				"Should have status files for all processed intents")
 
 			// Processed directory should have all files
@@ -219,7 +219,7 @@ func TestWindowsCIIntegration(t *testing.T) {
 				processedPath := filepath.Join(processedDir, intent.name)
 				content, err := os.ReadFile(processedPath)
 				assert.NoError(t, err, "Should read processed file: %s", intent.name)
-				assert.Contains(t, string(content), intent.name, 
+				assert.Contains(t, string(content), intent.name,
 					"Processed file should contain original content")
 			}
 		})
@@ -228,7 +228,7 @@ func TestWindowsCIIntegration(t *testing.T) {
 	t.Run("CI_Build_Test_Integration", func(t *testing.T) {
 		// Test integration with actual Go build/test commands that run in CI
 		testDir := t.TempDir()
-		
+
 		// Create a minimal Go module for testing
 		goModContent := `module test-ci-integration
 
@@ -452,7 +452,7 @@ func main() {
 					assert.NoError(t, err, "Job %d should mark intent %d as processed", jobID, intentID)
 
 					// Write status
-					watcher.writeStatusFileAtomic(intentPath, "success", 
+					watcher.writeStatusFileAtomic(intentPath, "success",
 						fmt.Sprintf("CI job %d processed intent %d", jobID, intentID))
 				}
 
@@ -649,7 +649,7 @@ func TestWindowsCIRegressionPrevention(t *testing.T) {
 	t.Run("High_Load_CI_Simulation", func(t *testing.T) {
 		// Simulate high load CI scenario that exposed the original issues
 		testDir := t.TempDir()
-		
+
 		// Create multiple concurrent pipeline runs
 		numPipelines := 5
 		var pipelineErrors []error

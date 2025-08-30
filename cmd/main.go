@@ -30,7 +30,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(intentv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
-	
+
 	// Apply Go 1.24.8 runtime optimizations early
 	initializeRuntimeOptimizations()
 }
@@ -40,7 +40,7 @@ func initializeRuntimeOptimizations() {
 	// Import runtime optimization package
 	runtimePkg := "github.com/thc1006/nephoran-intent-operator/pkg/runtime"
 	_ = runtimePkg // Prevent unused import error for now
-	
+
 	// This will be expanded once the runtime package is imported properly
 }
 

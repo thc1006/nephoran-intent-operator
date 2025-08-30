@@ -30,12 +30,12 @@ func (m *MockValidator) ValidateBytes(data []byte) (*ingest.Intent, error) {
 	if err := json.Unmarshal(data, &intent); err != nil {
 		return nil, err
 	}
-	
+
 	// Basic validation
 	if intent.IntentType == "" || intent.Target == "" {
 		return nil, errors.New("missing required fields")
 	}
-	
+
 	return &intent, nil
 }
 
@@ -45,7 +45,7 @@ func TestProcessorBasic(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -136,7 +136,7 @@ func TestProcessorValidationError(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -214,7 +214,7 @@ func TestProcessorPorchError(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -298,7 +298,7 @@ func TestProcessorBatching(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -322,7 +322,7 @@ func TestProcessorBatching(t *testing.T) {
 	var allDone = make(chan struct{})
 	var firstBatchOnce sync.Once
 	var allDoneOnce sync.Once
-	
+
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
 		count := atomic.AddInt64(&totalProcessed, 1)
 		// Signal when first batch (3 files) is complete
@@ -348,7 +348,7 @@ func TestProcessorBatching(t *testing.T) {
 
 	// Start batch processor and wait for it to be ready
 	processor.StartBatchProcessor()
-	<-processor.coordReady  // Wait for coordinator to start
+	<-processor.coordReady // Wait for coordinator to start
 	defer processor.Stop()
 
 	// Create and submit 5 test files
@@ -359,13 +359,13 @@ func TestProcessorBatching(t *testing.T) {
 			Namespace:  "default",
 			Replicas:   i + 1,
 		}
-		
+
 		intentData, _ := json.Marshal(intent)
 		testFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
 		if err := os.WriteFile(testFile, intentData, 0644); err != nil {
 			t.Fatalf("Failed to write test file %d: %v", i, err)
 		}
-		
+
 		if err := processor.ProcessFile(testFile); err != nil {
 			t.Errorf("Failed to process file %d: %v", i, err)
 		}

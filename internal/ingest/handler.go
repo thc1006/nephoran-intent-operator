@@ -19,7 +19,6 @@ type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
 }
 
-
 type Handler struct {
 	v        ValidatorInterface
 	outDir   string
@@ -82,7 +81,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		
+
 		// Fallback to regex parsing if provider failed or not available
 		if payload == nil {
 			m := simple.FindStringSubmatch(string(body))
@@ -94,7 +93,19 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 				}
 				return
 			}
-			payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":"%s","namespace":"%s","replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+			payload = []byte(fmt.Sprintf(`{
+				"id": "scale-%s-simple-001",
+				"type": "scaling",
+				"description": "Scale %s to %s replicas in %s namespace",
+				"parameters": {
+					"target_replicas": %s,
+					"target": "%s",
+					"namespace": "%s",
+					"source": "user"
+				},
+				"target_resources": ["deployment/%s"],
+				"status": "pending"
+			}`, m[1], m[1], m[2], m[3], m[2], m[1], m[3], m[1]))
 		}
 	}
 
@@ -147,8 +158,10 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	// Log with correlation ID if present
 	logMsg := fmt.Sprintf("Intent accepted and saved to %s", outFile)
-	if intent.CorrelationID != "" {
-		logMsg = fmt.Sprintf("[correlation_id: %s] %s", intent.CorrelationID, logMsg)
+	if correlationID, exists := intent.Parameters["correlation_id"]; exists {
+		if correlationIDStr, ok := correlationID.(string); ok && correlationIDStr != "" {
+			logMsg = fmt.Sprintf("[correlation_id: %s] %s", correlationIDStr, logMsg)
+		}
 	}
 	log.Println(logMsg)
 
@@ -160,7 +173,6 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		"preview": intent,
 	})
 }
-
 
 // isValidTimestamp validates timestamp format to prevent injection
 func isValidTimestamp(ts string) bool {

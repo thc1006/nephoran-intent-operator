@@ -80,7 +80,7 @@ func TestCriticalFixes_CrossPlatformMocks(t *testing.T) {
 
 		// Test that the script actually sleeps by measuring execution time
 		start := time.Now()
-		
+
 		// Execute the mock (platform-appropriate execution would be tested in integration)
 		// For unit test, just verify the file contains sleep commands
 		content, err := os.ReadFile(mockPath)
@@ -91,7 +91,7 @@ func TestCriticalFixes_CrossPlatformMocks(t *testing.T) {
 		} else {
 			assert.Contains(t, string(content), "sleep", "Unix mock should use sleep command")
 		}
-		
+
 		duration := time.Since(start)
 		// File creation should be fast
 		assert.Less(t, duration, 50*time.Millisecond, "Mock creation should be fast")
@@ -115,10 +115,10 @@ func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 		// Simulate the fixed pattern from processor_test.go
 		var testData []string
 		var mu sync.Mutex
-		
+
 		const numGoroutines = 10
 		const itemsPerGoroutine = 100
-		
+
 		var wg sync.WaitGroup
 		wg.Add(numGoroutines)
 
@@ -145,7 +145,7 @@ func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 					mu.Lock()
 					length := len(testData)
 					mu.Unlock()
-					
+
 					// Use the length to prevent optimization
 					_ = length
 					time.Sleep(time.Microsecond)
@@ -172,7 +172,7 @@ func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 		mu.Lock()
 		finalLength := len(testData)
 		mu.Unlock()
-		
+
 		expectedLength := numGoroutines * itemsPerGoroutine
 		assert.Equal(t, expectedLength, finalLength, "All items should be safely added to slice")
 	})
@@ -181,7 +181,7 @@ func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 		// Test the exact pattern used in the processor_test.go fix
 		var submittedIntents []string
 		var submittedMu sync.Mutex
-		
+
 		mockPorchFunc := func(intent string) error {
 			submittedMu.Lock()
 			submittedIntents = append(submittedIntents, intent)
@@ -192,7 +192,7 @@ func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 		// Simulate concurrent processing
 		const numWorkers = 5
 		const intentsPerWorker = 20
-		
+
 		var wg sync.WaitGroup
 		wg.Add(numWorkers)
 
@@ -212,7 +212,7 @@ func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 		submittedMu.Lock()
 		submittedCount := len(submittedIntents)
 		submittedMu.Unlock()
-		
+
 		expectedCount := numWorkers * intentsPerWorker
 		assert.Equal(t, expectedCount, submittedCount, "All intents should be safely processed")
 	})
@@ -267,7 +267,7 @@ func BenchmarkCriticalFixes_Performance(b *testing.B) {
 	b.Run("mutex_protected_slice_operations", func(b *testing.B) {
 		var testData []string
 		var mu sync.Mutex
-		
+
 		b.ResetTimer()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
@@ -276,7 +276,7 @@ func BenchmarkCriticalFixes_Performance(b *testing.B) {
 				testData = append(testData, "item")
 				length := len(testData)
 				mu.Unlock()
-				
+
 				// Use the length to prevent optimization
 				_ = length
 			}
@@ -289,7 +289,7 @@ func BenchmarkCriticalFixes_Performance(b *testing.B) {
 			ExitCode: 0,
 			Stdout:   "benchmark test",
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := porch.CreateCrossPlatformMock(tempDir, opts)

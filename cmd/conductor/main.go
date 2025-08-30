@@ -87,7 +87,7 @@ func main() {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					if isIntentFile(event.Name) {
 						log.Printf("New intent file detected: %s (setting up debounced processing)", event.Name)
-						
+
 						// Create or get existing debounced processor for this file
 						processorsMutex.Lock()
 						processor, exists := processors[event.Name]
@@ -99,7 +99,7 @@ func main() {
 								debouncedFunc(func() {
 									log.Printf("Processing debounced intent file: %s", filePath)
 									processIntentFile(filePath, outDir)
-									
+
 									// Clean up processor after execution to prevent memory leaks
 									processorsMutex.Lock()
 									delete(processors, filePath)
@@ -109,7 +109,7 @@ func main() {
 							processors[event.Name] = processor
 						}
 						processorsMutex.Unlock()
-						
+
 						// Trigger debounced processing
 						processor()
 					}
@@ -133,16 +133,16 @@ func main() {
 	// Give goroutines and debounced operations time to finish
 	// Wait longer to ensure any pending debounced operations complete
 	time.Sleep(1 * time.Second)
-	
+
 	// Log any remaining processors (should be cleaned up by now)
 	processorsMutex.RLock()
 	remainingProcessors := len(processors)
 	processorsMutex.RUnlock()
-	
+
 	if remainingProcessors > 0 {
 		log.Printf("Warning: %d debounced processors still pending during shutdown", remainingProcessors)
 	}
-	
+
 	log.Println("Conductor stopped")
 }
 
@@ -254,9 +254,9 @@ func extractCorrelationID(path string) string {
 func findPorchPublisherBinary() string {
 	// Define potential binary paths in order of preference
 	candidates := []string{
-		"bin/porch-publisher",         // Relative to project root (most common)
-		"./bin/porch-publisher",       // Explicit relative path
-		"porch-publisher",             // In PATH
+		"bin/porch-publisher",   // Relative to project root (most common)
+		"./bin/porch-publisher", // Explicit relative path
+		"porch-publisher",       // In PATH
 	}
 
 	// On Windows, also check .exe variants

@@ -48,12 +48,12 @@ type defaultPorchExecutor struct{}
 func (dpe *defaultPorchExecutor) ExecutePorch(ctx context.Context, porchPath string, args []string, outputDir string, intentFile string, mode string) error {
 	cmd := exec.CommandContext(ctx, porchPath, args...)
 	cmd.Dir = outputDir
-	
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("porch CLI failed: %w, output: %s", err, string(output))
 	}
-	
+
 	return nil
 }
 
@@ -151,13 +151,13 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 	// Pattern to match deployment/target names
 	// Look for patterns like "scale <deployment-name>" or "deployment <name>"
 	var matches []string
-	
+
 	// Try different patterns to capture the target name
 	patterns := []*regexp.Regexp{
 		regexp.MustCompile(`scale\s+(?:deployment|app|service)\s+([a-z0-9\-]+)`), // "scale deployment web-server"
-		regexp.MustCompile(`(?:deployment|app|service)\s+([a-z0-9\-]+)`),     // "deployment web-server"
+		regexp.MustCompile(`(?:deployment|app|service)\s+([a-z0-9\-]+)`),         // "deployment web-server"
 	}
-	
+
 	// First try patterns with explicit keywords
 	for _, pattern := range patterns {
 		matches = pattern.FindStringSubmatch(intent)
@@ -170,7 +170,7 @@ func (r *NetworkIntentReconciler) parseIntentString(intent, namespace string) (*
 			}
 		}
 	}
-	
+
 	// If no match yet, try simpler pattern but exclude common keywords
 	if intentData.Target == "" {
 		simplePattern := regexp.MustCompile(`scale\s+([a-z0-9\-]+)`)

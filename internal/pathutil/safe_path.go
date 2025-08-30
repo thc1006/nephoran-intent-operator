@@ -31,17 +31,17 @@ func safeJoin(root, p string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("root directory cannot be empty")
 	}
-	
+
 	if p == "" {
 		return filepath.Clean(root), nil
 	}
-	
+
 	// Security check: reject absolute paths in the second parameter
 	// This prevents bypassing the root directory entirely
 	if filepath.IsAbs(p) {
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
 	}
-	
+
 	// Additional security check: handle paths starting with path separators
 	// On Windows, paths starting with / are relative to the current drive root
 	// We'll treat them as relative paths by stripping the leading separator
@@ -53,22 +53,22 @@ func safeJoin(root, p string) (string, error) {
 			p = "." // Root slash becomes current directory
 		}
 	}
-	
+
 	// Remove null bytes from the path (not supported on Windows)
 	p = strings.ReplaceAll(p, "\x00", "")
-	
+
 	// Clean both paths to normalize them
 	root = filepath.Clean(root)
-	
+
 	// Join the paths and clean the result
 	joined := filepath.Clean(filepath.Join(root, p))
-	
+
 	// Check if the resulting path is still within the root directory
 	rel, err := filepath.Rel(root, joined)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine relative path: %w", err)
 	}
-	
+
 	// If the relative path starts with "..", it means the joined path
 	// has traversed outside the root directory - sanitize it instead of erroring
 	if strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
@@ -79,7 +79,7 @@ func safeJoin(root, p string) (string, error) {
 		}
 		joined = filepath.Join(root, basename)
 	}
-	
+
 	return joined, nil
 }
 

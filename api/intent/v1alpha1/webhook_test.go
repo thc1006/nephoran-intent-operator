@@ -16,13 +16,15 @@ func TestWebhookValidation(t *testing.T) {
 
 var _ = Describe("NetworkIntent Webhook", func() {
 	var (
-		ctx context.Context
-		ni  *NetworkIntent
+		ctx       context.Context
+		ni        *NetworkIntent
+		validator *NetworkIntent
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		ni = &NetworkIntent{}
+		validator = &NetworkIntent{}
 	})
 
 	Describe("Defaulting webhook", func() {

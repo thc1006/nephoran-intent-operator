@@ -21,10 +21,10 @@ import (
 // TestPathTraversalSecurity tests protection against path traversal attacks
 func TestPathTraversalSecurity(t *testing.T) {
 	tests := []struct {
-		name           string
-		intentContent  string
-		shouldFail     bool
-		expectedError  string
+		name          string
+		intentContent string
+		shouldFail    bool
+		expectedError string
 	}{
 		{
 			name: "path traversal in target",
@@ -77,7 +77,7 @@ func TestPathTraversalSecurity(t *testing.T) {
 			tempDir := t.TempDir()
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
-			
+
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -105,7 +105,7 @@ func TestPathTraversalSecurity(t *testing.T) {
 
 			// Start watcher in once mode
 			err = watcher.Start()
-			
+
 			if tt.shouldFail {
 				assert.Error(t, err)
 				if tt.expectedError != "" {
@@ -124,11 +124,11 @@ func TestPathTraversalSecurity(t *testing.T) {
 // TestCommandInjectionSecurity tests protection against command injection
 func TestCommandInjectionSecurity(t *testing.T) {
 	tests := []struct {
-		name           string
-		porchPath      string
-		intentContent  string
-		shouldDetect   bool
-		expectedInLog  string
+		name          string
+		porchPath     string
+		intentContent string
+		shouldDetect  bool
+		expectedInLog string
 	}{
 		{
 			name:      "malicious porch path with injection",
@@ -185,7 +185,7 @@ func TestCommandInjectionSecurity(t *testing.T) {
 			tempDir := t.TempDir()
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
-			
+
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -206,12 +206,12 @@ func TestCommandInjectionSecurity(t *testing.T) {
 
 			// Execute and check for security violations
 			result, err := executor.Execute(ctx, intentFile)
-			
+
 			// Command injection should either:
 			// 1. Fail to execute (command not found)
 			// 2. Be caught by validation
 			// 3. Execute safely without actual injection
-			
+
 			if tt.shouldDetect {
 				// Should fail due to invalid command
 				assert.False(t, result.Success)
@@ -287,7 +287,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}()
-				
+
 				// Initial files
 				for i := 0; i < 10; i++ {
 					content := fmt.Sprintf(`{
@@ -310,7 +310,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 			tempDir := t.TempDir()
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
-			
+
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -358,7 +358,7 @@ func TestFilePermissionValidation(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -406,7 +406,7 @@ func TestFilePermissionValidation(t *testing.T) {
 		}
 
 		mode := info.Mode()
-		
+
 		if d.IsDir() {
 			// Directories should be readable/writable by owner, readable by group
 			expectedMode := fs.FileMode(0755)
@@ -548,7 +548,7 @@ func TestInputValidation(t *testing.T) {
 			tempDir := t.TempDir()
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
-			
+
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -603,7 +603,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -636,24 +636,24 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	// Concurrently create many intent files
 	var wg sync.WaitGroup
 	numFiles := 50
-	
+
 	for i := 0; i < numFiles; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			content := fmt.Sprintf(`{
 				"intent_type": "scaling",
 				"target": "app-%d",
 				"namespace": "default",
 				"replicas": %d
 			}`, id, id%10+1)
-			
+
 			file := filepath.Join(handoffDir, fmt.Sprintf("intent-concurrent-%d.json", id))
-			
+
 			// Add small random delay to increase chance of race conditions
 			time.Sleep(time.Duration(id%10) * time.Millisecond)
-			
+
 			err := os.WriteFile(file, []byte(content), 0644)
 			if err != nil {
 				t.Errorf("Failed to write file %d: %v", id, err)
@@ -685,7 +685,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 func isExecutableScript(path string) bool {
 	// Extract the filename for checking
 	filename := filepath.Base(path)
-	
+
 	// Check for common executable script patterns
 	switch {
 	case strings.HasSuffix(filename, ".sh"):
@@ -754,13 +754,13 @@ func assertNoPathTraversal(t *testing.T, tempDir, outDir string) {
 		if err != nil {
 			return err
 		}
-		
+
 		// Ensure all paths are within tempDir
 		relPath, err := filepath.Rel(tempDir, path)
 		if err != nil || strings.HasPrefix(relPath, "..") {
 			t.Errorf("Path traversal detected: %s is outside %s", path, tempDir)
 		}
-		
+
 		return nil
 	})
 	require.NoError(t, err)
@@ -774,19 +774,19 @@ func assertNoCommandInjection(t *testing.T, tempDir string) {
 		"backdoor",
 		"exploit",
 	}
-	
+
 	err := filepath.WalkDir(tempDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		name := strings.ToLower(d.Name())
 		for _, suspicious := range suspiciousFiles {
 			if strings.Contains(name, suspicious) {
 				t.Errorf("Potential command injection artifact found: %s", path)
 			}
 		}
-		
+
 		return nil
 	})
 	require.NoError(t, err)
@@ -795,12 +795,12 @@ func assertNoCommandInjection(t *testing.T, tempDir string) {
 func assertSystemHealth(t *testing.T) {
 	// Check basic system health indicators
 	// This is a simplified check - in production you'd check memory, CPU, etc.
-	
+
 	// Ensure we can still create files (system not locked up)
 	testFile := filepath.Join(os.TempDir(), fmt.Sprintf("health-check-%d.tmp", time.Now().UnixNano()))
 	err := os.WriteFile(testFile, []byte("health check"), 0644)
 	assert.NoError(t, err, "System should still be responsive")
-	
+
 	if err == nil {
 		os.Remove(testFile)
 	}
@@ -816,7 +816,7 @@ func countFilesInDir(t *testing.T, dir string) int {
 	if err != nil {
 		return 0
 	}
-	
+
 	count := 0
 	for _, entry := range entries {
 		if !entry.IsDir() {

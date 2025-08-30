@@ -11,13 +11,16 @@ import (
 )
 
 type Intent struct {
-	IntentType    string `json:"intent_type"`
-	Target        string `json:"target"`
-	Namespace     string `json:"namespace"`
-	Replicas      int    `json:"replicas"`
-	Reason        string `json:"reason,omitempty"`
-	Source        string `json:"source,omitempty"`
-	CorrelationID string `json:"correlation_id,omitempty"`
+	ID              string                 `json:"id"`
+	Type            string                 `json:"type"`
+	Priority        int                    `json:"priority,omitempty"`
+	Description     string                 `json:"description"`
+	Parameters      map[string]interface{} `json:"parameters"`
+	TargetResources []string               `json:"target_resources"`
+	Constraints     map[string]interface{} `json:"constraints,omitempty"`
+	CreatedAt       string                 `json:"created_at,omitempty"`
+	UpdatedAt       string                 `json:"updated_at,omitempty"`
+	Status          string                 `json:"status"`
 }
 
 type Validator struct {

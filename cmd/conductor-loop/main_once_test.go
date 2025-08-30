@@ -39,7 +39,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 				require.NoError(t, os.WriteFile(
 					filepath.Join(handoffDir, "intent-valid.json"),
 					[]byte(valid), 0644))
-				
+
 				// Create an invalid intent file (will fail processing)
 				invalid := `{invalid json`
 				require.NoError(t, os.WriteFile(
@@ -65,21 +65,21 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			tempDir := t.TempDir()
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
-			
+
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
 			require.NoError(t, os.MkdirAll(outDir, 0755))
-			
+
 			// Setup test files
 			tt.setupFiles(t, handoffDir)
-			
+
 			// Create mock porch executable that fails for invalid files
 			mockPorch, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
-				ExitCode: 0,
-				Stdout:   "Mock porch processing completed successfully",
+				ExitCode:      0,
+				Stdout:        "Mock porch processing completed successfully",
 				FailOnPattern: "invalid", // This will cause the mock to fail if input contains "invalid"
 			})
 			require.NoError(t, err)
-			
+
 			// Create watcher with once mode
 			config := loop.Config{
 				PorchPath:   mockPorch,
@@ -88,26 +88,26 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 				Once:        true,
 				DebounceDur: 0, // No debounce for testing
 			}
-			
+
 			watcher, err := loop.NewWatcher(handoffDir, config)
 			require.NoError(t, err)
 			defer watcher.Close()
-			
+
 			// Run the watcher (it should process and exit immediately in once mode)
 			err = watcher.Start()
 			assert.NoError(t, err)
-			
+
 			// Give a bit of time for processing
 			time.Sleep(100 * time.Millisecond)
-			
+
 			// Check the stats
 			stats, err := watcher.GetStats()
 			require.NoError(t, err)
-			
+
 			// Verify failed count matches expectation
 			assert.Equal(t, tt.expectedFailed, stats.FailedCount,
 				"Failed count mismatch. Failed files: %v", stats.FailedFiles)
-			
+
 			// Simulate what main.go would do - only real failures should affect exit code
 			var exitCode int
 			if stats.RealFailedCount > 0 {
@@ -115,7 +115,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			} else {
 				exitCode = 0
 			}
-			
+
 			assert.Equal(t, tt.expectedExit, exitCode,
 				"Exit code mismatch for test case: %s", tt.name)
 		})

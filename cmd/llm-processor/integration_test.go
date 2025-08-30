@@ -27,27 +27,27 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	var req NetworkIntentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{
+		json.NewEncoder(w).Encode(IntegrationErrorResponse{
 			ErrorCode: "INVALID_REQUEST",
 			Message:   "Invalid JSON format",
 		})
 		return
 	}
-	
+
 	ctx := r.Context()
 	result, err := testProcessor.ProcessIntent(ctx, req.Spec.Intent)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	response := NetworkIntentResponse{
 		Type:           "NetworkFunctionDeployment",
-		Name:           "upf-deployment", 
+		Name:           "upf-deployment",
 		Namespace:      "5g-core",
 		OriginalIntent: req.Spec.Intent,
 		Spec:           json.RawMessage(result),
@@ -59,13 +59,13 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 			ConfidenceScore: 0.95,
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
-	response := HealthResponse{
+	response := IntegrationHealthResponse{
 		Status:  "ok",
 		Version: testConfig.ServiceVersion,
 		Time:    time.Now().Format(time.RFC3339),
@@ -75,7 +75,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func readyzHandler(w http.ResponseWriter, r *http.Request) {
-	response := ReadinessResponse{
+	response := IntegrationReadinessResponse{
 		Status: "ready",
 		Dependencies: map[string]string{
 			"llm_backend": "ready",
@@ -85,19 +85,19 @@ func readyzHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// Additional response types
-type ErrorResponse struct {
+// Integration-specific response types (avoiding conflict with e2e_test.go)
+type IntegrationErrorResponse struct {
 	ErrorCode string `json:"errorCode"`
 	Message   string `json:"message"`
 }
 
-type HealthResponse struct {
+type IntegrationHealthResponse struct {
 	Status  string `json:"status"`
 	Version string `json:"version"`
 	Time    string `json:"time"`
 }
 
-type ReadinessResponse struct {
+type IntegrationReadinessResponse struct {
 	Status       string            `json:"status"`
 	Dependencies map[string]string `json:"dependencies"`
 }
@@ -121,7 +121,7 @@ func NewCircuitBreaker(threshold int, timeout time.Duration) *CircuitBreaker {
 
 func (cb *CircuitBreaker) Call(fn func() error) error {
 	now := time.Now()
-	
+
 	switch cb.state {
 	case "open":
 		if now.Sub(cb.lastFailureTime) > cb.timeout {
@@ -130,7 +130,7 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 			return fmt.Errorf("circuit breaker is open")
 		}
 	}
-	
+
 	err := fn()
 	if err != nil {
 		cb.failureCount++
@@ -140,12 +140,12 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 		}
 		return err
 	}
-	
+
 	if cb.state == "half-open" {
 		cb.state = "closed"
 		cb.failureCount = 0
 	}
-	
+
 	return nil
 }
 
@@ -260,84 +260,64 @@ func TestLLMProcessorIntegration(t *testing.T) {
 	t.Run("Test NetworkFunction Deployment Processing", func(t *testing.T) {
 		intent := "Deploy UPF network function with 3 replicas"
 
-		req := &NetworkIntentRequest{
-			Spec: struct {
-				Intent string `json:"intent"`
-			}{
-				Intent: intent,
-			},
-			Metadata: struct {
-				Name       string `json:"name,omitempty"`
-				Namespace  string `json:"namespace,omitempty"`
-				UID        string `json:"uid,omitempty"`
-				Generation int64  `json:"generation,omitempty"`
-			}{
-				Name:      "test-upf",
-				Namespace: "5g-core",
-				UID:       "test-uid-123",
-			},
-		}
-
 		ctx := context.Background()
-		response, err := testProcessor.ProcessIntent(ctx, req)
+		responseStr, err := testProcessor.ProcessIntent(ctx, intent)
 
 		require.NoError(t, err)
-		assert.NotNil(t, response)
-		assert.Equal(t, "NetworkFunctionDeployment", response.Type)
-		assert.Equal(t, "upf-deployment", response.Name)
-		assert.Equal(t, "5g-core", response.Namespace)
-		assert.Equal(t, intent, response.OriginalIntent)
+		assert.NotNil(t, responseStr)
+		
+		// Parse the JSON response string
+		var response map[string]interface{}
+		err = json.Unmarshal([]byte(responseStr), &response)
+		require.NoError(t, err)
+		
+		// Verify response structure
+		assert.Equal(t, "NetworkFunctionDeployment", response["type"])
+		assert.Equal(t, "upf-deployment", response["name"])
+		assert.Equal(t, "5g-core", response["namespace"])
+		assert.Equal(t, intent, response["original_intent"])
 
 		// Verify spec contains expected fields
-		spec, ok := response.Spec.(map[string]interface{})
+		spec, ok := response["spec"].(map[string]interface{})
 		require.True(t, ok)
 		assert.Equal(t, float64(3), spec["replicas"])
 		assert.Equal(t, "registry.5g.local/upf:latest", spec["image"])
 
 		// Verify processing metadata
-		assert.Equal(t, testConfig.LLMModelName, response.ProcessingMetadata.ModelUsed)
-		assert.Greater(t, response.ProcessingMetadata.ConfidenceScore, 0.0)
-		assert.Greater(t, response.ProcessingMetadata.ProcessingTimeMS, int64(0))
+		metadata, ok := response["processing_metadata"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, testConfig.LLMModelName, metadata["model_used"])
+		assert.Greater(t, metadata["confidence_score"].(float64), 0.0)
+		assert.Greater(t, metadata["processing_time_ms"].(float64), 0.0)
 	})
 
 	t.Run("Test NetworkFunction Scaling Processing", func(t *testing.T) {
 		intent := "Scale AMF to 5 replicas"
 
-		req := &NetworkIntentRequest{
-			Spec: struct {
-				Intent string `json:"intent"`
-			}{
-				Intent: intent,
-			},
-		}
-
 		ctx := context.Background()
-		response, err := testProcessor.ProcessIntent(ctx, req)
+		responseStr, err := testProcessor.ProcessIntent(ctx, intent)
 
 		require.NoError(t, err)
-		assert.Equal(t, "NetworkFunctionScale", response.Type)
-		assert.Equal(t, "amf-deployment", response.Name)
+		
+		// Parse the JSON response string
+		var response map[string]interface{}
+		err = json.Unmarshal([]byte(responseStr), &response)
+		require.NoError(t, err)
+		
+		assert.Equal(t, "NetworkFunctionScale", response["type"])
+		assert.Equal(t, "amf-deployment", response["name"])
 	})
 
 	t.Run("Test Input Validation", func(t *testing.T) {
 		// Test empty intent
-		req := &NetworkIntentRequest{
-			Spec: struct {
-				Intent string `json:"intent"`
-			}{
-				Intent: "",
-			},
-		}
-
 		ctx := context.Background()
-		_, err := testProcessor.ProcessIntent(ctx, req)
+		_, err := testProcessor.ProcessIntent(ctx, "")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "validation failed")
 
 		// Test intent too long
 		longIntent := string(make([]byte, 3000))
-		req.Spec.Intent = longIntent
-		_, err = testProcessor.ProcessIntent(ctx, req)
+		_, err = testProcessor.ProcessIntent(ctx, longIntent)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "too long")
 	})
@@ -346,16 +326,8 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		intent := "Test error handling"
 		mockLLMClient.SetError(intent, fmt.Errorf("mock LLM error"))
 
-		req := &NetworkIntentRequest{
-			Spec: struct {
-				Intent string `json:"intent"`
-			}{
-				Intent: intent,
-			},
-		}
-
 		ctx := context.Background()
-		_, err := testProcessor.ProcessIntent(ctx, req)
+		_, err := testProcessor.ProcessIntent(ctx, intent)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "LLM processing failed")
 	})
@@ -599,19 +571,12 @@ func BenchmarkIntentProcessing(b *testing.B) {
 	mockLLMClient := NewMockLLMClient()
 	testProcessor.LLMClient = mockLLMClient
 
-	req := &NetworkIntentRequest{
-		Spec: struct {
-			Intent string `json:"intent"`
-		}{
-			Intent: "Deploy UPF network function with 3 replicas",
-		},
-	}
-
+	intent := "Deploy UPF network function with 3 replicas"
 	ctx := context.Background()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := testProcessor.ProcessIntent(ctx, req)
+		_, err := testProcessor.ProcessIntent(ctx, intent)
 		if err != nil {
 			b.Fatalf("Processing failed: %v", err)
 		}

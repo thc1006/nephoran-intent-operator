@@ -24,12 +24,12 @@ import (
 // WatchReconciler reconciles a NetworkIntent object for conductor-watch
 type WatchReconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	Logger     logr.Logger // Injected logger
-	PorchPath  string      // Path to porch CLI binary
-	PorchMode  string      // "apply" or "dry-run"
-	OutputDir  string      // Directory for output files
-	DryRun     bool        // Skip actual porch execution
+	Scheme    *runtime.Scheme
+	Logger    logr.Logger // Injected logger
+	PorchPath string      // Path to porch CLI binary
+	PorchMode string      // "apply" or "dry-run"
+	OutputDir string      // Directory for output files
+	DryRun    bool        // Skip actual porch execution
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
@@ -174,7 +174,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 // parseIntentToJSON converts NetworkIntent spec to intent JSON
 func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[string]interface{}, error) {
 	intent := ni.Spec.Intent
-	
+
 	// Regex patterns for different intent formats
 	patterns := []struct {
 		regex *regexp.Regexp
@@ -240,7 +240,7 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 
 	// Generate filename with timestamp
 	timestamp := time.Now().Format("20060102T150405")
-	filename := fmt.Sprintf("intent-%s-%s.json", 
+	filename := fmt.Sprintf("intent-%s-%s.json",
 		strings.ReplaceAll(name, "/", "-"),
 		timestamp,
 	)

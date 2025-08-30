@@ -46,37 +46,51 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 		if err != nil {
 			return nil, fmt.Errorf("invalid replica count: %s", matches[2])
 		}
-		
-		intent := map[string]interface{}{
-			"intent_type": "scaling",
-			"target":      matches[1],
-			"replicas":    replicas,
-		}
-		
-		// Add namespace if provided
+
+		target := matches[1]
+		namespace := "default"
 		if len(matches) > 3 && matches[3] != "" {
-			intent["namespace"] = matches[3]
-		} else {
-			intent["namespace"] = "default"
+			namespace = matches[3]
 		}
-		
+
+		intent := map[string]interface{}{
+			"id":          fmt.Sprintf("scale-%s-nlp-001", target),
+			"type":        "scaling",
+			"description": fmt.Sprintf("Scale %s to %d replicas in %s namespace", target, replicas, namespace),
+			"parameters": map[string]interface{}{
+				"target_replicas": replicas,
+				"target":          target,
+				"namespace":       namespace,
+				"source":          "user",
+			},
+			"target_resources": []string{fmt.Sprintf("deployment/%s", target)},
+			"status":           "pending",
+		}
+
 		return intent, nil
 	}
 
 	// Try to match deploy pattern: "deploy <target> in ns <namespace>"
 	if matches := p.patterns["deploy"].FindStringSubmatch(text); matches != nil {
-		intent := map[string]interface{}{
-			"intent_type": "deployment",
-			"target":      matches[1],
-		}
-		
-		// Add namespace if provided
+		target := matches[1]
+		namespace := "default"
 		if len(matches) > 2 && matches[2] != "" {
-			intent["namespace"] = matches[2]
-		} else {
-			intent["namespace"] = "default"
+			namespace = matches[2]
 		}
-		
+
+		intent := map[string]interface{}{
+			"id":          fmt.Sprintf("deploy-%s-nlp-001", target),
+			"type":        "deployment",
+			"description": fmt.Sprintf("Deploy %s in %s namespace", target, namespace),
+			"parameters": map[string]interface{}{
+				"target":    target,
+				"namespace": namespace,
+				"source":    "user",
+			},
+			"target_resources": []string{fmt.Sprintf("deployment/%s", target)},
+			"status":           "pending",
+		}
+
 		return intent, nil
 	}
 
@@ -86,14 +100,14 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 			"intent_type": "deletion",
 			"target":      matches[1],
 		}
-		
+
 		// Add namespace if provided
 		if len(matches) > 2 && matches[2] != "" {
 			intent["namespace"] = matches[2]
 		} else {
 			intent["namespace"] = "default"
 		}
-		
+
 		return intent, nil
 	}
 
@@ -106,14 +120,14 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 				matches[2]: matches[3],
 			},
 		}
-		
+
 		// Add namespace if provided
 		if len(matches) > 4 && matches[4] != "" {
 			intent["namespace"] = matches[4]
 		} else {
 			intent["namespace"] = "default"
 		}
-		
+
 		return intent, nil
 	}
 

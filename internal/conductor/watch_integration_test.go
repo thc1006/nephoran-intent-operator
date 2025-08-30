@@ -119,7 +119,7 @@ func TestWatchReconcilerJSONGeneration(t *testing.T) {
 	if intent["namespace"] != "production" {
 		t.Errorf("Expected namespace=production, got %v", intent["namespace"])
 	}
-	
+
 	replicas, ok := intent["replicas"].(float64)
 	if !ok || int(replicas) != 5 {
 		t.Errorf("Expected replicas=5, got %v", intent["replicas"])

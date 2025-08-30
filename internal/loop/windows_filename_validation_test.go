@@ -37,19 +37,19 @@ func TestWindowsFilenameValidation_ReservedCharacters(t *testing.T) {
 	for _, tc := range reservedChars {
 		t.Run(tc.name, func(t *testing.T) {
 			result := ComputeStatusFileName(tc.filename, fixedTime)
-			
+
 			// Should not contain the reserved character
-			assert.NotContains(t, result, tc.char, 
+			assert.NotContains(t, result, tc.char,
 				"Status filename should not contain Windows reserved character: %s", tc.char)
-			
+
 			// Should end with .status
 			assert.True(t, strings.HasSuffix(result, ".status"),
 				"Status filename should end with .status")
-			
+
 			// Should contain timestamp
 			assert.Contains(t, result, expectedTimestamp,
 				"Status filename should contain timestamp")
-			
+
 			// Should start with some variation of the base name (sanitized)
 			// For path separators, only the basename is used
 			if !strings.Contains(tc.filename, "/") && !strings.Contains(tc.filename, "\\") {
@@ -60,7 +60,7 @@ func TestWindowsFilenameValidation_ReservedCharacters(t *testing.T) {
 				assert.True(t, strings.HasPrefix(result, "test"),
 					"Status filename should start with basename for paths")
 			}
-			
+
 			// Verify it's a valid Windows filename (no reserved chars)
 			for _, reservedChar := range []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"} {
 				assert.NotContains(t, result, reservedChar,
@@ -89,7 +89,7 @@ func TestWindowsFilenameValidation_ReservedDeviceNames(t *testing.T) {
 		t.Run(reservedName, func(t *testing.T) {
 			filename := reservedName + ".json"
 			result := ComputeStatusFileName(filename, fixedTime)
-			
+
 			// Should not be exactly the reserved name (case-insensitive check)
 			baseName := strings.TrimSuffix(result, ".status")
 			timestampIndex := strings.LastIndex(baseName, "-")
@@ -97,10 +97,10 @@ func TestWindowsFilenameValidation_ReservedDeviceNames(t *testing.T) {
 				actualBaseName := baseName[:timestampIndex]
 				upperBaseName := strings.ToUpper(actualBaseName)
 				upperReserved := strings.ToUpper(reservedName)
-				
+
 				assert.NotEqual(t, upperReserved, upperBaseName,
 					"Status filename base should not be Windows reserved name: %s", reservedName)
-				
+
 				// Should have a suffix to avoid reserved name
 				if windowsReservedNames[upperReserved] {
 					assert.True(t, strings.Contains(upperBaseName, upperReserved+"-FILE") ||
@@ -108,7 +108,7 @@ func TestWindowsFilenameValidation_ReservedDeviceNames(t *testing.T) {
 						"Reserved name should be modified: %s -> %s", reservedName, actualBaseName)
 				}
 			}
-			
+
 			// Should be a valid status filename
 			assert.True(t, strings.HasSuffix(result, ".status"),
 				"Should end with .status")
@@ -121,7 +121,7 @@ func TestWindowsFilenameValidation_UnicodeNormalization(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Unicode normalization test specific to Windows")
 	}
-	
+
 	fixedTime := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
 
 	unicodeTests := []struct {
@@ -137,7 +137,7 @@ func TestWindowsFilenameValidation_UnicodeNormalization(t *testing.T) {
 			description: "Chinese characters should be sanitized",
 		},
 		{
-			name:        "CyrillicCharacters", 
+			name:        "CyrillicCharacters",
 			filename:    "intent-файл.json",
 			expectEmpty: true, // Will be sanitized to just "intent-"
 			description: "Cyrillic characters should be sanitized",
@@ -191,30 +191,30 @@ func TestWindowsFilenameValidation_UnicodeNormalization(t *testing.T) {
 				}
 			}
 			require.True(t, hasNonASCII, "Test input should contain non-ASCII characters")
-			
+
 			result := ComputeStatusFileName(tc.filename, fixedTime)
-			
+
 			// Should end with .status
 			assert.True(t, strings.HasSuffix(result, ".status"),
 				"Should end with .status")
-			
+
 			// Should contain timestamp
 			assert.Contains(t, result, "20250821-143022",
 				"Should contain timestamp")
-			
+
 			// Verify all characters in result are ASCII (safe for Windows)
 			for i, r := range result {
-				assert.True(t, r <= 127, 
+				assert.True(t, r <= 127,
 					"Character at position %d should be ASCII: %c (%d) in %s", i, r, r, result)
 			}
-			
+
 			// Result should only contain allowed characters for Windows filenames
 			allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_"
 			for i, r := range result {
 				assert.True(t, strings.ContainsRune(allowedChars, r),
 					"Character at position %d not allowed in Windows filename: %c in %s", i, r, result)
 			}
-			
+
 			if tc.expectEmpty {
 				// For heavily Unicode filenames, should result in minimal base name
 				parts := strings.Split(strings.TrimSuffix(result, ".status"), "-")
@@ -238,7 +238,7 @@ func TestWindowsFilenameValidation_StatusFilenameConsistency(t *testing.T) {
 		filename string
 	}{
 		{"WindowsPath", "C:\\Users\\test\\intent-file.json"},
-		{"UNCPath", "\\\\server\\share\\intent-file.json"}, 
+		{"UNCPath", "\\\\server\\share\\intent-file.json"},
 		{"RelativePath", "..\\..\\intent-file.json"},
 		{"PathWithSpaces", "C:\\Program Files\\intent file.json"},
 		{"LongPath", strings.Repeat("a", 200) + ".json"},
@@ -252,20 +252,20 @@ func TestWindowsFilenameValidation_StatusFilenameConsistency(t *testing.T) {
 			for i := 0; i < 5; i++ {
 				results[i] = ComputeStatusFileName(tc.filename, fixedTime)
 			}
-			
+
 			// All results should be identical
 			for i := 1; i < len(results); i++ {
 				assert.Equal(t, results[0], results[i],
 					"Status filename generation should be consistent")
 			}
-			
+
 			// Should be valid Windows filename
 			result := results[0]
 			assert.True(t, strings.HasSuffix(result, ".status"),
 				"Should end with .status")
 			assert.NotContains(t, result, "\\", "Should not contain backslashes")
 			assert.NotContains(t, result, "/", "Should not contain forward slashes")
-			
+
 			// Should not exceed Windows filename length limits (255 chars for NTFS)
 			assert.LessOrEqual(t, len(result), 200,
 				"Filename should not be excessively long")
@@ -293,13 +293,13 @@ func TestWindowsFilenameValidation_SuspiciousPatterns(t *testing.T) {
 			description: ".tmp in filename",
 		},
 		{
-			name:        "BakExtension", 
+			name:        "BakExtension",
 			filename:    "intent-test.bak.json",
 			description: ".bak in filename",
 		},
 		{
 			name:        "OrigExtension",
-			filename:    "intent-test.orig.json", 
+			filename:    "intent-test.orig.json",
 			description: ".orig in filename",
 		},
 		{
@@ -329,7 +329,7 @@ func TestWindowsFilenameValidation_SuspiciousPatterns(t *testing.T) {
 		},
 		{
 			name:        "TrailingDot",
-			filename:    "intent-test..json", 
+			filename:    "intent-test..json",
 			description: "trailing dot before extension",
 		},
 		{
@@ -357,36 +357,36 @@ func TestWindowsFilenameValidation_SuspiciousPatterns(t *testing.T) {
 	for _, tc := range suspiciousPatterns {
 		t.Run(tc.name, func(t *testing.T) {
 			result := ComputeStatusFileName(tc.filename, fixedTime)
-			
+
 			// Should end with .status
 			assert.True(t, strings.HasSuffix(result, ".status"),
 				"Should end with .status for: %s", tc.description)
-			
+
 			// Should contain timestamp
 			assert.Contains(t, result, "20250821-143022",
 				"Should contain timestamp for: %s", tc.description)
-			
+
 			// Should not contain suspicious patterns in the result
 			assert.NotContains(t, result, "~", "Should not contain ~ for: %s", tc.description)
 			// Note: Extensions like .tmp, .bak, .orig, .swp are preserved as part of the filename structure
 			// This is correct behavior - we sanitize the content but preserve valid extension patterns
 			assert.NotRegexp(t, `\.{2,}`, result, "Should not contain repeated dots for: %s", tc.description)
-			
-			// Should not start with .# 
+
+			// Should not start with .#
 			assert.False(t, strings.HasPrefix(result, ".#"),
 				"Should not start with .# for: %s", tc.description)
-			
+
 			// Should not have leading/trailing spaces
 			assert.Equal(t, strings.TrimSpace(result), result,
 				"Should not have leading/trailing spaces for: %s", tc.description)
-			
+
 			// Should not contain control characters
 			for i, r := range result {
 				assert.False(t, unicode.IsControl(r),
 					"Should not contain control character at position %d for: %s", i, tc.description)
 			}
-			
-			// Should be valid UTF-8 
+
+			// Should be valid UTF-8
 			assert.True(t, utf8.ValidString(result),
 				"Should be valid UTF-8 for: %s", tc.description)
 		})
@@ -450,7 +450,7 @@ func TestWindowsFilenameValidation_EdgeCases(t *testing.T) {
 	for _, tc := range edgeCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := ComputeStatusFileName(tc.filename, fixedTime)
-			
+
 			if tc.expectValid {
 				// Should always produce a valid result
 				assert.NotEmpty(t, result, "Should produce non-empty result for: %s", tc.description)
@@ -458,13 +458,13 @@ func TestWindowsFilenameValidation_EdgeCases(t *testing.T) {
 					"Should end with .status for: %s", tc.description)
 				assert.Contains(t, result, "20250821-143022",
 					"Should contain timestamp for: %s", tc.description)
-				
+
 				// Should be reasonable length (not empty, not too long)
 				assert.GreaterOrEqual(t, len(result), 20, // minimum reasonable length
 					"Should have reasonable minimum length for: %s", tc.description)
 				assert.LessOrEqual(t, len(result), 200, // maximum reasonable length
 					"Should not be excessively long for: %s", tc.description)
-				
+
 				// Should contain only valid Windows filename characters
 				validPattern := `^[A-Za-z0-9._-]+$`
 				assert.Regexp(t, validPattern, result,
@@ -512,17 +512,17 @@ func TestWindowsFilenameValidation_UnicodeNormalizationNFKC(t *testing.T) {
 			normalized := norm.NFKC.String(tc.input)
 			assert.Equal(t, tc.expected, normalized,
 				"NFKC normalization should work correctly")
-			
+
 			// Test the full sanitization process
 			filename := "intent-" + tc.input + ".json"
 			result := ComputeStatusFileName(filename, fixedTime)
-			
+
 			// Should be valid status filename
 			assert.True(t, strings.HasSuffix(result, ".status"),
 				"Should end with .status")
 			assert.Contains(t, result, "20250821-143022",
 				"Should contain timestamp")
-			
+
 			// If normalized characters are ASCII-compatible, they might be preserved
 			// Otherwise, they'll be sanitized to ASCII-only
 			for _, r := range result {
@@ -536,7 +536,7 @@ func TestWindowsFilenameValidation_UnicodeNormalizationNFKC(t *testing.T) {
 // BenchmarkWindowsFilenameValidation benchmarks the filename sanitization performance
 func BenchmarkWindowsFilenameValidation(b *testing.B) {
 	timestamp := time.Now()
-	
+
 	benchmarkCases := []struct {
 		name     string
 		filename string

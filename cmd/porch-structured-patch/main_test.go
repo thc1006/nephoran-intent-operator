@@ -103,7 +103,7 @@ func TestMain(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temporary directory for test
 			tempDir := t.TempDir()
-			
+
 			// Setup test files
 			for filename, content := range tt.setupFiles {
 				filePath := filepath.Join(tempDir, filename)
@@ -111,11 +111,11 @@ func TestMain(t *testing.T) {
 			}
 
 			// Create logger for testing
-	
+
 			// Extract intent and output paths from args
 			var intentPath, outputDir string
 			outputDir = "examples/packages/structured" // default
-			
+
 			for i, arg := range tt.args {
 				switch arg {
 				case "-intent":
@@ -137,7 +137,7 @@ func TestMain(t *testing.T) {
 			if intentPath == "" {
 				intentPath = filepath.Join(tempDir, "nonexistent.json")
 			}
-			
+
 			// Create output directory if it doesn't exist and test expects success
 			if !tt.expectError && outputDir != "examples/packages/structured" {
 				require.NoError(t, os.MkdirAll(outputDir, 0755))
@@ -153,7 +153,7 @@ func TestMain(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify generated files exist and are valid
 				if !tt.expectError {
 					verifyGeneratedPackage(t, intentPath, outputDir)
@@ -329,11 +329,11 @@ func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 	require.NoError(t, json.Unmarshal(intentData, &intent))
 
 	target := intent["target"].(string)
-	
+
 	// Find the package directory (should start with target-scaling-patch)
 	entries, err := os.ReadDir(outputDir)
 	require.NoError(t, err)
-	
+
 	var packageDir string
 	expectedPrefix := fmt.Sprintf("%s-scaling-patch", target)
 	for _, entry := range entries {
@@ -342,7 +342,7 @@ func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 			break
 		}
 	}
-	
+
 	// Verify package directory exists
 	require.NotEmpty(t, packageDir, "Expected package directory with prefix %s not found", expectedPrefix)
 	assert.DirExists(t, packageDir)
@@ -350,16 +350,16 @@ func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 	// Verify Kptfile exists and is valid YAML
 	kptfilePath := filepath.Join(packageDir, "Kptfile")
 	assert.FileExists(t, kptfilePath)
-	
+
 	kptfileData, err := os.ReadFile(kptfilePath)
 	require.NoError(t, err)
-	
+
 	var kptfile map[string]interface{}
 	require.NoError(t, yaml.Unmarshal(kptfileData, &kptfile))
-	
+
 	assert.Equal(t, "kpt.dev/v1", kptfile["APIVersion"])
 	assert.Equal(t, "Kptfile", kptfile["Kind"])
-	
+
 	metadata, ok := kptfile["Metadata"].(map[string]interface{})
 	require.True(t, ok)
 	// Package name should match the directory name which includes timestamp for collision resistance
@@ -369,35 +369,35 @@ func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 	// Verify scaling-patch.yaml exists and is valid YAML
 	patchFilePath := filepath.Join(packageDir, "scaling-patch.yaml")
 	assert.FileExists(t, patchFilePath)
-	
+
 	patchData, err := os.ReadFile(patchFilePath)
 	require.NoError(t, err)
-	
+
 	var patchFile map[string]interface{}
 	require.NoError(t, yaml.Unmarshal(patchData, &patchFile))
-	
+
 	assert.Equal(t, "apps/v1", patchFile["APIVersion"])
 	assert.Equal(t, "Deployment", patchFile["Kind"])
-	
+
 	patchMetadata, ok := patchFile["Metadata"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, target, patchMetadata["Name"])
 	assert.Equal(t, intent["namespace"], patchMetadata["Namespace"])
-	
+
 	// Verify annotations
 	annotations, ok := patchMetadata["Annotations"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "replace", annotations["config.kubernetes.io/merge-policy"])
 	assert.Equal(t, intent["intent_type"], annotations["nephoran.io/intent-type"])
 	assert.Contains(t, annotations, "nephoran.io/generated-at")
-	
+
 	// Verify spec contains correct replicas
 	spec, ok := patchFile["Spec"].(map[string]interface{})
 	require.True(t, ok)
-	
+
 	// Convert replicas to int for comparison (YAML may parse as float64)
 	replicas := int(spec["Replicas"].(float64))
-	
+
 	// Handle missing replicas field (defaults to 0)
 	var expectedReplicas int
 	if replicasVal, ok := intent["replicas"]; ok && replicasVal != nil {
@@ -410,11 +410,11 @@ func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 	// Verify README.md exists
 	readmePath := filepath.Join(packageDir, "README.md")
 	assert.FileExists(t, readmePath)
-	
+
 	readmeData, err := os.ReadFile(readmePath)
 	require.NoError(t, err)
 	readmeContent := string(readmeData)
-	
+
 	assert.Contains(t, readmeContent, actualPackageName)
 	assert.Contains(t, readmeContent, target)
 	assert.Contains(t, readmeContent, intent["namespace"].(string))
@@ -423,7 +423,7 @@ func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 
 func TestVerboseLogging(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create valid intent file
 	intentFile := filepath.Join(tempDir, "intent.json")
 	intentJSON := `{
@@ -468,14 +468,14 @@ func TestPackagePathGeneration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-				
+
 			intentJSON := fmt.Sprintf(`{
 				"intent_type": "scaling",
 				"target": "%s",
 				"namespace": "default",
 				"replicas": 3
 			}`, tt.target)
-			
+
 			intentFile := filepath.Join(tempDir, "intent.json")
 			require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
 
@@ -487,7 +487,7 @@ func TestPackagePathGeneration(t *testing.T) {
 			// Find the package directory (should start with expected suffix)
 			entries, err := os.ReadDir(outputDir)
 			require.NoError(t, err)
-			
+
 			found := false
 			for _, entry := range entries {
 				if entry.IsDir() && strings.HasPrefix(entry.Name(), tt.expectedSuffix) {

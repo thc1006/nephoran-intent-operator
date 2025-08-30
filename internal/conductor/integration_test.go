@@ -72,13 +72,13 @@ type PorchCall struct {
 
 func (m *MockPorchExecutor) ExecutePorch(ctx context.Context, porchPath string, args []string, outputDir string, intentFile string, mode string) error {
 	m.callCount++
-	
+
 	call := PorchCall{
 		IntentFile: intentFile,
 		OutputDir:  outputDir,
-		Mode:      mode,
-		Args:      args,
-		Timestamp: time.Now(),
+		Mode:       mode,
+		Args:       args,
+		Timestamp:  time.Now(),
 	}
 	m.CallHistory = append(m.CallHistory, call)
 
@@ -153,9 +153,9 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Conductor Watch Controller Integration", func() {
 	var (
-		reconciler   *NetworkIntentReconciler
-		mockExecutor *MockPorchExecutor
-		tempDir      string
+		reconciler    *NetworkIntentReconciler
+		mockExecutor  *MockPorchExecutor
+		tempDir       string
 		namespaceName string
 	)
 
@@ -237,7 +237,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying intent JSON file was created")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			var intentFiles []string
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -281,9 +281,9 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 
 		It("should handle complex scaling intents", func() {
 			testCases := []struct {
-				name            string
-				intent          string
-				expectedTarget  string
+				name             string
+				intent           string
+				expectedTarget   string
 				expectedReplicas int
 			}{
 				{
@@ -308,7 +308,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 
 			for _, tc := range testCases {
 				By(fmt.Sprintf("testing %s", tc.name))
-				
+
 				intent := &nephoranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      fmt.Sprintf("scale-test-%d", time.Now().UnixNano()),
@@ -335,7 +335,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 				// Find the most recent JSON file
 				files, err := os.ReadDir(tempDir)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				var latestFile string
 				var latestTime time.Time
 				for _, file := range files {
@@ -411,7 +411,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying new JSON file has updated replicas")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			var jsonFiles []string
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -486,7 +486,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying only expected number of JSON files exist")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -555,7 +555,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying correct number of JSON files were generated")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -690,7 +690,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying JSON file was still created")
 			files, err := os.ReadDir(tempDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {
@@ -739,7 +739,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			By("verifying JSON file was created in the new directory")
 			files, err := os.ReadDir(nonExistentDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			jsonCount := 0
 			for _, file := range files {
 				if filepath.Ext(file.Name()) == ".json" {

@@ -59,7 +59,7 @@ func TestCreateCrossPlatformMock_FailOnPattern(t *testing.T) {
 	require.NoError(t, err, "Mock should respond to --help")
 	assert.Contains(t, string(output), "Mock porch help")
 
-	// Note: FailOnPattern functionality is working (verified manually) 
+	// Note: FailOnPattern functionality is working (verified manually)
 	// but the test needs more work to handle Windows batch script peculiarities.
 	// The main goal of cross-platform compatibility is achieved.
 }

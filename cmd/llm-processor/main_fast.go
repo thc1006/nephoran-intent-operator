@@ -60,7 +60,7 @@ func main() {
 	logger.Info("Shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("Server forced to shutdown", slog.String("error", err.Error()))
 	}

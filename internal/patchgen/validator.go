@@ -119,11 +119,11 @@ func (v *Validator) ValidateIntentFile(filePath string) (*Intent, error) {
 // ValidateIntentMap validates an intent provided as a map
 func (v *Validator) ValidateIntentMap(intent map[string]interface{}) error {
 	v.logger.V(1).Info("Validating intent", "intent", intent)
-	
+
 	if err := v.schema.Validate(intent); err != nil {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
-	
+
 	v.logger.Info("Intent validation successful")
 	return nil
 }

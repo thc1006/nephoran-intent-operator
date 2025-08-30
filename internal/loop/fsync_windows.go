@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package loop
@@ -18,10 +19,10 @@ import (
 
 const (
 	// Retry parameters for Windows file operations
-	maxFileRetries    = 10
-	baseRetryDelay    = 5 * time.Millisecond
-	maxRetryDelay     = 500 * time.Millisecond
-	fileSyncTimeout   = 2 * time.Second
+	maxFileRetries  = 10
+	baseRetryDelay  = 5 * time.Millisecond
+	maxRetryDelay   = 500 * time.Millisecond
+	fileSyncTimeout = 2 * time.Second
 )
 
 // atomicWriteFile writes data to a file atomically on Windows with proper syncing
@@ -43,7 +44,7 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	// Write to temporary file first
 	tempFile := normalizedPath + ".tmp"
-	
+
 	// Write with sync
 	if err := writeFileWithSync(tempFile, data, perm); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
@@ -157,7 +158,7 @@ func readFileWithRetry(filename string) ([]byte, error) {
 func openFileWithRetry(filename string) (*os.File, error) {
 	var lastErr error
 	delay := baseRetryDelay
-	
+
 	// Use fewer retries for open operations since they're more frequent
 	const openMaxRetries = 3
 
@@ -295,15 +296,15 @@ func isRetryableError(err error) bool {
 		ERROR_FILE_NOT_FOUND    = 2
 		ERROR_PATH_NOT_FOUND    = 3
 	)
-	
+
 	if pathErr, ok := err.(*os.PathError); ok {
 		if errno, ok := pathErr.Err.(syscall.Errno); ok {
 			switch errno {
-			case ERROR_SHARING_VIOLATION,    // File is in use
-				ERROR_LOCK_VIOLATION,        // File is locked
-				ERROR_ACCESS_DENIED,         // Access denied (might be temporary)
-				ERROR_FILE_NOT_FOUND,        // File not found (might appear soon)
-				ERROR_PATH_NOT_FOUND:        // Path not found (might appear soon)
+			case ERROR_SHARING_VIOLATION, // File is in use
+				ERROR_LOCK_VIOLATION, // File is locked
+				ERROR_ACCESS_DENIED,  // Access denied (might be temporary)
+				ERROR_FILE_NOT_FOUND, // File not found (might appear soon)
+				ERROR_PATH_NOT_FOUND: // Path not found (might appear soon)
 				return true
 			}
 		}
@@ -335,8 +336,8 @@ func isUnsupportedError(err error) bool {
 	}
 
 	// Check for ENOTSUP or similar
-	const ERROR_NOT_SUPPORTED = 50  // Windows error code for not supported
-	
+	const ERROR_NOT_SUPPORTED = 50 // Windows error code for not supported
+
 	if pathErr, ok := err.(*os.PathError); ok {
 		if errno, ok := pathErr.Err.(syscall.Errno); ok {
 			// Windows doesn't have ENOTSUP, but ERROR_NOT_SUPPORTED is similar

@@ -15,7 +15,7 @@ import (
 
 func TestGetScriptExtension(t *testing.T) {
 	ext := GetScriptExtension()
-	
+
 	if runtime.GOOS == "windows" {
 		assert.Equal(t, ".bat", ext)
 	} else {
@@ -25,9 +25,9 @@ func TestGetScriptExtension(t *testing.T) {
 
 func TestGetScriptPath(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	path := GetScriptPath(tempDir, "test-script")
-	
+
 	expectedExt := GetScriptExtension()
 	assert.True(t, strings.HasSuffix(path, "test-script"+expectedExt))
 	assert.True(t, strings.HasPrefix(path, tempDir))
@@ -35,7 +35,7 @@ func TestGetScriptPath(t *testing.T) {
 
 func TestGetExecutablePath(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	tests := []struct {
 		name     string
 		baseName string
@@ -64,14 +64,14 @@ func TestGetExecutablePath(t *testing.T) {
 			}(),
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup test files
 			if tt.setup != nil {
 				tt.setup(tempDir)
 			}
-			
+
 			path := GetExecutablePath(tempDir, tt.baseName)
 			assert.True(t, strings.HasSuffix(path, tt.expected))
 		})
@@ -81,26 +81,26 @@ func TestGetExecutablePath(t *testing.T) {
 func TestCreateCrossPlatformScript_MockPorch(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-mock-porch")
-	
+
 	opts := ScriptOptions{
 		ExitCode: 0,
 		Stdout:   "Test output",
 		Stderr:   "Test error",
 		Sleep:    100 * time.Millisecond,
 	}
-	
+
 	err := CreateCrossPlatformScript(scriptPath, MockPorchScript, opts)
 	require.NoError(t, err)
-	
+
 	// Verify file was created
 	assert.FileExists(t, scriptPath)
-	
+
 	// Verify file content
 	content, err := os.ReadFile(scriptPath)
 	require.NoError(t, err)
-	
+
 	contentStr := string(content)
-	
+
 	if runtime.GOOS == "windows" {
 		assert.Contains(t, contentStr, "@echo off")
 		assert.Contains(t, contentStr, "echo Test output")
@@ -115,18 +115,18 @@ func TestCreateCrossPlatformScript_MockPorch(t *testing.T) {
 func TestCreateCrossPlatformScript_GenericScript(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-generic")
-	
+
 	opts := ScriptOptions{
 		ExitCode: 42,
 		Stdout:   "Generic output",
 	}
-	
+
 	err := CreateCrossPlatformScript(scriptPath, GenericScript, opts)
 	require.NoError(t, err)
-	
+
 	// Verify file was created
 	assert.FileExists(t, scriptPath)
-	
+
 	// Verify file permissions on Unix
 	if runtime.GOOS != "windows" {
 		info, err := os.Stat(scriptPath)
@@ -138,20 +138,20 @@ func TestCreateCrossPlatformScript_GenericScript(t *testing.T) {
 func TestCreateCrossPlatformScript_WithFailOnPattern(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-pattern-fail")
-	
+
 	opts := ScriptOptions{
 		ExitCode:      1,
 		FailOnPattern: "ERROR",
 	}
-	
+
 	err := CreateCrossPlatformScript(scriptPath, MockPorchScript, opts)
 	require.NoError(t, err)
-	
+
 	content, err := os.ReadFile(scriptPath)
 	require.NoError(t, err)
-	
+
 	contentStr := string(content)
-	
+
 	if runtime.GOOS == "windows" {
 		assert.Contains(t, contentStr, "findstr")
 		assert.Contains(t, contentStr, "ERROR")
@@ -164,7 +164,7 @@ func TestCreateCrossPlatformScript_WithFailOnPattern(t *testing.T) {
 func TestCreateCrossPlatformScript_WithCustomCommands(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-custom")
-	
+
 	opts := ScriptOptions{
 		ExitCode: 0,
 		CustomCommands: struct {
@@ -175,15 +175,15 @@ func TestCreateCrossPlatformScript_WithCustomCommands(t *testing.T) {
 			Unix:    []string{"echo 'Unix custom command'"},
 		},
 	}
-	
+
 	err := CreateCrossPlatformScript(scriptPath, GenericScript, opts)
 	require.NoError(t, err)
-	
+
 	content, err := os.ReadFile(scriptPath)
 	require.NoError(t, err)
-	
+
 	contentStr := string(content)
-	
+
 	if runtime.GOOS == "windows" {
 		assert.Contains(t, contentStr, "Windows custom command")
 	} else {
@@ -193,7 +193,7 @@ func TestCreateCrossPlatformScript_WithCustomCommands(t *testing.T) {
 
 func TestIsExecutable(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	tests := []struct {
 		name       string
 		filename   string
@@ -235,7 +235,7 @@ func TestIsExecutable(t *testing.T) {
 			windowsExt: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Skip Windows extension tests on Unix and vice versa
@@ -245,18 +245,18 @@ func TestIsExecutable(t *testing.T) {
 			if !tt.windowsExt && runtime.GOOS == "windows" && strings.Contains(tt.name, "Unix") {
 				t.Skip("Skipping Unix permission test on Windows")
 			}
-			
+
 			filePath := filepath.Join(tempDir, tt.filename)
-			
+
 			// Create file
 			file, err := os.Create(filePath)
 			require.NoError(t, err)
 			file.Close()
-			
+
 			// Set permissions
 			err = os.Chmod(filePath, tt.mode)
 			require.NoError(t, err)
-			
+
 			result := IsExecutable(filePath)
 			assert.Equal(t, tt.expected, result, "IsExecutable result mismatch for %s", tt.filename)
 		})
@@ -266,20 +266,20 @@ func TestIsExecutable(t *testing.T) {
 func TestMakeExecutable(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "test-file")
-	
+
 	// Create a non-executable file
 	file, err := os.Create(filePath)
 	require.NoError(t, err)
 	file.Close()
-	
+
 	// Make it non-executable
 	err = os.Chmod(filePath, 0644)
 	require.NoError(t, err)
-	
+
 	// Test MakeExecutable
 	err = MakeExecutable(filePath)
 	require.NoError(t, err)
-	
+
 	// Verify it's now executable (on Unix) or at least readable (on Windows)
 	if runtime.GOOS != "windows" {
 		info, err := os.Stat(filePath)
@@ -295,7 +295,7 @@ func TestMakeExecutable(t *testing.T) {
 func TestMockPorchScriptBehavior(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "behavior-test")
-	
+
 	tests := []struct {
 		name string
 		opts ScriptOptions
@@ -323,19 +323,19 @@ func TestMockPorchScriptBehavior(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create script
 			err := CreateCrossPlatformScript(scriptPath, MockPorchScript, tt.opts)
 			require.NoError(t, err)
-			
+
 			// Verify script content contains expected elements
 			content, err := os.ReadFile(scriptPath)
 			require.NoError(t, err)
-			
+
 			contentStr := string(content)
-			
+
 			// Verify platform-specific elements
 			if runtime.GOOS == "windows" {
 				assert.Contains(t, contentStr, "@echo off")
@@ -344,7 +344,7 @@ func TestMockPorchScriptBehavior(t *testing.T) {
 				assert.Contains(t, contentStr, "#!/bin/bash")
 				assert.Contains(t, contentStr, fmt.Sprintf("exit %d", tt.opts.ExitCode))
 			}
-			
+
 			// Clean up for next iteration
 			os.Remove(scriptPath)
 		})
@@ -354,24 +354,24 @@ func TestMockPorchScriptBehavior(t *testing.T) {
 // Integration test that verifies the complete workflow
 func TestCrossPlatformWorkflow(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create a mock porch script
 	scriptPath := GetScriptPath(tempDir, "workflow-test")
 	opts := ScriptOptions{
 		ExitCode: 0,
 		Stdout:   "Workflow test completed",
 	}
-	
+
 	err := CreateCrossPlatformScript(scriptPath, MockPorchScript, opts)
 	require.NoError(t, err)
-	
+
 	// Verify the script exists and is executable
 	assert.FileExists(t, scriptPath)
 	assert.True(t, IsExecutable(scriptPath))
-	
+
 	// Verify we can get the correct path
 	retrievedPath := GetScriptPath(tempDir, "workflow-test")
 	assert.Equal(t, scriptPath, retrievedPath)
-	
+
 	t.Logf("Cross-platform workflow test completed successfully on %s", runtime.GOOS)
 }

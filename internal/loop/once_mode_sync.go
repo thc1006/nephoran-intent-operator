@@ -14,26 +14,26 @@ type OnceModeSynchronizer struct {
 	expectedFiles  int
 	processedCount int64
 	failedCount    int64
-	
+
 	// Synchronization channels
-	startedChan    chan struct{}
-	completeChan   chan struct{}
-	
+	startedChan  chan struct{}
+	completeChan chan struct{}
+
 	// State tracking
-	started        bool
-	completed      bool
-	mu             sync.RWMutex
-	completedOnce  sync.Once // Ensures completeChan is closed only once
-	
+	started       bool
+	completed     bool
+	mu            sync.RWMutex
+	completedOnce sync.Once // Ensures completeChan is closed only once
+
 	// Context for cancellation
-	ctx            context.Context
-	cancel         context.CancelFunc
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // NewOnceModeSynchronizer creates a new synchronizer for once mode
 func NewOnceModeSynchronizer(watcher *Watcher, expectedFiles int) *OnceModeSynchronizer {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &OnceModeSynchronizer{
 		watcher:       watcher,
 		expectedFiles: expectedFiles,
@@ -48,14 +48,14 @@ func NewOnceModeSynchronizer(watcher *Watcher, expectedFiles int) *OnceModeSynch
 func (oms *OnceModeSynchronizer) StartWithCompletion(timeout time.Duration) error {
 	// Start monitoring before starting watcher
 	go oms.monitorProgress()
-	
+
 	// Start watcher in background
 	errChan := make(chan error, 1)
 	go func() {
 		defer close(oms.startedChan)
 		errChan <- oms.watcher.Start()
 	}()
-	
+
 	// Wait for watcher to start processing
 	select {
 	case <-oms.startedChan:
@@ -64,11 +64,11 @@ func (oms *OnceModeSynchronizer) StartWithCompletion(timeout time.Duration) erro
 		oms.cancel()
 		return <-errChan // Return the error from Start()
 	}
-	
+
 	// Wait for completion or timeout
 	select {
 	case <-oms.completeChan:
-		oms.cancel() // Signal completion
+		oms.cancel()     // Signal completion
 		return <-errChan // Get final result
 	case <-time.After(timeout):
 		oms.cancel()
@@ -84,7 +84,7 @@ func (oms *OnceModeSynchronizer) StartWithCompletion(timeout time.Duration) erro
 func (oms *OnceModeSynchronizer) monitorProgress() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-oms.ctx.Done():
@@ -104,11 +104,11 @@ func (oms *OnceModeSynchronizer) checkCompletion() bool {
 	processed := atomic.LoadInt64(&oms.processedCount)
 	failed := atomic.LoadInt64(&oms.failedCount)
 	total := processed + failed
-	
+
 	if int(total) >= oms.expectedFiles {
 		return true
 	}
-	
+
 	// Also check watcher's internal stats if available
 	if oms.watcher.executor != nil {
 		stats := oms.watcher.executor.GetStats()
@@ -116,7 +116,7 @@ func (oms *OnceModeSynchronizer) checkCompletion() bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -124,7 +124,7 @@ func (oms *OnceModeSynchronizer) checkCompletion() bool {
 func (oms *OnceModeSynchronizer) markCompleted() {
 	oms.mu.Lock()
 	defer oms.mu.Unlock()
-	
+
 	if !oms.completed {
 		oms.completed = true
 		// Use sync.Once to ensure channel is closed exactly once
@@ -151,13 +151,13 @@ func (oms *OnceModeSynchronizer) GetStats() (processed, failed int) {
 
 // FileCreationSynchronizer ensures files exist before watcher starts
 type FileCreationSynchronizer struct {
-	directory     string
-	expectedFiles map[string]bool
-	createdFiles  map[string]bool
-	mu            sync.RWMutex
-	allCreated    chan struct{}
+	directory      string
+	expectedFiles  map[string]bool
+	createdFiles   map[string]bool
+	mu             sync.RWMutex
+	allCreated     chan struct{}
 	allCreatedOnce sync.Once // Ensures allCreated is closed only once
-	timeout       time.Duration
+	timeout        time.Duration
 }
 
 // NewFileCreationSynchronizer creates a new file creation synchronizer
@@ -166,7 +166,7 @@ func NewFileCreationSynchronizer(directory string, expectedFiles []string, timeo
 	for _, file := range expectedFiles {
 		expected[file] = true
 	}
-	
+
 	return &FileCreationSynchronizer{
 		directory:     directory,
 		expectedFiles: expected,
@@ -180,10 +180,10 @@ func NewFileCreationSynchronizer(directory string, expectedFiles []string, timeo
 func (fcs *FileCreationSynchronizer) NotifyFileCreated(filename string) {
 	fcs.mu.Lock()
 	defer fcs.mu.Unlock()
-	
+
 	if fcs.expectedFiles[filename] {
 		fcs.createdFiles[filename] = true
-		
+
 		// Check if all files are created
 		if len(fcs.createdFiles) == len(fcs.expectedFiles) {
 			// Use sync.Once to ensure channel is closed exactly once
@@ -204,7 +204,7 @@ func (fcs *FileCreationSynchronizer) WaitForAllFiles() error {
 		created := len(fcs.createdFiles)
 		expected := len(fcs.expectedFiles)
 		fcs.mu.RUnlock()
-		
+
 		return &SynchronizationTimeoutError{
 			Operation: "file creation",
 			Expected:  expected,
@@ -216,11 +216,11 @@ func (fcs *FileCreationSynchronizer) WaitForAllFiles() error {
 
 // ProcessingCompletionWaiter waits for processing to complete in once mode
 type ProcessingCompletionWaiter struct {
-	watcher         *Watcher
-	expectedFiles   int
-	checkInterval   time.Duration
-	maxWaitTime     time.Duration
-	startTime       time.Time
+	watcher       *Watcher
+	expectedFiles int
+	checkInterval time.Duration
+	maxWaitTime   time.Duration
+	startTime     time.Time
 }
 
 // NewProcessingCompletionWaiter creates a new completion waiter
@@ -238,9 +238,9 @@ func NewProcessingCompletionWaiter(watcher *Watcher, expectedFiles int) *Process
 func (pcw *ProcessingCompletionWaiter) WaitForCompletion() error {
 	ticker := time.NewTicker(pcw.checkInterval)
 	defer ticker.Stop()
-	
+
 	timeout := time.After(pcw.maxWaitTime)
-	
+
 	for {
 		select {
 		case <-timeout:
@@ -250,7 +250,7 @@ func (pcw *ProcessingCompletionWaiter) WaitForCompletion() error {
 				Actual:    pcw.getCurrentProcessedCount(),
 				Timeout:   pcw.maxWaitTime,
 			}
-			
+
 		case <-ticker.C:
 			if pcw.isProcessingComplete() {
 				// Give additional time for cleanup
@@ -289,7 +289,7 @@ type SynchronizationTimeoutError struct {
 
 // Error implements the error interface
 func (e *SynchronizationTimeoutError) Error() string {
-	return fmt.Sprintf("synchronization timeout for %s: expected %d, got %d after %v", 
+	return fmt.Sprintf("synchronization timeout for %s: expected %d, got %d after %v",
 		e.Operation, e.Expected, e.Actual, e.Timeout)
 }
 
@@ -315,10 +315,10 @@ func NewCrossPlatformSyncBarrier(participants int) *CrossPlatformSyncBarrier {
 func (b *CrossPlatformSyncBarrier) Wait() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	
+
 	generation := b.generation
 	b.waiting++
-	
+
 	if b.waiting == b.participants {
 		// Last participant - wake everyone up
 		b.waiting = 0
@@ -334,16 +334,16 @@ func (b *CrossPlatformSyncBarrier) Wait() {
 
 // Enhanced watcher state for once mode
 type EnhancedOnceState struct {
-	filesScanned     atomic.Bool
+	filesScanned      atomic.Bool
 	processingStarted atomic.Bool
-	processingDone   atomic.Bool
-	
-	scannedFiles     int64
-	processedFiles   int64
-	failedFiles      int64
-	
-	startTime        time.Time
-	scanCompleteTime time.Time
+	processingDone    atomic.Bool
+
+	scannedFiles   int64
+	processedFiles int64
+	failedFiles    int64
+
+	startTime           time.Time
+	scanCompleteTime    time.Time
 	processCompleteTime time.Time
 }
 
@@ -385,15 +385,15 @@ func (eos *EnhancedOnceState) IncrementFailed() {
 // GetStats returns current state statistics
 func (eos *EnhancedOnceState) GetStats() map[string]interface{} {
 	return map[string]interface{}{
-		"files_scanned":       atomic.LoadInt64(&eos.scannedFiles),
-		"files_processed":     atomic.LoadInt64(&eos.processedFiles),
-		"files_failed":        atomic.LoadInt64(&eos.failedFiles),
-		"scan_complete":       eos.filesScanned.Load(),
-		"processing_started":  eos.processingStarted.Load(),
-		"processing_done":     eos.processingDone.Load(),
-		"scan_duration":       eos.scanCompleteTime.Sub(eos.startTime),
-		"process_duration":    eos.processCompleteTime.Sub(eos.scanCompleteTime),
-		"total_duration":      time.Since(eos.startTime),
+		"files_scanned":      atomic.LoadInt64(&eos.scannedFiles),
+		"files_processed":    atomic.LoadInt64(&eos.processedFiles),
+		"files_failed":       atomic.LoadInt64(&eos.failedFiles),
+		"scan_complete":      eos.filesScanned.Load(),
+		"processing_started": eos.processingStarted.Load(),
+		"processing_done":    eos.processingDone.Load(),
+		"scan_duration":      eos.scanCompleteTime.Sub(eos.startTime),
+		"process_duration":   eos.processCompleteTime.Sub(eos.scanCompleteTime),
+		"total_duration":     time.Since(eos.startTime),
 	}
 }
 
@@ -402,10 +402,10 @@ func (eos *EnhancedOnceState) IsComplete() bool {
 	if !eos.filesScanned.Load() || !eos.processingStarted.Load() {
 		return false
 	}
-	
+
 	scanned := atomic.LoadInt64(&eos.scannedFiles)
 	processed := atomic.LoadInt64(&eos.processedFiles)
 	failed := atomic.LoadInt64(&eos.failedFiles)
-	
+
 	return (processed + failed) >= scanned
 }

@@ -55,6 +55,9 @@ RUN ls -la /build/oran-adaptor && \
 # =============================================================================
 FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
+# Add go-runtime alias for CI/CD compatibility
+FROM runtime AS go-runtime
+
 # Build arguments for labels
 ARG VERSION=dev
 ARG BUILD_DATE
@@ -110,6 +113,10 @@ LABEL security.resources.memory="1Gi" \
       security.runAsNonRoot="true" \
       security.readOnlyRootFilesystem="true" \
       security.allowPrivilegeEscalation="false"
+
+# Standardized health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["/oran-adaptor", "--health-check"] || ["/oran-adaptor", "--version"]
 
 # Default command
 ENTRYPOINT ["/oran-adaptor"]

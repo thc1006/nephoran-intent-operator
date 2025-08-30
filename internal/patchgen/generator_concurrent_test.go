@@ -31,7 +31,7 @@ func TestConcurrentPackageNameGeneration(t *testing.T) {
 			}
 
 			patchPackage := NewPatchPackage(intent, tempDir)
-			
+
 			mutex.Lock()
 			packageNames[id] = patchPackage.Kptfile.Metadata.Name
 			mutex.Unlock()
@@ -70,7 +70,7 @@ func TestPackageGenerationStressTest(t *testing.T) {
 
 			outputDir := filepath.Join(tempDir, fmt.Sprintf("stress-output-%d", id))
 			patchPackage := NewPatchPackage(intent, outputDir)
-			
+
 			err := patchPackage.Generate()
 			assert.NoError(t, err, "Package generation should not fail")
 
@@ -122,7 +122,7 @@ func TestUniqueTimestampGeneration(t *testing.T) {
 	for _, ts := range timestamps {
 		_, err := time.Parse(time.RFC3339, ts)
 		assert.NoError(t, err, "Timestamp should be valid RFC3339")
-		
+
 		// If the timestamp already exists, the test will fail
 		assert.False(t, timestampSet[ts], "Timestamps should be unique")
 		timestampSet[ts] = true
@@ -157,7 +157,7 @@ func TestInvalidIntentHandling(t *testing.T) {
 			intent: &Intent{
 				IntentType: "scaling",
 				Target:     "app",
-				Namespace:  "default", 
+				Namespace:  "default",
 				Replicas:   -1,
 			},
 		},
@@ -176,9 +176,9 @@ func TestInvalidIntentHandling(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tempDir := t.TempDir()
 			patchPackage := NewPatchPackage(tc.intent, tempDir)
-			
+
 			err := patchPackage.Generate()
-			
+
 			assert.Error(t, err, "Invalid intent should generate an error")
 		})
 	}

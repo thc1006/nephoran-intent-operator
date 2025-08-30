@@ -19,11 +19,11 @@ type ScalingIntent struct {
 
 // LoadResult contains the result of loading and validating an intent file
 type LoadResult struct {
-	Intent    *ScalingIntent
-	Errors    []ValidationError
-	LoadedAt  time.Time
-	FilePath  string
-	IsValid   bool
+	Intent   *ScalingIntent
+	Errors   []ValidationError
+	LoadedAt time.Time
+	FilePath string
+	IsValid  bool
 }
 
 // ValidationError represents a validation error with context

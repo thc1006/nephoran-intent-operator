@@ -29,7 +29,7 @@ func main() {
 			*mode = "rules" // default to rules mode
 		}
 	}
-	
+
 	if *provider == "" {
 		*provider = os.Getenv("PROVIDER")
 		if *provider == "" {
@@ -63,11 +63,13 @@ func main() {
 
 	// Setup HTTP routes with security middleware
 	mux := http.NewServeMux()
-	
+
 	// Health endpoint
 	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte("ok\n"))
+		if _, err := w.Write([]byte("ok\n")); err != nil {
+			log.Printf("Failed to write health response: %v", err)
+		}
 	})
 	mux.Handle("/healthz", healthHandler)
 
@@ -84,7 +86,7 @@ func main() {
 	}
 	log.Printf("  Handoff directory: %s", *handoffDir)
 	log.Printf("  Schema: %s", schemaPath)
-	
+
 	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
 	log.Fatal(http.ListenAndServe(*addr, mux))
 }

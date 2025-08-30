@@ -151,4 +151,4 @@
 // This package follows O-RAN O2 IMS specifications for infrastructure management
 // and integrates with the broader Nephio ecosystem for cloud-native network
 // function management.
-package o2providers
+package providers

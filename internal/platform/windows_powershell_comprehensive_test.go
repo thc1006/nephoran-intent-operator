@@ -33,11 +33,11 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 			stdout   string
 			stderr   string
 			expected struct {
-				sleepMs       string
-				stdoutCmd     string
-				stderrCmd     string
-				noConcat      []string // Patterns that should NOT exist
-				mustContain   []string // Patterns that MUST exist
+				sleepMs     string
+				stdoutCmd   string
+				stderrCmd   string
+				noConcat    []string // Patterns that should NOT exist
+				mustContain []string // Patterns that MUST exist
 			}
 		}{
 			{
@@ -46,11 +46,11 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 				stdout: "Quick test",
 				stderr: "Quick error",
 				expected: struct {
-					sleepMs       string
-					stdoutCmd     string
-					stderrCmd     string
-					noConcat      []string
-					mustContain   []string
+					sleepMs     string
+					stdoutCmd   string
+					stderrCmd   string
+					noConcat    []string
+					mustContain []string
 				}{
 					sleepMs:     "1",
 					stdoutCmd:   "echo Quick test",
@@ -65,11 +65,11 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 				stdout: "Boundary test output",
 				stderr: "",
 				expected: struct {
-					sleepMs       string
-					stdoutCmd     string
-					stderrCmd     string
-					noConcat      []string
-					mustContain   []string
+					sleepMs     string
+					stdoutCmd   string
+					stderrCmd   string
+					noConcat    []string
+					mustContain []string
 				}{
 					sleepMs:     "999",
 					stdoutCmd:   "echo Boundary test output",
@@ -84,11 +84,11 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 				stdout: "Long operation complete",
 				stderr: "Warning: Long operation",
 				expected: struct {
-					sleepMs       string
-					stdoutCmd     string
-					stderrCmd     string
-					noConcat      []string
-					mustContain   []string
+					sleepMs     string
+					stdoutCmd   string
+					stderrCmd   string
+					noConcat    []string
+					mustContain []string
 				}{
 					sleepMs:     "3000",
 					stdoutCmd:   "echo Long operation complete",
@@ -103,11 +103,11 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 				stdout: "Output with & special < > characters",
 				stderr: "Error with | pipe && double",
 				expected: struct {
-					sleepMs       string
-					stdoutCmd     string
-					stderrCmd     string
-					noConcat      []string
-					mustContain   []string
+					sleepMs     string
+					stdoutCmd   string
+					stderrCmd   string
+					noConcat    []string
+					mustContain []string
 				}{
 					sleepMs:     "25",
 					stdoutCmd:   "echo Output with & special < > characters",
@@ -233,7 +233,7 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 					"No PowerShell type conversion errors")
 				assert.NotContains(t, outputStr, "Int32",
 					"No Int32 conversion errors")
-				
+
 				// The specific regression case
 				assert.NotContains(t, outputStr, "50echo",
 					"No command concatenation in output")
@@ -304,7 +304,7 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 		for output := range outputs {
 			outputCount++
 			t.Logf("Concurrent output %d: %s", outputCount, output)
-			
+
 			// Verify no concatenation errors in any output
 			assert.NotContains(t, output, "echo", "No command concatenation")
 			assert.NotContains(t, output, "Cannot bind parameter", "No parameter binding errors")
@@ -319,7 +319,7 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 
 		// Test various sleep values that caused issues
 		problematicSleeps := []time.Duration{
-			50 * time.Millisecond,  // Original failing case
+			50 * time.Millisecond, // Original failing case
 			100 * time.Millisecond,
 			1 * time.Second,
 			5 * time.Second,
@@ -374,7 +374,7 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 								if msValue != "" {
 									_, err := strconv.Atoi(msValue)
 									assert.NoError(t, err, "Milliseconds value should be numeric: %s", msValue)
-									
+
 									// Ensure it matches expected value
 									expectedMs := int(sleep.Milliseconds())
 									actualMs, _ := strconv.Atoi(msValue)
@@ -460,7 +460,7 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 			"The exact issue '50echo' should be fixed")
 		assert.NotContains(t, scriptContent, "Milliseconds 50Mock",
 			"No concatenation with stdout message")
-		
+
 		// Verify correct structure
 		assert.Contains(t, scriptContent, "powershell -NoProfile -Command \"Start-Sleep -Milliseconds 50\"")
 		assert.Contains(t, scriptContent, "echo Mock porch completed successfully")
@@ -468,14 +468,14 @@ func TestWindowsPowerShellComprehensive(t *testing.T) {
 		// Test execution to ensure it works
 		cmd := exec.Command("cmd.exe", "/C", scriptPath)
 		output, err := cmd.CombinedOutput()
-		
+
 		if err != nil {
 			t.Logf("Execution error (may be expected): %v", err)
 		}
-		
+
 		outputStr := string(output)
 		t.Logf("Backwards compatibility test output: %s", outputStr)
-		
+
 		// The key assertion: no PowerShell parameter binding error
 		assert.NotContains(t, outputStr, "Cannot bind parameter 'Milliseconds'",
 			"Should not have the original parameter binding error")
@@ -530,7 +530,7 @@ func TestPowerShellRegressionPrevention(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
-	
+
 	for _, tc := range problematicPatterns {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := ScriptOptions{

@@ -91,11 +91,11 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// Wait for Start() to be called
 	<-started
-	
+
 	// Let processing begin, then simulate graceful shutdown
 	// Give enough time for files to be queued but not necessarily completed
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// Trigger graceful shutdown
 	watcher.Close()
 
@@ -130,7 +130,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	// 1. Some files may have completed processing
 	// 2. Some files may have failed due to context cancellation (shutdown failures)
 	// 3. Real failures should be 0 (unless there are actual validation/processing errors)
-	
+
 	// The key test: exit code should be 0 even if there are shutdown failures
 	if stats.RealFailedCount == 0 {
 		t.Logf("✅ No real failures detected - exit code should be 0")
@@ -141,7 +141,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	// Verify total failed count is the sum of real and shutdown failures
 	expectedTotal := stats.RealFailedCount + stats.ShutdownFailedCount
 	if stats.FailedCount != expectedTotal {
-		t.Errorf("Failed count mismatch: total=%d, real+shutdown=%d", 
+		t.Errorf("Failed count mismatch: total=%d, real+shutdown=%d",
 			stats.FailedCount, expectedTotal)
 	}
 }
@@ -150,7 +150,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
-	
+
 	err := os.MkdirAll(handoffDir, 0755)
 	if err != nil {
 		t.Fatalf("Failed to create handoff directory: %v", err)
@@ -173,11 +173,11 @@ func TestShutdownFailureDetection(t *testing.T) {
 
 	// Test different error scenarios
 	testCases := []struct {
-		name              string
-		err               error
-		errorMsg          string
-		gracefulShutdown  bool
-		expectedShutdown  bool
+		name             string
+		err              error
+		errorMsg         string
+		gracefulShutdown bool
+		expectedShutdown bool
 	}{
 		{
 			name:             "context canceled during shutdown",
@@ -217,15 +217,15 @@ func TestShutdownFailureDetection(t *testing.T) {
 				t.Fatalf("Failed to create new watcher: %v", err)
 			}
 			defer newWatcher.Close()
-			
+
 			// Set graceful shutdown state if needed
 			if tc.gracefulShutdown {
 				newWatcher.Close() // This triggers graceful shutdown state
 			}
-			
+
 			result := newWatcher.IsShutdownFailure(tc.err, tc.errorMsg)
 			if result != tc.expectedShutdown {
-				t.Errorf("Expected shutdown failure detection to be %v, got %v", 
+				t.Errorf("Expected shutdown failure detection to be %v, got %v",
 					tc.expectedShutdown, result)
 			}
 		})

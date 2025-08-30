@@ -214,13 +214,13 @@ func compareIntents(a, b map[string]interface{}) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	
+
 	for key, aVal := range a {
 		bVal, ok := b[key]
 		if !ok {
 			return false
 		}
-		
+
 		// Special handling for nested maps (like config)
 		if aMap, ok := aVal.(map[string]interface{}); ok {
 			if bMap, ok := bVal.(map[string]interface{}); ok {
@@ -234,6 +234,6 @@ func compareIntents(a, b map[string]interface{}) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }

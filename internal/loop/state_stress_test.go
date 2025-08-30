@@ -154,7 +154,7 @@ func TestRapidFileChurn(t *testing.T) {
 
 	filename := "churning-file.json"
 	testFile := filepath.Join(tempDir, filename)
-	
+
 	var wg sync.WaitGroup
 	stopChan := make(chan struct{})
 
@@ -275,7 +275,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				
+
 				oldName := fmt.Sprintf("rename-old-%d.json", id)
 				newName := fmt.Sprintf("rename-new-%d.json", id)
 				testFile := filepath.Join(tempDir, oldName)
@@ -316,7 +316,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 		require.NoError(t, err)
 
 		var wg sync.WaitGroup
-		
+
 		// Worker 1: Rapidly open and close the file
 		wg.Add(1)
 		go func() {
@@ -337,7 +337,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 			for i := 0; i < 50; i++ {
 				_, err := sm.IsProcessed(filename)
 				assert.NoError(t, err, "IsProcessed should handle concurrent file access")
-				
+
 				err = sm.MarkProcessed(filename)
 				// May fail with sharing violation on Windows
 				if err != nil {

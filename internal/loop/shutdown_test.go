@@ -22,7 +22,7 @@ import (
 // 3. Stop coordinator and cancel context
 func TestShutdownSequencing(t *testing.T) {
 	handoffDir := t.TempDir()
-	
+
 	mockValidator := &MockValidator{}
 	var processedCount int64
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
@@ -49,7 +49,7 @@ func TestShutdownSequencing(t *testing.T) {
 	var wg sync.WaitGroup
 	numFiles := 10
 	var queueErrors int64
-	
+
 	// Create valid test intent files
 	validIntent := ingest.Intent{
 		IntentType: "scaling",
@@ -57,7 +57,7 @@ func TestShutdownSequencing(t *testing.T) {
 		Namespace:  "default",
 		Replicas:   3,
 	}
-	
+
 	intentData, err := json.Marshal(validIntent)
 	require.NoError(t, err)
 
@@ -65,7 +65,7 @@ func TestShutdownSequencing(t *testing.T) {
 		// Create actual file on disk
 		testFile := filepath.Join(handoffDir, fmt.Sprintf("file-%d.json", i))
 		require.NoError(t, os.WriteFile(testFile, intentData, 0644))
-		
+
 		wg.Add(1)
 		go func(id int, filename string) {
 			defer wg.Done()

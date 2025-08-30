@@ -24,7 +24,7 @@ func TestNewPatchPackage(t *testing.T) {
 	}
 
 	outputDir := "/tmp/test-output"
-	
+
 	patchPackage := NewPatchPackage(intent, outputDir)
 
 	assert.NotNil(t, patchPackage)
@@ -136,7 +136,7 @@ func TestPatchPackageGenerate(t *testing.T) {
 
 func TestGenerateKptfile(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	intent := &Intent{
 		IntentType: "scaling",
 		Target:     "test-service",
@@ -172,7 +172,7 @@ func TestGenerateKptfile(t *testing.T) {
 
 func TestGeneratePatchFile(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	intent := &Intent{
 		IntentType:    "scaling",
 		Target:        "backend-api",
@@ -222,7 +222,7 @@ func TestGeneratePatchFile(t *testing.T) {
 
 func TestGenerateReadme(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	intent := &Intent{
 		IntentType:    "scaling",
 		Target:        "frontend",
@@ -353,7 +353,7 @@ func TestHelperFunctions(t *testing.T) {
 
 	t.Run("readFile handles non-existent file", func(t *testing.T) {
 		nonExistentPath := filepath.Join(tempDir, "does-not-exist.txt")
-		
+
 		content, err := readFile(nonExistentPath)
 		assert.Error(t, err)
 		assert.Nil(t, content)
@@ -362,28 +362,28 @@ func TestHelperFunctions(t *testing.T) {
 
 func TestPackageNameGeneration(t *testing.T) {
 	tests := []struct {
-		name               string
-		target             string
+		name                string
+		target              string
 		expectedPackageName string
 	}{
 		{
-			name:               "simple target",
-			target:             "webapp",
+			name:                "simple target",
+			target:              "webapp",
 			expectedPackageName: "webapp-scaling-patch",
 		},
 		{
-			name:               "hyphenated target",
-			target:             "web-app",
+			name:                "hyphenated target",
+			target:              "web-app",
 			expectedPackageName: "web-app-scaling-patch",
 		},
 		{
-			name:               "target with numbers",
-			target:             "api-v2",
+			name:                "target with numbers",
+			target:              "api-v2",
 			expectedPackageName: "api-v2-scaling-patch",
 		},
 		{
-			name:               "complex target name",
-			target:             "micro-service-worker-v1",
+			name:                "complex target name",
+			target:              "micro-service-worker-v1",
 			expectedPackageName: "micro-service-worker-v1-scaling-patch",
 		},
 	}
@@ -491,11 +491,11 @@ func TestTimestampGeneration(t *testing.T) {
 	_, err2 := time.Parse(time.RFC3339, timestamp2)
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
-	
+
 	// Parse timestamps to compare
 	time1, _ := time.Parse(time.RFC3339, timestamp1)
 	time2, _ := time.Parse(time.RFC3339, timestamp2)
-	
+
 	// time2 should be after time1
 	assert.True(t, time2.After(time1) || time2.Equal(time1), "Second timestamp should be after or equal to first timestamp")
 }

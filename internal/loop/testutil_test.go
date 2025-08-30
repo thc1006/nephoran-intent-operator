@@ -8,16 +8,16 @@ import (
 // WaitFor polls a condition function until it returns true or timeout occurs
 func WaitFor(t *testing.T, condition func() bool, timeout time.Duration, description string) bool {
 	t.Helper()
-	
+
 	deadline := time.Now().Add(timeout)
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		if condition() {
 			return true
 		}
-		
+
 		select {
 		case <-ticker.C:
 			if time.Now().After(deadline) {

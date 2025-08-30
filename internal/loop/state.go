@@ -39,29 +39,29 @@ type FileState struct {
 
 // StateManager manages the processing state of files
 type StateManager struct {
-	mu         sync.RWMutex
-	stateFile  string
-	baseDir    string
-	states     map[string]*FileState
-	autoSave   bool
+	mu        sync.RWMutex
+	stateFile string
+	baseDir   string
+	states    map[string]*FileState
+	autoSave  bool
 }
 
 // NewStateManager creates a new state manager
 func NewStateManager(baseDir string) (*StateManager, error) {
 	stateFile := filepath.Join(baseDir, StateFileName)
-	
+
 	sm := &StateManager{
 		stateFile: stateFile,
 		baseDir:   baseDir,
 		states:    make(map[string]*FileState),
 		autoSave:  true,
 	}
-	
+
 	// Load existing state if the file exists
 	if err := sm.loadState(); err != nil {
 		log.Printf("Warning: failed to load state file (will create new): %v", err)
 	}
-	
+
 	return sm, nil
 }
 
@@ -69,7 +69,7 @@ func NewStateManager(baseDir string) (*StateManager, error) {
 func (sm *StateManager) loadState() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	data, err := readFileWithRetry(sm.stateFile)
 	if err != nil {
 		if os.IsNotExist(err) || err == ErrFileGone {
@@ -78,23 +78,23 @@ func (sm *StateManager) loadState() error {
 		}
 		return fmt.Errorf("failed to read state file: %w", err)
 	}
-	
+
 	// Handle empty file
 	if len(data) == 0 {
 		return nil
 	}
-	
+
 	var stateData struct {
 		Version string                `json:"version"`
 		States  map[string]*FileState `json:"states"`
 	}
-	
+
 	if err := json.Unmarshal(data, &stateData); err != nil {
 		// Handle corrupted state file gracefully
 		log.Printf("Warning: corrupted state file, creating backup and starting fresh: %v", err)
 		return sm.createBackupAndReset()
 	}
-	
+
 	// Copy states from loaded data with sanitization
 	for key, state := range stateData.States {
 		// Sanitize the key when loading from file
@@ -105,7 +105,7 @@ func (sm *StateManager) loadState() error {
 		}
 		sm.states[sanitizedKey] = state
 	}
-	
+
 	log.Printf("Loaded %d file states from %s", len(sm.states), sm.stateFile)
 	return nil
 }
@@ -114,7 +114,7 @@ func (sm *StateManager) loadState() error {
 func (sm *StateManager) saveState() error {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	return sm.saveStateUnsafe()
 }
 
@@ -132,22 +132,22 @@ func (sm *StateManager) saveStateUnsafe() error {
 			sanitizedStates[sanitizedKey] = state
 		}
 	}
-	
+
 	stateData := struct {
-		Version   string                `json:"version"`
-		SavedAt   time.Time             `json:"saved_at"`
-		States    map[string]*FileState `json:"states"`
+		Version string                `json:"version"`
+		SavedAt time.Time             `json:"saved_at"`
+		States  map[string]*FileState `json:"states"`
 	}{
 		Version: "1.0",
 		SavedAt: time.Now(),
 		States:  sanitizedStates,
 	}
-	
+
 	data, err := json.MarshalIndent(stateData, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
-	
+
 	// Ensure directory exists before writing using the robust path utility
 	if err := pathutil.EnsureParentDirectory(sm.stateFile); err != nil {
 		return fmt.Errorf("failed to create state directory: %w", err)
@@ -157,24 +157,24 @@ func (sm *StateManager) saveStateUnsafe() error {
 	if err := atomicWriteFile(sm.stateFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write state file atomically: %w", err)
 	}
-	
+
 	return nil
 }
 
 // createBackupAndReset creates a backup of the corrupted state file and resets
 func (sm *StateManager) createBackupAndReset() error {
 	backupFile := sm.stateFile + ".backup." + time.Now().Format("20060102T150405")
-	
+
 	// Copy corrupted file to backup
 	if err := copyFile(sm.stateFile, backupFile); err != nil {
 		log.Printf("Warning: failed to create backup of corrupted state file: %v", err)
 	} else {
 		log.Printf("Backed up corrupted state file to: %s", backupFile)
 	}
-	
+
 	// Reset in-memory state
 	sm.states = make(map[string]*FileState)
-	
+
 	return nil
 }
 
@@ -182,14 +182,14 @@ func (sm *StateManager) createBackupAndReset() error {
 func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	// Validate Windows path before any filesystem operations
 	if runtime.GOOS == "windows" {
 		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
 			return false, fmt.Errorf("Windows path validation failed: %w", err)
 		}
 	}
-	
+
 	// Create safe absolute path for state key first
 	var absPath string
 	var err error
@@ -199,7 +199,7 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("failed to get absolute base directory: %w", err)
 		}
-		
+
 		rel, err := filepath.Rel(absBaseDir, filePath)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return false, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
@@ -211,29 +211,29 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("unsafe file path: %w", err)
 		}
-		
+
 		absPath, err = filepath.Abs(safePath)
 		if err != nil {
 			return false, fmt.Errorf("failed to get absolute path: %w", err)
 		}
 	}
-	
+
 	key := createStateKey(absPath)
 	state, exists := sm.states[key]
-	
+
 	// If no state entry exists, treat as not processed (don't error on ENOENT)
 	// This makes the state check robust to concurrent file operations
 	if !exists {
 		// File hasn't been processed yet (whether it exists or not)
 		return false, nil
 	}
-	
+
 	// If state entry exists but has a placeholder hash (file was missing when marked),
 	// we consider it processed regardless of current file state
 	if state.SHA256 == "file-disappeared" {
 		return state.Status == "processed", nil
 	}
-	
+
 	// For entries with real hashes, verify the file still matches
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
@@ -247,12 +247,12 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 		// For other errors, propagate them
 		return false, fmt.Errorf("failed to check if processed: %w", err)
 	}
-	
+
 	// Check if file has changed since processing
 	if state.SHA256 != hash || state.Size != size {
 		return false, nil
 	}
-	
+
 	// Only consider successfully processed files
 	return state.Status == "processed", nil
 }
@@ -285,7 +285,7 @@ func (sm *StateManager) MarkFailedWithHash(filePath, hash string, size int64) er
 func (sm *StateManager) IsProcessedByHash(hash string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	for _, state := range sm.states {
 		if state.SHA256 == hash && state.Status == "processed" {
 			return true, nil
@@ -299,14 +299,14 @@ func (sm *StateManager) IsProcessedByHash(hash string) (bool, error) {
 func (sm *StateManager) IsProcessedByIdentity(filePath string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	// Validate Windows path before any filesystem operations
 	if runtime.GOOS == "windows" {
 		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
 			return false, fmt.Errorf("Windows path validation failed: %w", err)
 		}
 	}
-	
+
 	// Create safe absolute path for state key
 	var absPath string
 	var err error
@@ -316,7 +316,7 @@ func (sm *StateManager) IsProcessedByIdentity(filePath string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("failed to get absolute base directory: %w", err)
 		}
-		
+
 		rel, err := filepath.Rel(absBaseDir, filePath)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return false, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
@@ -328,25 +328,25 @@ func (sm *StateManager) IsProcessedByIdentity(filePath string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("unsafe file path: %w", err)
 		}
-		
+
 		absPath, err = filepath.Abs(safePath)
 		if err != nil {
 			return false, fmt.Errorf("failed to get absolute path: %w", err)
 		}
 	}
-	
+
 	key := createStateKey(absPath)
 	state, exists := sm.states[key]
 	if !exists {
 		return false, nil
 	}
-	
+
 	// If state entry exists but has a placeholder hash (file was missing when marked),
 	// we consider it processed regardless of current file state
 	if state.SHA256 == "file-disappeared" {
 		return state.Status == "processed", nil
 	}
-	
+
 	// For entries with real hashes, verify the file still matches its recorded identity
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
@@ -360,12 +360,12 @@ func (sm *StateManager) IsProcessedByIdentity(filePath string) (bool, error) {
 		// For other errors, propagate them
 		return false, fmt.Errorf("failed to check file identity: %w", err)
 	}
-	
+
 	// Check if file has changed since processing (content or size)
 	if state.SHA256 != hash || state.Size != size {
 		return false, nil
 	}
-	
+
 	// Only consider successfully processed files
 	return state.Status == "processed", nil
 }
@@ -374,14 +374,14 @@ func (sm *StateManager) IsProcessedByIdentity(filePath string) (bool, error) {
 func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	// Validate Windows path before any filesystem operations
 	if runtime.GOOS == "windows" {
 		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
 			return fmt.Errorf("Windows path validation failed: %w", err)
 		}
 	}
-	
+
 	// Calculate file hash and size using safe path joining
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
@@ -396,7 +396,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 			return fmt.Errorf("failed to calculate file hash: %w", err)
 		}
 	}
-	
+
 	// Create safe absolute path for consistent state keys
 	var absPath string
 	if filepath.IsAbs(filePath) {
@@ -405,7 +405,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get absolute base directory: %w", err)
 		}
-		
+
 		rel, err := filepath.Rel(absBaseDir, filePath)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
@@ -417,15 +417,15 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 		if err != nil {
 			return fmt.Errorf("unsafe file path: %w", err)
 		}
-		
+
 		absPath, err = filepath.Abs(safePath)
 		if err != nil {
 			return fmt.Errorf("failed to get absolute path: %w", err)
 		}
 	}
-	
+
 	key := createStateKey(absPath)
-	
+
 	// Update state
 	sm.states[key] = &FileState{
 		FilePath:    absPath,
@@ -434,7 +434,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 		ProcessedAt: time.Now(),
 		Status:      status,
 	}
-	
+
 	// Auto-save if enabled
 	if sm.autoSave {
 		if err := sm.saveStateUnsafe(); err != nil {
@@ -442,7 +442,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -450,7 +450,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 func (sm *StateManager) markWithStatusAndHash(filePath string, status string, hash string, size int64) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	// Create safe absolute path for consistent state keys
 	var absPath string
 	if filepath.IsAbs(filePath) {
@@ -459,7 +459,7 @@ func (sm *StateManager) markWithStatusAndHash(filePath string, status string, ha
 		if err != nil {
 			return fmt.Errorf("failed to get absolute base directory: %w", err)
 		}
-		
+
 		rel, err := filepath.Rel(absBaseDir, filePath)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
@@ -471,15 +471,15 @@ func (sm *StateManager) markWithStatusAndHash(filePath string, status string, ha
 		if err != nil {
 			return fmt.Errorf("unsafe file path: %w", err)
 		}
-		
+
 		absPath, err = filepath.Abs(safePath)
 		if err != nil {
 			return fmt.Errorf("failed to get absolute path: %w", err)
 		}
 	}
-	
+
 	key := createStateKey(absPath)
-	
+
 	// Create or update state entry with precomputed hash
 	sm.states[key] = &FileState{
 		FilePath:    absPath,
@@ -488,7 +488,7 @@ func (sm *StateManager) markWithStatusAndHash(filePath string, status string, ha
 		Status:      status,
 		ProcessedAt: time.Now(),
 	}
-	
+
 	return nil
 }
 
@@ -497,9 +497,9 @@ func (sm *StateManager) markWithStatusAndHash(filePath string, status string, ha
 func (sm *StateManager) GetProcessedFiles() []string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	const maxFiles = 10000 // Limit to prevent memory exhaustion
-	
+
 	var files []string
 	count := 0
 	for _, state := range sm.states {
@@ -512,7 +512,7 @@ func (sm *StateManager) GetProcessedFiles() []string {
 			}
 		}
 	}
-	
+
 	return files
 }
 
@@ -521,9 +521,9 @@ func (sm *StateManager) GetProcessedFiles() []string {
 func (sm *StateManager) GetFailedFiles() []string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	const maxFiles = 10000 // Limit to prevent memory exhaustion
-	
+
 	var files []string
 	count := 0
 	for _, state := range sm.states {
@@ -536,7 +536,7 @@ func (sm *StateManager) GetFailedFiles() []string {
 			}
 		}
 	}
-	
+
 	return files
 }
 
@@ -545,7 +545,7 @@ func (sm *StateManager) GetFailedFiles() []string {
 func (sm *StateManager) GetStats() (processed int, failed int) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	for _, state := range sm.states {
 		switch state.Status {
 		case "processed":
@@ -554,7 +554,7 @@ func (sm *StateManager) GetStats() (processed int, failed int) {
 			failed++
 		}
 	}
-	
+
 	return processed, failed
 }
 
@@ -562,24 +562,24 @@ func (sm *StateManager) GetStats() (processed int, failed int) {
 func (sm *StateManager) CleanupOldEntries(olderThan time.Duration) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	cutoff := time.Now().Add(-olderThan)
 	removed := 0
-	
+
 	for key, state := range sm.states {
 		if state.ProcessedAt.Before(cutoff) {
 			delete(sm.states, key)
 			removed++
 		}
 	}
-	
+
 	if removed > 0 {
 		log.Printf("Cleaned up %d old state entries", removed)
 		if sm.autoSave {
 			return sm.saveStateUnsafe()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -596,13 +596,13 @@ func (sm *StateManager) CalculateFileSHA256(filePath string) (string, error) {
 func (sm *StateManager) IsProcessedBySHA(sha256Hash string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	for _, state := range sm.states {
 		if state.SHA256 == sha256Hash && state.Status == "processed" {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -620,27 +620,27 @@ func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
 	// On non-Windows, use minimal retry since file operations are more reliable
 	maxRetries := 2
 	baseDelayMs := 10
-	
+
 	if runtime.GOOS == "windows" {
 		// Windows needs more aggressive retry due to non-atomic rename
 		maxRetries = 3
 		baseDelayMs = 20
 	}
-	
+
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		hash, size, err := calcFileHashOnce(baseDir, filePath)
 		if err == nil {
 			return hash, size, nil
 		}
-		
+
 		// Check various forms of file not found errors
 		if !isFileNotFoundError(err) {
 			return "", 0, err
 		}
-		
+
 		lastErr = err
-		
+
 		// Don't sleep on the last attempt
 		if attempt < maxRetries-1 {
 			// Exponential backoff but capped at reasonable delay
@@ -651,12 +651,12 @@ func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
 			time.Sleep(delay)
 		}
 	}
-	
+
 	// If we exhausted retries due to file not existing, return ErrFileGone
 	if isFileNotFoundError(lastErr) {
 		return "", 0, ErrFileGone
 	}
-	
+
 	return "", 0, lastErr
 }
 
@@ -665,7 +665,7 @@ func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
 func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 	var safePath string
 	var err error
-	
+
 	// Determine the safe path based on whether it's absolute or relative
 	if filepath.IsAbs(filePath) {
 		// For absolute paths, verify they're within the baseDir
@@ -673,12 +673,12 @@ func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 		if err != nil {
 			return "", 0, fmt.Errorf("failed to get absolute base directory: %w", err)
 		}
-		
+
 		rel, err := filepath.Rel(absBaseDir, filePath)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return "", 0, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
 		}
-		
+
 		// Try to normalize for Windows long paths if needed
 		if runtime.GOOS == "windows" && len(filePath) >= pathutil.WindowsMaxPath {
 			normalizedPath, err := pathutil.NormalizeUserPath(filePath)
@@ -696,7 +696,7 @@ func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 		if err != nil {
 			return "", 0, fmt.Errorf("unsafe file path: %w", err)
 		}
-		
+
 		// Normalize for Windows long paths if needed
 		if runtime.GOOS == "windows" && len(safePath) >= pathutil.WindowsMaxPath {
 			normalizedPath, err := pathutil.NormalizeUserPath(safePath)
@@ -705,7 +705,7 @@ func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 			}
 		}
 	}
-	
+
 	// Use openFileWithRetry for robust file opening on Windows
 	var file *os.File
 	if runtime.GOOS == "windows" {
@@ -719,13 +719,13 @@ func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 		return "", 0, err
 	}
 	defer file.Close()
-	
+
 	hash := sha256.New()
 	size, err := io.Copy(hash, file)
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to read file: %w", err)
 	}
-	
+
 	hashStr := hex.EncodeToString(hash.Sum(nil))
 	return hashStr, size, nil
 }
@@ -734,10 +734,10 @@ func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 func createStateKey(absPath string) string {
 	// Use the absolute path as the key, normalized for Windows
 	cleanPath := filepath.Clean(absPath)
-	
+
 	// Sanitize dangerous patterns for security
 	cleanPath = sanitizePath(cleanPath)
-	
+
 	return cleanPath
 }
 
@@ -754,18 +754,18 @@ func sanitizePath(path string) string {
 		"%2e%2e%2f":       "[SANITIZED_ENCODED_TRAVERSAL]",
 		"%252e%252e%252f": "[SANITIZED_DOUBLE_ENCODED_TRAVERSAL]",
 	}
-	
+
 	sanitized := path
 	for pattern, replacement := range dangerousPatterns {
 		sanitized = strings.ReplaceAll(sanitized, pattern, replacement)
 	}
-	
+
 	// Additional sanitization for control characters and null bytes
 	sanitized = strings.ReplaceAll(sanitized, "\x00", "[SANITIZED_NULL]")
 	sanitized = strings.ReplaceAll(sanitized, "\x01", "[SANITIZED_CTRL]")
 	sanitized = strings.ReplaceAll(sanitized, "\x02", "[SANITIZED_CTRL]")
 	sanitized = strings.ReplaceAll(sanitized, "\x03", "[SANITIZED_CTRL]")
-	
+
 	return sanitized
 }
 
@@ -775,20 +775,20 @@ func copyFile(src, dst string) error {
 	if runtime.GOOS == "windows" {
 		return copyFileWithSync(src, dst)
 	}
-	
+
 	// On Unix, use simple copy
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer srcFile.Close()
-	
+
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer dstFile.Close()
-	
+
 	_, err = io.Copy(dstFile, srcFile)
 	return err
 }
@@ -799,17 +799,17 @@ func isFileNotFoundError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	// Check standard os.IsNotExist
 	if os.IsNotExist(err) {
 		return true
 	}
-	
+
 	// Check for our custom ErrFileGone
 	if errors.Is(err, ErrFileGone) {
 		return true
 	}
-	
+
 	// Check for wrapped path errors
 	var pathErr *os.PathError
 	if errors.As(err, &pathErr) {
@@ -817,7 +817,7 @@ func isFileNotFoundError(err error) bool {
 			return true
 		}
 	}
-	
+
 	// Check error messages for Windows-specific patterns
 	errStr := strings.ToLower(err.Error())
 	fileNotFoundPatterns := []string{
@@ -827,13 +827,13 @@ func isFileNotFoundError(err error) bool {
 		"the system cannot find the path",
 		"file does not exist",
 	}
-	
+
 	for _, pattern := range fileNotFoundPatterns {
 		if strings.Contains(errStr, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -841,10 +841,10 @@ func isFileNotFoundError(err error) bool {
 func (sm *StateManager) Close() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	if sm.autoSave {
 		return sm.saveStateUnsafe()
 	}
-	
+
 	return nil
 }

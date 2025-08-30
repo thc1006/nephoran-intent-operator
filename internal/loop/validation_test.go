@@ -47,7 +47,7 @@ func (s *ValidationTestSuite) SetupTest() {
 
 func (s *ValidationTestSuite) TestFix1_NilPointerDereference_WatcherCloseNil() {
 	s.T().Log("Validating Fix 1: Nil Pointer Dereference - Watcher.Close() on nil")
-	
+
 	// Test 1: Close on nil watcher should not panic
 	var nilWatcher *Watcher
 	err := nilWatcher.Close()
@@ -56,7 +56,7 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_WatcherCloseNil() {
 
 func (s *ValidationTestSuite) TestFix1_NilPointerDereference_SafeDefers() {
 	s.T().Log("Validating Fix 1: Safe defer patterns in Watcher")
-	
+
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
 	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
@@ -88,14 +88,14 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_SafeDefers() {
 
 func (s *ValidationTestSuite) TestFix1_NilPointerDereference_ComponentsNil() {
 	s.T().Log("Validating Fix 1: Handling nil components throughout lifecycle")
-	
+
 	// Test scenario where creation fails partway through
 	handoffDir := filepath.Join(s.tempDir, "nonexistent")
 	outDir := filepath.Join(s.tempDir, "out")
-	
+
 	config := Config{
 		PorchPath:    s.porchPath,
-		Mode:         "direct", 
+		Mode:         "direct",
 		OutDir:       outDir,
 		Once:         true,
 		MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
@@ -105,7 +105,7 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_ComponentsNil() {
 	// This should fail during creation
 	watcher, err := NewWatcher(handoffDir, config)
 	s.Assert().Error(err, "Should fail with nonexistent directory")
-	
+
 	// If watcher is created despite error, closing should be safe
 	if watcher != nil {
 		closeErr := watcher.Close()
@@ -114,12 +114,12 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_ComponentsNil() {
 }
 
 // =============================================================================
-// FIX 2: CROSS-PLATFORM SCRIPTING VALIDATION  
+// FIX 2: CROSS-PLATFORM SCRIPTING VALIDATION
 // =============================================================================
 
 func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_WindowsBatFiles() {
 	s.T().Log("Validating Fix 2: Cross-platform mock script creation - Windows .bat")
-	
+
 	if runtime.GOOS != "windows" {
 		s.T().Skip("Windows-specific test")
 	}
@@ -148,7 +148,7 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_WindowsBatFiles() 
 
 	executor := porch.NewExecutor(config)
 	ctx := context.Background()
-	
+
 	// Create dummy intent file for testing
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
@@ -162,7 +162,7 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_WindowsBatFiles() 
 
 func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_UnixShellFiles() {
 	s.T().Log("Validating Fix 2: Cross-platform mock script creation - Unix shell")
-	
+
 	if runtime.GOOS == "windows" {
 		s.T().Skip("Unix-specific test")
 	}
@@ -196,7 +196,7 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_UnixShellFiles() {
 
 	executor := porch.NewExecutor(config)
 	ctx := context.Background()
-	
+
 	// Create dummy intent file for testing
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
@@ -210,9 +210,9 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_UnixShellFiles() {
 
 func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_CustomScripts() {
 	s.T().Log("Validating Fix 2: Custom script support with platform-specific logic")
-	
+
 	tempDir := s.T().TempDir()
-	
+
 	// Define custom scripts for both platforms
 	customScript := struct {
 		Windows string
@@ -246,7 +246,7 @@ exit 0`,
 
 	executor := porch.NewExecutor(config)
 	ctx := context.Background()
-	
+
 	// Create dummy intent file for testing
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
@@ -255,7 +255,7 @@ exit 0`,
 	result, err := executor.Execute(ctx, intentFile)
 	s.Require().NoError(err)
 	s.Assert().True(result.Success, "Custom script execution should succeed")
-	
+
 	// Verify platform-specific output
 	if runtime.GOOS == "windows" {
 		s.Assert().Contains(result.Stdout, "Platform: Windows", "Should show Windows platform")
@@ -270,7 +270,7 @@ exit 0`,
 
 func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAccess() {
 	s.T().Log("Validating Fix 3: Data race protection in IntentProcessor")
-	
+
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
 	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
@@ -279,7 +279,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 	// Create IntentProcessor with concurrent access - using mock validator and porch function
 	mockValidator := &MockValidator{}
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error { return nil }
-	
+
 	processor, err := NewProcessor(&ProcessorConfig{
 		HandoffDir:    handoffDir,
 		ErrorDir:      filepath.Join(outDir, "errors"),
@@ -288,10 +288,10 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 		BatchInterval: 100 * time.Millisecond,
 		MaxRetries:    3,
 		SendTimeout:   2 * time.Second, // Reduced timeout to catch issues faster
-		WorkerCount:   4,                // Set worker count
+		WorkerCount:   4,               // Set worker count
 	}, mockValidator, mockPorchFunc)
 	s.Require().NoError(err)
-	
+
 	// Start the batch processor to handle incoming files
 	processor.StartBatchProcessor()
 	defer processor.Stop()
@@ -307,20 +307,20 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 		wg.Add(1)
 		go func(fileID int) {
 			defer wg.Done()
-			
+
 			fileName := fmt.Sprintf("concurrent-intent-%d.json", fileID)
 			filePath := filepath.Join(handoffDir, fileName)
-			
+
 			content := fmt.Sprintf(`{
 				"apiVersion": "v1",
 				"kind": "NetworkIntent",
 				"metadata": {"name": "test-%d"},
 				"spec": {"action": "scale", "replicas": %d}
 			}`, fileID, fileID%10+1)
-			
+
 			err := os.WriteFile(filePath, []byte(content), 0644)
 			s.Require().NoError(err)
-			
+
 			// Process file - this should be race-safe
 			if err := processor.ProcessFile(filePath); err != nil {
 				atomic.AddInt64(&errorCount, 1)
@@ -332,29 +332,29 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 	}
 
 	wg.Wait()
-	
+
 	// Wait for batch interval to flush any remaining files
 	time.Sleep(600 * time.Millisecond)
 
-	s.T().Logf("Processed: %d, Errors: %d, Total: %d", 
-		atomic.LoadInt64(&processedCount), 
-		atomic.LoadInt64(&errorCount), 
+	s.T().Logf("Processed: %d, Errors: %d, Total: %d",
+		atomic.LoadInt64(&processedCount),
+		atomic.LoadInt64(&errorCount),
 		numFiles)
-	
+
 	// All files should be processed without race conditions
 	totalProcessed := atomic.LoadInt64(&processedCount) + atomic.LoadInt64(&errorCount)
 	s.Assert().Equal(int64(numFiles), totalProcessed, "All files should be processed exactly once")
-	
+
 	// CRITICAL FIX: The test requirement states "total send timeouts must be ≤ 5"
 	// With improved channel buffering and shutdown handling, we should see much fewer errors
 	errorCountVal := atomic.LoadInt64(&errorCount)
-	s.Assert().LessOrEqual(errorCountVal, int64(5), 
+	s.Assert().LessOrEqual(errorCountVal, int64(5),
 		"Should have ≤5 send timeout errors (actual: %d). If this fails, coordinator buffering needs adjustment", errorCountVal)
 }
 
 func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperations() {
 	s.T().Log("Validating Fix 3: Data race protection in Watcher concurrent operations")
-	
+
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
 	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
@@ -398,7 +398,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperat
 			fileName := fmt.Sprintf("race-test-file-%d.json", i)
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "id": %d}`, i)
-			
+
 			os.WriteFile(filePath, []byte(content), 0644)
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -441,12 +441,12 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperat
 
 func (s *ValidationTestSuite) TestFix3_DataRaceCondition_SharedVariableAccess() {
 	s.T().Log("Validating Fix 3: Mutex protection for shared test variables")
-	
+
 	// Test the shared variable protection pattern
 	var sharedCounter int64
 	var mu sync.RWMutex
 	var wg sync.WaitGroup
-	
+
 	numGoroutines := 100
 	numIncrementsPerGoroutine := 1000
 
@@ -463,7 +463,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_SharedVariableAccess() 
 		}()
 	}
 
-	// Concurrent reads with mutex protection  
+	// Concurrent reads with mutex protection
 	for i := 0; i < numGoroutines/2; i++ {
 		wg.Add(1)
 		go func() {
@@ -479,7 +479,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_SharedVariableAccess() 
 	wg.Wait()
 
 	expectedValue := int64(numGoroutines * numIncrementsPerGoroutine)
-	s.Assert().Equal(expectedValue, sharedCounter, 
+	s.Assert().Equal(expectedValue, sharedCounter,
 		"Shared counter should equal expected value if mutex protection works")
 }
 
@@ -489,9 +489,9 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_SharedVariableAccess() 
 
 func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 	s.T().Log("Integration test: All three fixes working together")
-	
+
 	handoffDir := filepath.Join(s.tempDir, "handoff")
-	outDir := filepath.Join(s.tempDir, "out") 
+	outDir := filepath.Join(s.tempDir, "out")
 	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
 	s.Require().NoError(os.MkdirAll(outDir, 0755))
 
@@ -516,7 +516,7 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	s.Require().NoError(err)
-	
+
 	// Test nil safety (Fix 1) - safe defer pattern
 	defer func() {
 		if watcher != nil {
@@ -525,7 +525,7 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 		}
 	}()
 
-	// Start watcher for concurrent operations  
+	// Start watcher for concurrent operations
 	_, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 
@@ -545,7 +545,7 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 		wg.Add(1)
 		go func(fileID int) {
 			defer wg.Done()
-			
+
 			fileName := fmt.Sprintf("integration-test-%d.json", fileID)
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{
@@ -554,10 +554,10 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 				"metadata": {"name": "integration-%d"},
 				"spec": {"action": "scale", "replicas": %d}
 			}`, fileID, fileID%5+1)
-			
+
 			err := os.WriteFile(filePath, []byte(content), 0644)
 			s.Require().NoError(err)
-			
+
 			// Small delay to trigger concurrent processing
 			time.Sleep(time.Duration(fileID%50) * time.Millisecond)
 		}(i)
@@ -596,7 +596,7 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 
 func (s *ValidationTestSuite) TestPerformance_NoRegressionFromFixes() {
 	s.T().Log("Performance test: Verifying fixes don't introduce significant performance regression")
-	
+
 	if testing.Short() {
 		s.T().Skip("Skipping performance test in short mode")
 	}
@@ -651,7 +651,7 @@ func (s *ValidationTestSuite) TestPerformance_NoRegressionFromFixes() {
 
 func (s *ValidationTestSuite) TestStress_HighConcurrencyWithFixes() {
 	s.T().Log("Stress test: High concurrency with all fixes enabled")
-	
+
 	if testing.Short() {
 		s.T().Skip("Skipping stress test in short mode")
 	}
@@ -698,7 +698,7 @@ func (s *ValidationTestSuite) TestStress_HighConcurrencyWithFixes() {
 			fileName := fmt.Sprintf("stress-test-%d.json", i)
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "id": %d}`, i)
-			
+
 			os.WriteFile(filePath, []byte(content), 0644)
 			if i%50 == 0 {
 				time.Sleep(10 * time.Millisecond) // Brief pause every 50 files
@@ -752,10 +752,10 @@ func (s *ValidationTestSuite) TestStress_HighConcurrencyWithFixes() {
 
 func (s *ValidationTestSuite) TestEdgeCase_PartialInitializationCleanup() {
 	s.T().Log("Edge case: Cleanup during partial initialization (Fix 1)")
-	
+
 	// Test cleanup when initialization fails partway
 	nonExistentDir := filepath.Join(s.tempDir, "nonexistent", "deeply", "nested")
-	
+
 	config := Config{
 		PorchPath:    s.porchPath,
 		Mode:         "direct",
@@ -768,7 +768,7 @@ func (s *ValidationTestSuite) TestEdgeCase_PartialInitializationCleanup() {
 	// This should fail
 	watcher, err := NewWatcher(s.tempDir, config)
 	s.Assert().Error(err, "Should fail with nonexistent output directory")
-	
+
 	// But if watcher is somehow created, Close should be safe
 	if watcher != nil {
 		closeErr := watcher.Close()
@@ -778,7 +778,7 @@ func (s *ValidationTestSuite) TestEdgeCase_PartialInitializationCleanup() {
 
 func (s *ValidationTestSuite) TestEdgeCase_CrossPlatformPathHandling() {
 	s.T().Log("Edge case: Cross-platform path handling (Fix 2)")
-	
+
 	// Test path handling with different separators
 	tempDir := s.T().TempDir()
 	mockOptions := porch.CrossPlatformMockOptions{
@@ -801,7 +801,7 @@ func (s *ValidationTestSuite) TestEdgeCase_CrossPlatformPathHandling() {
 		if absPathLocal, err := filepath.Abs(testPath); err == nil {
 			config := porch.ExecutorConfig{
 				PorchPath: absPathLocal,
-				Mode:      "direct", 
+				Mode:      "direct",
 				OutDir:    filepath.Join(tempDir, "out"),
 				Timeout:   5 * time.Second,
 			}
@@ -814,7 +814,7 @@ func (s *ValidationTestSuite) TestEdgeCase_CrossPlatformPathHandling() {
 
 func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 	s.T().Log("Edge case: Race conditions under memory pressure (Fix 3)")
-	
+
 	// Simulate memory pressure scenario
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
@@ -843,10 +843,10 @@ func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 		wg.Add(1)
 		go func(fileID int) {
 			defer wg.Done()
-			
+
 			fileName := fmt.Sprintf("memory-stress-%d.json", fileID)
 			filePath := filepath.Join(handoffDir, fileName)
-			
+
 			// Create larger content to use more memory
 			largeData := strings.Repeat("x", 1024) // 1KB of data
 			content := fmt.Sprintf(`{
@@ -855,7 +855,7 @@ func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 				"metadata": {"name": "memory-test-%d"},
 				"spec": {"data": "%s", "replicas": %d}
 			}`, fileID, largeData, fileID%10+1)
-			
+
 			err := os.WriteFile(filePath, []byte(content), 0644)
 			s.Require().NoError(err)
 		}(i)
@@ -870,7 +870,7 @@ func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 	processingTime := time.Since(startTime)
 
 	s.T().Logf("Processed %d files under memory pressure in %v", numFiles, processingTime)
-	
+
 	// Should complete without race conditions or deadlocks
 	s.Assert().Less(processingTime, 60*time.Second, "Should complete within reasonable time")
 }
@@ -895,7 +895,7 @@ func (s *ValidationTestSuite) createValidationMockPorch() string {
 
 func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
 	t.Log("Race detection test - run with 'go test -race' to validate all fixes")
-	
+
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
@@ -936,7 +936,7 @@ func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
 
 	// Concurrent operations to trigger race detection
 	var wg sync.WaitGroup
-	
+
 	// File creation
 	for i := 0; i < 50; i++ {
 		wg.Add(1)

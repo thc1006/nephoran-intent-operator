@@ -13,12 +13,12 @@ func TestParseIntentToJSON(t *testing.T) {
 	reconciler := &WatchReconciler{}
 
 	testCases := []struct {
-		name          string
-		intent        string
-		namespace     string
-		expectedJSON  map[string]interface{}
-		expectError   bool
-		description   string
+		name         string
+		intent       string
+		namespace    string
+		expectedJSON map[string]interface{}
+		expectError  bool
+		description  string
 	}{
 		{
 			name:      "simple-scale-to-format",
@@ -229,7 +229,7 @@ func TestParseIntentToJSON(t *testing.T) {
 
 func TestParseIntentToJSONSchemaCompliance(t *testing.T) {
 	reconciler := &WatchReconciler{}
-	
+
 	ni := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-intent",
@@ -311,7 +311,7 @@ func TestParseIntentToJSONSchemaCompliance(t *testing.T) {
 
 func TestParseIntentToJSONCorrelationID(t *testing.T) {
 	reconciler := &WatchReconciler{}
-	
+
 	ni := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-intent",

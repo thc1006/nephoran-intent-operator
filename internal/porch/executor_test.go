@@ -17,41 +17,41 @@ import (
 
 func TestNewExecutor(t *testing.T) {
 	tests := []struct {
-		name           string
-		config         ExecutorConfig
-		expectedMode   string
+		name            string
+		config          ExecutorConfig
+		expectedMode    string
 		expectedTimeout time.Duration
 	}{
 		{
 			name: "default configuration",
 			config: ExecutorConfig{
 				PorchPath: "porch",
-				Mode:     "",
-				OutDir:   "./out",
+				Mode:      "",
+				OutDir:    "./out",
 			},
-			expectedMode:   ModeDirect,
+			expectedMode:    ModeDirect,
 			expectedTimeout: DefaultTimeout,
 		},
 		{
 			name: "custom configuration",
 			config: ExecutorConfig{
 				PorchPath: "/usr/bin/porch",
-				Mode:     ModeStructured,
-				OutDir:   "/tmp/out",
-				Timeout:  45 * time.Second,
+				Mode:      ModeStructured,
+				OutDir:    "/tmp/out",
+				Timeout:   45 * time.Second,
 			},
-			expectedMode:   ModeStructured,
+			expectedMode:    ModeStructured,
 			expectedTimeout: 45 * time.Second,
 		},
 		{
 			name: "invalid mode defaults to direct",
 			config: ExecutorConfig{
 				PorchPath: "porch",
-				Mode:     "invalid-mode",
-				OutDir:   "./out",
-				Timeout:  10 * time.Second,
+				Mode:      "invalid-mode",
+				OutDir:    "./out",
+				Timeout:   10 * time.Second,
 			},
-			expectedMode:   ModeDirect,
+			expectedMode:    ModeDirect,
 			expectedTimeout: 10 * time.Second,
 		},
 	}
@@ -59,7 +59,7 @@ func TestNewExecutor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			executor := NewExecutor(tt.config)
-			
+
 			assert.NotNil(t, executor)
 			assert.Equal(t, tt.expectedMode, executor.config.Mode)
 			assert.Equal(t, tt.expectedTimeout, executor.config.Timeout)
@@ -73,7 +73,7 @@ func TestExecutor_BuildCommand(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	// Create test files/directories
 	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
@@ -89,8 +89,8 @@ func TestExecutor_BuildCommand(t *testing.T) {
 			name: "direct mode",
 			config: ExecutorConfig{
 				PorchPath: "porch",
-				Mode:     ModeDirect,
-				OutDir:   outDir,
+				Mode:      ModeDirect,
+				OutDir:    outDir,
 			},
 			intentPath: intentFile,
 			expectedCmd: []string{
@@ -104,8 +104,8 @@ func TestExecutor_BuildCommand(t *testing.T) {
 			name: "structured mode",
 			config: ExecutorConfig{
 				PorchPath: "/usr/bin/porch",
-				Mode:     ModeStructured,
-				OutDir:   outDir,
+				Mode:      ModeStructured,
+				OutDir:    outDir,
 			},
 			intentPath: intentFile,
 			expectedCmd: []string{
@@ -120,8 +120,8 @@ func TestExecutor_BuildCommand(t *testing.T) {
 			name: "invalid mode",
 			config: ExecutorConfig{
 				PorchPath: "porch",
-				Mode:     "invalid",
-				OutDir:   outDir,
+				Mode:      "invalid",
+				OutDir:    outDir,
 			},
 			intentPath: intentFile,
 			wantErr:    true,
@@ -131,15 +131,15 @@ func TestExecutor_BuildCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			executor := NewExecutor(tt.config)
-			
+
 			cmd, err := executor.buildCommand(tt.intentPath)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
-			
+
 			// Normalize paths for comparison
 			expectedCmd := make([]string, len(tt.expectedCmd))
 			for i, arg := range tt.expectedCmd {
@@ -150,7 +150,7 @@ func TestExecutor_BuildCommand(t *testing.T) {
 					expectedCmd[i] = arg
 				}
 			}
-			
+
 			assert.Equal(t, expectedCmd, cmd)
 		})
 	}
@@ -160,7 +160,7 @@ func TestExecutor_Execute_MockCommand(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -227,21 +227,21 @@ func TestExecutor_Execute_MockCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockPorchPath := tt.mockCommand(t)
-			
+
 			config := ExecutorConfig{
 				PorchPath: mockPorchPath,
-				Mode:     ModeDirect,
-				OutDir:   outDir,
-				Timeout:  tt.timeout,
+				Mode:      ModeDirect,
+				OutDir:    outDir,
+				Timeout:   tt.timeout,
 			}
-			
+
 			executor := NewExecutor(config)
 			ctx := context.Background()
-			
+
 			result, err := executor.Execute(ctx, intentFile)
 			require.NoError(t, err) // Execute should not return error, all errors in result
 			require.NotNil(t, result)
-			
+
 			tt.expectedResult(t, result)
 			assert.NotZero(t, result.Duration)
 			assert.NotEmpty(t, result.Command)
@@ -253,35 +253,35 @@ func TestExecutor_Execute_ContextCancellation(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
 	// Create mock porch that sleeps for a long time
 	mockPorchPath := createMockPorch(t, tempDir, 0, "output", "", 10*time.Second)
-	
+
 	config := ExecutorConfig{
 		PorchPath: mockPorchPath,
-		Mode:     ModeDirect,
-		OutDir:   outDir,
-		Timeout:  30 * time.Second, // Long timeout
+		Mode:      ModeDirect,
+		OutDir:    outDir,
+		Timeout:   30 * time.Second, // Long timeout
 	}
-	
+
 	executor := NewExecutor(config)
-	
+
 	// Create context that will be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Cancel context after 100ms
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		cancel()
 	}()
-	
+
 	result, err := executor.Execute(ctx, intentFile)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	
+
 	// Should have failed due to context cancellation
 	assert.False(t, result.Success)
 	assert.NotNil(t, result.Error)
@@ -291,17 +291,17 @@ func TestStatefulExecutor(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(t, tempDir, 0, "success", ""),
-		Mode:     ModeDirect,
-		OutDir:   outDir,
-		Timeout:  5 * time.Second,
+		Mode:      ModeDirect,
+		OutDir:    outDir,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	executor := NewStatefulExecutor(config)
 	ctx := context.Background()
 
@@ -349,17 +349,17 @@ func TestStatefulExecutor_TimeoutTracking(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(t, tempDir, 0, "output", "", 2*time.Second), // Sleep longer than timeout
-		Mode:     ModeDirect,
-		OutDir:   outDir,
-		Timeout:  500 * time.Millisecond, // Short timeout
+		Mode:      ModeDirect,
+		OutDir:    outDir,
+		Timeout:   500 * time.Millisecond, // Short timeout
 	}
-	
+
 	executor := NewStatefulExecutor(config)
 	ctx := context.Background()
 
@@ -418,7 +418,7 @@ func TestGetExitCode(t *testing.T) {
 			if tt.name == "command not found" && filepath.Separator == '\\' {
 				t.Skip("Skipping command not found test on Windows")
 			}
-			
+
 			// Skip false command test on Windows as it doesn't exist
 			if tt.name == "failed command" && filepath.Separator == '\\' {
 				t.Skip("Skipping false command test on Windows")
@@ -465,7 +465,7 @@ func TestValidatePorchPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			porchPath := tt.setupFunc(t)
-			
+
 			err := ValidatePorchPath(porchPath)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -483,11 +483,11 @@ func TestExecutor_ConcurrentExecutions(t *testing.T) {
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(t, tempDir, 0, "success", ""),
-		Mode:     ModeDirect,
-		OutDir:   outDir,
-		Timeout:  5 * time.Second,
+		Mode:      ModeDirect,
+		OutDir:    outDir,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	executor := NewStatefulExecutor(config)
 	ctx := context.Background()
 
@@ -563,17 +563,17 @@ func BenchmarkExecutor_Execute(b *testing.B) {
 	tempDir := b.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(b, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 	require.NoError(b, os.MkdirAll(outDir, 0755))
 
 	config := ExecutorConfig{
 		PorchPath: createMockPorch(b, tempDir, 0, "success", ""),
-		Mode:     ModeDirect,
-		OutDir:   outDir,
-		Timeout:  5 * time.Second,
+		Mode:      ModeDirect,
+		OutDir:    outDir,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	executor := NewExecutor(config)
 	ctx := context.Background()
 
@@ -586,13 +586,13 @@ func BenchmarkExecutor_Execute(b *testing.B) {
 func BenchmarkStatefulExecutor_GetStats(b *testing.B) {
 	config := ExecutorConfig{
 		PorchPath: "mock-porch",
-		Mode:     ModeDirect,
-		OutDir:   "./out",
-		Timeout:  5 * time.Second,
+		Mode:      ModeDirect,
+		OutDir:    "./out",
+		Timeout:   5 * time.Second,
 	}
-	
+
 	executor := NewStatefulExecutor(config)
-	
+
 	// Simulate some executions to have stats
 	executor.stats.TotalExecutions = 1000
 	executor.stats.SuccessfulExecs = 950

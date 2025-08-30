@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
-	"regexp"
 )
 
 // WindowsMaxPath is the maximum path length without long path support
@@ -112,7 +112,7 @@ func NormalizeUserPath(p string) (string, error) {
 	if runtime.GOOS == "windows" {
 		// Convert forward slashes to backslashes for consistency
 		p = strings.ReplaceAll(p, "/", "\\")
-		
+
 		// Handle drive letter with relative path (C:temp -> C:\temp)
 		if len(p) >= 2 && p[1] == ':' && len(p) > 2 && p[2] != '\\' {
 			// This is a relative path on a specific drive (e.g., C:temp)
@@ -154,7 +154,7 @@ func NormalizeUserPath(p string) (string, error) {
 				abs = `\\?\` + abs
 			}
 		}
-		
+
 		// Final validation of the normalized path
 		if err := ValidateWindowsPath(abs); err != nil {
 			return "", fmt.Errorf("normalized path validation failed: %w", err)

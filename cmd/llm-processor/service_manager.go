@@ -91,7 +91,7 @@ func NewIntentProcessor(config *Config) *IntentProcessor {
 	// Create circuit breaker
 	circuitBreaker := llm.NewCircuitBreaker("llm-processor", &shared.CircuitBreakerConfig{
 		FailureThreshold: int64(config.CircuitBreakerThreshold),
-		Timeout:         config.CircuitBreakerTimeout,
+		Timeout:          config.CircuitBreakerTimeout,
 	})
 
 	return &IntentProcessor{
@@ -118,7 +118,9 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 			switch client := p.LLMClient.(type) {
 			case *llm.Client:
 				return client.ProcessIntent(ctx, intent)
-			case interface{ ProcessIntent(context.Context, string) (string, error) }:
+			case interface {
+				ProcessIntent(context.Context, string) (string, error)
+			}:
 				// For mock clients that implement the same interface
 				return client.ProcessIntent(ctx, intent)
 			default:
@@ -138,7 +140,9 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 	switch client := p.LLMClient.(type) {
 	case *llm.Client:
 		return client.ProcessIntent(ctx, intent)
-	case interface{ ProcessIntent(context.Context, string) (string, error) }:
+	case interface {
+		ProcessIntent(context.Context, string) (string, error)
+	}:
 		return client.ProcessIntent(ctx, intent)
 	default:
 		return "", fmt.Errorf("unsupported LLM client type: %T", client)
@@ -335,7 +339,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 		sm.streamingProcessor = llm.NewStreamingProcessor(llmClient, tokenManager, streamingConfig)
 	}
 
-	// Initialize main processor with circuit breaker  
+	// Initialize main processor with circuit breaker
 	circuitBreaker := sm.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 	sm.processor = &handlers.IntentProcessor{
 		LLMClient:         llmClient,
@@ -486,7 +490,7 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 	router.HandleFunc("/healthz", sm.healthChecker.HealthzHandler).Methods("GET")
 	router.HandleFunc("/readyz", sm.healthChecker.ReadyzHandler).Methods("GET")
 	router.HandleFunc("/metrics", sm.metricsHandler).Methods("GET")
-	
+
 	// NL to Intent endpoint (public for now, can be protected later)
 	router.HandleFunc("/nl/intent", sm.handler.NLToIntentHandler).Methods("POST")
 

@@ -19,11 +19,11 @@ import (
 
 // SecurityTestSuite represents a comprehensive security test suite
 type SecurityTestSuite struct {
-	tempDir     string
-	handoffDir  string
-	outDir      string
-	mockPorch   string
-	config      loop.Config
+	tempDir    string
+	handoffDir string
+	outDir     string
+	mockPorch  string
+	config     loop.Config
 }
 
 // NewSecurityTestSuite creates a new security test suite
@@ -31,7 +31,7 @@ func NewSecurityTestSuite(t *testing.T) *SecurityTestSuite {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -97,8 +97,8 @@ func TestComprehensiveSecuritySuite(t *testing.T) {
 // testInputValidationSecurity tests input validation security
 func (s *SecurityTestSuite) testInputValidationSecurity(t *testing.T) {
 	maliciousInputs := []struct {
-		name    string
-		content string
+		name               string
+		content            string
 		expectSafeHandling bool
 	}{
 		{
@@ -156,9 +156,9 @@ func (s *SecurityTestSuite) testInputValidationSecurity(t *testing.T) {
 
 	for _, input := range maliciousInputs {
 		t.Run(input.name, func(t *testing.T) {
-			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("malicious-%s.json", 
+			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("malicious-%s.json",
 				strings.ReplaceAll(input.name, " ", "-")))
-			
+
 			require.NoError(t, os.WriteFile(intentFile, []byte(input.content), 0644))
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
@@ -166,7 +166,7 @@ func (s *SecurityTestSuite) testInputValidationSecurity(t *testing.T) {
 			defer watcher.Close()
 
 			err = watcher.Start()
-			
+
 			if input.expectSafeHandling {
 				assert.NoError(t, err, "Should handle malicious input safely")
 				// Verify no system compromise
@@ -238,9 +238,9 @@ func (s *SecurityTestSuite) testPathTraversalSecurity(t *testing.T) {
 	for _, test := range pathTraversalTests {
 		t.Run(test.name, func(t *testing.T) {
 			content := test.setupFunc()
-			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("traversal-%s.json", 
+			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("traversal-%s.json",
 				strings.ReplaceAll(test.name, " ", "-")))
-			
+
 			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
@@ -264,28 +264,28 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 		expectSafe bool
 	}{
 		{
-			name:      "Semicolon injection",
-			porchPath: "porch; rm -rf /",
+			name:       "Semicolon injection",
+			porchPath:  "porch; rm -rf /",
 			expectSafe: false, // Should fail due to invalid command
 		},
 		{
-			name:      "Pipe injection",
-			porchPath: "porch | cat /etc/passwd",
+			name:       "Pipe injection",
+			porchPath:  "porch | cat /etc/passwd",
 			expectSafe: false,
 		},
 		{
-			name:      "Ampersand injection",
-			porchPath: "porch && echo 'injected'",
+			name:       "Ampersand injection",
+			porchPath:  "porch && echo 'injected'",
 			expectSafe: false,
 		},
 		{
-			name:      "Backtick injection",
-			porchPath: "porch `whoami`",
+			name:       "Backtick injection",
+			porchPath:  "porch `whoami`",
 			expectSafe: false,
 		},
 		{
-			name:      "Dollar injection",
-			porchPath: "porch $(id)",
+			name:       "Dollar injection",
+			porchPath:  "porch $(id)",
 			expectSafe: false,
 		},
 	}
@@ -299,7 +299,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 				"namespace": "default",
 				"replicas": 3
 			}`
-			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("injection-%s.json", 
+			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("injection-%s.json",
 				strings.ReplaceAll(test.name, " ", "-")))
 			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
 
@@ -312,7 +312,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 			defer watcher.Close()
 
 			err = watcher.Start()
-			
+
 			if test.expectSafe {
 				assert.NoError(t, err, "Should handle injection safely")
 			} else {
@@ -345,7 +345,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 						"namespace": "ns-%d",
 						"replicas": %d
 					}`, i, i%10, i%5+1)
-					
+
 					file := filepath.Join(s.handoffDir, fmt.Sprintf("bulk-%d.json", i))
 					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
@@ -366,7 +366,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 						"replicas": 3,
 						"large_data": "%s"
 					}`, i, largeData)
-					
+
 					file := filepath.Join(s.handoffDir, fmt.Sprintf("large-%d.json", i))
 					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
@@ -378,7 +378,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 			name: "Rapid file creation",
 			setupFunc: func(t *testing.T) int {
 				count := 100
-				
+
 				// Create files rapidly during processing
 				go func() {
 					for i := 0; i < count; i++ {
@@ -388,13 +388,13 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 							"namespace": "default",
 							"replicas": 1
 						}`, i)
-						
+
 						file := filepath.Join(s.handoffDir, fmt.Sprintf("rapid-%d.json", i))
 						_ = os.WriteFile(file, []byte(content), 0644)
 						time.Sleep(5 * time.Millisecond)
 					}
 				}()
-				
+
 				return count
 			},
 			timeout: 25 * time.Second,
@@ -407,7 +407,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 
 			// Use config with resource limits
 			limitedConfig := s.config
-			limitedConfig.MaxWorkers = 5 // Limit workers
+			limitedConfig.MaxWorkers = 5                      // Limit workers
 			limitedConfig.DebounceDur = 10 * time.Millisecond // Short debounce
 
 			watcher, err := loop.NewWatcher(s.handoffDir, limitedConfig)
@@ -529,7 +529,7 @@ func (s *SecurityTestSuite) testConcurrencySecurity(t *testing.T) {
 			"namespace": "default",
 			"replicas": %d
 		}`, i, i%3+1)
-		
+
 		file := filepath.Join(s.handoffDir, fmt.Sprintf("concurrent-%d.json", i))
 		require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 	}
@@ -563,7 +563,7 @@ func (s *SecurityTestSuite) testConcurrencySecurity(t *testing.T) {
 func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 	// Test state file manipulation
 	stateFile := filepath.Join(s.handoffDir, ".conductor-state.json")
-	
+
 	// Create malicious state file with correct structure
 	maliciousState := map[string]interface{}{
 		"version": "1.0",
@@ -612,8 +612,8 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 // testConfigurationSecurity tests configuration security
 func (s *SecurityTestSuite) testConfigurationSecurity(t *testing.T) {
 	securityConfigs := []struct {
-		name     string
-		modifier func(config loop.Config) loop.Config
+		name       string
+		modifier   func(config loop.Config) loop.Config
 		expectSafe bool
 	}{
 		{
@@ -655,7 +655,7 @@ func (s *SecurityTestSuite) testConfigurationSecurity(t *testing.T) {
 			testConfig := test.modifier(s.config)
 
 			watcher, err := loop.NewWatcher(s.handoffDir, testConfig)
-			
+
 			if test.expectSafe {
 				assert.NoError(t, err, "Should handle configuration safely")
 				if watcher != nil {
@@ -737,12 +737,12 @@ func (s *SecurityTestSuite) assertNoCommandInjection(t *testing.T) {
 
 func (s *SecurityTestSuite) assertSystemHealth(t *testing.T) {
 	// Basic system health checks
-	
+
 	// Check we can still create files
 	testFile := filepath.Join(s.tempDir, "health-check.tmp")
 	err := os.WriteFile(testFile, []byte("health"), 0644)
 	assert.NoError(t, err, "System should still be responsive")
-	
+
 	if err == nil {
 		os.Remove(testFile)
 	}
@@ -751,7 +751,7 @@ func (s *SecurityTestSuite) assertSystemHealth(t *testing.T) {
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	// Ensure memory usage is reasonable (less than 100MB for tests)
 	assert.Less(t, m.Alloc, uint64(100*1024*1024), "Memory usage should be reasonable")
 }
@@ -765,7 +765,7 @@ func (s *SecurityTestSuite) assertNoSecurityViolation(t *testing.T) {
 
 func (s *SecurityTestSuite) assertNoRaceConditionSecurity(t *testing.T) {
 	// Check that concurrent access didn't create security issues
-	
+
 	// Verify state file integrity
 	stateFile := filepath.Join(s.handoffDir, ".conductor-loop-state.json")
 	if _, err := os.Stat(stateFile); err == nil {
@@ -785,7 +785,7 @@ func (s *SecurityTestSuite) assertNoRaceConditionSecurity(t *testing.T) {
 func (s *SecurityTestSuite) assertNoStateManipulationSecurity(t *testing.T) {
 	// Verify state manipulation didn't compromise security
 	stateFile := filepath.Join(s.handoffDir, ".conductor-state.json")
-	
+
 	if _, err := os.Stat(stateFile); err == nil {
 		content, err := os.ReadFile(stateFile)
 		if err == nil {
@@ -797,9 +797,9 @@ func (s *SecurityTestSuite) assertNoStateManipulationSecurity(t *testing.T) {
 				"`whoami`",
 				"; rm -rf",
 			}
-			
+
 			for _, pattern := range dangerousPatterns {
-				assert.NotContains(t, stateContent, pattern, 
+				assert.NotContains(t, stateContent, pattern,
 					"State file should not contain dangerous pattern: %s", pattern)
 			}
 		}
@@ -809,9 +809,9 @@ func (s *SecurityTestSuite) assertNoStateManipulationSecurity(t *testing.T) {
 func (s *SecurityTestSuite) countProcessedFiles() int {
 	processedDir := filepath.Join(s.handoffDir, "processed")
 	failedDir := filepath.Join(s.handoffDir, "failed")
-	
+
 	count := 0
-	
+
 	if entries, err := os.ReadDir(processedDir); err == nil {
 		for _, entry := range entries {
 			if !entry.IsDir() {
@@ -819,7 +819,7 @@ func (s *SecurityTestSuite) countProcessedFiles() int {
 			}
 		}
 	}
-	
+
 	if entries, err := os.ReadDir(failedDir); err == nil {
 		for _, entry := range entries {
 			if !entry.IsDir() {
@@ -827,7 +827,7 @@ func (s *SecurityTestSuite) countProcessedFiles() int {
 			}
 		}
 	}
-	
+
 	return count
 }
 
@@ -894,4 +894,3 @@ func generateDeepNestedJSON(depth int) string {
 	}
 	return fmt.Sprintf(`{"level": %s}`, generateDeepNestedJSON(depth-1))
 }
-
