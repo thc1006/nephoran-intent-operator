@@ -269,7 +269,7 @@ func AssertNetworkIntentHasCondition(ni *nephoranv1.NetworkIntent, conditionType
 
 	found := false
 
-	for _, condition := range []metav1.Condition{} {
+	for _, condition := range ni.Status.Conditions {
 
 		if condition.Type == conditionType {
 
@@ -628,7 +628,7 @@ func WaitForConditionWithReason(ctx context.Context, k8sClient client.Client, na
 
 		}
 
-		for _, condition := range []metav1.Condition{} {
+		for _, condition := range ni.Status.Conditions {
 
 			if condition.Type == conditionType && condition.Reason == reason {
 

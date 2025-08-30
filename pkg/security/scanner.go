@@ -1717,16 +1717,22 @@ func (ss *SecurityScanner) ScanNetworkIntent(ctx context.Context, intent *nephio
 }
 
 // extractTargetsFromIntent extracts scannable targets from a NetworkIntent.
+// Note: NetworkIntentSpec contains the following valid fields:
+// - Intent, Description, IntentType, Priority
+// - TargetComponents ([]ORANComponent), TargetNamespace, TargetCluster
+// - NetworkSlice, Region, ResourceConstraints
+// - ProcessedParameters (which contains SecurityParameters)
+//
+// CNFDeployments and Security are NOT direct fields in NetworkIntentSpec.
+// Security configurations are available via ProcessedParameters.SecurityParameters.
 
 func (ss *SecurityScanner) extractTargetsFromIntent(intent *nephiov1.NetworkIntent) []string {
 
 	var targets []string
 
-	// This would extract actual endpoints from the NetworkIntent specification
+	// Extract targets based on valid NetworkIntentSpec fields
 
-	// For now, return a placeholder
-
-	// Extract targets based on target components and cluster information
+	// Extract targets from cluster information
 	if intent.Spec.TargetCluster != "" {
 		// Add cluster endpoint as a target for security scanning
 		targets = append(targets, intent.Spec.TargetCluster)
@@ -1738,17 +1744,44 @@ func (ss *SecurityScanner) extractTargetsFromIntent(intent *nephiov1.NetworkInte
 		targets = append(targets, "namespace:"+intent.Spec.TargetNamespace)
 	}
 
-	// For now, return placeholder targets based on available spec fields
+	// Add targets based on O-RAN components
+	for _, component := range intent.Spec.TargetComponents {
+		// Create service endpoints based on O-RAN component types
+		switch component {
+		case nephiov1.ORANComponentAMF:
+			targets = append(targets, "amf-service:80")
+		case nephiov1.ORANComponentSMF:
+			targets = append(targets, "smf-service:80")
+		case nephiov1.ORANComponentUPF:
+			targets = append(targets, "upf-service:80")
+		case nephiov1.ORANComponentNearRTRIC:
+			targets = append(targets, "near-rt-ric:80")
+		default:
+			// Generic service endpoint for other components
+			targets = append(targets, string(component)+"-service:80")
+		}
+	}
+
+	// If no specific targets found, add a default placeholder
+	if len(targets) == 0 {
+		targets = append(targets, "localhost:80")
+	}
 
 	return targets
 
 }
 
 // addIntentSecurityFindings adds NetworkIntent-specific security findings.
+// This function safely accesses ProcessedParameters.SecurityParameters which is the 
+// correct path for security configuration in NetworkIntentSpec.
+//
+// IMPORTANT: Direct .Security or .CNFDeployments fields do NOT exist in NetworkIntentSpec.
+// All security configuration is accessed via ProcessedParameters.SecurityParameters.
 
 func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkIntent, results *ScanResults) {
 
 	// Check for insecure configurations in the NetworkIntent
+	// Safely check if ProcessedParameters and SecurityParameters exist
 
 	if intent.Spec.ProcessedParameters == nil || intent.Spec.ProcessedParameters.SecurityParameters == nil {
 
@@ -1758,22 +1791,28 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 			Title:       "Missing Security Configuration",
 
-			Description: "NetworkIntent does not specify security configuration",
+			Description: "NetworkIntent does not specify security configuration in ProcessedParameters",
 
 			Severity:    "Medium",
 
-			Solution:    "Add security parameters to NetworkIntent specification",
+			Solution:    "Add security parameters to NetworkIntent.Spec.ProcessedParameters.SecurityParameters",
 
 			Service:     "NetworkIntent",
 		}
 
 		results.Vulnerabilities = append(results.Vulnerabilities, vuln)
 
+		// Log warning for debugging
+		ss.logger.Warn("NetworkIntent missing security parameters", 
+			"intent", intent.Name, 
+			"namespace", intent.Namespace,
+			"hasProcessedParams", intent.Spec.ProcessedParameters != nil)
+
 	} else {
 
 		secParams := intent.Spec.ProcessedParameters.SecurityParameters
 
-		// Check specific security settings
+		// Check specific security settings with safe dereferencing
 
 		if secParams.TLSEnabled == nil || !*secParams.TLSEnabled {
 
@@ -1787,7 +1826,7 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 				Severity:    "High",
 
-				Solution:    "Enable TLS in NetworkIntent security parameters",
+				Solution:    "Enable TLS in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.TLSEnabled",
 
 				Service:     "NetworkIntent",
 			}
@@ -1810,7 +1849,7 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 				Severity:    "Medium",
 
-				Solution:    "Enable service mesh in NetworkIntent security parameters",
+				Solution:    "Enable service mesh in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.ServiceMesh",
 
 				Service:     "NetworkIntent",
 			}
@@ -1819,7 +1858,7 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 		}
 
-		// Check if encryption is properly configured
+		// Check if encryption is properly configured with safe dereferencing
 
 		if secParams.Encryption == nil || secParams.Encryption.Enabled == nil || !*secParams.Encryption.Enabled {
 
@@ -1833,13 +1872,26 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 				Severity:    "High",
 
-				Solution:    "Enable encryption in NetworkIntent security parameters",
+				Solution:    "Enable encryption in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.Encryption.Enabled",
 
 				Service:     "NetworkIntent",
 			}
 
 			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
 
+		}
+
+		// Additional validation: Check network policies if available
+		if len(secParams.NetworkPolicies) == 0 {
+			vuln := Vulnerability{
+				ID:          "INTENT-005",
+				Title:       "No Network Policies Configured",
+				Description: "NetworkIntent does not specify any network security policies",
+				Severity:    "Medium",
+				Solution:    "Add network policies to SecurityParameters.NetworkPolicies",
+				Service:     "NetworkIntent",
+			}
+			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
 		}
 
 	}

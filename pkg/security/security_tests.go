@@ -478,18 +478,30 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 
 	}
 
-	// Test certificate chain validation (simplified for testing)
-	_, err = x509.ParseCertificate(rootCertDER)
+	// Test certificate chain validation using the new ValidateCertificateChain function
+	rootCert, err := x509.ParseCertificate(rootCertDER)
 	if err != nil {
-		err = fmt.Errorf("certificate parsing failed: %w", err)
+		result.Passed = false
+		result.ErrorMsg = fmt.Sprintf("Certificate parsing failed: %v", err)
+		result.Duration = time.Since(start)
+		return result
 	}
 
-	if err != nil {
+	// Create a certificate manager and test the chain validation
+	if sts.certManager == nil {
+		sts.certManager = NewCertManager(&MockCertStore{})
+	}
+	
+	// Set up the root CA in the certificate manager
+	sts.certManager.rootCA = rootCert
 
+	// Test with a simple single-certificate chain (root only)
+	certs := []*x509.Certificate{rootCert}
+	if err := sts.certManager.ValidateCertificateChain(context.Background(), certs); err != nil {
 		result.Passed = false
-
 		result.ErrorMsg = fmt.Sprintf("Certificate chain validation failed: %v", err)
-
+	} else {
+		result.Details["chain_validation"] = "passed"
 	}
 
 	// Test OCSP checking (mock).
@@ -508,6 +520,25 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 
 	return result
 
+}
+
+// MockCertStore implements a mock certificate store for testing
+type MockCertStore struct{}
+
+func (m *MockCertStore) Get(ctx context.Context, name string) (*tls.Certificate, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *MockCertStore) Put(ctx context.Context, name string, cert *tls.Certificate) error {
+	return nil
+}
+
+func (m *MockCertStore) Delete(ctx context.Context, name string) error {
+	return nil
+}
+
+func (m *MockCertStore) List(ctx context.Context) ([]string, error) {
+	return []string{}, nil
 }
 
 // TestKeyManagement tests key management operations.

@@ -92,6 +92,13 @@ type TLSEnhancedConfig struct {
 
 	CertificateRevocationCheck bool
 
+	// 0-RTT Early Data Support (TLS 1.3)
+	// WARNING: Enabling 0-RTT can expose the application to replay attacks
+	// Only enable for idempotent operations
+	Enable0RTT bool
+
+	Max0RTTDataSize uint32 // Maximum size of 0-RTT early data in bytes
+
 	// Certificate pinning.
 
 	PinnedCertificates []string
