@@ -109,7 +109,7 @@ type ActiveInjection struct {
 
 	StartTime time.Time
 
-	StopFunc func() error
+	StopFunc func(context.Context) error
 
 	Metadata map[string]interface{}
 }
@@ -641,9 +641,9 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 
 	// Store cleanup function.
 
-	f.storeCleanupFunc(result.InjectionID, func() error {
+	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
 
-		return f.client.Delete(context.Background(), networkPolicy)
+		return f.client.Delete(ctx, networkPolicy)
 
 	})
 
@@ -1021,7 +1021,7 @@ func (f *FailureInjector) injectDatabaseConnectionDrop(ctx context.Context, targ
 
 	// Store cleanup function.
 
-	f.storeCleanupFunc(result.InjectionID, func() error {
+	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
 
 		for _, pod := range target.Pods {
 
@@ -1029,7 +1029,7 @@ func (f *FailureInjector) injectDatabaseConnectionDrop(ctx context.Context, targ
 
 				dbPort, failureRate)
 
-			if err := f.execInPod(context.Background(), &pod, cmd); err != nil {
+			if err := f.execInPod(ctx, &pod, cmd); err != nil {
 				f.logger.Error("Failed to execute cleanup command in pod", zap.String("pod", pod.Name), zap.Error(err))
 			}
 
@@ -1276,9 +1276,9 @@ func (f *FailureInjector) injectLoadChaos(ctx context.Context, experiment *Exper
 
 	// Store cleanup function.
 
-	f.storeCleanupFunc(result.InjectionID, func() error {
+	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
 
-		return f.client.Delete(context.Background(), job)
+		return f.client.Delete(ctx, job)
 
 	})
 
@@ -1471,13 +1471,13 @@ func (f *FailureInjector) injectDNSFailure(ctx context.Context, target *Injectio
 
 	// Store cleanup function.
 
-	f.storeCleanupFunc(result.InjectionID, func() error {
+	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
 
 		for _, pod := range target.Pods {
 
 			cmd := fmt.Sprintf("iptables -D OUTPUT -p udp --dport 53 -m statistic --mode random --probability 0.%s -j DROP", failureRate)
 
-			if err := f.execInPod(context.Background(), &pod, cmd); err != nil {
+			if err := f.execInPod(ctx, &pod, cmd); err != nil {
 				f.logger.Error("Failed to execute cleanup command in pod", zap.String("pod", pod.Name), zap.Error(err))
 			}
 
@@ -1665,7 +1665,7 @@ func (f *FailureInjector) StopFailure(ctx context.Context, injectionID string) e
 
 			if activeInj.StopFunc != nil {
 
-				if err := activeInj.StopFunc(); err != nil {
+				if err := activeInj.StopFunc(ctx); err != nil {
 
 					return fmt.Errorf("failed to stop injection: %w", err)
 
@@ -1753,7 +1753,7 @@ func (f *FailureInjector) registerActiveInjection(id string, experiment *Experim
 
 // storeCleanupFunc stores a cleanup function for an injection.
 
-func (f *FailureInjector) storeCleanupFunc(injectionID string, cleanupFunc func() error) {
+func (f *FailureInjector) storeCleanupFunc(injectionID string, cleanupFunc func(context.Context) error) {
 
 	if injection, exists := f.activeInjections.Load(injectionID); exists {
 

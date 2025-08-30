@@ -725,7 +725,7 @@ func (c *Catalog) ValidateTemplate(ctx context.Context, template *Template) erro
 
 	// Validate dependencies.
 
-	if err := c.validateDependencies(template); err != nil {
+	if err := c.validateDependencies(ctx, template); err != nil {
 
 		errors = append(errors, fmt.Sprintf("dependency validation failed: %v", err))
 
@@ -1524,7 +1524,7 @@ func (c *Catalog) validateORANCompliance(template *Template) error {
 
 // validateDependencies validates template dependencies.
 
-func (c *Catalog) validateDependencies(template *Template) error {
+func (c *Catalog) validateDependencies(ctx context.Context, template *Template) error {
 
 	for _, dep := range template.Dependencies {
 

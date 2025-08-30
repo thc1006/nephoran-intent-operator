@@ -885,7 +885,7 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 
 	// Update metrics.
 
-	c.updateMetrics(options, duration, success, cacheHit)
+	c.updateMetrics(ctx, options, duration, success, cacheHit)
 
 	// Track tokens and costs.
 
@@ -893,11 +893,11 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 
 		tokenCount := c.estimateTokenCount(options.Intent, response)
 
-		c.trackTokenUsage(options.ModelName, options.IntentType, tokenCount)
+		c.trackTokenUsage(ctx, options.ModelName, options.IntentType, tokenCount)
 
 		if c.config.TokenConfig.TrackCosts {
 
-			c.trackTokenCosts(options.ModelName, options.IntentType, tokenCount)
+			c.trackTokenCosts(ctx, options.ModelName, options.IntentType, tokenCount)
 
 		}
 
@@ -973,7 +973,7 @@ func (c *EnhancedPerformanceClient) getCachedResponse(intent string) (string, bo
 
 }
 
-func (c *EnhancedPerformanceClient) updateMetrics(options *IntentProcessingOptions, duration time.Duration, success, cacheHit bool) {
+func (c *EnhancedPerformanceClient) updateMetrics(ctx context.Context, options *IntentProcessingOptions, duration time.Duration, success, cacheHit bool) {
 
 	labels := prometheus.Labels{
 
@@ -1036,7 +1036,7 @@ func (c *EnhancedPerformanceClient) estimateTokenCount(input, output string) int
 
 }
 
-func (c *EnhancedPerformanceClient) trackTokenUsage(modelName, intentType string, tokenCount int) {
+func (c *EnhancedPerformanceClient) trackTokenUsage(ctx context.Context, modelName, intentType string, tokenCount int) {
 
 	c.tokenTracker.mutex.Lock()
 
@@ -1070,7 +1070,7 @@ func (c *EnhancedPerformanceClient) trackTokenUsage(modelName, intentType string
 
 }
 
-func (c *EnhancedPerformanceClient) trackTokenCosts(modelName, intentType string, tokenCount int) {
+func (c *EnhancedPerformanceClient) trackTokenCosts(ctx context.Context, modelName, intentType string, tokenCount int) {
 
 	cost := c.costCalculator.CalculateCost(modelName, tokenCount)
 

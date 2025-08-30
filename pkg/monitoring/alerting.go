@@ -295,7 +295,7 @@ func (am *AlertManager) Start(ctx context.Context) error {
 
 	// Register default alert rules.
 
-	am.registerDefaultAlertRules()
+	am.registerDefaultAlertRules(ctx)
 
 	// Start evaluation loop.
 
@@ -988,7 +988,7 @@ func (am *AlertManager) GetAlertRules() []*AlertRule {
 
 // registerDefaultAlertRules registers default alert rules for the Nephoran system.
 
-func (am *AlertManager) registerDefaultAlertRules() {
+func (am *AlertManager) registerDefaultAlertRules(ctx context.Context) {
 
 	// NetworkIntent processing failure rate.
 
