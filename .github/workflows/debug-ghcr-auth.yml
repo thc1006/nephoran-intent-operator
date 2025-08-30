@@ -1,0 +1,118 @@
+# Debug workflow to test GHCR authentication
+name: Debug GHCR Authentication
+
+# TEMPORARILY DISABLED for fast-merge
+# on:
+#   workflow_dispatch:
+#   push:
+#     branches: [ feat/conductor-loop ]
+#     paths: [ '.github/workflows/debug-ghcr-auth.yml' ]
+
+# TEMPORARY: Manual-only trigger
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+jobs:
+  debug-auth:
+    name: Debug GHCR Authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Debug GitHub context
+        run: |
+          echo "=== GitHub Context ==="
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Workflow: ${{ github.workflow }}"
+          
+      - name: Test GitHub API access
+        run: |
+          echo "=== Testing GitHub API Access ==="
+          
+          # Test token with GitHub API
+          echo "Testing token with /user endpoint..."
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                        -H "Accept: application/vnd.github.v3+json" \
+                        "https://api.github.com/user")
+          
+          echo "API Response: $RESPONSE"
+          
+          # Test repository access
+          echo "Testing repository access..."
+          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/repos/${{ github.repository }}" \
+               | jq -r '.permissions // "No permissions found"'
+               
+      - name: Test Docker login without building
+        run: |
+          echo "=== Testing Docker Login ==="
+          
+          # Test GHCR login
+          echo "Testing GHCR login..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          echo "Login successful!"
+          
+          # Test GHCR token scope
+          echo "Testing GHCR token scope..."
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+               "https://ghcr.io/token?scope=repository:${{ github.repository_owner }}/test:pull" \
+               || echo "Token scope test failed (expected for first run)"
+               
+      - name: Build minimal test image
+        if: success()
+        run: |
+          echo "=== Building Test Image ==="
+          
+          # Create minimal Dockerfile
+          cat > Dockerfile.test << 'EOF'
+          FROM alpine:3.18
+          RUN echo "GHCR authentication test successful!" > /test.txt
+          CMD ["cat", "/test.txt"]
+          EOF
+          
+          # Build test image
+          docker build -f Dockerfile.test -t ghcr.io/${{ github.repository_owner }}/nephoran-test:${{ github.sha }} .
+          
+      - name: Push test image
+        if: success()
+        run: |
+          echo "=== Pushing Test Image ==="
+          
+          # Push test image
+          docker push ghcr.io/${{ github.repository_owner }}/nephoran-test:${{ github.sha }}
+          
+          echo "Successfully pushed test image!"
+          
+          # Verify image can be pulled
+          docker rmi ghcr.io/${{ github.repository_owner }}/nephoran-test:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/nephoran-test:${{ github.sha }}
+          docker run --rm ghcr.io/${{ github.repository_owner }}/nephoran-test:${{ github.sha }}
+          
+      - name: Cleanup test image
+        if: always()
+        continue-on-error: true
+        run: |
+          echo "=== Cleanup ==="
+          
+          # Delete test image from registry (requires delete:packages permission)
+          curl -X DELETE \
+               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/user/packages/container/nephoran-test/versions" \
+               || echo "Cleanup skipped - manual deletion may be required"

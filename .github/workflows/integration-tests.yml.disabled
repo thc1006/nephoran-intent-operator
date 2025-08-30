@@ -1,0 +1,305 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: '0 2 * * *' # Run nightly at 2 AM UTC
+  push:
+    branches: [ main, integrate/mvp ]
+    paths:
+      - '**/*_test.go'
+      - 'go.mod'
+      - 'go.sum'
+
+concurrency:
+  group: integration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # Don't cancel long-running integration tests
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Integration Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    services:
+      etcd:
+        image: quay.io/coreos/etcd:v3.5.9
+        ports:
+          - 2379:2379
+        env:
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+          ETCD_ADVERTISE_CLIENT_URLS: http://localhost:2379
+        options: >-
+          --health-cmd "etcdctl endpoint health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+          
+      - name: Build and vet gate
+        run: |
+          echo "=== Build and vet gate before integration tests ==="
+          set -euo pipefail
+          
+          # Step 1: Build all packages
+          echo "Step 1: Building all packages..."
+          if ! go build ./...; then
+            echo "❌ Build failed - compilation errors detected"
+            exit 1
+          fi
+          echo "[BUILD OK] ✅ All packages built successfully"
+          
+          # Step 2: Run go vet
+          echo "Step 2: Running go vet..."
+          if ! go vet ./...; then
+            echo "❌ Go vet failed - potential issues detected"
+            exit 1
+          fi
+          echo "[VET OK] ✅ Go vet passed successfully"
+          
+          # Step 3: Compile test binaries per package with unique names
+          echo "Step 3: Compiling test binaries per package..."
+          
+          # Clean and create cache directory
+          rm -rf .cache/tests
+          mkdir -p .cache/tests
+          
+          # Counter for compiled binaries
+          compiled_count=0
+          
+          # Compile each package's tests with unique output name
+          for pkg in $(go list ./...); do
+            # Generate safe filename from package path
+            safe_name=$(echo "$pkg" | sed 's/[^A-Za-z0-9]/_/g')
+            output_file=".cache/tests/${safe_name}.test"
+            
+            # Try to compile test binary
+            if go test -c "$pkg" -o "$output_file" 2>/dev/null; then
+              compiled_count=$((compiled_count + 1))
+              echo "  ✓ Compiled: $pkg → ${safe_name}.test"
+            else
+              # Some packages may not have tests, which is okay
+              echo "  ○ Skipped: $pkg (no tests or compilation error)"
+            fi
+          done
+          
+          echo ""
+          echo "Test binary compilation complete:"
+          echo "  Total packages: $(go list ./... | wc -l)"
+          echo "  Compiled binaries: $compiled_count"
+          
+          # List generated files for debugging
+          if [ -d .cache/tests ] && [ "$(ls -A .cache/tests)" ]; then
+            echo ""
+            echo "Generated test binaries in .cache/tests/:"
+            ls -la .cache/tests/ | tail -n +2 | awk '{print "  " $9 " (" $5 " bytes)"}'
+            echo "[TEST BINARIES BUILT: $compiled_count files]"
+          else
+            echo "[COMPILE-ONLY TESTS OK] No test binaries generated (packages may lack tests)"
+          fi
+          
+          # Step 4: Guard against stub files without proper build tags
+          echo ""
+          echo "Step 4: Checking for stub files with incorrect build tags..."
+          for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
+            if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
+              echo "❌ Stub file $stub_file lacks proper build tag constraint"
+              echo "Add '//go:build <tag>_stub' to prevent default compilation"
+              exit 1
+            fi
+          done
+          echo "✅ All stub files have proper build constraints"
+          
+          echo ""
+          echo "=== ✅ Build/vet gate passed - proceeding with integration tests ==="
+
+      - name: Install Kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Create Kind cluster
+        run: |
+          cat <<EOF | kind create cluster --config=-
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+            extraPortMappings:
+            - containerPort: 6443
+              hostPort: 6443
+          EOF
+          
+          # Wait for cluster to be ready
+          kubectl wait --for=condition=Ready nodes --all --timeout=5m
+          kubectl get nodes
+
+      - name: Install CRDs
+        run: |
+          echo "Installing CRDs..."
+          if [ -d "deployments/crds" ]; then
+            kubectl apply -f deployments/crds/ || echo "CRD installation warning (may be expected)"
+          fi
+          kubectl get crds
+
+      - name: Run Integration Tests
+        timeout-minutes: 45
+        env:
+          CGO_ENABLED: 1
+          ETCD_ENDPOINT: localhost:2379
+          KUBECONFIG: ${{ env.HOME }}/.kube/config
+        run: |
+          echo "=== Running Integration Tests with External Dependencies ==="
+          mkdir -p .test-reports
+          
+          # Run integration tests with the integration build tag
+          go test -tags=integration -v -race -timeout=40m \
+            -coverprofile=.test-reports/integration-coverage.out \
+            -covermode=atomic \
+            -count=1 \
+            ./... | tee .test-reports/integration-test.log || {
+              echo "Integration tests failed"
+              exit 1
+            }
+          
+          # Generate coverage report
+          if [ -f ".test-reports/integration-coverage.out" ]; then
+            coverage_percent=$(go tool cover -func=.test-reports/integration-coverage.out | grep total | awk '{print $3}')
+            echo "Integration test coverage: $coverage_percent"
+            
+            echo "## 🔌 Integration Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Coverage:** $coverage_percent" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Count test results
+            total_tests=$(grep -c "^=== RUN" .test-reports/integration-test.log || echo "0")
+            passed_tests=$(grep -c "^--- PASS:" .test-reports/integration-test.log || echo "0")
+            failed_tests=$(grep -c "^--- FAIL:" .test-reports/integration-test.log || echo "0")
+            skipped_tests=$(grep -c "^--- SKIP:" .test-reports/integration-test.log || echo "0")
+            
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Tests | $total_tests |" >> $GITHUB_STEP_SUMMARY
+            echo "| Passed | ✅ $passed_tests |" >> $GITHUB_STEP_SUMMARY
+            echo "| Failed | ❌ $failed_tests |" >> $GITHUB_STEP_SUMMARY
+            echo "| Skipped | ⏭️ $skipped_tests |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Run E2E Tests
+        timeout-minutes: 20
+        run: |
+          echo "=== Running E2E Tests ==="
+          go test -tags=integration -v -timeout=15m ./tests/e2e/... || {
+            echo "E2E tests failed"
+            exit 1
+          }
+
+      - name: Run Performance Tests
+        timeout-minutes: 15
+        run: |
+          echo "=== Running Performance Tests ==="
+          go test -tags=integration -v -timeout=10m ./tests/performance/... -run TestLoadScenarios || {
+            echo "Performance tests failed"
+            exit 1
+          }
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results-${{ github.run_id }}
+          path: |
+            .test-reports/
+            /tmp/k8s-*.log
+          retention-days: 7
+
+      - name: Clean up Kind cluster
+        if: always()
+        run: |
+          kind delete cluster || true
+
+  chaos-tests:
+    name: Chaos Engineering Tests
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Install Chaos Mesh
+        run: |
+          curl -sSL https://mirrors.chaos-mesh.org/v2.6.2/install.sh | bash -s -- --local kind
+
+      - name: Run Chaos Tests
+        timeout-minutes: 20
+        run: |
+          echo "=== Running Chaos Engineering Tests ==="
+          go test -tags=integration -v -timeout=15m ./tests/chaos/... || {
+            echo "Chaos tests completed with findings"
+          }
+          
+          echo "## 🌪️ Chaos Engineering Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Chaos scenarios executed to test system resilience" >> $GITHUB_STEP_SUMMARY
+
+      - name: Collect chaos test results
+        if: always()
+        run: |
+          kubectl get pods -A
+          kubectl describe chaosexperiments -A || true
+
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [integration-tests, chaos-tests]
+    if: always() && github.event_name == 'schedule'
+    
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.integration-tests.result }}" == "success" ] && [ "${{ needs.chaos-tests.result }}" == "success" ]; then
+            echo "status=✅ All integration tests passed" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Some integration tests failed" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create summary
+        run: |
+          echo "## 📊 Nightly Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.status.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Chaos Tests | ${{ needs.chaos-tests.result }} |" >> $GITHUB_STEP_SUMMARY

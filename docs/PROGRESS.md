@@ -6,3 +6,16 @@
 | 2025-08-23T21:41:23+08:00 | fix/graceful-shutdown-exit-codes | CI/DevOps | Updated golangci-lint to v1.62.0 across all workflows to fix Go 1.24 compatibility issues |
 | 2025-08-24T04:06:57+08:00 | fix/graceful-shutdown-exit-codes | ci | fix quality-gate exit 127 via gocyclo auto-install |
 | 2025-08-24T04:25:32+08:00 | fix/graceful-shutdown-exit-codes | generator | fix regex syntax; add tests; make Go 1.24.1 build green |
+| 2025-08-24T23:54:44+08:00 | chore/migrate-golangci-v2 | testing | Implemented build tags for test separation |
+ | feat/conductor-loop | aws-sdk-v2-fixes | Fixed StorageClass usage and EC2 instance field access for AWS SDK v2
+2025-08-25T05:01:00+08:00 | feat/conductor-loop | aws-sdk-v2-fixes | Fixed StorageClass usage and EC2 instance field access for AWS SDK v2
+| 2025-08-25T22:54:00+08:00 | feat/conductor-loop | multicluster | Fixed Kubernetes API issues: removed unused imports causing compilation failures
+| 2025-08-27T14:31:53+08:00 | feat/conductor-loop | internal/loop | Fixed context leak issues by adding defer cancel calls for all timeout contexts |
+| 2025-08-27T16:45:00+08:00 | feat/conductor-loop | oran/o2 | Comprehensive O2 service implementation fixes: interface signatures, pointer handling, ResourceStatus unification |
+| 2025-08-27T17:35:10.1444219+08:00 | feat/conductor-loop | o2-service | Fixed all O2 IMS compilation errors and tests |
+| 2025-08-27T20:20:18.9471278+08:00 | feat/conductor-loop | api/v1 | Fixed missing Namespace field errors by using GetNamespace() method |
+| 2025-08-27T13:04:59Z | feat/conductor-loop | legacy-modernization | Cleaned deprecated rand.Seed, fixed type collisions, resolved unused parameter issues |
+| 2025-08-28T09:30:00Z | feat/conductor-loop | ci-bulletproof-system | Comprehensive CI verification system with automated fixes, progress tracking, PR monitoring, and rollback safety |
+ | feat/conductor-loop | pkg/controllers | Fix NetworkIntentAuthDecorator undefined Get method by explicit embedding access
+2025-08-29T21:28:39+08:00 | feat/conductor-loop | pkg/controllers | Fix NetworkIntentAuthDecorator undefined Get method by explicit embedding access
+| 2025-08-30T16:40:03Z | feat/conductor-loop | ci-devops | fix GHCR 403 auth errors with 2025 practices |

@@ -1,0 +1,209 @@
+# Production-grade certificate management for Nephoran Intent Operator
+# This configuration supports multiple certificate authorities and environments
+
+---
+# Let's Encrypt ClusterIssuer for production certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cert-management
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@nephoran.io  # Replace with actual email
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    # HTTP01 solver for public-facing services
+    - http01:
+        ingress:
+          class: nginx
+    # DNS01 solver for wildcard certificates
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            name: cloudflare-api-token-secret
+            key: api-token
+      selector:
+        dnsNames:
+        - "*.nephoran.io"
+
+---
+# Let's Encrypt staging issuer for testing
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cert-management
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@nephoran.io  # Replace with actual email
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            name: cloudflare-api-token-secret
+            key: api-token
+
+---
+# Vault PKI issuer for internal certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: vault-pki-issuer
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cert-management
+spec:
+  vault:
+    server: https://vault.nephoran.io
+    path: pki/sign/nephoran-intent-operator
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: cert-manager
+        secretRef:
+          name: vault-token
+          key: token
+
+---
+# Enhanced webhook certificate with SAN entries
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-webhook-cert
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook
+spec:
+  secretName: nephoran-webhook-certs
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  subject:
+    organizations:
+    - Nephoran Intent Operator
+  commonName: nephoran-webhook-service.nephoran-system.svc
+  dnsNames:
+  - nephoran-webhook-service
+  - nephoran-webhook-service.nephoran-system
+  - nephoran-webhook-service.nephoran-system.svc
+  - nephoran-webhook-service.nephoran-system.svc.cluster.local
+  - webhook-service  # Legacy compatibility
+  - webhook-service.nephoran-system.svc
+  - webhook-service.nephoran-system.svc.cluster.local
+  # Add external DNS names if webhook is exposed externally
+  - webhook.nephoran.io
+  # IP SANs for direct IP access (if required)
+  ipAddresses:
+  - 127.0.0.1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  # Enable key usage for client authentication if mutual TLS is required
+  - client auth
+
+---
+# Certificate for metrics endpoints
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-metrics-cert
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: metrics
+spec:
+  secretName: nephoran-metrics-certs
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  commonName: nephoran-metrics-service.nephoran-system.svc
+  dnsNames:
+  - nephoran-metrics-service
+  - nephoran-metrics-service.nephoran-system
+  - nephoran-metrics-service.nephoran-system.svc
+  - nephoran-metrics-service.nephoran-system.svc.cluster.local
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Certificate for LLM processor mTLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: llm-processor-client-cert
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm-processor
+spec:
+  secretName: llm-processor-client-certs
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+  duration: 720h # 30 days (shorter for client certs)
+  renewBefore: 168h # 7 days
+  commonName: llm-processor-client
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+
+---
+# ConfigMap for certificate rotation monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-rotation-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cert-management
+data:
+  monitoring.yaml: |
+    certificates:
+      - name: "webhook-cert"
+        secretName: "nephoran-webhook-certs"
+        renewBefore: "360h"
+        alertThreshold: "168h"  # Alert 7 days before renewal
+      - name: "metrics-cert"
+        secretName: "nephoran-metrics-certs"
+        renewBefore: "360h"
+        alertThreshold: "168h"
+      - name: "llm-client-cert"
+        secretName: "llm-processor-client-certs"
+        renewBefore: "168h"
+        alertThreshold: "72h"  # Alert 3 days before renewal
+    
+    rotation:
+      enabled: true
+      checkInterval: "1h"
+      alertManager:
+        webhook: "https://alerts.nephoran.io/cert-expiry"
+        slack: "#infrastructure-alerts"
+      
+    backup:
+      enabled: true
+      s3Bucket: "nephoran-cert-backups"
+      retention: "90d"

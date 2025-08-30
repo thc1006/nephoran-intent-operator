@@ -1,0 +1,562 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: audittrails.nephoran.com.
+spec:
+  group: nephoran.com.
+  names:
+    kind: AuditTrail
+    listKind: AuditTrailList
+    plural: audittrails
+    singular: audittrail
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              backends:
+                items:
+                  properties:
+                    bufferSize:
+                      default: 1000
+                      type: integer
+                    compression:
+                      default: false
+                      type: boolean
+                    enabled:
+                      default: true
+                      type: boolean
+                    filter:
+                      properties:
+                        components:
+                          items:
+                            type: string
+                          type: array
+                        eventTypes:
+                          items:
+                            type: string
+                          type: array
+                        excludeFields:
+                          items:
+                            type: string
+                          type: array
+                        excludeTypes:
+                          items:
+                            type: string
+                          type: array
+                        includeFields:
+                          items:
+                            type: string
+                          type: array
+                        minSeverity:
+                          default: info
+                          type: string
+                      type: object
+                    format:
+                      default: json
+                      type: string
+                    name:
+                      maxLength: 63
+                      type: string
+                    retryPolicy:
+                      properties:
+                        backoffFactor:
+                          default: 20
+                          type: number
+                        initialDelay:
+                          default: 1
+                          type: integer
+                        maxDelay:
+                          default: 30
+                          type: integer
+                        maxRetries:
+                          default: 3
+                          type: integer
+                      type: object
+                    settings:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    timeout:
+                      default: 30
+                      type: integer
+                    tls:
+                      properties:
+                        caFile:
+                          type: string
+                        certFile:
+                          type: string
+                        enabled:
+                          default: true
+                          type: boolean
+                        insecureSkipVerify:
+                          default: false
+                          type: boolean
+                        keyFile:
+                          type: string
+                        serverName:
+                          type: string
+                      type: object
+                    type:
+                      enum:
+                      - file
+                      - elasticsearch
+                      - splunk
+                      - syslog
+                      - kafka
+                      - cloudwatch
+                      - stackdriver
+                      - azure_monitor
+                      - siem
+                      - webhook
+                      type: string
+                  required:
+                  - enabled
+                  - name
+                  - type
+                  type: object
+                type: array
+              batchSize:
+                default: 100
+                type: integer
+              complianceMode:
+                items:
+                  enum:
+                  - soc2
+                  - iso27001
+                  - pci_dss
+                  - hipaa
+                  - gdpr
+                  - ccpa
+                  - fisma
+                  - nist_csf
+                  type: string
+                type: array
+              enableIntegrity:
+                default: true
+                type: boolean
+              enabled:
+                default: true
+                type: boolean
+              flushInterval:
+                default: 10
+                type: integer
+              integrityConfig:
+                properties:
+                  autoGenerateKeys:
+                    default: true
+                    type: boolean
+                  enabled:
+                    default: true
+                    type: boolean
+                  keyPairSecret:
+                    type: string
+                  keySize:
+                    default: 2048
+                    type: integer
+                  maxChainLength:
+                    default: 10000
+                    type: integer
+                  verificationMode:
+                    default: strict
+                    type: string
+                type: object
+              logLevel:
+                default: info
+                type: string
+              maxQueueSize:
+                default: 10000
+                type: integer
+              notificationConfig:
+                properties:
+                  email:
+                    properties:
+                      from:
+                        type: string
+                      secretRef:
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      smtpPort:
+                        default: 587
+                        type: integer
+                      smtpServer:
+                        type: string
+                      subject:
+                        type: string
+                      to:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - from
+                    - smtpServer
+                    - to
+                    type: object
+                  enabled:
+                    default: false
+                    type: boolean
+                  slack:
+                    properties:
+                      channel:
+                        type: string
+                      secretRef:
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      username:
+                        type: string
+                      webhookUrl:
+                        type: string
+                    type: object
+                  webhooks:
+                    items:
+                      properties:
+                        eventTypes:
+                          items:
+                            type: string
+                          type: array
+                        headers:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        minSeverity:
+                          enum:
+                          - emergency
+                          - alert
+                          - critical
+                          - error
+                          - warning
+                          - notice
+                          - info
+                          - debug
+                          type: string
+                        name:
+                          type: string
+                        secretRef:
+                          properties:
+                            key:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        url:
+                          type: string
+                      required:
+                      - name
+                      - url
+                      type: object
+                    type: array
+                type: object
+              retentionPolicy:
+                properties:
+                  archivalEnabled:
+                    default: true
+                    type: boolean
+                  checkInterval:
+                    default: 24
+                    type: integer
+                  compressionEnabled:
+                    default: true
+                    type: boolean
+                  defaultRetention:
+                    default: 365
+                    type: integer
+                  encryptionEnabled:
+                    default: true
+                    type: boolean
+                  policies:
+                    items:
+                      properties:
+                        archiveBeforeDelete:
+                          default: true
+                          type: boolean
+                        complianceStandard:
+                          enum:
+                          - soc2
+                          - iso27001
+                          - pci_dss
+                          - hipaa
+                          - gdpr
+                          - ccpa
+                          - fisma
+                          - nist_csf
+                          type: string
+                        components:
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          type: string
+                        eventTypes:
+                          items:
+                            type: string
+                          type: array
+                        legalHoldExempt:
+                          default: false
+                          type: boolean
+                        name:
+                          maxLength: 63
+                          type: string
+                        requireApproval:
+                          default: false
+                          type: boolean
+                        retentionPeriod:
+                          maximum: 7300
+                          type: integer
+                        severity:
+                          enum:
+                          - emergency
+                          - alert
+                          - critical
+                          - error
+                          - warning
+                          - notice
+                          - info
+                          - debug
+                          type: string
+                      required:
+                      - name
+                      - retentionPeriod
+                      type: object
+                    type: array
+                type: object
+            required:
+            - enabled
+            type: object
+          status:
+            properties:
+              backendStatus:
+                items:
+                  properties:
+                    error:
+                      type: string
+                    eventsFailed:
+                      format: int64
+                      type: integer
+                    eventsWritten:
+                      format: int64
+                      type: integer
+                    healthy:
+                      type: boolean
+                    lastCheck:
+                      format: date-time
+                      type: string
+                    lastEventTime:
+                      format: date-time
+                      type: string
+                    name:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - eventsFailed
+                  - eventsWritten
+                  - healthy
+                  - name
+                  - type
+                  type: object
+                type: array
+              complianceStatus:
+                properties:
+                  lastReport:
+                    format: date-time
+                    type: string
+                  recentViolations:
+                    items:
+                      properties:
+                        controlId:
+                          type: string
+                        detectedAt:
+                          format: date-time
+                          type: string
+                        severity:
+                          type: string
+                        standard:
+                          type: string
+                        status:
+                          type: string
+                        violationId:
+                          type: string
+                      required:
+                      - controlId
+                      - detectedAt
+                      - severity
+                      - standard
+                      - status
+                      - violationId
+                      type: object
+                    type: array
+                  standards:
+                    items:
+                      type: string
+                    type: array
+                  violationCount:
+                    format: int64
+                    type: integer
+                required:
+                - violationCount
+                type: object
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              integrityStatus:
+                properties:
+                  chainLength:
+                    type: integer
+                  enabled:
+                    type: boolean
+                  keyId:
+                    type: string
+                  lastHash:
+                    type: string
+                  lastSequence:
+                    format: int64
+                    type: integer
+                  lastVerification:
+                    format: date-time
+                    type: string
+                  verificationResult:
+                    type: string
+                required:
+                - chainLength
+                - enabled
+                - lastSequence
+                type: object
+              lastUpdate:
+                format: date-time
+                type: string
+              phase:
+                enum:
+                - Pending
+                - Initializing
+                - Running
+                - Stopping
+                - Failed
+                type: string
+              stats:
+                properties:
+                  backendCount:
+                    type: integer
+                  eventsArchived:
+                    format: int64
+                    type: integer
+                  eventsDropped:
+                    format: int64
+                    type: integer
+                  eventsProcessed:
+                    format: int64
+                    type: integer
+                  eventsReceived:
+                    format: int64
+                    type: integer
+                  lastEventTime:
+                    format: date-time
+                    type: string
+                  queueSize:
+                    type: integer
+                required:
+                - backendCount
+                - eventsArchived
+                - eventsDropped
+                - eventsProcessed
+                - eventsReceived
+                - queueSize
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true

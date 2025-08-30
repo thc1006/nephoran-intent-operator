@@ -6,283 +6,537 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Subscription and Event Management Models following O-RAN.WG6.O2ims-Interface-v01.01
+// Subscription and Event Management Models following O-RAN.WG6.O2ims-Interface-v01.01.
 
-// Subscription represents an event subscription in O2 IMS
+// Subscription represents an event subscription in O2 IMS.
+
 type Subscription struct {
 	SubscriptionID string `json:"subscriptionId"`
-	Name           string `json:"name"`
-	Description    string `json:"description,omitempty"`
-	CallbackUri    string `json:"callbackUri"`
 
-	// Subscription filter and configuration
-	Filter                 *SubscriptionFilter `json:"filter,omitempty"`
-	ConsumerSubscriptionId string              `json:"consumerSubscriptionId,omitempty"`
+	Name string `json:"name"`
 
-	// Event types and configuration
-	EventTypes  []string            `json:"eventTypes"`
+	Description string `json:"description,omitempty"`
+
+	CallbackUri string `json:"callbackUri"`
+
+	// Subscription filter and configuration.
+
+	Filter *SubscriptionFilter `json:"filter,omitempty"`
+
+	ConsumerSubscriptionId string `json:"consumerSubscriptionId,omitempty"`
+
+	// Event types and configuration.
+
+	EventTypes []string `json:"eventTypes"`
+
 	EventConfig *EventConfiguration `json:"eventConfig,omitempty"`
 
-	// Authentication and security
+	// Authentication and security.
+
 	Authentication *SubscriptionAuth `json:"authentication,omitempty"`
 
-	// Subscription lifecycle
-	Status     *SubscriptionStatus    `json:"status"`
+	// Subscription lifecycle.
+
+	Status *SubscriptionStatus `json:"status"`
+
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
-	CreatedAt  time.Time              `json:"createdAt"`
-	UpdatedAt  time.Time              `json:"updatedAt"`
-	CreatedBy  string                 `json:"createdBy,omitempty"`
-	UpdatedBy  string                 `json:"updatedBy,omitempty"`
+
+	CreatedAt time.Time `json:"createdAt"`
+
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	CreatedBy string `json:"createdBy,omitempty"`
+
+	UpdatedBy string `json:"updatedBy,omitempty"`
 }
 
-// SubscriptionFilter defines filters for event subscriptions
+// SubscriptionFilter defines filters for event subscriptions.
+
 type SubscriptionFilter struct {
-	// Resource filters
-	ResourceTypes   []string `json:"resourceTypes,omitempty"`
-	ResourceIDs     []string `json:"resourceIds,omitempty"`
+
+	// Resource filters.
+
+	ResourceTypes []string `json:"resourceTypes,omitempty"`
+
+	ResourceIDs []string `json:"resourceIds,omitempty"`
+
 	ResourcePoolIDs []string `json:"resourcePoolIds,omitempty"`
 
-	// Event filters
-	EventSeverities []string `json:"eventSeverities,omitempty"`
-	EventSources    []string `json:"eventSources,omitempty"`
+	// Event filters.
 
-	// Geographic filters
+	EventSeverities []string `json:"eventSeverities,omitempty"`
+
+	EventSources []string `json:"eventSources,omitempty"`
+
+	// Geographic filters.
+
 	LocationFilter *LocationFilter `json:"locationFilter,omitempty"`
 
-	// Custom filters
+	// Custom filters.
+
 	CustomFilters map[string]interface{} `json:"customFilters,omitempty"`
 
-	// Time filters
+	// Time filters.
+
 	TimeWindow *TimeWindow `json:"timeWindow,omitempty"`
 }
 
-// LocationFilter, GeographicArea, and BoundingBox are defined in resource_types.go
-// to avoid duplicate declarations across the package
+// LocationFilter, GeographicArea, and BoundingBox are defined in resource_types.go.
 
-// TimeWindow defines a time-based filter
+// to avoid duplicate declarations across the package.
+
+// TimeWindow defines a time-based filter.
+
 type TimeWindow struct {
-	StartTime  *time.Time       `json:"startTime,omitempty"`
-	EndTime    *time.Time       `json:"endTime,omitempty"`
-	TimeOfDay  *TimeOfDayWindow `json:"timeOfDay,omitempty"`
-	DaysOfWeek []string         `json:"daysOfWeek,omitempty"` // MON, TUE, WED, etc.
-	TimeZone   string           `json:"timeZone,omitempty"`
+	StartTime *time.Time `json:"startTime,omitempty"`
+
+	EndTime *time.Time `json:"endTime,omitempty"`
+
+	TimeOfDay *TimeOfDayWindow `json:"timeOfDay,omitempty"`
+
+	DaysOfWeek []string `json:"daysOfWeek,omitempty"` // MON, TUE, WED, etc.
+
+	TimeZone string `json:"timeZone,omitempty"`
 }
 
-// TimeOfDayWindow defines a daily time window
+// TimeOfDayWindow defines a daily time window.
+
 type TimeOfDayWindow struct {
-	StartHour   int `json:"startHour"`   // 0-23
+	StartHour int `json:"startHour"` // 0-23
+
 	StartMinute int `json:"startMinute"` // 0-59
-	EndHour     int `json:"endHour"`     // 0-23
-	EndMinute   int `json:"endMinute"`   // 0-59
+
+	EndHour int `json:"endHour"` // 0-23
+
+	EndMinute int `json:"endMinute"` // 0-59
+
 }
 
-// EventConfiguration defines event delivery configuration
-type EventConfiguration struct {
-	// Delivery options
-	DeliveryMethod string              `json:"deliveryMethod"` // webhook, queue, stream
-	BatchConfig    *BatchConfiguration `json:"batchConfig,omitempty"`
-	RetryConfig    *EventRetryConfig   `json:"retryConfig,omitempty"`
+// EventConfiguration defines event delivery configuration.
 
-	// Event format and encoding
-	EventFormat string `json:"eventFormat"`           // json, xml, cloudevents
-	Encoding    string `json:"encoding"`              // utf8, base64
+type EventConfiguration struct {
+
+	// Delivery options.
+
+	DeliveryMethod string `json:"deliveryMethod"` // webhook, queue, stream
+
+	BatchConfig *BatchConfiguration `json:"batchConfig,omitempty"`
+
+	RetryConfig *EventRetryConfig `json:"retryConfig,omitempty"`
+
+	// Event format and encoding.
+
+	EventFormat string `json:"eventFormat"` // json, xml, cloudevents
+
+	Encoding string `json:"encoding"` // utf8, base64
+
 	Compression string `json:"compression,omitempty"` // gzip, deflate
 
-	// Event enrichment
-	IncludeResourceData bool              `json:"includeResourceData"`
-	IncludeMetadata     bool              `json:"includeMetadata"`
-	CustomHeaders       map[string]string `json:"customHeaders,omitempty"`
+	// Event enrichment.
 
-	// Quality of service
+	IncludeResourceData bool `json:"includeResourceData"`
+
+	IncludeMetadata bool `json:"includeMetadata"`
+
+	CustomHeaders map[string]string `json:"customHeaders,omitempty"`
+
+	// Quality of service.
+
 	QoS *EventQoS `json:"qos,omitempty"`
 }
 
-// BatchConfiguration defines event batching configuration
+// BatchConfiguration defines event batching configuration.
+
 type BatchConfiguration struct {
-	Enabled         bool          `json:"enabled"`
-	MaxBatchSize    int           `json:"maxBatchSize"`
-	MaxWaitTime     time.Duration `json:"maxWaitTime"`
-	FlushOnShutdown bool          `json:"flushOnShutdown"`
+	Enabled bool `json:"enabled"`
+
+	MaxBatchSize int `json:"maxBatchSize"`
+
+	MaxWaitTime time.Duration `json:"maxWaitTime"`
+
+	FlushOnShutdown bool `json:"flushOnShutdown"`
 }
 
-// EventRetryConfig defines retry configuration for event delivery
+// EventRetryConfig defines retry configuration for event delivery.
+
 type EventRetryConfig struct {
-	MaxRetries        int           `json:"maxRetries"`
+	MaxRetries int `json:"maxRetries"`
+
 	InitialRetryDelay time.Duration `json:"initialRetryDelay"`
-	MaxRetryDelay     time.Duration `json:"maxRetryDelay"`
-	BackoffMultiplier float64       `json:"backoffMultiplier"`
-	RetryableErrors   []string      `json:"retryableErrors,omitempty"`
-	DeadLetterQueue   string        `json:"deadLetterQueue,omitempty"`
+
+	MaxRetryDelay time.Duration `json:"maxRetryDelay"`
+
+	BackoffMultiplier float64 `json:"backoffMultiplier"`
+
+	RetryableErrors []string `json:"retryableErrors,omitempty"`
+
+	DeadLetterQueue string `json:"deadLetterQueue,omitempty"`
 }
 
-// EventQoS defines quality of service parameters for events
+// EventQoS defines quality of service parameters for events.
+
 type EventQoS struct {
-	DeliveryGuarantee string        `json:"deliveryGuarantee"` // AT_LEAST_ONCE, AT_MOST_ONCE, EXACTLY_ONCE
-	Priority          string        `json:"priority"`          // HIGH, MEDIUM, LOW
-	MaxDeliveryTime   time.Duration `json:"maxDeliveryTime,omitempty"`
-	OrderingGuarantee bool          `json:"orderingGuarantee"`
+	DeliveryGuarantee string `json:"deliveryGuarantee"` // AT_LEAST_ONCE, AT_MOST_ONCE, EXACTLY_ONCE
+
+	Priority string `json:"priority"` // HIGH, MEDIUM, LOW
+
+	MaxDeliveryTime time.Duration `json:"maxDeliveryTime,omitempty"`
+
+	OrderingGuarantee bool `json:"orderingGuarantee"`
 }
 
-// SubscriptionAuth defines authentication configuration for subscriptions
+// SubscriptionAuth defines authentication configuration for subscriptions.
+
 type SubscriptionAuth struct {
-	Type              string             `json:"type"` // none, basic, bearer, oauth2, certificate
-	Credentials       map[string]string  `json:"credentials,omitempty"`
-	OAuth2Config      *OAuth2Config      `json:"oauth2Config,omitempty"`
+	Type string `json:"type"` // none, basic, bearer, oauth2, certificate
+
+	Credentials map[string]string `json:"credentials,omitempty"`
+
+	OAuth2Config *OAuth2Config `json:"oauth2Config,omitempty"`
+
 	CertificateConfig *CertificateConfig `json:"certificateConfig,omitempty"`
 }
 
-// OAuth2Config defines OAuth2 authentication configuration
+// OAuth2Config defines OAuth2 authentication configuration.
+
 type OAuth2Config struct {
-	TokenUrl     string   `json:"tokenUrl"`
-	ClientId     string   `json:"clientId"`
-	ClientSecret string   `json:"clientSecret"`
-	Scope        []string `json:"scope,omitempty"`
-	GrantType    string   `json:"grantType"` // client_credentials, authorization_code
+	TokenUrl string `json:"tokenUrl"`
+
+	ClientId string `json:"clientId"`
+
+	ClientSecret string `json:"clientSecret"`
+
+	Scope []string `json:"scope,omitempty"`
+
+	GrantType string `json:"grantType"` // client_credentials, authorization_code
+
 }
 
-// CertificateConfig defines certificate-based authentication
+// CertificateConfig defines certificate-based authentication.
+
 type CertificateConfig struct {
-	CertificatePath   string `json:"certificatePath"`
-	PrivateKeyPath    string `json:"privateKeyPath"`
+	CertificatePath string `json:"certificatePath"`
+
+	PrivateKeyPath string `json:"privateKeyPath"`
+
 	CACertificatePath string `json:"caCertificatePath,omitempty"`
-	SkipTLSVerify     bool   `json:"skipTlsVerify"`
+
+	SkipTLSVerify bool `json:"skipTlsVerify"`
 }
 
-// SubscriptionStatus represents the status of a subscription
+// SubscriptionStatus represents the status of a subscription.
+
 type SubscriptionStatus struct {
-	State              string                  `json:"state"`  // ACTIVE, INACTIVE, SUSPENDED, ERROR
-	Health             string                  `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
-	LastEventDelivered *time.Time              `json:"lastEventDelivered,omitempty"`
-	EventsDelivered    int64                   `json:"eventsDelivered"`
-	EventsFailures     int64                   `json:"eventsFailures"`
-	LastError          string                  `json:"lastError,omitempty"`
-	LastHealthCheck    time.Time               `json:"lastHealthCheck"`
-	DeliveryStats      *DeliveryStatistics     `json:"deliveryStats,omitempty"`
-	Conditions         []SubscriptionCondition `json:"conditions,omitempty"`
+	State string `json:"state"` // ACTIVE, INACTIVE, SUSPENDED, ERROR
+
+	Health string `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
+
+	LastEventDelivered *time.Time `json:"lastEventDelivered,omitempty"`
+
+	EventsDelivered int64 `json:"eventsDelivered"`
+
+	EventsFailures int64 `json:"eventsFailures"`
+
+	LastError string `json:"lastError,omitempty"`
+
+	LastHealthCheck time.Time `json:"lastHealthCheck"`
+
+	DeliveryStats *DeliveryStatistics `json:"deliveryStats,omitempty"`
+
+	Conditions []SubscriptionCondition `json:"conditions,omitempty"`
 }
 
-// DeliveryStatistics provides statistics about event delivery
+// DeliveryStatistics provides statistics about event delivery.
+
 type DeliveryStatistics struct {
-	TotalEvents          int64         `json:"totalEvents"`
-	SuccessfulDeliveries int64         `json:"successfulDeliveries"`
-	FailedDeliveries     int64         `json:"failedDeliveries"`
-	RetryAttempts        int64         `json:"retryAttempts"`
-	AverageDeliveryTime  time.Duration `json:"averageDeliveryTime"`
-	DeliveryRate         float64       `json:"deliveryRate"` // events per second
-	ErrorRate            float64       `json:"errorRate"`    // percentage
-	LastResetTime        time.Time     `json:"lastResetTime"`
+	TotalEvents int64 `json:"totalEvents"`
+
+	SuccessfulDeliveries int64 `json:"successfulDeliveries"`
+
+	FailedDeliveries int64 `json:"failedDeliveries"`
+
+	RetryAttempts int64 `json:"retryAttempts"`
+
+	AverageDeliveryTime time.Duration `json:"averageDeliveryTime"`
+
+	DeliveryRate float64 `json:"deliveryRate"` // events per second
+
+	ErrorRate float64 `json:"errorRate"` // percentage
+
+	LastResetTime time.Time `json:"lastResetTime"`
 }
 
-// SubscriptionCondition represents a condition of the subscription
+// SubscriptionCondition represents a condition of the subscription.
+
 type SubscriptionCondition struct {
-	Type               string    `json:"type"`
-	Status             string    `json:"status"` // True, False, Unknown
-	Reason             string    `json:"reason,omitempty"`
-	Message            string    `json:"message,omitempty"`
+	Type string `json:"type"`
+
+	Status string `json:"status"` // True, False, Unknown
+
+	Reason string `json:"reason,omitempty"`
+
+	Message string `json:"message,omitempty"`
+
 	LastTransitionTime time.Time `json:"lastTransitionTime"`
-	LastUpdateTime     time.Time `json:"lastUpdateTime,omitempty"`
+
+	LastUpdateTime time.Time `json:"lastUpdateTime,omitempty"`
 }
 
-// InfrastructureEvent represents an event that occurred in the infrastructure
-type InfrastructureEvent struct {
-	EventID     string    `json:"eventId"`
-	EventType   string    `json:"eventType"`
-	EventTime   time.Time `json:"eventTime"`
-	EventSource string    `json:"eventSource"`
+// InfrastructureEvent represents an event that occurred in the infrastructure.
 
-	// Event classification
+type InfrastructureEvent struct {
+	EventID string `json:"eventId"`
+
+	EventType string `json:"eventType"`
+
+	EventTime time.Time `json:"eventTime"`
+
+	EventSource string `json:"eventSource"`
+
+	// Event classification.
+
 	Severity string `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, INFO
+
 	Category string `json:"category"` // ALARM, STATE_CHANGE, PERFORMANCE, SECURITY
 
-	// Resource information
-	ResourceID     string `json:"resourceId,omitempty"`
-	ResourceType   string `json:"resourceType,omitempty"`
+	// Resource information.
+
+	ResourceID string `json:"resourceId,omitempty"`
+
+	ResourceType string `json:"resourceType,omitempty"`
+
 	ResourcePoolID string `json:"resourcePoolId,omitempty"`
 
-	// Event details
-	Summary     string `json:"summary"`
+	// Event details.
+
+	Summary string `json:"summary"`
+
 	Description string `json:"description,omitempty"`
-	Reason      string `json:"reason,omitempty"`
 
-	// Event data
-	EventData     *runtime.RawExtension `json:"eventData,omitempty"`
+	Reason string `json:"reason,omitempty"`
+
+	// Event data.
+
+	EventData *runtime.RawExtension `json:"eventData,omitempty"`
+
 	PreviousState *runtime.RawExtension `json:"previousState,omitempty"`
-	CurrentState  *runtime.RawExtension `json:"currentState,omitempty"`
 
-	// Context and metadata
-	CorrelationID string                 `json:"correlationId,omitempty"`
-	Tags          map[string]string      `json:"tags,omitempty"`
-	Labels        map[string]string      `json:"labels,omitempty"`
-	Extensions    map[string]interface{} `json:"extensions,omitempty"`
+	CurrentState *runtime.RawExtension `json:"currentState,omitempty"`
 
-	// Geographic and temporal context
+	// Context and metadata.
+
+	CorrelationID string `json:"correlationId,omitempty"`
+
+	Tags map[string]string `json:"tags,omitempty"`
+
+	Labels map[string]string `json:"labels,omitempty"`
+
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
+
+	// Geographic and temporal context.
+
 	Location *EventLocation `json:"location,omitempty"`
+
 	Duration *time.Duration `json:"duration,omitempty"`
 
-	// Notification tracking
-	NotificationsSent []string   `json:"notificationsSent,omitempty"`
-	AcknowledgedBy    []string   `json:"acknowledgedBy,omitempty"`
-	ResolvedBy        string     `json:"resolvedBy,omitempty"`
-	ResolvedAt        *time.Time `json:"resolvedAt,omitempty"`
+	// Notification tracking.
+
+	NotificationsSent []string `json:"notificationsSent,omitempty"`
+
+	AcknowledgedBy []string `json:"acknowledgedBy,omitempty"`
+
+	ResolvedBy string `json:"resolvedBy,omitempty"`
+
+	ResolvedAt *time.Time `json:"resolvedAt,omitempty"`
 }
 
-// Constants for subscriptions and events
+// Constants for subscriptions and events.
 
 const (
-	// Event types
-	EventTypeResourceCreated       = "ResourceCreated"
-	EventTypeResourceUpdated       = "ResourceUpdated"
-	EventTypeResourceDeleted       = "ResourceDeleted"
-	EventTypeResourceStateChanged  = "ResourceStateChanged"
+
+	// Event types.
+
+	EventTypeResourceCreated = "ResourceCreated"
+
+	// EventTypeResourceUpdated holds eventtyperesourceupdated value.
+
+	EventTypeResourceUpdated = "ResourceUpdated"
+
+	// EventTypeResourceDeleted holds eventtyperesourcedeleted value.
+
+	EventTypeResourceDeleted = "ResourceDeleted"
+
+	// EventTypeResourceStateChanged holds eventtyperesourcestatechanged value.
+
+	EventTypeResourceStateChanged = "ResourceStateChanged"
+
+	// EventTypeResourceHealthChanged holds eventtyperesourcehealthchanged value.
+
 	EventTypeResourceHealthChanged = "ResourceHealthChanged"
-	EventTypeAlarmRaised           = "AlarmRaised"
-	EventTypeAlarmCleared          = "AlarmCleared"
-	EventTypeAlarmChanged          = "AlarmChanged"
-	EventTypeDeploymentCreated     = "DeploymentCreated"
-	EventTypeDeploymentUpdated     = "DeploymentUpdated"
-	EventTypeDeploymentCompleted   = "DeploymentCompleted"
-	EventTypeDeploymentFailed      = "DeploymentFailed"
-	EventTypeDeploymentDeleted     = "DeploymentDeleted"
 
-	// Event severities
+	// EventTypeAlarmRaised holds eventtypealarmraised value.
+
+	EventTypeAlarmRaised = "AlarmRaised"
+
+	// EventTypeAlarmCleared holds eventtypealarmcleared value.
+
+	EventTypeAlarmCleared = "AlarmCleared"
+
+	// EventTypeAlarmChanged holds eventtypealarmchanged value.
+
+	EventTypeAlarmChanged = "AlarmChanged"
+
+	// EventTypeDeploymentCreated holds eventtypedeploymentcreated value.
+
+	EventTypeDeploymentCreated = "DeploymentCreated"
+
+	// EventTypeDeploymentUpdated holds eventtypedeploymentupdated value.
+
+	EventTypeDeploymentUpdated = "DeploymentUpdated"
+
+	// EventTypeDeploymentCompleted holds eventtypedeploymentcompleted value.
+
+	EventTypeDeploymentCompleted = "DeploymentCompleted"
+
+	// EventTypeDeploymentFailed holds eventtypedeploymentfailed value.
+
+	EventTypeDeploymentFailed = "DeploymentFailed"
+
+	// EventTypeDeploymentDeleted holds eventtypedeploymentdeleted value.
+
+	EventTypeDeploymentDeleted = "DeploymentDeleted"
+
+	// Event severities.
+
 	EventSeverityCritical = "CRITICAL"
-	EventSeverityMajor    = "MAJOR"
-	EventSeverityMinor    = "MINOR"
-	EventSeverityWarning  = "WARNING"
-	EventSeverityInfo     = "INFO"
 
-	// Event categories
-	EventCategoryAlarm         = "ALARM"
-	EventCategoryStateChange   = "STATE_CHANGE"
-	EventCategoryPerformance   = "PERFORMANCE"
-	EventCategorySecurity      = "SECURITY"
+	// EventSeverityMajor holds eventseveritymajor value.
+
+	EventSeverityMajor = "MAJOR"
+
+	// EventSeverityMinor holds eventseverityminor value.
+
+	EventSeverityMinor = "MINOR"
+
+	// EventSeverityWarning holds eventseveritywarning value.
+
+	EventSeverityWarning = "WARNING"
+
+	// EventSeverityInfo holds eventseverityinfo value.
+
+	EventSeverityInfo = "INFO"
+
+	// Event categories.
+
+	EventCategoryAlarm = "ALARM"
+
+	// EventCategoryStateChange holds eventcategorystatechange value.
+
+	EventCategoryStateChange = "STATE_CHANGE"
+
+	// EventCategoryPerformance holds eventcategoryperformance value.
+
+	EventCategoryPerformance = "PERFORMANCE"
+
+	// EventCategorySecurity holds eventcategorysecurity value.
+
+	EventCategorySecurity = "SECURITY"
+
+	// EventCategoryConfiguration holds eventcategoryconfiguration value.
+
 	EventCategoryConfiguration = "CONFIGURATION"
 
-	// Subscription states
-	SubscriptionStateActive    = "ACTIVE"
-	SubscriptionStateInactive  = "INACTIVE"
-	SubscriptionStateSuspended = "SUSPENDED"
-	SubscriptionStateError     = "ERROR"
+	// Subscription states.
 
-	// Authentication types
-	AuthTypeNone        = "none"
-	AuthTypeBasic       = "basic"
-	AuthTypeBearer      = "bearer"
-	AuthTypeOAuth2      = "oauth2"
+	SubscriptionStateActive = "ACTIVE"
+
+	// SubscriptionStateInactive holds subscriptionstateinactive value.
+
+	SubscriptionStateInactive = "INACTIVE"
+
+	// SubscriptionStateSuspended holds subscriptionstatesuspended value.
+
+	SubscriptionStateSuspended = "SUSPENDED"
+
+	// SubscriptionStateError holds subscriptionstateerror value.
+
+	SubscriptionStateError = "ERROR"
+
+	// Authentication types.
+
+	AuthTypeNone = "none"
+
+	// AuthTypeBasic holds authtypebasic value.
+
+	AuthTypeBasic = "basic"
+
+	// AuthTypeBearer holds authtypebearer value.
+
+	AuthTypeBearer = "bearer"
+
+	// AuthTypeOAuth2 holds authtypeoauth2 value.
+
+	AuthTypeOAuth2 = "oauth2"
+
+	// AuthTypeCertificate holds authtypecertificate value.
+
 	AuthTypeCertificate = "certificate"
 
-	// Delivery methods
-	DeliveryMethodWebhook = "webhook"
-	DeliveryMethodQueue   = "queue"
-	DeliveryMethodStream  = "stream"
+	// Delivery methods.
 
-	// Event formats
-	EventFormatJSON        = "json"
-	EventFormatXML         = "xml"
+	DeliveryMethodWebhook = "webhook"
+
+	// DeliveryMethodQueue holds deliverymethodqueue value.
+
+	DeliveryMethodQueue = "queue"
+
+	// DeliveryMethodStream holds deliverymethodstream value.
+
+	DeliveryMethodStream = "stream"
+
+	// Event formats.
+
+	EventFormatJSON = "json"
+
+	// EventFormatXML holds eventformatxml value.
+
+	EventFormatXML = "xml"
+
+	// EventFormatCloudEvents holds eventformatcloudevents value.
+
 	EventFormatCloudEvents = "cloudevents"
 
-	// QoS delivery guarantees
+	// QoS delivery guarantees.
+
 	QoSAtLeastOnce = "AT_LEAST_ONCE"
-	QoSAtMostOnce  = "AT_MOST_ONCE"
+
+	// QoSAtMostOnce holds qosatmostonce value.
+
+	QoSAtMostOnce = "AT_MOST_ONCE"
+
+	// QoSExactlyOnce holds qosexactlyonce value.
+
 	QoSExactlyOnce = "EXACTLY_ONCE"
 )
+
+// SubscriptionQueryFilter defines filters for subscription queries.
+
+type SubscriptionQueryFilter struct {
+	Names []string `json:"names,omitempty"`
+
+	EventTypes []string `json:"eventTypes,omitempty"`
+
+	States []string `json:"states,omitempty"`
+
+	ResourceTypes []string `json:"resourceTypes,omitempty"`
+
+	CreatedAfter *time.Time `json:"createdAfter,omitempty"`
+
+	CreatedBefore *time.Time `json:"createdBefore,omitempty"`
+
+	Labels map[string]string `json:"labels,omitempty"`
+
+	Limit int `json:"limit,omitempty"`
+
+	Offset int `json:"offset,omitempty"`
+}

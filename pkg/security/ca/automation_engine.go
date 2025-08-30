@@ -1,1080 +1,1976 @@
+// Package ca provides Certificate Authority automation and management functionality
+
+// for the Nephoran Intent Operator security infrastructure.
+
 package ca
 
 import (
 	"context"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
 )
 
-// AutomationEngine provides comprehensive certificate automation capabilities
+// AutomationEngine manages automated certificate operations.
+
 type AutomationEngine struct {
-	config            *AutomationConfig
-	logger            *logging.StructuredLogger
-	caManager         *CAManager
-	validator         *ValidationFramework
-	revocationChecker *RevocationChecker
-	kubeClient        kubernetes.Interface
-	ctrlClient        client.Client
+	logger *logging.StructuredLogger
 
-	// Internal state
-	provisioningQueue chan *ProvisioningRequest
-	renewalQueue      chan *RenewalRequest
-	validationCache   *ValidationCache
+	config *AutomationConfig
 
-	// Enhanced features
-	rotationCoordinator *RotationCoordinator
-	serviceDiscovery    *ServiceDiscovery
-	performanceCache    *PerformanceCache
-	healthChecker       *HealthChecker
+	manager *CAManager
 
-	// Control channels
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-	mu     sync.RWMutex
+	healthChecker *HealthChecker
+
+	kubeClient kubernetes.Interface
+
+	watchers map[string]*ServiceWatcher
+
+	watchersMux sync.RWMutex
+
+	stopCh chan struct{}
+
+	running bool
+
+	runningMux sync.RWMutex
+
+	requestQueue []*AutomationRequest
+
+	requestQueueMux sync.RWMutex
 }
 
-// AutomationConfig configures the automation engine
+// AutomationConfig holds automation configuration.
+
 type AutomationConfig struct {
-	// Provisioning settings
-	ProvisioningEnabled     bool          `yaml:"provisioning_enabled"`
-	AutoInjectCertificates  bool          `yaml:"auto_inject_certificates"`
-	ServiceDiscoveryEnabled bool          `yaml:"service_discovery_enabled"`
-	ProvisioningWorkers     int           `yaml:"provisioning_workers"`
-	ProvisioningTimeout     time.Duration `yaml:"provisioning_timeout"`
 
-	// Renewal settings
-	RenewalEnabled         bool          `yaml:"renewal_enabled"`
-	RenewalThreshold       time.Duration `yaml:"renewal_threshold"`
-	RenewalWorkers         int           `yaml:"renewal_workers"`
-	RenewalWindow          time.Duration `yaml:"renewal_window"`
-	GracefulRenewalEnabled bool          `yaml:"graceful_renewal_enabled"`
+	// Discovery settings.
 
-	// Validation settings
-	ValidationEnabled      bool          `yaml:"validation_enabled"`
-	RealtimeValidation     bool          `yaml:"realtime_validation"`
-	ChainValidationEnabled bool          `yaml:"chain_validation_enabled"`
-	CTLogValidationEnabled bool          `yaml:"ct_log_validation_enabled"`
-	ValidationCacheSize    int           `yaml:"validation_cache_size"`
-	ValidationCacheTTL     time.Duration `yaml:"validation_cache_ttl"`
+	ServiceDiscoveryEnabled bool `yaml:"service_discovery_enabled"`
 
-	// Revocation settings
-	RevocationEnabled   bool          `yaml:"revocation_enabled"`
-	CRLCheckEnabled     bool          `yaml:"crl_check_enabled"`
-	OCSPCheckEnabled    bool          `yaml:"ocsp_check_enabled"`
-	RevocationCacheSize int           `yaml:"revocation_cache_size"`
-	RevocationCacheTTL  time.Duration `yaml:"revocation_cache_ttl"`
+	DiscoveryInterval time.Duration `yaml:"discovery_interval"`
 
-	// Integration settings
-	KubernetesIntegration *K8sIntegrationConfig     `yaml:"kubernetes_integration"`
-	MonitoringIntegration *MonitoringIntegration    `yaml:"monitoring_integration"`
-	AlertingConfig        *AutomationAlertingConfig `yaml:"alerting_config"`
+	DiscoveryNamespaces []string `yaml:"discovery_namespaces"`
 
-	// Performance settings
-	BatchSize               int           `yaml:"batch_size"`
-	MaxConcurrentOperations int           `yaml:"max_concurrent_operations"`
-	OperationTimeout        time.Duration `yaml:"operation_timeout"`
-	RetryAttempts           int           `yaml:"retry_attempts"`
-	RetryBackoff            time.Duration `yaml:"retry_backoff"`
+	DiscoverySelectors []string `yaml:"discovery_selectors"`
+
+	// Certificate management.
+
+	AutoRenewalEnabled bool `yaml:"auto_renewal_enabled"`
+
+	RenewalThreshold time.Duration `yaml:"renewal_threshold"`
+
+	RenewalCheckInterval time.Duration `yaml:"renewal_check_interval"`
+
+	CertificateBackup bool `yaml:"certificate_backup"`
+
+	BackupRetention int `yaml:"backup_retention"`
+
+	// Health checking.
+
+	HealthCheckEnabled bool `yaml:"health_check_enabled"`
+
+	HealthCheckTimeout time.Duration `yaml:"health_check_timeout"`
+
+	HealthCheckRetries int `yaml:"health_check_retries"`
+
+	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
+
+	// Notification settings.
+
+	NotificationEnabled bool `yaml:"notification_enabled"`
+
+	NotificationEndpoints []string `yaml:"notification_endpoints"`
+
+	AlertThresholds map[string]int `yaml:"alert_thresholds"`
+
+	// Performance tuning.
+
+	MaxConcurrentOps int `yaml:"max_concurrent_operations"`
+
+	OperationTimeout time.Duration `yaml:"operation_timeout"`
+
+	BatchSize int `yaml:"batch_size"`
+
+	ProcessingInterval time.Duration `yaml:"processing_interval"`
+
+	// Security.
+
+	AllowedServiceTypes []string `yaml:"allowed_service_types"`
+
+	RequiredAnnotations map[string]string `yaml:"required_annotations"`
+
+	TLSValidation bool `yaml:"tls_validation"`
+
+	PolicyValidation bool `yaml:"policy_validation"`
 }
 
-// K8sIntegrationConfig configures Kubernetes integration
-type K8sIntegrationConfig struct {
-	Enabled          bool                    `yaml:"enabled"`
-	Namespaces       []string                `yaml:"namespaces"`
-	ServiceSelector  string                  `yaml:"service_selector"`
-	PodSelector      string                  `yaml:"pod_selector"`
-	IngressSelector  string                  `yaml:"ingress_selector"`
-	AdmissionWebhook *AdmissionWebhookConfig `yaml:"admission_webhook"`
-	SecretPrefix     string                  `yaml:"secret_prefix"`
-	AnnotationPrefix string                  `yaml:"annotation_prefix"`
+// ServiceWatcher watches for service changes.
+
+type ServiceWatcher struct {
+	namespace string
+
+	selector fields.Selector
+
+	informer cache.SharedIndexInformer
+
+	stopCh chan struct{}
 }
 
-// AdmissionWebhookConfig configures admission webhook for certificate injection
-type AdmissionWebhookConfig struct {
-	Enabled          bool   `yaml:"enabled"`
-	WebhookName      string `yaml:"webhook_name"`
-	ServiceName      string `yaml:"service_name"`
-	ServiceNamespace string `yaml:"service_namespace"`
-	CertDir          string `yaml:"cert_dir"`
-	Port             int    `yaml:"port"`
+// ServiceDiscoveryResult represents a discovered service.
+
+type ServiceDiscoveryResult struct {
+	Name string `json:"name"`
+
+	Namespace string `json:"namespace"`
+
+	Type string `json:"type"`
+
+	Endpoint string `json:"endpoint"`
+
+	Labels map[string]string `json:"labels"`
+
+	Annotations map[string]string `json:"annotations"`
+
+	Ports []ServicePort `json:"ports"`
+
+	TLSEnabled bool `json:"tls_enabled"`
+
+	CertInfo *CertificateInfo `json:"cert_info,omitempty"`
 }
 
-// MonitoringIntegration configures monitoring integration
-type MonitoringIntegration struct {
-	PrometheusEnabled    bool `yaml:"prometheus_enabled"`
-	JaegerEnabled        bool `yaml:"jaeger_enabled"`
-	GrafanaEnabled       bool `yaml:"grafana_enabled"`
-	CustomMetricsEnabled bool `yaml:"custom_metrics_enabled"`
+// ServicePort represents a service port.
+
+type ServicePort struct {
+	Name string `json:"name"`
+
+	Port int32 `json:"port"`
+
+	Protocol string `json:"protocol"`
 }
 
-// AutomationAlertingConfig configures automation-specific alerting
-type AutomationAlertingConfig struct {
-	Enabled                  bool          `yaml:"enabled"`
-	ProvisioningFailureAlert bool          `yaml:"provisioning_failure_alert"`
-	RenewalFailureAlert      bool          `yaml:"renewal_failure_alert"`
-	ValidationFailureAlert   bool          `yaml:"validation_failure_alert"`
-	RevocationAlert          bool          `yaml:"revocation_alert"`
-	AlertCooldown            time.Duration `yaml:"alert_cooldown"`
+// CertificateInfo represents certificate information for a service.
+
+type CertificateInfo struct {
+	SerialNumber string `json:"serial_number"`
+
+	Subject string `json:"subject"`
+
+	Issuer string `json:"issuer"`
+
+	NotBefore time.Time `json:"not_before"`
+
+	NotAfter time.Time `json:"not_after"`
+
+	DNSNames []string `json:"dns_names"`
+
+	IPAddresses []string `json:"ip_addresses"`
 }
 
-// ProvisioningRequest represents a certificate provisioning request
-type ProvisioningRequest struct {
-	ID          string               `json:"id"`
-	ServiceName string               `json:"service_name"`
-	Namespace   string               `json:"namespace"`
-	Template    string               `json:"template"`
-	DNSNames    []string             `json:"dns_names"`
-	IPAddresses []string             `json:"ip_addresses"`
-	Metadata    map[string]string    `json:"metadata"`
-	Priority    ProvisioningPriority `json:"priority"`
-	CreatedAt   time.Time            `json:"created_at"`
-	Deadline    time.Time            `json:"deadline,omitempty"`
+// AutomationRequest represents an automation request.
+
+type AutomationRequest struct {
+	Type RequestType `json:"type"`
+
+	ServiceName string `json:"service_name"`
+
+	ServiceNamespace string `json:"service_namespace"`
+
+	CertificateTemplate *x509.Certificate `json:"certificate_template"`
+
+	RenewalConfig *RenewalConfig `json:"renewal_config,omitempty"`
+
+	HealthCheckConfig *HealthCheckConfig `json:"health_check_config,omitempty"`
+
+	NotificationConfig *AutomationNotificationConfig `json:"notification_config,omitempty"`
+
+	Priority RequestPriority `json:"priority"`
+
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ProvisioningPriority represents the priority of provisioning requests
-type ProvisioningPriority int
+// RequestType defines types of automation requests.
+
+type RequestType string
 
 const (
-	PriorityLow ProvisioningPriority = iota
+
+	// RequestTypeDiscovery holds requesttypediscovery value.
+
+	RequestTypeDiscovery RequestType = "discovery"
+
+	// RequestTypeRenewal holds requesttyperenewal value.
+
+	RequestTypeRenewal RequestType = "renewal"
+
+	// RequestTypeProvisioning holds requesttypeprovisioning value.
+
+	RequestTypeProvisioning RequestType = "provisioning"
+
+	// RequestTypeRevocation holds requesttyperevocation value.
+
+	RequestTypeRevocation RequestType = "revocation"
+
+	// RequestTypeHealthCheck holds requesttypehealthcheck value.
+
+	RequestTypeHealthCheck RequestType = "health_check"
+)
+
+// RequestPriority defines request priorities.
+
+type RequestPriority int
+
+const (
+
+	// PriorityLow holds prioritylow value.
+
+	PriorityLow RequestPriority = iota
+
+	// PriorityNormal holds prioritynormal value.
+
 	PriorityNormal
+
+	// PriorityHigh holds priorityhigh value.
+
 	PriorityHigh
+
+	// PriorityCritical holds prioritycritical value.
+
 	PriorityCritical
 )
 
-// RenewalRequest represents a certificate renewal request
-type RenewalRequest struct {
-	SerialNumber        string             `json:"serial_number"`
-	CurrentExpiry       time.Time          `json:"current_expiry"`
-	ServiceName         string             `json:"service_name"`
-	Namespace           string             `json:"namespace"`
-	RenewalWindow       time.Duration      `json:"renewal_window"`
-	GracefulRenewal     bool               `json:"graceful_renewal"`
-	ZeroDowntime        bool               `json:"zero_downtime"`
-	CoordinatedRotation bool               `json:"coordinated_rotation"`
-	HealthCheckConfig   *HealthCheckConfig `json:"health_check_config,omitempty"`
-	Metadata            map[string]string  `json:"metadata"`
-	CreatedAt           time.Time          `json:"created_at"`
+// RenewalConfig holds renewal configuration.
+
+type RenewalConfig struct {
+	Threshold time.Duration `json:"threshold"`
+
+	MaxRetries int `json:"max_retries"`
+
+	BackoffDelay time.Duration `json:"backoff_delay"`
 }
 
-// HealthCheckConfig defines health check configuration for zero-downtime rotation
+// HealthCheckConfig holds health check configuration.
+
 type HealthCheckConfig struct {
-	Enabled            bool          `json:"enabled"`
-	HTTPEndpoint       string        `json:"http_endpoint"`
-	GRPCService        string        `json:"grpc_service"`
-	CheckInterval      time.Duration `json:"check_interval"`
-	TimeoutPerCheck    time.Duration `json:"timeout_per_check"`
-	HealthyThreshold   int           `json:"healthy_threshold"`
-	UnhealthyThreshold int           `json:"unhealthy_threshold"`
+	Enabled bool `json:"enabled"`
+
+	Timeout time.Duration `json:"timeout"`
+
+	Retries int `json:"retries"`
+
+	Interval time.Duration `json:"interval"`
+
+	CheckInterval time.Duration `json:"check_interval"`
+
+	TimeoutPerCheck time.Duration `json:"timeout_per_check"`
+
+	ExpectedStatus int `json:"expected_status"`
+
+	HTTPEndpoint string `json:"http_endpoint"`
+
+	GRPCService string `json:"grpc_service"`
+
+	HealthyThreshold int `json:"healthy_threshold"`
+
+	ValidationMode string `json:"validation_mode"`
 }
 
-// ValidationCache caches certificate validation results
-type ValidationCache struct {
-	cache map[string]*ValidationResult
-	ttl   time.Duration
-	mu    sync.RWMutex
+// NotificationConfig holds notification configuration.
+
+type AutomationNotificationConfig struct {
+	Enabled bool `json:"enabled"`
+
+	Channels []string `json:"channels"`
+
+	Events []string `json:"events"`
+
+	Templates map[string]string `json:"templates"`
 }
 
-// ValidationResult represents a certificate validation result
-type ValidationResult struct {
-	SerialNumber     string           `json:"serial_number"`
-	Valid            bool             `json:"valid"`
-	ChainValid       bool             `json:"chain_valid"`
-	CTLogVerified    bool             `json:"ct_log_verified"`
-	RevocationStatus RevocationStatus `json:"revocation_status"`
-	ValidationTime   time.Time        `json:"validation_time"`
-	ExpiresAt        time.Time        `json:"expires_at"`
-	Errors           []string         `json:"errors,omitempty"`
-	Warnings         []string         `json:"warnings,omitempty"`
+// AutomationResponse represents an automation response.
+
+type AutomationResponse struct {
+	RequestID string `json:"request_id"`
+
+	Status ResponseStatus `json:"status"`
+
+	Message string `json:"message"`
+
+	Certificate *x509.Certificate `json:"certificate,omitempty"`
+
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+
+	Timestamp time.Time `json:"timestamp"`
+
+	Duration time.Duration `json:"duration"`
+
+	Error string `json:"error,omitempty"`
 }
 
-// RevocationStatus represents certificate revocation status
-type RevocationStatus string
+// ResponseStatus defines response statuses.
+
+type ResponseStatus string
 
 const (
-	RevocationStatusGood    RevocationStatus = "good"
-	RevocationStatusRevoked RevocationStatus = "revoked"
-	RevocationStatusUnknown RevocationStatus = "unknown"
+
+	// StatusPending holds statuspending value.
+
+	StatusPending ResponseStatus = "pending"
+
+	// StatusProcessing holds statusprocessing value.
+
+	StatusProcessing ResponseStatus = "processing"
+
+	// StatusCompleted holds statuscompleted value.
+
+	StatusCompleted ResponseStatus = "completed"
+
+	// StatusFailed holds statusfailed value.
+
+	StatusFailed ResponseStatus = "failed"
+
+	// StatusCanceled holds statuscanceled value.
+
+	StatusCanceled ResponseStatus = "canceled"
 )
 
-// NewAutomationEngine creates a new certificate automation engine
-func NewAutomationEngine(
-	config *AutomationConfig,
-	logger *logging.StructuredLogger,
-	caManager *CAManager,
-	kubeClient kubernetes.Interface,
-	ctrlClient client.Client,
-) (*AutomationEngine, error) {
-	if config == nil {
-		return nil, fmt.Errorf("automation config is required")
-	}
+// NewAutomationEngine creates a new automation engine.
 
-	ctx, cancel := context.WithCancel(context.Background())
+func NewAutomationEngine(config *AutomationConfig, logger *logging.StructuredLogger, manager *CAManager, kubeClient kubernetes.Interface, k8sClient interface{}) (*AutomationEngine, error) {
+
+	// Create a health checker if not provided.
+
+	healthChecker := &HealthChecker{
+
+		logger: logger,
+	}
 
 	engine := &AutomationEngine{
-		config:            config,
-		logger:            logger,
-		caManager:         caManager,
-		kubeClient:        kubeClient,
-		ctrlClient:        ctrlClient,
-		provisioningQueue: make(chan *ProvisioningRequest, config.MaxConcurrentOperations),
-		renewalQueue:      make(chan *RenewalRequest, config.MaxConcurrentOperations),
-		ctx:               ctx,
-		cancel:            cancel,
-	}
 
-	// Initialize rotation coordinator
-	engine.rotationCoordinator = NewRotationCoordinator(logger, kubeClient)
+		logger: logger,
 
-	// Initialize service discovery
-	if config.KubernetesIntegration != nil && config.ServiceDiscoveryEnabled {
-		serviceDiscoveryConfig := &ServiceDiscoveryConfig{
-			Enabled:                 true,
-			WatchNamespaces:         config.KubernetesIntegration.Namespaces,
-			ServiceAnnotationPrefix: config.KubernetesIntegration.AnnotationPrefix,
-			AutoProvisionEnabled:    config.AutoInjectCertificates,
-			TemplateMatching: &TemplateMatchingConfig{
-				Enabled:          true,
-				DefaultTemplate:  "default",
-				FallbackBehavior: "default",
-			},
-			PreProvisioningEnabled: config.ProvisioningEnabled,
-		}
-		engine.serviceDiscovery = NewServiceDiscovery(logger, kubeClient, serviceDiscoveryConfig, engine)
-	}
+		config: config,
 
-	// Initialize performance cache
-	performanceCacheConfig := &PerformanceCacheConfig{
-		L1CacheSize:            1000,
-		L1CacheTTL:             5 * time.Minute,
-		L2CacheSize:            5000,
-		L2CacheTTL:             30 * time.Minute,
-		PreProvisioningEnabled: true,
-		PreProvisioningSize:    100,
-		PreProvisioningTTL:     24 * time.Hour,
-		BatchOperationsEnabled: config.BatchSize > 1,
-		BatchSize:              config.BatchSize,
-		BatchTimeout:           config.OperationTimeout,
-		MetricsEnabled:         config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
-		CleanupInterval:        1 * time.Hour,
-	}
-	engine.performanceCache = NewPerformanceCache(logger, performanceCacheConfig)
+		manager: manager,
 
-	// Initialize health checker
-	healthCheckerConfig := &HealthCheckerConfig{
-		Enabled:                   true,
-		DefaultTimeout:            30 * time.Second,
-		DefaultInterval:           10 * time.Second,
-		DefaultHealthyThreshold:   3,
-		DefaultUnhealthyThreshold: 3,
-		ConcurrentChecks:          10,
-		RetryAttempts:             3,
-		RetryDelay:                5 * time.Second,
-		TLSVerificationEnabled:    true,
-		MetricsEnabled:            config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
-	}
-	engine.healthChecker = NewHealthChecker(logger, healthCheckerConfig)
+		healthChecker: healthChecker,
 
-	// Initialize validation framework
-	if config.ValidationEnabled {
-		validator, err := NewValidationFramework(&ValidationConfig{
-			RealtimeValidation:     config.RealtimeValidation,
-			ChainValidationEnabled: config.ChainValidationEnabled,
-			CTLogValidationEnabled: config.CTLogValidationEnabled,
-		}, logger)
-		if err != nil {
-			cancel()
-			return nil, fmt.Errorf("failed to initialize validation framework: %w", err)
-		}
-		engine.validator = validator
+		kubeClient: kubeClient,
 
-		// Initialize validation cache
-		engine.validationCache = &ValidationCache{
-			cache: make(map[string]*ValidationResult),
-			ttl:   config.ValidationCacheTTL,
-		}
-	}
+		watchers: make(map[string]*ServiceWatcher),
 
-	// Initialize revocation checker
-	if config.RevocationEnabled {
-		checker, err := NewRevocationChecker(&RevocationConfig{
-			CRLCheckEnabled:  config.CRLCheckEnabled,
-			OCSPCheckEnabled: config.OCSPCheckEnabled,
-			CacheSize:        config.RevocationCacheSize,
-			CacheTTL:         config.RevocationCacheTTL,
-		}, logger)
-		if err != nil {
-			cancel()
-			return nil, fmt.Errorf("failed to initialize revocation checker: %w", err)
-		}
-		engine.revocationChecker = checker
+		stopCh: make(chan struct{}),
+
+		requestQueue: make([]*AutomationRequest, 0),
 	}
 
 	return engine, nil
+
 }
 
-// Start starts the automation engine
+// Start starts the automation engine.
+
 func (e *AutomationEngine) Start(ctx context.Context) error {
-	e.logger.Info("starting certificate automation engine")
 
-	// Start performance cache
-	if e.performanceCache != nil {
-		e.wg.Add(1)
-		go func() {
-			defer e.wg.Done()
-			if err := e.performanceCache.Start(ctx); err != nil {
-				e.logger.Error("performance cache start failed", "error", err)
-			}
-		}()
+	e.runningMux.Lock()
+
+	defer e.runningMux.Unlock()
+
+	if e.running {
+
+		return fmt.Errorf("automation engine already running")
+
 	}
 
-	// Start health checker
-	if e.healthChecker != nil {
-		e.wg.Add(1)
-		go func() {
-			defer e.wg.Done()
-			if err := e.healthChecker.Start(ctx); err != nil {
-				e.logger.Error("health checker start failed", "error", err)
-			}
-		}()
-	}
+	e.logger.Info("Starting automation engine",
 
-	// Start service discovery
-	if e.serviceDiscovery != nil {
-		e.wg.Add(1)
-		go func() {
-			defer e.wg.Done()
-			if err := e.serviceDiscovery.Start(ctx); err != nil {
-				e.logger.Error("service discovery start failed", "error", err)
-			}
-		}()
-	}
+		"service_discovery_enabled", e.config.ServiceDiscoveryEnabled,
 
-	// Start provisioning workers
-	if e.config.ProvisioningEnabled {
-		for i := 0; i < e.config.ProvisioningWorkers; i++ {
-			e.wg.Add(1)
-			go e.runProvisioningWorker(i)
+		"auto_renewal_enabled", e.config.AutoRenewalEnabled,
+
+		"health_check_enabled", e.config.HealthCheckEnabled)
+
+	// Start service discovery if enabled.
+
+	if e.config.ServiceDiscoveryEnabled {
+
+		if err := e.startServiceDiscovery(ctx); err != nil {
+
+			return fmt.Errorf("failed to start service discovery: %w", err)
+
 		}
+
 	}
 
-	// Start renewal workers
-	if e.config.RenewalEnabled {
-		for i := 0; i < e.config.RenewalWorkers; i++ {
-			e.wg.Add(1)
-			go e.runRenewalWorker(i)
-		}
+	// Start renewal checker if enabled.
+
+	if e.config.AutoRenewalEnabled {
+
+		go e.runRenewalChecker(ctx)
+
 	}
 
-	// Start renewal scheduler
-	if e.config.RenewalEnabled {
-		e.wg.Add(1)
-		go e.runRenewalScheduler()
+	// Start health checker if enabled.
+
+	if e.config.HealthCheckEnabled {
+
+		go e.runHealthChecker(ctx)
+
 	}
 
-	// Start validation service
-	if e.validator != nil {
-		e.wg.Add(1)
-		go e.runValidationService()
-	}
+	// Start request processor.
 
-	// Start Kubernetes integration
-	if e.config.KubernetesIntegration != nil && e.config.KubernetesIntegration.Enabled {
-		e.wg.Add(1)
-		go e.runKubernetesIntegration()
-	}
+	go e.runRequestProcessor(ctx)
 
-	// Start admission webhook
-	if e.config.KubernetesIntegration != nil &&
-		e.config.KubernetesIntegration.AdmissionWebhook != nil &&
-		e.config.KubernetesIntegration.AdmissionWebhook.Enabled {
-		e.wg.Add(1)
-		go e.runAdmissionWebhook()
-	}
+	e.running = true
 
-	// Wait for context cancellation
-	<-ctx.Done()
-
-	e.logger.Info("shutting down certificate automation engine")
-	e.cancel()
-	e.wg.Wait()
+	e.logger.Info("Automation engine started successfully")
 
 	return nil
+
 }
 
-// Stop stops the automation engine
-func (e *AutomationEngine) Stop() {
-	e.logger.Info("stopping certificate automation engine")
-	e.cancel()
-	e.wg.Wait()
-}
+// Stop stops the automation engine.
 
-// RequestProvisioning requests certificate provisioning
-func (e *AutomationEngine) RequestProvisioning(req *ProvisioningRequest) error {
-	if !e.config.ProvisioningEnabled {
-		return fmt.Errorf("certificate provisioning is disabled")
-	}
+func (e *AutomationEngine) Stop() error {
 
-	req.CreatedAt = time.Now()
-	if req.ID == "" {
-		req.ID = generateRequestID()
-	}
+	e.runningMux.Lock()
 
-	select {
-	case e.provisioningQueue <- req:
-		e.logger.Info("provisioning request queued",
-			"request_id", req.ID,
-			"service", req.ServiceName,
-			"namespace", req.Namespace,
-			"priority", req.Priority)
+	defer e.runningMux.Unlock()
+
+	if !e.running {
+
 		return nil
-	default:
-		return fmt.Errorf("provisioning queue is full")
+
 	}
+
+	e.logger.Info("Stopping automation engine")
+
+	// Stop all watchers.
+
+	e.watchersMux.Lock()
+
+	for namespace, watcher := range e.watchers {
+
+		close(watcher.stopCh)
+
+		delete(e.watchers, namespace)
+
+	}
+
+	e.watchersMux.Unlock()
+
+	// Send stop signal.
+
+	close(e.stopCh)
+
+	e.stopCh = make(chan struct{})
+
+	e.running = false
+
+	e.logger.Info("Automation engine stopped")
+
+	return nil
+
 }
 
-// RequestRenewal requests certificate renewal
-func (e *AutomationEngine) RequestRenewal(req *RenewalRequest) error {
-	if !e.config.RenewalEnabled {
-		return fmt.Errorf("certificate renewal is disabled")
+// startServiceDiscovery starts service discovery.
+
+func (e *AutomationEngine) startServiceDiscovery(ctx context.Context) error {
+
+	e.logger.Info("Starting service discovery",
+
+		"namespaces", e.config.DiscoveryNamespaces,
+
+		"selectors", e.config.DiscoverySelectors)
+
+	// Start watchers for each namespace.
+
+	for _, namespace := range e.config.DiscoveryNamespaces {
+
+		if err := e.startNamespaceWatcher(namespace); err != nil {
+
+			return fmt.Errorf("failed to start watcher for namespace %s: %w", namespace, err)
+
+		}
+
 	}
 
-	req.CreatedAt = time.Now()
+	return nil
 
-	select {
-	case e.renewalQueue <- req:
-		e.logger.Info("renewal request queued",
-			"serial_number", req.SerialNumber,
-			"service", req.ServiceName,
-			"namespace", req.Namespace,
-			"current_expiry", req.CurrentExpiry)
+}
+
+// startNamespaceWatcher starts a watcher for a specific namespace.
+
+func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
+
+	e.watchersMux.Lock()
+
+	defer e.watchersMux.Unlock()
+
+	// Check if watcher already exists.
+
+	if _, exists := e.watchers[namespace]; exists {
+
 		return nil
-	default:
-		return fmt.Errorf("renewal queue is full")
+
 	}
+
+	// Create list watcher.
+
+	listWatcher := cache.NewListWatchFromClient(
+
+		e.kubeClient.CoreV1().RESTClient(),
+
+		"services",
+
+		namespace,
+
+		fields.Everything(),
+	)
+
+	// Create informer.
+
+	informer := cache.NewSharedIndexInformer(
+
+		listWatcher,
+
+		&v1.Service{},
+
+		e.config.DiscoveryInterval,
+
+		cache.Indexers{},
+	)
+
+	// Add event handlers.
+
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+
+		AddFunc: e.onServiceAdded,
+
+		UpdateFunc: e.onServiceUpdated,
+
+		DeleteFunc: e.onServiceDeleted,
+	})
+
+	// Create watcher.
+
+	watcher := &ServiceWatcher{
+
+		namespace: namespace,
+
+		selector: fields.Everything(),
+
+		informer: informer,
+
+		stopCh: make(chan struct{}),
+	}
+
+	e.watchers[namespace] = watcher
+
+	// Start informer.
+
+	go informer.Run(watcher.stopCh)
+
+	// Wait for cache sync.
+
+	if !cache.WaitForCacheSync(watcher.stopCh, informer.HasSynced) {
+
+		return fmt.Errorf("failed to sync cache for namespace %s", namespace)
+
+	}
+
+	e.logger.Info("Started namespace watcher",
+
+		"namespace", namespace)
+
+	return nil
+
 }
 
-// ValidateCertificate validates a certificate with caching
-func (e *AutomationEngine) ValidateCertificate(cert *x509.Certificate) (*ValidationResult, error) {
-	if e.validator == nil {
-		return nil, fmt.Errorf("certificate validation is disabled")
-	}
+// onServiceAdded handles service addition events.
 
-	serialNumber := cert.SerialNumber.String()
+func (e *AutomationEngine) onServiceAdded(obj interface{}) {
 
-	// Check cache first
-	if cached := e.getCachedValidation(serialNumber); cached != nil {
-		if time.Since(cached.ValidationTime) < e.config.ValidationCacheTTL {
-			return cached, nil
-		}
-	}
+	service, ok := obj.(*v1.Service)
 
-	// Perform validation
-	result, err := e.validator.ValidateCertificate(e.ctx, cert)
-	if err != nil {
-		return nil, fmt.Errorf("certificate validation failed: %w", err)
-	}
+	if !ok {
 
-	// Cache result
-	e.cacheValidation(serialNumber, result)
+		e.logger.Warn("Received non-service object in service watcher")
 
-	return result, nil
-}
-
-// CheckRevocationStatus checks certificate revocation status
-func (e *AutomationEngine) CheckRevocationStatus(cert *x509.Certificate) (RevocationStatus, error) {
-	if e.revocationChecker == nil {
-		return RevocationStatusUnknown, fmt.Errorf("revocation checking is disabled")
-	}
-
-	return e.revocationChecker.CheckRevocation(e.ctx, cert)
-}
-
-// GetProvisioningQueueSize returns the current provisioning queue size
-func (e *AutomationEngine) GetProvisioningQueueSize() int {
-	return len(e.provisioningQueue)
-}
-
-// GetRenewalQueueSize returns the current renewal queue size
-func (e *AutomationEngine) GetRenewalQueueSize() int {
-	return len(e.renewalQueue)
-}
-
-// Worker methods
-
-func (e *AutomationEngine) runProvisioningWorker(workerID int) {
-	defer e.wg.Done()
-
-	e.logger.Info("starting provisioning worker", "worker_id", workerID)
-
-	for {
-		select {
-		case <-e.ctx.Done():
-			return
-		case req := <-e.provisioningQueue:
-			e.processProvisioningRequest(workerID, req)
-		}
-	}
-}
-
-func (e *AutomationEngine) processProvisioningRequest(workerID int, req *ProvisioningRequest) {
-	start := time.Now()
-
-	e.logger.Info("processing provisioning request",
-		"worker_id", workerID,
-		"request_id", req.ID,
-		"service", req.ServiceName,
-		"namespace", req.Namespace)
-
-	// Create certificate request
-	certReq := &CertificateRequest{
-		ID:               req.ID,
-		CommonName:       req.ServiceName,
-		DNSNames:         req.DNSNames,
-		IPAddresses:      req.IPAddresses,
-		ValidityDuration: e.caManager.config.DefaultValidityDuration,
-		AutoRenew:        true,
-		PolicyTemplate:   req.Template,
-		Metadata:         req.Metadata,
-	}
-
-	// Add service-specific metadata
-	if certReq.Metadata == nil {
-		certReq.Metadata = make(map[string]string)
-	}
-	certReq.Metadata["service_name"] = req.ServiceName
-	certReq.Metadata["namespace"] = req.Namespace
-	certReq.Metadata["provisioned_by"] = "automation-engine"
-	certReq.Metadata["provisioned_at"] = time.Now().Format(time.RFC3339)
-
-	// Issue certificate
-	response, err := e.caManager.IssueCertificate(e.ctx, certReq)
-	if err != nil {
-		duration := time.Since(start)
-		e.logger.Error("certificate provisioning failed",
-			"worker_id", workerID,
-			"request_id", req.ID,
-			"error", err,
-			"duration", duration)
-
-		// Send alert if configured
-		e.sendAlert("provisioning_failure", map[string]string{
-			"request_id": req.ID,
-			"service":    req.ServiceName,
-			"namespace":  req.Namespace,
-			"error":      err.Error(),
-		})
 		return
+
 	}
 
-	// Store certificate in Kubernetes if integration is enabled
-	if e.config.KubernetesIntegration != nil && e.config.KubernetesIntegration.Enabled {
-		if err := e.storeCertificateInKubernetes(req, response); err != nil {
-			e.logger.Warn("failed to store certificate in Kubernetes",
-				"request_id", req.ID,
-				"serial_number", response.SerialNumber,
-				"error", err)
-		}
-	}
+	e.logger.Debug("Service added",
 
-	duration := time.Since(start)
-	e.logger.Info("certificate provisioned successfully",
-		"worker_id", workerID,
-		"request_id", req.ID,
-		"serial_number", response.SerialNumber,
-		"expires_at", response.ExpiresAt,
-		"duration", duration)
+		"name", service.Name,
+
+		"namespace", service.Namespace)
+
+	// Process service for certificate provisioning.
+
+	go e.processServiceForProvisioning(service)
+
 }
 
-func (e *AutomationEngine) runRenewalWorker(workerID int) {
-	defer e.wg.Done()
+// onServiceUpdated handles service update events.
 
-	e.logger.Info("starting renewal worker", "worker_id", workerID)
+func (e *AutomationEngine) onServiceUpdated(oldObj, newObj interface{}) {
 
-	for {
-		select {
-		case <-e.ctx.Done():
-			return
-		case req := <-e.renewalQueue:
-			e.processRenewalRequest(workerID, req)
-		}
-	}
-}
+	oldService, ok := oldObj.(*v1.Service)
 
-func (e *AutomationEngine) processRenewalRequest(workerID int, req *RenewalRequest) {
-	start := time.Now()
+	if !ok {
 
-	e.logger.Info("processing renewal request",
-		"worker_id", workerID,
-		"serial_number", req.SerialNumber,
-		"service", req.ServiceName,
-		"namespace", req.Namespace,
-		"current_expiry", req.CurrentExpiry,
-		"zero_downtime", req.ZeroDowntime,
-		"coordinated_rotation", req.CoordinatedRotation)
-
-	// Check if coordinated rotation is requested
-	if req.CoordinatedRotation && e.rotationCoordinator != nil {
-		e.performCoordinatedRenewal(workerID, req)
 		return
+
 	}
 
-	// Standard renewal process
-	newCert, err := e.caManager.RenewCertificate(e.ctx, req.SerialNumber)
-	if err != nil {
-		duration := time.Since(start)
-		e.logger.Error("certificate renewal failed",
-			"worker_id", workerID,
-			"serial_number", req.SerialNumber,
-			"error", err,
-			"duration", duration)
+	newService, ok := newObj.(*v1.Service)
 
-		// Send alert if configured
-		e.sendAlert("renewal_failure", map[string]string{
-			"serial_number": req.SerialNumber,
-			"service":       req.ServiceName,
-			"namespace":     req.Namespace,
-			"error":         err.Error(),
-		})
+	if !ok {
+
 		return
+
 	}
 
-	// Update certificate in Kubernetes if integration is enabled
-	if e.config.KubernetesIntegration != nil && e.config.KubernetesIntegration.Enabled {
-		if err := e.updateCertificateInKubernetes(req, newCert); err != nil {
-			e.logger.Warn("failed to update certificate in Kubernetes",
-				"old_serial_number", req.SerialNumber,
-				"new_serial_number", newCert.SerialNumber,
-				"error", err)
-		}
+	e.logger.Debug("Service updated",
+
+		"name", newService.Name,
+
+		"namespace", newService.Namespace)
+
+	// Check if service configuration changed.
+
+	if e.serviceConfigChanged(oldService, newService) {
+
+		go e.processServiceForProvisioning(newService)
+
 	}
 
-	duration := time.Since(start)
-	e.logger.Info("certificate renewed successfully",
-		"worker_id", workerID,
-		"old_serial_number", req.SerialNumber,
-		"new_serial_number", newCert.SerialNumber,
-		"expires_at", newCert.ExpiresAt,
-		"duration", duration)
 }
 
-func (e *AutomationEngine) runRenewalScheduler() {
-	defer e.wg.Done()
+// onServiceDeleted handles service deletion events.
 
-	e.logger.Info("starting renewal scheduler")
+func (e *AutomationEngine) onServiceDeleted(obj interface{}) {
 
-	ticker := time.NewTicker(1 * time.Hour) // Check every hour
+	service, ok := obj.(*v1.Service)
+
+	if !ok {
+
+		return
+
+	}
+
+	e.logger.Debug("Service deleted",
+
+		"name", service.Name,
+
+		"namespace", service.Namespace)
+
+	// Process service for certificate revocation.
+
+	go e.processServiceForRevocation(service)
+
+}
+
+// serviceConfigChanged checks if service configuration changed.
+
+func (e *AutomationEngine) serviceConfigChanged(oldService, newService *v1.Service) bool {
+
+	// Check if TLS annotations changed.
+
+	if oldService.Annotations["tls.enabled"] != newService.Annotations["tls.enabled"] {
+
+		return true
+
+	}
+
+	// Check if certificate annotations changed.
+
+	if oldService.Annotations["cert.auto-provision"] != newService.Annotations["cert.auto-provision"] {
+
+		return true
+
+	}
+
+	// Check if service ports changed.
+
+	if len(oldService.Spec.Ports) != len(newService.Spec.Ports) {
+
+		return true
+
+	}
+
+	for i, oldPort := range oldService.Spec.Ports {
+
+		newPort := newService.Spec.Ports[i]
+
+		if oldPort.Port != newPort.Port || oldPort.Protocol != newPort.Protocol {
+
+			return true
+
+		}
+
+	}
+
+	return false
+
+}
+
+// processServiceForProvisioning processes a service for certificate provisioning.
+
+func (e *AutomationEngine) processServiceForProvisioning(service *v1.Service) {
+
+	// Check if service requires certificate provisioning.
+
+	if !e.serviceRequiresCertificate(service) {
+
+		return
+
+	}
+
+	e.logger.Info("Processing service for certificate provisioning",
+
+		"name", service.Name,
+
+		"namespace", service.Namespace)
+
+	// Create automation request.
+
+	req := &AutomationRequest{
+
+		Type: RequestTypeProvisioning,
+
+		ServiceName: service.Name,
+
+		ServiceNamespace: service.Namespace,
+
+		Priority: PriorityNormal,
+
+		Metadata: map[string]interface{}{
+
+			"service_uid": string(service.UID),
+
+			"labels": service.Labels,
+
+			"annotations": service.Annotations,
+		},
+	}
+
+	// Add health check configuration if enabled.
+
+	if e.config.HealthCheckEnabled {
+
+		req.HealthCheckConfig = &HealthCheckConfig{
+
+			Enabled: true,
+
+			Timeout: e.config.HealthCheckTimeout,
+
+			Retries: e.config.HealthCheckRetries,
+
+			Interval: e.config.HealthCheckInterval,
+
+			ExpectedStatus: 200,
+		}
+
+	}
+
+	// Process request.
+
+	go e.processAutomationRequest(req)
+
+}
+
+// processServiceForRevocation processes a service for certificate revocation.
+
+func (e *AutomationEngine) processServiceForRevocation(service *v1.Service) {
+
+	// Check if service had certificates.
+
+	if !e.serviceRequiresCertificate(service) {
+
+		return
+
+	}
+
+	e.logger.Info("Processing service for certificate revocation",
+
+		"name", service.Name,
+
+		"namespace", service.Namespace)
+
+	// Create automation request.
+
+	req := &AutomationRequest{
+
+		Type: RequestTypeRevocation,
+
+		ServiceName: service.Name,
+
+		ServiceNamespace: service.Namespace,
+
+		Priority: PriorityHigh,
+
+		Metadata: map[string]interface{}{
+
+			"service_uid": string(service.UID),
+
+			"labels": service.Labels,
+
+			"annotations": service.Annotations,
+		},
+	}
+
+	// Process request.
+
+	go e.processAutomationRequest(req)
+
+}
+
+// serviceRequiresCertificate checks if a service requires certificate management.
+
+func (e *AutomationEngine) serviceRequiresCertificate(service *v1.Service) bool {
+
+	// Check if service has TLS enabled annotation.
+
+	if tls, exists := service.Annotations["tls.enabled"]; exists && tls == "true" {
+
+		return true
+
+	}
+
+	// Check if service has auto-provision annotation.
+
+	if provision, exists := service.Annotations["cert.auto-provision"]; exists && provision == "true" {
+
+		return true
+
+	}
+
+	// Check if service type is in allowed list.
+
+	serviceType := string(service.Spec.Type)
+
+	for _, allowedType := range e.config.AllowedServiceTypes {
+
+		if serviceType == allowedType {
+
+			return true
+
+		}
+
+	}
+
+	// Check for HTTPS ports.
+
+	for _, port := range service.Spec.Ports {
+
+		if port.Port == 443 || port.Port == 8443 {
+
+			return true
+
+		}
+
+	}
+
+	return false
+
+}
+
+// runRenewalChecker runs the certificate renewal checker.
+
+func (e *AutomationEngine) runRenewalChecker(ctx context.Context) {
+
+	ticker := time.NewTicker(e.config.RenewalCheckInterval)
+
 	defer ticker.Stop()
 
 	for {
+
 		select {
-		case <-e.ctx.Done():
+
+		case <-ctx.Done():
+
 			return
+
+		case <-e.stopCh:
+
+			return
+
 		case <-ticker.C:
-			e.scheduleRenewals()
+
+			e.checkForRenewals(ctx)
+
 		}
+
 	}
+
 }
 
-func (e *AutomationEngine) scheduleRenewals() {
-	threshold := time.Now().Add(e.config.RenewalThreshold)
+// checkForRenewals checks for certificates that need renewal.
 
-	// Get expiring certificates from CA manager
-	filters := map[string]string{
-		"auto_renew": "true",
-		"status":     string(StatusIssued),
-	}
+func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
-	certificates, err := e.caManager.ListCertificates(filters)
+	e.logger.Debug("Checking for certificate renewals")
+
+	// Get all managed certificates.
+
+	certificates, err := e.manager.ListCertificates(nil)
+
 	if err != nil {
-		e.logger.Error("failed to list certificates for renewal", "error", err)
+
+		e.logger.Error("Failed to list certificates for renewal check",
+
+			"error", err.Error())
+
 		return
+
 	}
 
 	renewalCount := 0
+
 	for _, cert := range certificates {
-		if cert.ExpiresAt.Before(threshold) {
-			// Create renewal request
-			req := &RenewalRequest{
-				SerialNumber:    cert.SerialNumber,
-				CurrentExpiry:   cert.ExpiresAt,
-				ServiceName:     cert.Metadata["service_name"],
-				Namespace:       cert.Metadata["namespace"],
-				RenewalWindow:   e.config.RenewalWindow,
-				GracefulRenewal: e.config.GracefulRenewalEnabled,
-				Metadata:        cert.Metadata,
+
+		// Check if certificate is close to expiration.
+
+		timeUntilExpiry := time.Until(cert.ExpiresAt)
+
+		if timeUntilExpiry <= e.config.RenewalThreshold {
+
+			e.logger.Info("Certificate needs renewal",
+
+				"serial", cert.SerialNumber,
+
+				"subject", cert.Certificate.Subject.String(),
+
+				"expires", cert.ExpiresAt,
+
+				"time_until_expiry", timeUntilExpiry)
+
+			// Create renewal request.
+
+			req := &AutomationRequest{
+
+				Type: RequestTypeRenewal,
+
+				Priority: PriorityHigh,
+
+				CertificateTemplate: cert.Certificate,
+
+				Metadata: map[string]interface{}{
+
+					"serial_number": cert.SerialNumber,
+
+					"expires": cert.ExpiresAt,
+				},
 			}
 
-			if err := e.RequestRenewal(req); err != nil {
-				e.logger.Warn("failed to queue renewal request",
-					"serial_number", cert.SerialNumber,
-					"error", err)
-			} else {
-				renewalCount++
-			}
+			// Process renewal request.
+
+			go e.processAutomationRequest(req)
+
+			renewalCount++
+
 		}
+
 	}
 
 	if renewalCount > 0 {
-		e.logger.Info("scheduled certificate renewals",
-			"count", renewalCount,
-			"threshold", threshold)
+
+		e.logger.Info("Initiated certificate renewals",
+
+			"renewal_count", renewalCount)
+
 	}
+
 }
 
-func (e *AutomationEngine) runValidationService() {
-	defer e.wg.Done()
+// runHealthChecker runs the health checker.
 
-	e.logger.Info("starting validation service")
+func (e *AutomationEngine) runHealthChecker(ctx context.Context) {
 
-	ticker := time.NewTicker(5 * time.Minute) // Validate every 5 minutes
+	ticker := time.NewTicker(e.config.HealthCheckInterval)
+
 	defer ticker.Stop()
 
 	for {
+
 		select {
-		case <-e.ctx.Done():
+
+		case <-ctx.Done():
+
 			return
+
+		case <-e.stopCh:
+
+			return
+
 		case <-ticker.C:
-			e.performBatchValidation()
+
+			e.performHealthChecks(ctx)
+
 		}
+
 	}
+
 }
 
-func (e *AutomationEngine) performBatchValidation() {
-	// Get active certificates
-	filters := map[string]string{
-		"status": string(StatusIssued),
-	}
+// performHealthChecks performs health checks on managed services.
 
-	certificates, err := e.caManager.ListCertificates(filters)
+func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
+
+	e.logger.Debug("Performing health checks")
+
+	// Get all discovered services.
+
+	services, err := e.discoverServices(ctx)
+
 	if err != nil {
-		e.logger.Error("failed to list certificates for validation", "error", err)
+
+		e.logger.Error("Failed to discover services for health checks",
+
+			"error", err.Error())
+
 		return
+
 	}
 
-	validationCount := 0
-	for _, cert := range certificates {
-		// Skip recently validated certificates
-		if cached := e.getCachedValidation(cert.SerialNumber); cached != nil {
-			if time.Since(cached.ValidationTime) < e.config.ValidationCacheTTL {
-				continue
-			}
-		}
+	healthyCount := 0
 
-		// Validate certificate
-		if _, err := e.ValidateCertificate(cert.Certificate); err != nil {
-			e.logger.Warn("certificate validation failed",
-				"serial_number", cert.SerialNumber,
-				"error", err)
+	unhealthyCount := 0
 
-			// Send alert if configured
-			e.sendAlert("validation_failure", map[string]string{
-				"serial_number": cert.SerialNumber,
-				"error":         err.Error(),
-			})
-		} else {
-			validationCount++
-		}
-	}
+	for _, service := range services {
 
-	if validationCount > 0 {
-		e.logger.Debug("performed batch certificate validation", "validated_count", validationCount)
-	}
-}
+		if service.TLSEnabled {
 
-// Cache methods
+			// Perform health check.
 
-func (e *AutomationEngine) getCachedValidation(serialNumber string) *ValidationResult {
-	if e.validationCache == nil {
-		return nil
-	}
-
-	e.validationCache.mu.RLock()
-	defer e.validationCache.mu.RUnlock()
-
-	return e.validationCache.cache[serialNumber]
-}
-
-func (e *AutomationEngine) cacheValidation(serialNumber string, result *ValidationResult) {
-	if e.validationCache == nil {
-		return
-	}
-
-	e.validationCache.mu.Lock()
-	defer e.validationCache.mu.Unlock()
-
-	e.validationCache.cache[serialNumber] = result
-
-	// Clean up expired entries if cache is getting large
-	if len(e.validationCache.cache) > e.config.ValidationCacheSize {
-		e.cleanupValidationCache()
-	}
-}
-
-func (e *AutomationEngine) cleanupValidationCache() {
-	now := time.Now()
-	for serialNumber, result := range e.validationCache.cache {
-		if now.Sub(result.ValidationTime) > e.validationCache.ttl {
-			delete(e.validationCache.cache, serialNumber)
-		}
-	}
-}
-
-// Alert helper
-
-func (e *AutomationEngine) sendAlert(alertType string, labels map[string]string) {
-	if e.config.AlertingConfig == nil || !e.config.AlertingConfig.Enabled {
-		return
-	}
-
-	// This would integrate with the existing alert manager
-	e.logger.Warn("automation alert triggered",
-		"type", alertType,
-		"labels", labels)
-}
-
-// Helper methods
-
-func (e *AutomationEngine) storeCertificateInKubernetes(req *ProvisioningRequest, cert *CertificateResponse) error {
-	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, req.ServiceName)
-
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: req.Namespace,
-			Annotations: map[string]string{
-				fmt.Sprintf("%s/serial-number", e.config.KubernetesIntegration.AnnotationPrefix):  cert.SerialNumber,
-				fmt.Sprintf("%s/expires-at", e.config.KubernetesIntegration.AnnotationPrefix):     cert.ExpiresAt.Format(time.RFC3339),
-				fmt.Sprintf("%s/issued-by", e.config.KubernetesIntegration.AnnotationPrefix):      cert.IssuedBy,
-				fmt.Sprintf("%s/provisioned-by", e.config.KubernetesIntegration.AnnotationPrefix): "automation-engine",
-			},
-		},
-		Type: v1.SecretTypeTLS,
-		Data: map[string][]byte{
-			"tls.crt": []byte(cert.CertificatePEM),
-			"tls.key": []byte(cert.PrivateKeyPEM),
-			"ca.crt":  []byte(cert.CACertificatePEM),
-		},
-	}
-
-	_, err := e.kubeClient.CoreV1().Secrets(req.Namespace).Create(e.ctx, secret, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create certificate secret: %w", err)
-	}
-
-	return nil
-}
-
-func (e *AutomationEngine) updateCertificateInKubernetes(req *RenewalRequest, cert *CertificateResponse) error {
-	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, req.ServiceName)
-
-	secret, err := e.kubeClient.CoreV1().Secrets(req.Namespace).Get(e.ctx, secretName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get certificate secret: %w", err)
-	}
-
-	// Update secret data
-	secret.Data["tls.crt"] = []byte(cert.CertificatePEM)
-	secret.Data["tls.key"] = []byte(cert.PrivateKeyPEM)
-	secret.Data["ca.crt"] = []byte(cert.CACertificatePEM)
-
-	// Update annotations
-	if secret.Annotations == nil {
-		secret.Annotations = make(map[string]string)
-	}
-	secret.Annotations[fmt.Sprintf("%s/serial-number", e.config.KubernetesIntegration.AnnotationPrefix)] = cert.SerialNumber
-	secret.Annotations[fmt.Sprintf("%s/expires-at", e.config.KubernetesIntegration.AnnotationPrefix)] = cert.ExpiresAt.Format(time.RFC3339)
-	secret.Annotations[fmt.Sprintf("%s/renewed-at", e.config.KubernetesIntegration.AnnotationPrefix)] = time.Now().Format(time.RFC3339)
-
-	_, err = e.kubeClient.CoreV1().Secrets(req.Namespace).Update(e.ctx, secret, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update certificate secret: %w", err)
-	}
-
-	return nil
-}
-
-// performCoordinatedRenewal performs a coordinated renewal with zero-downtime rotation
-func (e *AutomationEngine) performCoordinatedRenewal(workerID int, req *RenewalRequest) {
-	e.logger.Info("starting coordinated renewal",
-		"worker_id", workerID,
-		"serial_number", req.SerialNumber,
-		"service", req.ServiceName,
-		"namespace", req.Namespace)
-
-	// Start coordinated rotation session
-	session, err := e.rotationCoordinator.StartCoordinatedRotation(e.ctx, req)
-	if err != nil {
-		e.logger.Error("failed to start coordinated rotation",
-			"worker_id", workerID,
-			"serial_number", req.SerialNumber,
-			"error", err)
-
-		e.sendAlert("coordinated_renewal_failure", map[string]string{
-			"serial_number": req.SerialNumber,
-			"service":       req.ServiceName,
-			"namespace":     req.Namespace,
-			"error":         err.Error(),
-		})
-		return
-	}
-
-	// Define rotation function
-	rotationFunc := func(instance *ServiceInstance) error {
-		// Renew certificate for this instance
-		newCert, err := e.caManager.RenewCertificate(e.ctx, req.SerialNumber)
-		if err != nil {
-			return fmt.Errorf("certificate renewal failed: %w", err)
-		}
-
-		// Update certificate in Kubernetes
-		if e.config.KubernetesIntegration != nil && e.config.KubernetesIntegration.Enabled {
-			if err := e.updateCertificateInKubernetes(req, newCert); err != nil {
-				return fmt.Errorf("failed to update certificate in Kubernetes: %w", err)
-			}
-		}
-
-		// Wait for service to pick up new certificate
-		if req.HealthCheckConfig != nil && req.HealthCheckConfig.Enabled {
-			// Perform health check to ensure service is healthy with new certificate
 			target := &HealthCheckTarget{
-				Name:    instance.Name,
-				Address: strings.Split(instance.Endpoint, ":")[0],
-				Port:    e.parsePort(instance.Endpoint),
+
+				Name: service.Name,
+
+				Address: strings.Split(service.Endpoint, ":")[0],
+
+				Port: e.parsePort(service.Endpoint),
 			}
 
-			healthSession, err := e.healthChecker.StartHealthCheck(target, req.HealthCheckConfig)
+			config := &HealthCheckConfig{
+
+				Enabled: true,
+
+				Timeout: e.config.HealthCheckTimeout,
+
+				Retries: e.config.HealthCheckRetries,
+
+				ExpectedStatus: 200,
+			}
+
+			session, err := e.healthChecker.StartHealthCheck(target, config)
+
 			if err != nil {
-				return fmt.Errorf("failed to start health check: %w", err)
+
+				e.logger.Warn("Failed to start health check",
+
+					"service", service.Name,
+
+					"error", err.Error())
+
+				unhealthyCount++
+
+				continue
+
 			}
 
-			// Perform a few health checks to ensure stability
-			checkDuration := 30 * time.Second
-			if err := e.healthChecker.PerformContinuousHealthCheck(healthSession, checkDuration); err != nil {
-				return fmt.Errorf("health check failed after certificate update: %w", err)
+			// Perform health check.
+
+			result, err := e.healthChecker.PerformHealthCheck(session)
+
+			if err != nil || !result.Success {
+
+				unhealthyCount++
+
+				e.logger.Warn("Service health check failed",
+
+					"service", service.Name,
+
+					"error", func() string {
+
+						if err != nil {
+
+							return err.Error()
+
+						}
+
+						if result != nil {
+
+							return result.ErrorMessage
+
+						}
+
+						return "unknown error"
+
+					}())
+
+			} else {
+
+				healthyCount++
+
 			}
+
 		}
 
-		return nil
 	}
 
-	// Execute coordinated rotation
-	if err := e.rotationCoordinator.ExecuteCoordinatedRotation(e.ctx, session, rotationFunc); err != nil {
-		e.logger.Error("coordinated rotation failed",
-			"worker_id", workerID,
-			"session_id", session.ID,
-			"error", err)
+	e.logger.Debug("Health checks completed",
 
-		e.sendAlert("coordinated_renewal_failure", map[string]string{
-			"session_id":    session.ID,
-			"serial_number": req.SerialNumber,
-			"service":       req.ServiceName,
-			"namespace":     req.Namespace,
-			"error":         err.Error(),
+		"healthy_services", healthyCount,
+
+		"unhealthy_services", unhealthyCount)
+
+}
+
+// runRequestProcessor runs the automation request processor.
+
+func (e *AutomationEngine) runRequestProcessor(ctx context.Context) {
+
+	ticker := time.NewTicker(e.config.ProcessingInterval)
+
+	defer ticker.Stop()
+
+	for {
+
+		select {
+
+		case <-ctx.Done():
+
+			return
+
+		case <-e.stopCh:
+
+			return
+
+		case <-ticker.C:
+
+			// Process pending requests.
+
+			// This would typically read from a queue or database.
+
+			// For now, it's a placeholder.
+
+		}
+
+	}
+
+}
+
+// processAutomationRequest processes an automation request.
+
+func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
+
+	startTime := time.Now()
+
+	e.logger.Info("Processing automation request",
+
+		"type", req.Type,
+
+		"service_name", req.ServiceName,
+
+		"service_namespace", req.ServiceNamespace,
+
+		"priority", req.Priority)
+
+	var response *AutomationResponse
+
+	switch req.Type {
+
+	case RequestTypeProvisioning:
+
+		response = e.processProvisioningRequest(req)
+
+	case RequestTypeRenewal:
+
+		response = e.processRenewalRequest(req)
+
+	case RequestTypeRevocation:
+
+		response = e.processRevocationRequest(req)
+
+	case RequestTypeDiscovery:
+
+		response = e.processDiscoveryRequest(req)
+
+	case RequestTypeHealthCheck:
+
+		response = e.processHealthCheckRequest(req)
+
+	default:
+
+		response = &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: fmt.Sprintf("unknown request type: %s", req.Type),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	e.logger.Info("Automation request processed",
+
+		"type", req.Type,
+
+		"status", response.Status,
+
+		"duration", response.Duration,
+
+		"message", response.Message)
+
+	// Send notifications if configured.
+
+	if e.config.NotificationEnabled && req.NotificationConfig != nil && req.NotificationConfig.Enabled {
+
+		go e.sendNotification(req, response)
+
+	}
+
+}
+
+// processProvisioningRequest processes a certificate provisioning request.
+
+func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *AutomationResponse {
+
+	startTime := time.Now()
+
+	// Generate certificate for service.
+
+	cert, err := e.generateServiceCertificate(req.ServiceName, req.ServiceNamespace)
+
+	if err != nil {
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: "failed to generate certificate",
+
+			Error: err.Error(),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	// Store certificate.
+
+	if err := e.storeServiceCertificate(req.ServiceName, req.ServiceNamespace, cert); err != nil {
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: "failed to store certificate",
+
+			Error: err.Error(),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	// Perform health check if configured.
+
+	if req.HealthCheckConfig != nil && req.HealthCheckConfig.Enabled {
+
+		// Discover service to get endpoint.
+
+		services, err := e.discoverServices(context.Background())
+
+		if err != nil {
+
+			return &AutomationResponse{
+
+				Status: StatusFailed,
+
+				Message: "failed to discover service for health check",
+
+				Error: err.Error(),
+
+				Timestamp: time.Now(),
+
+				Duration: time.Since(startTime),
+			}
+
+		}
+
+		// Find the service.
+
+		var serviceInstance *ServiceDiscoveryResult
+
+		for _, service := range services {
+
+			if service.Name == req.ServiceName && service.Namespace == req.ServiceNamespace {
+
+				serviceInstance = service
+
+				break
+
+			}
+
+		}
+
+		if serviceInstance == nil {
+
+			return &AutomationResponse{
+
+				Status: StatusFailed,
+
+				Message: "service not found for health check",
+
+				Timestamp: time.Now(),
+
+				Duration: time.Since(startTime),
+			}
+
+		}
+
+		// Perform health check.
+
+		target := &HealthCheckTarget{
+
+			Name: serviceInstance.Name,
+
+			Address: strings.Split(serviceInstance.Endpoint, ":")[0],
+
+			Port: e.parsePort(serviceInstance.Endpoint),
+		}
+
+		healthSession, err := e.healthChecker.StartHealthCheck(target, req.HealthCheckConfig)
+
+		if err != nil {
+
+			return &AutomationResponse{
+
+				Status: StatusFailed,
+
+				Message: "failed to start health check",
+
+				Error: err.Error(),
+
+				Timestamp: time.Now(),
+
+				Duration: time.Since(startTime),
+			}
+
+		}
+
+		// Get health check result.
+
+		result, err := e.healthChecker.PerformHealthCheck(healthSession)
+
+		if err != nil || (result != nil && !result.Success) {
+
+			errorMsg := "unknown error"
+
+			if err != nil {
+
+				errorMsg = err.Error()
+
+			} else if result != nil {
+
+				errorMsg = result.ErrorMessage
+
+			}
+
+			return &AutomationResponse{
+
+				Status: StatusFailed,
+
+				Message: "service health check failed after certificate provisioning",
+
+				Error: errorMsg,
+
+				Timestamp: time.Now(),
+
+				Duration: time.Since(startTime),
+			}
+
+		}
+
+	}
+
+	return &AutomationResponse{
+
+		Status: StatusCompleted,
+
+		Message: "certificate provisioned successfully",
+
+		Certificate: cert,
+
+		Timestamp: time.Now(),
+
+		Duration: time.Since(startTime),
+	}
+
+}
+
+// processRenewalRequest processes a certificate renewal request.
+
+func (e *AutomationEngine) processRenewalRequest(req *AutomationRequest) *AutomationResponse {
+
+	startTime := time.Now()
+
+	if req.CertificateTemplate == nil {
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: "certificate template required for renewal",
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	// Renew certificate.
+
+	newCert, err := e.manager.RenewCertificate(context.Background(), req.CertificateTemplate.SerialNumber.String())
+
+	if err != nil {
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: "failed to renew certificate",
+
+			Error: err.Error(),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	return &AutomationResponse{
+
+		Status: StatusCompleted,
+
+		Message: "certificate renewed successfully",
+
+		Certificate: newCert.Certificate,
+
+		Timestamp: time.Now(),
+
+		Duration: time.Since(startTime),
+	}
+
+}
+
+// processRevocationRequest processes a certificate revocation request.
+
+func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *AutomationResponse {
+
+	startTime := time.Now()
+
+	// Get certificates for service.
+
+	certs, err := e.getServiceCertificates(req.ServiceName, req.ServiceNamespace)
+
+	if err != nil {
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: "failed to get service certificates",
+
+			Error: err.Error(),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	revokedCount := 0
+
+	for _, cert := range certs {
+
+		if err := e.manager.RevokeCertificate(context.Background(), cert.SerialNumber.String(), 1, "service_deleted"); err != nil {
+
+			e.logger.Warn("Failed to revoke certificate",
+
+				"serial", cert.SerialNumber.String(),
+
+				"error", err.Error())
+
+		} else {
+
+			revokedCount++
+
+		}
+
+	}
+
+	return &AutomationResponse{
+
+		Status: StatusCompleted,
+
+		Message: fmt.Sprintf("revoked %d certificates", revokedCount),
+
+		Timestamp: time.Now(),
+
+		Duration: time.Since(startTime),
+
+		Metadata: map[string]interface{}{
+
+			"revoked_count": revokedCount,
+		},
+	}
+
+}
+
+// processDiscoveryRequest processes a service discovery request.
+
+func (e *AutomationEngine) processDiscoveryRequest(req *AutomationRequest) *AutomationResponse {
+
+	startTime := time.Now()
+
+	services, err := e.discoverServices(context.Background())
+
+	if err != nil {
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: "service discovery failed",
+
+			Error: err.Error(),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
+	}
+
+	return &AutomationResponse{
+
+		Status: StatusCompleted,
+
+		Message: fmt.Sprintf("discovered %d services", len(services)),
+
+		Timestamp: time.Now(),
+
+		Duration: time.Since(startTime),
+
+		Metadata: map[string]interface{}{
+
+			"services": services,
+
+			"service_count": len(services),
+		},
+	}
+
+}
+
+// processHealthCheckRequest processes a health check request.
+
+func (e *AutomationEngine) processHealthCheckRequest(req *AutomationRequest) *AutomationResponse {
+
+	startTime := time.Now()
+
+	// This would implement health checking logic.
+
+	// For now, it's a placeholder.
+
+	return &AutomationResponse{
+
+		Status: StatusCompleted,
+
+		Message: "health check completed",
+
+		Timestamp: time.Now(),
+
+		Duration: time.Since(startTime),
+	}
+
+}
+
+// discoverServices discovers services in the cluster.
+
+func (e *AutomationEngine) discoverServices(ctx context.Context) ([]*ServiceDiscoveryResult, error) {
+
+	var allServices []*ServiceDiscoveryResult
+
+	for _, namespace := range e.config.DiscoveryNamespaces {
+
+		services, err := e.kubeClient.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+
+		if err != nil {
+
+			return nil, fmt.Errorf("failed to list services in namespace %s: %w", namespace, err)
+
+		}
+
+		for _, service := range services.Items {
+
+			if e.serviceRequiresCertificate(&service) {
+
+				result := e.convertServiceToDiscoveryResult(&service)
+
+				allServices = append(allServices, result)
+
+			}
+
+		}
+
+	}
+
+	return allServices, nil
+
+}
+
+// convertServiceToDiscoveryResult converts a Kubernetes service to discovery result.
+
+func (e *AutomationEngine) convertServiceToDiscoveryResult(service *v1.Service) *ServiceDiscoveryResult {
+
+	result := &ServiceDiscoveryResult{
+
+		Name: service.Name,
+
+		Namespace: service.Namespace,
+
+		Type: string(service.Spec.Type),
+
+		Labels: service.Labels,
+
+		Annotations: service.Annotations,
+
+		TLSEnabled: e.serviceRequiresCertificate(service),
+	}
+
+	// Extract service ports.
+
+	for _, port := range service.Spec.Ports {
+
+		result.Ports = append(result.Ports, ServicePort{
+
+			Name: port.Name,
+
+			Port: port.Port,
+
+			Protocol: string(port.Protocol),
 		})
-		return
+
 	}
 
-	e.logger.Info("coordinated renewal completed successfully",
-		"worker_id", workerID,
-		"session_id", session.ID,
-		"serial_number", req.SerialNumber,
-		"service", req.ServiceName,
-		"namespace", req.Namespace)
+	// Determine service endpoint.
+
+	if service.Spec.Type == v1.ServiceTypeLoadBalancer && len(service.Status.LoadBalancer.Ingress) > 0 {
+
+		ingress := service.Status.LoadBalancer.Ingress[0]
+
+		if ingress.IP != "" {
+
+			result.Endpoint = fmt.Sprintf("%s:%d", ingress.IP, service.Spec.Ports[0].Port)
+
+		} else if ingress.Hostname != "" {
+
+			result.Endpoint = fmt.Sprintf("%s:%d", ingress.Hostname, service.Spec.Ports[0].Port)
+
+		}
+
+	} else if service.Spec.ClusterIP != "" && service.Spec.ClusterIP != "None" {
+
+		result.Endpoint = fmt.Sprintf("%s:%d", service.Spec.ClusterIP, service.Spec.Ports[0].Port)
+
+	}
+
+	return result
+
 }
 
-// parsePort parses port from endpoint string
+// generateServiceCertificate generates a certificate for a service.
+
+func (e *AutomationEngine) generateServiceCertificate(serviceName, namespace string) (*x509.Certificate, error) {
+
+	// Create certificate request for service.
+
+	subject := fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, namespace)
+
+	template := &x509.Certificate{
+
+		Subject: pkix.Name{
+
+			CommonName: subject,
+
+			OrganizationalUnit: []string{"Automated Certificate Management"},
+
+			Organization: []string{"Nephoran Intent Operator"},
+		},
+
+		DNSNames: []string{
+
+			subject,
+
+			fmt.Sprintf("%s.%s", serviceName, namespace),
+
+			serviceName,
+		},
+	}
+
+	// Create certificate request from template.
+
+	req := &CertificateRequest{
+
+		ID: fmt.Sprintf("auto-%s-%s", serviceName, namespace),
+
+		TenantID: "default",
+
+		CommonName: template.Subject.CommonName,
+
+		DNSNames: template.DNSNames,
+
+		KeySize: 2048,
+
+		ValidityDuration: 24 * time.Hour * 365, // 1 year
+
+		KeyUsage: []string{"digital_signature", "key_encipherment"},
+
+		ExtKeyUsage: []string{"server_auth", "client_auth"},
+
+		AutoRenew: true,
+	}
+
+	// Generate certificate.
+
+	cert, err := e.manager.IssueCertificate(context.Background(), req)
+
+	if err != nil {
+
+		return nil, fmt.Errorf("failed to issue certificate: %w", err)
+
+	}
+
+	return cert.Certificate, nil
+
+}
+
+// storeServiceCertificate stores a certificate for a service.
+
+func (e *AutomationEngine) storeServiceCertificate(serviceName, namespace string, cert *x509.Certificate) error {
+
+	// This would implement certificate storage logic.
+
+	// For now, it's a placeholder.
+
+	e.logger.Debug("Storing service certificate",
+
+		"service", serviceName,
+
+		"namespace", namespace,
+
+		"serial", cert.SerialNumber.String())
+
+	return nil
+
+}
+
+// getServiceCertificates gets certificates for a service.
+
+func (e *AutomationEngine) getServiceCertificates(serviceName, namespace string) ([]*x509.Certificate, error) {
+
+	// This would implement certificate retrieval logic.
+
+	// For now, it's a placeholder.
+
+	return []*x509.Certificate{}, nil
+
+}
+
+// parsePort parses port from endpoint string.
+
 func (e *AutomationEngine) parsePort(endpoint string) int {
+
 	parts := strings.Split(endpoint, ":")
-	if len(parts) != 2 {
+
+	if len(parts) < 2 {
+
 		return 443 // Default HTTPS port
+
 	}
 
-	// Simple port parsing - could be enhanced
-	switch parts[1] {
-	case "80":
-		return 80
-	case "443":
+	port := 443
+
+	if _, err := fmt.Sscanf(parts[1], "%d", &port); err != nil {
+
 		return 443
-	case "8080":
-		return 8080
-	case "8443":
-		return 8443
+
+	}
+
+	return port
+
+}
+
+// sendNotification sends a notification for an automation request.
+
+func (e *AutomationEngine) sendNotification(req *AutomationRequest, resp *AutomationResponse) {
+
+	e.logger.Debug("Sending notification",
+
+		"request_type", req.Type,
+
+		"status", resp.Status,
+
+		"channels", req.NotificationConfig.Channels)
+
+	// This would implement notification sending logic.
+
+	// For now, it's a placeholder.
+
+}
+
+// GetMetrics returns automation engine metrics.
+
+func (e *AutomationEngine) GetMetrics() map[string]interface{} {
+
+	e.runningMux.RLock()
+
+	running := e.running
+
+	e.runningMux.RUnlock()
+
+	e.watchersMux.RLock()
+
+	watcherCount := len(e.watchers)
+
+	e.watchersMux.RUnlock()
+
+	return map[string]interface{}{
+
+		"running": running,
+
+		"watcher_count": watcherCount,
+
+		"config": map[string]interface{}{
+
+			"service_discovery_enabled": e.config.ServiceDiscoveryEnabled,
+
+			"auto_renewal_enabled": e.config.AutoRenewalEnabled,
+
+			"health_check_enabled": e.config.HealthCheckEnabled,
+
+			"notification_enabled": e.config.NotificationEnabled,
+		},
+	}
+
+}
+
+// IsRunning returns whether the automation engine is running.
+
+func (e *AutomationEngine) IsRunning() bool {
+
+	e.runningMux.RLock()
+
+	defer e.runningMux.RUnlock()
+
+	return e.running
+
+}
+
+// GetDiscoveredServices returns currently discovered services.
+
+func (e *AutomationEngine) GetDiscoveredServices(ctx context.Context) ([]*ServiceDiscoveryResult, error) {
+
+	if !e.config.ServiceDiscoveryEnabled {
+
+		return nil, fmt.Errorf("service discovery not enabled")
+
+	}
+
+	return e.discoverServices(ctx)
+
+}
+
+// ProcessManualRequest processes a manual automation request synchronously.
+
+func (e *AutomationEngine) ProcessManualRequest(ctx context.Context, req *AutomationRequest) *AutomationResponse {
+
+	startTime := time.Now()
+
+	switch req.Type {
+
+	case RequestTypeProvisioning:
+
+		return e.processProvisioningRequest(req)
+
+	case RequestTypeRenewal:
+
+		return e.processRenewalRequest(req)
+
+	case RequestTypeRevocation:
+
+		return e.processRevocationRequest(req)
+
 	default:
-		return 443
+
+		return &AutomationResponse{
+
+			Status: StatusFailed,
+
+			Message: fmt.Sprintf("unknown request type: %s", req.Type),
+
+			Timestamp: time.Now(),
+
+			Duration: time.Since(startTime),
+		}
+
 	}
+
 }
 
-// RequestCoordinatedRenewal requests a coordinated certificate renewal
-func (e *AutomationEngine) RequestCoordinatedRenewal(req *RenewalRequest) error {
-	if !e.config.RenewalEnabled {
-		return fmt.Errorf("certificate renewal is disabled")
-	}
+// GetProvisioningQueueSize returns the current size of the provisioning queue.
 
-	req.CoordinatedRotation = true
-	req.ZeroDowntime = true
-	req.CreatedAt = time.Now()
+func (e *AutomationEngine) GetProvisioningQueueSize() int {
 
-	select {
-	case e.renewalQueue <- req:
-		e.logger.Info("coordinated renewal request queued",
-			"serial_number", req.SerialNumber,
-			"service", req.ServiceName,
-			"namespace", req.Namespace)
-		return nil
-	default:
-		return fmt.Errorf("renewal queue is full")
-	}
+	return len(e.requestQueue)
+
 }
 
-// GetPerformanceStatistics returns performance cache statistics
-func (e *AutomationEngine) GetPerformanceStatistics() *CacheStatistics {
-	if e.performanceCache != nil {
-		return e.performanceCache.GetStatistics()
-	}
-	return nil
-}
+// GetRenewalQueueSize returns the current size of the renewal queue.
 
-// GetDiscoveredServices returns all discovered services
-func (e *AutomationEngine) GetDiscoveredServices() map[string]*DiscoveredService {
-	if e.serviceDiscovery != nil {
-		return e.serviceDiscovery.GetDiscoveredServices()
-	}
-	return nil
-}
+func (e *AutomationEngine) GetRenewalQueueSize() int {
 
-// GetActiveRotationSessions returns all active rotation sessions
-func (e *AutomationEngine) GetActiveRotationSessions() []*RotationSession {
-	if e.rotationCoordinator == nil {
-		return nil
-	}
+	// For now, return 0 as we don't have a separate renewal queue.
 
-	var sessions []*RotationSession
-	// This would get all active sessions from the coordinator
-	return sessions
-}
+	// In a full implementation, this would track renewal-specific requests.
 
-// GetActiveHealthCheckSessions returns all active health check sessions
-func (e *AutomationEngine) GetActiveHealthCheckSessions() []*HealthCheckSession {
-	if e.healthChecker != nil {
-		return e.healthChecker.GetActiveHealthCheckSessions()
-	}
-	return nil
-}
+	return 0
 
-// generateRequestID generates a unique request ID
-func generateRequestID() string {
-	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }

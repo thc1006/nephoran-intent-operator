@@ -1,0 +1,172 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: certificateautomations.nephoran.com
+spec:
+  group: nephoran.com
+  names:
+    kind: CertificateAutomation
+    listKind: CertificateAutomationList
+    plural: certificateautomations
+    singular: certificateautomation
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.serviceName
+      name: Service
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: CertificateAutomation is the Schema for the certificateautomations
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CertificateAutomationSpec defines the desired state of CertificateAutomation
+            properties:
+              algorithm:
+                description: Algorithm specifies the signing algorithm
+                type: string
+              autoRenew:
+                description: AutoRenew enables automatic certificate renewal
+                type: boolean
+              certType:
+                description: CertType specifies the type of certificate (TLS, mTLS,
+                  etc.)
+                type: string
+              dnsNames:
+                description: DNSNames specifies additional DNS names for the certificate
+                items:
+                  type: string
+                type: array
+              ipAddresses:
+                description: IPAddresses specifies IP addresses for the certificate
+                items:
+                  type: string
+                type: array
+              keySize:
+                description: KeySize specifies the private key size
+                type: integer
+              namespace:
+                description: Namespace specifies the target namespace
+                type: string
+              priority:
+                description: Priority specifies the priority of this automation
+                type: string
+              renewalThreshold:
+                description: RenewalThreshold specifies when to renew (e.g., "30d"
+                  before expiry)
+                type: string
+              serviceName:
+                description: ServiceName specifies the target service name
+                type: string
+              validityPeriod:
+                description: ValidityPeriod specifies the certificate validity period
+                type: string
+            required:
+            - namespace
+            - serviceName
+            type: object
+          status:
+            description: CertificateAutomationStatus defines the observed state of
+              CertificateAutomation
+            properties:
+              certificateSerialNumber:
+                description: CertificateSerialNumber contains the serial number of
+                  the issued certificate
+                type: string
+              conditions:
+                description: Conditions represents the current conditions
+                items:
+                  description: CertificateAutomationCondition describes the state
+                    of certificate automation
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time the condition
+                        transitioned
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message contains a human readable message indicating
+                        details about the transition
+                      type: string
+                    reason:
+                      description: Reason contains a programmatic identifier indicating
+                        the reason for the condition
+                      type: string
+                    status:
+                      description: Status of the condition
+                      type: string
+                    type:
+                      description: Type of condition
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              expirationTime:
+                description: ExpirationTime contains the certificate expiration time
+                format: date-time
+                type: string
+              expiresAt:
+                description: ExpiresAt contains the certificate expiration time (alternative
+                  name)
+                format: date-time
+                type: string
+              lastRenewalTime:
+                description: LastRenewalTime contains the last renewal timestamp
+                format: date-time
+                type: string
+              nextRenewalTime:
+                description: NextRenewalTime contains the next scheduled renewal time
+                format: date-time
+                type: string
+              observedGeneration:
+                description: ObservedGeneration reflects the generation observed by
+                  the controller
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of certificate automation
+                type: string
+              secretName:
+                description: SecretName contains the name of the secret storing the
+                  certificate
+                type: string
+              validationStatus:
+                description: ValidationStatus contains the certificate validation
+                  status
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

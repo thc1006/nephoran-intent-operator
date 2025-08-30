@@ -290,6 +290,20 @@ spec:
                         format: int32
                         minimum: 1
                         type: integer
+                      maxCpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: MaxCPU limits
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      maxMemory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: MaxMemory limits
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       memory:
                         anyOf:
                         - type: integer
@@ -666,6 +680,20 @@ spec:
                         format: int32
                         minimum: 1
                         type: integer
+                      maxCpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: MaxCPU limits
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      maxMemory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: MaxMemory limits
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                       memory:
                         anyOf:
                         - type: integer
@@ -1285,6 +1313,20 @@ spec:
                     format: int32
                     minimum: 1
                     type: integer
+                  maxCpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: MaxCPU limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  maxMemory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: MaxMemory limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   memory:
                     anyOf:
                     - type: integer
@@ -1397,6 +1439,20 @@ spec:
                             format: int32
                             minimum: 1
                             type: integer
+                          maxCpu:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: MaxCPU limits
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          maxMemory:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: MaxMemory limits
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
                           memory:
                             anyOf:
                             - type: integer

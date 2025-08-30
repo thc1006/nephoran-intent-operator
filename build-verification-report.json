@@ -1,0 +1,1691 @@
+﻿{
+    "FailedBuilds":  6,
+    "SuccessfulBuilds":  160,
+    "PackageResults":  [
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "."
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/a1-sim"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/conductor"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/conductor-loop"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/conductor-watch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/e2-kpm-sim"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/fcaps-reducer"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/fcaps-sim"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/intent-ingest"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/llm-processor"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/nephio-bridge"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/o1-ves-sim"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/oran-adaptor"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/performance-comparison"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/performance-regression-test"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/porch-direct"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/porch-publisher"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/porch-structured-patch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/quality-metrics"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/run-envtest"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/secure-porch-patch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/security-demo"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/technical-debt-monitor"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/test-context-builder"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  1,
+                               "ErrorCategories":  [
+                                                       "BuildConstraint"
+                                                   ],
+                               "Errors":  "package github.com/thc1006/nephoran-intent-operator/cmd/test-lint: build constraints exclude all Go files in C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\cmd\\test-lint",
+                               "Success":  false,
+                               "Package":  "./cmd/test-lint"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  1,
+                               "ErrorCategories":  [
+                                                       "BuildConstraint"
+                                                   ],
+                               "Errors":  "package github.com/thc1006/nephoran-intent-operator/cmd/test-performance-engine: build constraints exclude all Go files in C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\cmd\\test-performance-engine",
+                               "Success":  false,
+                               "Package":  "./cmd/test-performance-engine"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  1,
+                               "ErrorCategories":  [
+                                                       "GoModule"
+                                                   ],
+                               "Errors":  "main module (github.com/thc1006/nephoran-intent-operator) does not contain package github.com/thc1006/nephoran-intent-operator/cmd/test-runner",
+                               "Success":  false,
+                               "Package":  "./cmd/test-runner"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/verify-observability"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./cmd/webhook-manager"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./controllers"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/a1sim"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/conductor"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/config"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/fcaps"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/generator"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/ingest"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  1,
+                               "ErrorCategories":  [
+                                                       "BuildConstraint"
+                                                   ],
+                               "Errors":  "package github.com/thc1006/nephoran-intent-operator/internal/integration: build constraints exclude all Go files in C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\internal\\integration",
+                               "Success":  false,
+                               "Package":  "./internal/integration"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/intent"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/kpm"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/loop"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/patch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/patchgen"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/patchgen/generator"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/pathutil"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/planner"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/platform"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/porch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/security"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/ves"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/watch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./internal/writer"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/audit"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/audit/backends"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/audit/compliance"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/audit/types"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/auth"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/auth/providers"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/auth/testutil"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/automation"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/blueprints"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/chaos"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/clients"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/cnf"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/cnf/templates"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/config"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/context"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/interfaces"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/optimization"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/optimized"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/orchestration"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/parallel"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/resilience"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/controllers/testutil"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/disaster"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/edge"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/errors"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/generics"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/git"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/git/fake"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/global"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/handlers"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/health"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/injection"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/interfaces"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/knowledge"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/llm"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/llm/examples"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/logging"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/middleware"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/ml"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/alerting"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/availability"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/health"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/latency"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/reporting"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/sla"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/monitoring/throughput"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/multicluster"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/mvp"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/blueprint"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/dependencies"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/krm"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/krm/functions"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/multicluster"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/patchgen"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/porch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/porch/testutil"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/testutil"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/webui"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/nephio/workload"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/optimization"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/a1"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/a1/security"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/e2"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/e2/examples"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/e2/service_models"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/health"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/metrics"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o1"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o1/security"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o2"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o2/ims"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o2/ims/modeladapter"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o2/models"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/o2/providers"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/oran/security"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/packagerevision"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/analysis"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  1,
+                               "ErrorCategories":  [
+                                                       "Unknown"
+                                                   ],
+                               "Errors":  "github.com/thc1006/nephoran-intent-operator/pkg/performance/benchmarks\ngithub.com/thc1006/nephoran-intent-operator/pkg/performance/benchmarks: no non-test Go files in C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\pkg\\performance\\benchmarks",
+                               "Success":  false,
+                               "Package":  "./pkg/performance/benchmarks"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/distributed"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/load-testing"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/models"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/regression"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/reporting"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/performance/validation"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/porch"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/rag"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/recovery"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/resilience"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/security"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/security/ca"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/security/mtls"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh/abstraction"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh/consul"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh/istio"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh/linkerd"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh/observability"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/servicemesh/policies"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/services"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/shared"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/telecom"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/templates"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/testcontainers"
+                           },
+                           {
+                               "Output":  "github.com/thc1006/nephoran-intent-operator/pkg/testdata",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/testdata"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/testing"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  1,
+                               "ErrorCategories":  [
+                                                       "Unknown"
+                                                   ],
+                               "Errors":  "github.com/thc1006/nephoran-intent-operator/pkg/testperf\ngithub.com/thc1006/nephoran-intent-operator/pkg/testperf: no non-test Go files in C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\pkg\\testperf",
+                               "Success":  false,
+                               "Package":  "./pkg/testperf"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/testutils"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/validation/yang"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/webhooks"
+                           },
+                           {
+                               "Output":  "",
+                               "ExitCode":  0,
+                               "ErrorCategories":  [
+
+                                                   ],
+                               "Errors":  "",
+                               "Success":  true,
+                               "Package":  "./pkg/webui"
+                           }
+                       ],
+    "TotalPackages":  166,
+    "EndTime":  {
+                    "value":  "\/Date(1756346128177)\/",
+                    "DisplayHint":  2,
+                    "DateTime":  "2025年8月28日 上午 09:55:28"
+                },
+    "ErrorsByCategory":  {
+                             "Generic":  0,
+                             "InterfaceImplementation":  0,
+                             "CGO":  0,
+                             "MissingPackage":  0,
+                             "Unknown":  4,
+                             "Conversion":  0,
+                             "GoModule":  1,
+                             "Visibility":  0,
+                             "ImportCycle":  0,
+                             "SyntaxError":  0,
+                             "UndefinedType":  0,
+                             "BuildConstraint":  3
+                         },
+    "StartTime":  {
+                      "value":  "\/Date(1756345931490)\/",
+                      "DisplayHint":  2,
+                      "DateTime":  "2025年8月28日 上午 09:52:11"
+                  }
+}

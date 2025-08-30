@@ -1,0 +1,117 @@
+﻿2025-08-19T13:09:24.4742509Z ##[group]Run actions/checkout@v4
+2025-08-19T13:09:24.4742763Z with:
+2025-08-19T13:09:24.4742930Z   fetch-depth: 0
+2025-08-19T13:09:24.4743144Z   repository: thc1006/nephoran-intent-operator
+2025-08-19T13:09:24.4743516Z   token: ***
+2025-08-19T13:09:24.4743686Z   ssh-strict: true
+2025-08-19T13:09:24.4743867Z   ssh-user: git
+2025-08-19T13:09:24.4744047Z   persist-credentials: true
+2025-08-19T13:09:24.4744256Z   clean: true
+2025-08-19T13:09:24.4744441Z   sparse-checkout-cone-mode: true
+2025-08-19T13:09:24.4744671Z   fetch-tags: false
+2025-08-19T13:09:24.4744854Z   show-progress: true
+2025-08-19T13:09:24.4745042Z   lfs: false
+2025-08-19T13:09:24.4745220Z   submodules: false
+2025-08-19T13:09:24.4745406Z   set-safe-directory: true
+2025-08-19T13:09:24.4745606Z env:
+2025-08-19T13:09:24.4745756Z   GO_VERSION: 1.24
+2025-08-19T13:09:24.4745938Z   REGISTRY: ghcr.io
+2025-08-19T13:09:24.4746153Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:24.4746409Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:24.4746775Z ##[endgroup]
+2025-08-19T13:09:24.5736754Z Syncing repository: thc1006/nephoran-intent-operator
+2025-08-19T13:09:24.5738427Z ##[group]Getting Git version info
+2025-08-19T13:09:24.5738913Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-19T13:09:24.5739527Z [command]/usr/bin/git version
+2025-08-19T13:09:24.5749001Z git version 2.50.1
+2025-08-19T13:09:24.5774646Z ##[endgroup]
+2025-08-19T13:09:24.5793383Z Temporarily overriding HOME='/home/runner/work/_temp/9344ad7a-2496-4a72-8e6d-72a43015952c' before making global git config changes
+2025-08-19T13:09:24.5794647Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-19T13:09:24.5798799Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:09:24.5835987Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-19T13:09:24.5839765Z ##[group]Initializing the repository
+2025-08-19T13:09:24.5844467Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:09:24.5939739Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-19T13:09:24.5940633Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-19T13:09:24.5941441Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-19T13:09:24.5942016Z hint:
+2025-08-19T13:09:24.5942407Z hint: 	git config --global init.defaultBranch <name>
+2025-08-19T13:09:24.5942900Z hint:
+2025-08-19T13:09:24.5943359Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-19T13:09:24.5944122Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-19T13:09:24.5944699Z hint:
+2025-08-19T13:09:24.5944985Z hint: 	git branch -m <name>
+2025-08-19T13:09:24.5945333Z hint:
+2025-08-19T13:09:24.5945880Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-19T13:09:24.5947139Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-08-19T13:09:24.5957098Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-08-19T13:09:24.5995450Z ##[endgroup]
+2025-08-19T13:09:24.5996096Z ##[group]Disabling automatic garbage collection
+2025-08-19T13:09:24.6001067Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-19T13:09:24.6035107Z ##[endgroup]
+2025-08-19T13:09:24.6035657Z ##[group]Setting up auth
+2025-08-19T13:09:24.6043981Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-19T13:09:24.6078478Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-19T13:09:24.6380470Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-19T13:09:24.6411389Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-19T13:09:24.6662747Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-19T13:09:24.6703481Z ##[endgroup]
+2025-08-19T13:09:24.6704114Z ##[group]Fetching the repository
+2025-08-19T13:09:24.6713427Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2025-08-19T13:09:32.4877507Z From https://github.com/thc1006/nephoran-intent-operator
+2025-08-19T13:09:32.4878426Z  * [new branch]        chore/claude-commands-and-hooks -> origin/chore/claude-commands-and-hooks
+2025-08-19T13:09:32.4880179Z  * [new branch]        chore/conductor-governance -> origin/chore/conductor-governance
+2025-08-19T13:09:32.4884042Z  * [new branch]        chore/conductor-setup  -> origin/chore/conductor-setup
+2025-08-19T13:09:32.4889371Z  * [new branch]        chore/repo-hygiene     -> origin/chore/repo-hygiene
+2025-08-19T13:09:32.4896258Z  * [new branch]        dependabot/github_actions/actions/configure-pages-5 -> origin/dependabot/github_actions/actions/configure-pages-5
+2025-08-19T13:09:32.4900952Z  * [new branch]        dependabot/github_actions/codecov/codecov-action-5 -> origin/dependabot/github_actions/codecov/codecov-action-5
+2025-08-19T13:09:32.4906155Z  * [new branch]        dependabot/github_actions/golangci/golangci-lint-action-8 -> origin/dependabot/github_actions/golangci/golangci-lint-action-8
+2025-08-19T13:09:32.4911243Z  * [new branch]        dependabot/github_actions/hashicorp/setup-terraform-3 -> origin/dependabot/github_actions/hashicorp/setup-terraform-3
+2025-08-19T13:09:32.4919013Z  * [new branch]        dependabot/github_actions/helm/kind-action-1.12.0 -> origin/dependabot/github_actions/helm/kind-action-1.12.0
+2025-08-19T13:09:32.4926206Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/compute-1.43.0 -> origin/dependabot/go_modules/cloud.google.com/go/compute-1.43.0
+2025-08-19T13:09:32.4930891Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/container-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/container-1.44.0
+2025-08-19T13:09:32.4939029Z  * [new branch]        dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.18.2 -> origin/dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.18.2
+2025-08-19T13:09:32.4944350Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.0 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.0
+2025-08-19T13:09:32.4950710Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.4 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.4
+2025-08-19T13:09:32.4956247Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.37.0 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.37.0
+2025-08-19T13:09:32.4963779Z  * [new branch]        dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1 -> origin/dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1
+2025-08-19T13:09:32.4970003Z  * [new branch]        dependabot/go_modules/golang.org/x/net-0.43.0 -> origin/dependabot/go_modules/golang.org/x/net-0.43.0
+2025-08-19T13:09:32.4976063Z  * [new branch]        dependabot/go_modules/helm.sh/helm/v3-3.18.5 -> origin/dependabot/go_modules/helm.sh/helm/v3-3.18.5
+2025-08-19T13:09:32.4981887Z  * [new branch]        dependabot/go_modules/k8s.io/client-go-0.33.4 -> origin/dependabot/go_modules/k8s.io/client-go-0.33.4
+2025-08-19T13:09:32.4986647Z  * [new branch]        feat/a1-policy-sim     -> origin/feat/a1-policy-sim
+2025-08-19T13:09:32.4990239Z  * [new branch]        feat/admission-webhook -> origin/feat/admission-webhook
+2025-08-19T13:09:32.4995626Z  * [new branch]        feat/ci-guard          -> origin/feat/ci-guard
+2025-08-19T13:09:32.5000215Z  * [new branch]        feat/conductor-file-watcher -> origin/feat/conductor-file-watcher
+2025-08-19T13:09:32.5003981Z  * [new branch]        feat/conductor-loop    -> origin/feat/conductor-loop
+2025-08-19T13:09:32.5008324Z  * [new branch]        feat/e2-kpm-sim        -> origin/feat/e2-kpm-sim
+2025-08-19T13:09:32.5012714Z  * [new branch]        feat/e2e               -> origin/feat/e2e
+2025-08-19T13:09:32.5016371Z  * [new branch]        feat/examples-mvp      -> origin/feat/examples-mvp
+2025-08-19T13:09:32.5021383Z  * [new branch]        feat/ingest-llm        -> origin/feat/ingest-llm
+2025-08-19T13:09:32.5029345Z  * [new branch]        feat/ingest-tests-and-errors -> origin/feat/ingest-tests-and-errors
+2025-08-19T13:09:32.5032031Z  * [new branch]        feat/o1-ves-sim        -> origin/feat/o1-ves-sim
+2025-08-19T13:09:32.5037768Z  * [new branch]        feat/planner           -> origin/feat/planner
+2025-08-19T13:09:32.5040596Z  * [new branch]        feat/porch-direct      -> origin/feat/porch-direct
+2025-08-19T13:09:32.5048917Z  * [new branch]        feat/porch-publisher   -> origin/feat/porch-publisher
+2025-08-19T13:09:32.5049869Z  * [new branch]        feat/porch-structured-patch -> origin/feat/porch-structured-patch
+2025-08-19T13:09:32.5060552Z  * [new branch]        feat/sim-fcaps-to-intent -> origin/feat/sim-fcaps-to-intent
+2025-08-19T13:09:32.5064043Z  * [new branch]        feat/test-harness      -> origin/feat/test-harness
+2025-08-19T13:09:32.5067970Z  * [new branch]        integrate/mvp          -> origin/integrate/mvp
+2025-08-19T13:09:32.5072614Z  * [new branch]        main                   -> origin/main
+2025-08-19T13:09:32.5073509Z  * [new tag]           backup/pre-cleanup-20250813234213 -> backup/pre-cleanup-20250813234213
+2025-08-19T13:09:32.5074263Z  * [new tag]           v0.1.0-mvp             -> v0.1.0-mvp
+2025-08-19T13:09:32.5129475Z [command]/usr/bin/git branch --list --remote origin/feat/conductor-loop
+2025-08-19T13:09:32.5162465Z   origin/feat/conductor-loop
+2025-08-19T13:09:32.5171778Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/conductor-loop
+2025-08-19T13:09:32.5193931Z 466806fe950338ae4ffff485b592c7e933197d57
+2025-08-19T13:09:32.5199612Z ##[endgroup]
+2025-08-19T13:09:32.5200147Z ##[group]Determining the checkout info
+2025-08-19T13:09:32.5201358Z ##[endgroup]
+2025-08-19T13:09:32.5205482Z [command]/usr/bin/git sparse-checkout disable
+2025-08-19T13:09:32.5248530Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-19T13:09:32.5278452Z ##[group]Checking out the ref
+2025-08-19T13:09:32.5283007Z [command]/usr/bin/git checkout --progress --force -B feat/conductor-loop refs/remotes/origin/feat/conductor-loop
+2025-08-19T13:09:32.9912623Z Switched to a new branch 'feat/conductor-loop'
+2025-08-19T13:09:32.9916198Z branch 'feat/conductor-loop' set up to track 'origin/feat/conductor-loop'.
+2025-08-19T13:09:32.9948353Z ##[endgroup]
+2025-08-19T13:09:32.9991362Z [command]/usr/bin/git log -1 --format=%H
+2025-08-19T13:09:33.0015730Z 466806fe950338ae4ffff485b592c7e933197d57

@@ -99,10 +99,7 @@ import (
 
 func main() {
     // Initialize logger
-    logger := logging.NewStructuredLogger(
-        logging.WithService("o2-ims-demo"),
-        logging.WithVersion("1.0.0"),
-    )
+    logger := logging.NewStructuredLogger(logging.DefaultConfig("o2-ims-demo", "1.0.0", "development"))
     
     // Initialize Kubernetes client
     k8sClient, err := client.New(config, client.Options{})

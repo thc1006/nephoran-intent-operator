@@ -1,0 +1,367 @@
+# Advanced security configurations for Nephoran Intent Operator
+# This includes admission controllers, security scanning, and compliance monitoring
+
+---
+# OPA Gatekeeper admission controller for policy enforcement
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gatekeeper-policies
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+data:
+  image-security-policy.rego: |
+    package nephoran.admission
+    
+    # Deny images from untrusted registries
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      image := input.request.object.spec.containers[_].image
+      not allowed_registry(image)
+      msg := sprintf("Image %v is not from an allowed registry", [image])
+    }
+    
+    allowed_registry(image) {
+      starts_with(image, "gcr.io/kubebuilder/")
+    }
+    
+    allowed_registry(image) {
+      starts_with(image, "quay.io/nephoran/")
+    }
+    
+    allowed_registry(image) {
+      starts_with(image, "registry.k8s.io/")
+    }
+    
+    # Require security context for all containers
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      container := input.request.object.spec.containers[_]
+      not container.securityContext
+      msg := sprintf("Container %v must have securityContext defined", [container.name])
+    }
+    
+    # Deny privileged containers
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      container := input.request.object.spec.containers[_]
+      container.securityContext.privileged == true
+      msg := sprintf("Privileged container %v is not allowed", [container.name])
+    }
+    
+    # Require resource limits
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      container := input.request.object.spec.containers[_]
+      not container.resources.limits
+      msg := sprintf("Container %v must have resource limits defined", [container.name])
+    }
+
+---
+# Trivy security scanner configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trivy-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+data:
+  trivy.yaml: |
+    # Trivy configuration for container image security scanning
+    cache:
+      dir: "/tmp/trivy/.cache"
+    db:
+      repository: "ghcr.io/aquasecurity/trivy-db"
+      skip-update: false
+    vulnerability:
+      type: "os,library"
+    severity: "CRITICAL,HIGH,MEDIUM"
+    ignore-unfixed: true
+    exit-code: 1
+    format: "json"
+    
+    # Custom policies for Nephoran
+    policy:
+      - name: "nephoran-security"
+        rules:
+          - id: "CVE-2023-*"
+            severity: "CRITICAL"
+            action: "deny"
+          - id: "golang-*"
+            severity: "HIGH" 
+            action: "warn"
+          - package: "openssl"
+            version: "<1.1.1"
+            action: "deny"
+
+---
+# Falco runtime security monitoring
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: falco-nephoran
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/component: security
+spec:
+  selector:
+    matchLabels:
+      app: falco-nephoran
+  template:
+    metadata:
+      labels:
+        app: falco-nephoran
+    spec:
+      serviceAccountName: falco-nephoran
+      hostNetwork: false
+      hostPID: true
+      containers:
+      - name: falco
+        image: falcosecurity/falco:0.36.2
+        args:
+        - /usr/bin/falco
+        - --cri=/run/containerd/containerd.sock
+        - --k8s-api=https://kubernetes.default.svc
+        - --k8s-api-cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        - --k8s-api-token=/var/run/secrets/kubernetes.io/serviceaccount/token
+        - --rule=/etc/falco/nephoran_rules.yaml
+        securityContext:
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false  # Falco needs root for kernel access
+          capabilities:
+            add: ["SYS_PTRACE"]
+            drop: ["ALL"]
+        volumeMounts:
+        - name: containerd-socket
+          mountPath: /run/containerd/containerd.sock
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: etc
+          mountPath: /host/etc
+          readOnly: true
+        - name: falco-rules
+          mountPath: /etc/falco/nephoran_rules.yaml
+          subPath: nephoran_rules.yaml
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      volumes:
+      - name: containerd-socket
+        hostPath:
+          path: /run/containerd/containerd.sock
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: etc
+        hostPath:
+          path: /etc
+      - name: falco-rules
+        configMap:
+          name: falco-nephoran-rules
+      - name: tmp
+        emptyDir: {}
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+
+---
+# Kustomize security scanner integration
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-scan-cronjob
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: security-scanner
+          containers:
+          - name: security-scanner
+            image: aquasec/trivy:0.47.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Scan all Nephoran images
+              echo "Starting security scan for Nephoran images..."
+              
+              # Get all images in the namespace
+              images=$(kubectl get pods -n nephoran-system -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\n' | sort -u)
+              
+              for image in $images; do
+                echo "Scanning $image..."
+                trivy image --format json --output /tmp/scan-$$(echo $image | tr '/' '-').json $image
+                
+                # Check for critical vulnerabilities
+                critical_count=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | length' /tmp/scan-$$(echo $image | tr '/' '-').json | wc -l)
+                
+                if [ "$critical_count" -gt 0 ]; then
+                  echo "CRITICAL: Found $critical_count critical vulnerabilities in $image"
+                  # Send alert
+                  curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"alert\":\"Critical vulnerabilities found in $image\",\"count\":$critical_count}"
+                fi
+              done
+              
+              echo "Security scan completed"
+            env:
+            - name: WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: security-alerts-webhook
+                  key: url
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            resources:
+              limits:
+                cpu: 500m
+                memory: 1Gi
+              requests:
+                cpu: 100m
+                memory: 256Mi
+          volumes:
+          - name: tmp
+            emptyDir:
+              sizeLimit: 2Gi
+
+---
+# Network security monitoring with Cilium
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cilium-security-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+data:
+  network-policy.yaml: |
+    # Cilium Network Policies for enhanced security
+    apiVersion: cilium.io/v2
+    kind: CiliumNetworkPolicy
+    metadata:
+      name: nephoran-l7-policy
+      namespace: nephoran-system
+    spec:
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran-intent-operator
+      ingress:
+      - fromEndpoints:
+        - matchLabels:
+            app: prometheus
+        toPorts:
+        - ports:
+          - port: "8080"
+            protocol: TCP
+          rules:
+            http:
+            - method: "GET"
+              path: "/metrics"
+      # L7 policy for webhook admission
+      - fromEndpoints: []  # Allow from anywhere (API server)
+        toPorts:
+        - ports:
+          - port: "9443"
+            protocol: TCP
+          rules:
+            http:
+            - method: "POST"
+              path: "/mutate"
+            - method: "POST"  
+              path: "/validate"
+      egress:
+      # Allow DNS
+      - toPorts:
+        - ports:
+          - port: "53"
+            protocol: UDP
+        toFQDNs:
+        - matchName: "kubernetes.default.svc.cluster.local"
+      # Allow API server access
+      - toPorts:
+        - ports:
+          - port: "443"
+            protocol: TCP
+        toFQDNs:
+        - matchName: "kubernetes.default.svc.cluster.local"
+      # Allow specific external APIs
+      - toPorts:
+        - ports:
+          - port: "443"
+            protocol: TCP
+        toFQDNs:
+        - matchPattern: "*.openai.com"
+        - matchPattern: "*.anthropic.com"
+        - matchName: "api.github.com"
+
+---
+# Security audit logging configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+data:
+  audit-policy.yaml: |
+    apiVersion: audit.k8s.io/v1
+    kind: Policy
+    rules:
+    # Log all Nephoran-related operations at detailed level
+    - level: Metadata
+      namespaces: ["nephoran-system"]
+      resources:
+      - group: "nephoran.io"
+        resources: ["*"]
+      - group: "intent.nephoran.com" 
+        resources: ["*"]
+    
+    # Log secret access in detail
+    - level: Request
+      namespaces: ["nephoran-system"]
+      resources:
+      - group: ""
+        resources: ["secrets"]
+    
+    # Log admission controller events
+    - level: Request
+      users: ["system:serviceaccount:nephoran-system:nephoran-webhook-manager"]
+    
+    # Log high-privilege operations
+    - level: RequestResponse
+      verbs: ["create", "update", "patch", "delete"]
+      resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["*"]
+      - group: "security.openshift.io"
+        resources: ["*"]
+    
+    # Don't log routine operations
+    - level: None
+      verbs: ["get", "list", "watch"]
+      resources:
+      - group: ""
+        resources: ["events"]
