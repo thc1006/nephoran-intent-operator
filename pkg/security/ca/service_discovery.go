@@ -1032,7 +1032,7 @@ func (sd *ServiceDiscovery) performPreProvisioning() {
 
 			if time.Since(service.DiscoveredAt) > 5*time.Minute {
 
-				go sd.provisionCertificateForService(service)
+				go sd.provisionCertificateForService(context.Background(), service)
 
 			}
 

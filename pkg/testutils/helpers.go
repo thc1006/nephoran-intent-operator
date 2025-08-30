@@ -39,7 +39,7 @@ func CreateNamespace(ctx context.Context, k8sClient client.Client, name string) 
 		},
 	}
 
-	gomega.gomega.Expect(k8sClient.Create(ctx, namespace)).To(gomega.Succeed())
+	gomega.Expect(k8sClient.Create(ctx, namespace)).To(gomega.Succeed())
 
 	return namespace
 

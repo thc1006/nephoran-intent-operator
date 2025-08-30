@@ -41,14 +41,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	nephiov1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -1728,23 +1726,19 @@ func (ss *SecurityScanner) extractTargetsFromIntent(intent *nephiov1.NetworkInte
 
 	// For now, return a placeholder
 
-	if intent.Spec.CNFDeployments != nil {
-
-		for _, deployment := range intent.Spec.CNFDeployments {
-
-			if deployment.ServiceEndpoints != nil {
-
-				for _, endpoint := range deployment.ServiceEndpoints {
-
-					targets = append(targets, endpoint.URL)
-
-				}
-
-			}
-
-		}
-
+	// Extract targets based on target components and cluster information
+	if intent.Spec.TargetCluster != "" {
+		// Add cluster endpoint as a target for security scanning
+		targets = append(targets, intent.Spec.TargetCluster)
 	}
+
+	// Add namespace-based targets if specified
+	if intent.Spec.TargetNamespace != "" {
+		// This could be expanded to scan specific services in the namespace
+		targets = append(targets, "namespace:"+intent.Spec.TargetNamespace)
+	}
+
+	// For now, return placeholder targets based on available spec fields
 
 	return targets
 
@@ -1756,7 +1750,7 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 	// Check for insecure configurations in the NetworkIntent
 
-	if intent.Spec.Security == nil {
+	if intent.Spec.ProcessedParameters == nil || intent.Spec.ProcessedParameters.SecurityParameters == nil {
 
 		vuln := Vulnerability{
 
@@ -1768,7 +1762,7 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 			Severity:    "Medium",
 
-			Solution:    "Add security section to NetworkIntent specification",
+			Solution:    "Add security parameters to NetworkIntent specification",
 
 			Service:     "NetworkIntent",
 		}
@@ -1777,21 +1771,23 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 	} else {
 
+		secParams := intent.Spec.ProcessedParameters.SecurityParameters
+
 		// Check specific security settings
 
-		if !intent.Spec.Security.TLSEnabled {
+		if secParams.TLSEnabled == nil || !*secParams.TLSEnabled {
 
 			vuln := Vulnerability{
 
 				ID:          "INTENT-002",
 
-				Title:       "TLS Disabled",
+				Title:       "TLS Disabled or Not Configured",
 
-				Description: "NetworkIntent has TLS disabled, communications may be unencrypted",
+				Description: "NetworkIntent has TLS disabled or not configured, communications may be unencrypted",
 
 				Severity:    "High",
 
-				Solution:    "Enable TLS in NetworkIntent security configuration",
+				Solution:    "Enable TLS in NetworkIntent security parameters",
 
 				Service:     "NetworkIntent",
 			}
@@ -1800,19 +1796,44 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 		}
 
-		if !intent.Spec.Security.AuthenticationEnabled {
+		// Check if service mesh is disabled (which could indicate lack of security)
+
+		if secParams.ServiceMesh == nil || !*secParams.ServiceMesh {
 
 			vuln := Vulnerability{
 
 				ID:          "INTENT-003",
 
-				Title:       "Authentication Disabled",
+				Title:       "Service Mesh Disabled",
 
-				Description: "NetworkIntent has authentication disabled",
+				Description: "NetworkIntent has service mesh disabled, which may reduce security",
+
+				Severity:    "Medium",
+
+				Solution:    "Enable service mesh in NetworkIntent security parameters",
+
+				Service:     "NetworkIntent",
+			}
+
+			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
+
+		}
+
+		// Check if encryption is properly configured
+
+		if secParams.Encryption == nil || secParams.Encryption.Enabled == nil || !*secParams.Encryption.Enabled {
+
+			vuln := Vulnerability{
+
+				ID:          "INTENT-004",
+
+				Title:       "Encryption Disabled",
+
+				Description: "NetworkIntent has encryption disabled or not configured",
 
 				Severity:    "High",
 
-				Solution:    "Enable authentication in NetworkIntent security configuration",
+				Solution:    "Enable encryption in NetworkIntent security parameters",
 
 				Service:     "NetworkIntent",
 			}

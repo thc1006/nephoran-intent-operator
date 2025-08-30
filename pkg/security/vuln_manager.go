@@ -354,18 +354,30 @@ func NewVulnerabilityManager(config *VulnManagerConfig) (*VulnerabilityManager, 
 
 	// Initialize security scanner.
 
-	scannerConfig := &ScannerConfig{
+	scannerConfig := SecurityScannerConfig{
 
-		BaseURL: "http://localhost:8080",
+		MaxConcurrency: 5,
 
-		EnableVulnScanning: true,
+		ScanTimeout: 30 * time.Second,
 
-		EnableOWASPTesting: true,
+		HTTPTimeout: 10 * time.Second,
 
-		EnableInjectionTesting: true,
+		EnableVulnScan: true,
+
+		EnableInjectionScan: true,
+
+		EnablePortScan: true,
+
+		EnableTLSScan: true,
+
+		EnableHeaderScan: true,
 	}
 
-	vm.scanner = NewSecurityScanner(scannerConfig)
+	scanner, err := NewSecurityScanner(nil, vm.logger, scannerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create security scanner: %w", err)
+	}
+	vm.scanner = scanner
 
 	// Initialize remediation engine.
 
