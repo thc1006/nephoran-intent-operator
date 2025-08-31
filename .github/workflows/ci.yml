@@ -29,9 +29,10 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: nephoran-intent-operator
-  GO_VERSION_FILE: "go.mod"
-  GOLANGCI_LINT_VERSION: "1.64.3"
-  GOVULNCHECK_VERSION: "1.1.4"
+  GO_VERSION: "1.24.6"
+  CONTROLLER_GEN_VERSION: "v0.19.0"
+  GOLANGCI_LINT_VERSION: "v1.64.3"
+  GOVULNCHECK_VERSION: "v1.1.4"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GO111MODULE: "on"
@@ -95,9 +96,20 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ env.GO_VERSION }}
           check-latest: true
           cache: true
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/bin
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-tools-${{ env.GO_VERSION }}-${{ env.CONTROLLER_GEN_VERSION }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-${{ env.GO_VERSION }}-
 
       - name: Download dependencies
         run: |
@@ -105,17 +117,93 @@ jobs:
           go mod download
           go mod verify
 
+      - name: Install controller-gen
+        run: |
+          echo "Installing controller-gen ${{ env.CONTROLLER_GEN_VERSION }}..."
+          if ! command -v controller-gen &> /dev/null; then
+            echo "Installing controller-gen..."
+            GOBIN=$(go env GOPATH)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@${{ env.CONTROLLER_GEN_VERSION }}
+          else
+            echo "controller-gen already installed: $(controller-gen --version)"
+          fi
+          
+          # Add GOPATH/bin to PATH for this step and subsequent steps
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Verify tools installation
+        run: |
+          echo "=== Tool Verification ==="
+          echo "Go version: $(go version)"
+          echo "GOPATH: $(go env GOPATH)"
+          echo "GOBIN: $(go env GOPATH)/bin"
+          echo "PATH: $PATH"
+          
+          if command -v controller-gen &> /dev/null; then
+            echo "✅ controller-gen: $(controller-gen --version)"
+          else
+            echo "❌ controller-gen not found"
+            exit 1
+          fi
+
       - name: Generate CRDs and code
         run: |
           echo "Generating CRDs and deepcopy code..."
-          make generate
-          make manifests
+          set -euo pipefail
+          
+          echo "Running: make generate"
+          if ! make generate; then
+            echo "❌ make generate failed"
+            echo "=== Debugging Information ==="
+            echo "Current directory: $(pwd)"
+            echo "Available tools:"
+            command -v controller-gen &> /dev/null && echo "  controller-gen: $(controller-gen --version)" || echo "  controller-gen: NOT FOUND"
+            echo "Go version: $(go version)"
+            echo "GOPATH: $(go env GOPATH)"
+            echo "Files in bin/:"
+            ls -la bin/ 2>/dev/null || echo "  bin/ directory not found"
+            echo "Files in api/:"
+            find api/ -name "*.go" | head -5 || echo "  api/ directory not found"
+            exit 1
+          fi
+          echo "✅ make generate completed successfully"
+          
+          echo "Running: make manifests"
+          if ! make manifests; then
+            echo "❌ make manifests failed"
+            echo "=== Generated files after make generate ==="
+            git status --porcelain || echo "No git status available"
+            exit 1
+          fi
+          echo "✅ make manifests completed successfully"
+
+      - name: Show generated changes (debug)
+        run: |
+          echo "=== Generated files status ==="
+          git status --porcelain || echo "No changes detected"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "=== Changes detected ==="
+            git diff --name-only
+            echo "=== First few lines of each changed file ==="
+            git diff --name-only | while read -r file; do
+              echo "File: $file"
+              git diff "$file" | head -10
+              echo "---"
+            done
+          fi
 
       - name: Verify no changes
         run: |
           echo "Verifying generated files are up to date..."
           if ! git diff --exit-code; then
             echo "❌ Generated files are out of date. Please run 'make generate manifests' locally."
+            echo ""
+            echo "Files that need to be updated:"
+            git diff --name-only
+            echo ""
+            echo "To fix this issue locally, run:"
+            echo "  make generate manifests"
+            echo "  git add -A"
+            echo "  git commit -m 'update generated files'"
             exit 1
           fi
           echo "✅ Generated files are up to date"
@@ -136,7 +224,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ env.GO_VERSION }}
           check-latest: true
           cache: true
 
@@ -156,7 +244,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v${{ env.GOLANGCI_LINT_VERSION }}
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
           args: --timeout=10m --config=.golangci-fast.yml
 
   # =============================================================================
@@ -175,7 +263,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ env.GO_VERSION }}
           check-latest: true
           cache: true
 
@@ -188,7 +276,43 @@ jobs:
       - name: Run tests
         run: |
           echo "Running Go tests..."
-          go test -v -race -coverprofile=coverage.out -timeout=15m ./...
+          set -euo pipefail
+          
+          echo "=== Test Environment ==="
+          echo "Go version: $(go version)"
+          echo "Working directory: $(pwd)"
+          echo "Available packages:"
+          go list ./... | head -10
+          echo ""
+          
+          echo "Running: go test -v -race -coverprofile=coverage.out -timeout=15m ./..."
+          if ! go test -v -race -coverprofile=coverage.out -timeout=15m ./...; then
+            echo ""
+            echo "❌ Tests failed"
+            echo "=== Debugging Information ==="
+            echo "Exit code: $?"
+            
+            # Show coverage file if it exists
+            if [ -f coverage.out ]; then
+              echo "Coverage file size: $(wc -l < coverage.out) lines"
+            else
+              echo "No coverage file generated"
+            fi
+            
+            # Show any test artifacts
+            echo "Test artifacts:"
+            find . -name "*.test" -o -name "*test*.out" -o -name "*test*.log" 2>/dev/null | head -5
+            
+            exit 1
+          fi
+          echo "✅ Tests completed successfully"
+          
+          # Show coverage summary if available
+          if [ -f coverage.out ]; then
+            echo ""
+            echo "=== Coverage Summary ==="
+            go tool cover -func=coverage.out | tail -5
+          fi
 
       - name: Upload test results
         if: always()
@@ -216,7 +340,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ env.GO_VERSION }}
           check-latest: true
           cache: true
 
@@ -235,8 +359,14 @@ jobs:
 
       - name: Install govulncheck
         run: |
-          echo "Installing govulncheck..."
-          go install golang.org/x/vuln/cmd/govulncheck@v${{ env.GOVULNCHECK_VERSION }}
+          echo "Installing govulncheck ${{ env.GOVULNCHECK_VERSION }}..."
+          if ! command -v govulncheck &> /dev/null; then
+            echo "Installing govulncheck..."
+            GOBIN=$(go env GOPATH)/bin go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
+            echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          else
+            echo "govulncheck already installed: $(govulncheck -version)"
+          fi
 
       - name: Run govulncheck
         run: |

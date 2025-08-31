@@ -1,0 +1,199 @@
+# =============================================================================
+# Simplified CI Pipeline for PR #87 - Focus on Basic Requirements
+# =============================================================================
+# This workflow provides essential CI checks for the Nephoran Intent Operator
+# Optimized for Go 1.24.6 with proper tool installation and error handling
+# =============================================================================
+
+name: PR CI
+
+on:
+  pull_request:
+    branches: [ main, integrate/mvp ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: pr-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  GO_VERSION: "1.24.6"
+  CONTROLLER_GEN_VERSION: "v0.19.0"
+  GOLANGCI_LINT_VERSION: "v1.64.3"
+  CGO_ENABLED: "0"
+  GOPROXY: "https://proxy.golang.org,direct"
+  GOSUMDB: "sum.golang.org"
+
+jobs:
+  # =============================================================================
+  # Essential CI Checks
+  # =============================================================================
+  essential-checks:
+    name: Essential CI Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/bin
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-tools-${{ env.GO_VERSION }}-${{ env.CONTROLLER_GEN_VERSION }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-${{ env.GO_VERSION }}-
+
+      - name: Download dependencies
+        run: |
+          echo "Downloading Go modules..."
+          go mod download
+          go mod verify
+
+      - name: Code generation and verification
+        run: |
+          echo "Generating code and manifests..."
+          set -euo pipefail
+          
+          # The Makefile will automatically install controller-gen if needed
+          echo "Running make generate (includes tool installation)..."
+          make generate
+          
+          echo "Running make manifests..."
+          make manifests
+          
+          # Check for changes
+          echo "Checking for uncommitted changes..."
+          if ! git diff --exit-code; then
+            echo "❌ Generated files are not up to date"
+            echo "Files that changed:"
+            git diff --name-only
+            echo ""
+            echo "Please run 'make generate manifests' locally and commit the changes"
+            exit 1
+          fi
+          echo "✅ Generated files are up to date"
+
+      - name: Format check
+        run: |
+          echo "Checking code formatting..."
+          set -euo pipefail
+          
+          # Run go fmt
+          if ! go fmt ./...; then
+            echo "❌ Code formatting issues found"
+            exit 1
+          fi
+          
+          # Check for changes after formatting
+          if ! git diff --exit-code; then
+            echo "❌ Code is not properly formatted"
+            echo "Please run 'go fmt ./...' locally"
+            exit 1
+          fi
+          echo "✅ Code is properly formatted"
+
+      - name: Vet check
+        run: |
+          echo "Running go vet..."
+          if ! go vet ./...; then
+            echo "❌ Go vet found issues"
+            exit 1
+          fi
+          echo "✅ Go vet passed"
+
+      - name: Build check
+        run: |
+          echo "Building all packages..."
+          if ! go build ./...; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          echo "✅ Build succeeded"
+
+      - name: Test check
+        run: |
+          echo "Running tests..."
+          set -euo pipefail
+          
+          # Create test report directory
+          mkdir -p test-results
+          
+          # Run tests with timeout and race detection
+          if ! go test -v -race -timeout=10m ./... 2>&1 | tee test-results/test-output.txt; then
+            echo "❌ Tests failed"
+            echo "Test output saved to test-results/test-output.txt"
+            exit 1
+          fi
+          echo "✅ All tests passed"
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 3
+
+  # =============================================================================
+  # Quick Lint Check
+  # =============================================================================
+  lint-check:
+    name: Quick Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=8m --config=.golangci-fast.yml
+
+  # =============================================================================
+  # Status Check
+  # =============================================================================
+  status-check:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [essential-checks, lint-check]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "=== PR CI Results ==="
+          echo "Essential checks: ${{ needs.essential-checks.result }}"
+          echo "Lint check: ${{ needs.lint-check.result }}"
+          
+          if [[ "${{ needs.essential-checks.result }}" == "failure" ]]; then
+            echo "❌ Essential checks failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.lint-check.result }}" == "failure" ]]; then
+            echo "⚠️ Lint checks failed (non-blocking for now)"
+          fi
+          
+          echo "✅ PR CI completed successfully"
