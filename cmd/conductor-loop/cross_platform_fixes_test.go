@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
-	"github.com/nephio-project/nephoran-intent-operator/testdata/helpers"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/testdata/helpers"
 )
 
 // TestCrossPlatformFixesValidation validates that our cross-platform fixes work correctly
@@ -194,6 +194,6 @@ func TestOriginalIssueFixed(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, fileInfo.Mode().IsRegular())
 
-		t.Logf("✅ Cross-platform mock created successfully: %s", mockPath)
+		t.Logf("??Cross-platform mock created successfully: %s", mockPath)
 	})
 }

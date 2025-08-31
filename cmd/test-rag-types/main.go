@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // DocumentChunk represents a document chunk for RAG processing (stub type).
@@ -113,6 +113,6 @@ func main() {
 
 	fmt.Printf("SearchQuery works: Query=%s\n", query.Query)
 
-	fmt.Println("✅ All types are working correctly!")
+	fmt.Println("??All types are working correctly!")
 
 }

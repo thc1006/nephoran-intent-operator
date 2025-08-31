@@ -13,7 +13,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	intentv1alpha1 "github.com/nephio-project/nephoran-intent-operator/api/intent/v1alpha1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var (
@@ -70,7 +70,7 @@ func main() {
 
 		HealthProbeBindAddress: probeAddr,
 
-		// LeaderElection 可視需要開啟.
+		// LeaderElection ?��??�要�???
 
 		LeaderElection: false,
 	})
@@ -83,13 +83,13 @@ func main() {
 
 	}
 
-	// 建立並註冊 webhook server（新 API；Port/CertDir 透過這裡設定）.
+	// 建�?並註??webhook server（新 API；Port/CertDir ?��??�裡設�?�?
 
 	hookServer := webhook.NewServer(webhook.Options{
 
 		Port: webhookPort,
 
-		CertDir: certDir, // 若留空，controller-runtime 會用預設位置
+		CertDir: certDir, // ?��?空�?controller-runtime ?�用?�設位置
 
 	})
 
@@ -101,7 +101,7 @@ func main() {
 
 	}
 
-	// 將你的 CRD webhook 掛進 manager（會自動註冊到 mgr.GetWebhookServer()）.
+	// 將�???CRD webhook ?��?manager（�??��?註�???mgr.GetWebhookServer()�?
 
 	if err := (&intentv1alpha1.NetworkIntent{}).SetupWebhookWithManager(mgr); err != nil {
 
@@ -111,7 +111,7 @@ func main() {
 
 	}
 
-	// 健康檢查/就緒檢查.
+	// ?�康檢查/就�?檢查.
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 

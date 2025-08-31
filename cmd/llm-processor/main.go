@@ -15,11 +15,11 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/handlers"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/services"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
+	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
 
 var (

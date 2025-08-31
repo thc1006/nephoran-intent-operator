@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
 func TestGracefulShutdownExitCode(t *testing.T) {
@@ -123,7 +123,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// Verify that we distinguish between shutdown failures and real failures
 	if stats.ShutdownFailedCount > 0 {
-		t.Logf("✅ Successfully detected %d shutdown failures", stats.ShutdownFailedCount)
+		t.Logf("??Successfully detected %d shutdown failures", stats.ShutdownFailedCount)
 	}
 
 	// In a graceful shutdown scenario, we should expect:
@@ -133,9 +133,9 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// The key test: exit code should be 0 even if there are shutdown failures
 	if stats.RealFailedCount == 0 {
-		t.Logf("✅ No real failures detected - exit code should be 0")
+		t.Logf("??No real failures detected - exit code should be 0")
 	} else {
-		t.Errorf("❌ Unexpected real failures: %d - exit code would be 8", stats.RealFailedCount)
+		t.Errorf("??Unexpected real failures: %d - exit code would be 8", stats.RealFailedCount)
 	}
 
 	// Verify total failed count is the sum of real and shutdown failures

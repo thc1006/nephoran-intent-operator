@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/tests/security"
+	"github.com/thc1006/nephoran-intent-operator/tests/security"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -28,7 +28,7 @@ func main() {
 	)
 	flag.Parse()
 
-	fmt.Println("🔒 Nephoran Security Validator")
+	fmt.Println("?? Nephoran Security Validator")
 	fmt.Println("==============================")
 	fmt.Printf("Namespace: %s\n", *namespace)
 	fmt.Printf("Timeout: %s\n", timeout.String())
@@ -72,7 +72,7 @@ func main() {
 	suite := security.NewComprehensiveSecurityTestSuite(ctrlClient, k8sClient, config, *namespace)
 
 	// Execute comprehensive security tests
-	fmt.Println("🚀 Starting Comprehensive Security Tests...")
+	fmt.Println("?? Starting Comprehensive Security Tests...")
 	startTime := time.Now()
 
 	var results *security.ComprehensiveTestResults
@@ -97,12 +97,12 @@ func main() {
 	exitCode := 0
 	if results.OverallStatus != "PASSED" {
 		exitCode = 1
-		fmt.Println("❌ Security tests failed!")
+		fmt.Println("??Security tests failed!")
 	} else {
-		fmt.Println("✅ All security tests passed!")
+		fmt.Println("??All security tests passed!")
 	}
 
-	fmt.Printf("\n📊 Reports generated in: %s\n", *reportDir)
+	fmt.Printf("\n?? Reports generated in: %s\n", *reportDir)
 	os.Exit(exitCode)
 }
 
@@ -135,7 +135,7 @@ func contains(s, substr string) bool {
 func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSecurityTestSuite,
 	runPenetration, runValidation, runMonitoring, runRegression bool) *security.ComprehensiveTestResults {
 
-	fmt.Println("🎯 Running Selective Security Tests...")
+	fmt.Println("?�� Running Selective Security Tests...")
 
 	// This is a simplified version for selective testing
 	// In a real implementation, you would modify the suite to support selective execution
@@ -149,7 +149,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runPenetration {
-		fmt.Println("🎯 Running Penetration Tests...")
+		fmt.Println("?�� Running Penetration Tests...")
 		// Run penetration tests
 		results.TestCategories["penetration_testing"] = security.CategoryResult{
 			Category:    "Penetration Testing",
@@ -163,7 +163,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runValidation {
-		fmt.Println("✅ Running Security Control Validation...")
+		fmt.Println("??Running Security Control Validation...")
 		// Run validation tests
 		results.TestCategories["security_validation"] = security.CategoryResult{
 			Category:    "Security Control Validation",
@@ -177,7 +177,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runMonitoring {
-		fmt.Println("📊 Running Continuous Monitoring Tests...")
+		fmt.Println("?? Running Continuous Monitoring Tests...")
 		// Run monitoring tests
 		results.TestCategories["continuous_monitoring"] = security.CategoryResult{
 			Category:    "Continuous Monitoring",
@@ -191,7 +191,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runRegression {
-		fmt.Println("🔄 Running Regression Tests...")
+		fmt.Println("?? Running Regression Tests...")
 		// Run regression tests
 		results.TestCategories["regression_testing"] = security.CategoryResult{
 			Category:    "Regression Testing",
@@ -235,7 +235,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 
 func displayResultsSummary(results *security.ComprehensiveTestResults, duration time.Duration, verbose bool) {
 	fmt.Println()
-	fmt.Println("🏁 Security Test Results Summary")
+	fmt.Println("?? Security Test Results Summary")
 	fmt.Println("================================")
 	fmt.Printf("Overall Status: %s\n", getStatusIcon(results.OverallStatus))
 	fmt.Printf("Security Score: %.2f/100\n", results.SecurityScore)
@@ -256,7 +256,7 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 
 	for _, category := range results.TestCategories {
 		statusIcon := getStatusIcon(category.Status)
-		fmt.Printf("• %s: %s (Score: %.1f, Duration: %s)\n",
+		fmt.Printf("??%s: %s (Score: %.1f, Duration: %s)\n",
 			category.Category, statusIcon, category.Score, category.Duration.String())
 
 		if verbose {
@@ -275,7 +275,7 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 		fmt.Println("--------------------------")
 		for i, rec := range results.SecurityRecommendations {
 			if i < 3 { // Show top 3 recommendations
-				fmt.Printf("• [%s] %s\n", rec.Priority, rec.Title)
+				fmt.Printf("??[%s] %s\n", rec.Priority, rec.Title)
 				if verbose {
 					fmt.Printf("  %s\n", rec.Description)
 				}
@@ -292,15 +292,15 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 func getStatusIcon(status string) string {
 	switch status {
 	case "PASSED", "passed":
-		return "✅ PASSED"
+		return "??PASSED"
 	case "FAILED", "failed":
-		return "❌ FAILED"
+		return "??FAILED"
 	case "SKIPPED", "skipped":
-		return "⏭️  SKIPPED"
+		return "?��?  SKIPPED"
 	case "RUNNING", "running":
-		return "🔄 RUNNING"
+		return "?? RUNNING"
 	default:
-		return "❓ UNKNOWN"
+		return "??UNKNOWN"
 	}
 }
 

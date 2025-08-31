@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
 // TestData contains test intent files and expected results
@@ -685,7 +685,7 @@ func TestFindProjectRoot(t *testing.T) {
 		t.Fatalf("Failed to read go.mod: %v", err)
 	}
 
-	if !strings.Contains(string(content), "github.com/nephio-project/nephoran-intent-operator") {
+	if !strings.Contains(string(content), "github.com/thc1006/nephoran-intent-operator") {
 		t.Errorf("Project root does not appear to be the nephoran project")
 	}
 }

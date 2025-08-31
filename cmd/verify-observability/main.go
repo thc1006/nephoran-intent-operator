@@ -9,7 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 )
 
 func main() {
@@ -123,7 +123,7 @@ func main() {
 
 			if mf.GetName() == "nephoran_git_push_in_flight" {
 
-				logger.Info("✓ Git push in-flight metric registered")
+				logger.Info("??Git push in-flight metric registered")
 
 				logger.Info("Current metric value", "value", mf.GetMetric()[0].GetGauge().GetValue())
 
@@ -141,12 +141,12 @@ func main() {
 
 	logger.Info("Summary:")
 
-	logger.Info("✓ Configurable concurrent push limit (via env var)")
+	logger.Info("??Configurable concurrent push limit (via env var)")
 
-	logger.Info("✓ Debug logging with in_flight and limit fields")
+	logger.Info("??Debug logging with in_flight and limit fields")
 
-	logger.Info("✓ Prometheus metrics integration")
+	logger.Info("??Prometheus metrics integration")
 
-	logger.Info("✓ Semaphore-based concurrency control")
+	logger.Info("??Semaphore-based concurrency control")
 
 }

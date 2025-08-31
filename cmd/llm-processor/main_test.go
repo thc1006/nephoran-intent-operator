@@ -25,8 +25,8 @@ import (
 
 	"log/slog"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
 // createIPAllowlistHandler creates a test handler with IP allowlist functionality
@@ -973,7 +973,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 
 			// Verify shutdown didn't take longer than expected
 			if shutdownDuration > cfg.GracefulShutdown+500*time.Millisecond {
-				t.Errorf("Shutdown took too long: %v (expected ≤ %v)", shutdownDuration, cfg.GracefulShutdown)
+				t.Errorf("Shutdown took too long: %v (expected ??%v)", shutdownDuration, cfg.GracefulShutdown)
 			}
 
 			// Verify the server stopped
