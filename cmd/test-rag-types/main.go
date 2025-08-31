@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // DocumentChunk represents a document chunk for RAG processing (stub type).

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
+	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
 )
 
 // TestPathTraversalAttacks simulates various path traversal attack scenarios

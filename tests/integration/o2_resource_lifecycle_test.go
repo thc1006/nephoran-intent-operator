@@ -15,9 +15,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {

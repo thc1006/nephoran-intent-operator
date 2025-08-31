@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
 )
 
 // RunTLSAuditTests runs comprehensive TLS audit tests

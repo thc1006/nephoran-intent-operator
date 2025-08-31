@@ -960,9 +960,7 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 			PrometheusURL: "http://prometheus:9090",
 
-			AlertManagerURL: "http://alertmanager:9093",
-
-			EnableRootCause: o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
+			RCAEnabled: o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
 		}
 
 		faultManager := NewEnhancedFaultManager(faultConfig)

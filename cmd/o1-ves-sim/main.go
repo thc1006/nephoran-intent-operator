@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/ves"
+	"github.com/nephio-project/nephoran-intent-operator/internal/ves"
 )
 
 func main() {

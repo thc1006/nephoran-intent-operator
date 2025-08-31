@@ -20,9 +20,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
-	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
+	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
+	testutils "github.com/nephio-project/nephoran-intent-operator/tests/utils"
 )
 
 var (

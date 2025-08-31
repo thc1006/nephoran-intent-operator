@@ -40,30 +40,89 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Set up Go 1.24.6
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
           cache: true
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
 
-      - name: Cache Go tools
+      - name: Cache Go dependencies and tools
         uses: actions/cache@v4
         with:
           path: |
             ~/go/bin
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-tools-${{ env.GO_VERSION }}-${{ env.CONTROLLER_GEN_VERSION }}-${{ hashFiles('go.sum') }}
+          key: ${{ runner.os }}-go-deps-${{ env.GO_VERSION }}-${{ env.CONTROLLER_GEN_VERSION }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-tools-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-deps-${{ env.GO_VERSION }}-${{ env.CONTROLLER_GEN_VERSION }}-
+            ${{ runner.os }}-go-deps-${{ env.GO_VERSION }}-
 
-      - name: Download dependencies
+      - name: Go dependency integrity check
         run: |
-          echo "Downloading Go modules..."
-          go mod download
+          echo "Verifying go.sum integrity..."
+          set -euo pipefail
+          
+          # Verify go.sum integrity
+          if [ -f go.sum ]; then
+            echo "go.sum found, verifying integrity..."
+            if ! go mod verify; then
+              echo "❌ go.sum integrity check failed"
+              echo "Attempting to fix with go mod tidy..."
+              go mod tidy
+              if ! go mod verify; then
+                echo "❌ Unable to fix go.sum integrity issues"
+                exit 1
+              fi
+              echo "✅ go.sum integrity fixed with go mod tidy"
+            else
+              echo "✅ go.sum integrity verified"
+            fi
+          else
+            echo "⚠️ go.sum not found, running go mod download to generate"
+            go mod download
+          fi
+
+      - name: Go mod tidy check
+        run: |
+          echo "Running go mod tidy to ensure clean dependencies..."
+          set -euo pipefail
+          
+          # Run go mod tidy
+          go mod tidy
+          
+          # Check if go.mod or go.sum changed
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "❌ go.mod or go.sum is not up to date"
+            echo "Files that changed after go mod tidy:"
+            git diff --name-only go.mod go.sum || true
+            echo ""
+            echo "Please run 'go mod tidy' locally and commit the changes"
+            echo "Diff:"
+            git diff go.mod go.sum
+            exit 1
+          fi
+          echo "✅ go.mod and go.sum are up to date"
+
+      - name: Download and cache dependencies
+        run: |
+          echo "Downloading Go modules with enhanced caching..."
+          set -euo pipefail
+          
+          # Download all dependencies
+          go mod download -x
+          
+          # Verify all downloaded modules
           go mod verify
-          echo "✅ Go modules verified successfully"
+          
+          # Pre-compile standard library for faster builds
+          go install -a std
+          
+          echo "✅ Dependencies downloaded and cached successfully"
 
       - name: Install controller-gen
         run: |
@@ -182,11 +241,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Set up Go 1.24.6  
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: true
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6

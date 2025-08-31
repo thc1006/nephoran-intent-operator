@@ -14,9 +14,9 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/sla"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/sla"
 )
 
 // SLAValidationTestSuite validates the accuracy of SLA claims with statistical precision

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	validation "github.com/thc1006/nephoran-intent-operator/tests/performance/validation"
+	validation "github.com/nephio-project/nephoran-intent-operator/tests/performance/validation"
 )
 
 // main provides a CLI entry point for the validation suite.

@@ -25,8 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 )
 
 // MetricsScrapeTestSuite provides comprehensive testing for Prometheus metrics endpoint

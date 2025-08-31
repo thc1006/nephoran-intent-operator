@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
 )
 
 // EndToEndRAGPipelineTestSuite tests the complete RAG pipeline workflow

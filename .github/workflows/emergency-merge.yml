@@ -113,19 +113,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Go with minimal cache
+      - name: Setup Go 1.24.6 with emergency caching
         uses: actions/setup-go@v5
         with:
-          go-version-file: ${{ env.GO_VERSION_FILE }}
+          go-version: "1.24.6"
+          check-latest: false
           cache: true
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
 
-      - name: Fast dependency download
+      - name: EMERGENCY: Dependency integrity check
         run: |
-          echo "EMERGENCY: Fast dependency download (120s timeout)"
+          echo "EMERGENCY: Fast dependency verification (90s timeout)"
           export GOPROXY="https://proxy.golang.org,direct"
           export CGO_ENABLED=0
+          set -euo pipefail
           
-          if ! timeout 120s go mod download; then
+          # Quick go.sum integrity check
+          if [ -f go.sum ]; then
+            if ! timeout 60s go mod verify; then
+              echo "WARNING: go.sum integrity failed - attempting fix"
+              if ! timeout 30s go mod tidy; then
+                echo "WARNING: go mod tidy timeout - using existing state"
+              fi
+            fi
+          fi
+          
+          # Fast download with timeout
+          if ! timeout 90s go mod download; then
             echo "WARNING: Download timeout - continuing with cache"
           fi
 

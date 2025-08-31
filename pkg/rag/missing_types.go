@@ -27,9 +27,9 @@ type SearchQuery = shared.SearchQuery
 
 // Additional types not available in shared package.
 
-// WeaviateClient minimal definition for compatibility.
+// WeaviateClientImpl minimal definition for compatibility.
 
-type WeaviateClient struct {
+type WeaviateClientImpl struct {
 	enabled bool
 
 	host string
@@ -39,7 +39,7 @@ type WeaviateClient struct {
 
 // NewWeaviateClient creates a new WeaviateClient.
 
-func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
+func NewWeaviateClient(config *WeaviateConfig) (WeaviateClient, error) {
 
 	if config == nil {
 
@@ -47,7 +47,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 
 	}
 
-	return &WeaviateClient{
+	return &WeaviateClientImpl{
 
 		enabled: true,
 
@@ -60,7 +60,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 
 // Search method stub for WeaviateClient.
 
-func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
+func (wc *WeaviateClientImpl) Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
 
 	return &SearchResponse{
 
@@ -81,19 +81,24 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 
 // GetHealthStatus method stub for WeaviateClient.
 
-func (wc *WeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
+func (wc *WeaviateClientImpl) GetHealthStatus() *WeaviateHealthStatus {
 
 	return &WeaviateHealthStatus{
-
 		IsHealthy: true,
-
 		LastCheck: time.Now(),
-
-		Version: "stub",
-
-		Details: "stub implementation",
+		Message: "Stub implementation - always healthy",
 	}
 
+}
+
+// IsHealthy method stub for WeaviateClient interface
+func (wc *WeaviateClientImpl) IsHealthy() bool {
+	return true
+}
+
+// Close method stub for WeaviateClient interface  
+func (wc *WeaviateClientImpl) Close() error {
+	return nil
 }
 
 // WeaviateHealthStatus minimal definition.
@@ -108,14 +113,17 @@ type WeaviateHealthStatus struct {
 	Details string `json:"details"`
 }
 
-// WeaviateConfig minimal definition.
-
+// WeaviateConfig holds configuration for Weaviate connections
 type WeaviateConfig struct {
-	Host string `json:"host"`
-
-	Scheme string `json:"scheme"`
-
-	APIKey string `json:"api_key"`
+	Host            string        `json:"host"            yaml:"host"`
+	Scheme          string        `json:"scheme"          yaml:"scheme"`
+	APIKey          string        `json:"api_key"         yaml:"api_key"`
+	Timeout         time.Duration `json:"timeout"         yaml:"timeout"`
+	ConnectionPool  *PoolConfig   `json:"connection_pool" yaml:"connection_pool"`
+	MaxRetries      int           `json:"max_retries"     yaml:"max_retries"`
+	RetryDelay      time.Duration `json:"retry_delay"     yaml:"retry_delay"`
+	EnableMetrics   bool          `json:"enable_metrics"  yaml:"enable_metrics"`
+	RequestsPerSec  int           `json:"requests_per_sec" yaml:"requests_per_sec"`
 }
 
 // SearchResponse minimal definition.
@@ -144,9 +152,7 @@ type PoolConfig struct {
 	MaxIdleTime time.Duration
 }
 
-// ConnectionPoolConfig type alias for PoolConfig compatibility.
-
-type ConnectionPoolConfig = PoolConfig
+// NOTE: ConnectionPoolConfig is defined in optimized_connection_pool.go
 
 // BatchSearchConfig definition.
 
@@ -170,28 +176,8 @@ type RAGPipelineConfig struct {
 
 // Mock implementations for missing functions.
 
-// NewOptimizedConnectionPool creates a mock connection pool.
-
-func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnectionPool, error) {
-
-	if config == nil {
-
-		return nil, fmt.Errorf("config cannot be nil")
-
-	}
-
-	return &OptimizedConnectionPool{
-
-		maxConnections: config.MaxConnections,
-	}, nil
-
-}
-
-// OptimizedConnectionPool minimal implementation.
-
-type OptimizedConnectionPool struct {
-	maxConnections int
-}
+// NOTE: OptimizedConnectionPool is implemented in optimized_connection_pool.go
+// This file only contains stub references when that file is not available
 
 // NewOptimizedBatchSearchClient creates a mock batch search client.
 
@@ -237,14 +223,105 @@ func NewOptimizedRAGPipeline(client *WeaviateClient, batchClient *OptimizedBatch
 
 }
 
-// OptimizedRAGPipeline minimal implementation.
+// OptimizedRAGMetrics provides comprehensive metrics for the optimized RAG pipeline
+type OptimizedRAGMetrics struct {
+	// Request metrics
+	TotalRequests    int64         `json:"total_requests"`
+	SuccessfulRequests int64       `json:"successful_requests"`
+	FailedRequests   int64         `json:"failed_requests"`
+	AverageLatency   time.Duration `json:"average_latency"`
+	
+	// Connection pool metrics
+	ActiveConnections     int32         `json:"active_connections"`
+	IdleConnections       int32         `json:"idle_connections"`
+	ConnectionPoolHits    int64         `json:"connection_pool_hits"`
+	ConnectionPoolMisses  int64         `json:"connection_pool_misses"`
+	AverageConnectionTime time.Duration `json:"average_connection_time"`
+	
+	// Search metrics
+	SearchLatency        time.Duration `json:"search_latency"`
+	SearchResultCount    int64         `json:"search_result_count"`
+	AverageRelevanceScore float64      `json:"average_relevance_score"`
+	
+	// Cache metrics
+	CacheHits            int64         `json:"cache_hits"`
+	CacheMisses          int64         `json:"cache_misses"`
+	CacheHitRatio        float64       `json:"cache_hit_ratio"`
+	CacheSizeBytes       int64         `json:"cache_size_bytes"`
+	
+	// JSON codec metrics
+	JSONEncodingTime     time.Duration `json:"json_encoding_time"`
+	JSONDecodingTime     time.Duration `json:"json_decoding_time"`
+	JSONBytesProcessed   int64         `json:"json_bytes_processed"`
+	
+	// Resource utilization
+	MemoryUsageBytes     int64         `json:"memory_usage_bytes"`
+	CPUUsagePercent      float64       `json:"cpu_usage_percent"`
+	GoroutineCount       int32         `json:"goroutine_count"`
+	
+	// Last updated timestamp
+	LastUpdated          time.Time     `json:"last_updated"`
+}
 
+// NewOptimizedRAGMetrics creates a new OptimizedRAGMetrics instance
+func NewOptimizedRAGMetrics() *OptimizedRAGMetrics {
+	return &OptimizedRAGMetrics{
+		LastUpdated: time.Now(),
+	}
+}
+
+// UpdateRequestMetrics updates request-related metrics
+func (m *OptimizedRAGMetrics) UpdateRequestMetrics(duration time.Duration, success bool) {
+	m.TotalRequests++
+	if success {
+		m.SuccessfulRequests++
+	} else {
+		m.FailedRequests++
+	}
+	
+	// Update average latency
+	if m.TotalRequests == 1 {
+		m.AverageLatency = duration
+	} else {
+		m.AverageLatency = (m.AverageLatency*time.Duration(m.TotalRequests-1) + duration) / time.Duration(m.TotalRequests)
+	}
+	
+	m.LastUpdated = time.Now()
+}
+
+// UpdateConnectionMetrics updates connection pool metrics
+func (m *OptimizedRAGMetrics) UpdateConnectionMetrics(active, idle int32) {
+	m.ActiveConnections = active
+	m.IdleConnections = idle
+	m.LastUpdated = time.Now()
+}
+
+// UpdateCacheMetrics updates cache-related metrics
+func (m *OptimizedRAGMetrics) UpdateCacheMetrics(hits, misses int64) {
+	m.CacheHits = hits
+	m.CacheMisses = misses
+	
+	total := hits + misses
+	if total > 0 {
+		m.CacheHitRatio = float64(hits) / float64(total)
+	}
+	
+	m.LastUpdated = time.Now()
+}
+
+// GetSuccessRate returns the success rate of requests
+func (m *OptimizedRAGMetrics) GetSuccessRate() float64 {
+	if m.TotalRequests == 0 {
+		return 0.0
+	}
+	return float64(m.SuccessfulRequests) / float64(m.TotalRequests)
+}
+
+// OptimizedRAGPipeline minimal implementation.
 type OptimizedRAGPipeline struct {
 	client *WeaviateClient
-
 	batchClient *OptimizedBatchSearchClient
-
 	pool *OptimizedConnectionPool
-
 	config *RAGPipelineConfig
+	metrics *OptimizedRAGMetrics
 }

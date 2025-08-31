@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/framework"
+	"github.com/nephio-project/nephoran-intent-operator/tests/framework"
 )
 
 // ValidationSuite provides comprehensive system validation with scoring.

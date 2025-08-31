@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	// Nephio imports
-	nephiov1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephiov1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 // ComprehensiveComplianceFramework provides multi-standard compliance checking

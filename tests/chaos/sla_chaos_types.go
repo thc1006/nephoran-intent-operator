@@ -9,8 +9,8 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/sla"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/sla"
 )
 
 // Basic types needed by all chaos components

@@ -67,7 +67,7 @@ type WeaviateConfig struct {
 
 // NewWeaviateClient creates a new Weaviate client.
 
-func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
+func NewWeaviateClient(config *WeaviateConfig) (WeaviateClient, error) {
 
 	return &WeaviateClient{
 

@@ -40,9 +40,9 @@ import (
 	"github.com/gorilla/mux"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
-	"github.com/thc1006/nephoran-intent-operator/pkg/packagerevision"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/packagerevision"
 )
 
 // PackageRequest represents a request to create or modify a package.

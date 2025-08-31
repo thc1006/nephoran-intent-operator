@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/patchgen"
+	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
 )
 
 func main() {

@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
 )
 
 // RAGPerformanceTestSuite provides comprehensive RAG pipeline performance testing

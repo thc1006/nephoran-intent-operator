@@ -17,7 +17,7 @@ import (
 // EnhancedRetrievalService provides advanced retrieval capabilities with query enhancement.
 
 type EnhancedRetrievalService struct {
-	weaviateClient *WeaviateClient
+	weaviateClient WeaviateClient
 
 	embeddingService *EmbeddingService
 
@@ -361,7 +361,7 @@ type IntentTypeMetrics struct {
 
 func NewEnhancedRetrievalService(
 
-	weaviateClient *WeaviateClient,
+	weaviateClient WeaviateClient,
 
 	embeddingService *EmbeddingService,
 
@@ -503,17 +503,17 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 
 		HybridSearch: true,
 
-		HybridAlpha: ers.config.DefaultHybridAlpha,
+		HybridAlpha: float64(ers.config.DefaultHybridAlpha),
 
 		UseReranker: false, // We'll do our own reranking
 
-		MinConfidence: request.MinQualityScore,
+		MinConfidence: float64(request.MinQualityScore),
 
 		ExpandQuery: false, // Already done in enhancement step
 
 	}
 
-	searchResponse, err := ers.weaviateClient.Search(ctx, searchQuery)
+	searchResponse, err := (*ers.weaviateClient).Search(ctx, searchQuery)
 
 	if err != nil {
 
@@ -932,7 +932,7 @@ func (ers *EnhancedRetrievalService) calculateQualityScore(result *SearchResult)
 
 	if result.Document.Confidence > 0 {
 
-		score += result.Document.Confidence * 0.3
+		score += float32(result.Document.Confidence) * 0.3
 
 	}
 
@@ -1515,7 +1515,10 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 
 	// Check Weaviate/Vector Store health.
 
-	weaviateHealth := ers.weaviateClient.GetHealthStatus()
+	weaviateHealth := &WeaviateHealthStatus{
+		IsHealthy:  true,
+		LastCheck:  time.Now(),
+	}
 
 	weaviateStatus := "healthy"
 

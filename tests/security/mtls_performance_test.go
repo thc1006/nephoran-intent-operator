@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/time/rate"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/security/mtls"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls"
 )
 
 // mTLSPerformanceTestSuite provides comprehensive performance testing for mTLS operations

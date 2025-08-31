@@ -14,11 +14,11 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/handlers"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
 )
 
 // ServiceManager manages the overall service lifecycle and components.

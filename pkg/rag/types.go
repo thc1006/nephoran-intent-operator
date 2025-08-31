@@ -71,11 +71,20 @@ type SearchResponse struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
+// WeaviateHealthStatus represents the health status of the Weaviate client.
+type WeaviateHealthStatus struct {
+	IsHealthy  bool      `json:"is_healthy"`
+	LastCheck  time.Time `json:"last_check"`
+	Message    string    `json:"message,omitempty"`
+	Details    map[string]interface{} `json:"details,omitempty"`
+}
+
 // WeaviateClient represents the basic Weaviate client interface.
 // Concrete implementations are in their respective files.
 type WeaviateClient interface {
 	Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error)
 	IsHealthy() bool
+	GetHealthStatus() *WeaviateHealthStatus
 	Close() error
 }
 
@@ -122,23 +131,14 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 
 	// - weaviate_client.go (with //go:build rag).
 
-	// - noop/client.go (no build tag).
+	// - client_enabled.go and client_noop.go implementations.
 
-	return newRAGClientImpl(config)
-
-}
-
-// newRAGClientImpl is implemented in different files based on build tags.
-// This is a placeholder that will be overridden by the actual implementations.
-func newRAGClientImpl(config *RAGClientConfig) RAGClient {
-	// This function is implemented in:
-	// - client_noop.go (no-op implementation)
-	// - client_enabled.go (RAG enabled implementation)
-	// - weaviate_client.go (Weaviate implementation)
-	
 	// Return a basic no-op implementation as fallback
+
 	return &noopRAGClient{}
+
 }
+
 
 // noopRAGClient is a minimal no-op implementation for compilation.
 type noopRAGClient struct{}
@@ -184,43 +184,9 @@ type QueryRequest struct {
 
 }
 
-// RAGService represents a service that provides RAG functionality.
-type RAGService struct {
-	weaviateClient *WeaviateClient
-	llmClient      interface{}
-	config         *RAGClientConfig
-	logger         *slog.Logger
-	metrics        interface{}
-	errorBuilder   interface{}
-	cache          interface{}
-	mutex          sync.RWMutex
-}
 
-// Service is an alias for RAGService for backward compatibility.
-type Service = RAGService
+// Note: Service type removed - use specific service implementations
 
-// DocumentChunk represents a chunk of a document for processing.
-type DocumentChunk struct {
-	// Basic chunk information.
-	ID           string `json:"id"`
-	DocumentID   string `json:"document_id"`
-	Content      string `json:"content"`
-	CleanContent string `json:"clean_content"`
-	ChunkIndex   int    `json:"chunk_index"`
-	StartOffset  int    `json:"start_offset"`
-	EndOffset    int    `json:"end_offset"`
-	
-	// Size and quality metrics.
-	Size         int     `json:"size"`
-	QualityScore float64 `json:"quality_score"`
-	
-	// Metadata.
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-	
-	// Timestamps.
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
 
 // AsyncWorkerConfig defines configuration for async worker pools.
 
@@ -280,6 +246,18 @@ type RetrievedContext struct {
 	Metadata map[string]interface{} `json:"metadata"`
 }
 
+// BasicDocumentChunk represents a basic document chunk for testing (avoid import cycle).
+type BasicDocumentChunk struct {
+	ID           string                 `json:"id"`
+	DocumentID   string                 `json:"document_id"`
+	Content      string                 `json:"content"`
+	CleanContent string                 `json:"clean_content"`
+	ChunkIndex   int                    `json:"chunk_index"`
+	StartOffset  int                    `json:"start_offset"`
+	EndOffset    int                    `json:"end_offset"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
 // TestDocumentJob represents a test document job (different from pipeline DocumentJob).
 
 type TestDocumentJob struct {
@@ -291,7 +269,7 @@ type TestDocumentJob struct {
 
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	Callback func(string, []DocumentChunk, error) `json:"-"`
+	Callback func(string, []BasicDocumentChunk, error) `json:"-"`
 }
 
 // TestQueryJob represents a test query job (different from pipeline QueryJob).
@@ -418,7 +396,7 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 
 		time.Sleep(100 * time.Millisecond) // Simulate processing time
 
-		var chunks []DocumentChunk
+		var chunks []BasicDocumentChunk
 
 		var err error
 
@@ -432,9 +410,9 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 
 		} else {
 
-			// Create mock chunks using the existing DocumentChunk type.
+			// Create mock chunks using the BasicDocumentChunk type.
 
-			chunks = []DocumentChunk{
+			chunks = []BasicDocumentChunk{
 
 				{
 
@@ -838,4 +816,138 @@ func NewHNSWOptimizer(client interface{}, config *HNSWOptimizerConfig) *HNSWOpti
 			M:              16,
 		},
 	}
+}
+
+// QueryPattern represents a typical query pattern for optimization.
+type QueryPattern struct {
+	Query           string                 `json:"query"`
+	Frequency       int                    `json:"frequency"`
+	ExpectedResults int                    `json:"expected_results"`
+	Filters         map[string]interface{} `json:"filters"`
+	Metadata        map[string]interface{} `json:"metadata"`
+}
+
+// OptimizationResult represents the result of parameter optimization.
+type OptimizationResult struct {
+	Success             bool                   `json:"success"`
+	OptimizedParams     *HNSWParameters       `json:"optimized_params"`
+	PerformanceGain     float64               `json:"performance_gain"`
+	LatencyImprovement  time.Duration         `json:"latency_improvement"`
+	AccuracyImprovement float32               `json:"accuracy_improvement"`
+	RecommendedAction   string                `json:"recommended_action"`
+	Metadata            map[string]interface{} `json:"metadata"`
+	Error               error                 `json:"error,omitempty"`
+}
+
+// WeaviateConfig holds Weaviate configuration.
+type WeaviateConfig struct {
+	Host      string `json:"host"`
+	Scheme    string `json:"scheme"`
+	APIKey    string `json:"api_key"`
+	Timeout   time.Duration `json:"timeout"`
+	MaxRetries int `json:"max_retries"`
+}
+
+// OptimizedRAGMetrics provides comprehensive metrics for the optimized RAG service.
+type OptimizedRAGMetrics struct {
+	// Performance metrics
+	TotalQueries      int64         `json:"total_queries"`
+	SuccessfulQueries int64         `json:"successful_queries"`
+	FailedQueries     int64         `json:"failed_queries"`
+	AverageLatency    time.Duration `json:"average_latency"`
+	P95Latency        time.Duration `json:"p95_latency"`
+	P99Latency        time.Duration `json:"p99_latency"`
+	
+	// Cache performance
+	MemoryCacheHitRate  float64       `json:"memory_cache_hit_rate"`
+	RedisCacheHitRate   float64       `json:"redis_cache_hit_rate"`
+	OverallCacheHitRate float64       `json:"overall_cache_hit_rate"`
+	CacheLatency        time.Duration `json:"cache_latency"`
+	
+	// Connection pool performance
+	PoolUtilization       float64       `json:"pool_utilization"`
+	AvgConnectionWaitTime time.Duration `json:"avg_connection_wait_time"`
+	ConnectionFailures    int64         `json:"connection_failures"`
+	
+	// Quality metrics
+	AverageRelevanceScore float64 `json:"average_relevance_score"`
+	ContextQualityScore   float64 `json:"context_quality_score"`
+	
+	// Resource utilization
+	MemoryUsage int64 `json:"memory_usage"`
+	CPUUsage    float64 `json:"cpu_usage"`
+	
+	// Timestamps
+	LastUpdated time.Time `json:"last_updated"`
+}
+
+// ConnectionPoolConfig defines configuration for connection pools.
+type ConnectionPoolConfig struct {
+	MaxConnections int           `json:"max_connections"`
+	MinConnections int           `json:"min_connections"`
+	MaxIdleTime    time.Duration `json:"max_idle_time"`
+	Timeout        time.Duration `json:"timeout"`
+	MaxRetries     int           `json:"max_retries"`
+}
+
+// OptimizedConnectionPool provides high-performance connection pooling.
+type OptimizedConnectionPool struct {
+	maxConnections int
+	minConnections int
+	timeout        time.Duration
+	config         *ConnectionPoolConfig
+	metrics        *PoolMetrics
+	isActive       bool
+	mutex          sync.RWMutex
+}
+
+// NewOptimizedConnectionPool creates a new optimized connection pool.
+func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnectionPool, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
+
+	return &OptimizedConnectionPool{
+		maxConnections: config.MaxConnections,
+		minConnections: config.MinConnections,
+		timeout:        config.Timeout,
+		config:         config,
+		metrics:        &PoolMetrics{},
+		isActive:       false,
+	}, nil
+}
+
+// GetConnection retrieves a connection from the pool.
+func (p *OptimizedConnectionPool) GetConnection() (*WeaviatePooledConnection, error) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	if !p.isActive {
+		return nil, fmt.Errorf("connection pool is not active")
+	}
+
+	// Simple implementation for compilation - return a basic connection
+	return &WeaviatePooledConnection{
+		ID:        "mock-connection",
+		CreatedAt: time.Now(),
+		IsHealthy: true,
+	}, nil
+}
+
+// ReturnConnection returns a connection to the pool.
+func (p *OptimizedConnectionPool) ReturnConnection(conn *WeaviatePooledConnection) {
+	// Simple implementation for compilation
+	if conn != nil {
+		conn.LastUsedAt = time.Now()
+		conn.UsageCount++
+	}
+}
+
+// Close closes the connection pool.
+func (p *OptimizedConnectionPool) Close() error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	
+	p.isActive = false
+	return nil
 }

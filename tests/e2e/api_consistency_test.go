@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
 )
 
 var _ = Describe("API Consistency Validation", func() {

@@ -17,9 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
-	"github.com/thc1006/nephoran-intent-operator/tests/framework"
+	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
+	"github.com/nephio-project/nephoran-intent-operator/tests/framework"
 )
 
 // ChaosTestSuite provides comprehensive chaos engineering testing

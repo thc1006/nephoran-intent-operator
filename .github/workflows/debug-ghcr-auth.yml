@@ -1,4 +1,5 @@
 # Debug workflow to test GHCR authentication
+# Uses Go 1.24.6 for consistency with main CI
 name: Debug GHCR Authentication
 
 # TEMPORARILY DISABLED for fast-merge
@@ -22,6 +23,8 @@ jobs:
     name: Debug GHCR Authentication
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GO_VERSION: "1.24.6"
     
     steps:
       - name: Checkout code

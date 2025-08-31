@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
 )
 
 // Intent represents a network intent - kept for public API compatibility.

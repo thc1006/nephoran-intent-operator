@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // EnhancedFaultManager provides comprehensive O-RAN fault management.
@@ -51,17 +48,70 @@ type EnhancedFaultManager struct {
 }
 
 // FaultManagerConfig represents configuration for the enhanced fault manager
+// Following O-RAN.WG10.O1-Interface.0-v07.00 specification
 type FaultManagerConfig struct {
+	// Basic Configuration
 	MaxAlarms           int           `json:"max_alarms,omitempty"`
 	MaxHistoryEntries   int           `json:"max_history_entries,omitempty"`
+	RetentionPeriod     time.Duration `json:"retention_period,omitempty"`
+	
+	// Feature Enable/Disable Flags
 	CorrelationEnabled  bool          `json:"correlation_enabled"`
 	ThresholdEnabled    bool          `json:"threshold_enabled"`
 	MaskingEnabled      bool          `json:"masking_enabled"`
 	RCAEnabled          bool          `json:"rca_enabled"`
 	WebSocketEnabled    bool          `json:"websocket_enabled"`
-	PrometheusEndpoint  string        `json:"prometheus_endpoint,omitempty"`
-	RetentionPeriod     time.Duration `json:"retention_period,omitempty"`
+	EnableWebSocket     bool          `json:"enable_websocket,omitempty"`
+	
+	// O-RAN WG10 Specific Fields
+	HeartbeatInterval         time.Duration `json:"heartbeat_interval,omitempty"`
+	AlarmSyncInterval         time.Duration `json:"alarm_sync_interval,omitempty"`
+	EventReportingEnabled     bool          `json:"event_reporting_enabled"`
+	AlarmListSyncEnabled      bool          `json:"alarm_list_sync_enabled"`
+	VESEventBatchSize         int           `json:"ves_event_batch_size,omitempty"`
+	VESEventBatchTimeout      time.Duration `json:"ves_event_batch_timeout,omitempty"`
+	
+	// VES (Virtual Event Streaming) Configuration
+	VESCollectorURL           string        `json:"ves_collector_url,omitempty"`
+	VESCollectorPort          int           `json:"ves_collector_port,omitempty"`
+	VESEventVersion           string        `json:"ves_event_version,omitempty"`
+	VESEventDomain            string        `json:"ves_event_domain,omitempty"`
+	VESEventSourceType        string        `json:"ves_event_source_type,omitempty"`
+	VESEventReportingEntity   string        `json:"ves_event_reporting_entity,omitempty"`
+	
+	// O1 Interface Configuration  
+	O1InterfaceEnabled        bool          `json:"o1_interface_enabled"`
+	O1HeartbeatInterval       time.Duration `json:"o1_heartbeat_interval,omitempty"`
+	O1NotificationPort        int           `json:"o1_notification_port,omitempty"`
+	O1SecurityEnabled         bool          `json:"o1_security_enabled"`
+	
+	// NETCONF Configuration
+	NetconfEnabled            bool          `json:"netconf_enabled"`
+	NetconfPort               int           `json:"netconf_port,omitempty"`
+	NetconfSSHPort            int           `json:"netconf_ssh_port,omitempty"`
+	NetconfTLSPort            int           `json:"netconf_tls_port,omitempty"`
+	NetconfSessionTimeout     time.Duration `json:"netconf_session_timeout,omitempty"`
+	NetconfCapabilityCheck    bool          `json:"netconf_capability_check"`
+	
+	// Alarm Management Fields
+	AlarmRaisingEnabled       bool          `json:"alarm_raising_enabled"`
+	AlarmClearingEnabled      bool          `json:"alarm_clearing_enabled"`
+	AlarmUpdatingEnabled      bool          `json:"alarm_updating_enabled"`
+	AlarmAckEnabled           bool          `json:"alarm_ack_enabled"`
+	AlarmCommentEnabled       bool          `json:"alarm_comment_enabled"`
+	
+	// Performance & Scalability  
+	MaxConcurrentAlarms       int           `json:"max_concurrent_alarms,omitempty"`
+	AlarmProcessingWorkers    int           `json:"alarm_processing_workers,omitempty"`
+	AlarmQueueSize            int           `json:"alarm_queue_size,omitempty"`
+	AlarmBatchProcessSize     int           `json:"alarm_batch_process_size,omitempty"`
+	
+	// Legacy Fields (maintained for compatibility)
 	NotificationConfig  *NotificationConfig `json:"notification_config,omitempty"`
+	CorrelationWindow   time.Duration `json:"correlation_window,omitempty"`
+	NotificationTimeout time.Duration `json:"notification_timeout,omitempty"`
+	PrometheusEndpoint  string        `json:"prometheus_endpoint,omitempty"`
+	PrometheusURL       string        `json:"prometheus_url,omitempty"`
 }
 
 // NotificationConfig represents notification configuration
@@ -197,14 +247,59 @@ type FaultMetrics struct {
 func NewEnhancedFaultManager(config *FaultManagerConfig) *EnhancedFaultManager {
 	if config == nil {
 		config = &FaultManagerConfig{
+			// Basic Configuration
 			MaxAlarms:         10000,
 			MaxHistoryEntries: 50000,
+			RetentionPeriod:  24 * time.Hour,
+			
+			// Feature Enable/Disable Flags
 			CorrelationEnabled: true,
 			ThresholdEnabled:  true,
 			MaskingEnabled:    true,
 			RCAEnabled:       true,
 			WebSocketEnabled:  true,
-			RetentionPeriod:  24 * time.Hour,
+			
+			// O-RAN WG10 Specific Fields
+			HeartbeatInterval:         30 * time.Second,
+			AlarmSyncInterval:         60 * time.Second,
+			EventReportingEnabled:     true,
+			AlarmListSyncEnabled:      true,
+			VESEventBatchSize:         100,
+			VESEventBatchTimeout:      5 * time.Second,
+			
+			// VES Configuration  
+			VESCollectorPort:          8080,
+			VESEventVersion:           "7.3",
+			VESEventDomain:            "fault",
+			VESEventSourceType:        "o1-interface",
+			VESEventReportingEntity:   "nephoran-operator",
+			
+			// O1 Interface Configuration
+			O1InterfaceEnabled:        true,
+			O1HeartbeatInterval:       30 * time.Second,
+			O1NotificationPort:        8443,
+			O1SecurityEnabled:         true,
+			
+			// NETCONF Configuration
+			NetconfEnabled:            true,
+			NetconfPort:               830,
+			NetconfSSHPort:            830,
+			NetconfTLSPort:            6513,
+			NetconfSessionTimeout:     300 * time.Second,
+			NetconfCapabilityCheck:    true,
+			
+			// Alarm Management Fields
+			AlarmRaisingEnabled:       true,
+			AlarmClearingEnabled:      true,
+			AlarmUpdatingEnabled:      true,
+			AlarmAckEnabled:           true,
+			AlarmCommentEnabled:       true,
+			
+			// Performance & Scalability
+			MaxConcurrentAlarms:       5000,
+			AlarmProcessingWorkers:    4,
+			AlarmQueueSize:            10000,
+			AlarmBatchProcessSize:     50,
 		}
 	}
 

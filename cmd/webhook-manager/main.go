@@ -13,7 +13,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	intentv1alpha1 "github.com/nephio-project/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var (

@@ -37,7 +37,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
 )
 
 // Cache provides thread-safe in-memory caching with TTL support.

@@ -1,132 +1,15 @@
 package performance
 
 import (
-	"context"
-	"log/slog"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/prometheus/client_golang/prometheus"
 )
-
-// BenchmarkLLMProcessing tests the performance of LLM intent processing
-func BenchmarkLLMProcessing(b *testing.B) {
-	// Setup
-	_ = &config.LLMProcessorConfig{
-		LLMBackendType: "mock",
-		LLMModelName:   "test-model",
-		LLMMaxTokens:   1000,
-		LLMTimeout:     30 * time.Second,
-		ServiceVersion: "test",
-	}
-
-	logger := slog.Default()
-
-	// Create mock LLM client
-	client := createMockLLMClient()
-
-	// Create intent processor
-	processor := &handlers.IntentProcessor{
-		LLMClient: client,
-		Logger:    logger,
-	}
-
-	testIntent := "Scale up the 5G core deployment to handle increased traffic"
-	ctx := context.Background()
-
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			_, err := processor.ProcessIntent(ctx, testIntent)
-			if err != nil {
-				b.Errorf("ProcessIntent failed: %v", err)
-			}
-		}
-	})
-}
-
-// BenchmarkConcurrentLLMProcessing tests concurrent processing performance
-func BenchmarkConcurrentLLMProcessing(b *testing.B) {
-	_ = &config.LLMProcessorConfig{
-		LLMBackendType: "mock",
-		LLMModelName:   "test-model",
-		LLMMaxTokens:   1000,
-		LLMTimeout:     30 * time.Second,
-		ServiceVersion: "test",
-	}
-
-	logger := slog.Default()
-	client := createMockLLMClient()
-
-	processor := &handlers.IntentProcessor{
-		LLMClient: client,
-		Logger:    logger,
-	}
-
-	testIntents := []string{
-		"Scale up the 5G core deployment to handle increased traffic",
-		"Deploy new RAN components in the edge location",
-		"Configure load balancing for the core network",
-		"Optimize the database performance for user data",
-		"Setup monitoring alerts for network degradation",
-	}
-
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			intent := testIntents[i%len(testIntents)]
-
-			_, err := processor.ProcessIntent(ctx, intent)
-			if err != nil {
-				b.Errorf("ProcessIntent failed: %v", err)
-			}
-
-			cancel()
-			i++
-		}
-	})
-}
-
-// BenchmarkHealthChecks tests health check performance
-func BenchmarkHealthChecks(b *testing.B) {
-	logger := slog.Default()
-	hc := health.NewHealthChecker("test-service", "1.0.0", logger)
-
-	// Register some test health checks
-	for i := 0; i < 10; i++ {
-		name := "test-check-" + string(rune('0'+i))
-		hc.RegisterCheck(name, func(ctx context.Context) *health.Check {
-			return &health.Check{
-				Status:  health.StatusHealthy,
-				Message: "OK",
-			}
-		})
-	}
-
-	ctx := context.Background()
-
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			response := hc.Check(ctx)
-			if response.Status != health.StatusHealthy {
-				b.Errorf("Health check failed: %v", response.Status)
-			}
-		}
-	})
-}
 
 // BenchmarkStringOperations tests string building performance optimizations
 func BenchmarkStringOperations(b *testing.B) {
@@ -170,103 +53,357 @@ func BenchmarkStringOperations(b *testing.B) {
 	})
 }
 
-// BenchmarkMemoryPools tests sync.Pool performance
-func BenchmarkMemoryPools(b *testing.B) {
-	b.Run("WithPool", func(b *testing.B) {
-		b.ResetTimer()
-		b.ReportAllocs()
+// PERFORMANCE OPTIMIZATION BENCHMARKS
 
-		for i := 0; i < b.N; i++ {
-			builder := llm.GetStringBuilder()
-			builder.WriteString("test-string")
-			builder.WriteString(":")
-			builder.WriteString("another-test-string")
-			result := builder.String()
-			llm.PutStringBuilder(builder)
-			_ = result
-		}
-	})
-
-	b.Run("WithoutPool", func(b *testing.B) {
-		b.ResetTimer()
-		b.ReportAllocs()
-
-		for i := 0; i < b.N; i++ {
-			var builder strings.Builder
-			builder.WriteString("test-string")
-			builder.WriteString(":")
-			builder.WriteString("another-test-string")
-			result := builder.String()
-			_ = result
-		}
-	})
+// Sample data structures for performance benchmarking
+type ComplexStruct struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Items       []Item                 `json:"items"`
+	Status      string                 `json:"status"`
+	Version     int                    `json:"version"`
+	Config2     Config2                `json:"config"`
+	Permissions []string               `json:"permissions"`
 }
 
-// BenchmarkServiceInitialization tests lightweight component initialization performance
-func BenchmarkServiceInitialization(b *testing.B) {
-	config := &config.LLMProcessorConfig{
-		LLMBackendType: "mock",
-		LLMModelName:   "test-model",
-		LLMMaxTokens:   1000,
-		LLMTimeout:     30 * time.Second,
-		ServiceVersion: "test",
+type Item struct {
+	ID       string                 `json:"id"`
+	Type     string                 `json:"type"`
+	Value    float64                `json:"value"`
+	Tags     []string               `json:"tags"`
+	Settings map[string]interface{} `json:"settings"`
+}
+
+type Config2 struct {
+	Enabled     bool              `json:"enabled"`
+	Timeout     time.Duration     `json:"timeout"`
+	RetryCount  int               `json:"retry_count"`
+	Options     map[string]string `json:"options"`
+	Thresholds  []float64         `json:"thresholds"`
+	Environment string            `json:"environment"`
+}
+
+// createSampleData creates a complex data structure for benchmarking
+func createSampleData(size int) *ComplexStruct {
+	items := make([]Item, size)
+	for i := 0; i < size; i++ {
+		items[i] = Item{
+			ID:    "item-" + string(rune('a'+i%26)),
+			Type:  "type-" + string(rune('A'+i%10)),
+			Value: float64(i) * 3.14159,
+			Tags:  []string{"tag1", "tag2", "tag3"},
+			Settings: map[string]interface{}{
+				"enabled":  i%2 == 0,
+				"priority": i % 10,
+				"scale":    float64(i) / 100.0,
+			},
+		}
 	}
 
-	logger := slog.Default()
+	return &ComplexStruct{
+		ID:        "test-struct-123",
+		Name:      "Test Complex Structure",
+		Timestamp: time.Now(),
+		Metadata: map[string]interface{}{
+			"version":     "1.0.0",
+			"environment": "test",
+			"region":      "us-west-2",
+			"cost":        123.45,
+		},
+		Items:   items,
+		Status:  "active",
+		Version: 42,
+		Config2: Config2{
+			Enabled:    true,
+			Timeout:    30 * time.Second,
+			RetryCount: 3,
+			Options: map[string]string{
+				"format": "json",
+				"level":  "debug",
+			},
+			Thresholds:  []float64{0.1, 0.5, 0.9, 1.0},
+			Environment: "production",
+		},
+		Permissions: []string{"read", "write", "execute", "admin"},
+	}
+}
+
+// Benchmark SONIC vs standard JSON marshaling
+func BenchmarkSONICMarshal_Small(b *testing.B) {
+	data := createSampleData(10)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := JSONMarshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSONICMarshal_Medium(b *testing.B) {
+	data := createSampleData(100)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := JSONMarshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSONICMarshal_Large(b *testing.B) {
+	data := createSampleData(1000)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := JSONMarshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkStandardMarshal_Small(b *testing.B) {
+	data := createSampleData(10)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := json.Marshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkStandardMarshal_Medium(b *testing.B) {
+	data := createSampleData(100)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := json.Marshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkStandardMarshal_Large(b *testing.B) {
+	data := createSampleData(1000)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := json.Marshal(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// Benchmark SONIC vs standard JSON unmarshaling
+func BenchmarkSONICUnmarshal_Small(b *testing.B) {
+	data := createSampleData(10)
+	jsonData, _ := json.Marshal(data)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		var result ComplexStruct
+		err := JSONUnmarshal(jsonData, &result)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSONICUnmarshal_Medium(b *testing.B) {
+	data := createSampleData(100)
+	jsonData, _ := json.Marshal(data)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		var result ComplexStruct
+		err := JSONUnmarshal(jsonData, &result)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSONICUnmarshal_Large(b *testing.B) {
+	data := createSampleData(1000)
+	jsonData, _ := json.Marshal(data)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		var result ComplexStruct
+		err := JSONUnmarshal(jsonData, &result)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// Benchmark metrics collection overhead
+func BenchmarkMetricsCollection(b *testing.B) {
+	registry := prometheus.NewRegistry()
+	metrics := NewMetrics(registry)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		metrics.RecordRequestDuration("GET", "/api/v1/intents", "200", time.Millisecond*10)
+		metrics.RecordJSONMarshal(time.Microsecond*100, nil)
+		metrics.RecordJSONUnmarshal(time.Microsecond*150, nil)
+		metrics.RecordCacheHit("intent-cache")
+		metrics.RecordIntentProcessing("scaling", "success", time.Millisecond*50)
+	}
+}
 
-		// Test initialization of individual components instead of full service
-		client := createMockLLMClient()
-		processor := &handlers.IntentProcessor{
-			LLMClient: client,
-			Logger:    logger,
+// Benchmark HTTP middleware overhead
+func BenchmarkHTTPMiddlewareOverhead(b *testing.B) {
+	registry := prometheus.NewRegistry()
+	metrics := NewMetrics(registry)
+	middleware := NewHTTPMiddleware(metrics)
+
+	// Create a simple handler
+	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte("OK"))
+	}))
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		req := httptest.NewRequest("GET", "/test", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+	}
+}
+
+// Test data to verify SONIC compatibility
+func TestSONICCompatibility(t *testing.T) {
+	data := createSampleData(50)
+
+	// Marshal with SONIC
+	sonicJSON, err := JSONMarshal(data)
+	if err != nil {
+		t.Fatalf("SONIC marshal failed: %v", err)
+	}
+
+	// Marshal with standard library
+	stdJSON, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("Standard marshal failed: %v", err)
+	}
+
+	// Unmarshal SONIC JSON with standard library
+	var stdResult ComplexStruct
+	err = json.Unmarshal(sonicJSON, &stdResult)
+	if err != nil {
+		t.Fatalf("Standard unmarshal of SONIC JSON failed: %v", err)
+	}
+
+	// Unmarshal standard JSON with SONIC
+	var sonicResult ComplexStruct
+	err = JSONUnmarshal(stdJSON, &sonicResult)
+	if err != nil {
+		t.Fatalf("SONIC unmarshal of standard JSON failed: %v", err)
+	}
+
+	// Verify both results match original
+	if stdResult.ID != data.ID || sonicResult.ID != data.ID {
+		t.Error("SONIC and standard JSON are not compatible")
+	}
+
+	if len(stdResult.Items) != len(data.Items) || len(sonicResult.Items) != len(data.Items) {
+		t.Error("Item count mismatch between SONIC and standard JSON")
+	}
+}
+
+// Benchmark configuration parsing
+func BenchmarkConfigLoad(b *testing.B) {
+	config := DefaultConfig()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		// Simulate config operations
+		if config.UseSONIC {
+			data := createSampleData(10)
+			_, _ = JSONMarshal(data)
 		}
 
-		// Simulate component readiness check
-		if processor.LLMClient == nil {
-			b.Errorf("Component initialization failed: nil client")
+		if config.EnableHTTP2 {
+			_ = SetupOptimizedTransport(config)
 		}
-
-		cancel()
 	}
 }
 
-// createMockLLMClient creates a mock LLM client for testing
-func createMockLLMClient() *MockLLMClient {
-	return &MockLLMClient{
-		responses: map[string]string{
-			"default": `{"type":"NetworkFunctionDeployment","name":"5g-core","namespace":"default","spec":{"replicas":3,"image":"5g-core:latest"}}`,
-		},
-		latency: 10 * time.Millisecond,
+// Benchmark concurrent JSON processing
+func BenchmarkConcurrentJSONProcessing(b *testing.B) {
+	data := createSampleData(100)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			jsonData, err := JSONMarshal(data)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			var result ComplexStruct
+			err = JSONUnmarshal(jsonData, &result)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+// Benchmark HTTP2 transport setup
+func BenchmarkHTTP2TransportSetup(b *testing.B) {
+	config := DefaultConfig()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		transport := SetupOptimizedTransport(config)
+		if transport == nil {
+			b.Fatal("Failed to create transport")
+		}
 	}
 }
 
-// MockLLMClient simulates an LLM client for performance testing
-type MockLLMClient struct {
-	responses map[string]string
-	latency   time.Duration
-}
+// Benchmark metrics registry operations
+func BenchmarkMetricsRegistryOperations(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
-	// Simulate processing time
-	select {
-	case <-ctx.Done():
-		return "", ctx.Err()
-	case <-time.After(m.latency):
+	for i := 0; i < b.N; i++ {
+		registry := prometheus.NewRegistry()
+		metrics := NewMetrics(registry)
+
+		// Perform some metric operations
+		metrics.RecordRequestDuration("GET", "/test", "200", time.Millisecond)
+		metrics.RecordCacheHit("test-cache")
+		metrics.RecordIntentProcessing("test-intent", "success", time.Millisecond*10)
 	}
-
-	// Return mock response
-	if response, exists := m.responses[intent]; exists {
-		return response, nil
-	}
-	return m.responses["default"], nil
-}
-
-func (m *MockLLMClient) Shutdown() {
-	// Mock shutdown
 }

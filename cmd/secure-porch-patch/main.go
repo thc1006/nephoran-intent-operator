@@ -11,8 +11,8 @@ import (
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/patchgen"
-	"github.com/thc1006/nephoran-intent-operator/internal/security"
+	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
+	"github.com/nephio-project/nephoran-intent-operator/internal/security"
 )
 
 // Version information - will be set at build time.

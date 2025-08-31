@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	"github.com/nephio-project/nephoran-intent-operator/tests/utils"
 )
 
 // ComplianceValidationSuite validates mTLS implementation against security standards

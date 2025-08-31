@@ -75,9 +75,9 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 
 		alarm := &Alarm{
 
-			ID: fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
+			AlarmID: fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
 
-			ManagedElementID: managedElementID,
+			ObjectInstance: managedElementID,
 
 			Severity: strings.ToUpper(oranAlarm.Severity),
 

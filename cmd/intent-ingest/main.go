@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
 )
 
 func main() {

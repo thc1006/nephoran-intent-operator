@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/internal/fcaps"
-	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	"github.com/nephio-project/nephoran-intent-operator/internal/fcaps"
+	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
 )
 
 // Config represents a config.
