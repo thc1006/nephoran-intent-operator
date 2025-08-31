@@ -1,3 +1,5 @@
+//go:build integration
+
 // Package validation provides performance integration tests
 package validation
 
@@ -14,7 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nephio-project/nephoran-intent-operator/tests/framework"
+	"github.com/thc1006/nephoran-intent-operator/tests/framework"
 )
 
 var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {

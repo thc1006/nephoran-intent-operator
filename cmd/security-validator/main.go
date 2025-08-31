@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/tests/security"
+	"github.com/thc1006/nephoran-intent-operator/tests/security"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

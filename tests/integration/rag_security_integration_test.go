@@ -1,3 +1,5 @@
+//go:build integration
+
 package integration
 
 import (
@@ -7,8 +9,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 var _ = Describe("RAG Security Integration", func() {

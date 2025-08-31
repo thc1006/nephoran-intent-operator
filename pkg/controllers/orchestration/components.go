@@ -42,7 +42,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // WorkerPool manages a pool of workers for processing jobs.

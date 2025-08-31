@@ -42,8 +42,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // EventDrivenCoordinator provides enhanced coordination with event persistence and replay.

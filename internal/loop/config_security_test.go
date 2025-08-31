@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestConfig_Validate tests the comprehensive configuration validation

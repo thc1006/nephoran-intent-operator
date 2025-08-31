@@ -1,3 +1,5 @@
+//go:build integration
+
 package controllers
 
 import (
@@ -17,8 +19,8 @@ import (
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	gitclient "github.com/nephio-project/nephoran-intent-operator/pkg/git"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	gitclient "github.com/thc1006/nephoran-intent-operator/pkg/git"
 )
 
 var _ = Describe("NetworkIntent Controller (GitOps Integration)", func() {

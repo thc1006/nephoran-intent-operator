@@ -16,8 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
 const (

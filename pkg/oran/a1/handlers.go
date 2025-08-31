@@ -16,7 +16,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // A1Handlers implements HTTP handlers for all A1 interfaces.

@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/a1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
 )
 
 // ORANHealthChecker provides comprehensive health checking for O-RAN interfaces.

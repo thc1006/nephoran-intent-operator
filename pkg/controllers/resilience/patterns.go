@@ -39,7 +39,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/errors"
+	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
 // ResilienceManager manages all resilience patterns for the system.

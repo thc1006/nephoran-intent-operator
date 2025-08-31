@@ -1,3 +1,5 @@
+//go:build integration
+
 //go:build windows && integration
 // +build windows,integration
 
@@ -17,8 +19,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/loop"
-	"github.com/nephio-project/nephoran-intent-operator/internal/platform"
+	"github.com/thc1006/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/platform"
 )
 
 // TestWindowsCIIntegration provides end-to-end integration tests that validate

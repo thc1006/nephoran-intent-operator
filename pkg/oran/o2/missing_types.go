@@ -10,11 +10,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/common"
-	o2models "github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-	providers "github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
-	securityconfig "github.com/nephio-project/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
+	o2models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	providers "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // ===== HTTP STATUS CONSTANTS =====

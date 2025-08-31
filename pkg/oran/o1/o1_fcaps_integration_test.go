@@ -1,3 +1,5 @@
+//go:build integration
+
 package o1_test
 
 import (
@@ -21,8 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
 )
 
 var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {

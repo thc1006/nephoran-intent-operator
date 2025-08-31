@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // BenchmarkAuthSystemSuite provides comprehensive authentication and authorization benchmarks using Go 1.24+ features

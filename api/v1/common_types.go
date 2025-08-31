@@ -19,6 +19,7 @@ package v1
 import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -102,6 +103,123 @@ type ManagedElementCredentials struct {
 	// CA certificate reference
 	// +optional
 	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
+}
+
+// ResourceConstraints defines resource constraints for network functions
+type ResourceConstraints struct {
+	// CPU resource constraints
+	// +optional
+	CPU *ResourceConstraintSpec `json:"cpu,omitempty"`
+
+	// Memory resource constraints
+	// +optional
+	Memory *ResourceConstraintSpec `json:"memory,omitempty"`
+
+	// Storage resource constraints
+	// +optional
+	Storage *ResourceConstraintSpec `json:"storage,omitempty"`
+
+	// Network bandwidth constraints
+	// +optional
+	Bandwidth *ResourceConstraintSpec `json:"bandwidth,omitempty"`
+
+	// Custom resource constraints
+	// +optional
+	Custom map[string]*ResourceConstraintSpec `json:"custom,omitempty"`
+}
+
+// ResourceConstraintSpec defines specific resource constraint
+type ResourceConstraintSpec struct {
+	// Minimum required value
+	// +optional
+	Min *string `json:"min,omitempty"`
+
+	// Maximum allowed value
+	// +optional
+	Max *string `json:"max,omitempty"`
+
+	// Preferred value
+	// +optional
+	Preferred *string `json:"preferred,omitempty"`
+}
+
+// ProcessedParameters contains structured parameters from intent processing
+type ProcessedParameters struct {
+	// Raw parameters as key-value pairs
+	// +optional
+	Raw map[string]string `json:"raw,omitempty"`
+
+	// Structured parameters organized by category
+	// +optional
+	Structured map[string]*apiextensionsv1.JSON `json:"structured,omitempty"`
+
+	// Processing metadata
+	// +optional
+	Metadata *ParameterMetadata `json:"metadata,omitempty"`
+}
+
+// ParameterMetadata contains metadata about parameter processing
+type ParameterMetadata struct {
+	// Processing timestamp
+	// +optional
+	ProcessedAt *metav1.Time `json:"processedAt,omitempty"`
+
+	// Processing version/engine used
+	// +optional
+	ProcessingVersion string `json:"processingVersion,omitempty"`
+
+	// Source of parameters (llm, user, system, etc.)
+	// +optional
+	Source string `json:"source,omitempty"`
+
+	// Confidence score if applicable
+	// +optional
+	Confidence *float64 `json:"confidence,omitempty"`
+}
+
+// TargetComponent defines a target component for network function deployment
+type TargetComponent struct {
+	// Component name or identifier
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// Component type (e.g., cucp, cuup, du, etc.)
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// Version constraints
+	// +optional
+	Version string `json:"version,omitempty"`
+
+	// Target cluster or location
+	// +optional
+	Target string `json:"target,omitempty"`
+
+	// Component-specific configuration
+	// +optional
+	Config map[string]*apiextensionsv1.JSON `json:"config,omitempty"`
+
+	// Resource requirements
+	// +optional
+	Resources *ResourceConstraints `json:"resources,omitempty"`
+}
+
+// BackupCompressionConfig defines backup compression settings
+type BackupCompressionConfig struct {
+	// Compression algorithm (gzip, lz4, zstd, none)
+	// +optional
+	// +kubebuilder:validation:Enum=gzip;lz4;zstd;none
+	Algorithm string `json:"algorithm,omitempty"`
+
+	// Compression level (algorithm-dependent)
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=9
+	Level int `json:"level,omitempty"`
+
+	// Enable parallel compression
+	// +optional
+	Parallel bool `json:"parallel,omitempty"`
 }
 
 // String returns the string representation of Priority

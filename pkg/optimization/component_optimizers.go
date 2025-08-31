@@ -38,7 +38,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Forward declarations for types from other files in the package.

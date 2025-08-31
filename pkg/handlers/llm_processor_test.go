@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
 func TestNLToIntentHandler(t *testing.T) {

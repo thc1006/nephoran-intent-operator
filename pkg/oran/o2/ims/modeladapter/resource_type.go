@@ -3,7 +3,7 @@ package modeladapter
 import (
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // InternalResourceType represents a stable internal representation of a resource type.

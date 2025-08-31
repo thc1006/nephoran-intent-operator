@@ -3,7 +3,7 @@ package audit
 import (
 	"time"
 
-	audittypes "github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // AuditConfig is an alias for controller compatibility

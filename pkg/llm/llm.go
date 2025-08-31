@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	sharedtypes "github.com/nephio-project/nephoran-intent-operator/pkg/shared/types"
+	sharedtypes "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // Global pools for memory optimization

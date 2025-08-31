@@ -17,7 +17,7 @@ import (
 
 	validator "github.com/go-playground/validator/v10"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // A1ValidatorImpl implements comprehensive validation for A1 entities.

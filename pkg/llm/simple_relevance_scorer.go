@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // SimpleRelevanceScorer provides a simple implementation of relevance scoring

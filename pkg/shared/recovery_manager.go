@@ -40,7 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // RecoveryManager handles error recovery and state restoration.

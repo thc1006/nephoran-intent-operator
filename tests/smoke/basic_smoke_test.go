@@ -34,9 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/controllers"
-	"github.com/nephio-project/nephoran-intent-operator/tests/fixtures"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/controllers"
+	"github.com/thc1006/nephoran-intent-operator/tests/fixtures"
 )
 
 // SmokeTestSuite provides quick validation tests for basic functionality

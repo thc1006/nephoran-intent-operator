@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // UserFactory provides methods to create test users with various configurations.

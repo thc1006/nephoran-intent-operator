@@ -24,7 +24,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Import types from main auth package to avoid circular dependencies.

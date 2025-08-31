@@ -37,7 +37,7 @@ endef
 
 # Go configuration - Updated for Go 1.24+ with 2025 optimizations
 GO_VERSION = 1.24.1
-CONTROLLER_GEN_VERSION ?= v0.18.0
+CONTROLLER_GEN_VERSION ?= v0.19.0
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED ?= 0

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // SessionManager manages user sessions and SSO.

@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Enhanced RAG Integration with Multiple Providers.

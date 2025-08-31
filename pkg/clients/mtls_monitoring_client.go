@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // MTLSMonitoringClient provides mTLS-enabled monitoring client functionality.

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/planner/internal/security"
+	"github.com/thc1006/nephoran-intent-operator/planner/internal/security"
 )
 
 func TestLoadConfig(t *testing.T) {

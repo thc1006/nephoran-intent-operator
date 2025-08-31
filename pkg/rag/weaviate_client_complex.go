@@ -20,7 +20,7 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // WeaviateClient provides a production-ready client for Weaviate vector database.

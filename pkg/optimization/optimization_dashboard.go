@@ -45,7 +45,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // OptimizationDashboard provides real-time monitoring and control of optimization processes.

@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/middleware"
+	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
 // EnhancedOAuth2Manager provides comprehensive route configuration management.

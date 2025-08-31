@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // CompletePerformanceManager provides comprehensive O-RAN performance management.

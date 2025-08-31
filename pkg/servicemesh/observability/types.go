@@ -5,7 +5,7 @@ package observability
 import (
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
 
 // MTLSReport represents a comprehensive mTLS status report.

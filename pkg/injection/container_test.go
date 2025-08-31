@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/client-go/tools/record"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
 func TestNewContainer(t *testing.T) {

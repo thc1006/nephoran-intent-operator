@@ -16,8 +16,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	intentv1alpha1 "github.com/nephio-project/nephoran-intent-operator/api/intent/v1alpha1"
-	"github.com/nephio-project/nephoran-intent-operator/controllers"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -38,7 +38,7 @@ func init() {
 // initializeRuntimeOptimizations applies Go 1.24.8 performance tuning
 func initializeRuntimeOptimizations() {
 	// Import runtime optimization package
-	runtimePkg := "github.com/nephio-project/nephoran-intent-operator/pkg/runtime"
+	runtimePkg := "github.com/thc1006/nephoran-intent-operator/pkg/runtime"
 	_ = runtimePkg // Prevent unused import error for now
 
 	// This will be expanded once the runtime package is imported properly

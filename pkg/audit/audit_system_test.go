@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 )
 
 // MockBackend is a mock implementation of the Backend interface for testing

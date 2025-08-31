@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	
+	"github.com/go-logr/logr"
 )
 
 func TestIsIntentFile(t *testing.T) {
@@ -100,7 +102,8 @@ func TestExtractCorrelationID(t *testing.T) {
 			}
 
 			// Test extraction
-			gotID := extractCorrelationID(testFile)
+			logger := logr.Discard()
+			gotID := extractCorrelationID(logger, testFile)
 			if gotID != tt.wantID {
 				t.Errorf("extractCorrelationID() = %q, want %q", gotID, tt.wantID)
 			}
@@ -112,7 +115,8 @@ func TestExtractCorrelationID(t *testing.T) {
 
 	// Test with non-existent file
 	t.Run("non-existent file", func(t *testing.T) {
-		gotID := extractCorrelationID("/non/existent/file.json")
+		logger := logr.Discard()
+		gotID := extractCorrelationID(logger, "/non/existent/file.json")
 		if gotID != "" {
 			t.Errorf("extractCorrelationID(non-existent) = %q, want empty string", gotID)
 		}

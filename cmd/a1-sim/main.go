@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/a1sim"
+	"github.com/thc1006/nephoran-intent-operator/internal/a1sim"
 )
 
 func main() {

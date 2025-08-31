@@ -45,10 +45,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/templates"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/validation/yang"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/thc1006/nephoran-intent-operator/pkg/templates"
+	"github.com/thc1006/nephoran-intent-operator/pkg/validation/yang"
 )
 
 // NetworkIntentPackageReconciler integrates NetworkIntent processing with PackageRevision lifecycle management.

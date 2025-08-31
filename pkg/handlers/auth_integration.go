@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
 // AuthenticatedLLMProcessorHandler wraps with authentication.

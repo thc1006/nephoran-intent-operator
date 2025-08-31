@@ -16,13 +16,34 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+// DefaultCORSConfig returns a secure default CORS configuration
+func DefaultCORSConfig() CORSConfig {
+	return CORSConfig{
+		AllowedOrigins:   []string{}, // Empty by default - must be configured explicitly
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"},
+		ExposedHeaders:   []string{},
+		AllowCredentials: false,
+		MaxAge:           24 * time.Hour,
+	}
+}
+
+// NewCORS creates a new CORS middleware instance
+func NewCORS(config *CORSConfig, logger *slog.Logger) *CORSMiddleware {
+	if config == nil {
+		defaultConfig := DefaultCORSConfig()
+		config = &defaultConfig
+	}
+	return NewCORSMiddleware(*config, logger)
+}
+
 // SecuritySuiteConfig provides comprehensive security configuration
 type SecuritySuiteConfig struct {
 	// Core security components
 	SecurityHeaders *SecurityHeadersConfig
 	InputValidation *InputValidationConfig
-	RateLimit       *RateLimitConfig
-	RequestSize     *RequestSizeConfig
+	RateLimit       *RateLimiterConfig
+	RequestSize     *RequestSizeLimiter
 	CORS            *CORSConfig
 
 	// Authentication & Authorization
@@ -60,9 +81,9 @@ func DefaultSecuritySuiteConfig() *SecuritySuiteConfig {
 	return &SecuritySuiteConfig{
 		SecurityHeaders:      DefaultSecurityHeadersConfig(),
 		InputValidation:      DefaultInputValidationConfig(),
-		RateLimit:            DefaultRateLimitConfig(),
-		RequestSize:          DefaultRequestSizeConfig(),
-		CORS:                 DefaultCORSConfig(),
+		RateLimit:            func() *RateLimiterConfig { c := DefaultRateLimiterConfig(); return &c }(),
+		RequestSize:          NewRequestSizeLimiter(32*1024*1024, nil), // 32MB default
+		CORS:                 func() *CORSConfig { c := DefaultCORSConfig(); return &c }(),
 		RequireAuth:          false,
 		EnableAudit:          true,
 		EnableMetrics:        true,
@@ -87,7 +108,7 @@ type SecuritySuite struct {
 	validator   *InputValidator
 	rateLimiter *RateLimiter
 	sizeLimit   *RequestSizeLimiter
-	cors        *CORS
+	cors        *CORSMiddleware
 
 	// Security state
 	fingerprintCache sync.Map
@@ -132,11 +153,11 @@ func NewSecuritySuite(config *SecuritySuiteConfig, logger *slog.Logger) (*Securi
 	}
 
 	if config.RateLimit != nil {
-		ss.rateLimiter = NewRateLimiter(config.RateLimit, logger)
+		ss.rateLimiter = NewRateLimiter(*config.RateLimit, logger)
 	}
 
 	if config.RequestSize != nil {
-		ss.sizeLimit = NewRequestSizeLimiter(config.RequestSize, logger)
+		ss.sizeLimit = config.RequestSize // RequestSize is already a *RequestSizeLimiter
 	}
 
 	if config.CORS != nil {

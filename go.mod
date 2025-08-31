@@ -1,4 +1,4 @@
-module github.com/nephio-project/nephoran-intent-operator
+module github.com/thc1006/nephoran-intent-operator
 
 go 1.24.6
 
@@ -14,15 +14,6 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.10.9
 	github.com/montanaflynn/stats v0.7.1
-	github.com/nephio-project/nephoran-intent-operator/api v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/controllers v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg/audit v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg/cnf v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/availability v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2 v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg/security/ca v0.0.0-00010101000000-000000000000
-	github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.25.1
 	github.com/onsi/gomega v1.38.1
 	github.com/open-policy-agent/opa v1.8.0
@@ -37,6 +28,15 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.38.0
+	github.com/thc1006/nephoran-intent-operator/api v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/controllers v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/audit v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/cnf v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2 v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/security/ca v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/security/mtls v0.0.0-00010101000000-000000000000
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/valyala/fastjson v1.6.4
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -156,7 +156,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/ekzhu/minhash-lsh v0.0.0-20171225071031-5c06ee8586a1 // indirect
-	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
@@ -320,7 +320,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.30 // indirect
 	github.com/vmware/govmomi v0.52.0 // indirect
 	github.com/weaviate/weaviate v1.32.5 // indirect
-	github.com/weaviate/weaviate-go-client/v4 v4.16.1 // indirect
+	github.com/weaviate/weaviate-go-client/v4 v4.15.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
@@ -361,6 +361,7 @@ require (
 	golang.org/x/telemetry v0.0.0-20250807160809-1a19826ec488 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.240.0 // indirect
 	google.golang.org/genproto v0.0.0-20250505200425-f936aa4a68b2 // indirect
@@ -386,31 +387,37 @@ require (
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
 
 // Replace specific local modules with precise paths
 replace (
-	github.com/nephio-project/nephoran-intent-operator/api => ./api
-	github.com/nephio-project/nephoran-intent-operator/controllers => ./controllers
-	github.com/nephio-project/nephoran-intent-operator/pkg => ./pkg
-	github.com/nephio-project/nephoran-intent-operator/pkg/audit => ./pkg/audit
-	github.com/nephio-project/nephoran-intent-operator/pkg/cnf => ./pkg/cnf
-	github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/availability => ./pkg/monitoring/availability
-	github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2 => ./pkg/oran/o2
-	github.com/nephio-project/nephoran-intent-operator/pkg/security/ca => ./pkg/security/ca
-	github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls => ./pkg/security/mtls
+	github.com/thc1006/nephoran-intent-operator/api => ./api
+	github.com/thc1006/nephoran-intent-operator/controllers => ./controllers
+	github.com/thc1006/nephoran-intent-operator/pkg => ./pkg
+	github.com/thc1006/nephoran-intent-operator/pkg/audit => ./pkg/audit
+	github.com/thc1006/nephoran-intent-operator/pkg/cnf => ./pkg/cnf
+	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability => ./pkg/monitoring/availability
+	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2 => ./pkg/oran/o2
+	github.com/thc1006/nephoran-intent-operator/pkg/security/ca => ./pkg/security/ca
+	github.com/thc1006/nephoran-intent-operator/pkg/security/mtls => ./pkg/security/mtls
 )
 
 // Enforce consistent Kubernetes dependency versions
 replace (
-	k8s.io/api => k8s.io/api v0.33.0
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.33.0
-	k8s.io/apiserver => k8s.io/apiserver v0.33.0
-	k8s.io/client-go => k8s.io/client-go v0.33.0
-	k8s.io/code-generator => k8s.io/code-generator v0.33.0
-	k8s.io/component-base => k8s.io/component-base v0.33.0
+	k8s.io/api => k8s.io/api v0.34.0
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.34.0
+	k8s.io/apimachinery => k8s.io/apimachinery v0.34.0
+	k8s.io/apiserver => k8s.io/apiserver v0.34.0
+	k8s.io/client-go => k8s.io/client-go v0.34.0
+	k8s.io/code-generator => k8s.io/code-generator v0.34.0
+	k8s.io/component-base => k8s.io/component-base v0.34.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.6.0
+)
+
+// Temporarily exclude problematic dependencies
+exclude (
+	github.com/weaviate/weaviate-go-client/v4 v4.16.0
+	github.com/weaviate/weaviate-go-client/v4 v4.16.1
 )

@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/performance"
+	"github.com/thc1006/nephoran-intent-operator/pkg/performance"
 )
 
 func main() {

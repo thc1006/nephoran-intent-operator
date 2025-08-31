@@ -42,9 +42,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/controllers"
-	"github.com/nephio-project/nephoran-intent-operator/tests/fixtures"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/controllers"
+	"github.com/thc1006/nephoran-intent-operator/tests/fixtures"
 )
 
 // E2EOperatorTestSuite provides comprehensive end-to-end testing for the operator

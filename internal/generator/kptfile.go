@@ -6,7 +6,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
 // KptfileGenerator generates Kptfile for KRM packages.
@@ -128,7 +128,7 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 
 			Description: fmt.Sprintf("KRM package for %s CNF scaling to %d replicas", intent.Target, intent.Replicas),
 
-			Site: "https://github.com/nephio-project/nephoran-intent-operator",
+			Site: "https://github.com/thc1006/nephoran-intent-operator",
 
 			License: "Apache-2.0",
 

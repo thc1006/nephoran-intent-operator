@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/vault/api"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // VaultBackend implements the HashiCorp Vault PKI backend.

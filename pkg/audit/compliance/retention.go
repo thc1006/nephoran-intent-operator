@@ -3,7 +3,7 @@ package compliance
 import (
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // RetentionManager manages audit log retention policies.

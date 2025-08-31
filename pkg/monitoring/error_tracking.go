@@ -29,7 +29,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/errors"
+	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
 // TrendAnalyzer, SeasonalityDetector, and SeasonalPattern types are defined in types.go

@@ -1,3 +1,5 @@
+//go:build integration
+
 /*
 Copyright 2025.
 
@@ -34,8 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // IntegrationTestSuite manages all controllers and their coordination

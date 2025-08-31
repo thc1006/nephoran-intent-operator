@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
 // ORANComplianceTestSuite validates O-RAN compliance

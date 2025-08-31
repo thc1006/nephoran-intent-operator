@@ -22,7 +22,7 @@ import (
 	vegeta "github.com/tsenart/vegeta/v12/lib"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // AdvancedLoadGenerator provides sophisticated load generation capabilities.

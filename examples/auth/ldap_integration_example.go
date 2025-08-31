@@ -14,8 +14,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Example: Complete LDAP Integration with Nephoran Intent Operator.

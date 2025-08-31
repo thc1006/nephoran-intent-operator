@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -14,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
 // SecurityTestSuite represents a comprehensive security test suite

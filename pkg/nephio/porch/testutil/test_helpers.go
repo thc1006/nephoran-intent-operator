@@ -39,7 +39,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/porch"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // TestConfig creates a test configuration for porch clients.

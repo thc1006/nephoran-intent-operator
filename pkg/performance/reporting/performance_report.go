@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/performance/analysis"
+	"github.com/thc1006/nephoran-intent-operator/pkg/performance/analysis"
 )
 
 // ReportGenerator creates comprehensive performance reports.

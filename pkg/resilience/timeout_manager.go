@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // TimeoutConfig holds timeout configuration for different operation types.

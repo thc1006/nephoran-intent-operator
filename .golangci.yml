@@ -13,6 +13,7 @@ run:
 linters:
   enable:
     - govet
+    - shadow
     - errcheck
     - staticcheck
     - gosec
@@ -72,10 +73,8 @@ linters-settings:
   govet:
     enable-all: true
     disable:
+      - shadow
       - fieldalignment  # Struct field alignment optimization not critical
-    settings:
-      shadow:
-        strict: false  # Allow variable shadowing
 
   gosec:
     excludes:

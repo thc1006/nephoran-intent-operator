@@ -1,3 +1,5 @@
+//go:build integration
+
 package integration_test
 
 import (
@@ -12,8 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	testutils "github.com/nephio-project/nephoran-intent-operator/tests/utils"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("CRD Integration Tests", func() {

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 )
 
 // QueryEngineTestSuite tests audit query engine functionality

@@ -231,7 +231,7 @@ func (pd *PatternDetector) DetectPatterns(ctx context.Context, store *MetricsSto
 =======
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ComponentType is an alias for shared.ComponentType for backward compatibility.

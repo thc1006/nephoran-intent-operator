@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/planner"
-	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
+	"github.com/thc1006/nephoran-intent-operator/internal/planner"
+	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
 )
 
 // BenchmarkSecurity_ValidationPerformance benchmarks the performance of security validation functions

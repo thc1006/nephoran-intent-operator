@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 // LoadLLMAPIKeyFromFile loads the LLM API key from file or environment variable.

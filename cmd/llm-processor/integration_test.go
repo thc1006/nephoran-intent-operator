@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -12,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // Package level variables for integration tests

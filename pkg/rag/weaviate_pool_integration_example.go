@@ -3,7 +3,7 @@
 package rag
 
 import (
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // IntegrateWithMetricsCollector demonstrates how to integrate the Weaviate connection pool.

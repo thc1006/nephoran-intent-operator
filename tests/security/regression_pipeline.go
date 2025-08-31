@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/nephio-project/nephoran-intent-operator/tests/security/penetration"
+	"github.com/thc1006/nephoran-intent-operator/tests/security/penetration"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"

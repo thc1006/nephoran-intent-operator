@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // EnhancedRetrievalService provides advanced retrieval capabilities with query enhancement.

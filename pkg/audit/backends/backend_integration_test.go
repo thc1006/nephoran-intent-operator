@@ -1,3 +1,5 @@
+//go:build integration
+
 package backends_test
 
 import (
@@ -19,8 +21,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 )
 
 // TestBackendIntegrationSuite tests backend implementations with real connections

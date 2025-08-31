@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // SharedMockRAGService provides a centralized mock RAG service for all tests

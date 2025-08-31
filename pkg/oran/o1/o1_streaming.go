@@ -12,7 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // StreamingService provides real-time streaming capabilities for O1 interface.

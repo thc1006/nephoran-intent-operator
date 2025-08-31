@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/health"
 )
 
 // Type alias for backward compatibility.

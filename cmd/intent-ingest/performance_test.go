@@ -340,8 +340,8 @@ func BenchmarkThroughput(b *testing.B) {
 }
 
 // createBenchmarkServer creates a lightweight server for benchmarking
-func createBenchmarkServer(b *testing.B, handoffDir string) *httptest.Server {
-	b.Helper()
+func createBenchmarkServer(tb testing.TB, handoffDir string) *httptest.Server {
+	tb.Helper()
 	
 	// Create a more realistic server for benchmarking
 	mux := http.NewServeMux()

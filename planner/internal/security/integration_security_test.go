@@ -1,3 +1,5 @@
+//go:build integration
+
 package security
 
 import (
@@ -15,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/planner"
-	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
+	"github.com/thc1006/nephoran-intent-operator/internal/planner"
+	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
 )
 
 // TestIntegration_EndToEndSecurity tests complete security validation in realistic planner scenarios

@@ -15,7 +15,7 @@ import (
 	"unsafe"
 
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutil"
 )
 
 // BenchmarkOptimizedHTTPClient tests HTTP client performance

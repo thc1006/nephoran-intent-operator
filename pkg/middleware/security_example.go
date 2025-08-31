@@ -54,19 +54,15 @@ func ExampleSecurityImplementation() {
 		},
 
 		// Rate Limiting Configuration
-		RateLimit: &RateLimitConfig{
+		RateLimit: &RateLimiterConfig{
 			QPS:             20, // 20 requests per second per IP
 			Burst:           40, // Allow burst of 40 requests
 			CleanupInterval: 10 * time.Minute,
 			IPTimeout:       1 * time.Hour,
 		},
 
-		// Request Size Configuration
-		RequestSize: &RequestSizeConfig{
-			MaxBodySize:   10 * 1024 * 1024, // 10MB
-			MaxHeaderSize: 8 * 1024,         // 8KB
-			EnableLogging: true,
-		},
+		// Request Size Configuration  
+		RequestSize: NewRequestSizeLimiter(10*1024*1024, logger), // 10MB
 
 		// CORS Configuration
 		CORS: &CORSConfig{

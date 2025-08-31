@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
 // KPMServiceModel implements the E2SM-KPM v2.0 service model.

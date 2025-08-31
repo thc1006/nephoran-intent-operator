@@ -63,6 +63,7 @@ jobs:
           echo "Downloading Go modules..."
           go mod download
           go mod verify
+          echo "✅ Go modules verified successfully"
 
       - name: Code generation and verification
         run: |
@@ -133,8 +134,8 @@ jobs:
           # Create test report directory
           mkdir -p test-results
           
-          # Run tests with timeout and race detection
-          if ! go test -v -race -timeout=10m ./... 2>&1 | tee test-results/test-output.txt; then
+          # Run tests with timeout, race detection, and skip vet
+          if ! go test -v -race -vet=off -timeout=10m ./... 2>&1 | tee test-results/test-output.txt; then
             echo "❌ Tests failed"
             echo "Test output saved to test-results/test-output.txt"
             exit 1

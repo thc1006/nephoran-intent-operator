@@ -40,7 +40,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
 // StreamFilter represents filters for real-time streams.

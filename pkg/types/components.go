@@ -17,7 +17,7 @@ limitations under the License.
 package types
 
 import (
-	"github.com/nephio-project/nephoran-intent-operator/pkg/contracts"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 	"time"
 )
 

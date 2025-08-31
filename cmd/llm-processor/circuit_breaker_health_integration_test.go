@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -14,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // TestCircuitBreakerHealthIntegration provides comprehensive integration tests

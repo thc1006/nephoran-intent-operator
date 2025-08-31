@@ -13,9 +13,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/a1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
 )
 
 const (

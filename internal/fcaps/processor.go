@@ -9,7 +9,7 @@ import (
 	"log"
 	"time"
 
-	ingest "github.com/nephio-project/nephoran-intent-operator/internal/ingest"
+	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
 
 // CommonEventHeader represents the common header for all VES events.

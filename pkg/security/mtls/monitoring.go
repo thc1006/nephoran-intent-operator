@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // MTLSMonitor provides comprehensive monitoring for mTLS connections and certificates.

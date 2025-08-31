@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 // Error types for dependency injection.

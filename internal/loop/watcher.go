@@ -20,7 +20,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // Config holds configuration for the watcher.

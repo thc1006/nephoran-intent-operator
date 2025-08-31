@@ -1,3 +1,5 @@
+//go:build integration
+
 package security
 
 import (
@@ -16,9 +18,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls"
-	"github.com/nephio-project/nephoran-intent-operator/tests/utils"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security/ca"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security/mtls"
+	"github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // mTLSIntegrationTestSuite tests integration between all mTLS components

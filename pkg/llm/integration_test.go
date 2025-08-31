@@ -1,3 +1,5 @@
+//go:build integration
+
 package llm
 
 import (
@@ -7,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // IntegrationTestSuite represents a complete LLM processing pipeline integration test

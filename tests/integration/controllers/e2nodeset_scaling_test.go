@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	testutils "github.com/nephio-project/nephoran-intent-operator/tests/utils"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("E2NodeSet Scaling Integration", func() {

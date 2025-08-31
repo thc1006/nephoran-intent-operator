@@ -37,7 +37,7 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // generateKptFile generates the Kpt package file.
