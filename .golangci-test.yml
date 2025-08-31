@@ -35,7 +35,9 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment
-      - shadow
+    settings:
+      shadow:
+        strict: false
   
   gosec:
     severity: medium

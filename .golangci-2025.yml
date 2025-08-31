@@ -105,7 +105,7 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment  # Too noisy for most projects
-      - shadow          # Handled by other linters
+    # shadow analyzer handled by settings below
     settings:
       printf:
         funcs:
@@ -641,12 +641,6 @@ issues:
     - temp
     - node_modules
     - .git
-
-  exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - ".*_gen\\.go$"
-    - "zz_generated\\..*\\.go$"
 
   # Include certain excluded-by-default issues
   include:

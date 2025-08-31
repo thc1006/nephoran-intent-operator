@@ -182,7 +182,7 @@ linters-settings:
       - fieldalignment  # Can be expensive in CI
     settings:
       shadow:
-        strict: true
+        strict: false  # Allow variable shadowing for flexibility
         
   gosec:
     severity: "low"  # All severities in CI
