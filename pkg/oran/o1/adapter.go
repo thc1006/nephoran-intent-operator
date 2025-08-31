@@ -28,14 +28,9 @@ type NetworkFunctionManager interface {
 	GetNetworkFunctionConfiguration(ctx context.Context, nfID string) (*NetworkFunctionConfig, error)
 }
 
-// NetworkFunctionConfig represents configuration details for a network function
-type NetworkFunctionConfig struct {
-	ID                 string                 `json:"id"`
-	Name               string                 `json:"name,omitempty"`
-	Parameters         map[string]interface{} `json:"parameters,omitempty"`
-	ConfigurationType  string                 `json:"configuration_type,omitempty"`
-	ConfigurationState string                 `json:"configuration_state,omitempty"`
-	Version            string                 `json:"version,omitempty"`
-	Timestamp          time.Time              `json:"timestamp,omitempty"`
-	AdditionalDetails  map[string]interface{} `json:"additional_details,omitempty"`
+// NetworkFunctionAdapter provides O1 interface operations for network functions
+// Configuration is handled by the NetworkFunctionConfig type in types.go
+type NetworkFunctionAdapter struct {
+	manager NetworkFunctionManager
+	logger  logr.Logger
 }

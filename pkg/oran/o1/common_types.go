@@ -56,6 +56,20 @@ type ReportSchedule struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
+// Notification represents a generic notification message
+type Notification struct {
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"` // ALARM, CONFIG, PERFORMANCE
+	Severity    string                 `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, CLEAR
+	Title       string                 `json:"title"`
+	Message     string                 `json:"message"`
+	Source      string                 `json:"source"`
+	Target      string                 `json:"target,omitempty"`
+	Timestamp   time.Time              `json:"timestamp"`
+	AckRequired bool                   `json:"ack_required"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
 // NotificationChannel interface for sending notifications (used by multiple managers)
 type NotificationChannel interface {
 	GetID() string

@@ -33,7 +33,6 @@ package security
 import (
 	"context"
 	"crypto/rsa"
-	"errors"
 	"fmt"
 	"time"
 )
@@ -42,9 +41,8 @@ import (
 
 var (
 
-	// ErrKeyNotFound holds errkeynotfound value.
+// ErrKeyNotFound holds errkeynotfound value.
 
-	ErrKeyNotFound = errors.New("key not found")
 )
 
 // KeyManager interface removed - using AdvancedKeyManager instead.
@@ -539,7 +537,11 @@ type VaultStats struct {
 	VaultHealthy bool `json:"vault_healthy"`
 
 	// Secret statistics
-	TotalSecrets int64 `json:"total_secrets"`
+	TotalSecrets int64         `json:"total_secrets"`
+	SecretsCount int           `json:"secrets_count"` // ADDED: Secret count
+	BackendType  string        `json:"backend_type"`  // ADDED: Backend type
+	SuccessRate  float64       `json:"success_rate"`  // ADDED: Success rate
+	Uptime       time.Duration `json:"uptime"`        // ADDED: Uptime
 
 	// Operation statistics
 	TotalOperations      int64 `json:"total_operations"`

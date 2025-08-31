@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // AuthManager provides a unified interface for all authentication components
@@ -53,7 +55,8 @@ func NewAuthManager(config *AuthManagerConfig, logger *slog.Logger) (*AuthManage
 	}
 
 	// Create JWT manager
-	jwtManager, err := NewJWTManager(config.JWTConfig, nil, nil, logger)
+	ctx := context.Background() // Use a background context for initialization
+	jwtManager, err := NewJWTManager(ctx, config.JWTConfig, nil, nil, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +68,7 @@ func NewAuthManager(config *AuthManagerConfig, logger *slog.Logger) (*AuthManage
 	sessionManager := NewSessionManager(config.SessionConfig, jwtManager, rbacManager, logger)
 
 	// Create OAuth2 manager
-	oauth2Manager, err := NewOAuth2Manager(config.OAuth2Config, logger)
+	oauth2Manager, err := NewOAuth2Manager(ctx, config.OAuth2Config, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -163,23 +166,27 @@ func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (
 	}
 
 	// Create new access token
-	accessToken, err := am.JWTManager.CreateAccessToken(
-		claims.Subject,
+	userInfo := &providers.UserInfo{
+		ID:     claims.Subject,
+		Email:  claims.Subject, // Use subject as email for now
+		Name:   claims.Subject,
+		Roles:  claims.Roles,
+		Groups: []string{},
+	}
+	accessToken, tokenInfo, err := am.JWTManager.CreateAccessToken(
+		context.Background(),
+		userInfo,
 		claims.SessionID,
-		claims.Provider,
-		claims.Roles,
-		[]string{}, // groups
-		claims.Attributes,
 	)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create access token: %w", err)
 	}
 
 	// Create new refresh token
-	newRefreshToken, err := am.JWTManager.CreateRefreshToken(
-		claims.Subject,
+	newRefreshToken, _, err := am.JWTManager.CreateRefreshToken(
+		context.Background(),
+		userInfo,
 		claims.SessionID,
-		claims.Provider,
 	)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create refresh token: %w", err)

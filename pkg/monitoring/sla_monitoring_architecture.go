@@ -433,40 +433,7 @@ type SLAStorageManager struct {
 	RetentionCompliance prometheus.Gauge
 }
 
-// SyntheticMonitor provides proactive monitoring.
-
-type SyntheticMonitor struct {
-
-	// Synthetic test scenarios.
-
-	IntentProcessingTests *IntentProcessingTestSuite
-
-	APIEndpointTests *APIEndpointTestSuite
-
-	UserJourneyTests *UserJourneyTestSuite
-
-	// Test execution.
-
-	TestScheduler *TestScheduler
-
-	TestExecutor *TestExecutor
-
-	ResultProcessor *TestResultProcessor
-
-	// Synthetic metrics.
-
-	SyntheticAvailability *prometheus.GaugeVec
-
-	SyntheticLatency *prometheus.HistogramVec
-
-	SyntheticErrorRate *prometheus.GaugeVec
-
-	// Test coverage tracking.
-
-	TestCoverage prometheus.Gauge
-
-	TestReliability prometheus.Gauge
-}
+// Note: SyntheticMonitor is now defined in types.go to avoid duplicates
 
 // ChaosEngineeringIntegration validates resilience.
 

@@ -214,9 +214,11 @@ type EnhancedGoroutinePool_Stub struct {
 
 // GoroutinePoolMetrics stub
 type GoroutinePoolMetrics struct {
-	CompletedTasks int64
-	ActiveWorkers  int32
-	StolenTasks    int64
+	CompletedTasks      int64
+	ActiveWorkers       int32
+	StolenTasks         int64
+	AverageWaitTime     int64  // Average wait time in nanoseconds
+	AverageProcessTime  int64  // Average process time in nanoseconds
 }
 
 // Constructor functions

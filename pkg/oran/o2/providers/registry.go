@@ -20,7 +20,7 @@ type DefaultProviderRegistry struct {
 }
 
 // NewProviderRegistry creates a new provider registry
-func NewProviderRegistry() *DefaultProviderRegistry {
+func NewProviderRegistry() ProviderRegistry {
 	return &DefaultProviderRegistry{
 		providers:      make(map[string]CloudProvider),
 		configs:        make(map[string]*ProviderConfiguration),
@@ -281,7 +281,7 @@ func hasRequiredCapabilities(caps *ProviderCapabilities, required []string) bool
 }
 
 // Global provider registry instance
-var globalProviderRegistry = NewProviderRegistry()
+var globalProviderRegistry ProviderRegistry = NewProviderRegistry()
 
 // GetGlobalProviderRegistry returns the global provider registry instance
 func GetGlobalProviderRegistry() ProviderRegistry {

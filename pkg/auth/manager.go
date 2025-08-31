@@ -41,9 +41,9 @@ type Manager struct {
 	handlers *AuthHandlers
 }
 
-// NewAuthManager creates a new authentication manager.
+// NewManager creates a new authentication manager (renamed to avoid conflict with auth_manager.go).
 
-func NewAuthManager(ctx context.Context, config *Config, logger *slog.Logger) (*Manager, error) {
+func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Manager, error) {
 
 	if config == nil {
 

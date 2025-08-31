@@ -5,24 +5,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
-	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// CertManagerConfig holds cert-manager specific configuration
-type CertManagerConfig struct {
-	IssuerName           string        `yaml:"issuer_name"`
-	IssuerKind           string        `yaml:"issuer_kind"`
-	IssuerNamespace      string        `yaml:"issuer_namespace"`
-	CertificateNamespace string        `yaml:"certificate_namespace"`
-	SecretNamePrefix     string        `yaml:"secret_name_prefix"`
-	EnableApproval       bool          `yaml:"enable_approval"`
-	DefaultDuration      time.Duration `yaml:"default_duration"`
-	RenewBefore          time.Duration `yaml:"renew_before"`
-	RevisionLimit        int32         `yaml:"revision_limit"`
-}
-
 
 // CertManagerBackendStub is a stub implementation for cert-manager integration
 type CertManagerBackendStub struct {
@@ -30,8 +15,8 @@ type CertManagerBackendStub struct {
 	config *CertManagerConfig
 }
 
-// NewCertManagerBackend creates a new stubbed cert-manager backend
-func NewCertManagerBackend(config *CertManagerConfig, kubeClient client.Client) Backend {
+// NewCertManagerBackendStub creates a new stubbed cert-manager backend (renamed to avoid conflict)
+func NewCertManagerBackendStub(config *CertManagerConfig, kubeClient client.Client) Backend {
 	return &CertManagerBackendStub{
 		client: kubeClient,
 		config: config,

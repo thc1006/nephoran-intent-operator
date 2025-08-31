@@ -466,8 +466,8 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 		if profilerData.CPUUsagePercent > pi.config.TargetCPUUsage {
 			recommendations = append(recommendations, PerformanceRecommendation{
 				Type:                 "cpu",
-				Priority:             1,
-				Impact:               "high",
+				Priority:             "high",
+				Impact:               1.0,
 				Description:          "High CPU usage detected",
 				Action:               "Consider scaling horizontally or optimizing CPU-intensive operations",
 				EstimatedImprovement: 20.0,
@@ -480,8 +480,8 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 		if profilerData.MemoryUsageMB > 1000 {
 			recommendations = append(recommendations, PerformanceRecommendation{
 				Type:                 "memory",
-				Priority:             1,
-				Impact:               "high",
+				Priority:             "high",
+				Impact:               1.0,
 				Description:          "High memory usage detected",
 				Action:               "Optimize memory allocations, enable compression, or increase available memory",
 				EstimatedImprovement: 15.0,
@@ -494,8 +494,8 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 		if cacheData.HitRate < 80 {
 			recommendations = append(recommendations, PerformanceRecommendation{
 				Type:                 "cache",
-				Priority:             2,
-				Impact:               "medium",
+				Priority:             "medium",
+				Impact:               0.7,
 				Description:          "Low cache hit rate",
 				Action:               "Review caching strategy, increase cache size, or adjust TTL values",
 				EstimatedImprovement: 10.0,
@@ -509,8 +509,8 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 		if avgQueryTimeMs > 100 {
 			recommendations = append(recommendations, PerformanceRecommendation{
 				Type:                 "database",
-				Priority:             1,
-				Impact:               "high",
+				Priority:             "high",
+				Impact:               1.0,
 				Description:          "Slow database queries detected",
 				Action:               "Optimize queries, add indexes, or increase connection pool size",
 				EstimatedImprovement: 25.0,

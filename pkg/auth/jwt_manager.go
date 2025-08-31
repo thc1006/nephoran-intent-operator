@@ -281,6 +281,11 @@ func NewJWTManager(ctx context.Context, config *JWTConfig, tokenStore TokenStore
 
 }
 
+// CreateAccessToken creates an access token for a user (alias for GenerateAccessToken for API compatibility).
+func (jm *JWTManager) CreateAccessToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
+	return jm.GenerateAccessToken(ctx, userInfo, sessionID, options...)
+}
+
 // GenerateAccessToken generates an access token for a user.
 
 func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
@@ -418,6 +423,11 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 
 	return tokenString, tokenInfo, nil
 
+}
+
+// CreateRefreshToken creates a refresh token (alias for GenerateRefreshToken for API compatibility).
+func (jm *JWTManager) CreateRefreshToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
+	return jm.GenerateRefreshToken(ctx, userInfo, sessionID, options...)
 }
 
 // GenerateRefreshToken generates a refresh token.

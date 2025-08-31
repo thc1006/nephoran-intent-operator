@@ -16,7 +16,7 @@ import (
 type IntegrationManager struct {
 	registry ProviderRegistry
 
-	factory *ProviderFactory
+	factory ProviderFactory
 
 	kubeClient client.Client
 
@@ -43,7 +43,7 @@ func NewIntegrationManager(kubeClient client.Client, clientset kubernetes.Interf
 
 		registry: registry,
 
-		factory: NewProviderFactory(registry),
+		factory: NewProviderFactory(),
 
 		kubeClient: kubeClient,
 
@@ -708,7 +708,7 @@ func NewMetricsAggregator() *MetricsAggregator {
 
 // Start performs start operation.
 
-func (ma *MetricsAggregator) Start(ctx context.Context, registry *ProviderRegistry) {
+func (ma *MetricsAggregator) Start(ctx context.Context, registry ProviderRegistry) {
 
 	ticker := time.NewTicker(30 * time.Second)
 
@@ -744,7 +744,7 @@ func (ma *MetricsAggregator) Stop() {
 
 }
 
-func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry *ProviderRegistry) {
+func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry ProviderRegistry) {
 
 	for _, name := range registry.ListProviders() {
 

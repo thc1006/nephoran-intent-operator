@@ -32,7 +32,6 @@ require (
 	github.com/thc1006/nephoran-intent-operator/controllers v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/audit v0.0.0-00010101000000-000000000000
-	github.com/thc1006/nephoran-intent-operator/pkg/cnf v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2 v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/security/ca v0.0.0-00010101000000-000000000000
@@ -52,7 +51,7 @@ require (
 	k8s.io/api v0.34.0
 	k8s.io/apiextensions-apiserver v0.34.0
 	k8s.io/apimachinery v0.34.0
-	k8s.io/client-go v0.34.0
+	k8s.io/client-go v1.5.2
 	k8s.io/code-generator v0.34.0
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.22.0
@@ -126,7 +125,7 @@ require (
 	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
+	github.com/boombuler/barcode v1.1.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -351,23 +350,22 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20250604051438-85fd79dbfd9f // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
 	k8s.io/kubectl v0.33.3 // indirect
-	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
+	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
-	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
+	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
 
-// Replace specific local modules with precise paths
+// Replace specific local modules with precise paths for existing submodules
 replace (
 	github.com/thc1006/nephoran-intent-operator/api => ./api
 	github.com/thc1006/nephoran-intent-operator/controllers => ./controllers
 	github.com/thc1006/nephoran-intent-operator/pkg => ./pkg
 	github.com/thc1006/nephoran-intent-operator/pkg/audit => ./pkg/audit
-	github.com/thc1006/nephoran-intent-operator/pkg/cnf => ./pkg/cnf
 	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability => ./pkg/monitoring/availability
 	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2 => ./pkg/oran/o2
 	github.com/thc1006/nephoran-intent-operator/pkg/security/ca => ./pkg/security/ca
@@ -383,7 +381,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.34.0
 	k8s.io/code-generator => k8s.io/code-generator v0.34.0
 	k8s.io/component-base => k8s.io/component-base v0.34.0
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.0
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.6.0
 )
 

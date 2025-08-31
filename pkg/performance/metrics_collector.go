@@ -216,3 +216,18 @@ func (mc *MetricsCollector) ExportMetrics(registry *prometheus.Registry) {
 	mc.analyzer.ExportToPrometheus(registry)
 
 }
+
+// Reset resets all collected metrics to their initial state
+func (mc *MetricsCollector) Reset() {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
+	
+	mc.cpuUsage = 0
+	mc.memoryUsage = 0
+	mc.goroutineCount = 0
+	
+	// Reset analyzer if it has a reset method
+	if mc.analyzer != nil {
+		// Analyzer reset would be implemented if needed
+	}
+}

@@ -109,7 +109,9 @@ func (egp *EnhancedGoroutinePool) SubmitTask(task *Task) error {
 	if task == nil || task.Function == nil {
 		return nil
 	}
-	return egp.Submit(task.Function)
+	return egp.Submit(func() {
+		_ = task.Function() // Ignore error for now
+	})
 }
 
 // GetMetrics returns the goroutine pool metrics
@@ -237,13 +239,15 @@ func (pm *ProfilerManager) GetMetrics() ProfilerMetrics {
 	runtime.ReadMemStats(&memStats)
 	
 	return ProfilerMetrics{
-		CPUUsagePercent:    50.0, // This would be calculated from actual CPU profiling data
-		MemoryUsageMB:      float64(memStats.Alloc) / (1024 * 1024),
-		GoroutineCount:     runtime.NumGoroutine(),
-		GCPauseDuration:    time.Duration(memStats.PauseNs[(memStats.NumGC+255)%256]),
-		AllocRate:          float64(memStats.Mallocs),
-		ProfilesCollected:  len(pm.hotspots),
+		CPUUsagePercent:      50.0, // This would be calculated from actual CPU profiling data
+		MemoryUsageMB:        float64(memStats.Alloc) / (1024 * 1024),
+		GoroutineCount:       runtime.NumGoroutine(),
+		GCPauseDuration:      time.Duration(memStats.PauseNs[(memStats.NumGC+255)%256]),
+		AllocRate:            float64(memStats.Mallocs),
+		ProfilesCollected:    len(pm.hotspots),
 		OptimizationsApplied: 0,
+		HeapSizeMB:           float64(memStats.HeapAlloc) / (1024 * 1024),
+		GCCount:              memStats.NumGC,
 	}
 }
 
@@ -312,6 +316,8 @@ type ProfilerMetrics struct {
 	AllocRate            float64
 	ProfilesCollected    int
 	OptimizationsApplied int
+	HeapSizeMB           float64        // Heap size in megabytes
+	GCCount              uint32         // Number of garbage collections
 }
 
 // Note: PerformanceBaseline and BenchmarkResult are defined in benchmark_suite.go

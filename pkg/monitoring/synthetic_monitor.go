@@ -4,7 +4,9 @@ package monitoring
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -340,4 +342,22 @@ func (sm *SyntheticMonitor) Shutdown(ctx context.Context) error {
 
 	sm.logger.Info("Synthetic monitor shutdown completed")
 	return nil
+}
+
+// Note: SyntheticMonitor, SyntheticCheck, and CheckResult types are defined in types.go to avoid duplicates
+
+// NewSyntheticMonitor creates a new synthetic monitor
+func NewSyntheticMonitor(logger *slog.Logger) *SyntheticMonitor {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
+	return &SyntheticMonitor{
+		checks:  make(map[string]*SyntheticCheck),
+		results: make(map[string]*CheckResult),
+		logger:  logger,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
 }

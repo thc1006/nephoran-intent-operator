@@ -495,12 +495,12 @@ func (sm *SecurityManager) GetCSRFManager() *CSRFManager {
 type CSRFMiddleware struct {
 	csrfManager *CSRFManager
 
-	config *CSRFConfig
+	config *CSRFMiddlewareConfig
 }
 
-// CSRFConfig represents CSRF middleware configuration.
+// CSRFMiddlewareConfig represents CSRF middleware configuration (renamed to avoid conflict).
 
-type CSRFConfig struct {
+type CSRFMiddlewareConfig struct {
 	TokenHeader string `json:"token_header"`
 
 	CookieName string `json:"cookie_name"`
@@ -520,11 +520,11 @@ type CSRFConfig struct {
 
 // NewCSRFMiddleware creates new CSRF middleware.
 
-func NewCSRFMiddleware(csrfManager *CSRFManager, config *CSRFConfig) *CSRFMiddleware {
+func NewCSRFMiddleware(csrfManager *CSRFManager, config *CSRFMiddlewareConfig) *CSRFMiddleware {
 
 	if config == nil {
 
-		config = &CSRFConfig{
+		config = &CSRFMiddlewareConfig{
 
 			TokenHeader: "X-CSRF-Token",
 

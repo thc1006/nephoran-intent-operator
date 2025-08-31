@@ -15,36 +15,38 @@ type PrivateKeyEncoding string
 // KeyUsage represents certificate key usage
 type KeyUsage string
 
-// ConditionStatus represents condition status
-type ConditionStatus string
+// ObjectReference represents a reference to a Kubernetes object
+type ObjectReference struct {
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	Group     string `json:"group,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+}
 
+// Common key algorithms
 const (
-	RSAKeyAlgorithm           KeyAlgorithm       = "RSA"
-	PKCS1                     PrivateKeyEncoding = "PKCS1"
-	UsageDigitalSignature     KeyUsage           = "digital signature"
-	UsageKeyEncipherment      KeyUsage           = "key encipherment"
-	UsageKeyAgreement         KeyUsage           = "key agreement"
-	UsageDataEncipherment     KeyUsage           = "data encipherment"
-	UsageCertSign             KeyUsage           = "cert sign"
-	UsageCRLSign              KeyUsage           = "crl sign"
-	UsageServerAuth           KeyUsage           = "server auth"
-	UsageClientAuth           KeyUsage           = "client auth"
-	UsageCodeSigning          KeyUsage           = "code signing"
-	UsageEmailProtection      KeyUsage           = "email protection"
-	UsageTimestamping         KeyUsage           = "timestamping"
-	UsageOCSPSigning          KeyUsage           = "ocsp signing"
-	CertificateConditionReady string             = "Ready"
-	IssuerConditionReady      string             = "Ready"
-	ConditionTrue             ConditionStatus    = "True"
-	ConditionFalse            ConditionStatus    = "False"
+	RSA   KeyAlgorithm = "RSA"
+	ECDSA KeyAlgorithm = "ECDSA"
+	Ed25519 KeyAlgorithm = "Ed25519"
+)
+
+// Common key usages
+const (
+	UsageDigitalSignature  KeyUsage = "digital signature"
+	UsageContentCommitment KeyUsage = "content commitment"
+	UsageKeyEncipherment   KeyUsage = "key encipherment"
+	UsageDataEncipherment  KeyUsage = "data encipherment"
+	UsageKeyAgreement      KeyUsage = "key agreement"
+	UsageCertSign          KeyUsage = "cert sign"
+	UsageCRLSign           KeyUsage = "crl sign"
 )
 
 // Certificate represents a cert-manager Certificate
 type Certificate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CertificateSpec   `json:"spec,omitempty"`
-	Status            CertificateStatus `json:"status,omitempty"`
+	Spec              CertificateSpec      `json:"spec,omitempty"`
+	Status            CertManagerStatus    `json:"status,omitempty"`
 }
 
 // CertificateSpec defines the desired certificate
@@ -60,8 +62,9 @@ type CertificateSpec struct {
 	Usages      []KeyUsage             `json:"usages,omitempty"`
 }
 
-// CertificateStatus represents certificate status
-type CertificateStatus struct {
+// CertManagerStatus represents certificate status for cert-manager resources
+// (renamed from CertificateStatus to avoid conflict with string-based CertificateStatus in manager.go)
+type CertManagerStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -79,90 +82,23 @@ type CertificatePrivateKey struct {
 	Encoding  PrivateKeyEncoding `json:"encoding,omitempty"`
 }
 
-// ObjectReference represents a reference to another object
-type ObjectReference struct {
-	Name  string `json:"name"`
-	Kind  string `json:"kind,omitempty"`
-	Group string `json:"group,omitempty"`
+// Issuer represents a cert-manager Issuer
+type Issuer struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              IssuerSpec `json:"spec,omitempty"`
 }
 
-// SchemeGroupVersion represents scheme group version
-type SchemeGroupVersion struct {
-	Group string
+// IssuerSpec defines the desired state of Issuer
+type IssuerSpec struct {
+	CA     *CAIssuer     `json:"ca,omitempty"`
+	SelfSigned *SelfSignedIssuer `json:"selfSigned,omitempty"`
 }
 
-// Package stubs to satisfy the imports
-var certmanagerv1 = struct {
-	SchemeGroupVersion        SchemeGroupVersion
-	Certificate               func() *Certificate
-	CertificateConditionReady string
-	IssuerConditionReady      string
-	UsageDigitalSignature     KeyUsage
-	UsageKeyEncipherment      KeyUsage
-	UsageKeyAgreement         KeyUsage
-	UsageDataEncipherment     KeyUsage
-	UsageCertSign             KeyUsage
-	UsageCRLSign              KeyUsage
-	UsageServerAuth           KeyUsage
-	UsageClientAuth           KeyUsage
-	UsageCodeSigning          KeyUsage
-	UsageEmailProtection      KeyUsage
-	UsageTimestamping         KeyUsage
-	UsageOCSPSigning          KeyUsage
-	RSAKeyAlgorithm           KeyAlgorithm
-	PKCS1                     PrivateKeyEncoding
-	X509Subject               func() *X509Subject
-	CertificateSpec           func() *CertificateSpec
-	CertificatePrivateKey     func() *CertificatePrivateKey
-}{
-	SchemeGroupVersion:        SchemeGroupVersion{Group: "cert-manager.io"},
-	Certificate:               func() *Certificate { return &Certificate{} },
-	CertificateConditionReady: CertificateConditionReady,
-	IssuerConditionReady:      IssuerConditionReady,
-	UsageDigitalSignature:     UsageDigitalSignature,
-	UsageKeyEncipherment:      UsageKeyEncipherment,
-	UsageKeyAgreement:         UsageKeyAgreement,
-	UsageDataEncipherment:     UsageDataEncipherment,
-	UsageCertSign:             UsageCertSign,
-	UsageCRLSign:              UsageCRLSign,
-	UsageServerAuth:           UsageServerAuth,
-	UsageClientAuth:           UsageClientAuth,
-	UsageCodeSigning:          UsageCodeSigning,
-	UsageEmailProtection:      UsageEmailProtection,
-	UsageTimestamping:         UsageTimestamping,
-	UsageOCSPSigning:          UsageOCSPSigning,
-	RSAKeyAlgorithm:           RSAKeyAlgorithm,
-	PKCS1:                     PKCS1,
-	X509Subject:               func() *X509Subject { return &X509Subject{} },
-	CertificateSpec:           func() *CertificateSpec { return &CertificateSpec{} },
-	CertificatePrivateKey:     func() *CertificatePrivateKey { return &CertificatePrivateKey{} },
+// CAIssuer represents a CA issuer configuration
+type CAIssuer struct {
+	SecretName string `json:"secretName"`
 }
 
-var cmmetav1 = struct {
-	ObjectReference func() *ObjectReference
-	ConditionTrue   ConditionStatus
-	ConditionFalse  ConditionStatus
-}{
-	ObjectReference: func() *ObjectReference { return &ObjectReference{} },
-	ConditionTrue:   ConditionTrue,
-	ConditionFalse:  ConditionFalse,
-}
-
-// Interface for cert-manager clientset
-type Interface interface {
-	// Stub methods
-}
-
-type ClientSet struct{}
-
-func (c *ClientSet) Interface() Interface { return c }
-
-var certmanagerclientset = struct {
-	Interface    Interface
-	NewForConfig func(config interface{}) (Interface, error)
-}{
-	Interface: &ClientSet{},
-	NewForConfig: func(config interface{}) (Interface, error) {
-		return &ClientSet{}, nil
-	},
-}
+// SelfSignedIssuer represents a self-signed issuer configuration  
+type SelfSignedIssuer struct{}

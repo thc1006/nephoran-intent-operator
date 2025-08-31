@@ -16,7 +16,7 @@ type DefaultProviderFactory struct {
 type ProviderConstructor func(config ProviderConfig) (Provider, error)
 
 // NewDefaultProviderFactory creates a new provider factory
-func NewDefaultProviderFactory() *DefaultProviderFactory {
+func NewDefaultProviderFactory() ProviderFactory {
 	return &DefaultProviderFactory{
 		constructors: make(map[string]ProviderConstructor),
 		schemas:      make(map[string]map[string]interface{}),
@@ -104,7 +104,7 @@ func (f *DefaultProviderFactory) UnregisterProvider(providerType string) error {
 }
 
 // Global factory instance
-var globalFactory = NewDefaultProviderFactory()
+var globalFactory ProviderFactory = NewDefaultProviderFactory()
 
 // RegisterGlobalProvider registers a provider with the global factory
 func RegisterGlobalProvider(

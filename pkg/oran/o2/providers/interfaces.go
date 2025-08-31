@@ -130,6 +130,9 @@ type ProviderFactory interface {
 
 	// GetProviderSchema returns configuration schema for a provider type
 	GetProviderSchema(providerType string) (map[string]interface{}, error)
+
+	// RegisterProvider registers a new provider type with constructor and schema
+	RegisterProvider(providerType string, constructor ProviderConstructor, schema map[string]interface{}) error
 }
 
 // ProviderRegistry manages multiple provider instances
