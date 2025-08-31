@@ -1,4 +1,4 @@
-package nephiomulticluster
+package multicluster
 
 import (
 	"context"

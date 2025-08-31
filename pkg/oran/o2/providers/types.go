@@ -1,10 +1,12 @@
-<<<<<<< HEAD
 // Package providers implements O-RAN O2 IMS (Infrastructure Management Services) providers
 // for managing cloud infrastructure resources following O-RAN O2 specifications.
 package providers
 
 import (
+	"context"
 	"time"
+	
+	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // ResourceType represents the type of O2 resource
@@ -86,14 +88,7 @@ type OperationResult struct {
 	Message   string `json:"message,omitempty"`
 	Error     string `json:"error,omitempty"`
 	RequestID string `json:"requestId,omitempty"`
-=======
-package providers
-
-import (
-	"context"
-
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-)
+}
 
 // Region represents a cloud provider region.
 
@@ -350,5 +345,4 @@ type CloudProviderInterface interface {
 	// Monitoring.
 
 	GetResourceMetrics(ctx context.Context, resourceID string) (*models.ResourceMetrics, error)
->>>>>>> origin/integrate/mvp
 }

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-<<<<<<< HEAD
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -1149,10 +1148,6 @@ type InferenceConfig struct {
 	InferenceInterval   time.Duration `json:"inference_interval"`
 }
 
-// Note: SLAMonitoringConfig, AnomalyDetector and related types are also defined elsewhere
-=======
-)
-
 // ErrorTracker provides error tracking capabilities.
 
 // This is a simplified version focused on the core functionality needed by tests.
@@ -1393,6 +1388,4 @@ func (et *ErrorTracker) HealthCheck() error {
 	}
 
 	return nil
-
 }
->>>>>>> origin/integrate/mvp
