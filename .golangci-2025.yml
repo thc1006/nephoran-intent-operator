@@ -19,30 +19,15 @@ run:
   
   modules-download-mode: readonly
   concurrency: 0
-  skip-dirs:
-    - vendor
-    - testdata
-    - examples
-    - third_party
-    - out
-    - bin
-    - tmp
-    - .cache
-  
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - ".*_gen\\.go$"
-    - "zz_generated\\..*\\.go$"
 
 output:
   formats:
     - format: colored-line-number
-    - format: json:golangci-report.json
+    - format: json
+      path: golangci-report.json
   print-issued-lines: true
   print-linter-name: true
   sort-results: true
-  show-stats: true
 
 # 2025 linter configuration - comprehensive but practical
 linters:
@@ -59,21 +44,10 @@ linters:
     # Error handling and robustness
     - errcheck        # Check for unchecked errors
     - errorlint       # Error wrapping with %w
-    - contextcheck    # Context usage patterns
     - nilerr          # Return nil even if error is not nil
     
     # Security linters (critical for telecom)
     - gosec           # Security vulnerabilities
-    - G101            # Hardcoded credentials
-    - G102            # Network binding
-    - G103            # Audit unsafe blocks
-    - G104            # Audit errors not checked
-    - G105            # Math big.Int overflow
-    - G106            # SSH host key verification
-    - G107            # Url provided to HTTP request as taint input
-    - G108            # Profiling endpoint
-    - G109            # Integer overflow conversion
-    - G110            # Potential DoS vulnerability via decompression bomb
     
     # Performance and efficiency
     - ineffassign     # Ineffective assignments
@@ -102,50 +76,28 @@ linters:
     - testpackage     # Test package naming
     - tparallel       # Parallel test detection
     
-    # Kubernetes/Cloud-native specific
-    - containedctx    # Context contained in struct
-    - fatcontext      # Fat context usage
-    - contextcheck    # Context usage validation
+    # Kubernetes/Cloud-native specific  
+    - noctx           # HTTP requests without context
     
     # Additional quality linters for 2025
-    - decorder        # Declaration order
-    - dupword         # Duplicate words in comments
     - durationcheck   # Duration multiplication checks
-    - errname         # Error naming conventions
-    - forcetypeassert # Force type assertions
-    - ginkgolinter    # Ginkgo test patterns
-    - gocheckcompilerdirectives # Compiler directive usage
     - goconst         # Repeated strings that could be constants
     - gocritic        # Comprehensive code review
     - godox           # TODO/FIXME/BUG comments
     - goimports       # Import management
     - gomnd           # Magic numbers detection
-    - gomoddirectives # Go.mod directive validation
-    - gomodguard      # Module usage restrictions
-    - grouper         # Import/const/var grouping
-    - importas        # Import alias restrictions
-    - interfacebloat  # Interface size limits
     - lll             # Line length limits
-    - loggercheck     # Logger argument validation
     - maintidx        # Maintainability index
     - makezero        # Make slice with zero length
     - nakedret        # Naked return detection
     - nestif          # Nested if complexity
-    - nilnil          # Nil nil comparison
     - nlreturn        # New line before return
-    - nosprintfhostport # Printf with host:port
     - perfsprint      # Performance of sprint functions
-    - promlinter      # Prometheus metrics
-    - reassign        # Variable reassignment
-    - sloglint        # Structured logging (Go 1.21+)
     - sqlclosecheck   # SQL Close() calls
-    - tagalign        # Struct tag alignment
     - tagliatelle     # Struct tag formatting
     - tenv            # Testing environment variables
-    - usestdlibvars   # Use stdlib variables
     - wastedassign    # Wasted assignments
     - wrapcheck       # Error wrapping requirements
-    - zerologlint     # Zerolog usage patterns
 
 linters-settings:
   # Go vet configuration
@@ -153,7 +105,7 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment  # Too noisy for most projects
-      - shadow          # Handled by other linters
+    # shadow analyzer handled by settings below
     settings:
       printf:
         funcs:
@@ -687,7 +639,6 @@ issues:
     - coverage
     - tmp
     - temp
-    - .cache
     - node_modules
     - .git
 

@@ -3,7 +3,7 @@ package audit
 // Re-export types from the types package for backward compatibility.
 
 import (
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // Type aliases for backward compatibility.

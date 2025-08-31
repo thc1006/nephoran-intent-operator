@@ -1,0 +1,23 @@
+# Go 1.24.x Build Optimization Settings
+# This file is sourced by CI to apply performance optimizations
+
+export GOGC=100
+export GOMEMLIMIT=6GiB
+export GOMAXPROCS=8
+export GOFLAGS=-mod=readonly
+export GO_BUILD_TAGS=fast_build,no_swagger,no_e2e
+export GOCACHE=${HOME}/.cache/go-build
+export GOMODCACHE=${HOME}/go/pkg/mod
+
+# Advanced build flags for maximum performance
+export GO_LDFLAGS="-s -w -buildid="
+export GO_GCFLAGS="-l=4 -B -C"
+export GO_ASMFLAGS="-l=4"
+
+# Parallel build configuration
+export GO_PARALLEL_JOBS=$(nproc --all 2>/dev/null || echo 8)
+export GO_BUILD_PARALLEL="-p=${GO_PARALLEL_JOBS}"
+
+# Build command aliases for easy use
+alias go-build-fast='go build ${GO_BUILD_PARALLEL} -ldflags="${GO_LDFLAGS}" -gcflags="${GO_GCFLAGS}" -asmflags="${GO_ASMFLAGS}" -tags="${GO_BUILD_TAGS}"'
+alias go-test-fast='go test ${GO_BUILD_PARALLEL} -tags="${GO_BUILD_TAGS}" -short'

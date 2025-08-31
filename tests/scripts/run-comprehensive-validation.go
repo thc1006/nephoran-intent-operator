@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/tests/validation"
+	test_validation "github.com/thc1006/nephoran-intent-operator/tests/validation"
 )
 
 func main() {
@@ -58,7 +58,7 @@ func main() {
 
 	// Create validation configuration.
 
-	config := &validation.ValidationConfig{
+	config := &test_validation.ValidationConfig{
 
 		FunctionalTarget: 45,
 
@@ -147,7 +147,7 @@ func main() {
 
 	// Create validation suite.
 
-	suite := validation.NewValidationSuite(config)
+	suite := test_validation.NewValidationSuite(config)
 
 	// Create execution context with timeout.
 
@@ -169,7 +169,7 @@ func main() {
 
 	// Execute validation based on scope.
 
-	var results *validation.ValidationResults
+	var results *test_validation.ValidationResults
 
 	var err error
 
@@ -249,7 +249,7 @@ func main() {
 
 // runFunctionalValidation executes only functional tests.
 
-func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
+func runFunctionalValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
 
 	log.Println("Running Functional Completeness Validation...")
 
@@ -265,7 +265,7 @@ func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSu
 
 	// Create results structure.
 
-	results := &validation.ValidationResults{
+	results := &test_validation.ValidationResults{
 
 		TotalScore: funcScore,
 
@@ -288,7 +288,7 @@ func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSu
 
 // runPerformanceValidation executes only performance tests.
 
-func runPerformanceValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
+func runPerformanceValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
 
 	log.Println("Running Performance Benchmarking...")
 
@@ -302,7 +302,7 @@ func runPerformanceValidation(ctx context.Context, suite *validation.ValidationS
 
 	}
 
-	results := &validation.ValidationResults{
+	results := &test_validation.ValidationResults{
 
 		TotalScore: perfScore,
 
@@ -325,7 +325,7 @@ func runPerformanceValidation(ctx context.Context, suite *validation.ValidationS
 
 // runSecurityValidation executes only security tests.
 
-func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
+func runSecurityValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
 
 	log.Println("Running Security Compliance Validation...")
 
@@ -339,7 +339,7 @@ func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuit
 
 	}
 
-	results := &validation.ValidationResults{
+	results := &test_validation.ValidationResults{
 
 		TotalScore: secScore,
 
@@ -362,7 +362,7 @@ func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuit
 
 // runProductionValidation executes only production readiness tests.
 
-func runProductionValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
+func runProductionValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
 
 	log.Println("Running Production Readiness Validation...")
 
@@ -376,7 +376,7 @@ func runProductionValidation(ctx context.Context, suite *validation.ValidationSu
 
 	}
 
-	results := &validation.ValidationResults{
+	results := &test_validation.ValidationResults{
 
 		TotalScore: prodScore,
 
@@ -402,7 +402,7 @@ func runProductionValidation(ctx context.Context, suite *validation.ValidationSu
 
 // generateReports creates validation reports in requested formats.
 
-func generateReports(results *validation.ValidationResults, outputDir, format string, verbose bool) {
+func generateReports(results *test_validation.ValidationResults, outputDir, format string, verbose bool) {
 
 	if verbose {
 
@@ -438,7 +438,7 @@ func generateReports(results *validation.ValidationResults, outputDir, format st
 
 // generateJSONReport creates a JSON validation report.
 
-func generateJSONReport(results *validation.ValidationResults, outputDir string, verbose bool) {
+func generateJSONReport(results *test_validation.ValidationResults, outputDir string, verbose bool) {
 
 	filename := filepath.Join(outputDir, "validation-report.json")
 
@@ -476,7 +476,7 @@ func generateJSONReport(results *validation.ValidationResults, outputDir string,
 
 // generateHTMLReport creates an HTML validation report.
 
-func generateHTMLReport(results *validation.ValidationResults, outputDir string, verbose bool) {
+func generateHTMLReport(results *test_validation.ValidationResults, outputDir string, verbose bool) {
 
 	const htmlTemplate = `
 

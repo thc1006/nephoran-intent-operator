@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: basic-scale-intent
+  namespace: nephoran-system
+  labels:
+    test-scenario: basic-scaling
+    test-type: e2e
+spec:
+  intent: "Scale ran-deployment to 5 replicas with standard resource profile for basic E2E testing"

@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 // SecretRotationManager handles automatic secret rotation.

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/generator"
+	"github.com/thc1006/nephoran-intent-operator/internal/generator"
 )
 
 // FilesystemWriter handles idempotent writing of KRM packages to the filesystem.

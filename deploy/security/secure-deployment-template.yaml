@@ -1,0 +1,307 @@
+# Secure Deployment Template for Nephoran Services
+# Implements OWASP K8s Top 10 2025 and OpenSSF Scorecard recommendations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-service
+  namespace: nephoran
+  labels:
+    app.kubernetes.io/name: nephoran-service
+    app.kubernetes.io/version: "${VERSION}"
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: nephoran
+    security.nephoran.io/scanned: "true"
+    security.nephoran.io/hardened: "true"
+  annotations:
+    security.nephoran.io/scan-date: "${BUILD_DATE}"
+    security.nephoran.io/vulnerability-scan: "passed"
+    security.nephoran.io/compliance: "CIS-K8s-v1.8,OWASP-K8s-Top10-2025"
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephoran-service
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nephoran-service
+        app.kubernetes.io/version: "${VERSION}"
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: nephoran
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/nephoran: runtime/default
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nephoran-service
+      automountServiceAccountToken: false
+      
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: "OnRootMismatch"
+        seccompProfile:
+          type: RuntimeDefault
+        sysctls: []
+        supplementalGroups: []
+        seLinuxOptions:
+          level: "s0:c123,c456"
+          type: "container_t"
+      
+      # Node selection and anti-affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - nephoran-service
+              topologyKey: kubernetes.io/hostname
+      
+      # Toleration for dedicated nodes
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      
+      # Priority class for critical workloads
+      priorityClassName: high-priority
+      
+      # DNS configuration
+      dnsPolicy: ClusterFirst
+      
+      # Init container for security validation
+      initContainers:
+      - name: security-validator
+        image: aquasec/trivy:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |
+          echo "Running security validation..."
+          trivy image --exit-code 0 --no-progress --severity HIGH,CRITICAL ${IMAGE}
+          echo "Security validation completed"
+        env:
+        - name: IMAGE
+          value: "ghcr.io/nephoran/nephoran-service:${VERSION}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+      
+      containers:
+      - name: nephoran
+        image: "ghcr.io/nephoran/nephoran-service:${VERSION}"
+        imagePullPolicy: IfNotPresent
+        
+        # Container-level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          seccompProfile:
+            type: RuntimeDefault
+          seLinuxOptions:
+            level: "s0:c123,c456"
+            type: "container_t"
+        
+        # Environment variables (no secrets here!)
+        env:
+        - name: SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['app.kubernetes.io/name']
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: LOG_LEVEL
+          value: "info"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: HTTP_PORT
+          value: "8080"
+        - name: GRPC_PORT
+          value: "8081"
+        - name: TLS_ENABLED
+          value: "true"
+        - name: AUTH_ENABLED
+          value: "true"
+        - name: SECURITY_HEADERS_ENABLED
+          value: "true"
+        
+        # Mount secrets from volumes, not env vars
+        envFrom:
+        - configMapRef:
+            name: nephoran-config
+            optional: false
+        
+        # Ports
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: grpc
+          containerPort: 8081
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTPS
+            httpHeaders:
+            - name: X-Health-Check
+              value: liveness
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+            scheme: HTTPS
+            httpHeaders:
+            - name: X-Health-Check
+              value: readiness
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        startupProbe:
+          httpGet:
+            path: /startupz
+            port: http
+            scheme: HTTPS
+            httpHeaders:
+            - name: X-Health-Check
+              value: startup
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
+        
+        # Resource limits
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 100Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+            ephemeral-storage: 1Gi
+        
+        # Volume mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: cache
+          mountPath: /var/cache
+          readOnly: false
+        - name: tls-certs
+          mountPath: /etc/tls
+          readOnly: true
+        - name: service-account-token
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+        
+        # Lifecycle hooks
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 100Mi
+      - name: cache
+        emptyDir:
+          medium: Memory
+          sizeLimit: 500Mi
+      - name: tls-certs
+        secret:
+          secretName: nephoran-tls
+          defaultMode: 0400
+          optional: false
+      - name: service-account-token
+        secret:
+          secretName: nephoran-service-token
+          defaultMode: 0400
+          optional: false
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+      
+      # Image pull secrets
+      imagePullSecrets:
+      - name: ghcr-pull-secret

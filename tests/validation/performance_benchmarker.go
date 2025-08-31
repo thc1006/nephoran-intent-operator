@@ -1,6 +1,6 @@
 // Package validation provides performance benchmarking and validation.
 
-package validation
+package test_validation
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // PerformanceBenchmarker provides comprehensive performance testing.

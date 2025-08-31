@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/pathutil"
+	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
 // Unix-specific file sync operations (simpler than Windows).

@@ -72,9 +72,9 @@ func SecureHTTPClient(timeout time.Duration) *http.Client {
 
 }
 
-// ValidateURL validates and sanitizes URLs to prevent injection attacks.
+// ValidateHTTPURL validates and sanitizes URLs to prevent injection attacks.
 
-func ValidateURL(rawURL string) (*url.URL, error) {
+func ValidateHTTPURL(rawURL string) (*url.URL, error) {
 
 	// Parse the URL.
 
@@ -181,7 +181,7 @@ func SecureHTTPServer(addr string, handler http.Handler) *http.Server {
 
 		Addr: addr,
 
-		Handler: SecurityHeadersMiddleware(handler),
+		Handler: NewSecurityHeadersMiddleware(false).Middleware(handler),
 
 		// Timeouts to prevent DoS attacks.
 
@@ -201,9 +201,9 @@ func SecureHTTPServer(addr string, handler http.Handler) *http.Server {
 
 }
 
-// SecurityHeadersMiddleware adds security headers to HTTP responses.
+// BasicSecurityHeaders adds basic security headers to HTTP responses.
 
-func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+func BasicSecurityHeaders(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

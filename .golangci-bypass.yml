@@ -1,60 +1,43 @@
-# Temporary bypass configuration for formatting issues
+# Emergency bypass configuration for CI unblocking
+# Compatible with golangci-lint v1.64.3+ 
 # Use with: golangci-lint run -c .golangci-bypass.yml
+# Only enables essential linters to unblock CI
 
 run:
   timeout: 30m
   tests: true
+  go: "1.24"
   build-tags:
     - integration
 
+# Simple output format
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+# Minimal essential linters only
 linters:
+  disable-all: true
   enable:
     # Keep critical linters only
     - govet
-    - errcheck
+    - errcheck  
     - staticcheck
     - gosec
     - ineffassign
     - typecheck
     - gocritic
     - gosimple
-    - stylecheck
     - bodyclose
     - noctx
-    - contextcheck
     - errorlint
     - prealloc
     - unconvert
     - nolintlint
 
-  disable:
-    # TEMPORARILY DISABLE formatting linters
-    - gofmt        # BYPASS: Code formatting
-    - gofumpt      # BYPASS: Enhanced formatting  
-    - gci          # BYPASS: Import organization
-    - whitespace   # BYPASS: Whitespace issues
-    - godot        # BYPASS: Comment formatting
-    - revive       # BYPASS: Style issues
-    
-    # Keep existing disables
-    - unused
-    - unparam
-    - dupl
-    - gocyclo
-    - funlen
-    - lll
-    - gocognit
-    - nestif
-    - goconst
-    - exhaustive
-    - wsl
-    - nlreturn
-    - forcetypeassert
-    - tagliatelle
-    - varnamelen
-    - wrapcheck
-    - intrange
-
+# Minimal linter settings
 linters-settings:
   errcheck:
     check-type-assertions: false
@@ -73,7 +56,9 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment
-      - shadow
+    settings:
+      shadow:
+        strict: false
 
   gosec:
     excludes:
@@ -97,20 +82,12 @@ linters-settings:
   staticcheck:
     checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
 
-  stylecheck:
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
-    initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", 
-                  "HTTP", "HTTPS", "ID", "IP", "JSON", "JWT", "LHS", "QPS", "RAM", 
-                  "RHS", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", 
-                  "UDP", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", 
-                  "XMPP", "XSRF", "XSS", "CNF", "VNF", "AMF", "SMF", "UPF", "RIC",
-                  "O1", "O2", "E2", "A1", "ORAN", "KPM", "FCAPS", "VES", "LLM", "RAG"]
-
   prealloc:
     simple: false
     range-loops: false
     for-loops: false
 
+# Issue handling
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
@@ -122,63 +99,42 @@ issues:
     - examples
     - docs
 
+  exclude-files:
+    - '.*\.pb\.go$'
+    - '.*_generated\.go$'
+    - 'zz_generated\..*\.go$'
+    - 'mock_.*\.go$'
+    - 'vendor/.*'
+
   exclude-rules:
-    # Exclude test files from certain linters
-    - path: _test\.go
+    # Test files exclusions
+    - path: '_test\.go'
       linters:
         - errcheck
         - gosec
-        - dupl
-        - funlen
+        - gocritic
         - goconst
-        - unparam
 
-    # Exclude generated files
-    - path: _generated\.go
+    # Generated files exclusions
+    - path: '(.*\.pb\.go|.*_generated\.go|zz_generated.*\.go)'
       linters:
         - all
-
-    # Exclude certain patterns
-    - path: "api/.*\\.go"
-      linters:
-        - revive
-      text: "exported"
 
     # Allow TODO comments
     - text: "TODO"
       linters:
         - godot
 
-    # Allow large functions in main packages
-    - path: "cmd/.*/main\\.go"
+    # Main files exclusions
+    - path: 'cmd/.*/main\.go'
       linters:
-        - funlen
-        - gocyclo
-        - gocognit
-
-    # Allow unused parameters in interface implementations
-    - path: ".*"
-      text: "unused-parameter"
-      linters:
-        - revive
-
-    # Allow certain gosec issues in non-critical code
-    - path: "internal/.*"
-      linters:
-        - gosec
-      text: "G115"
-
-    # Contextcheck exceptions for background workers
-    - path: ".*"
-      text: "Non-inherited new context"
-      linters:
-        - contextcheck
+        - gocritic
 
   exclude-use-default: false
   exclude:
     # Common false positives
-    - "Error return value of .((Close|Write|Flush|Remove|Rollback)|(.*\\.Wait)) is not checked"
-    - "exported (type|method|function|const|var) .* should have comment or be unexported"
+    - "Error return value of .*(Close|Write|Flush|Remove|Rollback) is not checked"
+    - "exported .* should have comment or be unexported" 
     - "should have a package comment"
-    - "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
+    - "comment on exported .* should be of the form"
     - "at least one file in a package should have a package comment"

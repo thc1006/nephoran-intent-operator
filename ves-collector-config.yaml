@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ves-config
+  namespace: oran
+data:
+  collector.properties: |
+    collector.service.port=8443
+    collector.service.secure.port=8443
+    collector.schema.version=7.3.0
+    collector.keystore.file=/opt/app/VESCollector/etc/keystore
+    collector.keystore.passwordfile=/opt/app/VESCollector/etc/passwordfile
+    collector.truststore.file=/opt/app/VESCollector/etc/truststore
+    collector.truststore.passwordfile=/opt/app/VESCollector/etc/trustpasswordfile
+    collector.dmaap.streamid=measurement=ves-measurement
+    collector.dmaap.streamid=fault=ves-fault
+    collector.dmaap.streamid=heartbeat=ves-heartbeat
+    collector.dmaap.streamid=mobileflow=ves-mobileflow
+    collector.dmaap.streamid=other=ves-other
+    collector.dmaap.streamid=statechange=ves-statechange
+    collector.dmaap.streamid=syslog=ves-syslog
+    collector.dmaap.streamid=thresholdcrossingalert=ves-thresholdcrossingalert
+    collector.dmaap.streamid=voicequality=ves-voicequality
+    streams_publishes:
+      ves-measurement:
+        type: kafka
+        kafka_info:
+          bootstrap_servers: kafka.analytics:9092
+          topic_name: ves-measurement
+          client_id: ves-collector-measurement
+      ves-fault:
+        type: kafka
+        kafka_info:
+          bootstrap_servers: kafka.analytics:9092
+          topic_name: ves-fault
+          client_id: ves-collector-fault
+      ves-heartbeat:
+        type: kafka
+        kafka_info:
+          bootstrap_servers: kafka.analytics:9092
+          topic_name: ves-heartbeat
+          client_id: ves-collector-heartbeat
+    auth.method=noAuth
+    collector.inputQueue.maxPending=8096
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ves-collector
+  namespace: oran
+  labels:
+    app: ves-collector
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ves-collector
+  template:
+    metadata:
+      labels:
+        app: ves-collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: collector
+        image: nexus3.o-ran-sc.org:10002/o-ran-sc/ves-collector:1.12.3
+        ports:
+        - containerPort: 8443
+          name: ves
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        env:
+        - name: JAVA_OPTS
+          value: "-Dspring.config.location=/etc/ves/ -Xmx2g -Xms1g"
+        - name: PROMETHEUS_ENABLED
+          value: "true"
+        - name: PROMETHEUS_PORT
+          value: "8080"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/ves
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+      volumes:
+      - name: config
+        configMap:
+          name: ves-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ves-collector
+  namespace: oran
+  labels:
+    app: ves-collector
+    monitor: "true"
+spec:
+  selector:
+    app: ves-collector
+  ports:
+  - name: ves
+    port: 8443
+    targetPort: 8443
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

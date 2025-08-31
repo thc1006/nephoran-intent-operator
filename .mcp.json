@@ -11,7 +11,7 @@
       "command": "node",
       "args": [
         "C:\\nvm4w\\nodejs\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js",
-        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop"
+        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-e2e"
       ]
     },
     "kubernetes": {

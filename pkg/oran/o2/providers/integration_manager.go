@@ -14,9 +14,9 @@ import (
 // IntegrationManager manages the integration between O2 IMS and cloud providers.
 
 type IntegrationManager struct {
-	registry *ProviderRegistry
+	registry ProviderRegistry
 
-	factory *ProviderFactory
+	factory ProviderFactory
 
 	kubeClient client.Client
 
@@ -43,7 +43,7 @@ func NewIntegrationManager(kubeClient client.Client, clientset kubernetes.Interf
 
 		registry: registry,
 
-		factory: NewProviderFactory(registry),
+		factory: NewProviderFactory(),
 
 		kubeClient: kubeClient,
 
@@ -708,7 +708,7 @@ func NewMetricsAggregator() *MetricsAggregator {
 
 // Start performs start operation.
 
-func (ma *MetricsAggregator) Start(ctx context.Context, registry *ProviderRegistry) {
+func (ma *MetricsAggregator) Start(ctx context.Context, registry ProviderRegistry) {
 
 	ticker := time.NewTicker(30 * time.Second)
 
@@ -744,7 +744,7 @@ func (ma *MetricsAggregator) Stop() {
 
 }
 
-func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry *ProviderRegistry) {
+func (ma *MetricsAggregator) collectMetrics(ctx context.Context, registry ProviderRegistry) {
 
 	for _, name := range registry.ListProviders() {
 
@@ -883,9 +883,15 @@ type EventProcessor struct {
 	eventCh chan *ProviderEvent
 }
 
-// EventHandler represents a eventhandler.
+// EventHandler is now defined in interfaces.go - removed duplicate
 
-type EventHandler func(event *ProviderEvent)
+// EventHandlerFunc represents a eventhandler function.
+type EventHandlerFunc func(event *ProviderEvent)
+
+// HandleEvent implements EventHandler interface
+func (f EventHandlerFunc) HandleEvent(event *ProviderEvent) {
+	f(event)
+}
 
 // NewEventProcessor performs neweventprocessor operation.
 
@@ -976,7 +982,7 @@ func (ep *EventProcessor) processEvent(event *ProviderEvent) {
 
 	for _, handler := range handlers {
 
-		handler(event)
+		handler.HandleEvent(event)
 
 	}
 

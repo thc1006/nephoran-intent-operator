@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // AutomationEngine manages automated certificate operations.
@@ -30,6 +30,8 @@ type AutomationEngine struct {
 	config *AutomationConfig
 
 	manager *CAManager
+
+	caManager *CAManager // Required for Kubernetes integration
 
 	healthChecker *HealthChecker
 
@@ -48,6 +50,10 @@ type AutomationEngine struct {
 	requestQueue []*AutomationRequest
 
 	requestQueueMux sync.RWMutex
+
+	// Concurrency control fields for Kubernetes integration
+	wg  sync.WaitGroup
+	ctx context.Context
 }
 
 // AutomationConfig holds automation configuration.
@@ -113,6 +119,33 @@ type AutomationConfig struct {
 	TLSValidation bool `yaml:"tls_validation"`
 
 	PolicyValidation bool `yaml:"policy_validation"`
+
+	// Kubernetes Integration.
+
+	KubernetesIntegration *KubernetesIntegrationConfig `yaml:"kubernetes_integration"`
+}
+
+// KubernetesIntegrationConfig holds Kubernetes integration configuration.
+
+type KubernetesIntegrationConfig struct {
+	// Service monitoring
+	ServiceSelector   string   `yaml:"service_selector"`
+	PodSelector       string   `yaml:"pod_selector"`
+	IngressSelector   string   `yaml:"ingress_selector"`
+	Namespaces        []string `yaml:"namespaces"`
+	AnnotationPrefix  string   `yaml:"annotation_prefix"`
+	SecretPrefix      string   `yaml:"secret_prefix"`
+
+	// Admission webhook configuration
+	AdmissionWebhook AdmissionWebhookConfig `yaml:"admission_webhook"`
+}
+
+// AdmissionWebhookConfig holds admission webhook configuration.
+
+type AdmissionWebhookConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Port    int    `yaml:"port"`
+	CertDir string `yaml:"cert_dir"`
 }
 
 // ServiceWatcher watches for service changes.
@@ -344,6 +377,18 @@ const (
 	StatusCanceled ResponseStatus = "canceled"
 )
 
+// ProvisioningRequest represents a certificate provisioning request for Kubernetes integration.
+
+type ProvisioningRequest struct {
+	ID          string            `json:"id"`
+	ServiceName string            `json:"service_name"`
+	Namespace   string            `json:"namespace"`
+	Template    string            `json:"template"`
+	DNSNames    []string          `json:"dns_names"`
+	Priority    RequestPriority   `json:"priority"`
+	Metadata    map[string]string `json:"metadata"`
+}
+
 // NewAutomationEngine creates a new automation engine.
 
 func NewAutomationEngine(config *AutomationConfig, logger *logging.StructuredLogger, manager *CAManager, kubeClient kubernetes.Interface, k8sClient interface{}) (*AutomationEngine, error) {
@@ -363,6 +408,8 @@ func NewAutomationEngine(config *AutomationConfig, logger *logging.StructuredLog
 
 		manager: manager,
 
+		caManager: manager, // Initialize caManager with the same reference as manager
+
 		healthChecker: healthChecker,
 
 		kubeClient: kubeClient,
@@ -372,6 +419,10 @@ func NewAutomationEngine(config *AutomationConfig, logger *logging.StructuredLog
 		stopCh: make(chan struct{}),
 
 		requestQueue: make([]*AutomationRequest, 0),
+
+		wg: sync.WaitGroup{}, // Initialize WaitGroup
+
+		ctx: context.Background(), // Initialize context
 	}
 
 	return engine, nil
@@ -1973,4 +2024,41 @@ func (e *AutomationEngine) GetRenewalQueueSize() int {
 
 	return 0
 
+}
+
+// RequestProvisioning submits a provisioning request for Kubernetes integration.
+
+func (e *AutomationEngine) RequestProvisioning(req *ProvisioningRequest) error {
+	if req == nil {
+		return fmt.Errorf("provisioning request cannot be nil")
+	}
+
+	// Convert ProvisioningRequest to AutomationRequest
+	automationReq := &AutomationRequest{
+		Type:             RequestTypeProvisioning,
+		ServiceName:      req.ServiceName,
+		ServiceNamespace: req.Namespace,
+		Priority:         req.Priority,
+		Metadata: map[string]interface{}{
+			"template":     req.Template,
+			"dns_names":    req.DNSNames,
+			"request_id":   req.ID,
+		},
+	}
+
+	// Add metadata from provisioning request
+	for k, v := range req.Metadata {
+		automationReq.Metadata[k] = v
+	}
+
+	// Process the request asynchronously
+	go e.processAutomationRequest(automationReq)
+
+	e.logger.Info("provisioning request submitted",
+		"id", req.ID,
+		"service", req.ServiceName,
+		"namespace", req.Namespace,
+		"dns_names", req.DNSNames)
+
+	return nil
 }

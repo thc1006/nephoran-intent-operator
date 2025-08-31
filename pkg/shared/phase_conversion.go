@@ -31,8 +31,8 @@ limitations under the License.
 package shared
 
 import (
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // ProcessingPhaseToNetworkIntentPhase converts a ProcessingPhase to NetworkIntentPhase.

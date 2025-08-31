@@ -16,7 +16,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/xeipuuv/gojsonschema"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // SanitizationConfig holds sanitization configuration.

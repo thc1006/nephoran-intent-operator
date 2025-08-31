@@ -11,6 +11,11 @@ spec:
     kind: CertificateAutomation
     listKind: CertificateAutomationList
     plural: certificateautomations
+<<<<<<< HEAD
+    shortNames:
+    - certauto
+=======
+>>>>>>> origin/integrate/mvp
     singular: certificateautomation
   scope: Namespaced
   versions:
@@ -21,6 +26,15 @@ spec:
     - jsonPath: .spec.serviceName
       name: Service
       type: string
+<<<<<<< HEAD
+    - jsonPath: .status.expiresAt
+      name: Expires At
+      type: string
+    - jsonPath: .spec.autoRenewal
+      name: Auto Renewal
+      type: boolean
+=======
+>>>>>>> origin/integrate/mvp
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -50,6 +64,11 @@ spec:
           spec:
             description: CertificateAutomationSpec defines the desired state of CertificateAutomation
             properties:
+<<<<<<< HEAD
+              autoRenewal:
+                description: AutoRenewal enables automatic certificate renewal
+                type: boolean
+=======
               algorithm:
                 description: Algorithm specifies the signing algorithm
                 type: string
@@ -60,6 +79,7 @@ spec:
                 description: CertType specifies the type of certificate (TLS, mTLS,
                   etc.)
                 type: string
+>>>>>>> origin/integrate/mvp
               dnsNames:
                 description: DNSNames specifies additional DNS names for the certificate
                 items:
@@ -70,24 +90,42 @@ spec:
                 items:
                   type: string
                 type: array
+<<<<<<< HEAD
+=======
               keySize:
                 description: KeySize specifies the private key size
                 type: integer
+>>>>>>> origin/integrate/mvp
               namespace:
                 description: Namespace specifies the target namespace
                 type: string
               priority:
+<<<<<<< HEAD
+                description: Priority specifies provisioning priority
+                type: string
+              secretName:
+                description: SecretName specifies the target secret name
+=======
                 description: Priority specifies the priority of this automation
                 type: string
               renewalThreshold:
                 description: RenewalThreshold specifies when to renew (e.g., "30d"
                   before expiry)
+>>>>>>> origin/integrate/mvp
                 type: string
               serviceName:
                 description: ServiceName specifies the target service name
                 type: string
+<<<<<<< HEAD
+              template:
+                description: Template specifies the certificate template to use
+                type: string
+              validityDuration:
+                description: ValidityDuration specifies certificate validity period
+=======
               validityPeriod:
                 description: ValidityPeriod specifies the certificate validity period
+>>>>>>> origin/integrate/mvp
                 type: string
             required:
             - namespace
@@ -108,6 +146,16 @@ spec:
                     of certificate automation
                   properties:
                     lastTransitionTime:
+<<<<<<< HEAD
+                      description: Last time the condition transitioned
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message providing details about the transition
+                      type: string
+                    reason:
+                      description: Reason for the condition's last transition
+=======
                       description: LastTransitionTime is the last time the condition
                         transitioned
                       format: date-time
@@ -119,6 +167,7 @@ spec:
                     reason:
                       description: Reason contains a programmatic identifier indicating
                         the reason for the condition
+>>>>>>> origin/integrate/mvp
                       type: string
                     status:
                       description: Status of the condition
@@ -127,10 +176,22 @@ spec:
                       description: Type of condition
                       type: string
                   required:
+<<<<<<< HEAD
+                  - lastTransitionTime
+=======
+>>>>>>> origin/integrate/mvp
                   - status
                   - type
                   type: object
                 type: array
+<<<<<<< HEAD
+              expiresAt:
+                description: ExpiresAt contains the certificate expiration time
+                format: date-time
+                type: string
+              lastRenewalTime:
+                description: LastRenewalTime contains the last renewal time
+=======
               expirationTime:
                 description: ExpirationTime contains the certificate expiration time
                 format: date-time
@@ -142,6 +203,7 @@ spec:
                 type: string
               lastRenewalTime:
                 description: LastRenewalTime contains the last renewal timestamp
+>>>>>>> origin/integrate/mvp
                 format: date-time
                 type: string
               nextRenewalTime:
@@ -149,13 +211,68 @@ spec:
                 format: date-time
                 type: string
               observedGeneration:
+<<<<<<< HEAD
+                description: ObservedGeneration represents the generation observed
+                  by the controller
+=======
                 description: ObservedGeneration reflects the generation observed by
                   the controller
+>>>>>>> origin/integrate/mvp
                 format: int64
                 type: integer
               phase:
                 description: Phase represents the current phase of certificate automation
                 type: string
+<<<<<<< HEAD
+              revocationStatus:
+                description: RevocationStatus contains certificate revocation status
+                type: string
+              secretRef:
+                description: SecretRef contains reference to the created secret
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              validationStatus:
+                description: ValidationStatus contains certificate validation status
+                properties:
+                  chainValid:
+                    description: ChainValid indicates if the certificate chain is
+                      valid
+                    type: boolean
+                  ctLogVerified:
+                    description: CTLogVerified indicates if the certificate is in
+                      CT logs
+                    type: boolean
+                  lastValidationTime:
+                    description: LastValidationTime contains the last validation time
+                    format: date-time
+                    type: string
+                  valid:
+                    description: Valid indicates if the certificate is valid
+                    type: boolean
+                  validationErrors:
+                    description: ValidationErrors contains validation errors
+                    items:
+                      type: string
+                    type: array
+                  validationWarnings:
+                    description: ValidationWarnings contains validation warnings
+                    items:
+                      type: string
+                    type: array
+                required:
+                - valid
+                type: object
+=======
               secretName:
                 description: SecretName contains the name of the secret storing the
                   certificate
@@ -164,6 +281,7 @@ spec:
                 description: ValidationStatus contains the certificate validation
                   status
                 type: string
+>>>>>>> origin/integrate/mvp
             type: object
         type: object
     served: true

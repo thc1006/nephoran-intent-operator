@@ -1,0 +1,11 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: porch-integration-intent
+  namespace: nephoran-system
+  labels:
+    test-scenario: porch-integration
+    test-type: e2e
+    porch.kpt.dev/package: "ran-deployment-config"
+spec:
+  intent: "Generate ran-scaling-config package version v1.0.0 in ran-configs repository using scale-generator kpt function with KRM generation enabled"

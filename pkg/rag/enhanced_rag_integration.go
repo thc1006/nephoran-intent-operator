@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Enhanced RAG Integration with Multiple Providers.
@@ -1036,8 +1036,7 @@ type RAGStats struct {
 }
 
 // Type aliases for shared types.
-
-type SearchResult = shared.SearchResult
+// Note: SearchResult is defined in types.go to avoid duplicate declarations
 
 // QueryOptions holds options for RAG queries.
 

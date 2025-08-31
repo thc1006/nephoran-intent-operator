@@ -43,9 +43,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SATSolver implements a SAT solver for complex constraint satisfaction in dependency resolution.
+// SATSolverImpl implements a SAT solver for complex constraint satisfaction in dependency resolution.
 
-type SATSolver struct {
+type SATSolverImpl struct {
 	logger logr.Logger
 
 	variables map[string]*SATVariable
@@ -62,7 +62,7 @@ type SATSolver struct {
 
 	statistics *SATStatistics
 
-	config *SATSolverConfig
+	config *SATSolverConfigImpl
 
 	mu sync.RWMutex
 }
@@ -139,7 +139,9 @@ type SATStatistics struct {
 
 // SATSolverConfig configures the SAT solver.
 
-type SATSolverConfig struct {
+// SATSolverConfigImpl is the internal implementation config
+// (SATSolverConfig is defined in dependency_types.go)
+type SATSolverConfigImpl struct {
 	MaxDecisions int
 
 	MaxConflicts int
@@ -162,11 +164,11 @@ type SATSolverConfig struct {
 
 // NewSATSolver creates a new SAT solver instance.
 
-func NewSATSolver(config *SATSolverConfig) *SATSolver {
+func NewSATSolver(config *SATSolverConfigImpl) SATSolver {
 
 	if config == nil {
 
-		config = &SATSolverConfig{
+		config = &SATSolverConfigImpl{
 
 			MaxDecisions: 10000,
 
@@ -187,7 +189,7 @@ func NewSATSolver(config *SATSolverConfig) *SATSolver {
 
 	}
 
-	return &SATSolver{
+	return &SATSolverImpl{
 
 		logger: log.Log.WithName("sat-solver"),
 
@@ -206,7 +208,7 @@ func NewSATSolver(config *SATSolverConfig) *SATSolver {
 
 // Solve attempts to find a satisfying assignment for the given requirements.
 
-func (s *SATSolver) Solve(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error) {
+func (s *SATSolverImpl) Solve(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error) {
 
 	s.logger.Info("Starting SAT solver", "requirements", len(requirements))
 
@@ -277,7 +279,7 @@ func (s *SATSolver) Solve(ctx context.Context, requirements []*VersionRequiremen
 
 // initialize sets up the SAT problem from version requirements.
 
-func (s *SATSolver) initialize(requirements []*VersionRequirement) error {
+func (s *SATSolverImpl) initialize(requirements []*VersionRequirement) error {
 
 	s.mu.Lock()
 
@@ -329,7 +331,7 @@ func (s *SATSolver) initialize(requirements []*VersionRequirement) error {
 
 // createVariables creates SAT variables for package versions.
 
-func (s *SATSolver) createVariables(req *VersionRequirement) error {
+func (s *SATSolverImpl) createVariables(req *VersionRequirement) error {
 
 	packageKey := req.PackageRef.GetPackageKey()
 
@@ -382,7 +384,7 @@ func (s *SATSolver) createVariables(req *VersionRequirement) error {
 
 // createClauses creates SAT clauses from version constraints.
 
-func (s *SATSolver) createClauses(req *VersionRequirement) error {
+func (s *SATSolverImpl) createClauses(req *VersionRequirement) error {
 
 	packageKey := req.PackageRef.GetPackageKey()
 
@@ -458,7 +460,7 @@ func (s *SATSolver) createClauses(req *VersionRequirement) error {
 
 // dpllWithCDCL implements DPLL with Conflict-Driven Clause Learning.
 
-func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
+func (s *SATSolverImpl) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 
 	decisionLevel := 0
 
@@ -584,7 +586,7 @@ func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 
 // unitPropagate performs unit propagation.
 
-func (s *SATSolver) unitPropagate(decisionLevel int) *SATClause {
+func (s *SATSolverImpl) unitPropagate(decisionLevel int) *SATClause {
 
 	changed := true
 
@@ -662,7 +664,7 @@ func (s *SATSolver) unitPropagate(decisionLevel int) *SATClause {
 
 // selectVariable selects the next variable to assign using VSIDS heuristic.
 
-func (s *SATSolver) selectVariable() *SATVariable {
+func (s *SATSolverImpl) selectVariable() *SATVariable {
 
 	if !s.config.EnableVSIDS {
 
@@ -712,7 +714,7 @@ func (s *SATSolver) selectVariable() *SATVariable {
 
 // analyzeConflict performs conflict analysis and learns a new clause.
 
-func (s *SATSolver) analyzeConflict(conflict *SATClause, decisionLevel int) (*SATClause, int) {
+func (s *SATSolverImpl) analyzeConflict(conflict *SATClause, decisionLevel int) (*SATClause, int) {
 
 	// Implement 1-UIP (First Unique Implication Point) learning.
 
@@ -776,7 +778,7 @@ func (s *SATSolver) analyzeConflict(conflict *SATClause, decisionLevel int) (*SA
 
 // Helper methods.
 
-func (s *SATSolver) getAvailableVersions(ref *PackageReference) ([]string, error) {
+func (s *SATSolverImpl) getAvailableVersions(ref *PackageReference) ([]string, error) {
 
 	// In a real implementation, this would query the package repository.
 
@@ -786,7 +788,7 @@ func (s *SATSolver) getAvailableVersions(ref *PackageReference) ([]string, error
 
 }
 
-func (s *SATSolver) filterVersionsByConstraints(versions []string, constraints []*VersionConstraint) []string {
+func (s *SATSolverImpl) filterVersionsByConstraints(versions []string, constraints []*VersionConstraint) []string {
 
 	valid := []string{}
 
@@ -804,7 +806,7 @@ func (s *SATSolver) filterVersionsByConstraints(versions []string, constraints [
 
 }
 
-func (s *SATSolver) satisfiesConstraints(version string, constraints []*VersionConstraint) bool {
+func (s *SATSolverImpl) satisfiesConstraints(version string, constraints []*VersionConstraint) bool {
 
 	v, err := semver.NewVersion(version)
 
@@ -836,7 +838,7 @@ func (s *SATSolver) satisfiesConstraints(version string, constraints []*VersionC
 
 }
 
-func (s *SATSolver) constraintToSemver(constraint *VersionConstraint) string {
+func (s *SATSolverImpl) constraintToSemver(constraint *VersionConstraint) string {
 
 	// Convert our constraint format to semver constraint string.
 
@@ -878,7 +880,7 @@ func (s *SATSolver) constraintToSemver(constraint *VersionConstraint) string {
 
 }
 
-func (s *SATSolver) addConflictClauses() error {
+func (s *SATSolverImpl) addConflictClauses() error {
 
 	// Add clauses for known incompatible versions.
 
@@ -888,7 +890,7 @@ func (s *SATSolver) addConflictClauses() error {
 
 }
 
-func (s *SATSolver) initializeWatchedLiterals() {
+func (s *SATSolverImpl) initializeWatchedLiterals() {
 
 	// Initialize two-watched literals for each clause.
 
@@ -906,7 +908,7 @@ func (s *SATSolver) initializeWatchedLiterals() {
 
 }
 
-func (s *SATSolver) assign(variable *SATVariable, value bool, level int, reason *SATClause) {
+func (s *SATSolverImpl) assign(variable *SATVariable, value bool, level int, reason *SATClause) {
 
 	s.assignments[variable.ID] = value
 
@@ -916,7 +918,7 @@ func (s *SATSolver) assign(variable *SATVariable, value bool, level int, reason 
 
 }
 
-func (s *SATSolver) getAssignment(variable *SATVariable) (bool, bool) {
+func (s *SATSolverImpl) getAssignment(variable *SATVariable) (bool, bool) {
 
 	value, assigned := s.assignments[variable.ID]
 
@@ -924,13 +926,13 @@ func (s *SATSolver) getAssignment(variable *SATVariable) (bool, bool) {
 
 }
 
-func (s *SATSolver) allVariablesAssigned() bool {
+func (s *SATSolverImpl) allVariablesAssigned() bool {
 
 	return len(s.assignments) == len(s.variables)
 
 }
 
-func (s *SATSolver) backtrack(level int) int {
+func (s *SATSolverImpl) backtrack(level int) int {
 
 	// Remove assignments made after the given level.
 
@@ -960,7 +962,7 @@ func (s *SATSolver) backtrack(level int) int {
 
 }
 
-func (s *SATSolver) restart() int {
+func (s *SATSolverImpl) restart() int {
 
 	// Complete restart - unassign all variables.
 
@@ -984,7 +986,7 @@ func (s *SATSolver) restart() int {
 
 }
 
-func (s *SATSolver) calculateVariableActivity(variable *SATVariable) float64 {
+func (s *SATSolverImpl) calculateVariableActivity(variable *SATVariable) float64 {
 
 	activity := 0.0
 
@@ -998,7 +1000,7 @@ func (s *SATSolver) calculateVariableActivity(variable *SATVariable) float64 {
 
 }
 
-func (s *SATSolver) convertToVersionSolution(assignments map[string]bool) *VersionSolution {
+func (s *SATSolverImpl) convertToVersionSolution(assignments map[string]bool) *VersionSolution {
 
 	solution := &VersionSolution{
 
@@ -1072,7 +1074,7 @@ func (s *SATSolver) convertToVersionSolution(assignments map[string]bool) *Versi
 
 // Close cleans up the SAT solver.
 
-func (s *SATSolver) Close() {
+func (s *SATSolverImpl) Close() {
 
 	s.logger.Info("Closing SAT solver")
 

@@ -20,10 +20,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/abstraction"
-	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
-	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
-	_ "github.com/nephio-project/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
 )
 
 // ServiceMeshController manages service mesh integration.

@@ -1,6 +1,0 @@
-{
-  "intent_type": "update",
-  "target": "my-deployment",
-  "namespace": "default",
-  "replicas": 3
-}

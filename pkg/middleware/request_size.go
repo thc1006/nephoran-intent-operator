@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+// RequestSizeConfig configures the request size limiter middleware.
+type RequestSizeConfig struct {
+	MaxBodySize   int64 `json:"max_body_size"`
+	MaxHeaderSize int64 `json:"max_header_size"`
+	EnableLogging bool  `json:"enable_logging"`
+}
+
 // RequestSizeLimiter creates middleware to enforce request body size limits.
 
 type RequestSizeLimiter struct {
@@ -16,16 +23,19 @@ type RequestSizeLimiter struct {
 }
 
 // NewRequestSizeLimiter creates a new request size limiter middleware.
-
 func NewRequestSizeLimiter(maxSize int64, logger *slog.Logger) *RequestSizeLimiter {
-
 	return &RequestSizeLimiter{
-
 		maxSize: maxSize,
-
-		logger: logger,
+		logger:  logger,
 	}
+}
 
+// NewRequestSizeLimiterWithConfig creates a new request size limiter middleware with config.
+func NewRequestSizeLimiterWithConfig(config *RequestSizeConfig, logger *slog.Logger) *RequestSizeLimiter {
+	return &RequestSizeLimiter{
+		maxSize: config.MaxBodySize,
+		logger:  logger,
+	}
 }
 
 // Middleware returns the HTTP middleware function.

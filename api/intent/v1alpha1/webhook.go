@@ -6,7 +6,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -96,14 +95,4 @@ func validateNetworkIntent(obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-// ---- Builder glue ----.
-
-// SetupWebhookWithManager sets up the webhook with the manager.
-// It registers both the defaulter and validator for NetworkIntent resources.
-func (r *NetworkIntent) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		WithDefaulter(&NetworkIntentDefaulter{}).
-		WithValidator(&NetworkIntentValidator{}).
-		Complete()
-}
+// NOTE: SetupWebhookWithManager is implemented in networkintent_webhook.go

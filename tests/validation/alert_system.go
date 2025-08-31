@@ -1,6 +1,6 @@
 // Package validation provides alert system for regression notifications.
 
-package validation
+package test_validation
 
 import (
 	"bytes"

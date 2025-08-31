@@ -38,7 +38,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ResourceType represents different types of resources.

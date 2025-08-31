@@ -1,1247 +1,520 @@
+// Package monitoring - Alerting implementation
 package monitoring
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/health"
+	"github.com/prometheus/client_golang/prometheus"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Type alias for backward compatibility.
-
-type AlertSeverity = health.AlertSeverity
-
-// Use constants from health package.
-
-const (
-
-	// AlertSeverityInfo holds alertseverityinfo value.
-
-	AlertSeverityInfo = health.SeverityInfo
-
-	// AlertSeverityWarning holds alertseveritywarning value.
-
-	AlertSeverityWarning = health.SeverityWarning
-
-	// AlertSeverityError holds alertseverityerror value.
-
-	AlertSeverityError = health.SeverityError
-
-	// AlertSeverityCritical holds alertseveritycritical value.
-
-	AlertSeverityCritical = health.SeverityCritical
-)
-
-// AlertState represents the state of an alert.
-
-type AlertState string
-
-const (
-
-	// AlertStateFiring holds alertstatefiring value.
-
-	AlertStateFiring AlertState = "firing"
-
-	// AlertStateResolved holds alertstateresolved value.
-
-	AlertStateResolved AlertState = "resolved"
-
-	// AlertStateSilenced holds alertstatesilenced value.
-
-	AlertStateSilenced AlertState = "silenced"
-)
-
-// Alert represents an alert instance.
-
-type Alert struct {
-	ID string `json:"id"`
-
-	Name string `json:"name"`
-
-	Description string `json:"description"`
-
-	Severity AlertSeverity `json:"severity"`
-
-	State AlertState `json:"state"`
-
-	Labels map[string]string `json:"labels"`
-
-	Annotations map[string]string `json:"annotations"`
-
-	StartsAt time.Time `json:"starts_at"`
-
-	EndsAt *time.Time `json:"ends_at,omitempty"`
-
-	GeneratorURL string `json:"generator_url,omitempty"`
-
-	Fingerprint string `json:"fingerprint"`
-
-	Value interface{} `json:"value,omitempty"`
-
-	Details map[string]interface{} `json:"details,omitempty"`
-}
-
-// AlertRule defines conditions for triggering alerts.
-
-type AlertRule struct {
-	Name string `json:"name"`
-
-	Description string `json:"description"`
-
-	Condition AlertConditionFunc `json:"-"`
-
-	Severity AlertSeverity `json:"severity"`
-
-	Duration time.Duration `json:"duration"`
-
-	Labels map[string]string `json:"labels"`
-
-	Annotations map[string]string `json:"annotations"`
-
-	Enabled bool `json:"enabled"`
-
-	LastEvaluated time.Time `json:"last_evaluated"`
-
-	EvaluationCount int64 `json:"evaluation_count"`
-
-	AlertCount int64 `json:"alert_count"`
-}
-
-// AlertConditionFunc evaluates whether an alert should fire.
-
-type AlertConditionFunc func(ctx context.Context) (bool, interface{}, error)
-
-// NotificationChannel represents a notification destination.
-
-type NotificationChannel struct {
-	Name string `json:"name"`
-
-	Type string `json:"type"` // slack, email, webhook, pagerduty
-
-	Config map[string]string `json:"config"`
-
-	Enabled bool `json:"enabled"`
-
-	Filters []AlertFilter `json:"filters"`
-}
-
-// AlertFilter filters alerts for notification channels.
-
-type AlertFilter struct {
-	Field string `json:"field"` // severity, component, etc.
-
-	Operator string `json:"operator"` // equals, contains, matches
-
-	Value string `json:"value"`
-}
-
-// AlertManager manages alerts and notifications.
-
+// AlertManager handles alert processing and notification
 type AlertManager struct {
-	mu sync.RWMutex
-
-	rules map[string]*AlertRule
-
-	activeAlerts map[string]*Alert
-
-	notificationChannels map[string]*NotificationChannel
-
-	evaluationInterval time.Duration
-
-	running bool
-
-	stopCh chan struct{}
-
-	logger *StructuredLogger
-
-	metricsRecorder *MetricsRecorder
-
-	httpClient *http.Client
+	mu          sync.RWMutex
+	alerts      map[string]*Alert
+	rules       []AlertRule
+	handlers    []AlertHandler
+	registry    prometheus.Registerer
+	stopCh      chan struct{}
+	
+	// Metrics
+	alertsTotal     prometheus.Counter
+	alertsActive    prometheus.Gauge
+	alertDuration   prometheus.Histogram
 }
 
-// AlertManagerConfig holds configuration for the alert manager.
-
-type AlertManagerConfig struct {
-	EvaluationInterval time.Duration `json:"evaluation_interval"`
-
-	NotificationChannels []NotificationChannel `json:"notification_channels"`
-
-	DefaultLabels map[string]string `json:"default_labels"`
-
-	ExternalURL string `json:"external_url"`
+// AlertHandler defines interface for handling alerts
+type AlertHandler interface {
+	HandleAlert(ctx context.Context, alert *Alert) error
+	GetName() string
 }
 
-// NewAlertManager creates a new alert manager.
-
-func NewAlertManager(config *AlertManagerConfig, logger *StructuredLogger, metricsRecorder *MetricsRecorder) *AlertManager {
-
-	if config == nil {
-
-		config = &AlertManagerConfig{
-
-			EvaluationInterval: 30 * time.Second,
-		}
-
-	}
-
+// NewAlertManager creates a new alert manager instance
+func NewAlertManager(registry prometheus.Registerer) *AlertManager {
 	am := &AlertManager{
-
-		rules: make(map[string]*AlertRule),
-
-		activeAlerts: make(map[string]*Alert),
-
-		notificationChannels: make(map[string]*NotificationChannel),
-
-		evaluationInterval: config.EvaluationInterval,
-
-		stopCh: make(chan struct{}),
-
-		logger: logger,
-
-		metricsRecorder: metricsRecorder,
-
-		httpClient: &http.Client{
-
-			Timeout: 30 * time.Second,
-		},
+		alerts:   make(map[string]*Alert),
+		registry: registry,
+		stopCh:   make(chan struct{}),
 	}
-
-	// Register notification channels.
-
-	for _, channel := range config.NotificationChannels {
-
-		am.RegisterNotificationChannel(&channel)
-
-	}
-
+	
+	am.initMetrics()
 	return am
-
 }
 
-// RegisterAlertRule registers a new alert rule.
-
-func (am *AlertManager) RegisterAlertRule(ctx context.Context, rule *AlertRule) {
-
-	am.mu.Lock()
-
-	defer am.mu.Unlock()
-
-	am.rules[rule.Name] = rule
-
-	if am.logger != nil {
-
-		am.logger.Info(ctx, "Alert rule registered",
-
-			slog.String("rule_name", rule.Name),
-
-			slog.String("severity", string(rule.Severity)),
-
-			slog.Bool("enabled", rule.Enabled),
-		)
-
+// initMetrics initializes Prometheus metrics for alerting
+func (am *AlertManager) initMetrics() {
+	am.alertsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "oran_alerts_total",
+		Help: "Total number of alerts processed",
+	})
+	
+	am.alertsActive = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "oran_alerts_active",
+		Help: "Number of currently active alerts",
+	})
+	
+	am.alertDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "oran_alert_duration_seconds",
+		Help: "Duration of alerts in seconds",
+		Buckets: []float64{60, 300, 900, 1800, 3600, 7200}, // 1m to 2h
+	})
+	
+	if am.registry != nil {
+		am.registry.MustRegister(am.alertsTotal)
+		am.registry.MustRegister(am.alertsActive)
+		am.registry.MustRegister(am.alertDuration)
 	}
-
 }
 
-// RegisterNotificationChannel registers a notification channel.
-
-func (am *AlertManager) RegisterNotificationChannel(channel *NotificationChannel) {
-
-	am.mu.Lock()
-
-	defer am.mu.Unlock()
-
-	am.notificationChannels[channel.Name] = channel
-
-	if am.logger != nil {
-
-		am.logger.Info(context.Background(), "Notification channel registered",
-
-			slog.String("channel_name", channel.Name),
-
-			slog.String("channel_type", channel.Type),
-
-			slog.Bool("enabled", channel.Enabled),
-		)
-
-	}
-
-}
-
-// Start starts the alert manager.
-
+// Start begins alert processing
 func (am *AlertManager) Start(ctx context.Context) error {
-
-	am.mu.Lock()
-
-	if am.running {
-
-		am.mu.Unlock()
-
-		return fmt.Errorf("alert manager is already running")
-
-	}
-
-	am.running = true
-
-	am.mu.Unlock()
-
-	// Register default alert rules.
-
-	am.registerDefaultAlertRules(ctx)
-
-	// Start evaluation loop.
-
+	logger := log.FromContext(ctx)
+	logger.Info("Starting alert manager")
+	
+	// Start evaluation loop
 	go am.evaluationLoop(ctx)
-
-	if am.logger != nil {
-
-		am.logger.Info(ctx, "Alert manager started",
-
-			slog.Duration("evaluation_interval", am.evaluationInterval),
-
-			slog.Int("rules_count", len(am.rules)),
-
-			slog.Int("channels_count", len(am.notificationChannels)),
-		)
-
-	}
-
+	
+	// Start cleanup loop
+	go am.cleanupLoop(ctx)
+	
 	return nil
-
 }
 
-// Stop stops the alert manager.
-
-func (am *AlertManager) Stop() {
-
-	am.mu.Lock()
-
-	defer am.mu.Unlock()
-
-	if !am.running {
-
-		return
-
-	}
-
+// Stop gracefully shuts down alert processing
+func (am *AlertManager) Stop() error {
 	close(am.stopCh)
-
-	am.running = false
-
-	if am.logger != nil {
-
-		am.logger.Info(context.Background(), "Alert manager stopped")
-
-	}
-
+	return nil
 }
 
-// evaluationLoop runs the alert evaluation loop.
-
-func (am *AlertManager) evaluationLoop(ctx context.Context) {
-
-	ticker := time.NewTicker(am.evaluationInterval)
-
-	defer ticker.Stop()
-
-	for {
-
-		select {
-
-		case <-ctx.Done():
-
-			return
-
-		case <-am.stopCh:
-
-			return
-
-		case <-ticker.C:
-
-			am.evaluateRules(ctx)
-
-		}
-
-	}
-
-}
-
-// evaluateRules evaluates all alert rules.
-
-func (am *AlertManager) evaluateRules(ctx context.Context) {
-
-	am.mu.RLock()
-
-	rules := make([]*AlertRule, 0, len(am.rules))
-
-	for _, rule := range am.rules {
-
-		if rule.Enabled {
-
-			rules = append(rules, rule)
-
-		}
-
-	}
-
-	am.mu.RUnlock()
-
-	for _, rule := range rules {
-
-		am.evaluateRule(ctx, rule)
-
-	}
-
-}
-
-// evaluateRule evaluates a single alert rule.
-
-func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
-
-	defer func() {
-
-		rule.LastEvaluated = time.Now()
-
-		rule.EvaluationCount++
-
-	}()
-
-	// Evaluate condition.
-
-	shouldFire, value, err := rule.Condition(ctx)
-
-	if err != nil {
-
-		if am.logger != nil {
-
-			am.logger.Error(ctx, "Failed to evaluate alert rule", err,
-
-				slog.String("rule_name", rule.Name),
-			)
-
-		}
-
-		return
-
-	}
-
-	alertID := am.generateAlertID(rule)
-
+// AddRule adds an alert rule for evaluation
+func (am *AlertManager) AddRule(rule AlertRule) {
 	am.mu.Lock()
-
-	existingAlert, exists := am.activeAlerts[alertID]
-
-	am.mu.Unlock()
-
-	if shouldFire {
-
-		if !exists {
-
-			// Create new alert.
-
-			alert := &Alert{
-
-				ID: alertID,
-
-				Name: rule.Name,
-
-				Description: rule.Description,
-
-				Severity: rule.Severity,
-
-				State: AlertStateFiring,
-
-				Labels: am.copyLabels(rule.Labels),
-
-				Annotations: am.copyLabels(rule.Annotations),
-
-				StartsAt: time.Now(),
-
-				Fingerprint: am.generateFingerprint(rule),
-
-				Value: value,
-			}
-
-			am.mu.Lock()
-
-			am.activeAlerts[alertID] = alert
-
-			am.mu.Unlock()
-
-			rule.AlertCount++
-
-			// Send notifications.
-
-			am.sendNotifications(ctx, alert)
-
-			if am.logger != nil {
-
-				am.logger.Warn(ctx, "Alert fired",
-
-					slog.String("alert_id", alert.ID),
-
-					slog.String("alert_name", alert.Name),
-
-					slog.String("severity", string(alert.Severity)),
-
-					slog.Any("value", value),
-				)
-
-			}
-
-			// Record metrics.
-
-			if am.metricsRecorder != nil {
-
-				am.metricsRecorder.RecordControllerHealth("alerting", rule.Name, false)
-
-			}
-
-		}
-
-	} else if exists && existingAlert.State == AlertStateFiring {
-
-		// Resolve existing alert.
-
-		now := time.Now()
-
-		existingAlert.State = AlertStateResolved
-
-		existingAlert.EndsAt = &now
-
-		// Send resolution notifications.
-
-		am.sendNotifications(ctx, existingAlert)
-
-		if am.logger != nil {
-
-			am.logger.Info(ctx, "Alert resolved",
-
-				slog.String("alert_id", existingAlert.ID),
-
-				slog.String("alert_name", existingAlert.Name),
-
-				slog.Duration("duration", now.Sub(existingAlert.StartsAt)),
-			)
-
-		}
-
-		// Remove from active alerts after a delay.
-
-		go func() {
-
-			time.Sleep(5 * time.Minute)
-
-			am.mu.Lock()
-
-			delete(am.activeAlerts, alertID)
-
-			am.mu.Unlock()
-
-		}()
-
-		// Record metrics.
-
-		if am.metricsRecorder != nil {
-
-			am.metricsRecorder.RecordControllerHealth("alerting", rule.Name, true)
-
-		}
-
-	}
-
+	defer am.mu.Unlock()
+	am.rules = append(am.rules, rule)
 }
 
-// sendNotifications sends alert notifications to configured channels.
-
-func (am *AlertManager) sendNotifications(ctx context.Context, alert *Alert) {
-
-	am.mu.RLock()
-
-	channels := make([]*NotificationChannel, 0, len(am.notificationChannels))
-
-	for _, channel := range am.notificationChannels {
-
-		if channel.Enabled && am.shouldNotify(alert, channel) {
-
-			channels = append(channels, channel)
-
-		}
-
-	}
-
-	am.mu.RUnlock()
-
-	for _, channel := range channels {
-
-		go am.sendNotification(ctx, alert, channel)
-
-	}
-
+// AddHandler adds an alert handler
+func (am *AlertManager) AddHandler(handler AlertHandler) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	am.handlers = append(am.handlers, handler)
 }
 
-// shouldNotify determines if an alert should be sent to a channel based on filters.
-
-func (am *AlertManager) shouldNotify(alert *Alert, channel *NotificationChannel) bool {
-
-	for _, filter := range channel.Filters {
-
-		if !am.matchFilter(alert, filter) {
-
-			return false
-
-		}
-
+// FireAlert triggers a new alert
+func (am *AlertManager) FireAlert(ctx context.Context, alert *Alert) error {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	
+	logger := log.FromContext(ctx)
+	
+	// Set alert status and timestamp
+	if alert.Status == "" {
+		alert.Status = "firing"
 	}
-
-	return true
-
+	if alert.Timestamp.IsZero() {
+		alert.Timestamp = time.Now()
+	}
+	
+	// Generate ID if not provided
+	if alert.ID == "" {
+		alert.ID = fmt.Sprintf("%s-%d", alert.Name, alert.Timestamp.Unix())
+	}
+	
+	// Store alert
+	am.alerts[alert.ID] = alert
+	am.alertsTotal.Inc()
+	am.alertsActive.Set(float64(len(am.alerts)))
+	
+	logger.Info("Alert fired",
+		"id", alert.ID,
+		"name", alert.Name,
+		"severity", alert.Severity,
+		"source", alert.Source)
+	
+	// Handle alert asynchronously
+	go am.handleAlert(ctx, alert)
+	
+	return nil
 }
 
-// matchFilter checks if an alert matches a filter.
-
-func (am *AlertManager) matchFilter(alert *Alert, filter AlertFilter) bool {
-
-	var value string
-
-	switch filter.Field {
-
-	case "severity":
-
-		value = string(alert.Severity)
-
-	case "name":
-
-		value = alert.Name
-
-	case "state":
-
-		value = string(alert.State)
-
-	default:
-
-		if labelValue, exists := alert.Labels[filter.Field]; exists {
-
-			value = labelValue
-
-		} else {
-
-			return false
-
-		}
-
-	}
-
-	switch filter.Operator {
-
-	case "equals":
-
-		return value == filter.Value
-
-	case "contains":
-
-		return strings.Contains(value, filter.Value)
-
-	case "matches":
-
-		// Simple wildcard matching.
-
-		return strings.Contains(value, strings.ReplaceAll(filter.Value, "*", ""))
-
-	default:
-
-		return false
-
-	}
-
-}
-
-// sendNotification sends a notification to a specific channel.
-
-func (am *AlertManager) sendNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-
-	switch channel.Type {
-
-	case "slack":
-
-		am.sendSlackNotification(ctx, alert, channel)
-
-	case "webhook":
-
-		am.sendWebhookNotification(ctx, alert, channel)
-
-	case "email":
-
-		am.sendEmailNotification(ctx, alert, channel)
-
-	case "pagerduty":
-
-		am.sendPagerDutyNotification(ctx, alert, channel)
-
-	default:
-
-		if am.logger != nil {
-
-			am.logger.Warn(ctx, "Unknown notification channel type",
-
-				slog.String("channel_type", channel.Type),
-
-				slog.String("channel_name", channel.Name),
-			)
-
-		}
-
-	}
-
-}
-
-// sendSlackNotification sends a Slack notification.
-
-func (am *AlertManager) sendSlackNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-
-	webhookURL, exists := channel.Config["webhook_url"]
-
+// ResolveAlert resolves an existing alert
+func (am *AlertManager) ResolveAlert(ctx context.Context, alertID string) error {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	
+	alert, exists := am.alerts[alertID]
 	if !exists {
-
-		am.logger.Error(ctx, "Slack webhook URL not configured", nil,
-
-			slog.String("channel_name", channel.Name),
-		)
-
-		return
-
+		return fmt.Errorf("alert not found: %s", alertID)
 	}
-
-	color := am.getAlertColor(alert.Severity)
-
-	stateEmoji := am.getStateEmoji(alert.State)
-
-	payload := map[string]interface{}{
-
-		"attachments": []map[string]interface{}{
-
-			{
-
-				"color": color,
-
-				"title": fmt.Sprintf("%s %s", stateEmoji, alert.Name),
-
-				"text": alert.Description,
-
-				"timestamp": alert.StartsAt.Unix(),
-
-				"fields": []map[string]interface{}{
-
-					{
-
-						"title": "Severity",
-
-						"value": string(alert.Severity),
-
-						"short": true,
-					},
-
-					{
-
-						"title": "State",
-
-						"value": string(alert.State),
-
-						"short": true,
-					},
-				},
-			},
-		},
-	}
-
-	if alert.Value != nil {
-
-		attachment := payload["attachments"].([]map[string]interface{})[0]
-
-		fields := attachment["fields"].([]map[string]interface{})
-
-		fields = append(fields, map[string]interface{}{
-
-			"title": "Value",
-
-			"value": fmt.Sprintf("%v", alert.Value),
-
-			"short": true,
-		})
-
-		attachment["fields"] = fields
-
-	}
-
-	jsonPayload, err := json.Marshal(payload)
-
-	if err != nil {
-
-		am.logger.Error(ctx, "Failed to marshal Slack payload", err,
-
-			slog.String("channel_name", channel.Name),
-		)
-
-		return
-
-	}
-
-	// Security fix (noctx): Use context with HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		am.logger.Error(ctx, "Failed to create Slack request", err,
-			slog.String("channel_name", channel.Name),
-		)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := am.httpClient.Do(req)
-	if err != nil {
-		am.logger.Error(ctx, "Failed to send Slack notification", err,
-			slog.String("channel_name", channel.Name),
-		)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-
-		am.logger.Error(ctx, "Slack notification failed", nil,
-
-			slog.String("channel_name", channel.Name),
-
-			slog.Int("status_code", resp.StatusCode),
-		)
-
-		return
-
-	}
-
-	if am.logger != nil {
-
-		am.logger.Debug(ctx, "Slack notification sent successfully",
-
-			slog.String("channel_name", channel.Name),
-
-			slog.String("alert_id", alert.ID),
-		)
-
-	}
-
+	
+	// Update alert status
+	resolvedTime := time.Now()
+	alert.Status = "resolved"
+	duration := resolvedTime.Sub(alert.Timestamp)
+	am.alertDuration.Observe(duration.Seconds())
+	
+	// Remove from active alerts
+	delete(am.alerts, alertID)
+	am.alertsActive.Set(float64(len(am.alerts)))
+	
+	logger := log.FromContext(ctx)
+	logger.Info("Alert resolved",
+		"id", alertID,
+		"duration", duration.String())
+	
+	return nil
 }
 
-// sendWebhookNotification sends a generic webhook notification.
-
-func (am *AlertManager) sendWebhookNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-
-	webhookURL, exists := channel.Config["url"]
-
-	if !exists {
-
-		am.logger.Error(ctx, "Webhook URL not configured", nil,
-
-			slog.String("channel_name", channel.Name),
-		)
-
-		return
-
-	}
-
-	jsonPayload, err := json.Marshal(alert)
-
-	if err != nil {
-
-		am.logger.Error(ctx, "Failed to marshal webhook payload", err,
-
-			slog.String("channel_name", channel.Name),
-		)
-
-		return
-
-	}
-
-	// Security fix (noctx): Use context with HTTP request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		am.logger.Error(ctx, "Failed to create webhook request", err,
-			slog.String("channel_name", channel.Name),
-		)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := am.httpClient.Do(req)
-	if err != nil {
-		am.logger.Error(ctx, "Failed to send webhook notification", err,
-			slog.String("channel_name", channel.Name),
-		)
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if am.logger != nil {
-
-		am.logger.Debug(ctx, "Webhook notification sent",
-
-			slog.String("channel_name", channel.Name),
-
-			slog.String("alert_id", alert.ID),
-
-			slog.Int("status_code", resp.StatusCode),
-		)
-
-	}
-
-}
-
-// sendEmailNotification sends an email notification (placeholder implementation).
-
-func (am *AlertManager) sendEmailNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-
-	// Implementation would integrate with SMTP server.
-
-	if am.logger != nil {
-
-		am.logger.Info(ctx, "Email notification would be sent",
-
-			slog.String("channel_name", channel.Name),
-
-			slog.String("alert_id", alert.ID),
-		)
-
-	}
-
-}
-
-// sendPagerDutyNotification sends a PagerDuty notification (placeholder implementation).
-
-func (am *AlertManager) sendPagerDutyNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-
-	// Implementation would integrate with PagerDuty API.
-
-	if am.logger != nil {
-
-		am.logger.Info(ctx, "PagerDuty notification would be sent",
-
-			slog.String("channel_name", channel.Name),
-
-			slog.String("alert_id", alert.ID),
-		)
-
-	}
-
-}
-
-// GetActiveAlerts returns all active alerts.
-
+// GetActiveAlerts returns all currently active alerts
 func (am *AlertManager) GetActiveAlerts() []*Alert {
-
 	am.mu.RLock()
-
 	defer am.mu.RUnlock()
-
-	alerts := make([]*Alert, 0, len(am.activeAlerts))
-
-	for _, alert := range am.activeAlerts {
-
-		if alert.State == AlertStateFiring {
-
-			alerts = append(alerts, alert)
-
-		}
-
+	
+	alerts := make([]*Alert, 0, len(am.alerts))
+	for _, alert := range am.alerts {
+		alerts = append(alerts, alert)
 	}
-
 	return alerts
-
 }
 
-// GetAlertRules returns all registered alert rules.
-
-func (am *AlertManager) GetAlertRules() []*AlertRule {
-
+// GetAlert returns a specific alert by ID
+func (am *AlertManager) GetAlert(alertID string) (*Alert, bool) {
 	am.mu.RLock()
-
 	defer am.mu.RUnlock()
+	
+	alert, exists := am.alerts[alertID]
+	return alert, exists
+}
 
-	rules := make([]*AlertRule, 0, len(am.rules))
-
-	for _, rule := range am.rules {
-
-		rules = append(rules, rule)
-
+// handleAlert processes an alert through all handlers
+func (am *AlertManager) handleAlert(ctx context.Context, alert *Alert) {
+	logger := log.FromContext(ctx)
+	
+	am.mu.RLock()
+	handlers := make([]AlertHandler, len(am.handlers))
+	copy(handlers, am.handlers)
+	am.mu.RUnlock()
+	
+	for _, handler := range handlers {
+		if err := handler.HandleAlert(ctx, alert); err != nil {
+			logger.Error(err, "Failed to handle alert",
+				"handler", handler.GetName(),
+				"alert", alert.ID)
+		}
 	}
+}
 
+// evaluationLoop continuously evaluates alert rules
+func (am *AlertManager) evaluationLoop(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting alert evaluation loop")
+	
+	ticker := time.NewTicker(30 * time.Second) // Evaluate every 30 seconds
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Alert evaluation loop stopping")
+			return
+		case <-am.stopCh:
+			logger.Info("Alert evaluation loop stopped")
+			return
+		case <-ticker.C:
+			am.evaluateRules(ctx)
+		}
+	}
+}
+
+// evaluateRules evaluates all configured alert rules
+func (am *AlertManager) evaluateRules(ctx context.Context) {
+	am.mu.RLock()
+	rules := make([]AlertRule, len(am.rules))
+	copy(rules, am.rules)
+	am.mu.RUnlock()
+	
+	for _, rule := range rules {
+		if err := am.evaluateRule(ctx, rule); err != nil {
+			logger := log.FromContext(ctx)
+			logger.Error(err, "Failed to evaluate alert rule", "rule", rule.Name)
+		}
+	}
+}
+
+// evaluateRule evaluates a single alert rule
+func (am *AlertManager) evaluateRule(ctx context.Context, rule AlertRule) error {
+	// This would typically involve querying Prometheus or other metrics sources
+	// For now, this is a placeholder implementation
+	
+	// TODO: Implement actual rule evaluation logic
+	// - Query metrics based on rule.Expression
+	// - Check if conditions are met
+	// - Fire alert if needed
+	
+	return nil
+}
+
+// cleanupLoop periodically cleans up resolved alerts
+func (am *AlertManager) cleanupLoop(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting alert cleanup loop")
+	
+	ticker := time.NewTicker(5 * time.Minute) // Cleanup every 5 minutes
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Alert cleanup loop stopping")
+			return
+		case <-am.stopCh:
+			logger.Info("Alert cleanup loop stopped")
+			return
+		case <-ticker.C:
+			am.cleanupResolvedAlerts(ctx)
+		}
+	}
+}
+
+// cleanupResolvedAlerts removes old resolved alerts
+func (am *AlertManager) cleanupResolvedAlerts(ctx context.Context) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	
+	cutoff := time.Now().Add(-24 * time.Hour) // Keep resolved alerts for 24 hours
+	removed := 0
+	
+	for id, alert := range am.alerts {
+		if alert.Status == "resolved" && alert.Timestamp.Before(cutoff) {
+			delete(am.alerts, id)
+			removed++
+		}
+	}
+	
+	if removed > 0 {
+		logger := log.FromContext(ctx)
+		logger.Info("Cleaned up resolved alerts", "count", removed)
+		am.alertsActive.Set(float64(len(am.alerts)))
+	}
+}
+
+// WebhookAlertHandler sends alerts to webhook endpoints
+type WebhookAlertHandler struct {
+	name     string
+	endpoint string
+	client   HTTPClient
+}
+
+// HTTPClient interface for HTTP operations
+type HTTPClient interface {
+	Post(url string, contentType string, body interface{}) error
+}
+
+// NewWebhookAlertHandler creates a new webhook alert handler
+func NewWebhookAlertHandler(name, endpoint string, client HTTPClient) *WebhookAlertHandler {
+	return &WebhookAlertHandler{
+		name:     name,
+		endpoint: endpoint,
+		client:   client,
+	}
+}
+
+// HandleAlert sends the alert to the configured webhook
+func (w *WebhookAlertHandler) HandleAlert(ctx context.Context, alert *Alert) error {
+	logger := log.FromContext(ctx)
+	
+	logger.Info("Sending alert to webhook",
+		"handler", w.name,
+		"endpoint", w.endpoint,
+		"alert", alert.ID)
+	
+	return w.client.Post(w.endpoint, "application/json", alert)
+}
+
+// GetName returns the handler name
+func (w *WebhookAlertHandler) GetName() string {
+	return w.name
+}
+
+// SlackAlertHandler sends alerts to Slack channels
+type SlackAlertHandler struct {
+	name      string
+	webhookURL string
+	client    HTTPClient
+}
+
+// SlackMessage represents a Slack webhook message
+type SlackMessage struct {
+	Text        string `json:"text"`
+	Username    string `json:"username,omitempty"`
+	Channel     string `json:"channel,omitempty"`
+	IconEmoji   string `json:"icon_emoji,omitempty"`
+}
+
+// NewSlackAlertHandler creates a new Slack alert handler
+func NewSlackAlertHandler(name, webhookURL string, client HTTPClient) *SlackAlertHandler {
+	return &SlackAlertHandler{
+		name:       name,
+		webhookURL: webhookURL,
+		client:     client,
+	}
+}
+
+// HandleAlert sends the alert to Slack
+func (s *SlackAlertHandler) HandleAlert(ctx context.Context, alert *Alert) error {
+	logger := log.FromContext(ctx)
+	
+	// Create Slack message
+	message := SlackMessage{
+		Text: fmt.Sprintf("🚨 *%s* - %s\n*Source:* %s\n*Severity:* %s\n*Time:* %s",
+			alert.Name,
+			alert.Description,
+			alert.Source,
+			string(alert.Severity),
+			alert.Timestamp.Format(time.RFC3339),
+		),
+		Username:  "O-RAN Monitor",
+		IconEmoji: ":warning:",
+	}
+	
+	logger.Info("Sending alert to Slack",
+		"handler", s.name,
+		"alert", alert.ID)
+	
+	return s.client.Post(s.webhookURL, "application/json", message)
+}
+
+// GetName returns the handler name
+func (s *SlackAlertHandler) GetName() string {
+	return s.name
+}
+
+// EmailAlertHandler sends alerts via email
+type EmailAlertHandler struct {
+	name      string
+	smtpHost  string
+	smtpPort  int
+	username  string
+	password  string
+	from      string
+	to        []string
+}
+
+// NewEmailAlertHandler creates a new email alert handler
+func NewEmailAlertHandler(name, smtpHost string, smtpPort int, username, password, from string, to []string) *EmailAlertHandler {
+	return &EmailAlertHandler{
+		name:     name,
+		smtpHost: smtpHost,
+		smtpPort: smtpPort,
+		username: username,
+		password: password,
+		from:     from,
+		to:       to,
+	}
+}
+
+// HandleAlert sends the alert via email
+func (e *EmailAlertHandler) HandleAlert(ctx context.Context, alert *Alert) error {
+	logger := log.FromContext(ctx)
+	
+	logger.Info("Sending alert via email",
+		"handler", e.name,
+		"alert", alert.ID,
+		"recipients", len(e.to))
+	
+	// TODO: Implement actual email sending
+	// This is a placeholder implementation
+	
+	return nil
+}
+
+// GetName returns the handler name
+func (e *EmailAlertHandler) GetName() string {
+	return e.name
+}
+
+// AlertSuppressor manages alert suppression rules
+type AlertSuppressor struct {
+	mu    sync.RWMutex
+	rules map[string]SuppressionRule
+}
+
+// SuppressionRule defines when to suppress alerts
+type SuppressionRule struct {
+	Name        string            `json:"name"`
+	Matchers    map[string]string `json:"matchers"`
+	StartTime   time.Time         `json:"startTime"`
+	EndTime     time.Time         `json:"endTime"`
+	Comment     string            `json:"comment,omitempty"`
+}
+
+// NewAlertSuppressor creates a new alert suppressor
+func NewAlertSuppressor() *AlertSuppressor {
+	return &AlertSuppressor{
+		rules: make(map[string]SuppressionRule),
+	}
+}
+
+// AddSuppressionRule adds a new suppression rule
+func (as *AlertSuppressor) AddSuppressionRule(rule SuppressionRule) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	as.rules[rule.Name] = rule
+}
+
+// RemoveSuppressionRule removes a suppression rule
+func (as *AlertSuppressor) RemoveSuppressionRule(name string) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	delete(as.rules, name)
+}
+
+// ShouldSuppress checks if an alert should be suppressed
+func (as *AlertSuppressor) ShouldSuppress(alert *Alert) bool {
+	as.mu.RLock()
+	defer as.mu.RUnlock()
+	
+	now := time.Now()
+	
+	for _, rule := range as.rules {
+		// Check time window
+		if now.Before(rule.StartTime) || now.After(rule.EndTime) {
+			continue
+		}
+		
+		// Check matchers
+		matches := true
+		for key, value := range rule.Matchers {
+			if alertValue, exists := alert.Labels[key]; !exists || alertValue != value {
+				matches = false
+				break
+			}
+		}
+		
+		if matches {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// GetActiveRules returns all active suppression rules
+func (as *AlertSuppressor) GetActiveRules() []SuppressionRule {
+	as.mu.RLock()
+	defer as.mu.RUnlock()
+	
+	now := time.Now()
+	rules := make([]SuppressionRule, 0)
+	
+	for _, rule := range as.rules {
+		if now.After(rule.StartTime) && now.Before(rule.EndTime) {
+			rules = append(rules, rule)
+		}
+	}
+	
 	return rules
-
-}
-
-// registerDefaultAlertRules registers default alert rules for the Nephoran system.
-
-func (am *AlertManager) registerDefaultAlertRules(ctx context.Context) {
-
-	// NetworkIntent processing failure rate.
-
-	am.RegisterAlertRule(ctx, &AlertRule{
-
-		Name: "NetworkIntentHighFailureRate",
-
-		Description: "NetworkIntent processing failure rate is high",
-
-		Severity: AlertSeverityWarning,
-
-		Duration: 2 * time.Minute,
-
-		Labels: map[string]string{
-
-			"component": "networkintent-controller",
-
-			"type": "performance",
-		},
-
-		Annotations: map[string]string{
-
-			"summary": "High NetworkIntent failure rate detected",
-
-			"description": "NetworkIntent processing failure rate is above 10% for the last 5 minutes",
-
-			"runbook": "https://docs.nephoran.com/runbooks/networkintent-failures",
-		},
-
-		Enabled: true,
-
-		Condition: func(ctx context.Context) (bool, interface{}, error) {
-
-			// This would typically query Prometheus metrics.
-
-			// For now, return false as a placeholder.
-
-			return false, nil, nil
-
-		},
-	})
-
-	// LLM service down.
-
-	am.RegisterAlertRule(ctx, &AlertRule{
-
-		Name: "LLMServiceDown",
-
-		Description: "LLM service is not responding",
-
-		Severity: AlertSeverityCritical,
-
-		Duration: 1 * time.Minute,
-
-		Labels: map[string]string{
-
-			"component": "llm-service",
-
-			"type": "availability",
-		},
-
-		Annotations: map[string]string{
-
-			"summary": "LLM service is down",
-
-			"description": "The LLM processing service is not responding to health checks",
-
-			"runbook": "https://docs.nephoran.com/runbooks/llm-service-down",
-		},
-
-		Enabled: true,
-
-		Condition: func(ctx context.Context) (bool, interface{}, error) {
-
-			// This would check LLM service health.
-
-			return false, nil, nil
-
-		},
-	})
-
-	// High memory usage.
-
-	am.RegisterAlertRule(ctx, &AlertRule{
-
-		Name: "HighMemoryUsage",
-
-		Description: "System memory usage is critically high",
-
-		Severity: AlertSeverityWarning,
-
-		Duration: 5 * time.Minute,
-
-		Labels: map[string]string{
-
-			"component": "system",
-
-			"type": "resource",
-		},
-
-		Annotations: map[string]string{
-
-			"summary": "High memory usage detected",
-
-			"description": "System memory usage is above 85% for the last 5 minutes",
-
-			"runbook": "https://docs.nephoran.com/runbooks/high-memory-usage",
-		},
-
-		Enabled: true,
-
-		Condition: func(ctx context.Context) (bool, interface{}, error) {
-
-			// This would check memory metrics.
-
-			return false, nil, nil
-
-		},
-	})
-
-	// O-RAN interface connection issues.
-
-	am.RegisterAlertRule(ctx, &AlertRule{
-
-		Name: "ORANInterfaceDown",
-
-		Description: "O-RAN interface connection is down",
-
-		Severity: AlertSeverityCritical,
-
-		Duration: 2 * time.Minute,
-
-		Labels: map[string]string{
-
-			"component": "oran-interface",
-
-			"type": "connectivity",
-		},
-
-		Annotations: map[string]string{
-
-			"summary": "O-RAN interface connection down",
-
-			"description": "One or more O-RAN interface connections are down",
-
-			"runbook": "https://docs.nephoran.com/runbooks/oran-interface-down",
-		},
-
-		Enabled: true,
-
-		Condition: func(ctx context.Context) (bool, interface{}, error) {
-
-			// This would check O-RAN interface connectivity.
-
-			return false, nil, nil
-
-		},
-	})
-
-}
-
-// Utility functions.
-
-// generateAlertID generates a unique alert ID.
-
-func (am *AlertManager) generateAlertID(rule *AlertRule) string {
-
-	return fmt.Sprintf("%s-%d", rule.Name, time.Now().Unix())
-
-}
-
-// generateFingerprint generates a fingerprint for an alert.
-
-func (am *AlertManager) generateFingerprint(rule *AlertRule) string {
-
-	return fmt.Sprintf("%s-%s", rule.Name, rule.Description)
-
-}
-
-// copyLabels creates a copy of labels map.
-
-func (am *AlertManager) copyLabels(labels map[string]string) map[string]string {
-
-	if labels == nil {
-
-		return make(map[string]string)
-
-	}
-
-	copied := make(map[string]string, len(labels))
-
-	for k, v := range labels {
-
-		copied[k] = v
-
-	}
-
-	return copied
-
-}
-
-// getAlertColor returns color for Slack notifications based on severity.
-
-func (am *AlertManager) getAlertColor(severity AlertSeverity) string {
-
-	switch severity {
-
-	case AlertSeverityInfo:
-
-		return "good"
-
-	case AlertSeverityWarning:
-
-		return "warning"
-
-	case AlertSeverityError:
-
-		return "danger"
-
-	case AlertSeverityCritical:
-
-		return "danger"
-
-	default:
-
-		return "warning"
-
-	}
-
-}
-
-// getStateEmoji returns emoji for alert state.
-
-func (am *AlertManager) getStateEmoji(state AlertState) string {
-
-	switch state {
-
-	case AlertStateFiring:
-
-		return "🔥"
-
-	case AlertStateResolved:
-
-		return "✅"
-
-	case AlertStateSilenced:
-
-		return "🔇"
-
-	default:
-
-		return "❓"
-
-	}
-
 }

@@ -2,7 +2,7 @@
 
 // This validator targets 8/10 points for the production readiness category of the validation suite.
 
-package validation
+package test_validation
 
 import (
 	"context"

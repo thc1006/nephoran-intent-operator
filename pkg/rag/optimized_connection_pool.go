@@ -1,4 +1,4 @@
-//go:build !disable_rag && !test
+//go:build !disable_rag
 
 package rag
 
@@ -15,7 +15,6 @@ import (
 
 	"github.com/bytedance/sonic" // High-performance JSON library
 	"github.com/valyala/fasthttp"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
 
 // OptimizedConnectionPool provides high-performance connection pooling.
@@ -29,7 +28,7 @@ type OptimizedConnectionPool struct {
 
 	jsonCodec *OptimizedJSONCodec
 
-	weaviateClients []*weaviate.Client
+	// Weaviate clients would be initialized when needed
 
 	clientIndex int64
 
@@ -216,7 +215,8 @@ type PooledConnection struct {
 
 	FastHTTPClient *fasthttp.Client
 
-	WeaviateClient *weaviate.Client
+	// WeaviateClient would be available when needed
+	WeaviateClient interface{}
 
 	CreatedAt time.Time
 
@@ -278,15 +278,7 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 		logger: logger,
 	}
 
-	// Create Weaviate client pool.
-
-	err = pool.initializeWeaviateClients()
-
-	if err != nil {
-
-		return nil, fmt.Errorf("failed to initialize Weaviate clients: %w", err)
-
-	}
+	// Weaviate clients will be initialized when needed
 
 	// Start background maintenance.
 
@@ -563,13 +555,10 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 
 func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 
-	// Use round-robin to select a Weaviate client.
-
-	index := atomic.AddInt64(&p.clientIndex, 1) % int64(len(p.weaviateClients))
-
 	connection := &PooledConnection{
 
-		WeaviateClient: p.weaviateClients[index],
+		// WeaviateClient would be assigned when needed
+		WeaviateClient: nil,
 
 		CreatedAt: time.Now(),
 
@@ -886,24 +875,11 @@ func (p *OptimizedConnectionPool) performHTTPRequest(ctx context.Context, client
 
 }
 
-// initializeWeaviateClients creates a pool of Weaviate clients.
-
+// initializeWeaviateClients would create a pool of Weaviate clients when needed.
+// This is a placeholder for the actual implementation.
 func (p *OptimizedConnectionPool) initializeWeaviateClients() error {
-
-	p.weaviateClients = make([]*weaviate.Client, p.config.PoolSize)
-
-	for i := range p.config.PoolSize {
-
-		// This would create actual Weaviate clients.
-
-		// For now, just create placeholder clients.
-
-		p.weaviateClients[i] = nil // Placeholder
-
-	}
-
+	// Implementation would initialize Weaviate clients here
 	return nil
-
 }
 
 // startBackgroundMaintenance starts background maintenance tasks.

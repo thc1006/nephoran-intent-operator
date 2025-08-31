@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // ExternalBackend implements integration with external PKI systems.

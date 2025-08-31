@@ -919,3 +919,12 @@ func NewProcessingError(message string, category ErrorCategory) *ServiceError {
 	}
 
 }
+
+// WithContext wraps an error with additional context information
+// This is compatible with pkg/errors.WithContext usage
+func WithContext(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", message, err)
+}

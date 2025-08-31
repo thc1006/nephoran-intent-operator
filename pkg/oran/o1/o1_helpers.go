@@ -11,18 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SecurityPolicy defines security policy configuration.
-
-type SecurityPolicy struct {
-	PolicyID string `json:"policy_id"`
-
-	PolicyType string `json:"policy_type"`
-
-	Enforcement string `json:"enforcement"`
-
-	Rules []SecurityRule `json:"rules"`
-}
-
 // parseAlarmData parses NETCONF XML alarm data into Alarm structs.
 
 func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, error) {
@@ -87,9 +75,9 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 
 		alarm := &Alarm{
 
-			ID: fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
+			AlarmID: fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
 
-			ManagedElementID: managedElementID,
+			ObjectInstance: managedElementID,
 
 			Severity: strings.ToUpper(oranAlarm.Severity),
 

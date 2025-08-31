@@ -1,6 +1,6 @@
 // Package validation provides baseline management for regression testing.
 
-package validation
+package test_validation
 
 import (
 	"crypto/sha256"

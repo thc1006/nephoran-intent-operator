@@ -12,7 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // StreamingService provides real-time streaming capabilities for O1 interface.
@@ -901,7 +901,7 @@ func (s *StreamingService) StreamData(streamType StreamType, data interface{}) {
 
 // StreamAlarm publishes alarm data.
 
-func (s *StreamingService) StreamAlarm(alarm *AlarmData) {
+func (s *StreamingService) StreamAlarm(alarm *StreamingAlarmData) {
 
 	s.StreamData(StreamTypeAlarms, alarm)
 
@@ -923,9 +923,9 @@ func (s *StreamingService) StreamConfigurationChange(change *ConfigurationChange
 
 }
 
-// AlarmData represents alarm data for streaming.
+// StreamingAlarmData represents alarm data for streaming.
 
-type AlarmData struct {
+type StreamingAlarmData struct {
 	ID string `json:"id"`
 
 	Source string `json:"source"`
@@ -941,9 +941,9 @@ type AlarmData struct {
 	Attributes map[string]interface{} `json:"attributes"`
 }
 
-// PerformanceData represents performance data for streaming.
+// StreamingPerformanceData represents performance data for streaming.
 
-type PerformanceData struct {
+type StreamingPerformanceData struct {
 	Source string `json:"source"`
 
 	MetricName string `json:"metric_name"`

@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/ingest"
-	"github.com/nephio-project/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // ProcessorConfig holds configuration for the intent processor.

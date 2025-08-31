@@ -1,0 +1,60 @@
+# Minimal test configuration for golangci-lint v1.64.3+
+# Ultra-fast for testing and validation
+# Compatible with modern golangci-lint versions
+
+run:
+  timeout: 5m
+  go: "1.24"
+  concurrency: 4
+  tests: true
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    - gosec
+
+linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+  
+  gosec:
+    severity: medium
+    confidence: medium
+
+issues:
+  max-issues-per-linter: 10
+  max-same-issues: 5
+  
+  exclude-dirs:
+    - vendor
+    - testdata
+    - third_party
+    - .git
+    - bin
+
+  exclude-files:
+    - '.*\.pb\.go$'
+    - '.*_generated\.go$'
+    - '.*_gen\.go$'
+    - 'zz_generated\..*\.go$'
+    - 'mock_.*\.go$'
+    - '.*_mock\.go$'
+    - 'vendor/.*'
+
+  exclude-rules:
+    - path: '_test\.go'
+      linters:
+        - gosec
+        - errcheck

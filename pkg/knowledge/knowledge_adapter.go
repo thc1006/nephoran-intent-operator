@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 // KnowledgeBaseAdapter adapts the lazy loader to the existing TelecomKnowledgeBase interface.

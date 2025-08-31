@@ -19,15 +19,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	configPkg "github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/resilience"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/telecom"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 // Dependencies interface defines the external dependencies for the controller.

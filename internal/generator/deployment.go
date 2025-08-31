@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
 // DeploymentGenerator generates Kubernetes Deployment resources.

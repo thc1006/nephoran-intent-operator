@@ -1,4 +1,4 @@
-package mocks
+package o2_mocks
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // MockAWSProvider provides mock AWS cloud provider functionality.

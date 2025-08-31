@@ -1,9 +1,0 @@
-﻿{
-  "intent_type": "scaling",
-  "target": "du-simulator",
-  "namespace": "ran-ns",
-  "replicas": 1,
-  "reason": "Basic test - scale down",
-  "source": "test",
-  "correlation_id": "basic-test-2-20250816025047"
-}

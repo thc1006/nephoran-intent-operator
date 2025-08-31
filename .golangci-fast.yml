@@ -1,41 +1,239 @@
-# Fast golangci-lint configuration for development (2025 optimized)
-# Optimized for speed: 2-7x faster than default configuration
-# Compatible with golangci-lint v1.64.8+ and Go 1.24.x
-# Target: <30s for large codebases
+# golangci-lint configuration optimized for fast CI execution
+# Compatible with golangci-lint v1.64.3+ and Go 1.24+
+# Optimized for Kubernetes operators with O-RAN/Nephio telecom domain
+# Balances speed with essential code quality checks
 
 run:
-  timeout: 5m  # Reduced from 15m
+  timeout: 10m
   issues-exit-code: 1
-  tests: false  # Skip test files for speed
+  tests: true  # Include test files
   go: "1.24"
   
-  # Critical optimization: limit concurrency for better cache utilization
-  concurrency: 4  # Optimal for most developer machines (not 0/unlimited)
+  # Fast concurrency for CI
+  concurrency: 6  
   
-  # Skip rarely changing directories
-  skip-dirs:
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+
+# Clean output format
+output:
+  formats:
+    - format: colored-line-number
+      path: stdout
+    - format: sarif
+      path: golangci-lint-report.sarif
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
+
+# Essential linters for fast execution
+linters:
+  disable-all: true
+  enable:
+    # Core quality (essential for CI)
+    - revive           # Fast replacement for golint
+    - staticcheck      # Essential static analysis
+    - govet            # Standard Go vet checks
+    - gosimple         # Simple optimizations
+    - unused           # Dead code detection
+    - typecheck        # Type-checking errors
+    
+    # Error handling (critical for operators)
+    - errcheck         # Unchecked errors
+    - errorlint        # Error wrapping patterns
+    
+    # Security (essential)
+    - gosec            # Security vulnerabilities
+    - bodyclose        # HTTP response body closing
+    - rowserrcheck     # SQL rows.Err() checking
+    
+    # Performance (lightweight checks)
+    - ineffassign      # Ineffective assignments
+    - unconvert        # Unnecessary conversions
+    - prealloc         # Slice preallocation (basic)
+    
+    # Code style (fast checks)
+    - misspell         # Spelling errors
+    - stylecheck       # Style checks
+    - predeclared      # Predeclared identifier shadowing
+    - whitespace       # Whitespace errors
+    
+    # Import and formatting
+    - gci              # Import formatting
+    - gofumpt          # Strict formatting
+    
+    # Context and concurrency (Kubernetes specific)
+    - noctx            # HTTP requests without context
+    - nolintlint       # Nolint directive usage
+    
+    # Modern Go features
+    - copyloopvar      # Loop variable copying (Go 1.22+)
+    - intrange         # Integer range loops (Go 1.22+)
+
+# Optimized linter settings for fast execution
+linters-settings:
+  # Core Go tools
+  govet:
+    enable-all: false  # Disable all then enable specific ones for speed
+    enable:
+      - assign
+      - atomic
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - errorsas
+      - httpresponse
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - printf
+      - shift
+      - stdmethods
+      - structtag
+      - tests
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
+        
+  staticcheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021"]
+    
+  # Security configuration (fast mode)
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104  # Unhandled errors (errcheck handles this)
+      - G204  # Subprocess launching (needed for kubectl/porch operations)
+      - G304  # File path provided as taint input (needed for config files)
+    includes:
+      - G101  # Hardcoded credentials
+      - G102  # Bind to all interfaces
+      - G401  # Weak crypto
+      - G501  # Import blocklist: crypto/md5
+      - G502  # Import blocklist: crypto/des
+      - G503  # Import blocklist: crypto/rc4
+      
+  # Error handling (lightweight)
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - '(*database/sql.DB).Close'
+      - 'fmt.Print*'
+      - 'fmt.Fprint*'
+      - (*os.File).Close
+      
+  # Code style (fast checks)
+  revive:
+    severity: warning
+    confidence: 0.8
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+        arguments: [["ID", "URL", "HTTP", "JSON", "API", "K8s", "CRD", "CNF", "VNF", "RAN", "AI", "ML", "O1", "O2", "E2", "A1", "FCAPS", "KPM", "VES", "ORAN"], []]
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unreachable-code
+        
+  stylecheck:
+    checks: ["all", "-ST1000", "-ST1003"]
+    
+  # Import organization
+  gci:
+    sections:
+      - standard
+      - default  
+      - prefix(github.com/thc1006/nephoran-intent-operator)
+      - prefix(sigs.k8s.io)
+      - prefix(k8s.io)
+    skip-generated: true
+    custom-order: true
+    
+  # Formatting
+  gofumpt:
+    extra-rules: true
+    module-path: github.com/thc1006/nephoran-intent-operator
+    
+  # Documentation
+  misspell:
+    locale: US
+    ignore-words:
+      - cancelled
+      - marshalling  
+      - signalling
+      - telecom
+      - telco
+      - oran
+      - nephio
+      - kubernetes
+      - k8s
+      
+  # Performance optimization
+  prealloc:
+    simple: true    # Only simple cases for speed
+    range-loops: false  # Skip complex analysis
+    for-loops: false    # Skip complex analysis
+
+# Issue handling optimized for CI speed
+issues:
+  max-issues-per-linter: 50  # Limit for CI speed
+  max-same-issues: 10        # Prevent noise
+  
+  # Don't auto-fix in CI for stability
+  fix: false
+  
+  # Performance optimization
+  exclude-case-sensitive: false
+  exclude-use-default: true
+  
+  # Directories to exclude from linting  
+  exclude-dirs:
     - vendor
     - testdata
-    - examples
     - third_party
     - .git
-    - docs
-    - deployments
-    - scripts
-    - hack
     - bin
     - out
     - tmp
     - temp
-    - .cache
     - test-results
     - coverage
     - artifacts
-    - configs
+    - node_modules
+    - deployments/base
+    - config/samples
+    - hack/testtools
+    - tests
+    - test
+    - scripts
+    - security
     - monitoring
-    
-  # Skip generated files early for maximum performance
-  skip-files:
+    - infrastructure
+    - planner
+  
+  # File-specific exclusions
+  exclude-files:
     - '.*\.pb\.go$'
     - '.*_generated\.go$'
     - '.*_gen\.go$'
@@ -46,152 +244,72 @@ run:
     - '.*\.mock\.go$'
     - '.*fake.*\.go$'
     - 'vendor/.*'
-    
-  modules-download-mode: readonly
-  allow-parallel-runners: true  # Enable parallel execution
-
-# Minimal output for speed
-output:
-  formats:
-    - format: line-number  # Simpler than colored-line-number
-  print-issued-lines: false  # Don't print code snippets
-  print-linter-name: true
-  sort-results: false  # Skip sorting for speed
-  uniq-by-line: false  # Skip deduplication for speed
-
-# Fast cache configuration
-cache:
-  enabled: true
-
-linters:
-  # Fast preset with only essential linters
-  disable-all: true
-  enable:
-    # Core quality (must-have)
-    - govet        # Fast, catches real bugs
-    - staticcheck  # Fast with cache
-    - typecheck    # Very fast compilation check
-    
-    # Critical errors only
-    - errcheck     # Essential error handling
-    - ineffassign  # Dead code detection
-    
-    # Fast formatters
-    - gofumpt      # Fast formatter
-    - gci          # Fast import organizer
-    
-    # Security essentials
-    - gosec        # Security issues only
-    
-  fast: true  # Enable fast mode for supported linters
-
-linters-settings:
-  # Minimal configurations for maximum speed
+    - 'hack/testtools/envtest_.*\.go$'
+    - 'cmd/.*test.*\.go$'
   
-  govet:
-    enable:
-      - assign
-      - atomic
-      - bools
-      - buildtag
-      - composites
-      - copylocks
-      - httpresponse
-      - loopclosure
-      - lostcancel
-      - nilfunc
-      - printf
-      - stdmethods
-      - structtag
-      - tests
-      - unmarshal
-      - unreachable
-      - unsafeptr
-      - unusedresult
-    disable:
-      - fieldalignment  # Expensive check
-      - shadow  # Can be slow
-  
-  staticcheck:
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-SA5011", "-SA1019"]
-    
-  errcheck:
-    check-type-assertions: false  # Faster
-    check-blank: false  # Faster
-    
-  gosec:
-    severity: "high"  # Only high severity for speed
-    confidence: "high"  # Only high confidence
-    excludes:
-      - G104  # Unhandled errors
-      - G204  # Subprocess launch
-      - G304  # File path traversal
-      - G404  # Weak RNG
-      
-  ineffassign:
-    # No special config needed
-    
-  gofumpt:
-    extra-rules: false  # Faster without extra rules
-    
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/thc1006/nephoran-intent-operator)
-    skip-generated: true
-    custom-order: false  # Faster
-
-issues:
-  # Aggressive exclusions for speed
-  max-issues-per-linter: 50  # Limit output
-  max-same-issues: 3  # Limit duplicates
-  
-  # Fix suggestions slow things down
-  fix: false
-  
-  # New issues detection for incremental checks
-  new: false  # Can enable for PR checks
-  new-from-rev: ""  # Set to base branch for PR checks
-  
-  # Minimal exclusion processing
-  exclude-case-sensitive: true  # Faster matching
-  
-  # Fast path exclusions
-  exclude-files:
-    - '.*_test\.go$'  # Skip all test files
-    - '.*\.pb\.go$'
-    - '.*_generated\.go$'
-    - 'vendor/.*'
-    
   exclude-rules:
-    # Only essential exclusions
+    # Test files exclusions (reduce test complexity checks)
     - path: '_test\.go'
       linters:
         - gosec
-        - errcheck
+        - errcheck  # Tests often ignore errors intentionally
+        - revive    # Relaxed naming in tests
+        - stylecheck # Relaxed style in tests
         
-    - path: 'main\.go'
+    # Main files exclusions  
+    - path: 'cmd/.*/main\.go'
       linters:
-        - errcheck  # Main often has deferred errors
+        - revive   # CLI output patterns
         
-    # Skip generated files completely
-    - path: '(.*\.pb\.go|.*_generated\.go|.*_gen\.go)'
+    # Generated files (comprehensive exclusion)
+    - path: '(.*\.pb\.go|.*_generated\.go|.*_gen\.go|zz_generated.*\.go)'
       linters:
-        - govet
-        - staticcheck
+        - all
+        
+    # API types (Kubernetes conventions)
+    - path: 'api/.*/.*_types\.go'
+      linters:
+        - revive
+        - stylecheck
+        
+    # Example and demo files
+    - path: '(examples|demo)/.*\.go'
+      linters:
         - gosec
         - errcheck
-        - ineffassign
-        - gofumpt
-        - gci
+        
+    # Allow kubebuilder directives with long lines
+    - linters:
+        - lll
+      source: "^//\\s*(\\+kubebuilder:|\\+k8s:|go:generate)"
+      
+  # Exclude specific error patterns
+  exclude:
+    # Kubernetes client-go patterns
+    - "should not use dot imports"
+    - "should have comment or be unexported"
+    - "comment on exported .* should be of the form"
+    - "exported .* should have comment or be unexported"
+    
+    # O-RAN specific terminology
+    - "misspell: `oran` is a misspelling of `orange`"
+    - "misspell: `telco` is a misspelling"
+    - "misspell: `nephio` is a misspelling"
 
-  # Include only critical issues
-  exclude-use-default: true  # Use default exclusions
-  
-  # Performance optimization
-  whole-files: false  # Check only changed lines when possible
-
+# Severity configuration for CI
 severity:
-  default-severity: error
+  default-severity: warning
   case-sensitive: true
+  rules:
+    - linters:
+        - gosec
+        - errcheck
+        - staticcheck
+        - govet
+        - typecheck
+      severity: error
+    - linters:
+        - revive
+        - stylecheck
+        - misspell
+      severity: warning

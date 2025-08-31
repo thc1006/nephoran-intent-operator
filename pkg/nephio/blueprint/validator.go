@@ -43,7 +43,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	v1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // Validator handles blueprint validation and O-RAN compliance checking.

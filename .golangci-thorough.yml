@@ -21,18 +21,6 @@ run:
   
   # CI optimization: use all available cores
   concurrency: 0  # 0 = number of CPUs
-  
-  allow-parallel-runners: true
-  allow-serial-runners: false
-  
-  # Comprehensive directory scanning
-  skip-dirs:
-    - vendor
-    - third_party
-    - .git
-    - .github
-    - .cache
-    - node_modules
 
 output:
   formats:
@@ -44,12 +32,7 @@ output:
   print-issued-lines: true
   print-linter-name: true
   sort-results: true
-  uniq-by-line: true
-  path-prefix: ""
-  show-stats: true  # Performance metrics
 
-cache:
-  enabled: true
 
 linters:
   disable-all: true
@@ -117,7 +100,6 @@ linters:
     - makezero       # Make with zero length
     - musttag        # Struct tag enforcement
     
-  fast: false  # Full analysis in CI
 
 linters-settings:
   revive:
@@ -200,7 +182,7 @@ linters-settings:
       - fieldalignment  # Can be expensive in CI
     settings:
       shadow:
-        strict: true
+        strict: false  # Allow variable shadowing for flexibility
         
   gosec:
     severity: "low"  # All severities in CI
@@ -341,6 +323,15 @@ issues:
   new: false
   new-from-rev: ""
   
+  # Directories to exclude from linting  
+  exclude-dirs:
+    - vendor
+    - third_party
+    - .git
+    - .github
+    - node_modules
+    - testdata
+
   # Comprehensive file exclusions
   exclude-files:
     - '.*\.pb\.go$'

@@ -2,7 +2,7 @@
 
 // This runner orchestrates all production deployment validation tests.
 
-package validation
+package test_validation
 
 import (
 	"context"

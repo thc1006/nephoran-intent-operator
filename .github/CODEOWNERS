@@ -75,6 +75,6 @@
 # /Dockerfile* @devops-team
 #
 # === Scripts and Tools ===
-# /scripts/ @devops-team
-# /tools/ @tools-team
-# /hack/ @devops-team
+/scripts/ @devops-team
+/tools/ @tools-team
+/hack/ @devops-team

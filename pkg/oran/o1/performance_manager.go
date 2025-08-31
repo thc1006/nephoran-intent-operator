@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // CompletePerformanceManager provides comprehensive O-RAN performance management.
@@ -51,7 +51,7 @@ type CompletePerformanceManager struct {
 
 	collectorsMux sync.RWMutex
 
-	metrics *PerformanceMetrics
+	metrics *PerformanceManagerMetrics
 
 	running bool
 
@@ -433,43 +433,6 @@ type PerformanceThresholdManager struct {
 	alertManager *ThresholdAlertManager
 
 	mutex sync.RWMutex
-}
-
-// PerformanceThreshold defines performance monitoring thresholds.
-
-type PerformanceThreshold struct {
-	ID string `json:"id"`
-
-	ObjectID string `json:"object_id"`
-
-	MeasurementType string `json:"measurement_type"`
-
-	ThresholdType string `json:"threshold_type"` // UPPER, LOWER, RANGE
-
-	UpperValue float64 `json:"upper_value,omitempty"`
-
-	LowerValue float64 `json:"lower_value,omitempty"`
-
-	Hysteresis float64 `json:"hysteresis"`
-
-	Severity string `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING
-
-	Description string `json:"description"`
-
-	Enabled bool `json:"enabled"`
-
-	MonitoringInterval time.Duration `json:"monitoring_interval"`
-
-	AlertActions []string `json:"alert_actions"`
-
-	ClearActions []string `json:"clear_actions"`
-
-	Attributes map[string]interface{} `json:"attributes"`
-
-	LastCheck time.Time `json:"last_check"`
-
-	CurrentState string `json:"current_state"` // NORMAL, THRESHOLD_CROSSED
-
 }
 
 // Threshold represents a configurable threshold value.
@@ -998,24 +961,6 @@ type Visualization struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// ReportSchedule defines when reports are generated.
-
-type ReportSchedule struct {
-	Frequency string `json:"frequency"` // HOURLY, DAILY, WEEKLY, MONTHLY
-
-	DayOfWeek int `json:"day_of_week,omitempty"`
-
-	DayOfMonth int `json:"day_of_month,omitempty"`
-
-	Hour int `json:"hour"`
-
-	Minute int `json:"minute"`
-
-	TimeZone string `json:"time_zone"`
-
-	NextRun time.Time `json:"next_run"`
-}
-
 // ReportGenerator interface for different report generation methods.
 
 type ReportGenerator interface {
@@ -1080,14 +1025,6 @@ type ScheduledReport struct {
 
 type ReportDistribution struct {
 	distributors map[string]ReportDistributor
-}
-
-// ReportDistributor interface for report distribution methods.
-
-type ReportDistributor interface {
-	DistributeReport(ctx context.Context, report *GeneratedReport, recipients []string) error
-
-	GetDistributorType() string
 }
 
 // KPICalculator calculates Key Performance Indicators.
@@ -1258,9 +1195,9 @@ type GrafanaConfig struct {
 	DashboardFolder string `json:"dashboard_folder"`
 }
 
-// PerformanceMetrics holds Prometheus metrics for performance management.
+// PerformanceManagerMetrics holds Prometheus metrics for performance management.
 
-type PerformanceMetrics struct {
+type PerformanceManagerMetrics struct {
 	DataPointsCollected prometheus.Counter
 
 	CollectionErrors prometheus.Counter
@@ -1913,9 +1850,9 @@ func (cpm *CompletePerformanceManager) assessSystemHealth() string {
 
 }
 
-func initializePerformanceMetrics() *PerformanceMetrics {
+func initializePerformanceMetrics() *PerformanceManagerMetrics {
 
-	return &PerformanceMetrics{
+	return &PerformanceManagerMetrics{
 
 		DataPointsCollected: promauto.NewCounter(prometheus.CounterOpts{
 

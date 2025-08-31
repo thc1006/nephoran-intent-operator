@@ -8,11 +8,12 @@ The Nephoran Intent Operator implements comprehensive security controls and foll
 
 Security updates are provided for the following versions:
 
-| Version | Supported          | End of Support |
-| ------- | ------------------ | -------------- |
-| 1.0.x   | ✅ Active Support  | TBD            |
-| 0.9.x   | ⚠️ Security Only   | 2025-03-01     |
-| < 0.9   | ❌ Not Supported   | -              |
+| Version | Supported          | Security Updates | End of Support |
+| ------- | ------------------ | ---------------- | -------------- |
+| 2.0.x   | ✅ Active Support  | Immediate        | TBD            |
+| 1.0.x   | ✅ Active Support  | Within 24h       | 2026-01-01     |
+| 0.9.x   | ⚠️ Security Only   | Within 7 days    | 2025-03-01     |
+| < 0.9   | ❌ Not Supported   | None             | Expired        |
 
 ## Security Architecture
 
@@ -100,19 +101,23 @@ Include the following information:
 - **License Compliance**: Automated license checking
 - **Dependency Pinning**: Exact versions in production
 
-#### Build Security
-- **Reproducible Builds**: Deterministic build process
-- **Build Provenance**: SLSA Level 3 compliance
-- **Artifact Signing**: Cosign signatures for all artifacts
-- **Registry Security**: Private registry with vulnerability scanning
+#### Build Security (2025 Enhanced)
+- **Reproducible Builds**: Deterministic build process with build attestations
+- **Build Provenance**: SLSA Level 4 compliance with full supply chain transparency
+- **Artifact Signing**: Cosign keyless signatures for all artifacts with Rekor transparency log
+- **Registry Security**: Private registry with continuous vulnerability scanning and policy enforcement
+- **SBOM Generation**: Automatic SPDX and CycloneDX SBOM for every release
+- **Dependency Verification**: All dependencies verified with checksums and signatures
 
 ### Container Security
 
-#### Image Security
-- **Base Images**: Minimal distroless images
-- **Vulnerability Scanning**: Trivy scanning in CI/CD
-- **Image Signing**: All images signed with Cosign
-- **Registry Scanning**: Continuous scanning in registry
+#### Image Security (2025 Standards)
+- **Base Images**: Hardened distroless images with zero CVEs policy
+- **Vulnerability Scanning**: Multi-scanner approach (Trivy, Grype, Snyk) with fail-fast on critical
+- **Image Signing**: Keyless Cosign signing with OIDC identity verification
+- **Registry Scanning**: Real-time scanning with automatic quarantine of vulnerable images
+- **Admission Control**: Policy-based admission with OPA/Gatekeeper
+- **Image Attestations**: SBOM, vulnerability scan, and provenance attestations
 
 #### Runtime Security
 - **Security Policies**: Pod Security Standards enforced
@@ -122,11 +127,13 @@ Include the following information:
 
 ### Code Security
 
-#### Static Analysis
-- **SAST Tools**: GoSec, Semgrep, CodeQL
-- **Secret Detection**: Gitleaks, TruffleHog
-- **Dependency Checking**: Nancy, Snyk
-- **Code Review**: Mandatory peer review
+#### Static Analysis (2025 Enhanced)
+- **SAST Tools**: GoSec, Semgrep, CodeQL with custom security rules
+- **Secret Detection**: TruffleHog, Gitleaks, detect-secrets with pre-commit hooks
+- **Dependency Checking**: Nancy, Snyk, OSV-Scanner, Dependabot
+- **Code Review**: Mandatory peer review with security checklist
+- **AI Security Review**: LLM-powered security analysis for complex code paths
+- **License Compliance**: Automated license scanning and compliance checks
 
 #### Dynamic Analysis
 - **DAST Tools**: OWASP ZAP integration
@@ -285,6 +292,36 @@ All team members must complete:
 | 1.1     | 2024-02-01 | Added supply chain security |
 | 1.2     | 2024-03-01 | Enhanced incident response |
 
+## Security Automation (2025)
+
+### CI/CD Security Gates
+
+1. **Pre-Commit Phase**
+   - Secret detection
+   - Code formatting
+   - License checking
+
+2. **Build Phase**
+   - SAST scanning
+   - Dependency scanning
+   - Container scanning
+   - SBOM generation
+
+3. **Deploy Phase**
+   - Image signing
+   - Policy validation
+   - Runtime protection
+   - Compliance checks
+
+### Security Metrics and KPIs
+
+- **MTTD (Mean Time to Detect)**: < 1 hour
+- **MTTR (Mean Time to Respond)**: < 4 hours
+- **Vulnerability Coverage**: > 95%
+- **False Positive Rate**: < 5%
+- **Patch Compliance**: > 98%
+
 ---
 
-*This security policy is reviewed quarterly and updated as needed. Last review: 2024-03-01*
+*This security policy is reviewed monthly and updated as needed. Last review: 2025-01-29*
+*Next scheduled review: 2025-02-28*

@@ -60,6 +60,14 @@ type TLSEnhancedConfig struct {
 
 	OCSPCache *OCSPCache
 
+	// Connection pooling.
+
+	ConnectionPool *ConnectionPool
+
+	// Certificate Revocation List cache.
+
+	CRLCache *CRLCache
+
 	// Session management.
 
 	SessionTicketKeys [][]byte
@@ -113,7 +121,7 @@ type TLSEnhancedConfig struct {
 
 	// Security monitoring.
 
-	SecurityEventCallback func(event SecurityEvent)
+	SecurityEventCallback func(event TLSSecurityEvent)
 
 	FailureCallback func(failure SecurityFailure)
 
@@ -152,9 +160,9 @@ type TLSMetricsCollector struct {
 	mu sync.RWMutex
 }
 
-// SecurityEvent represents a security-related event.
+// TLSSecurityEvent represents a TLS security-related event.
 
-type SecurityEvent struct {
+type TLSSecurityEvent struct {
 	Timestamp   time.Time
 
 	EventType   string
@@ -204,6 +212,36 @@ type CachedOCSPResponse struct {
 	timestamp time.Time
 }
 
+// ConnectionPool manages TLS connection pooling.
+
+type ConnectionPool struct {
+	maxConnections int
+
+	connections map[string]*tls.Conn
+
+	mu sync.RWMutex
+}
+
+// CRLCache provides caching for Certificate Revocation Lists.
+
+type CRLCache struct {
+	cache map[string]*CachedCRL
+
+	ttl time.Duration
+
+	maxSize int
+
+	mu sync.RWMutex
+}
+
+// CachedCRL represents a cached Certificate Revocation List.
+
+type CachedCRL struct {
+	crl *x509.RevocationList
+
+	timestamp time.Time
+}
+
 // NewTLSEnhancedConfig creates a new enhanced TLS configuration.
 
 func NewTLSEnhancedConfig() *TLSEnhancedConfig {
@@ -242,6 +280,22 @@ func NewTLSEnhancedConfig() *TLSEnhancedConfig {
 			ttl: 24 * time.Hour,
 
 			maxSize: 1000,
+		},
+
+		ConnectionPool: &ConnectionPool{
+
+			maxConnections: 100,
+
+			connections: make(map[string]*tls.Conn),
+		},
+
+		CRLCache: &CRLCache{
+
+			cache: make(map[string]*CachedCRL),
+
+			ttl: 24 * time.Hour,
+
+			maxSize: 500,
 		},
 
 		SessionTicketRotationInterval: 24 * time.Hour,
@@ -803,7 +857,7 @@ func (c *TLSEnhancedConfig) reportSecurityEvent(eventType, clientAddr string, ce
 
 	if c.SecurityEventCallback != nil {
 
-		event := SecurityEvent{
+		event := TLSSecurityEvent{
 
 			Timestamp:   time.Now(),
 
@@ -1038,5 +1092,31 @@ func (c *TLSEnhancedConfig) WrapHTTPTransport(transport *http.Transport) error {
 	transport.TLSClientConfig = tlsConfig
 
 	return nil
+
+}
+
+// RecordHandshake records TLS handshake metrics
+func (c *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	c.successfulHandshakes++
+	
+	if c.tlsVersionUsage == nil {
+		c.tlsVersionUsage = make(map[uint16]uint64)
+	}
+	if c.cipherSuiteUsage == nil {
+		c.cipherSuiteUsage = make(map[uint16]uint64)
+	}
+	
+	c.tlsVersionUsage[version]++
+	c.cipherSuiteUsage[cipherSuite]++
+}
+
+// BuildTLSConfig builds and returns a TLS configuration (alias for GetTLSConfig for compatibility).
+
+func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
+
+	return c.GetTLSConfig()
 
 }

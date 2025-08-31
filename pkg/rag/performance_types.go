@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Type aliases for compatibility with performance_benchmarks.go.
@@ -67,7 +67,7 @@ type WeaviateConfig struct {
 
 // NewWeaviateClient creates a new Weaviate client.
 
-func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
+func NewWeaviateClient(config *WeaviateConfig) (WeaviateClient, error) {
 
 	return &WeaviateClient{
 

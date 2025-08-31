@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
 // This file demonstrates how to integrate the EnhancedOAuth2Manager.

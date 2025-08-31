@@ -20,8 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	oranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	oranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 const (
@@ -960,9 +960,7 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 			PrometheusURL: "http://prometheus:9090",
 
-			AlertManagerURL: "http://alertmanager:9093",
-
-			EnableRootCause: o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
+			RCAEnabled: o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
 		}
 
 		faultManager := NewEnhancedFaultManager(faultConfig)

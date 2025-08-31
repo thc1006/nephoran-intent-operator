@@ -766,3 +766,43 @@ func NewLogger(serviceName, level string) *StructuredLogger {
 	return NewStructuredLogger(config)
 
 }
+
+// WithService creates a config option to set the service name
+func WithService(serviceName string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.ServiceName = serviceName
+	}
+}
+
+// WithVersion creates a config option to set the service version
+func WithVersion(version string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.Version = version
+	}
+}
+
+// WithEnvironment creates a config option to set the environment
+func WithEnvironment(environment string) func(*Config) {
+	return func(cfg *Config) {
+		cfg.Environment = environment
+	}
+}
+
+// NewStructuredLogger creates a new structured logger with functional options
+func NewStructuredLoggerWithOptions(options ...func(*Config)) *StructuredLogger {
+	config := Config{
+		Level:       LevelInfo,
+		Format:      "json",
+		ServiceName: "nephoran",
+		Version:     "1.0.0",
+		Environment: "production",
+		AddSource:   true,
+		TimeFormat:  time.RFC3339,
+	}
+
+	for _, option := range options {
+		option(&config)
+	}
+
+	return NewStructuredLogger(config)
+}

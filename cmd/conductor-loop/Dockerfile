@@ -9,7 +9,7 @@
 # =============================================================================
 # Stage 1: Security Scanner
 # =============================================================================
-FROM golang:1.24-alpine AS security-scanner
+FROM golang:1.24.1-alpine AS security-scanner
 
 # Install security scanning tools
 RUN apk add --no-cache \
@@ -42,7 +42,7 @@ RUN echo "Running vulnerability scan..." && \
 # =============================================================================
 # Stage 2: Builder
 # =============================================================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24.1-alpine AS builder
 
 # Security: Install CA certificates and create non-root user
 RUN apk add --no-cache \
@@ -69,9 +69,10 @@ ARG VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 ARG CGO_ENABLED=0
+ARG TARGETARCH=amd64
 
 # Security: Build with security flags and optimizations
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s \
     -X main.version=${VERSION} \
     -X main.buildDate=${BUILD_DATE} \
@@ -83,14 +84,19 @@ RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build \
     -o /build/conductor-loop \
     ./cmd/conductor-loop
 
-# Verify the binary
-RUN file /build/conductor-loop && \
+# Verify the binary exists and is executable
+RUN ls -la /build/conductor-loop && \
+    test -x /build/conductor-loop && \
+    echo "Binary verification: $(stat -c '%n: size=%s, mode=%a' /build/conductor-loop)" && \
     /build/conductor-loop --version || true
 
 # =============================================================================
 # Stage 3: Security Hardened Runtime
 # =============================================================================
 FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+
+# Add go-runtime alias for CI/CD compatibility
+FROM runtime AS go-runtime
 
 # Metadata labels following OCI standard
 LABEL org.opencontainers.image.title="Conductor Loop" \
@@ -148,6 +154,10 @@ LABEL security.resources.memory="512Mi" \
       security.readOnlyRootFilesystem="true" \
       security.allowPrivilegeEscalation="false"
 
+# Standardized health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["/conductor-loop", "--health-check"] || ["/conductor-loop", "--version"]
+
 # Default command
 ENTRYPOINT ["/conductor-loop"]
 
@@ -157,7 +167,7 @@ CMD ["--handoff=/data/handoff", "--porch=porch", "--mode=direct", "--out=/data/o
 # =============================================================================
 # Development Stage (Optional)
 # =============================================================================
-FROM golang:1.24-alpine AS dev
+FROM golang:1.24.1-alpine AS dev
 
 # Install development and debugging tools
 RUN apk add --no-cache \

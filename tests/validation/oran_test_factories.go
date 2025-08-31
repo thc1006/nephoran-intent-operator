@@ -2,7 +2,7 @@
 
 // This module creates realistic test data for A1, E2, O1, and O2 interface testing scenarios.
 
-package validation
+package test_validation
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // ORANTestFactory provides factory methods for creating O-RAN test data.

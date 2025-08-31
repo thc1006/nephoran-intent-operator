@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/platform"
+	"github.com/thc1006/nephoran-intent-operator/internal/platform"
 )
 
 // CrossPlatformMockOptions configures the behavior of the cross-platform mock script.

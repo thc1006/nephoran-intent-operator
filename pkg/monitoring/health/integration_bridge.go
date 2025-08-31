@@ -10,7 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
 // SLAIntegrationBridge provides seamless integration between health monitoring and SLA tracking.

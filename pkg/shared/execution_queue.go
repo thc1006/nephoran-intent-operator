@@ -38,7 +38,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // ExecutionTask represents a task to be executed.

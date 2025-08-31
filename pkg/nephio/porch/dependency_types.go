@@ -41,6 +41,165 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// VersionConstraint represents a constraint on a package version
+type VersionConstraint struct {
+	Type       string `json:"type"`       // "range", "exact", "exclude", "prefer"
+	Expression string `json:"expression"` // ">=1.0.0", "~1.2.3", "^2.0.0"
+	Priority   int    `json:"priority"`   // Higher priority constraints are preferred
+	// Added missing fields for SAT solver compatibility
+	Operator   ConstraintOperator `json:"operator"`   // Constraint operator type
+	Version    string            `json:"version"`    // Version string for constraint
+}
+
+// VersionSolution represents a solution to version constraints
+type VersionSolution struct {
+	Packages       map[string]string                `json:"packages"`       // package -> selected version
+	Satisfied      []*VersionConstraint             `json:"satisfied"`      // constraints that were satisfied
+	Relaxed        []*VersionConstraint             `json:"relaxed"`        // constraints that were relaxed
+	Score          float64                          `json:"score"`          // solution quality score
+	ResolutionTime time.Duration                    `json:"resolutionTime"` // time taken to find solution
+	// Added missing fields for SAT solver compatibility
+	Success        bool                             `json:"success"`        // Whether solution was found successfully
+	Solutions      map[string]*VersionSelection     `json:"solutions"`      // Detailed solution per package
+	Algorithm      string                           `json:"algorithm"`      // Algorithm used to find solution
+	Statistics     *SolutionStatistics              `json:"statistics"`     // Solver statistics
+}
+
+// ConflictAnalysis provides detailed conflict analysis
+type ConflictAnalysis struct {
+	Conflicts       []*DependencyConflict `json:"conflicts"`
+	ConflictGraph   map[string][]string   `json:"conflictGraph"`
+	ResolutionPaths []ResolutionPath      `json:"resolutionPaths"`
+	RootCause       string                `json:"rootCause"`
+}
+
+// ResolutionPath represents a possible resolution path for conflicts
+type ResolutionPath struct {
+	Steps       []ResolutionStep `json:"steps"`
+	Cost        float64          `json:"cost"`
+	Probability float64          `json:"probability"`
+}
+
+// ResolutionStep represents a single step in conflict resolution
+type ResolutionStep struct {
+	Action      string            `json:"action"`      // "upgrade", "downgrade", "replace", "remove"
+	Package     string            `json:"package"`
+	FromVersion string            `json:"fromVersion"`
+	ToVersion   string            `json:"toVersion"`
+	Impact      map[string]string `json:"impact"`      // affected packages
+}
+
+// Missing type definitions for compilation fix
+type VersionRequirement struct {
+	Name        string               `json:"name"`
+	Version     string               `json:"version"`
+	Constraint  string               `json:"constraint"`
+	PackageRef  *PackageReference    `json:"package_ref"`
+	Constraints []*VersionConstraint `json:"constraints"`
+}
+
+type DependencyConstraints struct {
+	MaxDepth    int                    `json:"max_depth"`
+	Constraints map[string]interface{} `json:"constraints"`
+}
+
+type DependencyCycle struct {
+	Cycle []string `json:"cycle"`
+}
+
+type EffortLevel int
+
+type DependencyConflict struct {
+	Package1 string `json:"package1"`
+	Package2 string `json:"package2"`
+	Reason   string `json:"reason"`
+}
+
+type DependencyType int
+
+type GraphAnalysisResult struct {
+	Cycles    []DependencyCycle    `json:"cycles"`
+	Conflicts []DependencyConflict `json:"conflicts"`
+}
+
+type DependencyScope int
+
+type WorkflowEngine struct {
+	logger logr.Logger
+}
+
+// SATSolverConfig configures SAT solver behavior
+type SATSolverConfig struct {
+	Algorithm     string `json:"algorithm"` // "minisat", "glucose", "lingeling"
+	MaxVariables  int    `json:"max_variables"`
+	MaxClauses    int    `json:"max_clauses"`
+	TimeoutMs     int    `json:"timeout_ms"`
+	MaxConflicts  int    `json:"max_conflicts"`
+	RestartPolicy string `json:"restart_policy"` // "luby", "geometric", "fixed"
+}
+
+// SATSolver interface for different SAT solver implementations
+type SATSolver interface {
+	Solve(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error)
+	Close()
+}
+
+// ResolutionResult represents the result of dependency resolution
+type ResolutionResult struct {
+	Success          bool                   `json:"success"`
+	ResolvedPackages []*PackageReference    `json:"resolved_packages,omitempty"`
+	Conflicts        []string               `json:"conflicts,omitempty"`
+	Errors           []string               `json:"errors,omitempty"`
+	Duration         time.Duration          `json:"duration"`
+	Stats            *ResolutionStats       `json:"stats,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ResolutionStats contains statistics about the resolution process
+type ResolutionStats struct {
+	TotalPackages    int `json:"total_packages"`
+	ResolvedPackages int `json:"resolved_packages"`
+	ConflictCount    int `json:"conflict_count"`
+	IterationCount   int `json:"iteration_count"`
+	CacheHits        int `json:"cache_hits"`
+	CacheMisses      int `json:"cache_misses"`
+}
+
+// DependencyGraph represents a dependency graph structure
+type DependencyGraph struct {
+	Nodes map[string]*DependencyNode `json:"nodes"`
+	Edges []*DependencyEdge          `json:"edges"`
+	Roots []*DependencyNode          `json:"roots"`
+	Stats *GraphStats                `json:"stats,omitempty"`
+}
+
+// DependencyNode represents a node in the dependency graph
+type DependencyNode struct {
+	ID           string                 `json:"id"`
+	Package      *PackageReference      `json:"package"`
+	Dependencies []*DependencyNode      `json:"dependencies,omitempty"`
+	Dependents   []*DependencyNode      `json:"dependents,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// DependencyEdge represents an edge in the dependency graph
+type DependencyEdge struct {
+	From       *DependencyNode        `json:"from"`
+	To         *DependencyNode        `json:"to"`
+	Constraint string                 `json:"constraint"`
+	EdgeType   string                 `json:"edge_type"` // "requires", "conflicts", "recommends"
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// GraphStats contains statistics about the dependency graph
+type GraphStats struct {
+	NodeCount           int `json:"node_count"`
+	EdgeCount           int `json:"edge_count"`
+	MaxDepth            int `json:"max_depth"`
+	CycleCount          int `json:"cycle_count"`
+	ConnectedComponents int `json:"connected_components"`
+}
+
 // Supporting types for dependency management.
 
 // DependencyResolverConfig configures the dependency resolver.
@@ -156,7 +315,7 @@ type DependencyResolverMetrics struct {
 // VersionSolver represents a versionsolver.
 
 type VersionSolver struct {
-	satSolver *SATSolver
+	satSolver SATSolver
 
 	config *VersionSolverConfig
 
@@ -167,9 +326,24 @@ type VersionSolver struct {
 
 func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
 
+	// Convert SATSolverConfig to SATSolverConfigImpl
+	var satConfig *SATSolverConfigImpl
+	if config.SATSolverConfig != nil {
+		satConfig = &SATSolverConfigImpl{
+			MaxDecisions:     config.SATSolverConfig.MaxVariables, // Use MaxVariables as MaxDecisions
+			MaxConflicts:     config.SATSolverConfig.MaxConflicts,
+			RestartThreshold: 100, // Default value
+			DecayFactor:      0.95, // Default value
+			ClauseDecay:      0.999, // Default value
+			Timeout:          time.Duration(config.SATSolverConfig.TimeoutMs) * time.Millisecond,
+			EnableLearning:   true, // Default value
+			EnableVSIDS:      true, // Default value
+		}
+	}
+
 	return &VersionSolver{
 
-		satSolver: NewSATSolver(config.SATSolverConfig),
+		satSolver: NewSATSolver(satConfig),
 
 		config: config,
 
@@ -250,9 +424,9 @@ func NewDependencyGraphBuilder(config *GraphBuilderConfig) *DependencyGraphBuild
 
 // BuildGraph performs buildgraph operation.
 
-func (dgb *DependencyGraphBuilder) BuildGraph(ctx context.Context, graph *DependencyGraph, opts *GraphBuildOptions) error {
+func (dgb *DependencyGraphBuilder) BuildGraph(ctx context.Context, graph *DependencyGraph) error {
 
-	// Implementation would build the graph based on options.
+	// Implementation would build the graph.
 
 	return nil
 
@@ -1076,6 +1250,17 @@ type SolutionStatistics struct {
 	LearnedClauses int
 
 	SolveTime time.Duration
+}
+
+// VersionSelection represents the version selected for a specific package.
+
+type VersionSelection struct {
+	SelectedVersion string        `json:"selectedVersion"` // The version that was selected
+	Reason         SelectionReason `json:"reason"`         // Why this version was selected
+	Alternatives   []string        `json:"alternatives"`   // Other versions that could have been selected
+	Confidence     float64         `json:"confidence"`     // Confidence score for this selection (0-1)
+	Constraints    []*VersionConstraint `json:"constraints"`    // Constraints that influenced this selection
+	Metadata       map[string]interface{} `json:"metadata,omitempty"` // Additional metadata
 }
 
 // PackageInfo represents a packageinfo.
@@ -2190,4 +2375,47 @@ const (
 	// PriorityCritical holds prioritycritical value.
 
 	PriorityCritical Priority = "critical"
+)
+
+// ConstraintOperator defines constraint operator types for version constraints.
+
+type ConstraintOperator string
+
+const (
+
+	// ConstraintOperatorEquals holds constraintoperatorequals value.
+
+	ConstraintOperatorEquals ConstraintOperator = "="
+
+	// ConstraintOperatorGreaterThan holds constraintoperatorgreaterthan value.
+
+	ConstraintOperatorGreaterThan ConstraintOperator = ">"
+
+	// ConstraintOperatorGreaterEquals holds constraintoperatorgreaterequals value.
+
+	ConstraintOperatorGreaterEquals ConstraintOperator = ">="
+
+	// ConstraintOperatorLessThan holds constraintoperatorlessthan value.
+
+	ConstraintOperatorLessThan ConstraintOperator = "<"
+
+	// ConstraintOperatorLessEquals holds constraintoperatorlessequals value.
+
+	ConstraintOperatorLessEquals ConstraintOperator = "<="
+
+	// ConstraintOperatorTilde holds constraintoperatortilde value.
+
+	ConstraintOperatorTilde ConstraintOperator = "~"
+
+	// ConstraintOperatorCaret holds constraintoperatorcaret value.
+
+	ConstraintOperatorCaret ConstraintOperator = "^"
+
+	// ConstraintOperatorNotEquals holds constraintoperatornotequals value.
+
+	ConstraintOperatorNotEquals ConstraintOperator = "!="
+
+	// ConstraintOperatorRange holds constraintoperatorrange value.
+
+	ConstraintOperatorRange ConstraintOperator = "-"
 )

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 // LLMProcessorConfig holds configuration specific to the LLM processor service.

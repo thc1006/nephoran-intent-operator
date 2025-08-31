@@ -7,7 +7,7 @@ package fake
 import (
 	"fmt"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 )
 
 // Client is a fake implementation of git.ClientInterface for testing.

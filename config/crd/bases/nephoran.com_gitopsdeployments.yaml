@@ -201,6 +201,7 @@ spec:
                       multiplier:
                         default: 2
                         description: Multiplier for exponential backoff
+                        type: number
                     type: object
                   timeoutSeconds:
                     default: 600
@@ -334,6 +335,9 @@ spec:
                   apiVersion:
                     description: APIVersion of the referent
                     type: string
+                  fieldPath:
+                    description: FieldPath refers to a field within the object
+                    type: string
                   kind:
                     description: Kind of the referent
                     type: string
@@ -341,7 +345,8 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent
+                    description: Namespace of the referent; only applicable for namespaced
+                      resources
                     type: string
                   resourceVersion:
                     description: ResourceVersion of the referent
@@ -350,6 +355,7 @@ spec:
                     description: UID of the referent
                     type: string
                 required:
+                - apiVersion
                 - kind
                 - name
                 type: object
@@ -364,6 +370,9 @@ spec:
                   apiVersion:
                     description: APIVersion of the referent
                     type: string
+                  fieldPath:
+                    description: FieldPath refers to a field within the object
+                    type: string
                   kind:
                     description: Kind of the referent
                     type: string
@@ -371,7 +380,8 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent
+                    description: Namespace of the referent; only applicable for namespaced
+                      resources
                     type: string
                   resourceVersion:
                     description: ResourceVersion of the referent
@@ -380,6 +390,7 @@ spec:
                     description: UID of the referent
                     type: string
                 required:
+                - apiVersion
                 - kind
                 - name
                 type: object
@@ -388,6 +399,7 @@ spec:
                 description: Priority defines deployment priority
                 enum:
                 - low
+                - normal
                 - medium
                 - high
                 - critical
@@ -762,6 +774,7 @@ spec:
                     type: array
                   healthScore:
                     description: HealthScore represents overall health score (0.0-1.0)
+                    type: number
                   lastCheckTime:
                     description: LastCheckTime is the last health check time
                     format: date-time

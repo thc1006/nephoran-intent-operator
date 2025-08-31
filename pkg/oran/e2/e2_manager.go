@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // E2Manager provides comprehensive E2 interface management with connection pooling,.

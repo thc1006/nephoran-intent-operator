@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: invalid-negative-replicas
+  namespace: nephoran-system
+  labels:
+    test-scenario: validation-failure
+    test-type: e2e-negative
+spec:
+  intent: "Scale test-deployment to negative 5 replicas with standard profile - should be rejected for invalid replica count"

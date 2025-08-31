@@ -2,7 +2,7 @@
 
 // This validator tests various deployment patterns including blue-green, canary, and rolling updates.
 
-package validation
+package test_validation
 
 import (
 	"context"

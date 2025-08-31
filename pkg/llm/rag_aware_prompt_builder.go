@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration.

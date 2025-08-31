@@ -1,6 +1,6 @@
 // Package validation provides comprehensive test data factories and fixtures.
 
-package validation
+package test_validation
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	nephranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // TestDataFactory provides factory methods for creating test data.

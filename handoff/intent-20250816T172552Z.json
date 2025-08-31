@@ -1,1 +1,0 @@
-{"correlation_id":"llm-mock-processed","intent_type":"scaling","namespace":"backend","replicas":3,"source":"user","target":"database"}

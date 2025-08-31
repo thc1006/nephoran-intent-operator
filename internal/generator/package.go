@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/intent"
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
 // Package represents a generated KRM package.

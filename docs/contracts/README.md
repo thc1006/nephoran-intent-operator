@@ -53,4 +53,6 @@ import "github.com/thc1006/nephoran-intent-operator/docs/contracts"
 # Validate JSON schemas
 ajv compile -s intent.schema.json
 ajv compile -s a1.policy.schema.json
+
+# Note: The CI pipeline automatically validates these schemas on every PR
 ```

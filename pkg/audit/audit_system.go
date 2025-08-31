@@ -20,9 +20,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/backends"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/compliance"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/audit/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/compliance"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 const (
@@ -87,6 +87,14 @@ type AuditSystemConfig struct {
 
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
+	// EnabledSources controls which audit sources are enabled.
+
+	EnabledSources []string `json:"enabled_sources" yaml:"enabled_sources"`
+
+	// RetentionDays controls how many days to retain audit events.
+
+	RetentionDays int `json:"retention_days" yaml:"retention_days"`
+
 	// LogLevel controls the minimum severity level for audit events.
 
 	LogLevel Severity `json:"log_level" yaml:"log_level"`
@@ -123,6 +131,10 @@ func DefaultAuditConfig() *AuditSystemConfig {
 	return &AuditSystemConfig{
 
 		Enabled: true,
+
+		EnabledSources: []string{"kubernetes", "oran", "nephio"},
+
+		RetentionDays: 365,
 
 		LogLevel: SeverityInfo,
 

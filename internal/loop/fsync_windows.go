@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/pathutil"
+	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
 // Removed error definition - now in errors.go.

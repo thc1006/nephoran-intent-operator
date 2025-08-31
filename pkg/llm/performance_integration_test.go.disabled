@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // TestEnhancedPerformanceClientIntegration tests the complete integration of all performance components
@@ -42,7 +43,7 @@ func TestEnhancedPerformanceClientIntegration(t *testing.T) {
 			ConcurrentBatches:    2,
 			EnablePrioritization: true,
 		},
-		CircuitBreakerConfig: CircuitBreakerConfig{
+		CircuitBreakerConfig: shared.CircuitBreakerConfig{
 			FailureThreshold:      3,
 			SuccessThreshold:      2,
 			Timeout:               1 * time.Second,
@@ -362,7 +363,7 @@ func TestBatchProcessorStandalone(t *testing.T) {
 
 // TestAdvancedCircuitBreakerStandalone tests the advanced circuit breaker in isolation
 func TestAdvancedCircuitBreakerStandalone(t *testing.T) {
-	config := CircuitBreakerConfig{
+	config := shared.CircuitBreakerConfig{
 		FailureThreshold:      2,
 		SuccessThreshold:      2,
 		Timeout:               100 * time.Millisecond,

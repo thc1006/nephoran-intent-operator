@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // InstrumentedReconciler wraps a reconciler with monitoring instrumentation.
@@ -19,14 +19,14 @@ type InstrumentedReconciler struct {
 
 	Name string
 
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 
-	HealthChecker *HealthChecker
+	HealthChecker HealthChecker
 }
 
 // NewInstrumentedReconciler creates a new instrumented reconciler.
 
-func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
+func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
 
 	return &InstrumentedReconciler{
 
@@ -92,12 +92,12 @@ func (ir *InstrumentedReconciler) recordAPILatency(ctx context.Context, start ti
 // NetworkIntentInstrumentation provides instrumentation for NetworkIntent controller.
 
 type NetworkIntentInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewNetworkIntentInstrumentation creates new NetworkIntent instrumentation.
 
-func NewNetworkIntentInstrumentation(metrics *MetricsCollector) *NetworkIntentInstrumentation {
+func NewNetworkIntentInstrumentation(metrics MetricsCollector) *NetworkIntentInstrumentation {
 
 	return &NetworkIntentInstrumentation{
 
@@ -163,12 +163,12 @@ func (ni *NetworkIntentInstrumentation) RecordRetry(intent *nephoranv1.NetworkIn
 // E2NodeSetInstrumentation provides instrumentation for E2NodeSet controller.
 
 type E2NodeSetInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewE2NodeSetInstrumentation creates new E2NodeSet instrumentation.
 
-func NewE2NodeSetInstrumentation(metrics *MetricsCollector) *E2NodeSetInstrumentation {
+func NewE2NodeSetInstrumentation(metrics MetricsCollector) *E2NodeSetInstrumentation {
 
 	return &E2NodeSetInstrumentation{
 
@@ -232,12 +232,12 @@ func (e2i *E2NodeSetInstrumentation) RecordScalingEvent(e2nodeSet *nephoranv1.E2
 // ORANInstrumentation provides instrumentation for O-RAN interfaces.
 
 type ORANInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewORANInstrumentation creates new O-RAN instrumentation.
 
-func NewORANInstrumentation(metrics *MetricsCollector) *ORANInstrumentation {
+func NewORANInstrumentation(metrics MetricsCollector) *ORANInstrumentation {
 
 	return &ORANInstrumentation{
 
@@ -319,12 +319,12 @@ func (oi *ORANInstrumentation) UpdatePolicyInstances(policyType, status string, 
 // RAGInstrumentation provides instrumentation for RAG operations.
 
 type RAGInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewRAGInstrumentation creates new RAG instrumentation.
 
-func NewRAGInstrumentation(metrics *MetricsCollector) *RAGInstrumentation {
+func NewRAGInstrumentation(metrics MetricsCollector) *RAGInstrumentation {
 
 	return &RAGInstrumentation{
 
@@ -352,12 +352,12 @@ func (ri *RAGInstrumentation) UpdateDocumentCount(count int) {
 // GitOpsInstrumentation provides instrumentation for GitOps operations.
 
 type GitOpsInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewGitOpsInstrumentation creates new GitOps instrumentation.
 
-func NewGitOpsInstrumentation(metrics *MetricsCollector) *GitOpsInstrumentation {
+func NewGitOpsInstrumentation(metrics MetricsCollector) *GitOpsInstrumentation {
 
 	return &GitOpsInstrumentation{
 
@@ -393,12 +393,12 @@ func (gi *GitOpsInstrumentation) UpdateSyncStatus(repository, branch string, inS
 // SystemInstrumentation provides system-level instrumentation.
 
 type SystemInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewSystemInstrumentation creates new system instrumentation.
 
-func NewSystemInstrumentation(metrics *MetricsCollector) *SystemInstrumentation {
+func NewSystemInstrumentation(metrics MetricsCollector) *SystemInstrumentation {
 
 	return &SystemInstrumentation{
 
@@ -426,9 +426,9 @@ func (si *SystemInstrumentation) UpdateWorkerQueueMetrics(queueName string, dept
 // InstrumentationManager manages all instrumentation components.
 
 type InstrumentationManager struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 
-	HealthChecker *HealthChecker
+	HealthChecker HealthChecker
 
 	NetworkIntentInstrumentation *NetworkIntentInstrumentation
 
@@ -486,7 +486,7 @@ func (im *InstrumentationManager) StartHealthChecks(ctx context.Context) error {
 
 // GetMetricsCollector returns the metrics collector.
 
-func (im *InstrumentationManager) GetMetricsCollector() *MetricsCollector {
+func (im *InstrumentationManager) GetMetricsCollector() MetricsCollector {
 
 	return im.Metrics
 

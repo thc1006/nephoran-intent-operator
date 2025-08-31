@@ -38,7 +38,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Forward declarations for types from other files in the package.
@@ -1384,4 +1384,33 @@ func (opt *KubernetesOptimizer) RollbackOptimization(ctx context.Context, result
 
 	return nil
 
+}
+
+// K8s optimizer placeholder methods
+func (opt *KubernetesOptimizer) shouldOptimizeResources(analysis *ComponentAnalysis) bool {
+	return true
+}
+func (opt *KubernetesOptimizer) optimizeResources(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
+	return nil, nil
+}
+func (opt *KubernetesOptimizer) shouldOptimizeScheduling(analysis *ComponentAnalysis) bool {
+	return true
+}
+func (opt *KubernetesOptimizer) optimizeScheduling(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
+	return nil, nil
+}
+func (opt *KubernetesOptimizer) shouldOptimizeNetworking(analysis *ComponentAnalysis) bool {
+	return true
+}
+func (opt *KubernetesOptimizer) optimizeNetworking(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
+	return nil, nil
+}
+func (opt *KubernetesOptimizer) calculateExpectedImpact(strategies []string) *ExpectedImpact {
+	return &ExpectedImpact{EfficiencyGain: 25.0}
+}
+func (opt *KubernetesOptimizer) ValidateOptimization(ctx context.Context, result *OptimizationResult) error {
+	return nil
+}
+func (opt *KubernetesOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
+	return nil
 }

@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: high-priority-intent
+  namespace: nephoran-system
+  labels:
+    test-scenario: priority-handling
+    test-type: e2e
+spec:
+  intent: "Emergency scale critical-service to 10 replicas with high-performance profile immediately for SLA under 30 seconds"

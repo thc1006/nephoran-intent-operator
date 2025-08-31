@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Manager manages authentication providers and sessions.
@@ -41,9 +41,9 @@ type Manager struct {
 	handlers *AuthHandlers
 }
 
-// NewAuthManager creates a new authentication manager.
+// NewManager creates a new authentication manager (renamed to avoid conflict with auth_manager.go).
 
-func NewAuthManager(ctx context.Context, config *Config, logger *slog.Logger) (*Manager, error) {
+func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Manager, error) {
 
 	if config == nil {
 

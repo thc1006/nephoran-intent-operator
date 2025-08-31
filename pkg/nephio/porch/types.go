@@ -39,7 +39,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/nephio/multicluster"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster"
 )
 
 // PorchClient defines the interface for interacting with Porch API.

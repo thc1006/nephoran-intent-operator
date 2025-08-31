@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // EdgeController manages edge computing nodes and distributed O-RAN functions.

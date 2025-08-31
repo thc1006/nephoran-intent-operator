@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security/ca"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security/mtls"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ServiceType represents the type of service client.

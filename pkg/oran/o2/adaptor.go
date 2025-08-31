@@ -17,11 +17,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/llm"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/ims"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // O2AdaptorInterface defines the complete O2 IMS interface following O-RAN.WG6.O2ims-Interface-v01.01.

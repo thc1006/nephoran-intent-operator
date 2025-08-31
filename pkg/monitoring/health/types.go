@@ -7,7 +7,7 @@ package health
 import (
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
 // HealthTier represents different tiers of health monitoring.

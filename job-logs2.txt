@@ -1,0 +1,501 @@
+﻿2025-08-28T18:07:08.2148457Z Current runner version: '2.328.0'
+2025-08-28T18:07:08.2172811Z ##[group]Runner Image Provisioner
+2025-08-28T18:07:08.2173646Z Hosted Compute Agent
+2025-08-28T18:07:08.2174696Z Version: 20250825.382
+2025-08-28T18:07:08.2175351Z Commit: 7109f2abf901479dac39397456e363ac0cca0730
+2025-08-28T18:07:08.2176008Z Build Date: 2025-08-25T22:55:50Z
+2025-08-28T18:07:08.2176626Z ##[endgroup]
+2025-08-28T18:07:08.2177130Z ##[group]Operating System
+2025-08-28T18:07:08.2177761Z Ubuntu
+2025-08-28T18:07:08.2178191Z 24.04.3
+2025-08-28T18:07:08.2178740Z LTS
+2025-08-28T18:07:08.2179186Z ##[endgroup]
+2025-08-28T18:07:08.2179663Z ##[group]Runner Image
+2025-08-28T18:07:08.2180488Z Image: ubuntu-24.04
+2025-08-28T18:07:08.2180978Z Version: 20250824.1.0
+2025-08-28T18:07:08.2182044Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250824.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-28T18:07:08.2183644Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250824.1
+2025-08-28T18:07:08.2184683Z ##[endgroup]
+2025-08-28T18:07:08.2185695Z ##[group]GITHUB_TOKEN Permissions
+2025-08-28T18:07:08.2187939Z Contents: read
+2025-08-28T18:07:08.2188671Z Metadata: read
+2025-08-28T18:07:08.2189169Z ##[endgroup]
+2025-08-28T18:07:08.2191909Z Secret source: Actions
+2025-08-28T18:07:08.2192958Z Prepare workflow directory
+2025-08-28T18:07:08.2632280Z Prepare all required actions
+2025-08-28T18:07:08.2671236Z Getting action download info
+2025-08-28T18:07:08.6370752Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-28T18:07:08.7136741Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-28T18:07:09.0010892Z Download action repository 'actions/cache@v4' (SHA:0400d5f644dc74513175e3cd8d07132dd4860809)
+2025-08-28T18:07:09.0969166Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+2025-08-28T18:07:09.3963186Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-28T18:07:09.6156370Z Complete job name: Test
+2025-08-28T18:07:09.6690532Z ##[group]Checking docker version
+2025-08-28T18:07:09.6704402Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2025-08-28T18:07:09.7599097Z '1.48'
+2025-08-28T18:07:09.7612659Z Docker daemon API version: '1.48'
+2025-08-28T18:07:09.7614042Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2025-08-28T18:07:09.7788404Z '1.48'
+2025-08-28T18:07:09.7802468Z Docker client API version: '1.48'
+2025-08-28T18:07:09.7808491Z ##[endgroup]
+2025-08-28T18:07:09.7812972Z ##[group]Clean up resources from previous jobs
+2025-08-28T18:07:09.7818649Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=7ac9a0"
+2025-08-28T18:07:09.7962043Z ##[command]/usr/bin/docker network prune --force --filter "label=7ac9a0"
+2025-08-28T18:07:09.8098887Z ##[endgroup]
+2025-08-28T18:07:09.8099756Z ##[group]Create local container network
+2025-08-28T18:07:09.8111746Z ##[command]/usr/bin/docker network create --label 7ac9a0 github_network_aa9c5b413229484d82a22b8f33e653f3
+2025-08-28T18:07:09.8594996Z 127899c394e4f8b204e45d857b1e9fd63c46887ca1f7bee2aaab2b03fb992513
+2025-08-28T18:07:09.8614969Z ##[endgroup]
+2025-08-28T18:07:09.8640157Z ##[group]Starting redis service container
+2025-08-28T18:07:09.8660461Z ##[command]/usr/bin/docker pull redis:7-alpine
+2025-08-28T18:07:10.1111109Z 7-alpine: Pulling from library/redis
+2025-08-28T18:07:10.1907777Z 0368fd46e3c6: Pulling fs layer
+2025-08-28T18:07:10.1909428Z 4c55286bbede: Pulling fs layer
+2025-08-28T18:07:10.1911100Z 5e28347af205: Pulling fs layer
+2025-08-28T18:07:10.1912494Z 311eca34042e: Pulling fs layer
+2025-08-28T18:07:10.1913523Z e6fe6f07e192: Pulling fs layer
+2025-08-28T18:07:10.1914993Z a2cadbfeca72: Pulling fs layer
+2025-08-28T18:07:10.1916333Z 4f4fb700ef54: Pulling fs layer
+2025-08-28T18:07:10.1917347Z a976ed7e7808: Pulling fs layer
+2025-08-28T18:07:10.1918231Z 311eca34042e: Waiting
+2025-08-28T18:07:10.1919000Z e6fe6f07e192: Waiting
+2025-08-28T18:07:10.1920387Z a2cadbfeca72: Waiting
+2025-08-28T18:07:10.1921212Z 4f4fb700ef54: Waiting
+2025-08-28T18:07:10.2780788Z 4c55286bbede: Verifying Checksum
+2025-08-28T18:07:10.2784182Z 4c55286bbede: Download complete
+2025-08-28T18:07:10.3111375Z 5e28347af205: Verifying Checksum
+2025-08-28T18:07:10.3113028Z 5e28347af205: Download complete
+2025-08-28T18:07:10.3286680Z 0368fd46e3c6: Verifying Checksum
+2025-08-28T18:07:10.3288299Z 0368fd46e3c6: Download complete
+2025-08-28T18:07:10.3751301Z 311eca34042e: Verifying Checksum
+2025-08-28T18:07:10.3753097Z 311eca34042e: Download complete
+2025-08-28T18:07:10.4056481Z a2cadbfeca72: Verifying Checksum
+2025-08-28T18:07:10.4058156Z a2cadbfeca72: Download complete
+2025-08-28T18:07:10.4369447Z 0368fd46e3c6: Pull complete
+2025-08-28T18:07:10.4583268Z 4f4fb700ef54: Verifying Checksum
+2025-08-28T18:07:10.4584402Z 4f4fb700ef54: Download complete
+2025-08-28T18:07:10.4631884Z 4c55286bbede: Pull complete
+2025-08-28T18:07:10.4807862Z a976ed7e7808: Verifying Checksum
+2025-08-28T18:07:10.4809304Z a976ed7e7808: Download complete
+2025-08-28T18:07:10.5807327Z e6fe6f07e192: Verifying Checksum
+2025-08-28T18:07:10.5809295Z e6fe6f07e192: Download complete
+2025-08-28T18:07:10.6241597Z 5e28347af205: Pull complete
+2025-08-28T18:07:10.6527714Z 311eca34042e: Pull complete
+2025-08-28T18:07:10.8503320Z e6fe6f07e192: Pull complete
+2025-08-28T18:07:10.8600780Z a2cadbfeca72: Pull complete
+2025-08-28T18:07:10.8708620Z 4f4fb700ef54: Pull complete
+2025-08-28T18:07:10.8831766Z a976ed7e7808: Pull complete
+2025-08-28T18:07:10.8878506Z Digest: sha256:bb186d083732f669da90be8b0f975a37812b15e913465bb14d845db72a4e3e08
+2025-08-28T18:07:10.8895301Z Status: Downloaded newer image for redis:7-alpine
+2025-08-28T18:07:10.8906143Z docker.io/library/redis:7-alpine
+2025-08-28T18:07:10.8944130Z ##[command]/usr/bin/docker create --name 41d32d88330044a8b40c0e3266a7c5de_redis7alpine_3f94aa --label 7ac9a0 --network github_network_aa9c5b413229484d82a22b8f33e653f3 --network-alias redis -p 6379:6379 --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5 -e GITHUB_ACTIONS=true -e CI=true redis:7-alpine
+2025-08-28T18:07:10.9237858Z 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:10.9263745Z ##[command]/usr/bin/docker start 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:11.2191083Z 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:11.2214387Z ##[command]/usr/bin/docker ps --all --filter id=685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2025-08-28T18:07:11.2350376Z 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7 Up Less than a second (health: starting)
+2025-08-28T18:07:11.2369436Z ##[command]/usr/bin/docker port 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:11.2489438Z 6379/tcp -> 0.0.0.0:6379
+2025-08-28T18:07:11.2490967Z 6379/tcp -> [::]:6379
+2025-08-28T18:07:11.2535134Z ##[endgroup]
+2025-08-28T18:07:11.2544583Z ##[group]Waiting for all services to be ready
+2025-08-28T18:07:11.2559130Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:11.2680711Z starting
+2025-08-28T18:07:11.2702319Z redis service is starting, waiting 2 seconds before checking again.
+2025-08-28T18:07:13.2712980Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:13.2839129Z starting
+2025-08-28T18:07:13.2853022Z redis service is starting, waiting 3 seconds before checking again.
+2025-08-28T18:07:16.9393670Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:16.9522921Z starting
+2025-08-28T18:07:16.9537959Z redis service is starting, waiting 7 seconds before checking again.
+2025-08-28T18:07:24.8664613Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:07:24.8785756Z healthy
+2025-08-28T18:07:24.8804480Z redis service is healthy.
+2025-08-28T18:07:24.8805278Z ##[endgroup]
+2025-08-28T18:07:24.9137657Z ##[group]Run actions/checkout@v4
+2025-08-28T18:07:24.9138221Z with:
+2025-08-28T18:07:24.9138457Z   repository: thc1006/nephoran-intent-operator
+2025-08-28T18:07:24.9138975Z   token: ***
+2025-08-28T18:07:24.9139160Z   ssh-strict: true
+2025-08-28T18:07:24.9139368Z   ssh-user: git
+2025-08-28T18:07:24.9139555Z   persist-credentials: true
+2025-08-28T18:07:24.9139782Z   clean: true
+2025-08-28T18:07:24.9140161Z   sparse-checkout-cone-mode: true
+2025-08-28T18:07:24.9140401Z   fetch-depth: 1
+2025-08-28T18:07:24.9140575Z   fetch-tags: false
+2025-08-28T18:07:24.9140776Z   show-progress: true
+2025-08-28T18:07:24.9140961Z   lfs: false
+2025-08-28T18:07:24.9141126Z   submodules: false
+2025-08-28T18:07:24.9141306Z   set-safe-directory: true
+2025-08-28T18:07:24.9141778Z env:
+2025-08-28T18:07:24.9141944Z   REGISTRY: ghcr.io
+2025-08-28T18:07:24.9142161Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:07:24.9142411Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:07:24.9142681Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:07:24.9142958Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:07:24.9143175Z   GOMAXPROCS: 8
+2025-08-28T18:07:24.9143342Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:07:24.9143519Z   GOTOOLCHAIN: local
+2025-08-28T18:07:24.9143690Z   GOAMD64: v3
+2025-08-28T18:07:24.9143847Z   GOGC: 100
+2025-08-28T18:07:24.9144019Z   GOFLAGS: -mod=readonly
+2025-08-28T18:07:24.9144236Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:07:24.9144496Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:07:24.9144870Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:07:24.9145168Z   GOSUMDB: sum.golang.org
+2025-08-28T18:07:24.9145359Z ##[endgroup]
+2025-08-28T18:07:25.0213207Z Syncing repository: thc1006/nephoran-intent-operator
+2025-08-28T18:07:25.0214615Z ##[group]Getting Git version info
+2025-08-28T18:07:25.0215093Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-28T18:07:25.0215704Z [command]/usr/bin/git version
+2025-08-28T18:07:25.0268073Z git version 2.51.0
+2025-08-28T18:07:25.0294455Z ##[endgroup]
+2025-08-28T18:07:25.0315784Z Temporarily overriding HOME='/home/runner/work/_temp/f4358b48-1796-4c53-8632-072f98be5aa5' before making global git config changes
+2025-08-28T18:07:25.0317027Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-28T18:07:25.0321841Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T18:07:25.0356591Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-28T18:07:25.0359822Z ##[group]Initializing the repository
+2025-08-28T18:07:25.0364611Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T18:07:25.0438033Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-28T18:07:25.0438949Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-28T18:07:25.0439822Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-28T18:07:25.0441232Z hint:
+2025-08-28T18:07:25.0441684Z hint: 	git config --global init.defaultBranch <name>
+2025-08-28T18:07:25.0442186Z hint:
+2025-08-28T18:07:25.0442658Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-28T18:07:25.0443438Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-28T18:07:25.0443844Z hint:
+2025-08-28T18:07:25.0444030Z hint: 	git branch -m <name>
+2025-08-28T18:07:25.0444244Z hint:
+2025-08-28T18:07:25.0444829Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-28T18:07:25.0445888Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-08-28T18:07:25.0456069Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-08-28T18:07:25.0491638Z ##[endgroup]
+2025-08-28T18:07:25.0492520Z ##[group]Disabling automatic garbage collection
+2025-08-28T18:07:25.0496407Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-28T18:07:25.0524300Z ##[endgroup]
+2025-08-28T18:07:25.0524835Z ##[group]Setting up auth
+2025-08-28T18:07:25.0531857Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-28T18:07:25.0562593Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-28T18:07:25.0825247Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-28T18:07:25.0855301Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-28T18:07:25.1081941Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-28T18:07:25.1127278Z ##[endgroup]
+2025-08-28T18:07:25.1127825Z ##[group]Fetching the repository
+2025-08-28T18:07:25.1136157Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +63998ce3377295ba83ab8865898a35c04312cbc5:refs/remotes/origin/feat/e2e
+2025-08-28T18:07:25.6544307Z From https://github.com/thc1006/nephoran-intent-operator
+2025-08-28T18:07:25.6545447Z  * [new ref]         63998ce3377295ba83ab8865898a35c04312cbc5 -> origin/feat/e2e
+2025-08-28T18:07:25.6575805Z ##[endgroup]
+2025-08-28T18:07:25.6576430Z ##[group]Determining the checkout info
+2025-08-28T18:07:25.6578800Z ##[endgroup]
+2025-08-28T18:07:25.6585195Z [command]/usr/bin/git sparse-checkout disable
+2025-08-28T18:07:25.6629060Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-28T18:07:25.6660884Z ##[group]Checking out the ref
+2025-08-28T18:07:25.6666650Z [command]/usr/bin/git checkout --progress --force -B feat/e2e refs/remotes/origin/feat/e2e
+2025-08-28T18:07:25.9433976Z Switched to a new branch 'feat/e2e'
+2025-08-28T18:07:25.9435284Z branch 'feat/e2e' set up to track 'origin/feat/e2e'.
+2025-08-28T18:07:25.9447334Z ##[endgroup]
+2025-08-28T18:07:25.9487674Z [command]/usr/bin/git log -1 --format=%H
+2025-08-28T18:07:25.9509633Z 63998ce3377295ba83ab8865898a35c04312cbc5
+2025-08-28T18:07:25.9702873Z ##[group]Run actions/setup-go@v5
+2025-08-28T18:07:25.9703125Z with:
+2025-08-28T18:07:25.9703299Z   go-version-file: go.mod
+2025-08-28T18:07:25.9703507Z   check-latest: true
+2025-08-28T18:07:25.9703698Z   cache: false
+2025-08-28T18:07:25.9703992Z   token: ***
+2025-08-28T18:07:25.9704156Z env:
+2025-08-28T18:07:25.9704318Z   REGISTRY: ghcr.io
+2025-08-28T18:07:25.9704526Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:07:25.9704766Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:07:25.9704963Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:07:25.9705195Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:07:25.9705414Z   GOMAXPROCS: 8
+2025-08-28T18:07:25.9705583Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:07:25.9705758Z   GOTOOLCHAIN: local
+2025-08-28T18:07:25.9705933Z   GOAMD64: v3
+2025-08-28T18:07:25.9706098Z   GOGC: 100
+2025-08-28T18:07:25.9706260Z   GOFLAGS: -mod=readonly
+2025-08-28T18:07:25.9706484Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:07:25.9706774Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:07:25.9707033Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:07:25.9707297Z   GOSUMDB: sum.golang.org
+2025-08-28T18:07:25.9707491Z ##[endgroup]
+2025-08-28T18:07:26.1277775Z Setup go version spec 1.24.1
+2025-08-28T18:07:26.1281131Z Attempting to resolve the latest version from the manifest...
+2025-08-28T18:07:26.4660341Z matching 1.24.1...
+2025-08-28T18:07:26.4696756Z Resolved as '1.24.1'
+2025-08-28T18:07:26.4717259Z Attempting to download 1.24.1...
+2025-08-28T18:07:26.7524758Z matching 1.24.1...
+2025-08-28T18:07:26.7536930Z Acquiring 1.24.1 from https://github.com/actions/go-versions/releases/download/1.24.1-13667719799/go-1.24.1-linux-x64.tar.gz
+2025-08-28T18:07:27.2630978Z Extracting Go...
+2025-08-28T18:07:27.2731355Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/41085625-fc9b-41dc-b1c2-ca3d154b5e05 -f /home/runner/work/_temp/ef7f98ab-569c-4252-bc97-f8752e2cfa24
+2025-08-28T18:07:29.0276756Z Successfully extracted go to /home/runner/work/_temp/41085625-fc9b-41dc-b1c2-ca3d154b5e05
+2025-08-28T18:07:29.0277299Z Adding to the cache ...
+2025-08-28T18:07:33.6621540Z Successfully cached go to /opt/hostedtoolcache/go/1.24.1/x64
+2025-08-28T18:07:33.6623653Z Added go to the path
+2025-08-28T18:07:33.6626425Z Successfully set up Go version 1.24.1
+2025-08-28T18:07:33.6817817Z go version go1.24.1 linux/amd64
+2025-08-28T18:07:33.6818013Z 
+2025-08-28T18:07:33.6818291Z ##[group]go env
+2025-08-28T18:07:34.1792533Z AR='ar'
+2025-08-28T18:07:34.1792871Z CC='gcc'
+2025-08-28T18:07:34.1793179Z CGO_CFLAGS='-O2 -g'
+2025-08-28T18:07:34.1793503Z CGO_CPPFLAGS=''
+2025-08-28T18:07:34.1793794Z CGO_CXXFLAGS='-O2 -g'
+2025-08-28T18:07:34.1793999Z CGO_ENABLED='1'
+2025-08-28T18:07:34.1794189Z CGO_FFLAGS='-O2 -g'
+2025-08-28T18:07:34.1794389Z CGO_LDFLAGS='-O2 -g'
+2025-08-28T18:07:34.1794600Z CXX='g++'
+2025-08-28T18:07:34.1794765Z GCCGO='gccgo'
+2025-08-28T18:07:34.1794942Z GO111MODULE=''
+2025-08-28T18:07:34.1795108Z GOAMD64='v3'
+2025-08-28T18:07:34.1795309Z GOARCH='amd64'
+2025-08-28T18:07:34.1795500Z GOAUTH='netrc'
+2025-08-28T18:07:34.1795659Z GOBIN=''
+2025-08-28T18:07:34.1795854Z GOCACHE='/home/runner/.cache/go-build'
+2025-08-28T18:07:34.1796100Z GOCACHEPROG=''
+2025-08-28T18:07:34.1796302Z GODEBUG=''
+2025-08-28T18:07:34.1796507Z GOENV='/home/runner/.config/go/env'
+2025-08-28T18:07:34.1796734Z GOEXE=''
+2025-08-28T18:07:34.1796894Z GOEXPERIMENT=''
+2025-08-28T18:07:34.1797071Z GOFIPS140='off'
+2025-08-28T18:07:34.1797246Z GOFLAGS='-mod=readonly'
+2025-08-28T18:07:34.1797890Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3125462013=/tmp/go-build -gno-record-gcc-switches'
+2025-08-28T18:07:34.1798473Z GOHOSTARCH='amd64'
+2025-08-28T18:07:34.1798649Z GOHOSTOS='linux'
+2025-08-28T18:07:34.1798824Z GOINSECURE=''
+2025-08-28T18:07:34.1799166Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+2025-08-28T18:07:34.1799571Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-08-28T18:07:34.1800332Z GONOPROXY='github.com/thc1006/*'
+2025-08-28T18:07:34.1800785Z GONOSUMDB='github.com/thc1006/*'
+2025-08-28T18:07:34.1801115Z GOOS='linux'
+2025-08-28T18:07:34.1801327Z GOPATH='/home/runner/go'
+2025-08-28T18:07:34.1801546Z GOPRIVATE='github.com/thc1006/*'
+2025-08-28T18:07:34.1801822Z GOPROXY='https://proxy.golang.org,direct'
+2025-08-28T18:07:34.1802124Z GOROOT='/opt/hostedtoolcache/go/1.24.1/x64'
+2025-08-28T18:07:34.1802380Z GOSUMDB='sum.golang.org'
+2025-08-28T18:07:34.1802582Z GOTELEMETRY='local'
+2025-08-28T18:07:34.1802811Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-08-28T18:07:34.1803079Z GOTMPDIR=''
+2025-08-28T18:07:34.1803245Z GOTOOLCHAIN='local'
+2025-08-28T18:07:34.1803533Z GOTOOLDIR='/opt/hostedtoolcache/go/1.24.1/x64/pkg/tool/linux_amd64'
+2025-08-28T18:07:34.1803851Z GOVCS=''
+2025-08-28T18:07:34.1804012Z GOVERSION='go1.24.1'
+2025-08-28T18:07:34.1804195Z GOWORK=''
+2025-08-28T18:07:34.1804369Z PKG_CONFIG='pkg-config'
+2025-08-28T18:07:34.1804500Z 
+2025-08-28T18:07:34.1804921Z ##[endgroup]
+2025-08-28T18:07:34.5572952Z ##[group]Run actions/cache@v4
+2025-08-28T18:07:34.5573216Z with:
+2025-08-28T18:07:34.5573414Z   path: ~/.cache/go-build
+~/go/pkg/mod
+
+2025-08-28T18:07:34.5573831Z   key: Linux-go-87ae2fd0aea8d49d1d1cd55aca86deb122ca06c5b76fd34d378e2068b917b1b6
+2025-08-28T18:07:34.5574435Z   restore-keys: Linux-go-
+
+2025-08-28T18:07:34.5574664Z   enableCrossOsArchive: false
+2025-08-28T18:07:34.5574883Z   fail-on-cache-miss: false
+2025-08-28T18:07:34.5575090Z   lookup-only: false
+2025-08-28T18:07:34.5575281Z   save-always: false
+2025-08-28T18:07:34.5575448Z env:
+2025-08-28T18:07:34.5575604Z   REGISTRY: ghcr.io
+2025-08-28T18:07:34.5575818Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:07:34.5576085Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:07:34.5576278Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:07:34.5576522Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:07:34.5576742Z   GOMAXPROCS: 8
+2025-08-28T18:07:34.5576918Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:07:34.5577091Z   GOTOOLCHAIN: local
+2025-08-28T18:07:34.5577309Z   GOAMD64: v3
+2025-08-28T18:07:34.5577470Z   GOGC: 100
+2025-08-28T18:07:34.5577640Z   GOFLAGS: -mod=readonly
+2025-08-28T18:07:34.5577854Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:07:34.5578116Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:07:34.5578396Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:07:34.5578666Z   GOSUMDB: sum.golang.org
+2025-08-28T18:07:34.5578867Z ##[endgroup]
+2025-08-28T18:07:34.7767519Z Cache hit for: Linux-go-87ae2fd0aea8d49d1d1cd55aca86deb122ca06c5b76fd34d378e2068b917b1b6
+2025-08-28T18:07:35.8381090Z Received 209715200 of 1565381318 (13.4%), 199.8 MBs/sec
+2025-08-28T18:07:36.8492135Z Received 436207616 of 1565381318 (27.9%), 206.7 MBs/sec
+2025-08-28T18:07:37.9070120Z Received 671088640 of 1565381318 (42.9%), 208.5 MBs/sec
+2025-08-28T18:07:38.9060719Z Received 872415232 of 1565381318 (55.7%), 204.5 MBs/sec
+2025-08-28T18:07:39.9055531Z Received 1069547520 of 1565381318 (68.3%), 201.2 MBs/sec
+2025-08-28T18:07:40.9088053Z Received 1262485504 of 1565381318 (80.7%), 198.3 MBs/sec
+2025-08-28T18:07:41.9665879Z Received 1476395008 of 1565381318 (94.3%), 197.5 MBs/sec
+2025-08-28T18:07:42.4016141Z Received 1565381318 of 1565381318 (100.0%), 197.3 MBs/sec
+2025-08-28T18:07:42.4019187Z Cache Size: ~1493 MB (1565381318 B)
+2025-08-28T18:07:42.4081291Z [command]/usr/bin/tar -xf /home/runner/work/_temp/6c347688-f2be-4a05-856b-930fb1a18e39/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+2025-08-28T18:08:00.7594993Z Cache restored successfully
+2025-08-28T18:08:01.0205789Z Cache restored from key: Linux-go-87ae2fd0aea8d49d1d1cd55aca86deb122ca06c5b76fd34d378e2068b917b1b6
+2025-08-28T18:08:01.0321127Z ##[group]Run go mod download
+2025-08-28T18:08:01.0321569Z [36;1mgo mod download[0m
+2025-08-28T18:08:01.0321912Z [36;1mgo mod verify[0m
+2025-08-28T18:08:01.0367835Z shell: /usr/bin/bash -e {0}
+2025-08-28T18:08:01.0368067Z env:
+2025-08-28T18:08:01.0368238Z   REGISTRY: ghcr.io
+2025-08-28T18:08:01.0368463Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:08:01.0368712Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:08:01.0368915Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:08:01.0369159Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:08:01.0369396Z   GOMAXPROCS: 8
+2025-08-28T18:08:01.0369574Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:08:01.0369763Z   GOTOOLCHAIN: local
+2025-08-28T18:08:01.0370174Z   GOAMD64: v3
+2025-08-28T18:08:01.0370343Z   GOGC: 100
+2025-08-28T18:08:01.0370511Z   GOFLAGS: -mod=readonly
+2025-08-28T18:08:01.0370742Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:08:01.0371007Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:08:01.0371316Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:08:01.0371569Z   GOSUMDB: sum.golang.org
+2025-08-28T18:08:01.0371771Z ##[endgroup]
+2025-08-28T18:08:05.6577199Z all modules verified
+2025-08-28T18:08:05.6653378Z ##[group]Run actions/download-artifact@v4
+2025-08-28T18:08:05.6653935Z with:
+2025-08-28T18:08:05.6654254Z   name: generated-crds
+2025-08-28T18:08:05.6654672Z   path: deployments/crds/
+2025-08-28T18:08:05.6654903Z   merge-multiple: false
+2025-08-28T18:08:05.6655276Z   repository: thc1006/nephoran-intent-operator
+2025-08-28T18:08:05.6655694Z   run-id: 17304115264
+2025-08-28T18:08:05.6656334Z env:
+2025-08-28T18:08:05.6656504Z   REGISTRY: ghcr.io
+2025-08-28T18:08:05.6656736Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:08:05.6657178Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:08:05.6687810Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:08:05.6688236Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:08:05.6688661Z   GOMAXPROCS: 8
+2025-08-28T18:08:05.6688948Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:08:05.6689239Z   GOTOOLCHAIN: local
+2025-08-28T18:08:05.6689539Z   GOAMD64: v3
+2025-08-28T18:08:05.6689816Z   GOGC: 100
+2025-08-28T18:08:05.6690236Z   GOFLAGS: -mod=readonly
+2025-08-28T18:08:05.6690527Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:08:05.6691097Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:08:05.6691583Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:08:05.6691983Z   GOSUMDB: sum.golang.org
+2025-08-28T18:08:05.6692200Z ##[endgroup]
+2025-08-28T18:08:05.8763754Z Downloading single artifact
+2025-08-28T18:08:06.0111669Z Preparing to download the following artifacts:
+2025-08-28T18:08:06.0113911Z - generated-crds (ID: 3876384961, Size: 73003, Expected Digest: sha256:875c38869199f4cfbdffe8d5a8561d372c7c1c7232de28a8820812b551d4bace)
+2025-08-28T18:08:06.0712020Z Redirecting to blob download url: https://productionresultssa19.blob.core.windows.net/actions-results/ee1ec81f-2907-4f37-b4a4-56546ca204dc/workflow-job-run-4e0bca9f-ccce-5d66-841b-2dfe9b3428f1/artifacts/0a41457ede0c89396d4867ccea5293bbd949e6e96679c311296b66d41e65c1f9.zip
+2025-08-28T18:08:06.0713676Z Starting download of artifact to: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/deployments/crds
+2025-08-28T18:08:06.0980774Z (node:2650) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2025-08-28T18:08:06.0982377Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2025-08-28T18:08:06.1868706Z SHA256 digest of downloaded artifact is 875c38869199f4cfbdffe8d5a8561d372c7c1c7232de28a8820812b551d4bace
+2025-08-28T18:08:06.1870686Z Artifact download completed successfully.
+2025-08-28T18:08:06.1871185Z Total of 1 artifact(s) downloaded
+2025-08-28T18:08:06.1877078Z Download artifact has finished successfully
+2025-08-28T18:08:06.1974204Z ##[group]Run go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+2025-08-28T18:08:06.1974784Z [36;1mgo install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest[0m
+2025-08-28T18:08:06.1975168Z [36;1msetup-envtest use 1.29.0[0m
+2025-08-28T18:08:06.2005491Z shell: /usr/bin/bash -e {0}
+2025-08-28T18:08:06.2005726Z env:
+2025-08-28T18:08:06.2005905Z   REGISTRY: ghcr.io
+2025-08-28T18:08:06.2006131Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:08:06.2006388Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:08:06.2006603Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:08:06.2006854Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:08:06.2007085Z   GOMAXPROCS: 8
+2025-08-28T18:08:06.2007280Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:08:06.2007468Z   GOTOOLCHAIN: local
+2025-08-28T18:08:06.2007647Z   GOAMD64: v3
+2025-08-28T18:08:06.2007813Z   GOGC: 100
+2025-08-28T18:08:06.2007987Z   GOFLAGS: -mod=readonly
+2025-08-28T18:08:06.2008255Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:08:06.2008521Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:08:06.2008801Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:08:06.2009070Z   GOSUMDB: sum.golang.org
+2025-08-28T18:08:06.2009278Z ##[endgroup]
+2025-08-28T18:08:06.5394580Z go: downloading sigs.k8s.io/controller-runtime v0.22.0
+2025-08-28T18:08:06.7543997Z go: downloading sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20250828001511-fc84a60eaaae
+2025-08-28T18:08:06.8814380Z go: downloading go.uber.org/multierr v1.10.0
+2025-08-28T18:08:06.8828714Z go: downloading golang.org/x/text v0.23.0
+2025-08-28T18:08:11.1456410Z Version: 1.29.0
+2025-08-28T18:08:11.1456765Z OS/Arch: linux/amd64
+2025-08-28T18:08:11.1457421Z sha512: 256020ab84ee6d8d55bd7a25f6abbfeefebade0d8d17cd7c3d1c3b08a9b4859454e97f4972dae8ba31388a4c70c5cc0828c4ff91308d76d65286a592586fbf96
+2025-08-28T18:08:11.1458534Z Path: /home/runner/.local/share/kubebuilder-envtest/k8s/1.29.0-linux-amd64
+2025-08-28T18:08:11.1498559Z ##[group]Run make test
+2025-08-28T18:08:11.1498815Z [36;1mmake test[0m
+2025-08-28T18:08:11.1530367Z shell: /usr/bin/bash -e {0}
+2025-08-28T18:08:11.1530605Z env:
+2025-08-28T18:08:11.1530780Z   REGISTRY: ghcr.io
+2025-08-28T18:08:11.1531007Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:08:11.1531262Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:08:11.1531474Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:08:11.1531727Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:08:11.1531954Z   GOMAXPROCS: 8
+2025-08-28T18:08:11.1532135Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:08:11.1532323Z   GOTOOLCHAIN: local
+2025-08-28T18:08:11.1532503Z   GOAMD64: v3
+2025-08-28T18:08:11.1532677Z   GOGC: 100
+2025-08-28T18:08:11.1532853Z   GOFLAGS: -mod=readonly
+2025-08-28T18:08:11.1533087Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:08:11.1533371Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:08:11.1533647Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:08:11.1533979Z   GOSUMDB: sum.golang.org
+2025-08-28T18:08:11.1534199Z   USE_EXISTING_CLUSTER: false
+2025-08-28T18:08:11.1534420Z   ENVTEST_K8S_VERSION: 1.29.0
+2025-08-28T18:08:11.1534660Z   REDIS_URL: redis://localhost:6379
+2025-08-28T18:08:11.1534905Z ##[endgroup]
+2025-08-28T18:08:11.1767389Z Makefile:685: *** missing separator.  Stop.
+2025-08-28T18:08:11.1781247Z ##[error]Process completed with exit code 2.
+2025-08-28T18:08:11.1835564Z ##[group]Run actions/upload-artifact@v4
+2025-08-28T18:08:11.1835854Z with:
+2025-08-28T18:08:11.1836036Z   name: test-results
+2025-08-28T18:08:11.1836373Z   path: .excellence-reports/coverage.out
+.excellence-reports/coverage.html
+
+2025-08-28T18:08:11.1836752Z   if-no-files-found: ignore
+2025-08-28T18:08:11.1836970Z   retention-days: 7
+2025-08-28T18:08:11.1837170Z   compression-level: 6
+2025-08-28T18:08:11.1837393Z   overwrite: false
+2025-08-28T18:08:11.1837598Z   include-hidden-files: false
+2025-08-28T18:08:11.1837814Z env:
+2025-08-28T18:08:11.1837989Z   REGISTRY: ghcr.io
+2025-08-28T18:08:11.1838210Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T18:08:11.1838466Z   DOCKER_BUILDKIT: 1
+2025-08-28T18:08:11.1838681Z   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+2025-08-28T18:08:11.1838942Z   GOPRIVATE: github.com/thc1006/*
+2025-08-28T18:08:11.1839170Z   GOMAXPROCS: 8
+2025-08-28T18:08:11.1839352Z   GOMEMLIMIT: 6GiB
+2025-08-28T18:08:11.1839541Z   GOTOOLCHAIN: local
+2025-08-28T18:08:11.1839767Z   GOAMD64: v3
+2025-08-28T18:08:11.1840188Z   GOGC: 100
+2025-08-28T18:08:11.1840371Z   GOFLAGS: -mod=readonly
+2025-08-28T18:08:11.1840611Z   GO_BUILD_TAGS: fast_build,no_swagger,no_e2e
+2025-08-28T18:08:11.1840885Z   GO_BUILD_CACHE_KEY_SUFFIX: v3-ultra
+2025-08-28T18:08:11.1841170Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T18:08:11.1841435Z   GOSUMDB: sum.golang.org
+2025-08-28T18:08:11.1841642Z ##[endgroup]
+2025-08-28T18:08:11.4011590Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2025-08-28T18:08:11.4014269Z The least common ancestor is /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.excellence-reports. This will be the root directory of the artifact
+2025-08-28T18:08:11.4015114Z No files were found with the provided path: .excellence-reports/coverage.out
+2025-08-28T18:08:11.4015589Z .excellence-reports/coverage.html. No artifacts will be uploaded.
+2025-08-28T18:08:11.4137010Z Post job cleanup.
+2025-08-28T18:08:11.5085887Z [command]/usr/bin/git version
+2025-08-28T18:08:11.5122703Z git version 2.51.0
+2025-08-28T18:08:11.5173508Z Temporarily overriding HOME='/home/runner/work/_temp/95e653c3-bfd0-40e6-bf8a-fff2906728e2' before making global git config changes
+2025-08-28T18:08:11.5174856Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-28T18:08:11.5188877Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T18:08:11.5234453Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-28T18:08:11.5274343Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-28T18:08:11.5530267Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-28T18:08:11.5561816Z http.https://github.com/.extraheader
+2025-08-28T18:08:11.5577556Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-08-28T18:08:11.5617983Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-28T18:08:11.5964081Z Print service container logs: 41d32d88330044a8b40c0e3266a7c5de_redis7alpine_3f94aa
+2025-08-28T18:08:11.5968278Z ##[command]/usr/bin/docker logs --details 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:08:11.6087636Z  1:C 28 Aug 2025 18:07:11.225 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+2025-08-28T18:08:11.6090609Z  1:C 28 Aug 2025 18:07:11.225 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+2025-08-28T18:08:11.6091438Z  1:C 28 Aug 2025 18:07:11.225 * Redis version=7.4.5, bits=64, commit=00000000, modified=0, pid=1, just started
+2025-08-28T18:08:11.6092751Z  1:C 28 Aug 2025 18:07:11.225 # Warning: no config file specified, using the default config. In order to specify a config file use redis-server /path/to/redis.conf
+2025-08-28T18:08:11.6093798Z  1:M 28 Aug 2025 18:07:11.226 * monotonic clock: POSIX clock_gettime
+2025-08-28T18:08:11.6094414Z  1:M 28 Aug 2025 18:07:11.226 * Running mode=standalone, port=6379.
+2025-08-28T18:08:11.6094959Z  1:M 28 Aug 2025 18:07:11.226 * Server initialized
+2025-08-28T18:08:11.6095472Z  1:M 28 Aug 2025 18:07:11.226 * Ready to accept connections tcp
+2025-08-28T18:08:11.6107871Z Stop and remove container: 41d32d88330044a8b40c0e3266a7c5de_redis7alpine_3f94aa
+2025-08-28T18:08:11.6112972Z ##[command]/usr/bin/docker rm --force 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:08:12.5575963Z 685ca249f0def71688c5bb8ea5390cd108c843294a213170833b345b6276c0b7
+2025-08-28T18:08:12.5604427Z Remove container network: github_network_aa9c5b413229484d82a22b8f33e653f3
+2025-08-28T18:08:12.5609139Z ##[command]/usr/bin/docker network rm github_network_aa9c5b413229484d82a22b8f33e653f3
+2025-08-28T18:08:12.6762583Z github_network_aa9c5b413229484d82a22b8f33e653f3
+2025-08-28T18:08:12.6822173Z Cleaning up orphan processes

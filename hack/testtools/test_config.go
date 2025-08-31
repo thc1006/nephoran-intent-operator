@@ -390,11 +390,11 @@ func GetCoverageConfig() *CoverageConfig {
 
 		IncludePatterns: []string{
 
-			"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/...",
+			"github.com/thc1006/nephoran-intent-operator/pkg/controllers/...",
 
-			"github.com/nephio-project/nephoran-intent-operator/pkg/edge/...",
+			"github.com/thc1006/nephoran-intent-operator/pkg/edge/...",
 
-			"github.com/nephio-project/nephoran-intent-operator/pkg/global/...",
+			"github.com/thc1006/nephoran-intent-operator/pkg/global/...",
 		},
 
 		ExcludePatterns: []string{

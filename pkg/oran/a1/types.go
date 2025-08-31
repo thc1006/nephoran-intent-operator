@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // A1Interface represents the three O-RAN A1 interface variants.

@@ -1,0 +1,7 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: e2e-scaling-test
+  namespace: default
+spec:
+  intent: "Scale test-deployment to 3 replicas for E2E testing"

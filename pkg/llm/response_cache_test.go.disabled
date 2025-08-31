@@ -240,7 +240,7 @@ var _ = Describe("ResponseCache", func() {
 				time.Sleep(100 * time.Millisecond)
 
 				// Should no longer be retrievable
-				retrieved, found = shortCache.Get(key)
+				_, found = shortCache.Get(key)
 				Expect(found).To(BeFalse())
 			})
 

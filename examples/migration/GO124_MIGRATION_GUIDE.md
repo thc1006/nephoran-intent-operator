@@ -448,7 +448,7 @@ go tool pprof mem.prof
 ### Security Validation
 ```bash
 # Security scanning
-go run github.com/securecodewarrior/gosec/v2/cmd/gosec ./...
+go run github.com/securego/gosec/v2/cmd/gosec ./...
 
 # TLS configuration testing
 go test ./pkg/security/... -v

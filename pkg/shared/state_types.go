@@ -35,7 +35,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
 // IntentState represents the complete state of a network intent.

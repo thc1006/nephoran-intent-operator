@@ -11,7 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/yaml"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/patchgen"
+	"github.com/thc1006/nephoran-intent-operator/internal/patchgen"
 )
 
 // SecurePatchGenerator provides hardened patch package generation.

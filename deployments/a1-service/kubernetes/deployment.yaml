@@ -101,7 +101,6 @@ spec:
       # Node selector for deployment on appropriate nodes
       nodeSelector:
         kubernetes.io/os: linux
-        node.kubernetes.io/instance-type: "standard"
       tolerations:
       - key: "node.kubernetes.io/unreachable"
         operator: "Exists"

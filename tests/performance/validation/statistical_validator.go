@@ -1,4 +1,4 @@
-package validation
+package performance_validation
 
 import (
 	"fmt"

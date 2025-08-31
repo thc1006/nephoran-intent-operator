@@ -4,7 +4,7 @@
 
 // and provides the main entry point for running O-RAN compliance tests.
 
-package validation
+package test_validation
 
 import (
 	"context"

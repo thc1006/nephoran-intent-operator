@@ -129,6 +129,11 @@ paths = [
     '''security-reports/.*''',
 ]
 
+# Specific commit allowlist for resolved historical issues
+commits = [
+    "fa3de14963d6da858e443fd0e4133212675c1392", # Historical basic-auth in deleted file
+]
+
 # Custom rules for telecommunications security
 [[rules]]
 id = "telecom-credentials"
@@ -147,3 +152,45 @@ id = "ran-credentials"
 description = "RAN Credentials"
 regex = '''(?i)(pci|tac|cellid)['"]*[:=]['"]*[0-9]{1,}'''
 keywords = ["pci", "tac", "cellid"]
+
+[[rules]]
+id = "oauth-client-secret"
+description = "OAuth Client Secret"
+regex = '''(?i)client[_-]?secret['"]*[:=]['"]*[a-zA-Z0-9\-_]{20,}'''
+keywords = ["client_secret", "clientsecret"]
+
+[[rules]]
+id = "database-url"
+description = "Database Connection String"
+regex = '''(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@'''
+keywords = ["postgres://", "mysql://", "mongodb://", "redis://"]
+
+[[rules]]
+id = "bearer-token"
+description = "Bearer Token"
+regex = '''(?i)bearer\s+[a-zA-Z0-9\-_\.]+'''
+keywords = ["bearer "]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[a-zA-Z0-9]{48}'''
+keywords = ["sk-"]
+
+[[rules]]
+id = "azure-key"
+description = "Azure Subscription Key"
+regex = '''(?i)azure[_-]?(subscription[_-]?key|api[_-]?key)['"]*[:=]['"]*[a-z0-9]{32}'''
+keywords = ["azure"]
+
+[[rules]]
+id = "google-cloud-key"
+description = "Google Cloud API Key"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+keywords = ["AIza"]
+
+[[rules]]
+id = "hardcoded-secret"
+description = "Hardcoded Secret"
+regex = '''(?i)(secret|token|key|password|passwd|pwd|credential)['"]*[:=]['"]*[a-zA-Z0-9\-_!@#$%^&*]{8,}['"]*'''
+keywords = ["secret", "token", "password", "credential"]

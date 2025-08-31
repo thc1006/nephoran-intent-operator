@@ -2,7 +2,7 @@
 
 // This validator ensures comprehensive observability stack is properly configured and functional.
 
-package validation
+package test_validation
 
 import (
 	"context"

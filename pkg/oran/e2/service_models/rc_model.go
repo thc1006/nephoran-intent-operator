@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/e2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
 // RCServiceModel implements the E2SM-RC v1.0 service model.
