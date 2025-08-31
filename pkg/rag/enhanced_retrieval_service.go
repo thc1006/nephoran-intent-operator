@@ -513,7 +513,7 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 
 	}
 
-	searchResponse, err := (*ers.weaviateClient).Search(ctx, searchQuery)
+	searchResponse, err := ers.weaviateClient.Search(ctx, searchQuery)
 
 	if err != nil {
 
