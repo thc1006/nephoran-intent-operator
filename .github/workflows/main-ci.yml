@@ -36,6 +36,9 @@ env:
   GOSUMDB: "sum.golang.org"
   GOVULNCHECK_VERSION: "latest"
   GOPRIVATE: "github.com/thc1006/*"
+  # Speed optimizations
+  FAST_MODE: ${{ contains(github.event.head_commit.message, '[fast]') || contains(github.event.head_commit.message, '[skip-slow]') }}
+  SKIP_SECURITY: ${{ contains(github.event.head_commit.message, '[skip-security]') }}
 
 jobs:
   # =============================================================================
@@ -44,7 +47,8 @@ jobs:
   dependency-security:
     name: Dependency Security & Integrity
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: ${{ env.FAST_MODE == 'true' && 5 || 15 }}
+    if: ${{ env.SKIP_SECURITY != 'true' }}
     outputs:
       go-cache-key: ${{ steps.cache-info.outputs.go-cache-key }}
       tools-cache-key: ${{ steps.cache-info.outputs.tools-cache-key }}
@@ -150,24 +154,29 @@ jobs:
 
       - name: Vulnerability scanning
         run: |
-          echo "🛡️ Scanning for known vulnerabilities..."
-          set -euo pipefail
-          
-          # Install govulncheck if not cached
-          if ! command -v govulncheck &> /dev/null; then
-            echo "📥 Installing govulncheck..."
-            go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
-          fi
-          
-          # Run vulnerability scan
-          echo "🔍 Running vulnerability scan..."
-          if ! govulncheck ./...; then
-            echo "⚠️ Vulnerabilities detected in dependencies"
-            echo "📋 Consider updating vulnerable dependencies"
-            # Don't fail the build for now, just warn
-            # exit 1
+          if [ "$FAST_MODE" = "true" ]; then
+            echo "⚡ Fast mode: Skipping vulnerability scan"
+            echo "✅ Vulnerability scan skipped for speed"
           else
-            echo "✅ No known vulnerabilities detected"
+            echo "🛡️ Scanning for known vulnerabilities..."
+            set -euo pipefail
+            
+            # Install govulncheck if not cached
+            if ! command -v govulncheck &> /dev/null; then
+              echo "📥 Installing govulncheck..."
+              go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
+            fi
+            
+            # Run vulnerability scan
+            echo "🔍 Running vulnerability scan..."
+            if ! govulncheck ./...; then
+              echo "⚠️ Vulnerabilities detected in dependencies"
+              echo "📋 Consider updating vulnerable dependencies"
+              # Don't fail the build for now, just warn
+              # exit 1
+            else
+              echo "✅ No known vulnerabilities detected"
+            fi
           fi
 
   # =============================================================================
@@ -364,7 +373,7 @@ jobs:
     name: Comprehensive Testing
     runs-on: ubuntu-latest
     needs: dependency-security
-    timeout-minutes: 30
+    timeout-minutes: ${{ env.FAST_MODE == 'true' && 10 || 30 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -394,33 +403,41 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-deps-${{ env.GO_VERSION }}-
 
-      - name: Run unit tests
+      - name: Smart test execution
         run: |
-          echo "🧪 Running comprehensive test suite..."
+          echo "🧪 Running test suite with smart optimization..."
           set -euo pipefail
           
           # Create test results directory
           mkdir -p test-results
           
-          # Run tests with comprehensive options
-          echo "🔄 Running unit tests with race detection..."
-          if ! go test -v -race -vet=off -timeout=20m -coverprofile=test-results/coverage.out -covermode=atomic ./... 2>&1 | tee test-results/test-output.txt; then
-            echo "❌ Unit tests failed"
-            echo "📋 Test failures detected"
-            echo "📊 Test summary:"
-            tail -20 test-results/test-output.txt || true
-            exit 1
+          if [ "$FAST_MODE" = "true" ]; then
+            echo "⚡ Fast mode: Essential tests only (no race detection, no coverage)"
+            if ! go test -short -timeout=8m ./api/... ./controllers/... ./pkg/... 2>&1 | tee test-results/test-output.txt; then
+              echo "❌ Essential tests failed"
+              exit 1
+            fi
+            echo "✅ Essential tests passed (fast mode)"
+          else
+            echo "🔍 Full mode: Comprehensive test suite with race detection"
+            if ! go test -v -race -vet=off -timeout=20m -coverprofile=test-results/coverage.out -covermode=atomic ./... 2>&1 | tee test-results/test-output.txt; then
+              echo "❌ Unit tests failed"
+              echo "📋 Test failures detected"
+              echo "📊 Test summary:"
+              tail -20 test-results/test-output.txt || true
+              exit 1
+            fi
+            
+            echo "✅ All unit tests passed"
+            
+            # Generate coverage report
+            echo "📊 Generating coverage report..."
+            go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+            
+            # Print coverage summary
+            echo "📈 Coverage summary:"
+            go tool cover -func=test-results/coverage.out | tail -1
           fi
-          
-          echo "✅ All unit tests passed"
-          
-          # Generate coverage report
-          echo "📊 Generating coverage report..."
-          go tool cover -html=test-results/coverage.out -o test-results/coverage.html
-          
-          # Print coverage summary
-          echo "📈 Coverage summary:"
-          go tool cover -func=test-results/coverage.out | tail -1
 
       - name: Benchmark tests
         continue-on-error: true

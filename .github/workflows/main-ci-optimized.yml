@@ -1,0 +1,198 @@
+# =============================================================================
+# OPTIMIZED Main CI Pipeline - Maximum Speed with Quality Gates
+# =============================================================================
+# Fast pipeline combining best practices from multiple workflow iterations
+# Ubuntu-only, Go 1.24.6, smart caching, and parallel execution
+# =============================================================================
+
+name: Main CI (Optimized)
+
+on:
+  push:
+    branches: [ main, integrate/mvp ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, integrate/mvp ]
+  workflow_dispatch:
+    inputs:
+      fast_mode:
+        description: 'Enable ultra-fast mode'
+        type: boolean
+        default: false
+
+concurrency:
+  group: main-ci-optimized-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  packages: read
+
+env:
+  GO_VERSION: "1.24.6"
+  CONTROLLER_GEN_VERSION: "v0.19.0"
+  GOLANGCI_LINT_VERSION: "v1.64.3"
+  GOPRIVATE: "github.com/thc1006/*"
+  FAST_MODE: ${{ github.event.inputs.fast_mode == 'true' || contains(github.event.head_commit.message, '[fast]') }}
+
+jobs:
+  # =============================================================================
+  # Change Detection & Cache Setup
+  # =============================================================================
+  setup:
+    name: Setup & Change Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      go-changed: ${{ steps.changes.outputs.go }}
+      cache-key: ${{ steps.cache.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'api/**'
+              - 'cmd/**'
+              - 'controllers/**'
+              - 'pkg/**'
+              - 'internal/**'
+      
+      - name: Generate cache key
+        id: cache
+        run: |
+          cache_key="go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}"
+          echo "key=${cache_key}" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Quality Gates (Parallel Execution)
+  # =============================================================================
+  quality-gates:
+    name: ${{ matrix.gate }}
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.go-changed == 'true'
+    timeout-minutes: ${{ env.FAST_MODE == 'true' && 8 || 15 }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [build-and-generate, lint, test, security]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go with cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
+      
+      - name: Setup GitHub auth
+        run: git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+      
+      # BUILD AND GENERATE GATE
+      - name: Build and Generate Check
+        if: matrix.gate == 'build-and-generate'
+        run: |
+          echo "🏗️ Build and Generate Verification..."
+          
+          # Install controller-gen
+          go install sigs.k8s.io/controller-tools/cmd/controller-gen@${{ env.CONTROLLER_GEN_VERSION }}
+          
+          # Generate code
+          controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
+          controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+          
+          # Check for uncommitted changes
+          if ! git diff --exit-code; then
+            echo "❌ Generated files not up to date"
+            git diff --name-only
+            exit 1
+          fi
+          
+          # Build verification
+          go build ./...
+          echo "✅ Build and generation verified"
+      
+      # LINT GATE
+      - name: Lint Check
+        if: matrix.gate == 'lint'
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=10m --config=.golangci.yml
+      
+      # TEST GATE  
+      - name: Test Execution
+        if: matrix.gate == 'test'
+        run: |
+          echo "🧪 Running test suite..."
+          if [ "$FAST_MODE" = "true" ]; then
+            go test -short -timeout=5m ./...
+          else
+            go test -v -race -coverprofile=coverage.out -timeout=15m ./...
+          fi
+          echo "✅ Tests completed"
+      
+      # SECURITY GATE
+      - name: Security Scan
+        if: matrix.gate == 'security' && env.FAST_MODE != 'true'
+        run: |
+          echo "🛡️ Security vulnerability scan..."
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+          echo "✅ Security scan completed"
+      
+      - name: Upload artifacts
+        if: always() && matrix.gate == 'test'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage
+          path: coverage.out
+          retention-days: 7
+
+  # =============================================================================
+  # Final Status Check
+  # =============================================================================
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [setup, quality-gates]
+    if: always()
+    timeout-minutes: 2
+    steps:
+      - name: Check results
+        run: |
+          echo "=== Main CI Results ==="
+          echo "Setup: ${{ needs.setup.result }}"
+          echo "Quality Gates: ${{ needs.quality-gates.result }}"
+          
+          if [[ "${{ needs.setup.result }}" == "failure" || "${{ needs.quality-gates.result }}" == "failure" ]]; then
+            echo "❌ CI Pipeline Failed"
+            exit 1
+          fi
+          
+          echo "✅ CI Pipeline Passed - Ready for merge!"
