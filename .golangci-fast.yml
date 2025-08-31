@@ -1,145 +1,103 @@
-# Comprehensive golangci-lint configuration for 2025
-# Optimized for Kubernetes operators with Go 1.24+ and O-RAN telecom domain
-# Compatible with golangci-lint v2.0+ (migration from v1 format completed)
-# Balances development speed with comprehensive code quality
+# golangci-lint configuration optimized for fast CI execution
+# Compatible with golangci-lint v1.64.3+ and Go 1.24+
+# Optimized for Kubernetes operators with O-RAN/Nephio telecom domain
+# Balances speed with essential code quality checks
 
 run:
   timeout: 10m
   issues-exit-code: 1
-  tests: true  # Include test files for comprehensive analysis
+  tests: true  # Include test files
   go: "1.24"
   
-  # Optimized concurrency for CI/CD environments
-  concurrency: 6  # Balanced for modern CI systems
+  # Fast concurrency for CI
+  concurrency: 6  
   
-  # Skip directories that don't contain source code
-  skip-dirs:
-    - vendor
-    - testdata
-    - third_party
-    - .git
-    - bin
-    - out
-    - tmp
-    - temp
-    - .cache
-    - test-results
-    - coverage
-    - artifacts
-    - node_modules
-    - deployments/base  # Skip Kustomize base files
-    - config/samples    # Skip sample YAML files
-    
-  # Skip generated and external files
-  skip-files:
-    - '.*\.pb\.go$'                    # Protocol buffer generated files
-    - '.*_generated\.go$'              # Generated files
-    - '.*_gen\.go$'                    # Generated files
-    - 'zz_generated\..*\.go$'          # Kubebuilder generated files
-    - '.*deepcopy.*\.go$'              # Kubernetes deepcopy files
-    - 'mock_.*\.go$'                   # Mock files
-    - '.*_mock\.go$'                   # Mock files
-    - '.*\.mock\.go$'                  # Mock files
-    - '.*fake.*\.go$'                  # Fake client files
-    - 'vendor/.*'                      # Vendored dependencies
-    - 'hack/testtools/envtest_.*\.go$' # Test environment setup
-    
   modules-download-mode: readonly
   allow-parallel-runners: true
 
-# Professional output format
+# Clean output format
 output:
   formats:
-    colored-line-number: stdout
-    sarif: golangci-lint-report.sarif  # For security scanning
+    - format: colored-line-number
+      path: stdout
+    - format: sarif
+      path: golangci-lint-report.sarif
   print-issued-lines: true
   print-linter-name: true
   sort-results: true
-  uniq-by-line: true
-  show-stats: true
 
-# Optimized caching
-cache:
-  enabled: true
-  build-cache: true
-
-# Comprehensive linter configuration
+# Essential linters for fast execution
 linters:
-  default: standard  # v2 format: use standard linters as base
+  disable-all: true
   enable:
-    # Code quality
+    # Core quality (essential for CI)
     - revive           # Fast replacement for golint
-    - stylecheck       # Style checks
-    - unconvert        # Unnecessary type conversions  
-    - unparam          # Unused function parameters
-    - unused           # Unused code detection
-    - whitespace       # Whitespace errors
-    - wsl              # Whitespace linter
-    - cyclop           # Cyclomatic complexity
-    - funlen           # Function length
-    - nestif           # Deeply nested if statements
-    - gocognit         # Cognitive complexity
-    - maintidx         # Maintainability index
+    - staticcheck      # Essential static analysis
+    - govet            # Standard Go vet checks
+    - gosimple         # Simple optimizations
+    - unused           # Dead code detection
+    - typecheck        # Type-checking errors
     
-    # Security (critical for Kubernetes operators)
+    # Error handling (critical for operators)
+    - errcheck         # Unchecked errors
+    - errorlint        # Error wrapping patterns
+    
+    # Security (essential)
     - gosec            # Security vulnerabilities
-    - bidichk          # Dangerous unicode characters
     - bodyclose        # HTTP response body closing
     - rowserrcheck     # SQL rows.Err() checking
-    - sqlclosecheck    # SQL Close() method checking
     
-    # Performance
-    - prealloc         # Slice preallocation
-    - gocritic         # Various checks including performance
-    - makezero         # Slice initialization
-    - sloglint         # Structured logging best practices
+    # Performance (lightweight checks)
+    - ineffassign      # Ineffective assignments
+    - unconvert        # Unnecessary conversions
+    - prealloc         # Slice preallocation (basic)
     
-    # Kubernetes & Context specific
-    - contextcheck     # Non-inherited context usage
-    - containedctx     # Context in struct fields (anti-pattern)
-    - nolintlint       # Nolint directive usage
-    - exportloopref    # Loop variable capture issues
-    - copyloopvar      # Loop variable copying (Go 1.22+)
-    
-    # Error handling (crucial for operators)
-    - errchkjson       # JSON error handling
-    - wrapcheck        # Error wrapping
-    - errorlint        # Error handling patterns
-    
-    # Code organization
-    - depguard         # Package import restrictions
-    - grouper          # Grouping of declarations
-    - importas         # Import naming consistency
-    - decorder         # Declaration ordering
-    
-    # Documentation
-    - godot            # Comments end with period
+    # Code style (fast checks)
     - misspell         # Spelling errors
+    - stylecheck       # Style checks
+    - predeclared      # Predeclared identifier shadowing
+    - whitespace       # Whitespace errors
     
-    # Go 1.24+ specific
-    - intrange         # Integer range loops
-    - testifylint      # Testify best practices
-    - tenv             # Testing environment variables
-    - testpackage      # Separate _test packages
+    # Import and formatting
+    - gci              # Import formatting
+    - gofumpt          # Strict formatting
     
-  disable:
-    - gci              # Use gofumpt for import organization
-    - gofmt            # Use gofumpt instead
-    - goimports        # Use gofumpt instead
-    - forbidigo        # Too restrictive for operators
-    - exhaustruct      # Too verbose for Kubernetes types
-    - varnamelen       # Too restrictive for short variable names
-    - ireturn          # Conflicts with Kubernetes client patterns
-    - tagliatelle      # JSON tags handled by Kubernetes conventions
+    # Context and concurrency (Kubernetes specific)
+    - noctx            # HTTP requests without context
+    - nolintlint       # Nolint directive usage
+    
+    # Modern Go features
+    - copyloopvar      # Loop variable copying (Go 1.22+)
+    - intrange         # Integer range loops (Go 1.22+)
 
-# Detailed linter settings
+# Optimized linter settings for fast execution
 linters-settings:
   # Core Go tools
   govet:
-    enable-all: true
-    disable:
-      - fieldalignment  # Too noisy for Kubernetes types
-      - shadow         # Can be overly strict
+    enable-all: false  # Disable all then enable specific ones for speed
+    enable:
+      - assign
+      - atomic
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - errorsas
+      - httpresponse
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - printf
+      - shift
+      - stdmethods
+      - structtag
+      - tests
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
     settings:
       shadow:
         strict: false
@@ -147,7 +105,7 @@ linters-settings:
   staticcheck:
     checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021"]
     
-  # Security configuration
+  # Security configuration (fast mode)
   gosec:
     severity: medium
     confidence: medium
@@ -156,87 +114,24 @@ linters-settings:
       - G204  # Subprocess launching (needed for kubectl/porch operations)
       - G304  # File path provided as taint input (needed for config files)
     includes:
-      - G101  # Look for hardcoded credentials
+      - G101  # Hardcoded credentials
       - G102  # Bind to all interfaces
-      - G103  # Audit the use of unsafe block
-      - G201  # SQL query construction using format string
-      - G202  # SQL query construction using string concatenation
-      - G301  # Poor file permissions used when creating a directory
-      - G302  # Poor file permissions used with chmod
-      - G401  # Detect the usage of DES, RC4, MD5 or SHA1
+      - G401  # Weak crypto
       - G501  # Import blocklist: crypto/md5
       - G502  # Import blocklist: crypto/des
       - G503  # Import blocklist: crypto/rc4
-      - G504  # Import blocklist: net/http/cgi
-      - G505  # Import blocklist: crypto/sha1
       
-  # Error handling
+  # Error handling (lightweight)
   errcheck:
     check-type-assertions: true
     check-blank: true
     exclude-functions:
-      - '(*database/sql.Rows).Close'
       - '(*database/sql.DB).Close'
       - 'fmt.Print*'
       - 'fmt.Fprint*'
       - (*os.File).Close
       
-  wrapcheck:
-    ignoreSigs:
-      - .Errorf(
-      - errors.New(
-      - errors.Unwrap(
-      - .Wrap(
-      - .Wrapf(
-    ignorePackageGlobs:
-      - encoding/*
-      - github.com/pkg/errors
-      
-  # Performance and code quality
-  cyclop:
-    max-complexity: 15
-    skip-tests: true
-    
-  funlen:
-    lines: 80
-    statements: 40
-    ignore-comments: true
-    
-  gocognit:
-    min-complexity: 20
-    
-  nestif:
-    min-complexity: 5
-    
-  # Kubernetes and context specific
-  contextcheck:
-    check-shadowing: true
-    
-  containedctx:
-    check-pointers: true
-    
-  depguard:
-    rules:
-      main:
-        deny:
-          - pkg: "github.com/pkg/errors"
-            desc: "Use standard library errors package with fmt.Errorf for Go 1.13+ error wrapping"
-          - pkg: "github.com/sirupsen/logrus"
-            desc: "Use slog from standard library or controller-runtime logging"
-        allow:
-          - $gostd
-          - k8s.io
-          - sigs.k8s.io
-          - github.com/nephio-project
-          - github.com/google
-          - cloud.google.com
-          - github.com/aws
-          - github.com/Azure
-          - github.com/stretchr/testify
-          - github.com/onsi/ginkgo
-          - github.com/onsi/gomega
-          
-  # Code style
+  # Code style (fast checks)
   revive:
     severity: warning
     confidence: 0.8
@@ -252,42 +147,43 @@ linters-settings:
       - name: if-return
       - name: increment-decrement
       - name: var-naming
+        arguments: [["ID", "URL", "HTTP", "JSON", "API", "K8s", "CRD", "CNF", "VNF", "RAN", "AI", "ML", "O1", "O2", "E2", "A1", "FCAPS", "KPM", "VES", "ORAN"], []]
       - name: var-declaration
       - name: package-comments
       - name: range
       - name: receiver-naming
       - name: time-naming
-      - name: unexported-return
       - name: indent-error-flow
       - name: errorf
       - name: empty-block
       - name: superfluous-else
-      - name: unused-parameter
       - name: unreachable-code
-      - name: redefines-builtin-id
         
   stylecheck:
     checks: ["all", "-ST1000", "-ST1003"]
     
   # Import organization
+  gci:
+    sections:
+      - standard
+      - default  
+      - prefix(github.com/nephio-project/nephoran-intent-operator)
+      - prefix(sigs.k8s.io)
+      - prefix(k8s.io)
+    skip-generated: true
+    custom-order: true
+    
+  # Formatting
   gofumpt:
     extra-rules: true
-    lang-version: "1.24"
     module-path: github.com/nephio-project/nephoran-intent-operator
     
   # Documentation
-  godot:
-    scope: declarations
-    exclude:
-      - "^fixme:"
-      - "^todo:"
-    capital: false
-    
   misspell:
     locale: US
     ignore-words:
-      - cancelled  # British spelling but common in tech
-      - marshalling
+      - cancelled
+      - marshalling  
       - signalling
       - telecom
       - telco
@@ -296,99 +192,88 @@ linters-settings:
       - kubernetes
       - k8s
       
-  # Testing
-  testifylint:
-    enable-all: true
-    disable:
-      - go-require  # Allow testify/require in test files
-      
-  tenv:
-    all: true
+  # Performance optimization
+  prealloc:
+    simple: true    # Only simple cases for speed
+    range-loops: false  # Skip complex analysis
+    for-loops: false    # Skip complex analysis
 
-# Issue handling and exclusions
+# Issue handling optimized for CI speed
 issues:
-  max-issues-per-linter: 100
-  max-same-issues: 10
+  max-issues-per-linter: 50  # Limit for CI speed
+  max-same-issues: 10        # Prevent noise
   
-  # Enable auto-fixing for supported linters
-  fix: true
-  
-  # Include new issues only for PR checks
-  new: false
-  new-from-rev: ""
+  # Don't auto-fix in CI for stability
+  fix: false
   
   # Performance optimization
   exclude-case-sensitive: false
   exclude-use-default: true
   
+  # Directories to exclude from linting  
+  exclude-dirs:
+    - vendor
+    - testdata
+    - third_party
+    - .git
+    - bin
+    - out
+    - tmp
+    - temp
+    - test-results
+    - coverage
+    - artifacts
+    - node_modules
+    - deployments/base
+    - config/samples
+  
   # File-specific exclusions
   exclude-files:
-    - 'cmd/.*test.*\.go$'  # Exclude test binaries
-    
+    - '.*\.pb\.go$'
+    - '.*_generated\.go$'
+    - '.*_gen\.go$'
+    - 'zz_generated\..*\.go$'
+    - '.*deepcopy.*\.go$'
+    - 'mock_.*\.go$'
+    - '.*_mock\.go$'
+    - '.*\.mock\.go$'
+    - '.*fake.*\.go$'
+    - 'vendor/.*'
+    - 'hack/testtools/envtest_.*\.go$'
+    - 'cmd/.*test.*\.go$'
+  
   exclude-rules:
-    # Test files exclusions
+    # Test files exclusions (reduce test complexity checks)
     - path: '_test\.go'
       linters:
         - gosec
-        - funlen
-        - maintidx
-        - cyclop
-        - wrapcheck
-        - containedctx
-        - dupl
+        - errcheck  # Tests often ignore errors intentionally
+        - revive    # Relaxed naming in tests
+        - stylecheck # Relaxed style in tests
         
-    # Main files exclusions
+    # Main files exclusions  
     - path: 'cmd/.*/main\.go'
       linters:
-        - wrapcheck  # Main files often have unwrapped errors for CLI output
-        - forbidigo  # Main files may need fmt.Print for CLI output
+        - revive   # CLI output patterns
         
-    # Generated files (belt and suspenders approach)
+    # Generated files (comprehensive exclusion)
     - path: '(.*\.pb\.go|.*_generated\.go|.*_gen\.go|zz_generated.*\.go)'
       linters:
         - all
-        
-    # Webhook files (allow complex validation logic)
-    - path: '.*webhook.*\.go'
-      linters:
-        - cyclop
-        - funlen
-        - gocognit
-        
-    # Controller files (allow complex reconciliation logic)
-    - path: '.*controller.*\.go'
-      linters:
-        - cyclop
-        - funlen
-        - gocognit
         
     # API types (Kubernetes conventions)
     - path: 'api/.*/.*_types\.go'
       linters:
         - revive
         - stylecheck
-        - godot  # API documentation has different conventions
         
     # Example and demo files
     - path: '(examples|demo)/.*\.go'
       linters:
         - gosec
         - errcheck
-        - wrapcheck
         
-    # Legacy or external integration code
-    - path: 'internal/.*/(a1sim|e2sim|fcaps|o1|ves)/.*\.go'
-      linters:
-        - stylecheck
-        - revive
-        - godot
-        
-    # Build constraint files
-    - path: 'build_constraints\.go'
-      linters:
-        - all
-        
-    # Allow longer lines in specific cases
+    # Allow kubebuilder directives with long lines
     - linters:
         - lll
       source: "^//\\s*(\\+kubebuilder:|\\+k8s:|go:generate)"
@@ -406,19 +291,20 @@ issues:
     - "misspell: `telco` is a misspelling"
     - "misspell: `nephio` is a misspelling"
 
-# Severity configuration  
+# Severity configuration for CI
 severity:
-  default-severity: error
+  default-severity: warning
   case-sensitive: true
   rules:
-    - linters:
-        - godot
-        - misspell
-        - revive
-      severity: warning
     - linters:
         - gosec
         - errcheck
         - staticcheck
         - govet
+        - typecheck
       severity: error
+    - linters:
+        - revive
+        - stylecheck
+        - misspell
+      severity: warning

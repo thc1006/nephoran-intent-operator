@@ -260,18 +260,23 @@ lint-security: ## Run golangci-lint with security focus and SARIF output
 		golangci-lint run --config=.golangci-fast.yml --enable-only=gosec,bidichk,bodyclose,rowserrcheck,sqlclosecheck; \
 	fi
 
-.PHONY: lint-validate
-lint-validate: ## Validate golangci-lint configuration
-	@echo "✅ Validating golangci-lint configuration..."
-	@if [ -f "scripts/validate-lint-config.ps1" ]; then \
-		powershell -ExecutionPolicy Bypass -File scripts/validate-lint-config.ps1 -DryRun; \
+.PHONY: validate-configs
+validate-configs: ## Validate golangci-lint configuration files with comprehensive checks
+	@echo "✅ Validating golangci-lint configuration with comprehensive checks..."
+	@if [ -f "scripts/hooks/validate-golangci-config.sh" ]; then \
+		chmod +x scripts/hooks/validate-golangci-config.sh; \
+		scripts/hooks/validate-golangci-config.sh; \
 	else \
+		echo "[WARNING] Validation script not found, using basic validation"; \
 		golangci-lint config path -c .golangci-fast.yml; \
 		golangci-lint linters -c .golangci-fast.yml; \
 	fi
 
+.PHONY: lint-validate
+lint-validate: validate-configs ## Alias for validate-configs (backwards compatibility)
+
 .PHONY: verify
-verify: fmt vet tidy lint ## Verify code consistency
+verify: fmt vet tidy lint validate-configs ## Verify code consistency with config validation
 	@echo "Verifying code consistency..."
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		echo "[ERROR] Code verification failed. The following files need attention:"; \
@@ -280,6 +285,64 @@ verify: fmt vet tidy lint ## Verify code consistency
 		exit 1; \
 	fi
 	@echo "[SUCCESS] Code verification passed"
+
+##@ Pre-commit Hooks
+
+.PHONY: install-hooks
+install-hooks: ## Install pre-commit hooks to prevent invalid golangci-lint configs
+	@echo "Installing pre-commit hooks..."
+	@chmod +x scripts/install-hooks.sh
+	@scripts/install-hooks.sh
+
+.PHONY: test-hooks
+test-hooks: ## Test pre-commit hooks installation
+	@echo "Testing pre-commit hooks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit run --all-files --dry-run; \
+	else \
+		echo "[ERROR] pre-commit not installed. Run 'make install-hooks' first"; \
+		exit 1; \
+	fi
+
+.PHONY: run-hooks
+run-hooks: ## Run all pre-commit hooks on staged files
+	@echo "Running pre-commit hooks on staged files..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit run; \
+	else \
+		echo "[ERROR] pre-commit not installed. Run 'make install-hooks' first"; \
+		exit 1; \
+	fi
+
+.PHONY: run-hooks-all
+run-hooks-all: ## Run all pre-commit hooks on all files
+	@echo "Running pre-commit hooks on all files..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit run --all-files; \
+	else \
+		echo "[ERROR] pre-commit not installed. Run 'make install-hooks' first"; \
+		exit 1; \
+	fi
+
+.PHONY: update-hooks
+update-hooks: ## Update pre-commit hooks to latest versions
+	@echo "Updating pre-commit hooks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit autoupdate; \
+	else \
+		echo "[ERROR] pre-commit not installed. Run 'make install-hooks' first"; \
+		exit 1; \
+	fi
+
+.PHONY: uninstall-hooks
+uninstall-hooks: ## Uninstall pre-commit hooks
+	@echo "Uninstalling pre-commit hooks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit uninstall; \
+		echo "Pre-commit hooks uninstalled"; \
+	else \
+		echo "[INFO] pre-commit not installed, nothing to uninstall"; \
+	fi
 
 ##@ Code Generation
 
