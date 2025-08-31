@@ -40,6 +40,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup GitHub authentication for Go modules
+        run: git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Go 1.24.6
         uses: actions/setup-go@v5
         with:
@@ -240,6 +245,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup GitHub authentication for Go modules
+        run: git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go 1.24.6  
         uses: actions/setup-go@v5
