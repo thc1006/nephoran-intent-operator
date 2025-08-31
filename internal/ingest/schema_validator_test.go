@@ -73,17 +73,28 @@ var testSchema = map[string]interface{}{
 	"required": []string{"apiVersion", "kind", "metadata", "spec"},
 }
 
-func createTestSchemaFile(t *testing.T) string {
+// TestingT is an interface that covers the methods we need from *testing.T, *testing.B, and *testing.F
+type TestingT interface {
+	Helper()
+	TempDir() string
+	Fatal(...interface{})
+}
+
+func createTestSchemaFile(t TestingT) string {
 	t.Helper()
 	
 	tempDir := t.TempDir()
 	schemaFile := filepath.Join(tempDir, "test-schema.json")
 	
 	schemaData, err := json.Marshal(testSchema)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	
 	err = ioutil.WriteFile(schemaFile, schemaData, 0644)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	
 	return schemaFile
 }

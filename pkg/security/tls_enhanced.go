@@ -60,6 +60,14 @@ type TLSEnhancedConfig struct {
 
 	OCSPCache *OCSPCache
 
+	// Connection pooling.
+
+	ConnectionPool *ConnectionPool
+
+	// Certificate Revocation List cache.
+
+	CRLCache *CRLCache
+
 	// Session management.
 
 	SessionTicketKeys [][]byte
@@ -204,6 +212,36 @@ type CachedOCSPResponse struct {
 	timestamp time.Time
 }
 
+// ConnectionPool manages TLS connection pooling.
+
+type ConnectionPool struct {
+	maxConnections int
+
+	connections map[string]*tls.Conn
+
+	mu sync.RWMutex
+}
+
+// CRLCache provides caching for Certificate Revocation Lists.
+
+type CRLCache struct {
+	cache map[string]*CachedCRL
+
+	ttl time.Duration
+
+	maxSize int
+
+	mu sync.RWMutex
+}
+
+// CachedCRL represents a cached Certificate Revocation List.
+
+type CachedCRL struct {
+	crl *x509.RevocationList
+
+	timestamp time.Time
+}
+
 // NewTLSEnhancedConfig creates a new enhanced TLS configuration.
 
 func NewTLSEnhancedConfig() *TLSEnhancedConfig {
@@ -242,6 +280,22 @@ func NewTLSEnhancedConfig() *TLSEnhancedConfig {
 			ttl: 24 * time.Hour,
 
 			maxSize: 1000,
+		},
+
+		ConnectionPool: &ConnectionPool{
+
+			maxConnections: 100,
+
+			connections: make(map[string]*tls.Conn),
+		},
+
+		CRLCache: &CRLCache{
+
+			cache: make(map[string]*CachedCRL),
+
+			ttl: 24 * time.Hour,
+
+			maxSize: 500,
 		},
 
 		SessionTicketRotationInterval: 24 * time.Hour,
@@ -1057,4 +1111,12 @@ func (c *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16
 	
 	c.tlsVersionUsage[version]++
 	c.cipherSuiteUsage[cipherSuite]++
+}
+
+// BuildTLSConfig builds and returns a TLS configuration (alias for GetTLSConfig for compatibility).
+
+func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
+
+	return c.GetTLSConfig()
+
 }

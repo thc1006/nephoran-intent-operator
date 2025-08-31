@@ -280,12 +280,142 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 
 			}
 
+		case "object":
+
+			// Handle nested objects
+
+			objVal, ok := value.(map[string]interface{})
+
+			if !ok {
+
+				return fmt.Errorf("field %s must be an object, got %T", fieldName, value)
+
+			}
+
+			// Get nested properties schema
+
+			nestedProperties, ok := fieldSchema["properties"].(map[string]interface{})
+
+			if !ok {
+
+				return nil // No properties defined, accept any object
+
+			}
+
+			// Get required fields for nested object
+
+			requiredFields, _ := fieldSchema["required"].([]interface{})
+
+			// Check required fields in nested object
+
+			for _, reqField := range requiredFields {
+
+				reqFieldName, ok := reqField.(string)
+
+				if !ok {
+
+					continue
+
+				}
+
+				if _, exists := objVal[reqFieldName]; !exists {
+
+					return fmt.Errorf("field %s missing required nested field: %s", fieldName, reqFieldName)
+
+				}
+
+			}
+
+			// Validate each nested field
+
+			for nestedFieldName, nestedValue := range objVal {
+
+				// Check if field is allowed (additionalProperties: false)
+
+				if additionalProps, ok := fieldSchema["additionalProperties"].(bool); ok && !additionalProps {
+
+					if _, exists := nestedProperties[nestedFieldName]; !exists {
+
+						return fmt.Errorf("field %s additional property not allowed: %s", fieldName, nestedFieldName)
+
+					}
+
+				}
+
+				// Get nested field schema
+
+				nestedFieldSchema, ok := nestedProperties[nestedFieldName].(map[string]interface{})
+
+				if !ok {
+
+					continue // Field not in schema, skip if additional properties allowed
+
+				}
+
+				// Recursively validate nested field
+
+				if err := v.validateField(fieldName+"."+nestedFieldName, nestedValue, nestedFieldSchema); err != nil {
+
+					return err
+
+				}
+
+			}
+
 		}
 
 	}
 
 	return nil
 
+}
+
+// Validate validates an intent against the JSON schema (alias for ValidateIntent).
+func (v *IntentSchemaValidator) Validate(intent map[string]interface{}) error {
+	return v.ValidateIntent(intent)
+}
+
+// ValidateJSON validates a JSON string against the schema.
+func (v *IntentSchemaValidator) ValidateJSON(jsonStr string) error {
+	if jsonStr == "" {
+		return fmt.Errorf("failed to parse JSON: empty string")
+	}
+
+	// Parse JSON string into map.
+	var intent map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &intent); err != nil {
+		return fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	// Validate the parsed intent.
+	if err := v.ValidateIntent(intent); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	return nil
+}
+
+// GetSchema returns the loaded JSON schema.
+func (v *IntentSchemaValidator) GetSchema() map[string]interface{} {
+	return v.schema
+}
+
+// UpdateSchema reloads the schema from the file system.
+func (v *IntentSchemaValidator) UpdateSchema() error {
+	// Load and parse the schema from file.
+	schemaData, err := os.ReadFile(v.schemaPath)
+	if err != nil {
+		return fmt.Errorf("failed to read schema file: %w", err)
+	}
+
+	var schema map[string]interface{}
+	if err := json.Unmarshal(schemaData, &schema); err != nil {
+		return fmt.Errorf("failed to parse schema: %w", err)
+	}
+
+	// Update the schema.
+	v.schema = schema
+	return nil
 }
 
 // ValidateIntentWithSchema validates an intent using the JSON schema.

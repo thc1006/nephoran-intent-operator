@@ -47,7 +47,7 @@ func main() {
 
 	// Create authentication manager.
 
-	authManager, err := auth.NewAuthManager(context.Background(), authConfig, logger)
+	authManager, err := auth.NewManager(context.Background(), authConfig, logger)
 
 	if err != nil {
 
@@ -506,7 +506,7 @@ func handleSessionInfo(authManager *auth.Manager) http.HandlerFunc {
 
 		}
 
-		sessionInfo, err := authManager.ValidateSession(r.Context(), sessionID)
+		userSession, err := authManager.ValidateSession(r.Context(), sessionID)
 
 		if err != nil {
 
@@ -518,25 +518,25 @@ func handleSessionInfo(authManager *auth.Manager) http.HandlerFunc {
 
 		response := map[string]interface{}{
 
-			"session_id": sessionInfo.ID,
+			"session_id": userSession.ID,
 
-			"user_id": sessionInfo.UserID,
+			"user_id": userSession.UserID,
 
-			"username": sessionInfo.UserInfo.Username,
+			"username": userSession.UserInfo.Username,
 
-			"email": sessionInfo.UserInfo.Email,
+			"email": userSession.UserInfo.Email,
 
-			"display_name": sessionInfo.UserInfo.Name,
+			"display_name": userSession.UserInfo.Name,
 
-			"provider": sessionInfo.Provider,
+			"provider": userSession.Provider,
 
-			"groups": sessionInfo.UserInfo.Groups,
+			"groups": userSession.UserInfo.Groups,
 
-			"roles": sessionInfo.Roles,
+			"roles": userSession.Roles,
 
-			"created_at": sessionInfo.CreatedAt,
+			"created_at": userSession.CreatedAt,
 
-			"expires_at": sessionInfo.ExpiresAt,
+			"expires_at": userSession.ExpiresAt,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

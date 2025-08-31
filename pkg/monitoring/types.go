@@ -55,10 +55,22 @@ type Metric struct {
 
 // Alert represents a monitoring alert
 type Alert struct {
+	ID          string            `json:"id" yaml:"id"`
 	Name        string            `json:"name" yaml:"name"`
+	Rule        string            `json:"rule,omitempty" yaml:"rule,omitempty"`  // Store rule ID as string
+	Component   string            `json:"component" yaml:"component"`
+	Source      string            `json:"source" yaml:"source"`
 	Severity    AlertSeverity     `json:"severity" yaml:"severity"`
+	Status      string            `json:"status" yaml:"status"`
 	Message     string            `json:"message" yaml:"message"`
+	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
+	StartsAt    time.Time         `json:"starts_at" yaml:"starts_at"`
+	EndsAt      *time.Time        `json:"ends_at,omitempty" yaml:"ends_at,omitempty"`
+	Silenced    bool              `json:"silenced" yaml:"silenced"`
+	AckBy       string            `json:"ack_by,omitempty" yaml:"ack_by,omitempty"`
+	AckAt       *time.Time        `json:"ack_at,omitempty" yaml:"ack_at,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 	Timestamp   time.Time         `json:"timestamp" yaml:"timestamp"`
 	Resolved    bool              `json:"resolved" yaml:"resolved"`
 	ResolvedAt  *time.Time        `json:"resolvedAt,omitempty" yaml:"resolvedAt,omitempty"`
@@ -296,21 +308,67 @@ type SyntheticCheckList struct {
 
 // Missing types that need to be defined
 type AlertRule struct {
+	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Expression  string            `json:"expression"`
 	Severity    AlertSeverity     `json:"severity"`
+	Duration    time.Duration     `json:"duration"`
+	Cooldown    time.Duration     `json:"cooldown"`
+	Component   string            `json:"component"`
+	Enabled     bool              `json:"enabled"`
+	LastFired   *time.Time        `json:"last_fired,omitempty"`
+	Channels    []string          `json:"channels,omitempty"`
+	Threshold   float64           `json:"threshold"`
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type MetricsCollector interface {
+	// Basic collection methods
 	CollectMetrics() ([]*Metric, error)
 	Start() error
 	Stop() error
+	
+	// Controller instrumentation methods
+	UpdateControllerHealth(controllerName, component string, healthy bool)
+	RecordKubernetesAPILatency(latency time.Duration)
+	
+	// NetworkIntent metrics
+	UpdateNetworkIntentStatus(name, namespace, intentType, status string)
+	RecordNetworkIntentProcessed(intentType, status string, duration time.Duration)
+	RecordNetworkIntentRetry(name, namespace, reason string)
+	
+	// LLM metrics
+	RecordLLMRequest(model, status string, duration time.Duration, tokensUsed int)
+	
+	// E2NodeSet metrics
+	RecordE2NodeSetOperation(operation string, duration time.Duration)
+	UpdateE2NodeSetReplicas(name, namespace, status string, count int)
+	RecordE2NodeSetScaling(name, namespace, direction string)
+	
+	// O-RAN interface metrics
+	RecordORANInterfaceRequest(interfaceType, operation, status string, duration time.Duration)
+	RecordORANInterfaceError(interfaceType, operation, errorType string)
+	UpdateORANConnectionStatus(interfaceType, endpoint string, connected bool)
+	UpdateORANPolicyInstances(policyType, status string, count int)
+	
+	// RAG metrics
+	RecordRAGOperation(duration time.Duration, cacheHit bool)
+	UpdateRAGDocumentsIndexed(count int)
+	
+	// GitOps metrics
+	RecordGitOpsOperation(operation string, duration time.Duration, success bool)
+	UpdateGitOpsSyncStatus(repository, branch string, inSync bool)
+	
+	// System metrics
+	UpdateResourceUtilization(resourceType, unit string, value float64)
+	UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration)
 }
 
 type HealthChecker interface {
 	CheckHealth() (HealthStatus, error)
+	GetName() string
+	Start(ctx context.Context) error
 }
 
 // NotificationChannel represents a notification delivery channel
@@ -320,4 +378,180 @@ type NotificationChannel struct {
 	Type    string            `json:"type"` // slack, email, webhook, pagerduty, teams
 	Config  map[string]string `json:"config,omitempty"`
 	Enabled bool              `json:"enabled"`
+}
+
+// TraceSpan represents a distributed tracing span
+type TraceSpan struct {
+	TraceID      string            `json:"trace_id"`
+	SpanID       string            `json:"span_id"`
+	ParentSpanID string            `json:"parent_span_id,omitempty"`
+	OperationName string           `json:"operation_name"`
+	StartTime    time.Time         `json:"start_time"`
+	EndTime      time.Time         `json:"end_time"`
+	Duration     time.Duration     `json:"duration"`
+	Tags         map[string]string `json:"tags,omitempty"`
+	Status       string            `json:"status"`
+}
+
+// ComponentHealth represents the health status of a component
+type ComponentHealth struct {
+	Name        string            `json:"name"`
+	Status      HealthStatus      `json:"status"`
+	Message     string            `json:"message,omitempty"`
+	Timestamp   time.Time         `json:"timestamp"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+	Details     interface{}       `json:"details,omitempty"`
+	LastChecked time.Time         `json:"last_checked,omitempty"`
+}
+
+// MetricsData represents collected metrics data
+type MetricsData struct {
+	Timestamp time.Time                 `json:"timestamp"`
+	Source    string                    `json:"source"`
+	Namespace string                    `json:"namespace,omitempty"`
+	Metrics   map[string]float64        `json:"metrics"`
+	Labels    map[string]string         `json:"labels,omitempty"`
+	Metadata  map[string]interface{}    `json:"metadata,omitempty"`
+}
+
+// NWDAFAnalytics represents NWDAF analytics data
+type NWDAFAnalytics struct {
+	AnalyticsID string                 `json:"analytics_id"`
+	Type        NWDAFAnalyticsType     `json:"type"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Data        map[string]interface{} `json:"data"`
+	Consumer    string                 `json:"consumer"`
+}
+
+// NWDAFAnalyticsType defines the type of NWDAF analytics
+type NWDAFAnalyticsType string
+
+const (
+	NWDAFAnalyticsTypeLoad        NWDAFAnalyticsType = "load"
+	NWDAFAnalyticsTypeNetworkPerf NWDAFAnalyticsType = "network_perf"
+	NWDAFAnalyticsTypeUEMobility  NWDAFAnalyticsType = "ue_mobility"
+	NWDAFAnalyticsTypeQoS         NWDAFAnalyticsType = "qos"
+)
+
+// PerformanceMetrics represents performance monitoring data
+type PerformanceMetrics struct {
+	ServiceName   string            `json:"service_name"`
+	Timestamp     time.Time         `json:"timestamp"`
+	ResponseTime  time.Duration     `json:"response_time"`
+	Throughput    float64           `json:"throughput"`
+	ErrorRate     float64           `json:"error_rate"`
+	ResourceUsage map[string]float64 `json:"resource_usage,omitempty"`
+}
+
+// SeasonalityDetector represents seasonal pattern detection
+type SeasonalityDetector struct {
+	Pattern    string        `json:"pattern"`
+	Confidence float64       `json:"confidence"`
+	Period     time.Duration `json:"period"`
+	Amplitude  float64       `json:"amplitude"`
+}
+
+// SystemHealth represents overall system health
+type SystemHealth struct {
+	OverallStatus  HealthStatus                    `json:"overall_status"`
+	Components     map[string]*ComponentHealth     `json:"components"`
+	LastUpdated    time.Time                       `json:"last_updated"`
+	HealthScore    float64                         `json:"health_score"`
+	Issues         []string                        `json:"issues,omitempty"`
+}
+
+// ReportConfig represents configuration for performance reports
+type ReportConfig struct {
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	TimeRange   TimeRange         `json:"time_range"`
+	Metrics     []string          `json:"metrics"`
+	Filters     map[string]string `json:"filters,omitempty"`
+	Format      string            `json:"format"`
+	Recipients  []string          `json:"recipients,omitempty"`
+}
+
+// PerformanceReport represents a performance analysis report
+type PerformanceReport struct {
+	ID           string              `json:"id"`
+	Title        string              `json:"title"`
+	GeneratedAt  time.Time           `json:"generated_at"`
+	TimeRange    TimeRange           `json:"time_range"`
+	Summary      *ReportSummary      `json:"summary"`
+	Metrics      []*PerformanceMetrics `json:"metrics"`
+	Alerts       []*AlertItem        `json:"alerts,omitempty"`
+	Recommendations []string         `json:"recommendations,omitempty"`
+}
+
+// TimeRange represents a time range for queries
+type TimeRange struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	Duration  time.Duration `json:"duration"`
+}
+
+// AlertItem represents an alert in reports
+type AlertItem struct {
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Severity    AlertSeverity `json:"severity"`
+	Status      string        `json:"status"`
+	Timestamp   time.Time     `json:"timestamp"`
+	Message     string        `json:"message"`
+	Source      string        `json:"source,omitempty"`
+	Resolved    bool          `json:"resolved"`
+}
+
+// ReportSummary represents a summary of performance metrics
+type ReportSummary struct {
+	TotalMetrics      int                     `json:"total_metrics"`
+	AlertsTriggered   int                     `json:"alerts_triggered"`
+	PerformanceScore  float64                 `json:"performance_score"`
+	AvgResponseTime   time.Duration           `json:"avg_response_time"`
+	TotalRequests     int64                   `json:"total_requests"`
+	ErrorRate         float64                 `json:"error_rate"`
+	ResourceUsage     map[string]float64      `json:"resource_usage,omitempty"`
+}
+
+// TrendAnalysis represents trend analysis results
+type TrendAnalysis struct {
+	Direction   string    `json:"direction"` // "increasing", "decreasing", "stable"
+	Strength    float64   `json:"strength"`  // 0-1 scale
+	Confidence  float64   `json:"confidence"` // 0-1 scale
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Slope       float64   `json:"slope"`
+	R2Score     float64   `json:"r2_score"`
+}
+
+// PredictionResult represents prediction analysis results
+type PredictionResult struct {
+	Timestamp       time.Time         `json:"timestamp"`
+	PredictedValue  float64           `json:"predicted_value"`
+	Confidence      float64           `json:"confidence"`
+	LowerBound      float64           `json:"lower_bound"`
+	UpperBound      float64           `json:"upper_bound"`
+	PredictionType  string            `json:"prediction_type"`
+	ModelUsed       string            `json:"model_used"`
+	Features        map[string]float64 `json:"features,omitempty"`
+}
+
+// AnomalyPoint represents an anomaly detection result
+type AnomalyPoint struct {
+	Timestamp    time.Time `json:"timestamp"`
+	Value        float64   `json:"value"`
+	ExpectedValue float64  `json:"expected_value"`
+	Deviation    float64   `json:"deviation"`
+	Severity     string    `json:"severity"`
+	AnomalyScore float64   `json:"anomaly_score"`
+	Context      map[string]interface{} `json:"context,omitempty"`
+}
+
+// PredictionPoint represents a single prediction data point
+type PredictionPoint struct {
+	Timestamp   time.Time `json:"timestamp"`
+	Value       float64   `json:"value"`
+	Confidence  float64   `json:"confidence"`
+	Source      string    `json:"source"`
+	ModelName   string    `json:"model_name"`
 }

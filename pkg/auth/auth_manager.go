@@ -167,13 +167,13 @@ func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (
 
 	// Create new access token
 	userInfo := &providers.UserInfo{
-		ID:     claims.Subject,
-		Email:  claims.Subject, // Use subject as email for now
-		Name:   claims.Subject,
-		Roles:  claims.Roles,
-		Groups: []string{},
+		Subject: claims.Subject,
+		Email:   claims.Subject, // Use subject as email for now
+		Name:    claims.Subject,
+		Roles:   claims.Roles,
+		Groups:  []string{},
 	}
-	accessToken, tokenInfo, err := am.JWTManager.CreateAccessToken(
+	accessToken, _, err := am.JWTManager.CreateAccessToken(
 		context.Background(),
 		userInfo,
 		claims.SessionID,
