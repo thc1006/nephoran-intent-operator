@@ -465,6 +465,18 @@ type SeasonalityDetector struct {
 	Amplitude  float64       `json:"amplitude"`
 }
 
+// DetectSeasonality detects seasonal patterns in the data
+func (sd *SeasonalityDetector) DetectSeasonality(ctx context.Context, data interface{}) (*SeasonalityInfo, error) {
+	// Stub implementation - would contain actual seasonality detection logic
+	return &SeasonalityInfo{
+		Pattern:    sd.Pattern,
+		Period:     sd.Period,
+		Confidence: sd.Confidence,
+		Amplitude:  sd.Amplitude,
+		Detected:   sd.Confidence > 0.5,
+	}, nil
+}
+
 // SystemHealth represents overall system health
 type SystemHealth struct {
 	OverallStatus  HealthStatus                    `json:"overall_status"`
@@ -571,4 +583,14 @@ type PredictionPoint struct {
 	Confidence  float64   `json:"confidence"`
 	Source      string    `json:"source"`
 	ModelName   string    `json:"model_name"`
+}
+
+// SeasonalityInfo represents seasonality detection results
+type SeasonalityInfo struct {
+	Pattern    string        `json:"pattern"`
+	Period     time.Duration `json:"period"`
+	Confidence float64       `json:"confidence"`
+	Amplitude  float64       `json:"amplitude"`
+	Phase      float64       `json:"phase,omitempty"`
+	Detected   bool          `json:"detected"`
 }

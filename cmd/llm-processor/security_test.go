@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -163,7 +164,7 @@ func TestSecurityHeaders(t *testing.T) {
 			// Create test request
 			req := httptest.NewRequest("GET", "/test", nil)
 			if tt.tlsEnabled {
-				req.TLS = &struct{}{}
+				req.TLS = &tls.ConnectionState{}
 			}
 
 			// Create response recorder

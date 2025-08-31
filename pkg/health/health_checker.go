@@ -616,19 +616,65 @@ func (hc *HealthChecker) isInGracePeriod() bool {
 }
 
 // getGracePeriodRemaining returns remaining grace period duration.
-
 func (hc *HealthChecker) getGracePeriodRemaining() time.Duration {
-
 	remaining := hc.gracePeriod - time.Since(hc.startTime)
-
 	if remaining < 0 {
-
 		return 0
+	}
+	return remaining
+}
 
+// RunCheck executes a specific health check by name.
+func (hc *HealthChecker) RunCheck(ctx context.Context, name string) *Check {
+	hc.mu.RLock()
+	defer hc.mu.RUnlock()
+
+	// Check if it's a service check
+	if checkFunc, exists := hc.checks[name]; exists {
+		start := time.Now()
+		check := checkFunc(ctx)
+		if check == nil {
+			check = &Check{
+				Name:      name,
+				Status:    StatusUnknown,
+				Message:   "Check function returned nil",
+				Duration:  time.Since(start),
+				Timestamp: time.Now(),
+				Component: hc.serviceName,
+			}
+		} else {
+			check.Name = name
+			check.Duration = time.Since(start)
+			check.Timestamp = time.Now()
+			check.Component = hc.serviceName
+		}
+		return check
 	}
 
-	return remaining
+	// Check if it's a dependency check
+	if checkFunc, exists := hc.dependencies[name]; exists {
+		start := time.Now()
+		check := checkFunc(ctx)
+		if check == nil {
+			check = &Check{
+				Name:      name,
+				Status:    StatusUnknown,
+				Message:   "Dependency check function returned nil",
+				Duration:  time.Since(start),
+				Timestamp: time.Now(),
+				Component: "dependency",
+			}
+		} else {
+			check.Name = name
+			check.Duration = time.Since(start)
+			check.Timestamp = time.Now()
+			check.Component = "dependency"
+		}
+		return check
+	}
 
+	// Check not found
+	return nil
 }
 
 // Common health check functions.

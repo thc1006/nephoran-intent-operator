@@ -237,7 +237,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 			logger := slog.New(bufferHandler)
 
 			// Create test configuration
-			config := &Config{
+			config := &TestConfig{
 				ServiceVersion:   "test-v1.0.0",
 				LLMModelName:     "gpt-4o-mini",
 				LLMMaxTokens:     2048,
@@ -412,7 +412,7 @@ func TestStreamingHandlerLoggingEdgeCases(t *testing.T) {
 		bufferHandler := NewBufferLogHandler(logBuffer)
 		logger := slog.New(bufferHandler)
 
-		config := &Config{
+		config := &TestConfig{
 			ServiceVersion:   "test-v1.0.0",
 			StreamingEnabled: true,
 		}
@@ -479,7 +479,7 @@ func TestStreamingHandlerLoggingEdgeCases(t *testing.T) {
 		bufferHandler := NewBufferLogHandler(logBuffer)
 		logger := slog.New(bufferHandler)
 
-		config := &Config{
+		config := &TestConfig{
 			ServiceVersion:   "test-v1.0.0",
 			StreamingEnabled: true,
 		}
