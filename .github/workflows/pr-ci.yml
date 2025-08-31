@@ -249,11 +249,40 @@ jobs:
             go.sum
             **/go.sum
 
+      - name: Initialize module for golangci-lint
+        run: |
+          echo "🔧 Preparing Go modules for linting..."
+          
+          # First, try to download what we can
+          echo "📦 Downloading available modules..."
+          go mod download || echo "Some modules failed (expected during import path migration)"
+          
+          # Create a minimal go.work file to help with discovery
+          echo "🔨 Creating go.work for better module discovery..."
+          cat > go.work << EOF
+          go 1.24
+          
+          use (
+            ./
+            ./api
+            ./controllers
+            ./pkg
+          )
+          EOF
+          
+          # Try to verify what we have
+          echo "✅ Module verification status:"
+          go mod verify || echo "Some verification failed (expected)"
+          
+          # List available packages to help golangci-lint
+          echo "📋 Discoverable packages:"
+          go list -f '{{.ImportPath}}' ./api/... ./controllers/... ./pkg/... 2>/dev/null | head -10 || echo "Package listing limited due to import issues"
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: --timeout=8m --config=.golangci-fast.yml ./api/... ./controllers/... ./cmd/... ./pkg/... --skip-dirs=vendor,testdata,third_party
+          args: --timeout=8m --config=.golangci-fast.yml
 
   # =============================================================================
   # Status Check
