@@ -20,7 +20,7 @@ import (
 // RAGService provides Retrieval-Augmented Generation capabilities for telecom domain.
 
 type RAGService struct {
-	weaviateClient *WeaviateClient
+	weaviateClient WeaviateClient
 
 	llmClient shared.ClientInterface
 
@@ -202,7 +202,7 @@ type RAGResponse struct {
 
 // NewRAGService creates a new RAG service instance.
 
-func NewRAGService(weaviateClient *WeaviateClient, llmClient shared.ClientInterface, config *RAGConfig) *RAGService {
+func NewRAGService(weaviateClient WeaviateClient, llmClient shared.ClientInterface, config *RAGConfig) *RAGService {
 
 	if config == nil {
 
@@ -410,11 +410,11 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 		HybridSearch: request.UseHybridSearch,
 
-		HybridAlpha: rs.config.DefaultHybridAlpha,
+		HybridAlpha: float64(rs.config.DefaultHybridAlpha),
 
 		UseReranker: request.EnableReranking && rs.config.EnableReranking,
 
-		MinConfidence: request.MinConfidence,
+		MinConfidence: float64(request.MinConfidence),
 
 		ExpandQuery: rs.config.EnableQueryExpansion,
 	}
@@ -1128,7 +1128,7 @@ func (rs *RAGService) generateCacheKey(request *RAGRequest) string {
 
 		MaxResults: request.MaxResults,
 
-		MinConfidence: request.MinConfidence,
+		MinConfidence: float64(request.MinConfidence),
 
 		Filters: request.SearchFilters,
 

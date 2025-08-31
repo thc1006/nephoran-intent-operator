@@ -481,7 +481,7 @@ monitorLoop:
 			result.CheckpointMetrics = append(result.CheckpointMetrics, checkpoint)
 
 			// Check for performance degradation
-			if previousLatency > 0 && checkpoint.AvgLatency > previousLatency*1.5 {
+			if previousLatency > 0 && checkpoint.AvgLatency > int64(float64(previousLatency)*1.5) {
 				performanceStable = false
 				klog.Warningf("Performance degradation detected: latency increased from %v to %v",
 					previousLatency, checkpoint.AvgLatency)
@@ -668,8 +668,8 @@ func exhaustMemory(ctx context.Context) error {
 	// Hold for a moment
 	time.Sleep(5 * time.Second)
 
-	// Release
-	_ = nil
+	// Release resources
+	// _ = nil // Removed unused assignment
 	return nil
 }
 

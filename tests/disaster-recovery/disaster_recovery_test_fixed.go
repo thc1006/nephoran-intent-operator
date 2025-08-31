@@ -906,11 +906,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) waitForDeploymentReady(name, nam
 
 }
 
-func int32Ptr(i int32) *int32 {
-
-	return &i
-
-}
+// int32Ptr function removed - duplicate declaration exists in disaster_recovery_test.go
 
 // TestEnhancedDisasterRecoveryTestSuite performs testenhanceddisasterrecoverytestsuite operation.
 

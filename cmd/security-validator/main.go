@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/tests/security"
@@ -127,15 +128,24 @@ func getKubernetesConfig(kubeconfigPath string) (*rest.Config, error) {
 }
 
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 &&
-		(s == substr ||
-			fmt.Sprintf(",%s,", s) != fmt.Sprintf(",%s,", fmt.Sprintf(",%s,", s)[1:len(fmt.Sprintf(",%s,", s))-1]))
+	if len(s) == 0 || len(substr) == 0 {
+		return false
+	}
+
+	if s == substr {
+		return true
+	}
+
+	// Check if substr is in comma-separated list
+	parts := fmt.Sprintf(",%s,", s)
+	target := fmt.Sprintf(",%s,", substr)
+	return strings.Contains(parts, target)
 }
 
 func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSecurityTestSuite,
 	runPenetration, runValidation, runMonitoring, runRegression bool) *security.ComprehensiveTestResults {
 
-	fmt.Println("?¯ Running Selective Security Tests...")
+	fmt.Println("ğŸ” Running Selective Security Tests...")
 
 	// This is a simplified version for selective testing
 	// In a real implementation, you would modify the suite to support selective execution
@@ -149,7 +159,7 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 	}
 
 	if runPenetration {
-		fmt.Println("?¯ Running Penetration Tests...")
+		fmt.Println("ğŸ”“ Running Penetration Tests...")
 		// Run penetration tests
 		results.TestCategories["penetration_testing"] = security.CategoryResult{
 			Category:    "Penetration Testing",
@@ -292,15 +302,15 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 func getStatusIcon(status string) string {
 	switch status {
 	case "PASSED", "passed":
-		return "??PASSED"
+		return "âœ… PASSED"
 	case "FAILED", "failed":
-		return "??FAILED"
+		return "âŒ FAILED"
 	case "SKIPPED", "skipped":
-		return "?­ï?  SKIPPED"
+		return "â­ï¸  SKIPPED"
 	case "RUNNING", "running":
-		return "?? RUNNING"
+		return "ğŸ”„ RUNNING"
 	default:
-		return "??UNKNOWN"
+		return "â“ UNKNOWN"
 	}
 }
 

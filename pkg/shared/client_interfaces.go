@@ -10,6 +10,7 @@ type ClientInterface interface {
 	// Basic operations
 	ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error)
 	ProcessStreamingRequest(ctx context.Context, request *LLMRequest) (<-chan *StreamingChunk, error)
+	ProcessIntent(ctx context.Context, intent string) (string, error)
 
 	// Health and status
 	HealthCheck(ctx context.Context) error

@@ -26,7 +26,7 @@ type RAGPipeline struct {
 
 	embeddingService *EmbeddingService
 
-	weaviateClient *WeaviateClient
+	weaviateClient WeaviateClient
 
 	weaviatePool *WeaviateConnectionPool
 

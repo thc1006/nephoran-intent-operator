@@ -70,7 +70,7 @@ func main() {
 
 		HealthProbeBindAddress: probeAddr,
 
-		// LeaderElection ?¯è??€è¦é???
+		// LeaderElection disabled for webhook manager
 
 		LeaderElection: false,
 	})
@@ -83,13 +83,13 @@ func main() {
 
 	}
 
-	// å»ºç?ä¸¦è¨»??webhook serverï¼ˆæ–° APIï¼›Port/CertDir ?é??™è£¡è¨­å?ï¼?
+	// Create and register webhook server (new API; Port/CertDir set here)
 
 	hookServer := webhook.NewServer(webhook.Options{
 
 		Port: webhookPort,
 
-		CertDir: certDir, // ?¥ç?ç©ºï?controller-runtime ?ƒç”¨?è¨­ä½ç½®
+		CertDir: certDir, // If empty, controller-runtime uses default location
 
 	})
 
@@ -101,7 +101,7 @@ func main() {
 
 	}
 
-	// å°‡ä???CRD webhook ?›é€?managerï¼ˆæ??ªå?è¨»å???mgr.GetWebhookServer()ï¼?
+	// Register CRD webhook with manager (no longer register with mgr.GetWebhookServer()
 
 	if err := (&intentv1alpha1.NetworkIntent{}).SetupWebhookWithManager(mgr); err != nil {
 
@@ -111,7 +111,7 @@ func main() {
 
 	}
 
-	// ?¥åº·æª¢æŸ¥/å°±ç?æª¢æŸ¥.
+	// Health checks and readiness checks
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 

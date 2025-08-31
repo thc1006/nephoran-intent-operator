@@ -459,12 +459,15 @@ func (suite *ComprehensiveSecurityTestSuite) runSecurityControlValidation(ctx co
 				Severity:    "HIGH",
 			},
 		},
-		ComplianceFrameworks: map[string]ComplianceResult{
+		ComplianceFrameworks: map[string]AutoSecComplianceResult{
 			"NIST-CSF": {
 				Framework:      "NIST Cybersecurity Framework",
+				Version:        "1.1",
 				Score:          90.0,
 				PassedControls: 18,
 				FailedControls: 2,
+				TotalControls:  20,
+				Requirements:   []string{"PR.AC-1", "PR.AT-1", "DE.AE-1"},
 			},
 		},
 	}

@@ -28,7 +28,7 @@ type PerformanceBenchmarker struct {
 
 	testData *TestDataset
 
-	originalClient *WeaviateClient
+	originalClient WeaviateClient
 
 	optimizedPipeline *OptimizedRAGPipeline
 
@@ -413,7 +413,7 @@ type ExpectedResult struct {
 
 func NewPerformanceBenchmarker(
 
-	originalClient *WeaviateClient,
+	originalClient WeaviateClient,
 
 	optimizedPipeline *OptimizedRAGPipeline,
 

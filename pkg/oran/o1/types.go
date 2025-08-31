@@ -59,8 +59,8 @@ type CorrelationRule struct {
 	Description string                 `json:"description,omitempty"`
 }
 
-// NotificationChannel represents a notification channel
-type NotificationChannel interface {
+// AlarmNotificationChannel represents a notification channel for alarms (renamed to avoid conflict)
+type AlarmNotificationChannel interface {
 	Send(alarm *EnhancedAlarm) error
 	IsHealthy() bool
 	GetChannelType() string

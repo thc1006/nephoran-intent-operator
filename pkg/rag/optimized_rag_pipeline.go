@@ -28,7 +28,7 @@ type OptimizedRAGPipeline struct {
 
 	embeddingCache EmbeddingCache
 
-	weaviateClient *WeaviateClient
+	weaviateClient WeaviateClient
 
 	batchSearchClient *OptimizedBatchSearchClient
 
@@ -270,7 +270,7 @@ type ProcessedQuery struct {
 
 func NewOptimizedRAGPipeline(
 
-	weaviateClient *WeaviateClient,
+	weaviateClient WeaviateClient,
 
 	batchSearchClient *OptimizedBatchSearchClient,
 
@@ -658,7 +658,7 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 
 		UseReranker: request.EnableReranking,
 
-		MinConfidence: request.MinConfidence,
+		MinConfidence: float64(request.MinConfidence),
 	}
 
 	// Execute search.
@@ -729,7 +729,7 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 
 			UseReranker: request.EnableReranking,
 
-			MinConfidence: request.MinConfidence,
+			MinConfidence: float64(request.MinConfidence),
 		}
 
 	}

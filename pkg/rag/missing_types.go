@@ -181,7 +181,7 @@ type RAGPipelineConfig struct {
 
 // NewOptimizedBatchSearchClient creates a mock batch search client.
 
-func NewOptimizedBatchSearchClient(client *WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
+func NewOptimizedBatchSearchClient(client WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
 
 	return &OptimizedBatchSearchClient{
 
@@ -195,7 +195,7 @@ func NewOptimizedBatchSearchClient(client *WeaviateClient, config *BatchSearchCo
 // OptimizedBatchSearchClient minimal implementation.
 
 type OptimizedBatchSearchClient struct {
-	client *WeaviateClient
+	client WeaviateClient
 
 	config *BatchSearchConfig
 }
@@ -208,7 +208,7 @@ type GRPCWeaviateClient struct {
 
 // NewOptimizedRAGPipeline creates a mock RAG pipeline.
 
-func NewOptimizedRAGPipeline(client *WeaviateClient, batchClient *OptimizedBatchSearchClient, pool *OptimizedConnectionPool, config *RAGPipelineConfig) *OptimizedRAGPipeline {
+func NewOptimizedRAGPipeline(client WeaviateClient, batchClient *OptimizedBatchSearchClient, pool *OptimizedConnectionPool, config *RAGPipelineConfig) *OptimizedRAGPipeline {
 
 	return &OptimizedRAGPipeline{
 
@@ -319,7 +319,7 @@ func (m *OptimizedRAGMetrics) GetSuccessRate() float64 {
 
 // OptimizedRAGPipeline minimal implementation.
 type OptimizedRAGPipeline struct {
-	client *WeaviateClient
+	client WeaviateClient
 	batchClient *OptimizedBatchSearchClient
 	pool *OptimizedConnectionPool
 	config *RAGPipelineConfig

@@ -1082,8 +1082,12 @@ func (pi *PerformanceIntegration) getOverallHealth() string {
 	// Check component health.
 
 	health := pi.optimizedRAG.GetHealth()
-
-	if status, ok := health["status"].(string); ok && status != "healthy" {
+	if healthMap, ok := health.(map[string]interface{}); ok {
+		if status, ok := healthMap["status"].(string); ok && status != "healthy" {
+			return "degraded"
+		}
+	}
+	if health == "unhealthy" {
 
 		return "degraded"
 

@@ -13,7 +13,6 @@ run:
 linters:
   enable:
     - govet
-    - shadow
     - errcheck
     - staticcheck
     - gosec

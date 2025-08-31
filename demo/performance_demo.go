@@ -14,7 +14,7 @@ func main() {
 	fmt.Println("====================================")
 
 	// Initialize performance integrator with default configuration
-	config := performance.DefaultIntegrationConfig()
+	config := performance.DefaultIntegrationConfig
 	config.EnableProfiler = true
 	config.EnableCache = true
 	config.EnableAsync = true
@@ -22,7 +22,7 @@ func main() {
 	config.TargetResponseTime = 50 * time.Millisecond
 	config.TargetThroughput = 2000.0
 
-	integrator, err := performance.NewPerformanceIntegrator(config)
+	integrator := performance.NewPerformanceIntegrator(config)
 	if err != nil {
 		log.Fatalf("Failed to create performance integrator: %v", err)
 	}

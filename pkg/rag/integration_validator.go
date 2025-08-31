@@ -588,7 +588,7 @@ func (iv *IntegrationValidator) testEmbeddingService(ctx context.Context, embedd
 
 }
 
-func (iv *IntegrationValidator) testWeaviateClient(ctx context.Context, client *WeaviateClient) error {
+func (iv *IntegrationValidator) testWeaviateClient(ctx context.Context, client WeaviateClient) error {
 
 	if client == nil {
 

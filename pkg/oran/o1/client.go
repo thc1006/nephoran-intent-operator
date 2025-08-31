@@ -53,20 +53,28 @@ func (c *ClientImpl) GetPerformanceData(ctx context.Context, request *Performanc
 	// This is a placeholder implementation
 	// In a real implementation, this would query performance management data
 
-	data := []PerformanceMeasurement{
+	data := []PerformanceData{
 		{
-			ObjectInstance:  "cell_001",
-			MeasurementType: "RRCConnections",
-			Value:           150.0,
-			Unit:            "connections",
-			Timestamp:       time.Now(),
+			ID:        "perf_data_1",
+			Timestamp: time.Now(),
+			Metrics: map[string]interface{}{
+				"RRCConnections": 150.0,
+				"unit": "connections",
+				"object_instance": "cell_001",
+			},
+			Source:   "cell_001",
+			DataType: "RRCConnections",
 		},
 		{
-			ObjectInstance:  "cell_001",
-			MeasurementType: "Throughput",
-			Value:           1024.5,
-			Unit:            "Mbps",
-			Timestamp:       time.Now(),
+			ID:        "perf_data_2",
+			Timestamp: time.Now(),
+			Metrics: map[string]interface{}{
+				"Throughput": 1024.5,
+				"unit": "Mbps",
+				"object_instance": "cell_001",
+			},
+			Source:   "cell_001",
+			DataType: "Throughput",
 		},
 	}
 
@@ -89,7 +97,7 @@ func (c *ClientImpl) SubscribePerformanceData(ctx context.Context, subscription 
 	go func() {
 		defer close(ch)
 		// Parse reporting period (assume it's in seconds if numeric, otherwise parse as duration)
-		reportingPeriod, err := time.ParseDuration(subscription.ReportingPeriod + "s")
+		reportingPeriod, err := time.ParseDuration(subscription.ReportingPeriod.String())
 		if err != nil {
 			reportingPeriod = 10 * time.Second // Default fallback
 		}
@@ -156,14 +164,8 @@ func (c *ClientImpl) GetAlarms(ctx context.Context, filter *AlarmFilter) (*Alarm
 		},
 	}
 
-	// Convert []Alarm to []*Alarm
-	alarmPtrs := make([]*Alarm, len(alarms))
-	for i := range alarms {
-		alarmPtrs[i] = &alarms[i]
-	}
-	
 	response := &AlarmResponse{
-		Alarms:    alarmPtrs,
+		Alarms:    alarms,
 		Total:     len(alarms),
 		RequestID: "req_" + fmt.Sprintf("%d", time.Now().Unix()),
 		Timestamp: time.Now(),

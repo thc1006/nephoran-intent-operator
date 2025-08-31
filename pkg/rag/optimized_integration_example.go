@@ -17,7 +17,7 @@ type OptimizedRAGManager struct {
 
 	// Core components.
 
-	originalClient *WeaviateClient
+	originalClient WeaviateClient
 
 	optimizedPipeline *OptimizedRAGPipeline
 
@@ -269,7 +269,7 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 			UseReranker: req.EnableReranking,
 
-			MinConfidence: req.MinConfidence,
+			MinConfidence: float64(req.MinConfidence),
 		}
 
 	}
@@ -701,15 +701,15 @@ func (m *OptimizedRAGManager) calculateConfidence(results []*shared.SearchResult
 
 	}
 
-	var totalScore float32
+	var totalScore float64
 
 	for _, result := range results {
 
-		totalScore += result.Score
+		totalScore += float64(result.Score)
 
 	}
 
-	return totalScore / float32(len(results))
+	return float32(totalScore / float64(len(results)))
 
 }
 

@@ -600,7 +600,7 @@ func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *E
 
 	if doc.Confidence > 0 {
 
-		score += doc.Confidence * 0.1
+		score += float64(doc.Confidence) * 0.1
 
 	}
 

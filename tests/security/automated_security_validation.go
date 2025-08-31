@@ -43,7 +43,7 @@ type SecurityValidationResults struct {
 	SkippedControls      int                         `json:"skipped_controls"`
 	ComplianceScore      float64                     `json:"compliance_score"`
 	SecurityControls     []SecurityControlResult     `json:"security_controls"`
-	ComplianceFrameworks map[string]ComplianceResult `json:"compliance_frameworks"`
+	ComplianceFrameworks map[string]AutoSecComplianceResult `json:"compliance_frameworks"`
 	Recommendations      []SecurityRecommendation    `json:"recommendations"`
 	DetailedFindings     map[string]interface{}      `json:"detailed_findings"`
 }
@@ -62,8 +62,8 @@ type SecurityControlResult struct {
 	Details       map[string]interface{} `json:"details"`
 }
 
-// ComplianceResult represents compliance framework validation results
-type ComplianceResult struct {
+// AutoSecComplianceResult represents compliance framework validation results
+type AutoSecComplianceResult struct {
 	Framework      string   `json:"framework"`
 	Version        string   `json:"version"`
 	Score          float64  `json:"score"`
@@ -97,7 +97,7 @@ func NewAutomatedSecurityValidator(client client.Client, k8sClient kubernetes.In
 			ValidationID:         fmt.Sprintf("sec-val-%d", time.Now().Unix()),
 			Timestamp:            time.Now(),
 			SecurityControls:     make([]SecurityControlResult, 0),
-			ComplianceFrameworks: make(map[string]ComplianceResult),
+			ComplianceFrameworks: make(map[string]AutoSecComplianceResult),
 			Recommendations:      make([]SecurityRecommendation, 0),
 			DetailedFindings:     make(map[string]interface{}),
 		},
@@ -909,7 +909,7 @@ func (v *AutomatedSecurityValidator) generateSecurityValidationReport() {
 
 func (v *AutomatedSecurityValidator) generateComplianceFrameworkResults() {
 	// NIST Cybersecurity Framework compliance
-	v.results.ComplianceFrameworks["NIST-CSF"] = ComplianceResult{
+	v.results.ComplianceFrameworks["NIST-CSF"] = AutoSecComplianceResult{
 		Framework:      "NIST Cybersecurity Framework",
 		Version:        "1.1",
 		Score:          v.results.ComplianceScore,
@@ -920,7 +920,7 @@ func (v *AutomatedSecurityValidator) generateComplianceFrameworkResults() {
 	}
 
 	// CIS Kubernetes Benchmark compliance
-	v.results.ComplianceFrameworks["CIS-K8S"] = ComplianceResult{
+	v.results.ComplianceFrameworks["CIS-K8S"] = AutoSecComplianceResult{
 		Framework:      "CIS Kubernetes Benchmark",
 		Version:        "1.6.1",
 		Score:          v.results.ComplianceScore,

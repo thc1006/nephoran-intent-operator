@@ -82,7 +82,7 @@ type BatchOptimizer struct {
 // OptimizedBatchSearchClient provides high-performance batch searching.
 
 type OptimizedBatchSearchClient struct {
-	client *WeaviateClient
+	client WeaviateClient
 
 	optimizer *BatchOptimizer
 
@@ -170,7 +170,7 @@ type CachedQueryResult struct {
 
 // NewOptimizedBatchSearchClient creates a new optimized batch search client.
 
-func NewOptimizedBatchSearchClient(weaviateClient *WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
+func NewOptimizedBatchSearchClient(weaviateClient WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
 
 	if config == nil {
 

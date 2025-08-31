@@ -14,7 +14,7 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/security/ca"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security/mtls"
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // ChaosEngineeringTestSuite provides comprehensive chaos testing for mTLS and certificate systems
@@ -83,8 +83,8 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		chaosSuite = &ChaosEngineeringTestSuite{
 			ctx:           context.Background(),
-			k8sClient:     utils.GetK8sClient(),
-			namespace:     utils.GetTestNamespace(),
+			k8sClient:     testutils.GetK8sClient(),
+			namespace:     testutils.GetTestNamespace(),
 			testSuite:     baseSuite,
 			metrics:       &ChaosMetrics{ServiceAvailability: make(map[string]float64), ErrorRates: make(map[string]float64)},
 			faultInjector: &FaultInjector{activeFaults: make(map[string]*ActiveFault)},
@@ -100,7 +100,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 	Context("Certificate Authority Chaos Testing", func() {
 		It("should handle CA complete failure scenario", func() {
-			_ = &ChaosScenario{
+			scenario := &ChaosScenario{
 				Name:             "CA Complete Failure",
 				Description:      "CA service becomes completely unavailable",
 				Category:         "CA_FAILURE",
@@ -177,7 +177,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle CA intermittent failure scenario", func() {
-			_ = &ChaosScenario{
+			scenario := &ChaosScenario{
 				Name:             "CA Intermittent Failure",
 				Description:      "CA service experiences intermittent failures",
 				Category:         "CA_FAILURE",
@@ -361,7 +361,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 	Context("Network Partition Chaos Testing", func() {
 		It("should handle network partition between CA and services", func() {
-			_ = &ChaosScenario{
+			scenario := &ChaosScenario{
 				Name:             "CA Network Partition",
 				Description:      "Network partition isolates CA from services",
 				Category:         "NETWORK_PARTITION",
@@ -406,7 +406,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle intermittent network connectivity", func() {
-			_ = &ChaosScenario{
+			scenario := &ChaosScenario{
 				Name:             "Intermittent Network Connectivity",
 				Description:      "Network experiences packet loss and latency spikes",
 				Category:         "NETWORK_DEGRADATION",

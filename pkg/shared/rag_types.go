@@ -59,6 +59,7 @@ type TelecomDocument struct {
 	Title           string                 `json:"title"`
 	Content         string                 `json:"content"`
 	Type            DocumentType           `json:"type"`
+	DocumentType    string                 `json:"document_type"`  // String representation of type
 	Category        string                 `json:"category"`
 	Standard        string                 `json:"standard"`         // e.g., "3GPP TS 38.401"
 	Version         string                 `json:"version"`          // e.g., "16.0.0"
@@ -68,7 +69,9 @@ type TelecomDocument struct {
 	NetworkFunction []string               `json:"network_function"` // Added for test compatibility
 	Technology      []string               `json:"technology"`       // Added for test compatibility
 	Confidence      float64                `json:"confidence"`       // Added for test compatibility
-	Metadata        map[string]interface{} `json:"metadata"`
+	UseCase         string                 `json:"use_case"`         // For compatibility 
+	Timestamp       time.Time              `json:"timestamp"`        // For compatibility
+	Metadata        map[string]interface{} `json:"metadata"` 
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Indexed         bool                   `json:"indexed"`

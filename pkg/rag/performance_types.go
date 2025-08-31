@@ -98,7 +98,7 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *shared.SearchQuery)
 // OptimizedRAGPipeline represents an optimized RAG pipeline.
 
 type OptimizedRAGPipeline struct {
-	client *WeaviateClient
+	client WeaviateClient
 
 	batchClient *OptimizedBatchSearchClient
 
@@ -109,7 +109,7 @@ type OptimizedRAGPipeline struct {
 
 // NewOptimizedRAGPipeline creates a new optimized RAG pipeline.
 
-func NewOptimizedRAGPipeline(client *WeaviateClient, batchClient *OptimizedBatchSearchClient, pool *OptimizedConnectionPool, config *RAGPipelineConfig) *OptimizedRAGPipeline {
+func NewOptimizedRAGPipeline(client WeaviateClient, batchClient *OptimizedBatchSearchClient, pool *OptimizedConnectionPool, config *RAGPipelineConfig) *OptimizedRAGPipeline {
 
 	return &OptimizedRAGPipeline{
 
@@ -140,14 +140,14 @@ func (o *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, req *RAGRequest
 // OptimizedBatchSearchClient represents a batch search client.
 
 type OptimizedBatchSearchClient struct {
-	client *WeaviateClient
+	client WeaviateClient
 
 	config *BatchSearchConfig
 }
 
 // NewOptimizedBatchSearchClient creates a new batch search client.
 
-func NewOptimizedBatchSearchClient(client *WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
+func NewOptimizedBatchSearchClient(client WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
 
 	return &OptimizedBatchSearchClient{
 
@@ -268,7 +268,7 @@ type RAGPipeline struct {
 
 	embeddingService *EmbeddingService
 
-	weaviateClient *WeaviateClient
+	weaviateClient WeaviateClient
 
 	redisCache *RedisCache
 

@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // ComplianceValidationSuite validates mTLS implementation against security standards
@@ -23,11 +23,11 @@ type ComplianceValidationSuite struct {
 	k8sClient         client.Client
 	namespace         string
 	testSuite         *mTLSSecurityTestSuite
-	complianceResults map[string]*ComplianceResult
+	complianceResults map[string]*MTLSComplianceResult
 }
 
-// ComplianceResult tracks compliance validation results
-type ComplianceResult struct {
+// MTLSComplianceResult tracks compliance validation results
+type MTLSComplianceResult struct {
 	Standard      string               `json:"standard"`
 	Version       string               `json:"version"`
 	Requirements  []*RequirementResult `json:"requirements"`
@@ -61,8 +61,8 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		complianceSuite = &ComplianceValidationSuite{
 			ctx:               context.Background(),
-			k8sClient:         utils.GetK8sClient(),
-			namespace:         utils.GetTestNamespace(),
+			k8sClient:         testutils.GetK8sClient(),
+			namespace:         testutils.GetTestNamespace(),
 			testSuite:         baseSuite,
 			complianceResults: make(map[string]*ComplianceResult),
 		}
