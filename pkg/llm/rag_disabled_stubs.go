@@ -9,15 +9,15 @@ import (
 
 // Stub types for when RAG is disabled.
 
-// MetricsIntegrator stub.
+// StubMetricsIntegrator stub.
 
-type MetricsIntegrator struct{}
+type StubMetricsIntegrator struct{}
 
 // NewMetricsIntegrator performs newmetricsintegrator operation.
 
-func NewMetricsIntegrator(collector interface{}) *MetricsIntegrator {
+func NewStubMetricsIntegrator(collector interface{}) *StubMetricsIntegrator {
 
-	return &MetricsIntegrator{}
+	return &StubMetricsIntegrator{}
 
 }
 
@@ -68,9 +68,9 @@ type BatchResult struct {
 	Latency time.Duration `json:"latency"`
 }
 
-// BatchProcessorStats stub.
+// StubBatchProcessorStats stub.
 
-type BatchProcessorStats struct {
+type StubBatchProcessorStats struct {
 	TotalProcessed int64 `json:"total_processed"`
 
 	SuccessfulBatch int64 `json:"successful_batch"`
@@ -363,13 +363,13 @@ func (tm *TokenManager) GetSupportedModels() []string {
 
 }
 
-// ContextBuilder represents a contextbuilder.
+// StubContextBuilder represents a contextbuilder.
 
-type ContextBuilder struct{}
+type StubContextBuilder struct{}
 
 // GetMetrics performs getmetrics operation.
 
-func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
+func (cb *StubContextBuilder) GetMetrics() map[string]interface{} {
 
 	return make(map[string]interface{})
 

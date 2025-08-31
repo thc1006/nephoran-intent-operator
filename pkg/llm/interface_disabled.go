@@ -24,9 +24,9 @@ type LLMProcessor interface {
 
 type Processor = LLMProcessor
 
-// BatchProcessor handles batch processing of multiple intents (disabled).
+// DisabledBatchProcessor handles batch processing of multiple intents (disabled).
 
-type BatchProcessor interface {
+type DisabledBatchProcessor interface {
 	ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error)
 
 	GetStats() BatchProcessorStats

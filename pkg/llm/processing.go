@@ -161,9 +161,9 @@ type ProcessingBatchRequest struct {
 	Context context.Context `json:"-"`
 }
 
-// ProcessingResult represents the result of processing.
+// MissingProcessingResult represents the result of processing.
 
-type ProcessingResult struct {
+type MissingProcessingResult struct {
 	Content string `json:"content"`
 
 	TokensUsed int `json:"tokens_used"`
