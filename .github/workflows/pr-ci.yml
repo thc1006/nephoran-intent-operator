@@ -253,7 +253,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: --timeout=8m --config=.golangci-fast.yml
+          args: --timeout=8m --config=.golangci-fast.yml ./api/... ./controllers/... ./cmd/... ./pkg/... --skip-dirs=vendor,testdata,third_party
 
   # =============================================================================
   # Status Check

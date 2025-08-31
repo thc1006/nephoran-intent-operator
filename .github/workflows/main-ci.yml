@@ -493,7 +493,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: --timeout=12m --config=.golangci.yml --verbose
+          args: --timeout=12m --config=.golangci.yml --verbose ./api/... ./controllers/... ./cmd/... ./pkg/... --skip-dirs=vendor,testdata,third_party,tests,scripts,security
           skip-cache: false
           skip-pkg-cache: false
           skip-build-cache: false

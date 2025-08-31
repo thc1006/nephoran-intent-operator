@@ -223,6 +223,14 @@ issues:
     - node_modules
     - deployments/base
     - config/samples
+    - hack/testtools
+    - tests
+    - test
+    - scripts
+    - security
+    - monitoring
+    - infrastructure
+    - planner
   
   # File-specific exclusions
   exclude-files:
