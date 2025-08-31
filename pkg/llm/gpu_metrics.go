@@ -446,7 +446,7 @@ type GPUPerformanceReport struct {
 	DeviceBreakdown  []*DeviceMetrics              `json:"device_breakdown"`
 	ModelBreakdown   []*ModelMetrics               `json:"model_breakdown"`
 	ThroughputTrends []*ThroughputDataPoint        `json:"throughput_trends"`
-	LatencyTrends    []*LatencyDataPoint           `json:"latency_trends"`
+	LatencyTrends    []*LLMLatencyDataPoint        `json:"latency_trends"`
 	ErrorAnalysis    *ErrorAnalysis                `json:"error_analysis"`
 	Recommendations  []*OptimizationRecommendation `json:"recommendations"`
 	Timestamp        time.Time                     `json:"timestamp"`

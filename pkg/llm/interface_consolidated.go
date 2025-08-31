@@ -103,7 +103,7 @@ func NewConsolidatedRelevanceScorerStub() *ConsolidatedRelevanceScorer {
 
 	return &ConsolidatedRelevanceScorer{
 
-		config: &RelevanceScorerConfig{},
+		config: &ConsolidatedRelevanceScorerConfig{},
 
 		logger: nil, // Will be set later if needed
 
@@ -111,7 +111,7 @@ func NewConsolidatedRelevanceScorerStub() *ConsolidatedRelevanceScorer {
 
 		domainKnowledge: nil, // Stub implementation
 
-		metrics: &ScoringMetrics{},
+		metrics: &ConsolidatedScoringMetrics{},
 	}
 
 }
@@ -329,7 +329,7 @@ type ContextBuilderMetrics struct {
 // RelevanceScorer provides relevance scoring functionality.
 
 type ConsolidatedRelevanceScorer struct {
-	config *RelevanceScorerConfig
+	config *ConsolidatedRelevanceScorerConfig
 
 	logger *slog.Logger // Using concrete type instead of interface{}
 
@@ -337,14 +337,14 @@ type ConsolidatedRelevanceScorer struct {
 
 	domainKnowledge interface{} // *TelecomDomainKnowledge
 
-	metrics *ScoringMetrics
+	metrics *ConsolidatedScoringMetrics
 
 	mutex sync.RWMutex
 }
 
-// RelevanceScorerConfig holds configuration for relevance scoring.
+// ConsolidatedRelevanceScorerConfig holds configuration for relevance scoring.
 
-type RelevanceScorerConfig struct {
+type ConsolidatedRelevanceScorerConfig struct {
 
 	// Scoring weights.
 
@@ -381,9 +381,9 @@ type RelevanceScorerConfig struct {
 	MaxProcessingTime time.Duration `json:"max_processing_time"`
 }
 
-// ScoringMetrics tracks scoring performance.
+// ConsolidatedScoringMetrics tracks scoring performance.
 
-type ScoringMetrics struct {
+type ConsolidatedScoringMetrics struct {
 	TotalScores int64 `json:"total_scores"`
 
 	AverageScoringTime time.Duration `json:"average_scoring_time"`
@@ -405,23 +405,23 @@ type ScoringMetrics struct {
 	mutex sync.RWMutex
 }
 
-// SimpleRelevanceScorer provides a simple relevance scoring implementation.
+// ConsolidatedSimpleRelevanceScorer provides a simple relevance scoring implementation.
 
-type SimpleRelevanceScorer struct {
+type ConsolidatedSimpleRelevanceScorer struct {
 	embeddingService interface{} // rag.EmbeddingServiceInterface
 
 	legacyEmbedding interface{} // *rag.EmbeddingService
 
 	logger *slog.Logger
 
-	metrics *SimpleRelevanceScorerMetrics
+	metrics *ConsolidatedSimpleRelevanceScorerMetrics
 
 	mutex sync.RWMutex
 }
 
-// SimpleRelevanceScorerMetrics tracks simple scoring performance.
+// ConsolidatedSimpleRelevanceScorerMetrics tracks simple scoring performance.
 
-type SimpleRelevanceScorerMetrics struct {
+type ConsolidatedSimpleRelevanceScorerMetrics struct {
 	TotalScores int64 `json:"total_scores"`
 
 	SuccessfulScores int64 `json:"successful_scores"`
@@ -579,9 +579,9 @@ type TokenManager struct {
 	mutex sync.RWMutex
 }
 
-// NewTokenManager creates a new token manager.
+// NewConsolidatedTokenManager creates a new token manager.
 
-func NewTokenManager() *TokenManager {
+func NewConsolidatedTokenManager() *TokenManager {
 
 	return &TokenManager{
 
@@ -777,9 +777,9 @@ type Document struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// GetMetrics returns metrics for the RelevanceScorer.
+// GetMetrics returns metrics for the ConsolidatedRelevanceScorer.
 
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
+func (rs *ConsolidatedRelevanceScorer) GetMetrics() map[string]interface{} {
 
 	if rs == nil || rs.metrics == nil {
 

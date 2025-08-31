@@ -14,16 +14,16 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// convertSearchResults converts types.SearchResult to rag.SearchResult
-func convertSearchResults(typesResults []*types.SearchResult) []*rag.SearchResult {
-	if typesResults == nil {
+// convertSearchResults converts shared.SearchResult to rag.SearchResult
+func convertSearchResults(sharedResults []*shared.SearchResult) []*rag.SearchResult {
+	if sharedResults == nil {
 		return nil
 	}
-	ragResults := make([]*rag.SearchResult, len(typesResults))
-	for i, tr := range typesResults {
+	ragResults := make([]*rag.SearchResult, len(sharedResults))
+	for i, tr := range sharedResults {
 		if tr != nil {
 			ragResults[i] = &rag.SearchResult{
 				ID:       tr.Document.ID,
@@ -400,7 +400,7 @@ func (rep *RAGEnhancedProcessorImpl) classifyIntentType(intent string) string {
 }
 
 // AddTelecomDocument adds a document to the knowledge base
-func (rep *RAGEnhancedProcessorImpl) AddTelecomDocument(ctx context.Context, doc *rag.TelecomDocument) error {
+func (rep *RAGEnhancedProcessorImpl) AddTelecomDocument(ctx context.Context, doc *shared.TelecomDocument) error {
 	if rep.weaviateClient == nil {
 		return fmt.Errorf("weaviate client not available")
 	}

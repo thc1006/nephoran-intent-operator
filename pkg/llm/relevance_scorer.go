@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RelevanceScorerImpl calculates multi-factor relevance scores for documents
@@ -94,7 +94,7 @@ type RelevanceScore struct {
 type RelevanceRequest struct {
 	Query         string                 `json:"query"`
 	IntentType    string                 `json:"intent_type"`
-	Document      *types.TelecomDocument `json:"document"`
+	Document      *shared.TelecomDocument `json:"document"`
 	Position      int                    `json:"position"`
 	OriginalScore float32                `json:"original_score"`
 	Context       string                 `json:"context"`
@@ -103,7 +103,7 @@ type RelevanceRequest struct {
 
 // ScoredDocument represents a document with relevance scoring
 type ScoredDocument struct {
-	Document       *types.TelecomDocument `json:"document"`
+	Document       *shared.TelecomDocument `json:"document"`
 	RelevanceScore *RelevanceScore        `json:"relevance_score"`
 	OriginalScore  float32                `json:"original_score"`
 	Position       int                    `json:"position"`
@@ -541,7 +541,7 @@ func (rs *RelevanceScorerImpl) calculateAuthorityScore(request *RelevanceRequest
 }
 
 // isStandardsDocument checks if document is a standards document
-func (rs *RelevanceScorerImpl) isStandardsDocument(doc *types.TelecomDocument) bool {
+func (rs *RelevanceScorerImpl) isStandardsDocument(doc *shared.TelecomDocument) bool {
 	indicators := []string{"TS ", "TR ", "RFC ", "IEEE ", "O-RAN.WG", "specification", "standard"}
 
 	titleLower := strings.ToLower(doc.Title)

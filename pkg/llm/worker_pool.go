@@ -1478,13 +1478,7 @@ const (
 
 	TaskTypeLLMProcessing TaskType = "llm_processing"
 
-	// TaskTypeRAGProcessing holds tasktyperagprocessing value.
-
-	TaskTypeRAGProcessing TaskType = "rag_processing"
-
-	// TaskTypeBatchProcessing holds tasktypebatchprocessing value.
-
-	TaskTypeBatchProcessing TaskType = "batch_processing"
+	// TaskTypeRAGProcessing and TaskTypeBatchProcessing are defined in missing_types.go
 
 	// TaskTypeValidation holds tasktypevalidation value.
 

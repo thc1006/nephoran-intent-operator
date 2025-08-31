@@ -258,4 +258,4 @@ func (mi *MissingMetricsIntegrator) RecordFallbackAttempt(args ...interface{}) {
 
 // Note: ContextBuilder is defined in clean_stubs.go as ContextBuilderStub
 // We'll create an alias for compatibility
-type MissingContextBuilder = ContextBuilderStub
+type MissingContextBuilder = ContextBuilder
