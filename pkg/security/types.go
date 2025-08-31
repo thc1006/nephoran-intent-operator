@@ -465,6 +465,8 @@ type EncryptedSecret struct {
 	KeyVersion int    `json:"key_version"` // For vault integration
 
 	// Encrypted data and cryptographic components
+	Data          []byte `json:"data,omitempty"` // Legacy field for compatibility
+	IV            []byte `json:"iv,omitempty"`   // Legacy field for compatibility
 	EncryptedData []byte `json:"encrypted_data"`
 	Ciphertext    []byte `json:"ciphertext"` // ADDED: Ciphertext field
 	Nonce         []byte `json:"nonce,omitempty"`

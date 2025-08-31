@@ -3,7 +3,6 @@ package security
 import (
 	"context"
 	"crypto/rand"
-	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -11,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 // Removed SecureHTTPClient - using the one from http_security.go instead

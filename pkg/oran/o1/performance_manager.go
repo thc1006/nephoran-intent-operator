@@ -51,7 +51,7 @@ type CompletePerformanceManager struct {
 
 	collectorsMux sync.RWMutex
 
-	metrics *PerformanceMetrics
+	metrics *PerformanceManagerMetrics
 
 	running bool
 
@@ -1195,9 +1195,9 @@ type GrafanaConfig struct {
 	DashboardFolder string `json:"dashboard_folder"`
 }
 
-// PerformanceMetrics holds Prometheus metrics for performance management.
+// PerformanceManagerMetrics holds Prometheus metrics for performance management.
 
-type PerformanceMetrics struct {
+type PerformanceManagerMetrics struct {
 	DataPointsCollected prometheus.Counter
 
 	CollectionErrors prometheus.Counter
@@ -1850,9 +1850,9 @@ func (cpm *CompletePerformanceManager) assessSystemHealth() string {
 
 }
 
-func initializePerformanceMetrics() *PerformanceMetrics {
+func initializePerformanceMetrics() *PerformanceManagerMetrics {
 
-	return &PerformanceMetrics{
+	return &PerformanceManagerMetrics{
 
 		DataPointsCollected: promauto.NewCounter(prometheus.CounterOpts{
 

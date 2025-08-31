@@ -383,7 +383,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.34.0
 	k8s.io/code-generator => k8s.io/code-generator v0.34.0
 	k8s.io/component-base => k8s.io/component-base v0.34.0
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.0
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.6.0
 )
 

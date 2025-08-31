@@ -1040,3 +1040,21 @@ func (c *TLSEnhancedConfig) WrapHTTPTransport(transport *http.Transport) error {
 	return nil
 
 }
+
+// RecordHandshake records TLS handshake metrics
+func (c *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	c.successfulHandshakes++
+	
+	if c.tlsVersionUsage == nil {
+		c.tlsVersionUsage = make(map[uint16]uint64)
+	}
+	if c.cipherSuiteUsage == nil {
+		c.cipherSuiteUsage = make(map[uint16]uint64)
+	}
+	
+	c.tlsVersionUsage[version]++
+	c.cipherSuiteUsage[cipherSuite]++
+}

@@ -19,14 +19,14 @@ type InstrumentedReconciler struct {
 
 	Name string
 
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 
-	HealthChecker *HealthChecker
+	HealthChecker HealthChecker
 }
 
 // NewInstrumentedReconciler creates a new instrumented reconciler.
 
-func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
+func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
 
 	return &InstrumentedReconciler{
 
@@ -92,12 +92,12 @@ func (ir *InstrumentedReconciler) recordAPILatency(ctx context.Context, start ti
 // NetworkIntentInstrumentation provides instrumentation for NetworkIntent controller.
 
 type NetworkIntentInstrumentation struct {
-	Metrics *MetricsCollector
+	Metrics MetricsCollector
 }
 
 // NewNetworkIntentInstrumentation creates new NetworkIntent instrumentation.
 
-func NewNetworkIntentInstrumentation(metrics *MetricsCollector) *NetworkIntentInstrumentation {
+func NewNetworkIntentInstrumentation(metrics MetricsCollector) *NetworkIntentInstrumentation {
 
 	return &NetworkIntentInstrumentation{
 

@@ -38,7 +38,7 @@ type NetconfServer struct {
 
 	datastore *NetconfDatastore
 
-	subscribers map[string]*NotificationSubscription
+	subscribers map[string]*NetconfNotificationSubscription
 
 	subsMux sync.RWMutex
 
@@ -126,9 +126,9 @@ type NetconfDatastore struct {
 
 }
 
-// NotificationSubscription represents a NETCONF notification subscription.
+// NetconfNotificationSubscription represents a NETCONF notification subscription.
 
-type NotificationSubscription struct {
+type NetconfNotificationSubscription struct {
 	ID string
 
 	SessionID string
@@ -269,7 +269,7 @@ func NewNetconfServer(config *NetconfServerConfig) *NetconfServer {
 
 		sessions: make(map[string]*NetconfSession),
 
-		subscribers: make(map[string]*NotificationSubscription),
+		subscribers: make(map[string]*NetconfNotificationSubscription),
 
 		shutdown: make(chan struct{}),
 
