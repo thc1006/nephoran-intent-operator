@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/bytedance/sonic" // High-performance JSON library

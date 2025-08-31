@@ -1128,7 +1128,7 @@ func (rs *RAGService) generateCacheKey(request *RAGRequest) string {
 
 		MaxResults: request.MaxResults,
 
-		MinConfidence: float64(request.MinConfidence),
+		MinConfidence: request.MinConfidence,
 
 		Filters: request.SearchFilters,
 

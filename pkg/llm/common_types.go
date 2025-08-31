@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// ClientMetrics tracks client performance (used by both disable_rag and regular builds)
-type ClientMetrics struct {
+// CommonClientMetrics tracks client performance (used by both disable_rag and regular builds)
+type CommonClientMetrics struct {
 	RequestsTotal    int64         `json:"requests_total"`
 	RequestsSuccess  int64         `json:"requests_success"`
 	RequestsFailure  int64         `json:"requests_failure"`

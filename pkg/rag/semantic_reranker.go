@@ -600,7 +600,7 @@ func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *E
 
 	if doc.Confidence > 0 {
 
-		score += float64(doc.Confidence) * 0.1
+		score += float32(doc.Confidence) * 0.1
 
 	}
 
@@ -664,15 +664,11 @@ func (sr *SemanticReranker) calculateContextualRelevance(query string, result *E
 
 	// Use case relevance.
 
-	if len(doc.UseCase) > 0 {
+	if doc.UseCase != "" {
 
-		for _, uc := range doc.UseCase {
+		if strings.Contains(strings.ToLower(query), strings.ToLower(doc.UseCase)) {
 
-			if strings.Contains(strings.ToLower(query), strings.ToLower(uc)) {
-
-				score += 0.1
-
-			}
+			score += 0.1
 
 		}
 

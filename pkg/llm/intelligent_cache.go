@@ -1115,9 +1115,9 @@ type (
 
 	CacheAnalyzer struct{}
 
-	// CacheOptimizer represents a cacheoptimizer.
+	// CacheOptimizer represents a cacheoptimizer (type alias to avoid redeclaration).
 
-	CacheOptimizer struct{}
+	IntelligentCacheOptimizer struct{}
 
 	// CacheTracer represents a cachetracer.
 
