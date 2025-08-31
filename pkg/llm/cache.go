@@ -1021,6 +1021,48 @@ func (c *ResponseCache) updateMetrics(updater func(*CacheMetrics)) {
 
 }
 
+// NewCacheMetrics creates a new CacheMetrics instance
+func NewCacheMetrics() *CacheMetrics {
+	return &CacheMetrics{}
+}
+
+// RecordModelLoad records a model loading operation
+func (cm *CacheMetrics) RecordModelLoad(modelName string, deviceID int) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	// This is a basic implementation - could be extended to track per-model stats
+	// For now, we'll just track that a model load occurred
+}
+
+// RecordCacheMiss records a cache miss
+func (cm *CacheMetrics) RecordCacheMiss() {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.Misses++
+}
+
+// RecordCacheHit records a cache hit at the specified level
+func (cm *CacheMetrics) RecordCacheHit(level string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	switch level {
+	case "l1_gpu", "l1":
+		cm.L1Hits++
+	case "l2_memory", "l2":
+		cm.L2Hits++
+	case "semantic":
+		cm.SemanticHits++
+	}
+}
+
+// RecordCacheOperation records a cache operation with its duration
+func (cm *CacheMetrics) RecordCacheOperation(operation string, duration time.Duration) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	// This is a basic implementation - could be extended to track operation-specific metrics
+	// For now, we'll just record that an operation occurred
+}
+
 // GetMetrics returns current cache metrics.
 
 func (c *ResponseCache) GetMetrics() *CacheMetrics {

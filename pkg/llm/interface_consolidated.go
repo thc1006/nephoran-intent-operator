@@ -88,6 +88,7 @@ func (sp *ConsolidatedStreamingProcessor) Shutdown(ctx context.Context) error {
 // StreamingProcessorStub is an alias for StreamingProcessor for compatibility.
 
 type StreamingProcessorStub = ConsolidatedStreamingProcessor
+type StreamingProcessor = ConsolidatedStreamingProcessor
 
 // NewStreamingProcessor creates a new streaming processor.
 
@@ -170,11 +171,22 @@ type PromptGenerator interface {
 	ExtractParameters(intent string) map[string]interface{}
 }
 
-// NOTE: The following types are defined in their respective files:.
-
-// - ClientMetrics: client_consolidated.go.
-
-// - Priority, BatchResult, BatchProcessorStats: batch_processor.go.
+// Basic types for compatibility
+type Priority int
+type ClientMetrics struct {
+	TotalRequests int64 `json:"total_requests"`
+	SuccessfulRequests int64 `json:"successful_requests"`
+	FailedRequests int64 `json:"failed_requests"`
+	AverageLatency time.Duration `json:"average_latency"`
+}
+type BatchResult struct {
+	ID string `json:"id"`
+	Success bool `json:"success"`
+}
+type BatchProcessorStats struct {
+	TotalProcessed int64 `json:"total_processed"`
+	SuccessfulProcessed int64 `json:"successful_processed"`
+}
 
 // ProcessingRequest represents a request for LLM processing.
 

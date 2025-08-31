@@ -793,8 +793,27 @@ type ModelPrediction struct {
 }
 type CacheAnalysis struct{}
 
-const (
-	QuantizationINT8 QuantizationType = iota
+type CacheState int
 
-	CacheStateShutdown CacheState = iota + 1 // Start after CacheStateActive
+const (
+	CacheStateActive CacheState = iota
+	CacheStateShutdown
+
+	QuantizationINT8 QuantizationType = iota
 )
+
+type OptimizationRecommendation struct {
+	Type       string
+	Priority   string
+	Confidence float64
+}
+
+// Add missing placeholder types for enhanced model cache
+type GPULoadBalancer struct{}
+
+// Basic Client stub for streaming processor
+type Client struct{}
+
+func (c *Client) ProcessIntent(ctx context.Context, prompt string) (string, error) {
+	return "Processed intent: " + prompt, nil
+}
