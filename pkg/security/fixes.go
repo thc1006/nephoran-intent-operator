@@ -14,25 +14,8 @@ import (
 	"time"
 )
 
-// SecureHTTPClient creates an HTTP client with secure defaults
-func SecureHTTPClient() *http.Client {
-	return &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion:               tls.VersionTLS13,
-				PreferServerCipherSuites: true,
-				InsecureSkipVerify:       false,
-				SessionTicketsDisabled:   true,
-				Renegotiation:            tls.RenegotiateNever,
-			},
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 10,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  true,
-		},
-	}
-}
+// Removed SecureHTTPClient - using the one from http_security.go instead
+// which provides more comprehensive configuration with timeout parameter
 
 // SecureFileOpen opens a file with path traversal protection
 func SecureFileOpen(basePath, userPath string) (*os.File, error) {

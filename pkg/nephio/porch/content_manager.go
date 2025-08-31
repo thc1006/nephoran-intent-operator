@@ -167,6 +167,25 @@ const (
 	ValidationSeverityCritical ValidationSeverity = "critical"
 )
 
+// CleanupResult represents the result of a cleanup operation
+type CleanupResult struct {
+	RemovedCount     int      `json:"removed_count"`
+	RemovedResources []string `json:"removed_resources"`
+	TotalSize        int64    `json:"total_size"`
+	Duration         string   `json:"duration"`
+	Errors           []string `json:"errors,omitempty"`
+}
+
+// OptimizationType represents different optimization strategies
+type OptimizationType int
+
+const (
+	OptimizationTypeNone OptimizationType = iota
+	OptimizationTypeBasic
+	OptimizationTypeAdvanced
+	OptimizationTypeAggressive
+)
+
 // ContentManager provides comprehensive package content manipulation and validation.
 
 // Handles CRUD operations, content validation, template processing, conflict resolution,.

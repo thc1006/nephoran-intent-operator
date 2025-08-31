@@ -205,21 +205,21 @@ var _ = Describe("Intent Pipeline Integration", func() {
 				By("verifying final intent state")
 				if createdIntent.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed {
 					// Verify successful deployment conditions
-					Expect(createdIntent.Status.Message).To(ContainSubstring("deployed"))
+					Expect(createdIntent.Status.LastMessage).To(ContainSubstring("deployed"))
 
 					// Check for Ready condition
 					hasReadyCondition := false
 					for _, condition := range createdIntent.Status.Conditions {
-						if condition.Type == nephoranv1.NetworkIntentConditionReady {
+						if condition.Type == "Ready" {
 							hasReadyCondition = true
-							Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+							Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 							break
 						}
 					}
 					Expect(hasReadyCondition).To(BeTrue(), "Deployed intent should have Ready condition")
 				} else {
 					// If failed, verify error information is present
-					Expect(createdIntent.Status.Message).NotTo(BeEmpty())
+					Expect(createdIntent.Status.LastMessage).NotTo(BeEmpty())
 					Expect(createdIntent.Status.RetryCount).To(BeNumerically(">=", 0))
 				}
 

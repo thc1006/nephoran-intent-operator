@@ -30,6 +30,38 @@ const (
 	AuditLevelCritical
 )
 
+// String method for AuditLevel to support type conversion and logging
+func (al AuditLevel) String() string {
+	switch al {
+	case AuditLevelInfo:
+		return "INFO"
+	case AuditLevelWarn:
+		return "WARN"
+	case AuditLevelError:
+		return "ERROR"
+	case AuditLevelCritical:
+		return "CRITICAL"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// FromString method to convert string back to AuditLevel
+func AuditLevelFromString(level string) AuditLevel {
+	switch level {
+	case "INFO":
+		return AuditLevelInfo
+	case "WARN":
+		return AuditLevelWarn
+	case "ERROR":
+		return AuditLevelError
+	case "CRITICAL":
+		return AuditLevelCritical
+	default:
+		return AuditLevelInfo
+	}
+}
+
 // SecretManager interface defines methods for secure secret operations.
 
 type SecretManager interface {
@@ -160,21 +192,23 @@ type ConfigProvider interface {
 // APIKeys holds all API keys used by the system.
 
 type APIKeys struct {
-	OpenAI string
-
-	Weaviate string
-
-	Generic string
-
-	JWTSecret string
+	OpenAI    string `json:"openai,omitempty"`
+	Weaviate  string `json:"weaviate,omitempty"`
+	Anthropic string `json:"anthropic,omitempty"`
+	GoogleAI  string `json:"googleai,omitempty"`
+	Generic   string `json:"generic,omitempty"`
+	JWTSecret string `json:"jwt_secret,omitempty"`
 }
 
 // IsEmpty returns true if all API keys are empty.
 
 func (ak *APIKeys) IsEmpty() bool {
-
-	return ak.OpenAI == "" && ak.Weaviate == "" && ak.Generic == "" && ak.JWTSecret == ""
-
+	return ak.OpenAI == "" && 
+		   ak.Weaviate == "" && 
+		   ak.Anthropic == "" && 
+		   ak.GoogleAI == "" && 
+		   ak.Generic == "" && 
+		   ak.JWTSecret == ""
 }
 
 // RotationResult contains the result of a secret rotation operation.

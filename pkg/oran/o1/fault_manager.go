@@ -275,16 +275,6 @@ type AlarmNotificationManager struct {
 	mutex sync.RWMutex
 }
 
-// NotificationChannel interface for different notification methods.
-
-type NotificationChannel interface {
-	SendNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error
-
-	GetChannelType() string
-
-	IsEnabled() bool
-}
-
 // NotificationTemplate defines notification formatting.
 
 type NotificationTemplate struct {

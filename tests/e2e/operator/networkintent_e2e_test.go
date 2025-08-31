@@ -240,7 +240,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentLifecycle() {
 			return false
 		}
 		// In a real operator, we'd check the status phase
-		return retrieved.Status.Phase == "Processed" || retrieved.CreationTimestamp != nil
+		return retrieved.Status.Phase == "Processed" || !retrieved.CreationTimestamp.IsZero()
 	}, 30*time.Second, 1*time.Second, "NetworkIntent should be processed")
 
 	// Update NetworkIntent
@@ -358,9 +358,9 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentStatusUpdates() {
 
 	// Update status to simulate controller behavior
 	intent.Status = nephoranv1.NetworkIntentStatus{
-		Phase:   "Processing",
-		Message: "Intent is being processed by the operator",
-		Conditions: []nephoranv1.NetworkIntentCondition{
+		Phase:       "Processing",
+		LastMessage: "Intent is being processed by the operator",
+		Conditions: []metav1.Condition{
 			{
 				Type:    "Ready",
 				Status:  metav1.ConditionFalse,

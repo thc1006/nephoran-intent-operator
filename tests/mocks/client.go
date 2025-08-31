@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -109,7 +110,25 @@ func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.O
 		}, key.Name)
 	}
 
-	stored.DeepCopyInto(obj)
+	// Use runtime.Object's DeepCopyObject method if available
+	if copyable, ok := stored.(interface{ DeepCopyObject() runtime.Object }); ok {
+		copied := copyable.DeepCopyObject()
+		if copyableResult, ok := copied.(client.Object); ok {
+			// Copy metadata
+			if metaObj, ok := obj.(metav1.Object); ok {
+				if storedMetaObj, ok := copyableResult.(metav1.Object); ok {
+					metaObj.SetName(storedMetaObj.GetName())
+					metaObj.SetNamespace(storedMetaObj.GetNamespace())
+					metaObj.SetLabels(storedMetaObj.GetLabels())
+					metaObj.SetAnnotations(storedMetaObj.GetAnnotations())
+					metaObj.SetUID(storedMetaObj.GetUID())
+					metaObj.SetResourceVersion(storedMetaObj.GetResourceVersion())
+					metaObj.SetCreationTimestamp(storedMetaObj.GetCreationTimestamp())
+				}
+			}
+			obj.GetObjectKind().SetGroupVersionKind(copyableResult.GetObjectKind().GroupVersionKind())
+		}
+	}
 	return nil
 }
 
@@ -254,7 +273,7 @@ func (m *MockClient) Scheme() *runtime.Scheme {
 }
 
 // RESTMapper returns a RESTMapper (not implemented in mock)
-func (m *MockClient) RESTMapper() client.RESTMapper {
+func (m *MockClient) RESTMapper() meta.RESTMapper {
 	return nil
 }
 

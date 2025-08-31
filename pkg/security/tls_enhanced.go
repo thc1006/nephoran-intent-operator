@@ -113,7 +113,7 @@ type TLSEnhancedConfig struct {
 
 	// Security monitoring.
 
-	SecurityEventCallback func(event SecurityEvent)
+	SecurityEventCallback func(event TLSSecurityEvent)
 
 	FailureCallback func(failure SecurityFailure)
 
@@ -152,9 +152,9 @@ type TLSMetricsCollector struct {
 	mu sync.RWMutex
 }
 
-// SecurityEvent represents a security-related event.
+// TLSSecurityEvent represents a TLS security-related event.
 
-type SecurityEvent struct {
+type TLSSecurityEvent struct {
 	Timestamp   time.Time
 
 	EventType   string
@@ -803,7 +803,7 @@ func (c *TLSEnhancedConfig) reportSecurityEvent(eventType, clientAddr string, ce
 
 	if c.SecurityEventCallback != nil {
 
-		event := SecurityEvent{
+		event := TLSSecurityEvent{
 
 			Timestamp:   time.Now(),
 

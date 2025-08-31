@@ -329,6 +329,24 @@ func DefaultPoolConfig_Stub() interface{} {
 	}
 }
 
+// GoroutinePoolConfig represents the configuration for goroutine pool
+type GoroutinePoolConfig struct {
+	MinWorkers       int
+	MaxWorkers       int
+	TaskQueueSize    int
+	EnableWorkStealing bool
+}
+
+// DefaultPoolConfig returns default pool configuration
+func DefaultPoolConfig() *GoroutinePoolConfig {
+	return &GoroutinePoolConfig{
+		MinWorkers:       5,
+		MaxWorkers:       100,
+		TaskQueueSize:    1000,
+		EnableWorkStealing: true,
+	}
+}
+
 // DefaultCacheConfig_Stub returns default cache config
 func DefaultCacheConfig_Stub() interface{} {
 	return map[string]interface{}{
@@ -360,14 +378,31 @@ type Task_Stub struct {
 	Callback   func(error)
 }
 
+// Task represents a task for the goroutine pool
+type Task struct {
+	ID         uint64
+	Function   func() error
+	Priority   TaskPriority
+	MaxRetries int
+	Callback   func(error)
+}
+
 // TaskPriority_Stub represents task priority
 type TaskPriority_Stub int
+
+// TaskPriority represents task priority levels
+type TaskPriority int
 
 // Priority constants
 const (
 	PriorityNormal_Stub   TaskPriority_Stub = 0
 	PriorityHigh_Stub     TaskPriority_Stub = 1
 	PriorityCritical_Stub TaskPriority_Stub = 2
+	
+	// Priority levels for actual Task type
+	PriorityNormal   TaskPriority = 0
+	PriorityHigh     TaskPriority = 1
+	PriorityCritical TaskPriority = 2
 )
 
 // Additional missing types

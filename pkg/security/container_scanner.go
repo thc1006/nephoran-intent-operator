@@ -165,15 +165,15 @@ type ScanResult struct {
 	Duration          time.Duration          `json:"duration"`
 	Status            string                 `json:"status"`
 	SecurityScore     int                    `json:"security_score"`
-	Vulnerabilities   []Vulnerability        `json:"vulnerabilities"`
+	Vulnerabilities   []ContainerVulnerability        `json:"vulnerabilities"`
 	Misconfigurations []Misconfiguration     `json:"misconfigurations"`
 	Secrets           []SecretLeak           `json:"secrets"`
 	Compliance        ComplianceResult       `json:"compliance"`
 	Metadata          map[string]interface{} `json:"metadata"`
 }
 
-// Vulnerability represents a security vulnerability
-type Vulnerability struct {
+// ContainerVulnerability represents a security vulnerability in containers
+type ContainerVulnerability struct {
 	ID            string            `json:"id"`
 	Title         string            `json:"title"`
 	Description   string            `json:"description"`

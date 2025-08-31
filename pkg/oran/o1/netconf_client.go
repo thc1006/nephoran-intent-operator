@@ -86,9 +86,6 @@ type ConfigData struct {
 
 }
 
-// EventCallback is called when NETCONF events are received.
-
-type EventCallback func(event *NetconfEvent)
 
 // NetconfEvent represents a NETCONF notification event.
 

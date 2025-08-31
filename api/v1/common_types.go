@@ -78,6 +78,20 @@ func GetObjectReference(obj metav1.Object, gvk metav1.GroupVersionKind) ObjectRe
 	}
 }
 
+// ManagedElement represents a managed network element
+type ManagedElement struct {
+	// ID is the unique identifier for the managed element
+	ID string `json:"id"`
+	// Name is the display name of the managed element
+	Name string `json:"name"`
+	// Type specifies the type of managed element (e.g., "gNB", "CU", "DU")
+	Type string `json:"type"`
+	// Credentials for accessing the managed element
+	Credentials *ManagedElementCredentials `json:"credentials,omitempty"`
+	// Status represents the current status
+	Status string `json:"status,omitempty"`
+}
+
 // ManagedElementCredentials defines authentication credentials for managed elements
 type ManagedElementCredentials struct {
 	// Username for basic authentication

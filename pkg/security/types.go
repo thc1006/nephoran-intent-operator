@@ -450,3 +450,90 @@ func (dkm *DefaultAdvancedKeyManager) DeleteKey(keyID string) error {
 // Simple type aliases for backward compatibility.
 
 type KeyManager = AdvancedKeyManager
+
+// EncryptedSecret represents an encrypted secret with metadata
+type EncryptedSecret struct {
+	ID             string            `json:"id"`
+	EncryptedData  []byte            `json:"encrypted_data"`
+	Nonce          []byte            `json:"nonce,omitempty"`
+	Algorithm      string            `json:"algorithm"`
+	KeyID          string            `json:"key_id"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
+	ExpiresAt      *time.Time        `json:"expires_at,omitempty"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
+	Version        int               `json:"version"`
+	KeyVersion     int               `json:"key_version"` // Added for vault integration
+}
+
+// SecretsBackend interface for secret storage implementations
+type SecretsBackend interface {
+	// Store stores an encrypted secret
+	Store(ctx context.Context, key string, value *EncryptedSecret) error
+	
+	// Retrieve retrieves an encrypted secret
+	Retrieve(ctx context.Context, key string) (*EncryptedSecret, error)
+	
+	// Delete deletes a secret
+	Delete(ctx context.Context, key string) error
+	
+	// List lists all secret keys
+	List(ctx context.Context) ([]string, error)
+	
+	// Exists checks if a secret exists
+	Exists(ctx context.Context, key string) (bool, error)
+	
+	// Rotate rotates a secret to a new version
+	Rotate(ctx context.Context, key string, newValue *EncryptedSecret) error
+}
+
+// KeyVersion represents a versioned encryption key used in vault
+type KeyVersion struct {
+	Version   int       `json:"version"`
+	Key       []byte    `json:"key"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Active    bool      `json:"active"`
+}
+
+// VaultAuditEntry represents an audit log entry for vault operations
+type VaultAuditEntry struct {
+	Timestamp time.Time `json:"timestamp"`
+	Operation string    `json:"operation"`
+	Principal string    `json:"principal"`
+	Resource  string    `json:"resource"`
+	Success   bool      `json:"success"`
+	Error     string    `json:"error,omitempty"`
+	IP        string    `json:"ip,omitempty"`
+	UserAgent string    `json:"user_agent,omitempty"`
+}
+
+// VaultStats represents statistics about vault operations
+type VaultStats struct {
+	VaultHealthy          bool      `json:"vault_healthy"`
+	TotalSecrets          int64     `json:"total_secrets"`
+	TotalOperations       int64     `json:"total_operations"`
+	SuccessfulOperations  int64     `json:"successful_operations"`
+	FailedOperations      int64     `json:"failed_operations"`
+	LastRotationTime      time.Time `json:"last_rotation_time"`
+	LastBackupTime        time.Time `json:"last_backup_time"`
+	CurrentKeyVersion     int       `json:"current_key_version"`
+	ActiveConnections     int       `json:"active_connections"`
+	AverageResponseTime   float64   `json:"average_response_time_ms"`
+	UptimeSeconds         int64     `json:"uptime_seconds"`
+}
+
+// SecretMetadata represents metadata associated with a secret
+type SecretMetadata struct {
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Owner       string            `json:"owner,omitempty"`
+	Tags        []string          `json:"tags,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	CreatedBy   string            `json:"created_by,omitempty"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	ExpiresAt   *time.Time        `json:"expires_at,omitempty"`
+	SecretType  string            `json:"secret_type"` // "tls", "password", "api_key", etc.
+	Sensitive   bool              `json:"sensitive"`   // Whether this secret contains sensitive data
+}

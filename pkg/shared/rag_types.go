@@ -26,13 +26,21 @@ type SearchResult struct {
 
 // SearchQuery represents a query to the RAG system
 type SearchQuery struct {
-	Query     string                 `json:"query"`
-	Limit     int                    `json:"limit,omitempty"`
-	Threshold float32                `json:"threshold,omitempty"`
-	Filters   map[string]interface{} `json:"filters,omitempty"`
-	ContextID string                 `json:"context_id,omitempty"`
-	UserID    string                 `json:"user_id,omitempty"`
-	Namespace string                 `json:"namespace,omitempty"`
+	Query         string                 `json:"query"`
+	Limit         int                    `json:"limit,omitempty"`
+	Offset        int                    `json:"offset,omitempty"`
+	Threshold     float32                `json:"threshold,omitempty"`
+	Filters       map[string]interface{} `json:"filters,omitempty"`
+	ContextID     string                 `json:"context_id,omitempty"`
+	UserID        string                 `json:"user_id,omitempty"`
+	Namespace     string                 `json:"namespace,omitempty"`
+	HybridSearch  bool                   `json:"hybrid_search,omitempty"`
+	HybridAlpha   float64                `json:"hybrid_alpha,omitempty"`
+	UseReranker   bool                   `json:"use_reranker,omitempty"`
+	MinConfidence float64                `json:"min_confidence,omitempty"`
+	IncludeVector bool                   `json:"include_vector,omitempty"`
+	ExpandQuery   bool                   `json:"expand_query,omitempty"`
+	TargetVectors []string               `json:"target_vectors,omitempty"`
 }
 
 // RAGResponse represents the response from RAG system

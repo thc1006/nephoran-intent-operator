@@ -2,15 +2,54 @@ package security
 
 import (
 	"time"
-	
-	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
-// Type aliases to maintain compatibility while breaking import cycle
-type CommonSecurityConfig = interfaces.CommonSecurityConfig
-type TLSConfig = interfaces.TLSConfig
-type SecurityHeadersConfig = interfaces.SecurityHeadersConfig
-type CertificatePaths = interfaces.CertificatePaths
+// CommonSecurityConfig defines common security configuration
+type CommonSecurityConfig struct {
+	// TLS Configuration
+	TLS *TLSConfig `json:"tls,omitempty"`
+	
+	// Security Headers Configuration
+	SecurityHeaders *SecurityHeadersConfig `json:"security_headers,omitempty"`
+	
+	// Enable security features
+	Enabled bool `json:"enabled"`
+	
+	// Security mode (strict, moderate, permissive)
+	Mode string `json:"mode"`
+}
+
+// TLSConfig defines TLS configuration settings
+type TLSConfig struct {
+	Enabled          bool              `json:"enabled"`
+	CertFile         string            `json:"cert_file"`
+	KeyFile          string            `json:"key_file"`
+	CAFile           string            `json:"ca_file,omitempty"`
+	MinVersion       string            `json:"min_version"`
+	MaxVersion       string            `json:"max_version,omitempty"`
+	CipherSuites     []string          `json:"cipher_suites,omitempty"`
+	ClientAuth       string            `json:"client_auth,omitempty"`
+	InsecureSkipVerify bool           `json:"insecure_skip_verify"`
+	CertificatePaths *CertificatePaths `json:"certificate_paths,omitempty"`
+}
+
+// SecurityHeadersConfig defines security headers configuration
+type SecurityHeadersConfig struct {
+	ContentSecurityPolicy   string `json:"content_security_policy,omitempty"`
+	XFrameOptions          string `json:"x_frame_options,omitempty"`
+	XContentTypeOptions    string `json:"x_content_type_options,omitempty"`
+	StrictTransportSecurity string `json:"strict_transport_security,omitempty"`
+	XSSProtection          string `json:"xss_protection,omitempty"`
+	ReferrerPolicy         string `json:"referrer_policy,omitempty"`
+	PermissionsPolicy      string `json:"permissions_policy,omitempty"`
+}
+
+// CertificatePaths defines paths for certificate files
+type CertificatePaths struct {
+	CertFile string `json:"cert_file"`
+	KeyFile  string `json:"key_file"`
+	CAFile   string `json:"ca_file,omitempty"`
+}
 
 // Extended security config with additional fields not in the core interfaces
 type ExtendedSecurityConfig struct {

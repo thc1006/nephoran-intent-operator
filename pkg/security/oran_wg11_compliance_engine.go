@@ -29,6 +29,18 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// ComplianceStatus represents the compliance status
+type ComplianceStatus string
+
+const (
+	// ComplianceStatusCompliant indicates full compliance
+	ComplianceStatusCompliant ComplianceStatus = "compliant"
+	// ComplianceStatusPartial indicates partial compliance
+	ComplianceStatusPartial ComplianceStatus = "partial"
+	// ComplianceStatusNonCompliant indicates non-compliance
+	ComplianceStatusNonCompliant ComplianceStatus = "non-compliant"
+)
+
 // ORANSecurityComplianceEngine implements O-RAN WG11 security specifications
 // following O-RAN.WG11.O1-Interface.0-v05.00, O-RAN.WG11.Security-v05.00
 type ORANSecurityComplianceEngine struct {
@@ -150,16 +162,7 @@ type ORANComplianceResult struct {
 	Evidence         map[string]interface{} `json:"evidence"`
 }
 
-// ComplianceStatus defines compliance validation status
-type ComplianceStatus string
-
-const (
-	ComplianceStatusCompliant    ComplianceStatus = "compliant"
-	ComplianceStatusNonCompliant ComplianceStatus = "non_compliant"
-	ComplianceStatusPartial      ComplianceStatus = "partially_compliant"
-	ComplianceStatusUnknown      ComplianceStatus = "unknown"
-	ComplianceStatusPending      ComplianceStatus = "pending"
-)
+// ComplianceStatus type and constants are defined in compliance_manager.go
 
 // ComplianceViolation represents a security compliance violation
 type ComplianceViolation struct {

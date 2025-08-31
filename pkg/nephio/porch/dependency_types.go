@@ -41,6 +41,81 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// SATSolverConfig configures SAT solver behavior
+type SATSolverConfig struct {
+	Algorithm     string        `json:"algorithm"`     // "minisat", "glucose", "lingeling"
+	MaxVariables  int           `json:"max_variables"`
+	MaxClauses    int           `json:"max_clauses"`
+	TimeoutMs     int           `json:"timeout_ms"`
+	MaxConflicts  int           `json:"max_conflicts"`
+	RestartPolicy string        `json:"restart_policy"` // "luby", "geometric", "fixed"
+}
+
+// SATSolver interface for different SAT solver implementations
+type SATSolver interface {
+	AddClause(literals []int) error
+	Solve() (bool, error)
+	GetSolution() ([]bool, error)
+	AddVariable() int
+	Reset() error
+}
+
+// ResolutionResult represents the result of dependency resolution
+type ResolutionResult struct {
+	Success         bool                     `json:"success"`
+	ResolvedPackages []*PackageReference     `json:"resolved_packages,omitempty"`
+	Conflicts       []string                 `json:"conflicts,omitempty"`
+	Errors          []string                 `json:"errors,omitempty"`
+	Duration        time.Duration            `json:"duration"`
+	Stats           *ResolutionStats         `json:"stats,omitempty"`
+	Metadata        map[string]interface{}   `json:"metadata,omitempty"`
+}
+
+// ResolutionStats contains statistics about the resolution process
+type ResolutionStats struct {
+	TotalPackages      int `json:"total_packages"`
+	ResolvedPackages   int `json:"resolved_packages"`
+	ConflictCount      int `json:"conflict_count"`
+	IterationCount     int `json:"iteration_count"`
+	CacheHits          int `json:"cache_hits"`
+	CacheMisses        int `json:"cache_misses"`
+}
+
+// DependencyGraph represents a dependency graph structure
+type DependencyGraph struct {
+	Nodes map[string]*DependencyNode `json:"nodes"`
+	Edges []*DependencyEdge          `json:"edges"`
+	Roots []*DependencyNode          `json:"roots"`
+	Stats *GraphStats                `json:"stats,omitempty"`
+}
+
+// DependencyNode represents a node in the dependency graph
+type DependencyNode struct {
+	ID           string              `json:"id"`
+	Package      *PackageReference   `json:"package"`
+	Dependencies []*DependencyNode   `json:"dependencies,omitempty"`
+	Dependents   []*DependencyNode   `json:"dependents,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// DependencyEdge represents an edge in the dependency graph
+type DependencyEdge struct {
+	From         *DependencyNode     `json:"from"`
+	To           *DependencyNode     `json:"to"`
+	Constraint   string              `json:"constraint"`
+	EdgeType     string              `json:"edge_type"` // "requires", "conflicts", "recommends"
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// GraphStats contains statistics about the dependency graph
+type GraphStats struct {
+	NodeCount     int `json:"node_count"`
+	EdgeCount     int `json:"edge_count"`
+	MaxDepth      int `json:"max_depth"`
+	CycleCount    int `json:"cycle_count"`
+	ConnectedComponents int `json:"connected_components"`
+}
+
 // Supporting types for dependency management.
 
 // DependencyResolverConfig configures the dependency resolver.

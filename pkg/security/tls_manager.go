@@ -87,9 +87,9 @@ var (
 	)
 )
 
-// TLSConfig represents TLS configuration compliant with O-RAN security requirements.
+// TLSManagerConfig represents TLS configuration compliant with O-RAN security requirements.
 
-type TLSConfig struct {
+type TLSManagerConfig struct {
 
 	// Certificate paths.
 
@@ -137,7 +137,7 @@ type TLSConfig struct {
 // TLSManager manages TLS certificates and configurations.
 
 type TLSManager struct {
-	config *TLSConfig
+	config *TLSManagerConfig
 
 	logger *zap.Logger
 
@@ -158,7 +158,7 @@ type TLSManager struct {
 
 // NewTLSManager creates a new TLS manager with O-RAN compliant settings.
 
-func NewTLSManager(config *TLSConfig, logger *zap.Logger) (*TLSManager, error) {
+func NewTLSManager(config *TLSManagerConfig, logger *zap.Logger) (*TLSManager, error) {
 
 	if config == nil {
 
@@ -881,9 +881,9 @@ func (tm *TLSManager) Close() error {
 
 // LoadTLSConfigFromEnv loads TLS configuration from environment variables.
 
-func LoadTLSConfigFromEnv() *TLSConfig {
+func LoadTLSConfigFromEnv() *TLSManagerConfig {
 
-	return &TLSConfig{
+	return &TLSManagerConfig{
 
 		CertFile: os.Getenv("TLS_CERT_FILE"),
 

@@ -226,9 +226,9 @@ func IntentInDifferentNamespace(namespace string) *nephoranv1.NetworkIntent {
 // IntentWithStatus returns a NetworkIntent with status set
 func IntentWithStatus() *nephoranv1.NetworkIntent {
 	status := nephoranv1.NetworkIntentStatus{
-		Phase:   "Processing",
-		Message: "Intent is being processed",
-		Conditions: []nephoranv1.NetworkIntentCondition{
+		Phase:       "Processing",
+		LastMessage: "Intent is being processed",
+		Conditions: []metav1.Condition{
 			{
 				Type:    "Ready",
 				Status:  metav1.ConditionTrue,

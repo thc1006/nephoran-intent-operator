@@ -206,15 +206,6 @@ type AdaptorSecurityPolicy struct {
 
 }
 
-// SecurityRule represents a security rule.
-
-type SecurityRule struct {
-	RuleID string `json:"rule_id"`
-
-	Action string `json:"action"` // ALLOW, DENY, LOG
-
-	Conditions map[string]interface{} `json:"conditions"`
-}
 
 // SecurityStatus represents current security status.
 

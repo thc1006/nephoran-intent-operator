@@ -249,6 +249,7 @@ const (
 	ORANComponentUPF ORANComponent = "upf"
 )
 
+
 // NetworkIntentPhase represents the phase of NetworkIntent processing.
 
 type NetworkIntentPhase string

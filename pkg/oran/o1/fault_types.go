@@ -15,16 +15,6 @@ type FaultNotificationChannel interface {
 	GetChannelType() string
 }
 
-// NotificationTemplate defines notification formatting for fault management
-type NotificationTemplate struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Subject   string            `json:"subject"`
-	Body      string            `json:"body"`
-	Format    string            `json:"format"` // HTML, TEXT, JSON
-	Variables map[string]string `json:"variables"`
-	Enabled   bool              `json:"enabled"`
-}
 
 // FaultNotificationChannelImpl implements FaultNotificationChannel
 type FaultNotificationChannelImpl struct {

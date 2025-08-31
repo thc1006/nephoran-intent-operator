@@ -89,8 +89,13 @@ func (fb *FileBackend) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-// List lists all secrets with optional prefix filter
-func (fb *FileBackend) List(ctx context.Context, prefix string) ([]string, error) {
+// List lists all secret keys (interface method - no prefix parameter)
+func (fb *FileBackend) List(ctx context.Context) ([]string, error) {
+	return fb.ListWithPrefix(ctx, "")
+}
+
+// ListWithPrefix lists all secrets with optional prefix filter (helper method)
+func (fb *FileBackend) ListWithPrefix(ctx context.Context, prefix string) ([]string, error) {
 	fb.mu.RLock()
 	defer fb.mu.RUnlock()
 
@@ -117,6 +122,40 @@ func (fb *FileBackend) List(ctx context.Context, prefix string) ([]string, error
 	}
 
 	return result, nil
+}
+
+// Exists checks if a secret exists
+func (fb *FileBackend) Exists(ctx context.Context, key string) (bool, error) {
+	fb.mu.RLock()
+	defer fb.mu.RUnlock()
+
+	filePath := filepath.Join(fb.basePath, key+".json")
+	_, err := os.Stat(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check if secret exists: %w", err)
+	}
+	return true, nil
+}
+
+// Rotate rotates a secret to a new version
+func (fb *FileBackend) Rotate(ctx context.Context, key string, newValue *EncryptedSecret) error {
+	fb.mu.Lock()
+	defer fb.mu.Unlock()
+
+	// Check if secret exists
+	exists, err := fb.Exists(ctx, key)
+	if err != nil {
+		return fmt.Errorf("failed to check if secret exists during rotation: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("cannot rotate non-existent secret: %s", key)
+	}
+
+	// Store the new version
+	return fb.Store(ctx, key, newValue)
 }
 
 // Backup creates a backup of all secrets
@@ -234,11 +273,25 @@ func (hv *HashiCorpVaultBackend) Delete(ctx context.Context, key string) error {
 	return fmt.Errorf("hashicorp vault backend not implemented yet")
 }
 
-// List lists all secrets with optional prefix filter
-func (hv *HashiCorpVaultBackend) List(ctx context.Context, prefix string) ([]string, error) {
+// List lists all secret keys
+func (hv *HashiCorpVaultBackend) List(ctx context.Context) ([]string, error) {
 	// TODO: Implement actual HashiCorp Vault integration
-	hv.logger.Warn("HashiCorp Vault backend not fully implemented", "operation", "List", "prefix", prefix)
+	hv.logger.Warn("HashiCorp Vault backend not fully implemented", "operation", "List")
 	return nil, fmt.Errorf("hashicorp vault backend not implemented yet")
+}
+
+// Exists checks if a secret exists in HashiCorp Vault
+func (hv *HashiCorpVaultBackend) Exists(ctx context.Context, key string) (bool, error) {
+	// TODO: Implement actual HashiCorp Vault integration
+	hv.logger.Warn("HashiCorp Vault backend not fully implemented", "operation", "Exists", "key", key)
+	return false, fmt.Errorf("hashicorp vault backend not implemented yet")
+}
+
+// Rotate rotates a secret to a new version in HashiCorp Vault
+func (hv *HashiCorpVaultBackend) Rotate(ctx context.Context, key string, newValue *EncryptedSecret) error {
+	// TODO: Implement actual HashiCorp Vault integration
+	hv.logger.Warn("HashiCorp Vault backend not fully implemented", "operation", "Rotate", "key", key)
+	return fmt.Errorf("hashicorp vault backend not implemented yet")
 }
 
 // Backup creates a backup of all secrets
@@ -311,11 +364,25 @@ func (kb *KubernetesBackend) Delete(ctx context.Context, key string) error {
 	return fmt.Errorf("kubernetes backend not implemented yet")
 }
 
-// List lists all secrets with optional prefix filter
-func (kb *KubernetesBackend) List(ctx context.Context, prefix string) ([]string, error) {
+// List lists all secret keys
+func (kb *KubernetesBackend) List(ctx context.Context) ([]string, error) {
 	// TODO: Implement actual Kubernetes client integration
-	kb.logger.Warn("Kubernetes backend not fully implemented", "operation", "List", "prefix", prefix, "namespace", kb.namespace)
+	kb.logger.Warn("Kubernetes backend not fully implemented", "operation", "List", "namespace", kb.namespace)
 	return nil, fmt.Errorf("kubernetes backend not implemented yet")
+}
+
+// Exists checks if a secret exists in Kubernetes
+func (kb *KubernetesBackend) Exists(ctx context.Context, key string) (bool, error) {
+	// TODO: Implement actual Kubernetes client integration
+	kb.logger.Warn("Kubernetes backend not fully implemented", "operation", "Exists", "key", key, "namespace", kb.namespace)
+	return false, fmt.Errorf("kubernetes backend not implemented yet")
+}
+
+// Rotate rotates a secret to a new version in Kubernetes
+func (kb *KubernetesBackend) Rotate(ctx context.Context, key string, newValue *EncryptedSecret) error {
+	// TODO: Implement actual Kubernetes client integration
+	kb.logger.Warn("Kubernetes backend not fully implemented", "operation", "Rotate", "key", key, "namespace", kb.namespace)
+	return fmt.Errorf("kubernetes backend not implemented yet")
 }
 
 // Backup creates a backup of all secrets
@@ -345,27 +412,90 @@ func (kb *KubernetesBackend) Close() error {
 	return nil
 }
 
-// LoadKeyFromFile loads a cryptographic key from a file
-func LoadKeyFromFile(filePath string) ([]byte, error) {
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("key file does not exist: %s", filePath)
+// MemoryBackend implements SecretsBackend interface using in-memory storage
+type MemoryBackend struct {
+	secrets map[string]*EncryptedSecret
+	logger  *slog.Logger
+	mu      sync.RWMutex
+}
+
+// NewMemoryBackend creates a new in-memory secrets backend
+func NewMemoryBackend(logger *slog.Logger) SecretsBackend {
+	return &MemoryBackend{
+		secrets: make(map[string]*EncryptedSecret),
+		logger:  logger,
+	}
+}
+
+// Store stores a secret in memory
+func (mb *MemoryBackend) Store(ctx context.Context, key string, value *EncryptedSecret) error {
+	mb.mu.Lock()
+	defer mb.mu.Unlock()
+
+	mb.secrets[key] = value
+	mb.logger.Debug("Secret stored in memory", "key", key)
+	return nil
+}
+
+// Retrieve retrieves a secret from memory
+func (mb *MemoryBackend) Retrieve(ctx context.Context, key string) (*EncryptedSecret, error) {
+	mb.mu.RLock()
+	defer mb.mu.RUnlock()
+
+	secret, exists := mb.secrets[key]
+	if !exists {
+		return nil, fmt.Errorf("secret not found: %s", key)
 	}
 
-	// Read the file
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read key file: %w", err)
+	return secret, nil
+}
+
+// Delete deletes a secret from memory
+func (mb *MemoryBackend) Delete(ctx context.Context, key string) error {
+	mb.mu.Lock()
+	defer mb.mu.Unlock()
+
+	if _, exists := mb.secrets[key]; !exists {
+		return fmt.Errorf("secret not found: %s", key)
 	}
 
-	// Trim any whitespace/newlines
-	key := strings.TrimSpace(string(data))
+	delete(mb.secrets, key)
+	mb.logger.Debug("Secret deleted from memory", "key", key)
+	return nil
+}
 
-	// Decode if it's base64 encoded
-	if decoded, err := base64.StdEncoding.DecodeString(key); err == nil {
-		return decoded, nil
+// List lists all secret keys in memory
+func (mb *MemoryBackend) List(ctx context.Context) ([]string, error) {
+	mb.mu.RLock()
+	defer mb.mu.RUnlock()
+
+	keys := make([]string, 0, len(mb.secrets))
+	for key := range mb.secrets {
+		keys = append(keys, key)
 	}
 
-	// If not base64, return as raw bytes
-	return []byte(key), nil
+	return keys, nil
+}
+
+// Exists checks if a secret exists in memory
+func (mb *MemoryBackend) Exists(ctx context.Context, key string) (bool, error) {
+	mb.mu.RLock()
+	defer mb.mu.RUnlock()
+
+	_, exists := mb.secrets[key]
+	return exists, nil
+}
+
+// Rotate rotates a secret to a new version in memory
+func (mb *MemoryBackend) Rotate(ctx context.Context, key string, newValue *EncryptedSecret) error {
+	mb.mu.Lock()
+	defer mb.mu.Unlock()
+
+	if _, exists := mb.secrets[key]; !exists {
+		return fmt.Errorf("cannot rotate non-existent secret: %s", key)
+	}
+
+	mb.secrets[key] = newValue
+	mb.logger.Debug("Secret rotated in memory", "key", key)
+	return nil
 }

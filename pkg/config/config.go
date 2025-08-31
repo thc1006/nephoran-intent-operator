@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -1102,85 +1101,3 @@ func (c *Config) GetMetricsAllowedIPs() []string {
 // Ensure Config implements interfaces.ConfigProvider.
 
 var _ interfaces.ConfigProvider = (*Config)(nil)
-
-// APIKeys provides type alias for disable_rag builds.
-
-type APIKeys = interfaces.APIKeys
-
-// SecretManager provides a concrete type for disable_rag builds.
-
-type SecretManager struct {
-	namespace string
-}
-
-// NewSecretManager creates a new secret manager for disable_rag builds.
-
-func NewSecretManager(namespace string) (*SecretManager, error) {
-
-	return &SecretManager{namespace: namespace}, nil
-
-}
-
-// LoadFileBasedAPIKeysWithValidation performs loadfilebasedapikeyswithvalidation operation.
-
-func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
-
-	return &APIKeys{}, nil
-
-}
-
-// GetSecretValue retrieves secret value for disable_rag builds (stub implementation).
-
-func (sm *SecretManager) GetSecretValue(ctx context.Context, secretName, key, envVarName string) (string, error) {
-
-	return "", fmt.Errorf("secret manager disabled with disable_rag build tag")
-
-}
-
-// CreateSecretFromEnvVars performs createsecretfromenvvars operation.
-
-func (sm *SecretManager) CreateSecretFromEnvVars(ctx context.Context, secretName string, envVarMapping map[string]string) error {
-
-	return fmt.Errorf("secret manager disabled with disable_rag build tag")
-
-}
-
-// UpdateSecret performs updatesecret operation.
-
-func (sm *SecretManager) UpdateSecret(ctx context.Context, secretName string, data map[string][]byte) error {
-
-	return fmt.Errorf("secret manager disabled with disable_rag build tag")
-
-}
-
-// SecretExists performs secretexists operation.
-
-func (sm *SecretManager) SecretExists(ctx context.Context, secretName string) bool {
-
-	return false
-
-}
-
-// RotateSecret performs rotatesecret operation.
-
-func (sm *SecretManager) RotateSecret(ctx context.Context, secretName, secretKey, newValue string) error {
-
-	return fmt.Errorf("secret manager disabled with disable_rag build tag")
-
-}
-
-// GetSecretRotationInfo performs getsecretrotationinfo operation.
-
-func (sm *SecretManager) GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error) {
-
-	return nil, fmt.Errorf("secret manager disabled with disable_rag build tag")
-
-}
-
-// GetAPIKeys performs getapikeys operation.
-
-func (sm *SecretManager) GetAPIKeys(ctx context.Context) (*APIKeys, error) {
-
-	return &APIKeys{}, nil
-
-}

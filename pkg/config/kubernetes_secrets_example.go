@@ -28,7 +28,7 @@ func ExampleUsageKubernetesSecretManager() error {
 	exists := secretManager.SecretExists(ctx, "llm-api-keys")
 	if !exists {
 		logger.Info("Secret does not exist, creating it...")
-		
+
 		// Create API keys structure
 		apiKeys := &interfaces.APIKeys{
 			OpenAI:    "sk-example-openai-key",
@@ -44,7 +44,7 @@ func ExampleUsageKubernetesSecretManager() error {
 		if err != nil {
 			return fmt.Errorf("failed to create secret: %w", err)
 		}
-		
+
 		logger.Info("Secret created successfully")
 	}
 
@@ -75,7 +75,7 @@ func ExampleUsageKubernetesSecretManager() error {
 func ExampleFallbackBehavior() error {
 	// This example shows how the secret manager gracefully falls back to mounted secrets
 	// when the Kubernetes client-go API is not available (e.g., no RBAC permissions)
-	
+
 	secretManager, err := NewSecretManager("nephoran-system")
 	if err != nil {
 		return fmt.Errorf("failed to create secret manager: %w", err)
