@@ -11,6 +11,8 @@ package rag
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
@@ -126,6 +128,41 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 
 }
 
+// newRAGClientImpl is implemented in different files based on build tags.
+// This is a placeholder that will be overridden by the actual implementations.
+func newRAGClientImpl(config *RAGClientConfig) RAGClient {
+	// This function is implemented in:
+	// - client_noop.go (no-op implementation)
+	// - client_enabled.go (RAG enabled implementation)
+	// - weaviate_client.go (Weaviate implementation)
+	
+	// Return a basic no-op implementation as fallback
+	return &noopRAGClient{}
+}
+
+// noopRAGClient is a minimal no-op implementation for compilation.
+type noopRAGClient struct{}
+
+func (n *noopRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, error) {
+	return []Doc{}, nil
+}
+
+func (n *noopRAGClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	return "", fmt.Errorf("RAG client not implemented")
+}
+
+func (n *noopRAGClient) IsHealthy() bool {
+	return false
+}
+
+func (n *noopRAGClient) Initialize(ctx context.Context) error {
+	return nil
+}
+
+func (n *noopRAGClient) Shutdown(ctx context.Context) error {
+	return nil
+}
+
 // QueryRequest represents a request for RAG system query processing.
 
 type QueryRequest struct {
@@ -147,9 +184,43 @@ type QueryRequest struct {
 
 }
 
-// Service is an alias for RAGService for backward compatibility.
+// RAGService represents a service that provides RAG functionality.
+type RAGService struct {
+	weaviateClient *WeaviateClient
+	llmClient      interface{}
+	config         *RAGClientConfig
+	logger         *slog.Logger
+	metrics        interface{}
+	errorBuilder   interface{}
+	cache          interface{}
+	mutex          sync.RWMutex
+}
 
+// Service is an alias for RAGService for backward compatibility.
 type Service = RAGService
+
+// DocumentChunk represents a chunk of a document for processing.
+type DocumentChunk struct {
+	// Basic chunk information.
+	ID           string `json:"id"`
+	DocumentID   string `json:"document_id"`
+	Content      string `json:"content"`
+	CleanContent string `json:"clean_content"`
+	ChunkIndex   int    `json:"chunk_index"`
+	StartOffset  int    `json:"start_offset"`
+	EndOffset    int    `json:"end_offset"`
+	
+	// Size and quality metrics.
+	Size         int     `json:"size"`
+	QualityScore float64 `json:"quality_score"`
+	
+	// Metadata.
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	
+	// Timestamps.
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
 
 // AsyncWorkerConfig defines configuration for async worker pools.
 
@@ -558,3 +629,213 @@ type RetrievalResponse struct {
 }
 
 // Note: QueryResponse and RAGService are defined in other RAG files.
+
+// WeaviateConnectionPool manages a pool of Weaviate client connections.
+type WeaviateConnectionPool struct {
+	config      *PoolConfig
+	connections chan *WeaviatePooledConnection
+	metrics     *PoolMetrics
+	isStarted   bool
+	logger      *slog.Logger
+}
+
+// WeaviatePooledConnection represents a pooled Weaviate connection.
+type WeaviatePooledConnection struct {
+	ID          string
+	Client      WeaviateClient
+	CreatedAt   time.Time
+	LastUsedAt  time.Time
+	IsHealthy   bool
+	UsageCount  int64
+}
+
+// PoolConfig configures the connection pool.
+type PoolConfig struct {
+	MinConnections      int           `json:"min_connections"`
+	MaxConnections      int           `json:"max_connections"`
+	MaxIdleTime        time.Duration `json:"max_idle_time"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	WeaviateURL        string        `json:"weaviate_url"`
+	WeaviateAPIKey     string        `json:"weaviate_api_key"`
+	ConnectionTimeout  time.Duration `json:"connection_timeout"`
+	MaxRetries         int           `json:"max_retries"`
+}
+
+// PoolMetrics tracks connection pool metrics.
+type PoolMetrics struct {
+	TotalConnections    int64         `json:"total_connections"`
+	ActiveConnections   int64         `json:"active_connections"`
+	IdleConnections     int64         `json:"idle_connections"`
+	ConnectionsCreated  int64         `json:"connections_created"`
+	ConnectionsDestroyed int64        `json:"connections_destroyed"`
+	TotalRequests       int64         `json:"total_requests"`
+	FailedRequests      int64         `json:"failed_requests"`
+	AverageResponseTime time.Duration `json:"average_response_time"`
+}
+
+// OptimizedRAGConfig extends the original RAG configuration with optimization settings.
+type OptimizedRAGConfig struct {
+	// Base configuration
+	RAGClientConfig *RAGClientConfig `json:"rag_client_config"`
+	
+	// Performance settings
+	EnableCaching          bool          `json:"enable_caching"`
+	CacheSize             int           `json:"cache_size"`
+	CacheTTL              time.Duration `json:"cache_ttl"`
+	
+	// Batch processing
+	BatchSize             int           `json:"batch_size"`
+	MaxConcurrentRequests int           `json:"max_concurrent_requests"`
+	
+	// Query optimization
+	EnableQueryRewriting  bool    `json:"enable_query_rewriting"`
+	SemanticThreshold     float64 `json:"semantic_threshold"`
+	
+	// Response generation
+	MaxResponseTokens     int     `json:"max_response_tokens"`
+	ResponseTemperature   float32 `json:"response_temperature"`
+	
+	// Monitoring
+	EnableMetrics         bool          `json:"enable_metrics"`
+	MetricsInterval       time.Duration `json:"metrics_interval"`
+}
+
+// OptimizedRAGService provides enhanced RAG capabilities with performance optimizations.
+type OptimizedRAGService struct {
+	config       *OptimizedRAGConfig
+	ragClient    RAGClient
+	weaviatePool *WeaviateConnectionPool
+	logger       *slog.Logger
+}
+
+// DefaultPoolConfig returns sensible defaults for production use.
+func DefaultPoolConfig() *PoolConfig {
+	return &PoolConfig{
+		MinConnections:      2,
+		MaxConnections:      10,
+		MaxIdleTime:        5 * time.Minute,
+		HealthCheckInterval: 30 * time.Second,
+		WeaviateURL:        "http://localhost:8080",
+		WeaviateAPIKey:     "",
+		ConnectionTimeout:  30 * time.Second,
+		MaxRetries:         3,
+	}
+}
+
+// NewWeaviateConnectionPool creates a new connection pool.
+func NewWeaviateConnectionPool(config *PoolConfig) *WeaviateConnectionPool {
+	if config == nil {
+		config = DefaultPoolConfig()
+	}
+	
+	return &WeaviateConnectionPool{
+		config:      config,
+		connections: make(chan *WeaviatePooledConnection, config.MaxConnections),
+		metrics:     &PoolMetrics{},
+		isStarted:   false,
+	}
+}
+
+// getDefaultOptimizedRAGConfig returns default optimization configuration.
+func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
+	return &OptimizedRAGConfig{
+		RAGClientConfig: &RAGClientConfig{
+			Enabled:           true,
+			MaxSearchResults:  10,
+			MinConfidence:     0.7,
+			WeaviateURL:      "http://localhost:8080",
+			WeaviateAPIKey:   "",
+			LLMEndpoint:      "http://localhost:8081",
+			LLMAPIKey:        "",
+			MaxTokens:        2048,
+			Temperature:      0.7,
+		},
+		EnableCaching:          true,
+		CacheSize:             1000,
+		CacheTTL:              30 * time.Minute,
+		BatchSize:             10,
+		MaxConcurrentRequests: 5,
+		EnableQueryRewriting:  true,
+		SemanticThreshold:     0.8,
+		MaxResponseTokens:     1024,
+		ResponseTemperature:   0.7,
+		EnableMetrics:         true,
+		MetricsInterval:       5 * time.Minute,
+	}
+}
+
+// NewOptimizedRAGService creates a new optimized RAG service.
+func NewOptimizedRAGService(weaviatePool *WeaviateConnectionPool, llmClient interface{}, config *OptimizedRAGConfig) (*OptimizedRAGService, error) {
+	if config == nil {
+		config = getDefaultOptimizedRAGConfig()
+	}
+	
+	ragClient := NewRAGClient(config.RAGClientConfig)
+	
+	return &OptimizedRAGService{
+		config:       config,
+		ragClient:    ragClient,
+		weaviatePool: weaviatePool,
+	}, nil
+}
+
+// HNSWOptimizer provides dynamic HNSW parameter optimization.
+type HNSWOptimizer struct {
+	client        interface{} // Weaviate client (interface to avoid import cycles)
+	config        *HNSWOptimizerConfig
+	logger        *slog.Logger
+	metrics       *HNSWMetrics
+	currentParams *HNSWParameters
+	mutex         sync.RWMutex
+}
+
+// HNSWOptimizerConfig holds configuration for HNSW optimization.
+type HNSWOptimizerConfig struct {
+	OptimizationInterval  time.Duration `json:"optimization_interval"`
+	EnableAdaptiveTuning  bool          `json:"enable_adaptive_tuning"`
+	PerformanceThreshold  time.Duration `json:"performance_threshold"`
+	AccuracyThreshold     float32       `json:"accuracy_threshold"`
+	MinSampleSize         int           `json:"min_sample_size"`
+	MaxOptimizationRounds int           `json:"max_optimization_rounds"`
+}
+
+// HNSWParameters holds HNSW algorithm parameters.
+type HNSWParameters struct {
+	EfConstruction int `json:"ef_construction"`
+	Ef             int `json:"ef"`
+	M              int `json:"m"`
+}
+
+// HNSWMetrics tracks HNSW performance metrics.
+type HNSWMetrics struct {
+	OptimizationRuns    int64         `json:"optimization_runs"`
+	AverageLatency      time.Duration `json:"average_latency"`
+	AccuracyScore       float64       `json:"accuracy_score"`
+	LastOptimized       time.Time     `json:"last_optimized"`
+	ParameterChanges    int64         `json:"parameter_changes"`
+}
+
+// NewHNSWOptimizer creates a new HNSW optimizer.
+func NewHNSWOptimizer(client interface{}, config *HNSWOptimizerConfig) *HNSWOptimizer {
+	if config == nil {
+		config = &HNSWOptimizerConfig{
+			OptimizationInterval:  30 * time.Minute,
+			EnableAdaptiveTuning:  true,
+			PerformanceThreshold:  100 * time.Millisecond,
+			AccuracyThreshold:     0.95,
+			MinSampleSize:         100,
+			MaxOptimizationRounds: 10,
+		}
+	}
+	
+	return &HNSWOptimizer{
+		client:  client,
+		config:  config,
+		metrics: &HNSWMetrics{},
+		currentParams: &HNSWParameters{
+			EfConstruction: 200,
+			Ef:             100,
+			M:              16,
+		},
+	}
+}

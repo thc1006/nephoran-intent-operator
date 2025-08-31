@@ -1036,8 +1036,7 @@ type RAGStats struct {
 }
 
 // Type aliases for shared types.
-
-type SearchResult = shared.SearchResult
+// Note: SearchResult is defined in types.go to avoid duplicate declarations
 
 // QueryOptions holds options for RAG queries.
 

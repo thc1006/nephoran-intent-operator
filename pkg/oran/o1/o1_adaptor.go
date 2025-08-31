@@ -277,7 +277,7 @@ func NewO1Adaptor(config *oran.O1Config, kubeClient client.Client) *O1Adaptor {
 
 // resolveSecretValue resolves a secret value from Kubernetes Secret reference.
 
-func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv1.SecretReference, defaultNamespace string) (string, error) {
+func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *corev1.SecretKeySelector, defaultNamespace string) (string, error) {
 
 	if secretRef == nil {
 
@@ -291,15 +291,9 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 
 	}
 
-	// Determine namespace - use the one from secretRef or fall back to default.
+	// Determine namespace - use default since SecretKeySelector doesn't have namespace field
 
-	namespace := secretRef.Namespace
-
-	if namespace == "" {
-
-		namespace = defaultNamespace
-
-	}
+	namespace := defaultNamespace
 
 	// Get the secret from Kubernetes.
 
@@ -338,7 +332,7 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 	// If no client certificate references, return basic TLS config.
 
-	if credentials.ClientCertificateRef == nil && credentials.ClientKeyRef == nil {
+	if credentials.ClientCertRef == nil && credentials.ClientKeyRef == nil {
 
 		// Basic TLS config - use system's root CA pool.
 
@@ -358,9 +352,9 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 	// Load client certificate and key if provided.
 
-	if credentials.ClientCertificateRef != nil && credentials.ClientKeyRef != nil {
+	if credentials.ClientCertRef != nil && credentials.ClientKeyRef != nil {
 
-		certData, err := a.resolveSecretValue(ctx, credentials.ClientCertificateRef, me.Namespace)
+		certData, err := a.resolveSecretValue(ctx, credentials.ClientCertRef, me.Namespace)
 
 		if err != nil {
 
@@ -1018,17 +1012,21 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 
 	alarmXPath := "/o-ran-fm:*"
 
-	eventCallback := func(event *NetconfEvent) {
+	eventCallback := EventCallback(func(event interface{}) {
 
-		// Convert NETCONF event to Alarm and call user callback.
+		// Convert interface{} to NetconfEvent and then to Alarm and call user callback.
 
-		if alarm := a.convertEventToAlarm(event, me.Name); alarm != nil {
+		if netconfEvent, ok := event.(*NetconfEvent); ok {
 
-			callback(alarm)
+			if alarm := a.convertEventToAlarm(netconfEvent, me.Name); alarm != nil {
+
+				callback(alarm)
+
+			}
 
 		}
 
-	}
+	})
 
 	if err := client.Subscribe(alarmXPath, eventCallback); err != nil {
 
