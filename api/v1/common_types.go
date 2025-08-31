@@ -19,7 +19,6 @@ package v1
 import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -98,29 +97,17 @@ type ManagedElementSpec struct {
 	// Type specifies the type of managed element (e.g., "gNB", "CU", "DU")
 	Type string `json:"type"`
 	// Credentials for accessing the managed element
-	Credentials *ManagedElementCredentials `json:"credentials,omitempty"`
-}
-
-// ManagedElementStatus defines the observed state of ManagedElement
-type ManagedElementStatus struct {
-	// Phase represents the current status
-	Phase string `json:"phase,omitempty"`
-	// Conditions represent the current service state
 	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Credentials *ManagedElementCredentials `json:"credentials,omitempty"`
+	// Configuration for the managed element
+	// +optional
+	Config map[string]string `json:"config,omitempty"`
+	// Tags for organizing managed elements
+	// +optional
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// ManagedElementList contains a list of ManagedElement
-// +kubebuilder:object:root=true
-type ManagedElementList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ManagedElement `json:"items"`
-}
-
-// ManagedElementCredentials defines authentication credentials for managed elements
+// ManagedElementCredentials defines authentication credentials
 type ManagedElementCredentials struct {
 	// Username for basic authentication
 	// +optional
@@ -130,13 +117,25 @@ type ManagedElementCredentials struct {
 	// +optional
 	PasswordRef *corev1.SecretKeySelector `json:"passwordRef,omitempty"`
 
-	// SSH private key reference for SSH-based authentication
+	// Certificate reference for certificate-based authentication
+	// +optional
+	CertificateRef *corev1.SecretKeySelector `json:"certificateRef,omitempty"`
+
+	// Private key reference for certificate-based authentication
 	// +optional
 	PrivateKeyRef *corev1.SecretKeySelector `json:"privateKeyRef,omitempty"`
 
+	// Token reference for token-based authentication
+	// +optional
+	TokenRef *corev1.SecretKeySelector `json:"tokenRef,omitempty"`
+
+	// SSH key reference for SSH-based authentication
+	// +optional
+	SSHKeyRef *corev1.SecretKeySelector `json:"sshKeyRef,omitempty"`
+
 	// Client certificate reference for mTLS
 	// +optional
-	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
+	ClientCertRef *corev1.SecretKeySelector `json:"clientCertRef,omitempty"`
 
 	// Client key reference for mTLS
 	// +optional
@@ -145,6 +144,9 @@ type ManagedElementCredentials struct {
 	// CA certificate reference
 	// +optional
 	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
+	// Client certificate reference for authentication
+	// +optional
+	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
 }
 
 // ResourceConstraints defines resource constraints for network functions
@@ -167,10 +169,14 @@ type ResourceConstraints struct {
 
 	// Custom resource constraints
 	// +optional
-	Custom map[string]*ResourceConstraintSpec `json:"custom,omitempty"`
+	CustomResources map[string]*ResourceConstraintSpec `json:"customResources,omitempty"`
+
+	// Custom additional constraints
+	// +optional
+	Custom map[string]string `json:"custom,omitempty"`
 }
 
-// ResourceConstraintSpec defines specific resource constraint
+// ResourceConstraintSpec defines the specification for a resource constraint
 type ResourceConstraintSpec struct {
 	// Minimum required value
 	// +optional
@@ -180,9 +186,17 @@ type ResourceConstraintSpec struct {
 	// +optional
 	Max *string `json:"max,omitempty"`
 
-	// Preferred value
+	// Default value if not specified
+	// +optional
+	Default *string `json:"default,omitempty"`
+
+	// Preferred value for allocation
 	// +optional
 	Preferred *string `json:"preferred,omitempty"`
+
+	// Unit of measurement (e.g., "cores", "Gi", "Mbps")
+	// +optional
+	Unit string `json:"unit,omitempty"`
 }
 
 // ProcessedParameters contains structured parameters from intent processing
@@ -193,11 +207,29 @@ type ProcessedParameters struct {
 
 	// Structured parameters organized by category
 	// +optional
-	Structured map[string]*apiextensionsv1.JSON `json:"structured,omitempty"`
+	Structured map[string]string `json:"structured,omitempty"`
 
-	// Security-related parameters
+	// NetworkFunction specifies the target network function type (e.g., "AMF", "SMF", "UPF")
+	// This field identifies the primary network function for the intent processing
+	// +kubebuilder:validation:Optional
 	// +optional
-	SecurityParameters map[string]interface{} `json:"securityParameters,omitempty"`
+	NetworkFunction string `json:"networkFunction,omitempty"`
+
+	// Region specifies the deployment region for the network function
+	// This field is used for regional deployment and resource allocation decisions
+	// +kubebuilder:validation:Optional
+	// +optional
+	Region string `json:"region,omitempty"`
+
+	// CustomParameters contains additional user-defined parameters
+	// These parameters provide flexibility for custom deployment configurations
+	// +kubebuilder:validation:Optional
+	// +optional
+	CustomParameters map[string]string `json:"customParameters,omitempty"`
+
+	// Security-related parameters (now structured instead of map[string]interface{})
+	// +optional
+	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
 
 	// Processing metadata
 	// +optional
@@ -218,111 +250,134 @@ type ParameterMetadata struct {
 	// +optional
 	Source string `json:"source,omitempty"`
 
-	// Confidence score if applicable
+	// Confidence score for the processing
 	// +optional
-	Confidence *float64 `json:"confidence,omitempty"`
+	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+
+	// Confidence level for the processing
+	// +optional
+	Confidence string `json:"confidence,omitempty"`
+
+	// Additional metadata
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// TargetComponent defines a target component for network function deployment
+// ManagedElementStatus defines the observed state of ManagedElement
+type ManagedElementStatus struct {
+	// Conditions represent the latest available observations
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// Phase represents the current lifecycle phase
+	// +optional
+	Phase string `json:"phase,omitempty"`
+
+	// Last successful connection timestamp
+	// +optional
+	LastConnected *metav1.Time `json:"lastConnected,omitempty"`
+
+	// Connection status
+	// +optional
+	ConnectionStatus string `json:"connectionStatus,omitempty"`
+
+	// Current configuration version
+	// +optional
+	ConfigVersion string `json:"configVersion,omitempty"`
+
+	// Observed generation
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}
+
+// ManagedElementList contains a list of ManagedElement
+// +kubebuilder:object:root=true
+type ManagedElementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ManagedElement `json:"items"`
+}
+
+// ConditionType represents the type of condition
+type ConditionType string
+
+const (
+	// ConditionReady indicates the resource is ready
+	ConditionReady ConditionType = "Ready"
+
+	// ConditionProgressing indicates the resource is progressing
+	ConditionProgressing ConditionType = "Progressing"
+
+	// ConditionDegraded indicates the resource is degraded
+	ConditionDegraded ConditionType = "Degraded"
+
+	// ConditionAvailable indicates the resource is available
+	ConditionAvailable ConditionType = "Available"
+)
+
+// ConditionReason represents the reason for a condition
+type ConditionReason string
+
+const (
+	// ReasonReconciling indicates resource is being reconciled
+	ReasonReconciling ConditionReason = "Reconciling"
+
+	// ReasonReconciled indicates resource has been reconciled
+	ReasonReconciled ConditionReason = "Reconciled"
+
+	// ReasonFailed indicates reconciliation failed
+	ReasonFailed ConditionReason = "Failed"
+
+	// ReasonProgressing indicates resource is progressing
+	ReasonProgressing ConditionReason = "Progressing"
+
+	// ReasonReady indicates resource is ready
+	ReasonReady ConditionReason = "Ready"
+
+	// ReasonDegraded indicates resource is degraded
+	ReasonDegraded ConditionReason = "Degraded"
+)
+
+// TargetComponent represents a target component for deployment or management
 type TargetComponent struct {
-	// Component name or identifier
-	// +kubebuilder:validation:Required
+	// Name is the component identifier
 	Name string `json:"name"`
 
-	// Component type (e.g., cucp, cuup, du, etc.)
-	// +optional
-	Type string `json:"type,omitempty"`
+	// Type is the component type (e.g., "O-RAN-CU", "O-RAN-DU", "5GC-AMF")
+	Type string `json:"type"`
 
-	// Version constraints
+	// Version specifies the component version
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// Target cluster or location
+	// Configuration for the component
 	// +optional
-	Target string `json:"target,omitempty"`
-
-	// Component-specific configuration
-	// +optional
-	Config map[string]*apiextensionsv1.JSON `json:"config,omitempty"`
+	Config map[string]string `json:"config,omitempty"`
 
 	// Resource requirements
 	// +optional
 	Resources *ResourceConstraints `json:"resources,omitempty"`
+
+	// Status of the component
+	// +optional
+	Status string `json:"status,omitempty"`
 }
 
 // BackupCompressionConfig defines backup compression settings
 type BackupCompressionConfig struct {
-	// Compression algorithm (gzip, lz4, zstd, none)
+	// Enabled indicates whether compression is enabled
+	Enabled bool `json:"enabled"`
+
+	// Algorithm specifies the compression algorithm
+	// +kubebuilder:validation:Enum=gzip;bzip2;lz4;zstd
 	// +optional
-	// +kubebuilder:validation:Enum=gzip;lz4;zstd;none
 	Algorithm string `json:"algorithm,omitempty"`
 
-	// Compression level (algorithm-dependent)
+	// Level specifies the compression level (1-9 for most algorithms)
 	// +optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=9
 	Level int `json:"level,omitempty"`
 
-	// Enable parallel compression
+	// ChunkSize specifies the chunk size for compression
 	// +optional
-	Parallel bool `json:"parallel,omitempty"`
-}
-
-// String returns the string representation of Priority
-func (p Priority) String() string {
-	return string(p)
-}
-
-// ToInt converts Priority to integer for comparison
-func (p Priority) ToInt() int {
-	switch p {
-	case PriorityLow:
-		return 1
-	case PriorityNormal:
-		return 2
-	case PriorityMedium:
-		return 3
-	case PriorityHigh:
-		return 4
-	case PriorityCritical:
-		return 5
-	default:
-		return 2 // default to normal
-	}
-}
-
-// FromString converts string to Priority
-func PriorityFromString(s string) Priority {
-	switch s {
-	case "low":
-		return PriorityLow
-	case "normal":
-		return PriorityNormal
-	case "medium":
-		return PriorityMedium
-	case "high":
-		return PriorityHigh
-	case "critical":
-		return PriorityCritical
-	default:
-		return PriorityNormal
-	}
-}
-
-// FromInt converts integer to Priority
-func PriorityFromInt(i int) Priority {
-	switch i {
-	case 1:
-		return PriorityLow
-	case 2:
-		return PriorityNormal
-	case 3:
-		return PriorityMedium
-	case 4:
-		return PriorityHigh
-	case 5:
-		return PriorityCritical
-	default:
-		return PriorityNormal
-	}
+	ChunkSize string `json:"chunkSize,omitempty"`
 }

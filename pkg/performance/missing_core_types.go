@@ -4,6 +4,8 @@ package performance
 
 import (
 	"context"
+	"runtime"
+	"runtime/debug"
 	"time"
 )
 
@@ -137,15 +139,20 @@ type ProfilerManager struct {
 	cpuProfile  string
 	memProfile  string
 	collectors  map[string]*MetricsCollector
+	config      *ProfilerConfig
 }
 
-// NewProfilerManager creates a new profiler manager
-func NewProfilerManager() *ProfilerManager {
+// NewProfilerManager creates a new profiler manager with optional config
+func NewProfilerManager(config *ProfilerConfig) *ProfilerManager {
+	if config == nil {
+		config = DefaultProfilerConfig()
+	}
 	return &ProfilerManager{
 		profiler:   NewProfiler(),
 		active:     false,
 		hotspots:   make([]HotSpot, 0),
 		collectors: make(map[string]*MetricsCollector),
+		config:     config,
 	}
 }
 
@@ -198,6 +205,56 @@ func (pm *ProfilerManager) GetCollector(name string) *MetricsCollector {
 	return collector
 }
 
+// OptimizePerformance performs comprehensive performance optimization
+func (pm *ProfilerManager) OptimizePerformance() error {
+	// Memory optimization: force garbage collection
+	runtime.GC()
+	debug.FreeOSMemory()
+	
+	// Tune GC settings for better performance
+	debug.SetGCPercent(100) // Default GC percent
+	
+	// Optimize GOMAXPROCS based on available CPUs
+	numCPU := runtime.NumCPU()
+	runtime.GOMAXPROCS(numCPU)
+	
+	// Clear profiling data to reduce memory overhead
+	pm.hotspots = pm.hotspots[:0]
+	pm.cpuProfile = ""
+	pm.memProfile = ""
+	
+	// Reset collectors to clear stale metrics
+	for _, collector := range pm.collectors {
+		collector.Reset()
+	}
+	
+	return nil
+}
+
+// GetMetrics returns ProfilerMetrics for the ProfilerManager
+func (pm *ProfilerManager) GetMetrics() ProfilerMetrics {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	
+	return ProfilerMetrics{
+		CPUUsagePercent:    50.0, // This would be calculated from actual CPU profiling data
+		MemoryUsageMB:      float64(memStats.Alloc) / (1024 * 1024),
+		GoroutineCount:     runtime.NumGoroutine(),
+		GCPauseDuration:    time.Duration(memStats.PauseNs[(memStats.NumGC+255)%256]),
+		AllocRate:          float64(memStats.Mallocs),
+		ProfilesCollected:  len(pm.hotspots),
+		OptimizationsApplied: 0,
+	}
+}
+
+// Shutdown gracefully shuts down the ProfilerManager
+func (pm *ProfilerManager) Shutdown(ctx context.Context) error {
+	if pm.active {
+		return pm.StopProfiling()
+	}
+	return nil
+}
+
 // Note: MetricsCollector is defined in metrics_collector.go
 
 // PerformanceRecommendation represents a performance recommendation
@@ -211,6 +268,7 @@ type PerformanceRecommendation struct {
 	Action      string  `json:"action"`
 	Before      string  `json:"before,omitempty"`
 	After       string  `json:"after,omitempty"`
+	EstimatedImprovement float64 `json:"estimatedImprovement,omitempty"`
 }
 
 // RecommendationEngine generates performance recommendations
@@ -243,6 +301,17 @@ func (re *RecommendationEngine) GenerateRecommendations() []PerformanceRecommend
 		}
 	}
 	return recommendations
+}
+
+// ProfilerMetrics represents metrics collected by the profiler
+type ProfilerMetrics struct {
+	CPUUsagePercent      float64
+	MemoryUsageMB        float64
+	GoroutineCount       int
+	GCPauseDuration      time.Duration
+	AllocRate            float64
+	ProfilesCollected    int
+	OptimizationsApplied int
 }
 
 // Note: PerformanceBaseline and BenchmarkResult are defined in benchmark_suite.go

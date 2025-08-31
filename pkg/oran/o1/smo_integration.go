@@ -15,8 +15,8 @@ import (
 
 // NetworkFunctionManagerImpl provides concrete implementation of NetworkFunctionManager
 type NetworkFunctionManagerImpl struct {
-	networkFunctions map[string]*NetworkFunction
-	functionTypes    map[string]*FunctionType
+	networkFunctions    map[string]*NetworkFunction
+	functionTypes       map[string]*FunctionType
 	deploymentTemplates map[string]*DeploymentTemplate
 
 	// Optional components
@@ -126,17 +126,17 @@ func (nfm *NetworkFunctionManagerImpl) GetNetworkFunctionStatus(ctx context.Cont
 	}
 
 	return &NetworkFunctionStatus{
-		NFID:              nfID,
-		NFType:            nf.NFType,
-		NFStatus:          nf.NFStatus,
-		OperationalState:  "ENABLED", // Placeholder
-		AdministrativeState: "UNLOCKED", // Placeholder
-		AvailabilityState: "IN_SERVICE", // Placeholder
-		HealthStatus:      "HEALTHY", // Simplified
-		LastHeartbeat:     time.Now(), // Placeholder
-		Uptime:            time.Since(time.Now().Add(-1 * time.Hour)), // Example
-		Load:              50, // Placeholder
-		LoadTimeStamp:     time.Now(),
+		NFID:                nfID,
+		NFType:              nf.NFType,
+		NFStatus:            nf.NFStatus,
+		OperationalState:    "ENABLED",                                  // Placeholder
+		AdministrativeState: "UNLOCKED",                                 // Placeholder
+		AvailabilityState:   "IN_SERVICE",                               // Placeholder
+		HealthStatus:        "HEALTHY",                                  // Simplified
+		LastHeartbeat:       time.Now(),                                 // Placeholder
+		Uptime:              time.Since(time.Now().Add(-1 * time.Hour)), // Example
+		Load:                50,                                         // Placeholder
+		LoadTimeStamp:       time.Now(),
 	}, nil
 }
 

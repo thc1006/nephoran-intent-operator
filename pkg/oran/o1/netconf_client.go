@@ -86,7 +86,6 @@ type ConfigData struct {
 
 }
 
-
 // NetconfEvent represents a NETCONF notification event.
 
 type NetconfEvent struct {

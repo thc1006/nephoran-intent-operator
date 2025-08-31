@@ -10,7 +10,7 @@ import (
 func (c *Client) GetConfig(ctx context.Context, path string) (*ConfigResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would make REST API calls to the O1 interface
-	
+
 	response := &ConfigResponse{
 		Path: path,
 		Data: map[string]interface{}{
@@ -22,7 +22,7 @@ func (c *Client) GetConfig(ctx context.Context, path string) (*ConfigResponse, e
 		Status:    "success",
 		Timestamp: time.Now(),
 	}
-	
+
 	return response, nil
 }
 
@@ -30,7 +30,7 @@ func (c *Client) GetConfig(ctx context.Context, path string) (*ConfigResponse, e
 func (c *Client) SetConfig(ctx context.Context, config *ConfigRequest) (*ConfigResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would make REST API calls to update configuration
-	
+
 	response := &ConfigResponse{
 		Path:      config.Path,
 		Data:      config.Data,
@@ -38,7 +38,7 @@ func (c *Client) SetConfig(ctx context.Context, config *ConfigRequest) (*ConfigR
 		Message:   "Configuration updated successfully",
 		Timestamp: time.Now(),
 	}
-	
+
 	return response, nil
 }
 
@@ -46,7 +46,7 @@ func (c *Client) SetConfig(ctx context.Context, config *ConfigRequest) (*ConfigR
 func (c *Client) GetPerformanceData(ctx context.Context, request *PerformanceRequest) (*PerformanceResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would query performance management data
-	
+
 	data := []PerformanceData{
 		{
 			ObjectInstance:  "cell_001",
@@ -63,13 +63,13 @@ func (c *Client) GetPerformanceData(ctx context.Context, request *PerformanceReq
 			Timestamp:       time.Now(),
 		},
 	}
-	
+
 	response := &PerformanceResponse{
 		RequestID: fmt.Sprintf("perf_req_%d", time.Now().Unix()),
 		Data:      data,
 		Status:    "success",
 	}
-	
+
 	return response, nil
 }
 
@@ -77,14 +77,14 @@ func (c *Client) GetPerformanceData(ctx context.Context, request *PerformanceReq
 func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *PerformanceSubscription) (<-chan *PerformanceData, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would establish a subscription for performance data
-	
+
 	ch := make(chan *PerformanceData, 100)
-	
+
 	go func() {
 		defer close(ch)
 		ticker := time.NewTicker(time.Duration(subscription.ReportingPeriod) * time.Second)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -98,7 +98,7 @@ func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *Per
 					Unit:            "Mbps",
 					Timestamp:       time.Now(),
 				}
-				
+
 				select {
 				case ch <- data:
 				case <-ctx.Done():
@@ -107,7 +107,7 @@ func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *Per
 			}
 		}
 	}()
-	
+
 	return ch, nil
 }
 
@@ -115,7 +115,7 @@ func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *Per
 func (c *Client) GetAlarms(ctx context.Context, filter *AlarmFilter) (*AlarmResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would query the alarm management system
-	
+
 	alarms := []Alarm{
 		{
 			AlarmID:         "alarm_001",
@@ -142,13 +142,13 @@ func (c *Client) GetAlarms(ctx context.Context, filter *AlarmFilter) (*AlarmResp
 			Acknowledged:    false,
 		},
 	}
-	
+
 	response := &AlarmResponse{
 		Alarms:     alarms,
 		TotalCount: len(alarms),
 		Status:     "success",
 	}
-	
+
 	return response, nil
 }
 
@@ -156,14 +156,14 @@ func (c *Client) GetAlarms(ctx context.Context, filter *AlarmFilter) (*AlarmResp
 func (c *Client) SubscribeAlarms(ctx context.Context, subscription *AlarmSubscription) (<-chan *Alarm, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would establish a subscription for alarm notifications
-	
+
 	ch := make(chan *Alarm, 100)
-	
+
 	go func() {
 		defer close(ch)
 		ticker := time.NewTicker(30 * time.Second) // Check for new alarms every 30 seconds
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -183,7 +183,7 @@ func (c *Client) SubscribeAlarms(ctx context.Context, subscription *AlarmSubscri
 						EventTime:       time.Now(),
 						Acknowledged:    false,
 					}
-					
+
 					select {
 					case ch <- alarm:
 					case <-ctx.Done():
@@ -193,7 +193,7 @@ func (c *Client) SubscribeAlarms(ctx context.Context, subscription *AlarmSubscri
 			}
 		}
 	}()
-	
+
 	return ch, nil
 }
 
@@ -201,7 +201,7 @@ func (c *Client) SubscribeAlarms(ctx context.Context, subscription *AlarmSubscri
 func (c *Client) AcknowledgeAlarm(ctx context.Context, alarmID string) error {
 	// This is a placeholder implementation
 	// In a real implementation, this would make an API call to acknowledge the alarm
-	
+
 	return nil
 }
 
@@ -209,14 +209,14 @@ func (c *Client) AcknowledgeAlarm(ctx context.Context, alarmID string) error {
 func (c *Client) UploadFile(ctx context.Context, file *FileUploadRequest) (*FileUploadResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would handle file uploads via the O1 interface
-	
+
 	response := &FileUploadResponse{
 		FileID:    fmt.Sprintf("file_%d", time.Now().Unix()),
 		Status:    "success",
 		Message:   "File uploaded successfully",
 		Timestamp: time.Now(),
 	}
-	
+
 	return response, nil
 }
 
@@ -224,7 +224,7 @@ func (c *Client) UploadFile(ctx context.Context, file *FileUploadRequest) (*File
 func (c *Client) DownloadFile(ctx context.Context, fileID string) (*FileDownloadResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would handle file downloads via the O1 interface
-	
+
 	response := &FileDownloadResponse{
 		FileID:   fileID,
 		FileName: "example_file.log",
@@ -233,7 +233,7 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) (*FileDownload
 		Content:  []byte("Example log file content"),
 		Status:   "success",
 	}
-	
+
 	return response, nil
 }
 
@@ -241,13 +241,13 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) (*FileDownload
 func (c *Client) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would send heartbeat messages
-	
+
 	response := &HeartbeatResponse{
 		Status:    "active",
 		Timestamp: time.Now(),
 		Message:   "Heartbeat successful",
 	}
-	
+
 	return response, nil
 }
 

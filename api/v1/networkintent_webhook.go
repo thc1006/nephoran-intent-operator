@@ -48,7 +48,7 @@ func (r *NetworkIntent) Default(ctx context.Context, obj runtime.Object) error {
 	if !ok {
 		return fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
-	
+
 	networkintentlog.Info("default", "name", ni.Name)
 
 	// Set default intent type if not provided
@@ -74,7 +74,7 @@ func (r *NetworkIntent) ValidateCreate(ctx context.Context, obj runtime.Object) 
 	if !ok {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
-	
+
 	networkintentlog.Info("validate create", "name", ni.Name)
 	return r.validateNetworkIntent()
 }
@@ -85,7 +85,7 @@ func (r *NetworkIntent) ValidateUpdate(ctx context.Context, oldObj, newObj runti
 	if !ok {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", newObj)
 	}
-	
+
 	networkintentlog.Info("validate update", "name", ni.Name)
 	return ni.validateNetworkIntent()
 }
@@ -96,7 +96,7 @@ func (r *NetworkIntent) ValidateDelete(ctx context.Context, obj runtime.Object) 
 	if !ok {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
-	
+
 	networkintentlog.Info("validate delete", "name", ni.Name)
 
 	// No validation needed for deletion
@@ -181,7 +181,7 @@ func (r *NetworkIntent) validatePriority() *field.Error {
 	if r.Spec.Priority == "" {
 		return nil // Priority is optional
 	}
-	
+
 	validPriorities := []Priority{PriorityLow, PriorityMedium, PriorityHigh, PriorityCritical}
 	for _, validPriority := range validPriorities {
 		if r.Spec.Priority == validPriority {
@@ -202,7 +202,7 @@ func (r *NetworkIntent) validateTargetComponents() *field.Error {
 		ORANComponentA1, ORANComponentXApp, ORANComponentGNodeB, ORANComponentAMF,
 		ORANComponentSMF, ORANComponentUPF,
 	}
-	
+
 	for i, component := range r.Spec.TargetComponents {
 		valid := false
 		for _, validComponent := range validComponents {
@@ -215,6 +215,6 @@ func (r *NetworkIntent) validateTargetComponents() *field.Error {
 			return field.Invalid(field.NewPath("spec", "targetComponents").Index(i), component, "invalid O-RAN component")
 		}
 	}
-	
+
 	return nil
 }

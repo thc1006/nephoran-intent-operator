@@ -1,234 +1,300 @@
-// Package monitoring provides comprehensive monitoring capabilities for O-RAN Nephio systems
 package monitoring
 
 import (
 	"context"
-	"sync"
 	"time"
-
-	"go.opentelemetry.io/otel/trace"
 )
 
-// MonitoringManager coordinates all monitoring activities
-type MonitoringManager struct {
-	LatencyTracker      LatencyTracker
-	ReportGenerator     ReportGenerator
-	AvailabilityMonitor AvailabilityMonitor
-	AlertManager        AlertManager
+// Severity levels for alerts and events
+type Severity string
+
+const (
+	SeverityInfo     Severity = "info"
+	SeverityWarning  Severity = "warning"
+	SeverityCritical Severity = "critical"
+	SeverityError    Severity = "error"
+)
+
+// Alert severity alias for compatibility
+type AlertSeverity = Severity
+
+const (
+	AlertSeverityInfo     = SeverityInfo
+	AlertSeverityWarning  = SeverityWarning
+	AlertSeverityCritical = SeverityCritical
+	AlertSeverityError    = SeverityError
+)
+
+// VES Event structures
+type VESEvent struct {
+	Event VESEventData `json:"event"`
 }
 
-// LatencyTrackerInterface interface for tracking operation latencies
-type LatencyTrackerInterface interface {
-	StartOperation(ctx context.Context, operationID, operationType, component string, attrs map[string]string) (context.Context, error)
-	EndOperation(ctx context.Context, operationID string, success bool, errorMsg string) error
-	GetSpanFromContext(ctx context.Context) trace.Span
-	TrackOperation(ctx context.Context, operationID string, fn func(context.Context) error) error
-	RecordLatency(operationType string, latency time.Duration, success bool)
-	StartPeriodicCollection(ctx context.Context, interval time.Duration)
+type VESEventData struct {
+	CommonEventHeader CommonEventHeader `json:"commonEventHeader"`
+	MeasurementFields *MeasurementFields `json:"measurementFields,omitempty"`
+	FaultFields       *FaultFields       `json:"faultFields,omitempty"`
+	ThresholdFields   *ThresholdFields   `json:"thresholdCrossingAlertFields,omitempty"`
 }
 
-// ReportGenerator interface for generating performance reports
-type ReportGenerator interface {
-	GenerateReport(ctx context.Context, config *ReportConfig) (*PerformanceReport, error)
-	RecordMetrics(component string, metrics *PerformanceMetrics) error
-	GetMetrics(component string) (*PerformanceMetrics, error)
-	ExportReport(report *PerformanceReport, format string) ([]byte, error)
+type CommonEventHeader struct {
+	Domain                 string    `json:"domain"`
+	EventID                string    `json:"eventId"`
+	EventName              string    `json:"eventName"`
+	EventType              string    `json:"eventType"`
+	LastEpochMicrosec      int64     `json:"lastEpochMicrosec"`
+	Priority               string    `json:"priority"`
+	ReportingEntityID      string    `json:"reportingEntityId"`
+	ReportingEntityName    string    `json:"reportingEntityName"`
+	Sequence               int       `json:"sequence"`
+	SourceID               string    `json:"sourceId"`
+	SourceName             string    `json:"sourceName"`
+	StartEpochMicrosec     int64     `json:"startEpochMicrosec"`
+	Version                string    `json:"version"`
+	VesEventListenerVersion string   `json:"vesEventListenerVersion"`
+	TimeZoneOffset         string    `json:"timeZoneOffset"`
+	NfNamingCode          string    `json:"nfNamingCode,omitempty"`
+	NfVendorName          string    `json:"nfVendorName,omitempty"`
 }
 
-// AvailabilityMonitor interface for monitoring service availability
-type AvailabilityMonitor interface {
-	AddCheck(check *SyntheticCheck) error
-	RemoveCheck(checkID string) error
-	GetCheckResult(checkID string) (*CheckResult, error)
-	StartMonitoring(ctx context.Context)
-	Shutdown(ctx context.Context) error
+type MeasurementFields struct {
+	MeasurementInterval    int64                    `json:"measurementInterval"`
+	MeasurementFieldsVersion string                `json:"measurementFieldsVersion"`
+	AdditionalMeasurements []AdditionalMeasurement `json:"additionalMeasurements,omitempty"`
+	CPUUsageArray         []CPUUsage               `json:"cpuUsageArray,omitempty"`
+	MemoryUsageArray      []MemoryUsage            `json:"memoryUsageArray,omitempty"`
+	NetworkUsageArray     []NetworkUsage           `json:"networkUsageArray,omitempty"`
 }
 
-// Common types used across monitoring components
+type FaultFields struct {
+	FaultFieldsVersion   string `json:"faultFieldsVersion"`
+	AlarmCondition       string `json:"alarmCondition"`
+	AlarmInterfaceA      string `json:"alarmInterfaceA,omitempty"`
+	EventCategory        string `json:"eventCategory,omitempty"`
+	EventSeverity        string `json:"eventSeverity"`
+	EventSourceType      string `json:"eventSourceType"`
+	SpecificProblem      string `json:"specificProblem"`
+	VfStatus             string `json:"vfStatus"`
+}
 
-// PerformanceMetrics holds performance data
+type ThresholdFields struct {
+	ThresholdFieldsVersion    string                 `json:"thresholdCrossingFieldsVersion"`
+	AlertAction               string                 `json:"alertAction"`
+	AlertDescription          string                 `json:"alertDescription"`
+	AlertType                 string                 `json:"alertType"`
+	CollectionTimestamp       string                 `json:"collectionTimestamp"`
+	EventSeverity             string                 `json:"eventSeverity"`
+	EventStartTimestamp       string                 `json:"eventStartTimestamp"`
+	AdditionalParameters      []AdditionalParameter  `json:"additionalParameters,omitempty"`
+}
+
+type AdditionalMeasurement struct {
+	Name   string            `json:"name"`
+	Values map[string]string `json:"hashMap"`
+}
+
+type AdditionalParameter struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type CPUUsage struct {
+	CPUID           string  `json:"cpuIdentifier"`
+	PercentUsage    float64 `json:"percentUsage"`
+	CPUCapacityMhz  float64 `json:"cpuCapacityMhz,omitempty"`
+}
+
+type MemoryUsage struct {
+	MemoryFree      float64 `json:"memoryFree"`
+	MemoryUsed      float64 `json:"memoryUsed"`
+	MemoryBuffered  float64 `json:"memoryBuffered,omitempty"`
+	MemoryCached    float64 `json:"memoryCached,omitempty"`
+}
+
+type NetworkUsage struct {
+	NetworkInterface   string  `json:"networkInterface"`
+	BytesIn           float64 `json:"bytesIn"`
+	BytesOut          float64 `json:"bytesOut"`
+	PacketsIn         float64 `json:"packetsIn"`
+	PacketsOut        float64 `json:"packetsOut"`
+}
+
+// Health monitoring structures
+type ComponentHealth struct {
+	Name      string            `json:"name"`
+	Status    HealthStatus      `json:"status"`
+	Message   string            `json:"message"`
+	Timestamp time.Time         `json:"timestamp"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+}
+
+type HealthStatus string
+
+const (
+	HealthStatusHealthy   HealthStatus = "healthy"
+	HealthStatusDegraded  HealthStatus = "degraded"
+	HealthStatusUnhealthy HealthStatus = "unhealthy"
+	HealthStatusUnknown   HealthStatus = "unknown"
+)
+
+type SystemHealth struct {
+	OverallStatus HealthStatus      `json:"overallStatus"`
+	Components    []ComponentHealth `json:"components"`
+	LastChecked   time.Time         `json:"lastChecked"`
+}
+
+// Performance metrics structures
 type PerformanceMetrics struct {
-	Component     string                 `json:"component"`
+	Timestamp   time.Time         `json:"timestamp"`
+	CPU         CPUMetrics        `json:"cpu"`
+	Memory      MemoryMetrics     `json:"memory"`
+	Network     NetworkMetrics    `json:"network"`
+	Application AppMetrics        `json:"application"`
+	Custom      map[string]interface{} `json:"custom,omitempty"`
+}
+
+type CPUMetrics struct {
+	UsagePercent float64 `json:"usagePercent"`
+	LoadAverage  float64 `json:"loadAverage"`
+	Cores        int     `json:"cores"`
+}
+
+type MemoryMetrics struct {
+	UsedBytes      int64   `json:"usedBytes"`
+	TotalBytes     int64   `json:"totalBytes"`
+	UsagePercent   float64 `json:"usagePercent"`
+	CachedBytes    int64   `json:"cachedBytes"`
+	BufferedBytes  int64   `json:"bufferedBytes"`
+}
+
+type NetworkMetrics struct {
+	BytesReceived    int64 `json:"bytesReceived"`
+	BytesSent        int64 `json:"bytesSent"`
+	PacketsReceived  int64 `json:"packetsReceived"`
+	PacketsSent      int64 `json:"packetsSent"`
+	ErrorsReceived   int64 `json:"errorsReceived"`
+	ErrorsSent       int64 `json:"errorsSent"`
+}
+
+type AppMetrics struct {
+	RequestsTotal    int64   `json:"requestsTotal"`
+	RequestsPerSec   float64 `json:"requestsPerSecond"`
+	ResponseTimeAvg  float64 `json:"responseTimeAvgMs"`
+	ErrorRate        float64 `json:"errorRate"`
+	ActiveConnections int64  `json:"activeConnections"`
+}
+
+// Notification structures
+type NotificationChannel struct {
+	Name     string                 `json:"name"`
+	Type     NotificationType       `json:"type"`
+	Config   map[string]interface{} `json:"config"`
+	Enabled  bool                   `json:"enabled"`
+	Filters  []NotificationFilter   `json:"filters,omitempty"`
+}
+
+type NotificationType string
+
+const (
+	NotificationTypeEmail    NotificationType = "email"
+	NotificationTypeSlack    NotificationType = "slack"
+	NotificationTypeWebhook  NotificationType = "webhook"
+	NotificationTypeSMS      NotificationType = "sms"
+)
+
+type NotificationFilter struct {
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"`
+}
+
+// Interface definitions
+type HealthChecker interface {
+	CheckHealth(ctx context.Context) (*ComponentHealth, error)
+	GetName() string
+}
+
+type MetricsCollector interface {
+	CollectMetrics(ctx context.Context) (*PerformanceMetrics, error)
+	GetName() string
+}
+
+type VESEventSender interface {
+	SendEvent(ctx context.Context, event *VESEvent) error
+	SendBatch(ctx context.Context, events []*VESEvent) error
+}
+
+type AlertManager interface {
+	SendAlert(ctx context.Context, alert Alert) error
+	GetAlerts(ctx context.Context, filters map[string]string) ([]Alert, error)
+}
+
+// Alert structure
+type Alert struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Severity    AlertSeverity          `json:"severity"`
+	Status      AlertStatus            `json:"status"`
+	Labels      map[string]string      `json:"labels"`
+	Annotations map[string]string      `json:"annotations"`
+	StartsAt    time.Time              `json:"startsAt"`
+	EndsAt      *time.Time             `json:"endsAt,omitempty"`
+	GeneratorURL string                `json:"generatorURL,omitempty"`
+	Fingerprint  string                `json:"fingerprint"`
+}
+
+type AlertStatus string
+
+const (
+	AlertStatusFiring   AlertStatus = "firing"
+	AlertStatusResolved AlertStatus = "resolved"
+	AlertStatusSuppressed AlertStatus = "suppressed"
+)
+
+// NWDAF Analytics structures
+type NWDAFAnalytics struct {
+	AnalyticsID   string                 `json:"analyticsId"`
+	AnalyticsType NWDAFAnalyticsType     `json:"analyticsType"`
 	Timestamp     time.Time              `json:"timestamp"`
-	Throughput    float64                `json:"throughput"`
-	Latency       time.Duration          `json:"latency"`
-	ErrorRate     float64                `json:"error_rate"`
-	Availability  float64                `json:"availability"`
-	CustomMetrics map[string]interface{} `json:"custom_metrics"`
+	Data          map[string]interface{} `json:"data"`
+	Confidence    float64                `json:"confidence"`
+	Validity      time.Duration          `json:"validity"`
 }
 
-// PerformanceReport represents a generated performance report
-type PerformanceReport struct {
-	ID          string               `json:"id"`
-	Title       string               `json:"title"`
-	GeneratedAt time.Time            `json:"generated_at"`
-	TimeRange   TimeRange            `json:"time_range"`
-	Summary     ReportSummary        `json:"summary"`
-	Metrics     []PerformanceMetrics `json:"metrics"`
-	Alerts      []AlertItem          `json:"alerts"`
-	Content     string               `json:"content"`
-	Format      string               `json:"format"`
+type NWDAFAnalyticsType string
+
+const (
+	NWDAFAnalyticsTypeLoadLevel     NWDAFAnalyticsType = "LOAD_LEVEL_INFORMATION"
+	NWDAFAnalyticsTypeNetworkPerf   NWDAFAnalyticsType = "NETWORK_PERFORMANCE"
+	NWDAFAnalyticsTypeNFLoad        NWDAFAnalyticsType = "NF_LOAD"
+	NWDAFAnalyticsTypeServiceExp    NWDAFAnalyticsType = "SERVICE_EXPERIENCE"
+	NWDAFAnalyticsTypeUEMobility    NWDAFAnalyticsType = "UE_MOBILITY"
+	NWDAFAnalyticsTypeUEComm        NWDAFAnalyticsType = "UE_COMMUNICATION"
+)
+
+// Distributed tracing structures
+type TraceSpan struct {
+	TraceID      string            `json:"traceId"`
+	SpanID       string            `json:"spanId"`
+	ParentSpanID string            `json:"parentSpanId,omitempty"`
+	OperationName string           `json:"operationName"`
+	StartTime    time.Time         `json:"startTime"`
+	FinishTime   *time.Time        `json:"finishTime,omitempty"`
+	Duration     time.Duration     `json:"duration"`
+	Tags         map[string]string `json:"tags,omitempty"`
+	Status       SpanStatus        `json:"status"`
+	ServiceName  string            `json:"serviceName"`
 }
 
-// TimeRange defines a time range for reports
-type TimeRange struct {
-	Start time.Time `json:"start"`
-	End   time.Time `json:"end"`
-}
+type SpanStatus string
 
-// ReportSummary provides high-level report statistics
-type ReportSummary struct {
-	TotalComponents int     `json:"total_components"`
-	AvgThroughput   float64 `json:"avg_throughput"`
-	AvgLatency      string  `json:"avg_latency"`
-	OverallHealth   float64 `json:"overall_health"`
-	CriticalAlerts  int     `json:"critical_alerts"`
-}
+const (
+	SpanStatusOK    SpanStatus = "OK"
+	SpanStatusError SpanStatus = "ERROR"
+)
 
-// AlertItem represents a performance alert
-type AlertItem struct {
-	Component   string    `json:"component"`
-	Metric      string    `json:"metric"`
-	Value       float64   `json:"value"`
-	Threshold   float64   `json:"threshold"`
-	Severity    string    `json:"severity"`
-	Timestamp   time.Time `json:"timestamp"`
-	Description string    `json:"description"`
-}
-
-// ReportConfig holds configuration for report generation
-type ReportConfig struct {
-	IncludeMetrics  []string           `json:"include_metrics"`
-	TimeRange       TimeRange          `json:"time_range"`
-	OutputFormat    string             `json:"output_format"`
-	CustomFields    map[string]string  `json:"custom_fields"`
-	ThresholdAlerts map[string]float64 `json:"threshold_alerts"`
-}
-
-// SyntheticCheck defines a synthetic check configuration
-type SyntheticCheck struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Type         string            `json:"type"` // http, tcp, grpc
-	Target       string            `json:"target"`
-	Interval     time.Duration     `json:"interval"`
-	Timeout      time.Duration     `json:"timeout"`
-	Enabled      bool              `json:"enabled"`
-	Headers      map[string]string `json:"headers,omitempty"`
-	ExpectedCode int               `json:"expected_code,omitempty"`
-	ExpectedBody string            `json:"expected_body,omitempty"`
-	ThresholdMs  int               `json:"threshold_ms"`
-}
-
-// CheckResult represents the result of a synthetic check
-type CheckResult struct {
-	CheckID      string        `json:"check_id"`
-	Timestamp    time.Time     `json:"timestamp"`
-	Success      bool          `json:"success"`
-	ResponseTime time.Duration `json:"response_time"`
-	StatusCode   int           `json:"status_code,omitempty"`
-	Error        string        `json:"error,omitempty"`
-	Message      string        `json:"message"`
-	Availability float64       `json:"availability"`
-}
-
-// Alert type is defined in alerting.go
-
-// Note: CircularBuffer is defined in sla_components.go to avoid duplication
-
-// TrendAnalyzer provides trend analysis for time-series data
-type TrendAnalyzer struct {
-	window time.Duration
-	mu     sync.RWMutex
-}
-
-// NewTrendAnalyzer creates a new trend analyzer
-func NewTrendAnalyzer() *TrendAnalyzer {
-	return &TrendAnalyzer{
-		window: 24 * time.Hour,
-	}
-}
-
-// SeasonalityDetector detects seasonal patterns in metrics
-type SeasonalityDetector struct {
-	patterns []SeasonalPattern
-	mu       sync.RWMutex
-}
-
-// NewSeasonalityDetector creates a new seasonality detector
-func NewSeasonalityDetector() *SeasonalityDetector {
-	return &SeasonalityDetector{
-		patterns: make([]SeasonalPattern, 0),
-	}
-}
-
-// GetSeasonalAdjustment method is implemented in error_tracking.go
-
-// SeasonalPattern represents a detected seasonal pattern
-type SeasonalPattern struct {
-	Period    time.Duration `json:"period"`
-	Amplitude float64       `json:"amplitude"`
-	Phase     float64       `json:"phase"`
-	Strength  float64       `json:"strength"`
-}
-
-// PredictionHistory tracks prediction accuracy over time
-type PredictionHistory struct {
-	predictions  []HistoricalPrediction
-	actualValues []float64
-	accuracy     *AccuracyTracker
-	mu           sync.RWMutex
-}
-
-// HistoricalPrediction represents a past prediction for accuracy tracking
-type HistoricalPrediction struct {
-	Timestamp       time.Time `json:"timestamp"`
-	PredictedValue  float64   `json:"predicted_value"`
-	ActualValue     float64   `json:"actual_value"`
-	AbsoluteError   float64   `json:"absolute_error"`
-	RelativeError   float64   `json:"relative_error"`
-	Confidence      float64   `json:"confidence"`
-	ModelVersion    string    `json:"model_version"`
-}
-
-// AccuracyTracker tracks model accuracy over different time periods
-type AccuracyTracker struct {
-	dailyAccuracy   *CircularBuffer
-	weeklyAccuracy  *CircularBuffer
-	monthlyAccuracy *CircularBuffer
-	mu              sync.RWMutex
-}
-
-// Prediction represents a model prediction with confidence
-type Prediction struct {
-	Value      float64   `json:"value"`
-	Confidence float64   `json:"confidence"`
-	Timestamp  time.Time `json:"timestamp"`
-	Features   []float64 `json:"features"`
-}
-
-// PredictedViolation represents a predicted SLA violation
-type PredictedViolation struct {
-	MetricType  string        `json:"metric_type"`
-	Probability float64       `json:"probability"`
-	Severity    string        `json:"severity"`
-	TimeToEvent time.Duration `json:"time_to_event"`
-	Impact      string        `json:"impact"`
-	Mitigation  []string      `json:"mitigation"`
-	Timestamp   time.Time     `json:"timestamp"`
-}
-
-// TrainingDataSet represents a dataset for model training
-type TrainingDataSet struct {
-	Features   [][]float64 `json:"features"`
-	Targets    []float64   `json:"targets"`
-	Timestamps []time.Time `json:"timestamps"`
-	Weights    []float64   `json:"weights"`
-}
-
-// ModelInterface defines the common interface for ML models
-type ModelInterface interface {
-	Train(ctx context.Context, data *TrainingDataSet) error
-	Predict(ctx context.Context, features []float64) (*Prediction, error)
-	GetAccuracy() float64
+type TraceCollector interface {
+	CollectSpan(ctx context.Context, span *TraceSpan) error
+	GetTrace(ctx context.Context, traceID string) ([]*TraceSpan, error)
 }

@@ -62,7 +62,7 @@ type SATSolverImpl struct {
 
 	statistics *SATStatistics
 
-	config *SATSolverConfig
+	config *SATSolverConfigImpl
 
 	mu sync.RWMutex
 }
@@ -139,7 +139,9 @@ type SATStatistics struct {
 
 // SATSolverConfig configures the SAT solver.
 
-type SATSolverConfig struct {
+// SATSolverConfigImpl is the internal implementation config
+// (SATSolverConfig is defined in dependency_types.go)
+type SATSolverConfigImpl struct {
 	MaxDecisions int
 
 	MaxConflicts int
@@ -162,11 +164,11 @@ type SATSolverConfig struct {
 
 // NewSATSolver creates a new SAT solver instance.
 
-func NewSATSolver(config *SATSolverConfig) SATSolver {
+func NewSATSolver(config *SATSolverConfigImpl) SATSolver {
 
 	if config == nil {
 
-		config = &SATSolverConfig{
+		config = &SATSolverConfigImpl{
 
 			MaxDecisions: 10000,
 

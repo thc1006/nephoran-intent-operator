@@ -435,7 +435,6 @@ type PerformanceThresholdManager struct {
 	mutex sync.RWMutex
 }
 
-
 // Threshold represents a configurable threshold value.
 
 type Threshold struct {
@@ -962,7 +961,6 @@ type Visualization struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-
 // ReportGenerator interface for different report generation methods.
 
 type ReportGenerator interface {
@@ -1028,7 +1026,6 @@ type ScheduledReport struct {
 type ReportDistribution struct {
 	distributors map[string]ReportDistributor
 }
-
 
 // KPICalculator calculates Key Performance Indicators.
 

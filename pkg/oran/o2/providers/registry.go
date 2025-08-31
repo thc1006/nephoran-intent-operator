@@ -280,6 +280,14 @@ func hasRequiredCapabilities(caps *ProviderCapabilities, required []string) bool
 	return true
 }
 
+// Global provider registry instance
+var globalProviderRegistry = NewProviderRegistry()
+
+// GetGlobalProviderRegistry returns the global provider registry instance
+func GetGlobalProviderRegistry() ProviderRegistry {
+	return globalProviderRegistry
+}
+
 // HealthChecker manages health checking for a provider
 type HealthChecker struct {
 	provider CloudProvider

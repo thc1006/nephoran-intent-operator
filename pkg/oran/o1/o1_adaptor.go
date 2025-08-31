@@ -206,7 +206,6 @@ type AdaptorSecurityPolicy struct {
 
 }
 
-
 // SecurityStatus represents current security status.
 
 type SecurityStatus struct {

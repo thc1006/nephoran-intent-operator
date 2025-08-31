@@ -9,10 +9,10 @@ import (
 
 func TestO1Config(t *testing.T) {
 	testCases := []struct {
-		name           string
-		config         *O1Config
-		expectedError  bool
-		errorMsg       string
+		name          string
+		config        *O1Config
+		expectedError bool
+		errorMsg      string
 	}{
 		{
 			name: "Valid TLS Config with CA File",
@@ -39,9 +39,9 @@ func TestO1Config(t *testing.T) {
 				Password:      "password",
 				RetryInterval: 5 * time.Second,
 				TLSConfig: &TLSConfig{
-					Enabled:     true,
-					SkipVerify:  true,
-					MinVersion:  "1.3",
+					Enabled:    true,
+					SkipVerify: true,
+					MinVersion: "1.3",
 				},
 			},
 			expectedError: false,
@@ -67,7 +67,7 @@ func TestO1Config(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			securityManager, err := NewO1SecurityManager(tc.config)
-			
+
 			if tc.expectedError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorMsg)
@@ -75,11 +75,11 @@ func TestO1Config(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, securityManager)
-				
+
 				// Validate specific TLS config
 				if tc.config.TLSConfig != nil && tc.config.TLSConfig.Enabled {
 					assert.NotNil(t, securityManager.TLSConfig)
-					
+
 					if tc.config.TLSConfig.MinVersion == "1.3" {
 						assert.Equal(t, securityManager.TLSConfig.MinVersion, uint16(0x0304))
 					}

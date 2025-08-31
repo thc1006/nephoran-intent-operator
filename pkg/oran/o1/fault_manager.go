@@ -50,5 +50,5 @@ type EnhancedFaultManager struct {
 	streamingEnabled bool
 }
 
-// Include the rest of the existing method implementations and nested type definitions from the original file, 
+// Include the rest of the existing method implementations and nested type definitions from the original file,
 // and add placeholders for new NetworkFunction-related methods.

@@ -103,6 +103,11 @@ type ProfilerConfig struct {
 	AlertingEnabled bool // Enable performance alerting
 
 	SlackIntegration bool // Send optimization alerts to Slack
+	
+	// Additional profiling controls
+	EnableCPUProfiling        bool // Enable CPU profiling
+	EnableMemoryProfiling     bool // Enable memory profiling  
+	EnableGoroutineMonitoring bool // Enable goroutine monitoring
 
 }
 

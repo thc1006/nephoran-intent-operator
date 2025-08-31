@@ -699,14 +699,38 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 		percentage := float64(samples) / float64(totalSamples) * 100
 
 		if percentage > 0.1 { // Only include functions > 0.1%
+			
+			// Determine severity based on percentage
+			severity := "low"
+			if percentage > 20 {
+				severity = "critical"
+			} else if percentage > 10 {
+				severity = "high"
+			} else if percentage > 5 {
+				severity = "medium"
+			}
 
 			spots = append(spots, HotSpot{
 
 				Function: funcName,
-
+				
+				File: "",  // Will be populated if source info available
+				
+				Line: 0,   // Will be populated if line info available
+				
+				Duration: 0, // Will be calculated based on profile duration
+				
 				Calls: samples,
 
 				CPUPercent: percentage,
+				
+				MemoryBytes: 0, // Memory info not available in CPU profile
+				
+				Severity: severity,
+				
+				Samples: int(samples),
+				
+				Percentage: percentage,
 			})
 
 		}

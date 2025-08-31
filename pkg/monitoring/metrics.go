@@ -1,943 +1,686 @@
-// Package monitoring provides metrics collection and observability for the Nephoran Intent Operator.
-
+// Package monitoring - Metrics collection implementation
 package monitoring
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/model"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// registrationOnce ensures metrics are only registered once.
-
-var registrationOnce sync.Once
-
-// MetricsCollector handles all Prometheus metrics for the Nephoran Intent Operator.
-
-type MetricsCollector struct {
-
-	// NetworkIntent metrics.
-
-	NetworkIntentTotal prometheus.Counter
-
-	NetworkIntentDuration *prometheus.HistogramVec
-
-	NetworkIntentStatus *prometheus.GaugeVec
-
-	NetworkIntentLLMDuration *prometheus.HistogramVec
-
-	NetworkIntentRetries *prometheus.CounterVec
-
-	// E2NodeSet metrics.
-
-	E2NodeSetTotal prometheus.Counter
-
-	E2NodeSetReplicas *prometheus.GaugeVec
-
-	E2NodeSetReconcileDuration *prometheus.HistogramVec
-
-	E2NodeSetScalingEvents *prometheus.CounterVec
-
-	// O-RAN Interface metrics.
-
-	ORANInterfaceRequests *prometheus.CounterVec
-
-	ORANInterfaceDuration *prometheus.HistogramVec
-
-	ORANInterfaceErrors *prometheus.CounterVec
-
-	ORANPolicyInstances *prometheus.GaugeVec
-
-	ORANConnectionStatus *prometheus.GaugeVec
-
-	// LLM and RAG metrics.
-
-	LLMRequestsTotal prometheus.Counter
-
-	LLMRequestDuration prometheus.Histogram
-
-	LLMTokensUsed prometheus.Counter
-
-	RAGRetrievalDuration prometheus.Histogram
-
-	RAGCacheHits prometheus.Counter
-
-	RAGCacheMisses prometheus.Counter
-
-	RAGDocumentsIndexed prometheus.Gauge
-
-	// GitOps metrics.
-
-	GitOpsPackagesGenerated prometheus.Counter
-
-	GitOpsCommitDuration prometheus.Histogram
-
-	GitOpsErrors *prometheus.CounterVec
-
-	GitOpsSyncStatus *prometheus.GaugeVec
-
-	GitPushInFlight prometheus.Gauge
-
-	// HTTP and SSE metrics.
-
-	HTTPRequestDuration *prometheus.HistogramVec
-
-	SSEStreamDuration *prometheus.HistogramVec
-
-	// System health metrics.
-
-	ControllerHealthStatus *prometheus.GaugeVec
-
-	KubernetesAPILatency prometheus.Histogram
-
-	ResourceUtilization *prometheus.GaugeVec
-
-	WorkerQueueDepth *prometheus.GaugeVec
-
-	WorkerQueueLatency *prometheus.HistogramVec
-
-	// Weaviate Connection Pool metrics.
-
-	WeaviatePoolConnectionsCreated prometheus.Counter
-
-	WeaviatePoolConnectionsDestroyed prometheus.Counter
-
-	WeaviatePoolActiveConnections prometheus.Gauge
-
-	WeaviatePoolSize prometheus.Gauge
-
-	WeaviatePoolHealthChecksPassed prometheus.Counter
-
-	WeaviatePoolHealthChecksFailed prometheus.Counter
+// PrometheusMetricsCollector implements MetricsCollector using Prometheus
+type PrometheusMetricsCollector struct {
+	client     api.Client
+	api        v1.API
+	registry   prometheus.Registerer
+	k8sClient  kubernetes.Interface
+	collectors map[string]*ComponentCollector
+	mu         sync.RWMutex
+	
+	// Custom metrics
+	scrapeErrors     prometheus.Counter
+	scrapeDuration   prometheus.Histogram
+	metricsCollected prometheus.Counter
 }
 
-// NewMetricsCollector creates a new metrics collector with all Prometheus metrics.
-
-func NewMetricsCollector() *MetricsCollector {
-
-	mc := &MetricsCollector{
-
-		// NetworkIntent metrics.
-
-		NetworkIntentTotal: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_networkintent_total",
-
-			Help: "Total number of NetworkIntent resources processed",
-		}),
-
-		NetworkIntentDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_networkintent_duration_seconds",
-
-			Help: "Duration of NetworkIntent processing",
-
-			Buckets: prometheus.DefBuckets,
-		}, []string{"intent_type", "status"}),
-
-		NetworkIntentStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_networkintent_status",
-
-			Help: "Current status of NetworkIntent resources (0=pending, 1=processing, 2=completed, 3=failed)",
-		}, []string{"name", "namespace", "intent_type"}),
-
-		NetworkIntentLLMDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_networkintent_llm_duration_seconds",
-
-			Help: "Duration of LLM processing for NetworkIntents",
-
-			Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0},
-		}, []string{"model", "status"}),
-
-		NetworkIntentRetries: promauto.NewCounterVec(prometheus.CounterOpts{
-
-			Name: "nephoran_networkintent_retries_total",
-
-			Help: "Total number of NetworkIntent processing retries",
-		}, []string{"name", "namespace", "reason"}),
-
-		// E2NodeSet metrics.
-
-		E2NodeSetTotal: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_e2nodeset_total",
-
-			Help: "Total number of E2NodeSet resources processed",
-		}),
-
-		E2NodeSetReplicas: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_e2nodeset_replicas",
-
-			Help: "Current number of E2NodeSet replicas",
-		}, []string{"name", "namespace", "type"}),
-
-		E2NodeSetReconcileDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_e2nodeset_reconcile_duration_seconds",
-
-			Help: "Duration of E2NodeSet reconciliation",
-
-			Buckets: prometheus.DefBuckets,
-		}, []string{"operation"}),
-
-		E2NodeSetScalingEvents: promauto.NewCounterVec(prometheus.CounterOpts{
-
-			Name: "nephoran_e2nodeset_scaling_events_total",
-
-			Help: "Total number of E2NodeSet scaling events",
-		}, []string{"name", "namespace", "direction"}),
-
-		// O-RAN Interface metrics.
-
-		ORANInterfaceRequests: promauto.NewCounterVec(prometheus.CounterOpts{
-
-			Name: "nephoran_oran_interface_requests_total",
-
-			Help: "Total number of O-RAN interface requests",
-		}, []string{"interface", "operation", "status"}),
-
-		ORANInterfaceDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_oran_interface_duration_seconds",
-
-			Help: "Duration of O-RAN interface operations",
-
-			Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0},
-		}, []string{"interface", "operation"}),
-
-		ORANInterfaceErrors: promauto.NewCounterVec(prometheus.CounterOpts{
-
-			Name: "nephoran_oran_interface_errors_total",
-
-			Help: "Total number of O-RAN interface errors",
-		}, []string{"interface", "operation", "error_type"}),
-
-		ORANPolicyInstances: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_oran_policy_instances",
-
-			Help: "Number of active O-RAN policy instances",
-		}, []string{"policy_type", "status"}),
-
-		ORANConnectionStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_oran_connection_status",
-
-			Help: "O-RAN interface connection status (0=disconnected, 1=connected)",
-		}, []string{"interface", "endpoint"}),
-
-		// LLM and RAG metrics.
-
-		LLMRequestsTotal: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_llm_requests_total",
-
-			Help: "Total number of LLM requests",
-		}),
-
-		LLMRequestDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
-			Name: "nephoran_llm_request_duration_seconds",
-
-			Help: "Duration of LLM requests",
-
-			Buckets: []float64{0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0},
-		}),
-
-		LLMTokensUsed: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_llm_tokens_used_total",
-
-			Help: "Total number of LLM tokens consumed",
-		}),
-
-		RAGRetrievalDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
-			Name: "nephoran_rag_retrieval_duration_seconds",
-
-			Help: "Duration of RAG knowledge retrieval",
-
-			Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0},
-		}),
-
-		RAGCacheHits: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_rag_cache_hits_total",
-
-			Help: "Total number of RAG cache hits",
-		}),
-
-		RAGCacheMisses: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_rag_cache_misses_total",
-
-			Help: "Total number of RAG cache misses",
-		}),
-
-		RAGDocumentsIndexed: promauto.NewGauge(prometheus.GaugeOpts{
-
-			Name: "nephoran_rag_documents_indexed",
-
-			Help: "Number of documents indexed in RAG knowledge base",
-		}),
-
-		// GitOps metrics.
-
-		GitOpsPackagesGenerated: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_gitops_packages_generated_total",
-
-			Help: "Total number of GitOps packages generated",
-		}),
-
-		GitOpsCommitDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
-			Name: "nephoran_gitops_commit_duration_seconds",
-
-			Help: "Duration of GitOps commit operations",
-
-			Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0},
-		}),
-
-		GitOpsErrors: promauto.NewCounterVec(prometheus.CounterOpts{
-
-			Name: "nephoran_gitops_errors_total",
-
-			Help: "Total number of GitOps errors",
-		}, []string{"operation", "error_type"}),
-
-		GitOpsSyncStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_gitops_sync_status",
-
-			Help: "GitOps synchronization status (0=out-of-sync, 1=in-sync)",
-		}, []string{"repository", "branch"}),
-
-		GitPushInFlight: promauto.NewGauge(prometheus.GaugeOpts{
-
-			Name: "nephoran_git_push_in_flight",
-
-			Help: "Number of git push operations currently in flight",
-		}),
-
-		// HTTP and SSE metrics.
-
-		HTTPRequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_http_request_duration_seconds",
-
-			Help: "Duration of HTTP requests",
-
-			Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10},
-		}, []string{"method", "path", "code"}),
-
-		SSEStreamDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_sse_stream_duration_seconds",
-
-			Help: "Duration of SSE streaming connections",
-
-			Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10},
-		}, []string{"route"}),
-
-		// System health metrics.
-
-		ControllerHealthStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_controller_health_status",
-
-			Help: "Controller health status (0=unhealthy, 1=healthy)",
-		}, []string{"controller", "component"}),
-
-		KubernetesAPILatency: promauto.NewHistogram(prometheus.HistogramOpts{
-
-			Name: "nephoran_kubernetes_api_latency_seconds",
-
-			Help: "Latency of Kubernetes API requests",
-
-			Buckets: []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 2.0},
-		}),
-
-		ResourceUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_resource_utilization",
-
-			Help: "Resource utilization metrics",
-		}, []string{"resource_type", "unit"}),
-
-		WorkerQueueDepth: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
-			Name: "nephoran_worker_queue_depth",
-
-			Help: "Depth of worker queues",
-		}, []string{"queue_name"}),
-
-		WorkerQueueLatency: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
-			Name: "nephoran_worker_queue_latency_seconds",
-
-			Help: "Latency of items in worker queues",
-
-			Buckets: prometheus.DefBuckets,
-		}, []string{"queue_name"}),
-
-		// Weaviate Connection Pool metrics.
-
-		WeaviatePoolConnectionsCreated: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_weaviate_pool_connections_created_total",
-
-			Help: "Total number of Weaviate connections created in the pool",
-		}),
-
-		WeaviatePoolConnectionsDestroyed: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_weaviate_pool_connections_destroyed_total",
-
-			Help: "Total number of Weaviate connections destroyed in the pool",
-		}),
-
-		WeaviatePoolActiveConnections: promauto.NewGauge(prometheus.GaugeOpts{
-
-			Name: "nephoran_weaviate_pool_active_connections",
-
-			Help: "Current number of active Weaviate connections in the pool",
-		}),
-
-		WeaviatePoolSize: promauto.NewGauge(prometheus.GaugeOpts{
-
-			Name: "nephoran_weaviate_pool_size",
-
-			Help: "Current size of the Weaviate connection pool (total connections)",
-		}),
-
-		WeaviatePoolHealthChecksPassed: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_weaviate_pool_health_checks_passed_total",
-
-			Help: "Total number of successful Weaviate connection health checks",
-		}),
-
-		WeaviatePoolHealthChecksFailed: promauto.NewCounter(prometheus.CounterOpts{
-
-			Name: "nephoran_weaviate_pool_health_checks_failed_total",
-
-			Help: "Total number of failed Weaviate connection health checks",
-		}),
-	}
-
-	// Register all metrics with controller-runtime metrics registry.
-
-	// Use sync.Once to ensure metrics are only registered once.
-
-	registrationOnce.Do(func() {
-
-		metrics.Registry.MustRegister(
-
-			mc.NetworkIntentTotal,
-
-			mc.NetworkIntentDuration,
-
-			mc.NetworkIntentStatus,
-
-			mc.NetworkIntentLLMDuration,
-
-			mc.NetworkIntentRetries,
-
-			mc.E2NodeSetTotal,
-
-			mc.E2NodeSetReplicas,
-
-			mc.E2NodeSetReconcileDuration,
-
-			mc.E2NodeSetScalingEvents,
-
-			mc.ORANInterfaceRequests,
-
-			mc.ORANInterfaceDuration,
-
-			mc.ORANInterfaceErrors,
-
-			mc.ORANPolicyInstances,
-
-			mc.ORANConnectionStatus,
-
-			mc.LLMRequestsTotal,
-
-			mc.LLMRequestDuration,
-
-			mc.LLMTokensUsed,
-
-			mc.RAGRetrievalDuration,
-
-			mc.RAGCacheHits,
-
-			mc.RAGCacheMisses,
-
-			mc.RAGDocumentsIndexed,
-
-			mc.GitOpsPackagesGenerated,
-
-			mc.GitOpsCommitDuration,
-
-			mc.GitOpsErrors,
-
-			mc.GitOpsSyncStatus,
-
-			mc.GitPushInFlight,
-
-			mc.HTTPRequestDuration,
-
-			mc.SSEStreamDuration,
-
-			mc.ControllerHealthStatus,
-
-			mc.KubernetesAPILatency,
-
-			mc.ResourceUtilization,
-
-			mc.WorkerQueueDepth,
-
-			mc.WorkerQueueLatency,
-
-			mc.WeaviatePoolConnectionsCreated,
-
-			mc.WeaviatePoolConnectionsDestroyed,
-
-			mc.WeaviatePoolActiveConnections,
-
-			mc.WeaviatePoolSize,
-
-			mc.WeaviatePoolHealthChecksPassed,
-
-			mc.WeaviatePoolHealthChecksFailed,
-		)
-
+// ComponentCollector collects metrics for a specific component
+type ComponentCollector struct {
+	name      string
+	namespace string
+	selector  map[string]string
+	queries   []MetricQuery
+	lastScrape time.Time
+	registry  prometheus.Registerer
+}
+
+// MetricQuery defines a Prometheus query for collecting metrics
+type MetricQuery struct {
+	Name  string `json:"name"`
+	Query string `json:"query"`
+	Help  string `json:"help,omitempty"`
+}
+
+// NewPrometheusMetricsCollector creates a new Prometheus-based metrics collector
+func NewPrometheusMetricsCollector(prometheusURL string, k8sClient kubernetes.Interface, registry prometheus.Registerer) (*PrometheusMetricsCollector, error) {
+	client, err := api.NewClient(api.Config{
+		Address: prometheusURL,
 	})
-
-	return mc
-
-}
-
-// Convenience methods for recording metrics.
-
-// RecordNetworkIntentProcessed records a processed NetworkIntent.
-
-func (mc *MetricsCollector) RecordNetworkIntentProcessed(intentType, status string, duration time.Duration) {
-
-	mc.NetworkIntentTotal.Inc()
-
-	mc.NetworkIntentDuration.WithLabelValues(intentType, status).Observe(duration.Seconds())
-
-}
-
-// UpdateNetworkIntentStatus updates the status of a NetworkIntent.
-
-func (mc *MetricsCollector) UpdateNetworkIntentStatus(name, namespace, intentType, status string) {
-
-	var statusValue float64
-
-	switch status {
-
-	case "pending":
-
-		statusValue = 0
-
-	case "processing":
-
-		statusValue = 1
-
-	case "completed":
-
-		statusValue = 2
-
-	case "failed":
-
-		statusValue = 3
-
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
 	}
-
-	mc.NetworkIntentStatus.WithLabelValues(name, namespace, intentType).Set(statusValue)
-
-}
-
-// RecordNetworkIntentRetry records a NetworkIntent retry.
-
-func (mc *MetricsCollector) RecordNetworkIntentRetry(name, namespace, reason string) {
-
-	mc.NetworkIntentRetries.WithLabelValues(name, namespace, reason).Inc()
-
-}
-
-// RecordLLMRequest records an LLM request.
-
-func (mc *MetricsCollector) RecordLLMRequest(model, status string, duration time.Duration, tokensUsed int) {
-
-	mc.LLMRequestsTotal.Inc()
-
-	mc.LLMRequestDuration.Observe(duration.Seconds())
-
-	mc.NetworkIntentLLMDuration.WithLabelValues(model, status).Observe(duration.Seconds())
-
-	mc.LLMTokensUsed.Add(float64(tokensUsed))
-
-}
-
-// RecordE2NodeSetOperation records an E2NodeSet operation.
-
-func (mc *MetricsCollector) RecordE2NodeSetOperation(operation string, duration time.Duration) {
-
-	mc.E2NodeSetTotal.Inc()
-
-	mc.E2NodeSetReconcileDuration.WithLabelValues(operation).Observe(duration.Seconds())
-
-}
-
-// UpdateE2NodeSetReplicas updates E2NodeSet replica metrics.
-
-func (mc *MetricsCollector) UpdateE2NodeSetReplicas(name, namespace, replicaType string, count int) {
-
-	mc.E2NodeSetReplicas.WithLabelValues(name, namespace, replicaType).Set(float64(count))
-
-}
-
-// RecordE2NodeSetScaling records an E2NodeSet scaling event.
-
-func (mc *MetricsCollector) RecordE2NodeSetScaling(name, namespace, direction string) {
-
-	mc.E2NodeSetScalingEvents.WithLabelValues(name, namespace, direction).Inc()
-
-}
-
-// RecordORANInterfaceRequest records an O-RAN interface request.
-
-func (mc *MetricsCollector) RecordORANInterfaceRequest(interfaceType, operation, status string, duration time.Duration) {
-
-	mc.ORANInterfaceRequests.WithLabelValues(interfaceType, operation, status).Inc()
-
-	mc.ORANInterfaceDuration.WithLabelValues(interfaceType, operation).Observe(duration.Seconds())
-
-}
-
-// RecordORANInterfaceError records an O-RAN interface error.
-
-func (mc *MetricsCollector) RecordORANInterfaceError(interfaceType, operation, errorType string) {
-
-	mc.ORANInterfaceErrors.WithLabelValues(interfaceType, operation, errorType).Inc()
-
-}
-
-// UpdateORANConnectionStatus updates O-RAN connection status.
-
-func (mc *MetricsCollector) UpdateORANConnectionStatus(interfaceType, endpoint string, connected bool) {
-
-	var status float64
-
-	if connected {
-
-		status = 1
-
+	
+	pmc := &PrometheusMetricsCollector{
+		client:     client,
+		api:        v1.NewAPI(client),
+		registry:   registry,
+		k8sClient:  k8sClient,
+		collectors: make(map[string]*ComponentCollector),
 	}
-
-	mc.ORANConnectionStatus.WithLabelValues(interfaceType, endpoint).Set(status)
-
+	
+	pmc.initMetrics()
+	return pmc, nil
 }
 
-// UpdateORANPolicyInstances updates O-RAN policy instance count.
-
-func (mc *MetricsCollector) UpdateORANPolicyInstances(policyType, status string, count int) {
-
-	mc.ORANPolicyInstances.WithLabelValues(policyType, status).Set(float64(count))
-
-}
-
-// RecordRAGOperation records RAG operations.
-
-func (mc *MetricsCollector) RecordRAGOperation(duration time.Duration, cacheHit bool) {
-
-	mc.RAGRetrievalDuration.Observe(duration.Seconds())
-
-	if cacheHit {
-
-		mc.RAGCacheHits.Inc()
-
-	} else {
-
-		mc.RAGCacheMisses.Inc()
-
-	}
-
-}
-
-// UpdateRAGDocumentsIndexed updates the count of indexed documents.
-
-func (mc *MetricsCollector) UpdateRAGDocumentsIndexed(count int) {
-
-	mc.RAGDocumentsIndexed.Set(float64(count))
-
-}
-
-// RecordGitOpsOperation records GitOps operations.
-
-func (mc *MetricsCollector) RecordGitOpsOperation(operation string, duration time.Duration, success bool) {
-
-	if operation == "package_generation" {
-
-		mc.GitOpsPackagesGenerated.Inc()
-
-	}
-
-	if operation == "commit" {
-
-		mc.GitOpsCommitDuration.Observe(duration.Seconds())
-
-	}
-
-	if !success {
-
-		mc.GitOpsErrors.WithLabelValues(operation, "execution_failed").Inc()
-
-	}
-
-}
-
-// UpdateGitOpsSyncStatus updates GitOps sync status.
-
-func (mc *MetricsCollector) UpdateGitOpsSyncStatus(repository, branch string, inSync bool) {
-
-	var status float64
-
-	if inSync {
-
-		status = 1
-
-	}
-
-	mc.GitOpsSyncStatus.WithLabelValues(repository, branch).Set(status)
-
-}
-
-// RecordHTTPRequest records HTTP request metrics.
-
-func (mc *MetricsCollector) RecordHTTPRequest(method, path, statusCode string, duration time.Duration) {
-
-	mc.HTTPRequestDuration.WithLabelValues(method, path, statusCode).Observe(duration.Seconds())
-
-}
-
-// RecordSSEStream records SSE stream connection metrics.
-
-func (mc *MetricsCollector) RecordSSEStream(route string, duration time.Duration) {
-
-	mc.SSEStreamDuration.WithLabelValues(route).Observe(duration.Seconds())
-
-}
-
-// UpdateControllerHealth updates controller health status.
-
-func (mc *MetricsCollector) UpdateControllerHealth(controller, component string, healthy bool) {
-
-	var status float64
-
-	if healthy {
-
-		status = 1
-
-	}
-
-	mc.ControllerHealthStatus.WithLabelValues(controller, component).Set(status)
-
-}
-
-// RecordKubernetesAPILatency records Kubernetes API request latency.
-
-func (mc *MetricsCollector) RecordKubernetesAPILatency(duration time.Duration) {
-
-	mc.KubernetesAPILatency.Observe(duration.Seconds())
-
-}
-
-// UpdateResourceUtilization updates resource utilization metrics.
-
-func (mc *MetricsCollector) UpdateResourceUtilization(resourceType, unit string, value float64) {
-
-	mc.ResourceUtilization.WithLabelValues(resourceType, unit).Set(value)
-
-}
-
-// UpdateWorkerQueueMetrics updates worker queue metrics.
-
-func (mc *MetricsCollector) UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration) {
-
-	mc.WorkerQueueDepth.WithLabelValues(queueName).Set(float64(depth))
-
-	mc.WorkerQueueLatency.WithLabelValues(queueName).Observe(latency.Seconds())
-
-}
-
-// Weaviate Connection Pool metrics methods.
-
-// RecordWeaviatePoolConnectionCreated records a created connection.
-
-func (mc *MetricsCollector) RecordWeaviatePoolConnectionCreated() {
-
-	mc.WeaviatePoolConnectionsCreated.Inc()
-
-}
-
-// RecordWeaviatePoolConnectionDestroyed records a destroyed connection.
-
-func (mc *MetricsCollector) RecordWeaviatePoolConnectionDestroyed() {
-
-	mc.WeaviatePoolConnectionsDestroyed.Inc()
-
-}
-
-// UpdateWeaviatePoolActiveConnections updates the active connections count.
-
-func (mc *MetricsCollector) UpdateWeaviatePoolActiveConnections(count int) {
-
-	mc.WeaviatePoolActiveConnections.Set(float64(count))
-
-}
-
-// UpdateWeaviatePoolSize updates the total pool size.
-
-func (mc *MetricsCollector) UpdateWeaviatePoolSize(size int) {
-
-	mc.WeaviatePoolSize.Set(float64(size))
-
-}
-
-// RecordWeaviatePoolHealthCheckPassed records a successful health check.
-
-func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckPassed() {
-
-	mc.WeaviatePoolHealthChecksPassed.Inc()
-
-}
-
-// RecordWeaviatePoolHealthCheckFailed records a failed health check.
-
-func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckFailed() {
-
-	mc.WeaviatePoolHealthChecksFailed.Inc()
-
-}
-
-// UpdateWeaviatePoolMetrics updates all pool metrics from pool metrics struct.
-
-func (mc *MetricsCollector) UpdateWeaviatePoolMetrics(activeCount, totalCount int) {
-
-	mc.UpdateWeaviatePoolActiveConnections(activeCount)
-
-	mc.UpdateWeaviatePoolSize(totalCount)
-
-}
-
-// HealthChecker functionality moved to health_checks.go to avoid duplication.
-
-// RecordLLMRequestError records an LLM request error.
-
-func (mc *MetricsCollector) RecordLLMRequestError(serviceName, errorType string) {
-
-	// For backward compatibility, use existing counters.
-
-	mc.LLMRequestsTotal.Inc()
-
-}
-
-// GetGauge returns a gauge metric for circuit breaker state.
-
-func (mc *MetricsCollector) GetGauge(name string) prometheus.Gauge {
-
-	// Return a dummy gauge for backward compatibility.
-
-	return prometheus.NewGauge(prometheus.GaugeOpts{
-
-		Name: name,
-
-		Help: "Circuit breaker state gauge",
+// initMetrics initializes Prometheus metrics for the collector
+func (pmc *PrometheusMetricsCollector) initMetrics() {
+	pmc.scrapeErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "oran_metrics_scrape_errors_total",
+		Help: "Total number of metrics scrape errors",
 	})
-
-}
-
-// GetHistogram returns a histogram metric.
-
-func (mc *MetricsCollector) GetHistogram(name string) prometheus.Histogram {
-
-	// Return a dummy histogram for backward compatibility.
-
-	return prometheus.NewHistogram(prometheus.HistogramOpts{
-
-		Name: name,
-
-		Help: "Circuit breaker histogram",
+	
+	pmc.scrapeDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "oran_metrics_scrape_duration_seconds",
+		Help: "Duration of metrics scrapes in seconds",
+		Buckets: prometheus.DefBuckets,
 	})
-
-}
-
-// GetCounter returns a counter metric.
-
-func (mc *MetricsCollector) GetCounter(name string) prometheus.Counter {
-
-	// Return a dummy counter for backward compatibility.
-
-	return prometheus.NewCounter(prometheus.CounterOpts{
-
-		Name: name,
-
-		Help: "Circuit breaker counter",
+	
+	pmc.metricsCollected = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "oran_metrics_collected_total",
+		Help: "Total number of metrics collected",
 	})
-
+	
+	if pmc.registry != nil {
+		pmc.registry.MustRegister(pmc.scrapeErrors)
+		pmc.registry.MustRegister(pmc.scrapeDuration)
+		pmc.registry.MustRegister(pmc.metricsCollected)
+	}
 }
 
-// RecordCNFDeployment records a CNF deployment event.
-
-func (mc *MetricsCollector) RecordCNFDeployment(function nephoranv1.CNFFunction, duration time.Duration) {
-
-	// Create a counter if one doesn't exist.
-
-	if mc.E2NodeSetTotal != nil {
-
-		mc.E2NodeSetTotal.Inc()
-
+// RegisterMetrics registers the collector's metrics with Prometheus
+func (pmc *PrometheusMetricsCollector) RegisterMetrics(registry prometheus.Registerer) error {
+	if registry == nil {
+		return fmt.Errorf("registry cannot be nil")
 	}
-
+	
+	pmc.registry = registry
+	pmc.initMetrics()
+	
+	return nil
 }
 
-// RecordCNFDeletion records a CNF deletion event.
-
-func (mc *MetricsCollector) RecordCNFDeletion(function nephoranv1.CNFFunction, duration time.Duration) {
-
-	// Record deletion metrics - for now just increment the counter.
-
-	if mc.E2NodeSetTotal != nil {
-
-		mc.E2NodeSetTotal.Inc()
-
-	}
-
+// Start begins metrics collection
+func (pmc *PrometheusMetricsCollector) Start(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting Prometheus metrics collector")
+	
+	// Start collection loop for registered collectors
+	go pmc.collectionLoop(ctx)
+	
+	return nil
 }
 
-// RecordCNFHealthCheck records a CNF health check result.
+// Stop halts metrics collection
+func (pmc *PrometheusMetricsCollector) Stop() error {
+	// Collection loop will be stopped by context cancellation
+	return nil
+}
 
-func (mc *MetricsCollector) RecordCNFHealthCheck(function nephoranv1.CNFFunction, status string) {
-
-	// Record health check metrics - for now use existing counter.
-
-	if mc.E2NodeSetTotal != nil {
-
-		mc.E2NodeSetTotal.Inc()
-
+// CollectMetrics gathers metrics from the specified source
+func (pmc *PrometheusMetricsCollector) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
+	startTime := time.Now()
+	defer func() {
+		pmc.scrapeDuration.Observe(time.Since(startTime).Seconds())
+	}()
+	
+	pmc.mu.RLock()
+	collector, exists := pmc.collectors[source]
+	pmc.mu.RUnlock()
+	
+	if !exists {
+		pmc.scrapeErrors.Inc()
+		return nil, fmt.Errorf("collector not found for source: %s", source)
 	}
+	
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Collecting metrics", "source", source)
+	
+	metricsData := &MetricsData{
+		Timestamp: time.Now(),
+		Source:    source,
+		Namespace: collector.namespace,
+		Metrics:   make(map[string]float64),
+		Labels:    make(map[string]string),
+		Metadata:  make(map[string]interface{}),
+	}
+	
+	// Execute queries
+	for _, query := range collector.queries {
+		result, warnings, err := pmc.api.Query(ctx, query.Query, time.Now())
+		if err != nil {
+			pmc.scrapeErrors.Inc()
+			logger.Error(err, "Failed to execute query", "query", query.Query)
+			continue
+		}
+		
+		if len(warnings) > 0 {
+			logger.V(1).Info("Query warnings", "warnings", warnings)
+		}
+		
+		// Process query result
+		if err := pmc.processQueryResult(query.Name, result, metricsData); err != nil {
+			logger.Error(err, "Failed to process query result", "query", query.Name)
+			continue
+		}
+		
+		pmc.metricsCollected.Inc()
+	}
+	
+	// Update last scrape time
+	pmc.mu.Lock()
+	collector.lastScrape = time.Now()
+	pmc.mu.Unlock()
+	
+	return metricsData, nil
+}
 
+// processQueryResult processes a Prometheus query result
+func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result model.Value, data *MetricsData) error {
+	switch v := result.(type) {
+	case model.Vector:
+		// Handle vector results (instant vector)
+		for _, sample := range v {
+			metricName := fmt.Sprintf("%s_%s", name, string(sample.Metric[model.MetricNameLabel]))
+			data.Metrics[metricName] = float64(sample.Value)
+			
+			// Add labels from the metric
+			for labelName, labelValue := range sample.Metric {
+				if labelName != model.MetricNameLabel {
+					data.Labels[string(labelName)] = string(labelValue)
+				}
+			}
+		}
+	case model.Matrix:
+		// Handle matrix results (range vector)
+		for _, sampleStream := range v {
+			if len(sampleStream.Values) > 0 {
+				// Use the latest value
+				latest := sampleStream.Values[len(sampleStream.Values)-1]
+				metricName := fmt.Sprintf("%s_%s", name, string(sampleStream.Metric[model.MetricNameLabel]))
+				data.Metrics[metricName] = float64(latest.Value)
+				
+				// Add labels from the metric
+				for labelName, labelValue := range sampleStream.Metric {
+					if labelName != model.MetricNameLabel {
+						data.Labels[string(labelName)] = string(labelValue)
+					}
+				}
+			}
+		}
+	case *model.Scalar:
+		// Handle scalar results
+		data.Metrics[name] = float64(v.Value)
+	case *model.String:
+		// Handle string results (not common for metrics)
+		data.Metadata[name] = string(v.Value)
+	default:
+		return fmt.Errorf("unsupported result type: %T", result)
+	}
+	
+	return nil
+}
+
+// AddCollector adds a new component collector
+func (pmc *PrometheusMetricsCollector) AddCollector(name, namespace string, selector map[string]string, queries []MetricQuery) error {
+	pmc.mu.Lock()
+	defer pmc.mu.Unlock()
+	
+	collector := &ComponentCollector{
+		name:      name,
+		namespace: namespace,
+		selector:  selector,
+		queries:   queries,
+		registry:  pmc.registry,
+	}
+	
+	pmc.collectors[name] = collector
+	return nil
+}
+
+// RemoveCollector removes a component collector
+func (pmc *PrometheusMetricsCollector) RemoveCollector(name string) {
+	pmc.mu.Lock()
+	defer pmc.mu.Unlock()
+	delete(pmc.collectors, name)
+}
+
+// GetCollectors returns all registered collectors
+func (pmc *PrometheusMetricsCollector) GetCollectors() map[string]*ComponentCollector {
+	pmc.mu.RLock()
+	defer pmc.mu.RUnlock()
+	
+	collectors := make(map[string]*ComponentCollector)
+	for k, v := range pmc.collectors {
+		collectors[k] = v
+	}
+	return collectors
+}
+
+// collectionLoop runs the main metrics collection loop
+func (pmc *PrometheusMetricsCollector) collectionLoop(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting metrics collection loop")
+	
+	ticker := time.NewTicker(30 * time.Second) // Collect every 30 seconds
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Metrics collection loop stopping")
+			return
+		case <-ticker.C:
+			pmc.collectAllMetrics(ctx)
+		}
+	}
+}
+
+// collectAllMetrics collects metrics from all registered collectors
+func (pmc *PrometheusMetricsCollector) collectAllMetrics(ctx context.Context) {
+	pmc.mu.RLock()
+	collectors := make(map[string]*ComponentCollector)
+	for k, v := range pmc.collectors {
+		collectors[k] = v
+	}
+	pmc.mu.RUnlock()
+	
+	logger := log.FromContext(ctx)
+	
+	for name := range collectors {
+		if _, err := pmc.CollectMetrics(ctx, name); err != nil {
+			logger.Error(err, "Failed to collect metrics", "source", name)
+		}
+	}
+}
+
+// KubernetesMetricsCollector collects metrics directly from Kubernetes API
+type KubernetesMetricsCollector struct {
+	client   kubernetes.Interface
+	registry prometheus.Registerer
+	
+	// Custom metrics
+	k8sAPIErrors   prometheus.Counter
+	k8sAPIDuration prometheus.Histogram
+}
+
+// NewKubernetesMetricsCollector creates a new Kubernetes-based metrics collector
+func NewKubernetesMetricsCollector(client kubernetes.Interface, registry prometheus.Registerer) *KubernetesMetricsCollector {
+	kmc := &KubernetesMetricsCollector{
+		client:   client,
+		registry: registry,
+	}
+	
+	kmc.initMetrics()
+	return kmc
+}
+
+// initMetrics initializes Prometheus metrics for the Kubernetes collector
+func (kmc *KubernetesMetricsCollector) initMetrics() {
+	kmc.k8sAPIErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "oran_k8s_api_errors_total",
+		Help: "Total number of Kubernetes API errors",
+	})
+	
+	kmc.k8sAPIDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "oran_k8s_api_duration_seconds",
+		Help: "Duration of Kubernetes API calls in seconds",
+		Buckets: prometheus.DefBuckets,
+	})
+	
+	if kmc.registry != nil {
+		kmc.registry.MustRegister(kmc.k8sAPIErrors)
+		kmc.registry.MustRegister(kmc.k8sAPIDuration)
+	}
+}
+
+// RegisterMetrics registers the collector's metrics with Prometheus
+func (kmc *KubernetesMetricsCollector) RegisterMetrics(registry prometheus.Registerer) error {
+	if registry == nil {
+		return fmt.Errorf("registry cannot be nil")
+	}
+	
+	kmc.registry = registry
+	kmc.initMetrics()
+	
+	return nil
+}
+
+// Start begins metrics collection
+func (kmc *KubernetesMetricsCollector) Start(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting Kubernetes metrics collector")
+	
+	// Start collection tasks
+	go kmc.collectPodMetrics(ctx)
+	go kmc.collectNodeMetrics(ctx)
+	
+	return nil
+}
+
+// Stop halts metrics collection
+func (kmc *KubernetesMetricsCollector) Stop() error {
+	// Collection will be stopped by context cancellation
+	return nil
+}
+
+// CollectMetrics gathers metrics from Kubernetes API
+func (kmc *KubernetesMetricsCollector) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
+	startTime := time.Now()
+	defer func() {
+		kmc.k8sAPIDuration.Observe(time.Since(startTime).Seconds())
+	}()
+	
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Collecting Kubernetes metrics", "source", source)
+	
+	metricsData := &MetricsData{
+		Timestamp: time.Now(),
+		Source:    source,
+		Metrics:   make(map[string]float64),
+		Labels:    make(map[string]string),
+		Metadata:  make(map[string]interface{}),
+	}
+	
+	// Collect different types of metrics based on source
+	switch source {
+	case "pods":
+		return kmc.collectPodMetricsData(ctx)
+	case "nodes":
+		return kmc.collectNodeMetricsData(ctx)
+	case "services":
+		return kmc.collectServiceMetricsData(ctx)
+	default:
+		kmc.k8sAPIErrors.Inc()
+		return nil, fmt.Errorf("unknown source: %s", source)
+	}
+}
+
+// collectPodMetrics collects pod-level metrics
+func (kmc *KubernetesMetricsCollector) collectPodMetrics(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if _, err := kmc.collectPodMetricsData(ctx); err != nil {
+				logger := log.FromContext(ctx)
+				logger.Error(err, "Failed to collect pod metrics")
+			}
+		}
+	}
+}
+
+// collectNodeMetrics collects node-level metrics
+func (kmc *KubernetesMetricsCollector) collectNodeMetrics(ctx context.Context) {
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if _, err := kmc.collectNodeMetricsData(ctx); err != nil {
+				logger := log.FromContext(ctx)
+				logger.Error(err, "Failed to collect node metrics")
+			}
+		}
+	}
+}
+
+// collectPodMetricsData collects actual pod metrics data
+func (kmc *KubernetesMetricsCollector) collectPodMetricsData(ctx context.Context) (*MetricsData, error) {
+	// TODO: Implement actual pod metrics collection
+	// This would query the Kubernetes API for pod information and metrics
+	
+	return &MetricsData{
+		Timestamp: time.Now(),
+		Source:    "pods",
+		Metrics:   make(map[string]float64),
+		Labels:    make(map[string]string),
+		Metadata:  make(map[string]interface{}),
+	}, nil
+}
+
+// collectNodeMetricsData collects actual node metrics data
+func (kmc *KubernetesMetricsCollector) collectNodeMetricsData(ctx context.Context) (*MetricsData, error) {
+	// TODO: Implement actual node metrics collection
+	// This would query the Kubernetes API for node information and metrics
+	
+	return &MetricsData{
+		Timestamp: time.Now(),
+		Source:    "nodes",
+		Metrics:   make(map[string]float64),
+		Labels:    make(map[string]string),
+		Metadata:  make(map[string]interface{}),
+	}, nil
+}
+
+// collectServiceMetricsData collects actual service metrics data
+func (kmc *KubernetesMetricsCollector) collectServiceMetricsData(ctx context.Context) (*MetricsData, error) {
+	// TODO: Implement actual service metrics collection
+	// This would query the Kubernetes API for service information and metrics
+	
+	return &MetricsData{
+		Timestamp: time.Now(),
+		Source:    "services",
+		Metrics:   make(map[string]float64),
+		Labels:    make(map[string]string),
+		Metadata:  make(map[string]interface{}),
+	}, nil
+}
+
+// MetricsAggregator aggregates metrics from multiple sources
+type MetricsAggregator struct {
+	collectors []MetricsCollector
+	mu        sync.RWMutex
+	cache     map[string]*MetricsData
+	registry  prometheus.Registerer
+	
+	// Aggregation metrics
+	aggregationErrors prometheus.Counter
+	aggregationTime   prometheus.Histogram
+}
+
+// NewMetricsAggregator creates a new metrics aggregator
+func NewMetricsAggregator(registry prometheus.Registerer) *MetricsAggregator {
+	ma := &MetricsAggregator{
+		collectors: make([]MetricsCollector, 0),
+		cache:      make(map[string]*MetricsData),
+		registry:   registry,
+	}
+	
+	ma.initMetrics()
+	return ma
+}
+
+// initMetrics initializes Prometheus metrics for the aggregator
+func (ma *MetricsAggregator) initMetrics() {
+	ma.aggregationErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "oran_metrics_aggregation_errors_total",
+		Help: "Total number of metrics aggregation errors",
+	})
+	
+	ma.aggregationTime = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "oran_metrics_aggregation_duration_seconds",
+		Help: "Duration of metrics aggregation in seconds",
+		Buckets: prometheus.DefBuckets,
+	})
+	
+	if ma.registry != nil {
+		ma.registry.MustRegister(ma.aggregationErrors)
+		ma.registry.MustRegister(ma.aggregationTime)
+	}
+}
+
+// AddCollector adds a metrics collector to the aggregator
+func (ma *MetricsAggregator) AddCollector(collector MetricsCollector) {
+	ma.mu.Lock()
+	defer ma.mu.Unlock()
+	ma.collectors = append(ma.collectors, collector)
+}
+
+// RegisterMetrics registers the aggregator's metrics
+func (ma *MetricsAggregator) RegisterMetrics(registry prometheus.Registerer) error {
+	if registry == nil {
+		return fmt.Errorf("registry cannot be nil")
+	}
+	
+	ma.registry = registry
+	ma.initMetrics()
+	
+	// Register all collector metrics
+	ma.mu.RLock()
+	collectors := make([]MetricsCollector, len(ma.collectors))
+	copy(collectors, ma.collectors)
+	ma.mu.RUnlock()
+	
+	for _, collector := range collectors {
+		if err := collector.RegisterMetrics(registry); err != nil {
+			return fmt.Errorf("failed to register collector metrics: %w", err)
+		}
+	}
+	
+	return nil
+}
+
+// Start starts all collectors and begins aggregation
+func (ma *MetricsAggregator) Start(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting metrics aggregator")
+	
+	// Start all collectors
+	ma.mu.RLock()
+	collectors := make([]MetricsCollector, len(ma.collectors))
+	copy(collectors, ma.collectors)
+	ma.mu.RUnlock()
+	
+	for _, collector := range collectors {
+		if err := collector.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start collector: %w", err)
+		}
+	}
+	
+	// Start aggregation loop
+	go ma.aggregationLoop(ctx)
+	
+	return nil
+}
+
+// Stop stops all collectors and aggregation
+func (ma *MetricsAggregator) Stop() error {
+	ma.mu.RLock()
+	collectors := make([]MetricsCollector, len(ma.collectors))
+	copy(collectors, ma.collectors)
+	ma.mu.RUnlock()
+	
+	for _, collector := range collectors {
+		if err := collector.Stop(); err != nil {
+			return fmt.Errorf("failed to stop collector: %w", err)
+		}
+	}
+	
+	return nil
+}
+
+// CollectMetrics aggregates metrics from all collectors for the specified source
+func (ma *MetricsAggregator) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
+	startTime := time.Now()
+	defer func() {
+		ma.aggregationTime.Observe(time.Since(startTime).Seconds())
+	}()
+	
+	ma.mu.RLock()
+	collectors := make([]MetricsCollector, len(ma.collectors))
+	copy(collectors, ma.collectors)
+	ma.mu.RUnlock()
+	
+	aggregated := &MetricsData{
+		Timestamp: time.Now(),
+		Source:    source,
+		Metrics:   make(map[string]float64),
+		Labels:    make(map[string]string),
+		Metadata:  make(map[string]interface{}),
+	}
+	
+	for _, collector := range collectors {
+		data, err := collector.CollectMetrics(ctx, source)
+		if err != nil {
+			ma.aggregationErrors.Inc()
+			continue
+		}
+		
+		// Merge metrics data
+		for k, v := range data.Metrics {
+			aggregated.Metrics[k] = v
+		}
+		
+		for k, v := range data.Labels {
+			aggregated.Labels[k] = v
+		}
+		
+		for k, v := range data.Metadata {
+			aggregated.Metadata[k] = v
+		}
+	}
+	
+	// Cache the result
+	ma.mu.Lock()
+	ma.cache[source] = aggregated
+	ma.mu.Unlock()
+	
+	return aggregated, nil
+}
+
+// aggregationLoop runs the main aggregation loop
+func (ma *MetricsAggregator) aggregationLoop(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	logger.Info("Starting metrics aggregation loop")
+	
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Metrics aggregation loop stopping")
+			return
+		case <-ticker.C:
+			ma.performAggregation(ctx)
+		}
+	}
+}
+
+// performAggregation performs periodic aggregation of all metrics
+func (ma *MetricsAggregator) performAggregation(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Performing metrics aggregation")
+	
+	// Define sources to aggregate
+	sources := []string{"pods", "nodes", "services", "oran-components"}
+	
+	for _, source := range sources {
+		if _, err := ma.CollectMetrics(ctx, source); err != nil {
+			logger.Error(err, "Failed to aggregate metrics", "source", source)
+		}
+	}
+}
+
+// GetCachedMetrics returns cached metrics data
+func (ma *MetricsAggregator) GetCachedMetrics(source string) (*MetricsData, bool) {
+	ma.mu.RLock()
+	defer ma.mu.RUnlock()
+	
+	data, exists := ma.cache[source]
+	return data, exists
 }

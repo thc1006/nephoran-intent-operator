@@ -22,12 +22,12 @@ type O1Config struct {
 
 // TLSConfig represents TLS configuration options
 type TLSConfig struct {
-	Enabled     bool   `json:"enabled"`
-	CAFile      string `json:"caFile"`
-	CertFile    string `json:"certFile"`
-	KeyFile     string `json:"keyFile"`
-	SkipVerify  bool   `json:"skipVerify"`
-	MinVersion  string `json:"minVersion"`
+	Enabled    bool   `json:"enabled"`
+	CAFile     string `json:"caFile"`
+	CertFile   string `json:"certFile"`
+	KeyFile    string `json:"keyFile"`
+	SkipVerify bool   `json:"skipVerify"`
+	MinVersion string `json:"minVersion"`
 }
 
 // NewO1SecurityConfig creates a new security configuration

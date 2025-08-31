@@ -41,6 +41,54 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// VersionConstraint represents a constraint on a package version
+type VersionConstraint struct {
+	Type       string `json:"type"`       // "range", "exact", "exclude", "prefer"
+	Expression string `json:"expression"` // ">=1.0.0", "~1.2.3", "^2.0.0"
+	Priority   int    `json:"priority"`   // Higher priority constraints are preferred
+	// Added missing fields for SAT solver compatibility
+	Operator   ConstraintOperator `json:"operator"`   // Constraint operator type
+	Version    string            `json:"version"`    // Version string for constraint
+}
+
+// VersionSolution represents a solution to version constraints
+type VersionSolution struct {
+	Packages       map[string]string                `json:"packages"`       // package -> selected version
+	Satisfied      []*VersionConstraint             `json:"satisfied"`      // constraints that were satisfied
+	Relaxed        []*VersionConstraint             `json:"relaxed"`        // constraints that were relaxed
+	Score          float64                          `json:"score"`          // solution quality score
+	ResolutionTime time.Duration                    `json:"resolutionTime"` // time taken to find solution
+	// Added missing fields for SAT solver compatibility
+	Success        bool                             `json:"success"`        // Whether solution was found successfully
+	Solutions      map[string]*VersionSelection     `json:"solutions"`      // Detailed solution per package
+	Algorithm      string                           `json:"algorithm"`      // Algorithm used to find solution
+	Statistics     *SolutionStatistics              `json:"statistics"`     // Solver statistics
+}
+
+// ConflictAnalysis provides detailed conflict analysis
+type ConflictAnalysis struct {
+	Conflicts       []*DependencyConflict `json:"conflicts"`
+	ConflictGraph   map[string][]string   `json:"conflictGraph"`
+	ResolutionPaths []ResolutionPath      `json:"resolutionPaths"`
+	RootCause       string                `json:"rootCause"`
+}
+
+// ResolutionPath represents a possible resolution path for conflicts
+type ResolutionPath struct {
+	Steps       []ResolutionStep `json:"steps"`
+	Cost        float64          `json:"cost"`
+	Probability float64          `json:"probability"`
+}
+
+// ResolutionStep represents a single step in conflict resolution
+type ResolutionStep struct {
+	Action      string            `json:"action"`      // "upgrade", "downgrade", "replace", "remove"
+	Package     string            `json:"package"`
+	FromVersion string            `json:"fromVersion"`
+	ToVersion   string            `json:"toVersion"`
+	Impact      map[string]string `json:"impact"`      // affected packages
+}
+
 // Missing type definitions for compilation fix
 type VersionRequirement struct {
 	Name        string               `json:"name"`
@@ -278,9 +326,24 @@ type VersionSolver struct {
 
 func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
 
+	// Convert SATSolverConfig to SATSolverConfigImpl
+	var satConfig *SATSolverConfigImpl
+	if config.SATSolverConfig != nil {
+		satConfig = &SATSolverConfigImpl{
+			MaxDecisions:     config.SATSolverConfig.MaxVariables, // Use MaxVariables as MaxDecisions
+			MaxConflicts:     config.SATSolverConfig.MaxConflicts,
+			RestartThreshold: 100, // Default value
+			DecayFactor:      0.95, // Default value
+			ClauseDecay:      0.999, // Default value
+			Timeout:          time.Duration(config.SATSolverConfig.TimeoutMs) * time.Millisecond,
+			EnableLearning:   true, // Default value
+			EnableVSIDS:      true, // Default value
+		}
+	}
+
 	return &VersionSolver{
 
-		satSolver: NewSATSolver(config.SATSolverConfig),
+		satSolver: NewSATSolver(satConfig),
 
 		config: config,
 
@@ -1187,6 +1250,17 @@ type SolutionStatistics struct {
 	LearnedClauses int
 
 	SolveTime time.Duration
+}
+
+// VersionSelection represents the version selected for a specific package.
+
+type VersionSelection struct {
+	SelectedVersion string        `json:"selectedVersion"` // The version that was selected
+	Reason         SelectionReason `json:"reason"`         // Why this version was selected
+	Alternatives   []string        `json:"alternatives"`   // Other versions that could have been selected
+	Confidence     float64         `json:"confidence"`     // Confidence score for this selection (0-1)
+	Constraints    []*VersionConstraint `json:"constraints"`    // Constraints that influenced this selection
+	Metadata       map[string]interface{} `json:"metadata,omitempty"` // Additional metadata
 }
 
 // PackageInfo represents a packageinfo.
@@ -2301,4 +2375,47 @@ const (
 	// PriorityCritical holds prioritycritical value.
 
 	PriorityCritical Priority = "critical"
+)
+
+// ConstraintOperator defines constraint operator types for version constraints.
+
+type ConstraintOperator string
+
+const (
+
+	// ConstraintOperatorEquals holds constraintoperatorequals value.
+
+	ConstraintOperatorEquals ConstraintOperator = "="
+
+	// ConstraintOperatorGreaterThan holds constraintoperatorgreaterthan value.
+
+	ConstraintOperatorGreaterThan ConstraintOperator = ">"
+
+	// ConstraintOperatorGreaterEquals holds constraintoperatorgreaterequals value.
+
+	ConstraintOperatorGreaterEquals ConstraintOperator = ">="
+
+	// ConstraintOperatorLessThan holds constraintoperatorlessthan value.
+
+	ConstraintOperatorLessThan ConstraintOperator = "<"
+
+	// ConstraintOperatorLessEquals holds constraintoperatorlessequals value.
+
+	ConstraintOperatorLessEquals ConstraintOperator = "<="
+
+	// ConstraintOperatorTilde holds constraintoperatortilde value.
+
+	ConstraintOperatorTilde ConstraintOperator = "~"
+
+	// ConstraintOperatorCaret holds constraintoperatorcaret value.
+
+	ConstraintOperatorCaret ConstraintOperator = "^"
+
+	// ConstraintOperatorNotEquals holds constraintoperatornotequals value.
+
+	ConstraintOperatorNotEquals ConstraintOperator = "!="
+
+	// ConstraintOperatorRange holds constraintoperatorrange value.
+
+	ConstraintOperatorRange ConstraintOperator = "-"
 )

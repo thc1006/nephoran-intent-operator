@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-
 // parseAlarmData parses NETCONF XML alarm data into Alarm structs.
 
 func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, error) {

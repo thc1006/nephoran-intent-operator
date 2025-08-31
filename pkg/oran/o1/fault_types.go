@@ -15,7 +15,6 @@ type FaultNotificationChannel interface {
 	GetChannelType() string
 }
 
-
 // FaultNotificationChannelImpl implements FaultNotificationChannel
 type FaultNotificationChannelImpl struct {
 	*DefaultNotificationChannel // Embed common implementation

@@ -124,3 +124,9 @@ func CreateGlobalProvider(providerType string, config ProviderConfig) (Provider,
 func GetGlobalFactory() ProviderFactory {
 	return globalFactory
 }
+
+// NewProviderFactory creates a new provider factory instance
+// This is an alias for NewDefaultProviderFactory for backward compatibility
+func NewProviderFactory() ProviderFactory {
+	return NewDefaultProviderFactory()
+}
