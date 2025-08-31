@@ -98,9 +98,6 @@ linters-settings:
       - unreachable
       - unsafeptr
       - unusedresult
-    settings:
-      shadow:
-        strict: false
         
   staticcheck:
     checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021"]
