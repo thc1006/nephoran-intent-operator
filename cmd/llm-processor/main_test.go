@@ -188,7 +188,7 @@ func TestRequestSizeLimitMiddleware(t *testing.T) {
 		Level: slog.LevelDebug,
 	}))
 
-	limiter := middleware.NewRequestSizeLimiter(&middleware.RequestSizeConfig{
+	limiter := middleware.NewRequestSizeLimiterWithConfig(&middleware.RequestSizeConfig{
 		MaxBodySize: testMaxSize,
 		MaxHeaderSize: 8192,
 		EnableLogging: true,
@@ -1304,7 +1304,7 @@ func TestIPAllowlistMiddleware(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Execute request
-			handler(rr, req)
+			handler.ServeHTTP(rr, req)
 
 			// Check result
 			if rr.Code != tt.expectedStatus {
@@ -1376,7 +1376,7 @@ func TestMetricsEndpointConfiguration(t *testing.T) {
 				w.Write([]byte("# HELP test_metric A test metric\n# TYPE test_metric counter\ntest_metric 1\n"))
 			})
 
-			var handler http.HandlerFunc
+			var handler http.Handler
 			if cfg.ExposeMetricsPublicly {
 				// When publicly exposed, use handler directly (no IP filtering)
 				handler = mockMetricsHandler
@@ -1393,7 +1393,7 @@ func TestMetricsEndpointConfiguration(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Execute request
-			handler(rr, req)
+			handler.ServeHTTP(rr, req)
 
 			// Check result
 			if rr.Code != tt.expectedStatus {

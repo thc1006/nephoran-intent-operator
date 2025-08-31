@@ -46,8 +46,6 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 			name: "Unix symlink traversal attempt",
 			setupFunc: func(t *testing.T) string {
 				baseDir := t.TempDir()
-				// Create a symlink that points outside
-				linkPath := filepath.Join(baseDir, "badlink")
 				// Don't actually create the symlink to /etc to avoid security issues
 				// Just return the base directory
 				return baseDir

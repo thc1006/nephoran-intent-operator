@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -88,7 +89,7 @@ func BenchmarkNetworkIntentRetrieval(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		intent := &nephoranv1.NetworkIntent{}
-		err := client.Get(ctx, client.ObjectKey{
+		err := client.Get(ctx, types.NamespacedName{
 			Name:      fmt.Sprintf("benchmark-intent-%d", i%numObjects),
 			Namespace: "default",
 		}, intent)
@@ -123,7 +124,8 @@ func BenchmarkNetworkIntentUpdate(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		// Get latest version
-		err := client.Get(ctx, client.ObjectKeyFromObject(intent), intent)
+		key := types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace}
+		err := client.Get(ctx, key, intent)
 		if err != nil {
 			b.Fatalf("Failed to get intent: %v", err)
 		}
@@ -203,7 +205,7 @@ func BenchmarkControllerReconcile(b *testing.B) {
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKeyFromObject(intent),
+		NamespacedName: types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace},
 	}
 
 	b.ResetTimer()
@@ -437,7 +439,7 @@ func BenchmarkControllerConcurrentReconcile(b *testing.B) {
 		}
 		
 		requests[i] = ctrl.Request{
-			NamespacedName: client.ObjectKeyFromObject(intent),
+			NamespacedName: types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace},
 		}
 	}
 

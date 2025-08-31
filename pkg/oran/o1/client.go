@@ -6,14 +6,20 @@ import (
 	"time"
 )
 
+// Client represents an O1 interface client
+type Client struct {
+	baseURL string
+	timeout time.Duration
+}
+
 // GetConfig retrieves configuration data from the specified path
 func (c *Client) GetConfig(ctx context.Context, path string) (*ConfigResponse, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would make REST API calls to the O1 interface
 
 	response := &ConfigResponse{
-		Path: path,
-		Data: map[string]interface{}{
+		ObjectInstance: path,
+		Attributes: map[string]interface{}{
 			"status": "active",
 			"config": map[string]interface{}{
 				"example_parameter": "example_value",
@@ -32,11 +38,11 @@ func (c *Client) SetConfig(ctx context.Context, config *ConfigRequest) (*ConfigR
 	// In a real implementation, this would make REST API calls to update configuration
 
 	response := &ConfigResponse{
-		Path:      config.Path,
-		Data:      config.Data,
-		Status:    "success",
-		Message:   "Configuration updated successfully",
-		Timestamp: time.Now(),
+		ObjectInstance: config.ObjectInstance,
+		Attributes:     config.Attributes,
+		Status:         "success",
+		ErrorMessage:   "Configuration updated successfully",
+		Timestamp:      time.Now(),
 	}
 
 	return response, nil
@@ -47,17 +53,17 @@ func (c *Client) GetPerformanceData(ctx context.Context, request *PerformanceReq
 	// This is a placeholder implementation
 	// In a real implementation, this would query performance management data
 
-	data := []PerformanceData{
+	data := []PerformanceMeasurement{
 		{
 			ObjectInstance:  "cell_001",
-			MeasurementType: PerfTypeRRCConnections,
+			MeasurementType: "RRCConnections",
 			Value:           150.0,
 			Unit:            "connections",
 			Timestamp:       time.Now(),
 		},
 		{
 			ObjectInstance:  "cell_001",
-			MeasurementType: PerfTypeThroughput,
+			MeasurementType: "Throughput",
 			Value:           1024.5,
 			Unit:            "Mbps",
 			Timestamp:       time.Now(),
@@ -65,20 +71,20 @@ func (c *Client) GetPerformanceData(ctx context.Context, request *PerformanceReq
 	}
 
 	response := &PerformanceResponse{
-		RequestID: fmt.Sprintf("perf_req_%d", time.Now().Unix()),
-		Data:      data,
-		Status:    "success",
+		RequestID:       fmt.Sprintf("perf_req_%d", time.Now().Unix()),
+		PerformanceData: data,
+		Status:          "success",
 	}
 
 	return response, nil
 }
 
 // SubscribePerformanceData subscribes to performance data notifications
-func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *PerformanceSubscription) (<-chan *PerformanceData, error) {
+func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *PerformanceSubscription) (<-chan *PerformanceMeasurement, error) {
 	// This is a placeholder implementation
 	// In a real implementation, this would establish a subscription for performance data
 
-	ch := make(chan *PerformanceData, 100)
+	ch := make(chan *PerformanceMeasurement, 100)
 
 	go func() {
 		defer close(ch)
@@ -91,9 +97,9 @@ func (c *Client) SubscribePerformanceData(ctx context.Context, subscription *Per
 				return
 			case <-ticker.C:
 				// Send mock performance data
-				data := &PerformanceData{
+				data := &PerformanceMeasurement{
 					ObjectInstance:  "cell_001",
-					MeasurementType: PerfTypeThroughput,
+					MeasurementType: "Throughput",
 					Value:           1000.0 + float64(time.Now().Unix()%100),
 					Unit:            "Mbps",
 					Timestamp:       time.Now(),
@@ -256,29 +262,27 @@ func (c *Client) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, error) 
 // NewConfigGetRequest creates a configuration get request
 func NewConfigGetRequest(path string) *ConfigRequest {
 	return &ConfigRequest{
-		Path:      path,
-		Operation: "get",
-		Format:    "json",
+		ObjectInstance: path,
+		Operation:      "get",
 	}
 }
 
 // NewConfigSetRequest creates a configuration set request
 func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigRequest {
 	return &ConfigRequest{
-		Path:      path,
-		Operation: "set",
-		Data:      data,
-		Format:    "json",
+		ObjectInstance: path,
+		Operation:      "set",
+		Attributes:     data,
 	}
 }
 
 // NewPerformanceRequest creates a performance data request
 func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity string) *PerformanceRequest {
 	return &PerformanceRequest{
-		MeasurementTypes: measurementTypes,
-		StartTime:        startTime,
-		EndTime:          endTime,
-		Granularity:      granularity,
+		PerformanceTypes:  measurementTypes,
+		StartTime:         startTime,
+		EndTime:           endTime,
+		GranularityPeriod: granularity,
 	}
 }
 

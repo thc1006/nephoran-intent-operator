@@ -282,7 +282,7 @@ func (suite *ChaosTestSuite) TestNetworkFailures() {
 				// Configure mock to simulate timeouts
 				llmMock := suite.GetMocks().GetLLMMock()
 				llmMock.ExpectedCalls = nil
-				llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+				llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 					map[string]interface{}{}, fmt.Errorf("request timeout"))
 
 				intent := &nephranv1.NetworkIntent{
@@ -351,13 +351,13 @@ func (suite *ChaosTestSuite) TestNetworkFailures() {
 					if suite.chaosInjector.ShouldInjectFailure("llm-service") {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
-						llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 							map[string]interface{}{}, fmt.Errorf("connection refused"))
 						retryCount++
 					} else {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
-						llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 							map[string]interface{}{
 								"type":            "NetworkFunctionDeployment",
 								"networkFunction": "AMF",
@@ -530,7 +530,7 @@ func (suite *ChaosTestSuite) TestLatencyInjection() {
 			// Configure mocks to simulate latency
 			llmMock := suite.GetMocks().GetLLMMock()
 			llmMock.ExpectedCalls = nil
-			llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Run(func(args mock.Arguments) {
+			llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 				// Inject latency
 				latency := suite.chaosInjector.GetInjectedLatency("llm-service")
 				if latency > 0 {
@@ -623,13 +623,13 @@ func (suite *ChaosTestSuite) TestServiceFailures() {
 					if suite.chaosInjector.ShouldInjectFailure("llm-service") {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
-						llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 							map[string]interface{}{}, fmt.Errorf("service crashed"))
 						failedCount++
 					} else {
 						llmMock := suite.GetMocks().GetLLMMock()
 						llmMock.ExpectedCalls = nil
-						llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+						llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 							map[string]interface{}{
 								"type":            "NetworkFunctionDeployment",
 								"networkFunction": "AMF",
@@ -687,7 +687,7 @@ func (suite *ChaosTestSuite) TestServiceFailures() {
 				if suite.chaosInjector.ShouldInjectFailure("llm-service") {
 					llmMock := suite.GetMocks().GetLLMMock()
 					llmMock.ExpectedCalls = nil
-					llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Run(func(args mock.Arguments) {
+					llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 						// Simulate hanging by sleeping longer than expected timeout
 						time.Sleep(10 * time.Second)
 					}).Return(map[string]interface{}{}, fmt.Errorf("service hanging"))
@@ -758,11 +758,11 @@ func (suite *ChaosTestSuite) TestCombinedChaosScenarios() {
 				llmMock.ExpectedCalls = nil
 
 				if suite.chaosInjector.ShouldInjectFailure("llm-service") {
-					llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Return(
+					llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
 						map[string]interface{}{}, fmt.Errorf("network timeout"))
 				} else {
 					// Inject latency even for successful calls
-					llmMock.On("ProcessIntent", gomega.Any(), gomega.Any()).Run(func(args mock.Arguments) {
+					llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 						latency := suite.chaosInjector.GetInjectedLatency("weaviate")
 						if latency > 0 {
 							time.Sleep(latency)

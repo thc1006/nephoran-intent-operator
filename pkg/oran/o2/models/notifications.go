@@ -9,8 +9,10 @@ import (
 // NotificationEventType represents a type of notification event
 type NotificationEventType struct {
 	EventTypeID string                 `json:"eventTypeId"`
+	EventType   string                 `json:"eventType"`
 	Name        string                 `json:"name"`
 	Description string                 `json:"description,omitempty"`
+	Version     string                 `json:"version,omitempty"`
 	Schema      string                 `json:"schema,omitempty"`
 	Category    string                 `json:"category,omitempty"`
 	Severity    string                 `json:"severity,omitempty"`
@@ -26,14 +28,21 @@ type Alarm struct {
 	AlarmType      string                 `json:"alarmType"`
 	Severity       string                 `json:"severity"`
 	Status         string                 `json:"status"` // ACTIVE, CLEARED, ACKNOWLEDGED
+	AlarmState     string                 `json:"alarmState"` // Alternative field for alarm state
 	Message        string                 `json:"message"`
 	Description    string                 `json:"description,omitempty"`
 	Source         string                 `json:"source"`
 	RaisedAt       time.Time              `json:"raisedAt"`
 	ClearedAt      *time.Time             `json:"clearedAt,omitempty"`
+	AlarmClearTime *time.Time             `json:"alarmClearTime,omitempty"`
 	AcknowledgedAt *time.Time             `json:"acknowledgedAt,omitempty"`
+	AlarmAckTime   *time.Time             `json:"alarmAckTime,omitempty"`
 	AcknowledgedBy string                 `json:"acknowledgedBy,omitempty"`
+	AckState       string                 `json:"ackState,omitempty"`
+	AckUser        string                 `json:"ackUser,omitempty"`
+	AckSystemId    string                 `json:"ackSystemId,omitempty"`
 	AdditionalInfo map[string]interface{} `json:"additionalInfo,omitempty"`
+	Extensions     map[string]interface{} `json:"extensions,omitempty"`
 }
 
 // AlarmFilter defines filters for alarm queries
@@ -56,6 +65,8 @@ type AlarmFilter struct {
 // AlarmAcknowledgementRequest represents a request to acknowledge an alarm
 type AlarmAcknowledgementRequest struct {
 	AcknowledgedBy string                 `json:"acknowledgedBy"`
+	AckUser        string                 `json:"ackUser"`
+	AckSystemId    string                 `json:"ackSystemId,omitempty"`
 	Message        string                 `json:"message,omitempty"`
 	Timestamp      time.Time              `json:"timestamp"`
 	Extensions     map[string]interface{} `json:"extensions,omitempty"`
@@ -63,10 +74,13 @@ type AlarmAcknowledgementRequest struct {
 
 // AlarmClearRequest represents a request to clear an alarm
 type AlarmClearRequest struct {
-	ClearedBy  string                 `json:"clearedBy"`
-	Message    string                 `json:"message,omitempty"`
-	Timestamp  time.Time              `json:"timestamp"`
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	ClearedBy   string                 `json:"clearedBy"`
+	ClearUser   string                 `json:"clearUser"`
+	ClearSystemId string               `json:"clearSystemId,omitempty"`
+	ClearReason string                 `json:"clearReason,omitempty"`
+	Message     string                 `json:"message,omitempty"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Extensions  map[string]interface{} `json:"extensions,omitempty"`
 }
 
 // Constants for alarm management

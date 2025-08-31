@@ -135,6 +135,14 @@ func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
 
 }
 
+// GetEndpoint performs getendpoint operation.
+
+func (a *llmClientAdapter) GetEndpoint() string {
+
+	return a.client.url
+
+}
+
 // Close performs close operation.
 
 func (a *llmClientAdapter) Close() error {

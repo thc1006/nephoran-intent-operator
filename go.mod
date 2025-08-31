@@ -34,8 +34,6 @@ require (
 	github.com/thc1006/nephoran-intent-operator/pkg/audit v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2 v0.0.0-00010101000000-000000000000
-	github.com/thc1006/nephoran-intent-operator/pkg/security/ca v0.0.0-00010101000000-000000000000
-	github.com/thc1006/nephoran-intent-operator/pkg/security/mtls v0.0.0-00010101000000-000000000000
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/valyala/fastjson v1.6.4
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -368,8 +366,6 @@ replace (
 	github.com/thc1006/nephoran-intent-operator/pkg/audit => ./pkg/audit
 	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability => ./pkg/monitoring/availability
 	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2 => ./pkg/oran/o2
-	github.com/thc1006/nephoran-intent-operator/pkg/security/ca => ./pkg/security/ca
-	github.com/thc1006/nephoran-intent-operator/pkg/security/mtls => ./pkg/security/mtls
 )
 
 // Enforce consistent Kubernetes dependency versions

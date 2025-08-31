@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,8 +12,7 @@ import (
 )
 
 func TestCryptoSecureIdentifier(t *testing.T) {
-	crypto, err := NewCryptoSecureIdentifier()
-	require.NoError(t, err)
+	crypto := NewCryptoSecureIdentifier()
 
 	t.Run("GenerateSecurePackageName", func(t *testing.T) {
 		target := "test-app"
@@ -156,7 +156,7 @@ func TestSecureCommandExecutor(t *testing.T) {
 			t.Skip("porch-direct not available for testing")
 		}
 
-		result, err := executor.ExecuteSecure("porch-direct", []string{"--help"}, ".")
+		result, err := executor.ExecuteSecure(context.Background(), "porch-direct", []string{"--help"}, ".")
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.True(t, result.SecurityInfo.BinaryVerified)
@@ -165,7 +165,7 @@ func TestSecureCommandExecutor(t *testing.T) {
 	})
 
 	t.Run("RejectUnallowedCommand", func(t *testing.T) {
-		_, err := executor.ExecuteSecure("rm", []string{"-rf", "/"}, ".")
+		_, err := executor.ExecuteSecure(context.Background(), "rm", []string{"-rf", "/"}, ".")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not in allowed list")
 	})
@@ -179,7 +179,7 @@ func TestSecureCommandExecutor(t *testing.T) {
 		}
 
 		for _, arg := range maliciousArgs {
-			result, err := executor.ExecuteSecure("porch-direct", []string{arg}, ".")
+			result, err := executor.ExecuteSecure(context.Background(), "porch-direct", []string{arg}, ".")
 			if err == nil && result != nil && result.Error == nil {
 				t.Errorf("Should reject malicious argument: %s", arg)
 			}
@@ -278,7 +278,7 @@ func TestSecurityVulnerabilities(t *testing.T) {
 
 		for _, attempt := range injectionAttempts {
 			// Should either fail validation or sanitize the input
-			result, err := executor.ExecuteSecure("echo", []string{attempt}, ".")
+			result, err := executor.ExecuteSecure(context.Background(), "echo", []string{attempt}, ".")
 
 			if err == nil && result != nil {
 				// If execution succeeded, the argument should have been sanitized
@@ -291,8 +291,7 @@ func TestSecurityVulnerabilities(t *testing.T) {
 	})
 
 	t.Run("TimestampCollisionResistance", func(t *testing.T) {
-		crypto, err := NewCryptoSecureIdentifier()
-		require.NoError(t, err)
+		crypto := NewCryptoSecureIdentifier()
 
 		// Generate many timestamps quickly to test collision resistance
 		timestamps := make(map[string]bool)
@@ -366,7 +365,7 @@ func TestInputValidationEdgeCases(t *testing.T) {
 
 // Benchmark tests to ensure security controls don't severely impact performance
 func BenchmarkSecureOperations(b *testing.B) {
-	crypto, _ := NewCryptoSecureIdentifier()
+	crypto := NewCryptoSecureIdentifier()
 	validator, _ := NewOWASPValidator()
 
 	b.Run("SecurePackageNameGeneration", func(b *testing.B) {

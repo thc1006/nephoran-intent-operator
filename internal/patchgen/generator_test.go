@@ -341,20 +341,20 @@ func TestHelperFunctions(t *testing.T) {
 		assert.Equal(t, content, data)
 	})
 
-	t.Run("readFile reads content", func(t *testing.T) {
+	t.Run("os.ReadFile reads content", func(t *testing.T) {
 		filePath := filepath.Join(tempDir, "read-test.txt")
 		expectedContent := []byte("read this content")
 		require.NoError(t, os.WriteFile(filePath, expectedContent, 0644))
 
-		content, err := readFile(filePath)
+		content, err := os.ReadFile(filePath)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedContent, content)
 	})
 
-	t.Run("readFile handles non-existent file", func(t *testing.T) {
+	t.Run("os.ReadFile handles non-existent file", func(t *testing.T) {
 		nonExistentPath := filepath.Join(tempDir, "does-not-exist.txt")
 
-		content, err := readFile(nonExistentPath)
+		content, err := os.ReadFile(nonExistentPath)
 		assert.Error(t, err)
 		assert.Nil(t, content)
 	})

@@ -425,7 +425,7 @@ func TestGetExitCode(t *testing.T) {
 			}
 
 			cmd, err := tt.setupCmd()
-			exitCode := getExitCode(cmd, err)
+			exitCode := getExitCode(err)
 			assert.Equal(t, tt.expectedCode, exitCode)
 		})
 	}

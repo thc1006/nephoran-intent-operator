@@ -6,6 +6,25 @@ import (
 	"time"
 )
 
+// Object Type constants
+const (
+	ObjectTypeCell = "cell"
+	ObjectTypeODU  = "odu"
+	ObjectTypeCU   = "cu"
+	ObjectTypeDU   = "du"
+	ObjectTypeRU   = "ru"
+)
+
+// Alarm Severity constants
+const (
+	AlarmSeverityCritical = "critical"
+	AlarmSeverityMajor    = "major"
+	AlarmSeverityMinor    = "minor"
+	AlarmSeverityWarning  = "warning"
+	AlarmSeverityInfo     = "info"
+	AlarmSeverityCleared  = "cleared"
+)
+
 // Configuration Management Types
 type ConfigurationManager interface {
 	GetConfiguration(ctx context.Context, objectClass string, objectInstance string) (*ConfigResponse, error)
