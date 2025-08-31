@@ -941,17 +941,17 @@ type ProviderSelectionCriteria struct {
 
 }
 
-// ProviderFactory creates provider instances.
+// DefaultProviderFactory creates provider instances.
 
-type ProviderFactory struct {
+type DefaultProviderFactory struct {
 	registry *ProviderRegistry
 }
 
 // NewProviderFactory creates a new provider factory.
 
-func NewProviderFactory(registry *ProviderRegistry) *ProviderFactory {
+func NewProviderFactory(registry *ProviderRegistry) *DefaultProviderFactory {
 
-	return &ProviderFactory{
+	return &DefaultProviderFactory{
 
 		registry: registry,
 	}
@@ -960,7 +960,7 @@ func NewProviderFactory(registry *ProviderRegistry) *ProviderFactory {
 
 // CreateProvider creates a new provider instance based on configuration.
 
-func (f *ProviderFactory) CreateProvider(config *ProviderConfiguration) (CloudProvider, error) {
+func (f *DefaultProviderFactory) CreateProvider(config *ProviderConfiguration) (CloudProvider, error) {
 
 	switch config.Type {
 

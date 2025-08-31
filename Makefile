@@ -1024,15 +1024,29 @@ demo-setup: ## Set up demo environment
 
 ##@ Tools
 
-# Try to find controller-gen in multiple locations
-CONTROLLER_GEN = $(shell which controller-gen 2>/dev/null || echo $(shell pwd)/bin/controller-gen)
+# Define controller-gen path - handle Windows .exe extension
+ifeq ($(OS),Windows_NT)
+	CONTROLLER_GEN = $(shell pwd)/bin/controller-gen.exe
+else
+	CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
+endif
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary
-	@if ! command -v controller-gen &> /dev/null && [ ! -f $(shell pwd)/bin/controller-gen ]; then \
-		echo "Installing controller-gen $(CONTROLLER_GEN_VERSION)..."; \
+	@echo "Checking for controller-gen..."
+	@mkdir -p bin
+	@if [ ! -f "$(CONTROLLER_GEN)" ]; then \
+		echo "Installing controller-gen $(CONTROLLER_GEN_VERSION) to bin/..."; \
 		GOBIN=$(shell pwd)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
+		if [ ! -f "$(CONTROLLER_GEN)" ]; then \
+			echo "ERROR: controller-gen installation failed at $(CONTROLLER_GEN)"; \
+			echo "Available files in bin/:"; \
+			ls -la bin/ | grep controller || echo "No controller-gen found"; \
+			exit 1; \
+		fi; \
+		echo "✅ controller-gen $(CONTROLLER_GEN_VERSION) installed successfully at $(CONTROLLER_GEN)"; \
 	else \
-		echo "controller-gen is already available"; \
+		echo "✅ controller-gen is already available at $(CONTROLLER_GEN)"; \
+		$(CONTROLLER_GEN) --version; \
 	fi
 
 ENVTEST = $(shell pwd)/bin/setup-envtest

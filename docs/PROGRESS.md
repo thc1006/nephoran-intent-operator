@@ -20,3 +20,4 @@
 2025-08-29T21:28:39+08:00 | feat/conductor-loop | pkg/controllers | Fix NetworkIntentAuthDecorator undefined Get method by explicit embedding access
 | 2025-08-30T16:40:03Z | feat/conductor-loop | ci-devops | fix GHCR 403 auth errors with 2025 practices |
 | 2025-08-31T00:48:32Z | feat/e2e | pre-commit-hooks | DevOps pre-commit setup prevents invalid golangci-lint configs |
+| 2025-08-31T11:44:55.8784446+08:00 | feat/e2e | deployment-engineer | Fixed controller-gen installation and CI pipeline issues for CRD generation |

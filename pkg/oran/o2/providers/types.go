@@ -246,19 +246,7 @@ type CreateComputeInstanceRequest struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// NetworkConfig represents network configuration for instances.
-
-type NetworkConfig struct {
-	SubnetID string `json:"subnetId,omitempty"`
-
-	SecurityGroups []string `json:"securityGroups,omitempty"`
-
-	PublicIP bool `json:"publicIP,omitempty"`
-
-	PrivateIP string `json:"privateIP,omitempty"`
-
-	FloatingIP string `json:"floatingIP,omitempty"`
-}
+// NetworkConfig is defined in resources.go
 
 // StorageConfig represents storage configuration for instances.
 

@@ -1,5 +1,4 @@
 //go:build !disable_rag
-// +build !disable_rag
 
 // Package rag provides Retrieval-Augmented Generation interfaces.
 

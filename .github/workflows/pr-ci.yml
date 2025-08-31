@@ -65,17 +65,38 @@ jobs:
           go mod verify
           echo "✅ Go modules verified successfully"
 
+      - name: Install controller-gen
+        run: |
+          echo "Installing controller-gen v${{ env.CONTROLLER_GEN_VERSION }}..."
+          set -euo pipefail
+          
+          # Create bin directory
+          mkdir -p bin
+          
+          # Install controller-gen directly to bin/
+          GOBIN="$(pwd)/bin" go install sigs.k8s.io/controller-tools/cmd/controller-gen@${{ env.CONTROLLER_GEN_VERSION }}
+          
+          # Verify installation
+          if [ -f "bin/controller-gen" ]; then
+            echo "✅ controller-gen installed successfully"
+            ./bin/controller-gen --version
+          else
+            echo "❌ controller-gen installation failed"
+            ls -la bin/ || true
+            exit 1
+          fi
+
       - name: Code generation and verification
         run: |
           echo "Generating code and manifests..."
           set -euo pipefail
           
-          # The Makefile will automatically install controller-gen if needed
-          echo "Running make generate (includes tool installation)..."
-          make generate
+          # Use the installed controller-gen directly for reliable operation
+          echo "Running code generation..."
+          ./bin/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
           
-          echo "Running make manifests..."
-          make manifests
+          echo "Running manifest generation..."
+          ./bin/controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
           
           # Check for changes
           echo "Checking for uncommitted changes..."

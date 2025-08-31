@@ -883,9 +883,9 @@ type EventProcessor struct {
 	eventCh chan *ProviderEvent
 }
 
-// EventHandler represents a eventhandler.
+// EventHandlerFunc represents a eventhandler function.
 
-type EventHandler func(event *ProviderEvent)
+type EventHandlerFunc func(event *ProviderEvent)
 
 // NewEventProcessor performs neweventprocessor operation.
 
