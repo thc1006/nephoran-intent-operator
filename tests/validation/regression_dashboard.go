@@ -1,6 +1,6 @@
 // Package validation provides regression dashboard and reporting capabilities.
 
-package validation
+package test_validation
 
 import (
 	"encoding/json"

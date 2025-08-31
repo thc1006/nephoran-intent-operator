@@ -1,6 +1,6 @@
 //go:build integration
 
-package validation_test
+package test_validation_test
 
 import (
 	"context"

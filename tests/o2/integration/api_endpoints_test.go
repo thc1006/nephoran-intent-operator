@@ -1,4 +1,4 @@
-package integration_test
+package o2_integration_tests_test
 
 import (
 	"bytes"

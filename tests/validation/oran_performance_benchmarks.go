@@ -2,7 +2,7 @@
 
 // This module implements comprehensive performance testing and benchmarking for A1, E2, O1, and O2 interfaces.
 
-package validation
+package test_validation
 
 import (
 	"context"

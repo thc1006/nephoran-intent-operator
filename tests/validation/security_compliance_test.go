@@ -1,5 +1,5 @@
 // Package validation provides comprehensive security compliance testing
-package validation
+package test_validation
 
 import (
 	"context"

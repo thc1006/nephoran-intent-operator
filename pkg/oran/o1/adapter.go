@@ -28,48 +28,54 @@ type NetworkFunctionManager interface {
 	GetNetworkFunctionConfiguration(ctx context.Context, nfID string) (*NetworkFunctionConfig, error)
 }
 
-// AlarmSeverity defines standardized alarm severity levels
-type AlarmSeverity string
-
-const (
-	AlarmSeverityMajor    AlarmSeverity = "MAJOR"
-	AlarmSeverityMinor    AlarmSeverity = "MINOR"
-	AlarmSeverityWarning  AlarmSeverity = "WARNING"
-	AlarmSeverityCritical AlarmSeverity = "CRITICAL"
-)
-
-// Alarm represents a comprehensive alarm in the O1 interface
-type Alarm struct {
-	ID                string                 `json:"id"`
-	Type              string                 `json:"type"`
-	Severity          AlarmSeverity          `json:"severity"`
-	SpecificProblem   string                 `json:"specificProblem"`
-	ManagedObjectID   string                 `json:"managedObjectId"`
-	EventTime         time.Time              `json:"eventTime"`
-	NotificationTime  time.Time              `json:"notificationTime"`
-	ProbableCause     string                 `json:"probableCause"`
-	PerceivedSeverity string                 `json:"perceivedSeverity"`
-	AdditionalText    string                 `json:"additionalText"`
-	AdditionalInfo    map[string]interface{} `json:"additionalInfo"`
-	AlarmState        string                 `json:"alarmState"`
-	AcknowledgedBy    string                 `json:"acknowledgedBy,omitempty"`
-	AckTime           *time.Time             `json:"ackTime,omitempty"`
-	ClearedBy         string                 `json:"clearedBy,omitempty"`
-	ClearTime         *time.Time             `json:"clearTime,omitempty"`
-	RootCauseAlarms   []string               `json:"rootCauseAlarms,omitempty"`
-	CorrelatedAlarms  []string               `json:"correlatedAlarms,omitempty"`
-	RepairActions     []string               `json:"repairActions,omitempty"`
+// NetworkFunctionConfig represents configuration details for a network function
+type NetworkFunctionConfig struct {
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name,omitempty"`
+	Parameters         map[string]interface{} `json:"parameters,omitempty"`
+	ConfigurationType  string                 `json:"configuration_type,omitempty"`
+	ConfigurationState string                 `json:"configuration_state,omitempty"`
+	Version            string                 `json:"version,omitempty"`
+	Timestamp          time.Time              `json:"timestamp,omitempty"`
+	AdditionalDetails  map[string]interface{} `json:"additional_details,omitempty"`
 }
 
-// PerformanceData represents a standardized performance measurement
-type PerformanceData struct {
-	ObjectInstance    string                 `json:"objectInstance"`
-	MeasurementType   string                 `json:"measurementType"`
-	Value             float64                `json:"value"`
-	Unit              string                 `json:"unit"`
-	Timestamp         time.Time              `json:"timestamp"`
-	Granularity       time.Duration          `json:"granularity"`
-	AdditionalDetails map[string]interface{} `json:"additionalDetails,omitempty"`
+// NetworkFunction represents a network function in the O-RAN system
+type NetworkFunction struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type"`
+	Status      string                 `json:"status"`
+	Vendor      string                 `json:"vendor,omitempty"`
+	Version     string                 `json:"version,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
-// Rest of the existing code remains unchanged
+// NetworkFunctionUpdate represents updates to a network function
+type NetworkFunctionUpdate struct {
+	Name      *string                `json:"name,omitempty"`
+	Status    *string                `json:"status,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	UpdatedAt time.Time              `json:"updated_at"`
+}
+
+// NetworkFunctionStatus represents the current status of a network function
+type NetworkFunctionStatus struct {
+	ID        string                 `json:"id"`
+	Status    string                 `json:"status"`
+	Health    string                 `json:"health"`
+	Uptime    time.Duration          `json:"uptime"`
+	Metrics   map[string]interface{} `json:"metrics,omitempty"`
+	LastCheck time.Time              `json:"last_check"`
+}
+
+// DiscoveryCriteria represents criteria for discovering network functions
+type DiscoveryCriteria struct {
+	Type     string            `json:"type,omitempty"`
+	Vendor   string            `json:"vendor,omitempty"`
+	Status   string            `json:"status,omitempty"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	MaxCount int               `json:"max_count,omitempty"`
+}

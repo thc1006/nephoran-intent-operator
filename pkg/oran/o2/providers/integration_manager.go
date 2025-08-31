@@ -14,7 +14,7 @@ import (
 // IntegrationManager manages the integration between O2 IMS and cloud providers.
 
 type IntegrationManager struct {
-	registry *ProviderRegistry
+	registry ProviderRegistry
 
 	factory *ProviderFactory
 
@@ -883,10 +883,7 @@ type EventProcessor struct {
 	eventCh chan *ProviderEvent
 }
 
-// EventHandler defines the interface for handling provider events
-type EventHandler interface {
-	HandleEvent(event *ProviderEvent)
-}
+// EventHandler is now defined in interfaces.go - removed duplicate
 
 // EventHandlerFunc represents a eventhandler function.
 type EventHandlerFunc func(event *ProviderEvent)

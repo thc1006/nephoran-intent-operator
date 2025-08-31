@@ -2,7 +2,7 @@
 
 // This module contains helper methods that support the main O-RAN interface validation functionality.
 
-package validation
+package test_validation
 
 import (
 	"context"

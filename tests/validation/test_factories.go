@@ -1,6 +1,6 @@
 // Package validation provides comprehensive test data factories and fixtures.
 
-package validation
+package test_validation
 
 import (
 	"fmt"

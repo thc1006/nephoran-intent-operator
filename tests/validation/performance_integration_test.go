@@ -1,7 +1,7 @@
 //go:build integration
 
 // Package validation provides performance integration tests
-package validation
+package test_validation
 
 import (
 	"context"

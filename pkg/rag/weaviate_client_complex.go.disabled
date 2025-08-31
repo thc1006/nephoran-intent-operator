@@ -18,7 +18,6 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
-	"github.com/weaviate/weaviate/entities/models"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
@@ -519,197 +518,110 @@ func (wc *WeaviateClient) initializeSchema(ctx context.Context) error {
 
 	wc.logger.Info("Initializing Weaviate schema for telecom domain")
 
-	// Define TelecomKnowledge class.
-
-	telecomKnowledgeClass := &models.Class{
-
-		Class: "TelecomKnowledge",
-
-		Description: "Comprehensive telecommunications domain knowledge base",
-
-		Vectorizer: "text2vec-openai",
-
-		ModuleConfig: map[string]interface{}{
-
+	// Define TelecomKnowledge class using map structure.
+	telecomKnowledgeClass := map[string]interface{}{
+		"class":       "TelecomKnowledge",
+		"description": "Comprehensive telecommunications domain knowledge base",
+		"vectorizer":  "text2vec-openai",
+		"moduleConfig": map[string]interface{}{
 			"text2vec-openai": map[string]interface{}{
-
-				"model": "text-embedding-3-large",
-
+				"model":      "text-embedding-3-large",
 				"dimensions": 3072,
-
-				"type": "text",
+				"type":       "text",
 			},
 		},
-
-		Properties: []*models.Property{
-
+		"properties": []map[string]interface{}{
 			{
-
-				Name: "content",
-
-				DataType: []string{"text"},
-
-				Description: "Full document content with telecom terminology",
-
-				IndexFilterable: &[]bool{true}[0],
-
-				IndexSearchable: &[]bool{true}[0],
+				"name":            "content",
+				"dataType":        []string{"text"},
+				"description":     "Full document content with telecom terminology",
+				"indexFilterable": true,
+				"indexSearchable": true,
 			},
-
 			{
-
-				Name: "title",
-
-				DataType: []string{"text"},
-
-				Description: "Document or section title",
-
-				IndexFilterable: &[]bool{true}[0],
-
-				IndexSearchable: &[]bool{true}[0],
+				"name":            "title",
+				"dataType":        []string{"text"},
+				"description":     "Document or section title",
+				"indexFilterable": true,
+				"indexSearchable": true,
 			},
-
 			{
-
-				Name: "source",
-
-				DataType: []string{"text"},
-
-				Description: "Document source organization (3GPP, O-RAN, ETSI, ITU, etc.)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "source",
+				"dataType":        []string{"text"},
+				"description":     "Document source organization (3GPP, O-RAN, ETSI, ITU, etc.)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "category",
-
-				DataType: []string{"text"},
-
-				Description: "Knowledge category (RAN, Core, Transport, Management, etc.)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "category",
+				"dataType":        []string{"text"},
+				"description":     "Knowledge category (RAN, Core, Transport, Management, etc.)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "subcategory",
-
-				DataType: []string{"text"},
-
-				Description: "Detailed subcategory for fine-grained classification",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "subcategory",
+				"dataType":        []string{"text"},
+				"description":     "Detailed subcategory for fine-grained classification",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "version",
-
-				DataType: []string{"text"},
-
-				Description: "Specification version (e.g., Rel-17, v1.5.0)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "version",
+				"dataType":        []string{"text"},
+				"description":     "Specification version (e.g., Rel-17, v1.5.0)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "workingGroup",
-
-				DataType: []string{"text"},
-
-				Description: "Working group responsible (e.g., RAN1, SA2, O-RAN WG1)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "workingGroup",
+				"dataType":        []string{"text"},
+				"description":     "Working group responsible (e.g., RAN1, SA2, O-RAN WG1)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "keywords",
-
-				DataType: []string{"text[]"},
-
-				Description: "Extracted telecom keywords and terminology",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "keywords",
+				"dataType":        []string{"text[]"},
+				"description":     "Extracted telecom keywords and terminology",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "confidence",
-
-				DataType: []string{"number"},
-
-				Description: "Content quality and relevance confidence score",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "confidence",
+				"dataType":        []string{"number"},
+				"description":     "Content quality and relevance confidence score",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "language",
-
-				DataType: []string{"text"},
-
-				Description: "Document language (ISO 639-1 code)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "language",
+				"dataType":        []string{"text"},
+				"description":     "Document language (ISO 639-1 code)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "documentType",
-
-				DataType: []string{"text"},
-
-				Description: "Type of document (specification, report, presentation, etc.)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "documentType",
+				"dataType":        []string{"text"},
+				"description":     "Type of document (specification, report, presentation, etc.)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "networkFunction",
-
-				DataType: []string{"text[]"},
-
-				Description: "Related network functions (gNB, AMF, SMF, UPF, etc.)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "networkFunction",
+				"dataType":        []string{"text[]"},
+				"description":     "Related network functions (gNB, AMF, SMF, UPF, etc.)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "technology",
-
-				DataType: []string{"text[]"},
-
-				Description: "Related technologies (5G, 4G, O-RAN, vRAN, etc.)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "technology",
+				"dataType":        []string{"text[]"},
+				"description":     "Related technologies (5G, 4G, O-RAN, vRAN, etc.)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "useCase",
-
-				DataType: []string{"text[]"},
-
-				Description: "Applicable use cases (eMBB, URLLC, mMTC, etc.)",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "useCase",
+				"dataType":        []string{"text[]"},
+				"description":     "Applicable use cases (eMBB, URLLC, mMTC, etc.)",
+				"indexFilterable": true,
 			},
-
 			{
-
-				Name: "timestamp",
-
-				DataType: []string{"date"},
-
-				Description: "Last updated timestamp",
-
-				IndexFilterable: &[]bool{true}[0],
+				"name":            "timestamp",
+				"dataType":        []string{"date"},
+				"description":     "Last updated timestamp",
+				"indexFilterable": true,
 			},
 		},
 	}

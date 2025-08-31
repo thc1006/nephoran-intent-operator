@@ -115,6 +115,9 @@ type EventHandler interface {
 
 	// HandleProviderEvent is called for provider-level events
 	HandleProviderEvent(ctx context.Context, event ProviderEvent) error
+
+	// HandleEvent is called for generic events (for compatibility)
+	HandleEvent(event *ProviderEvent)
 }
 
 // ProviderFactory creates provider instances
@@ -127,4 +130,40 @@ type ProviderFactory interface {
 
 	// GetProviderSchema returns configuration schema for a provider type
 	GetProviderSchema(providerType string) (map[string]interface{}, error)
+}
+
+// ProviderRegistry manages multiple provider instances
+type ProviderRegistry interface {
+	// RegisterProvider registers a provider with configuration
+	RegisterProvider(name string, provider CloudProvider, config *ProviderConfiguration) error
+
+	// UnregisterProvider removes a provider
+	UnregisterProvider(name string) error
+
+	// GetProvider retrieves a provider by name
+	GetProvider(name string) (CloudProvider, error)
+
+	// ListProviders returns all registered provider names
+	ListProviders() []string
+
+	// ConnectAll connects to all registered providers
+	ConnectAll(ctx context.Context) error
+
+	// ConnectProvider connects to a specific provider
+	ConnectProvider(ctx context.Context, name string) error
+
+	// DisconnectAll disconnects from all providers
+	DisconnectAll(ctx context.Context) error
+
+	// StartHealthChecks starts health checking for all providers
+	StartHealthChecks(ctx context.Context)
+
+	// StopHealthChecks stops health checking
+	StopHealthChecks()
+
+	// GetAllProviderHealth returns health status for all providers
+	GetAllProviderHealth() map[string]*HealthStatus
+
+	// SelectProvider selects the best provider based on criteria
+	SelectProvider(ctx context.Context, criteria *ProviderSelectionCriteria) (CloudProvider, error)
 }

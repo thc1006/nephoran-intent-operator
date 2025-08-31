@@ -2,7 +2,7 @@
 
 // This validator ensures comprehensive disaster recovery capabilities are properly configured and tested.
 
-package validation
+package test_validation
 
 import (
 	"context"

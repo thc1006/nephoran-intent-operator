@@ -1,4 +1,4 @@
-package compliance_test
+package o2_compliance_tests_test
 
 import (
 	"bytes"

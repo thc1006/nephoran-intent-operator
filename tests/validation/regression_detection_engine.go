@@ -1,6 +1,6 @@
 // Package validation provides regression detection engine for identifying quality degradations.
 
-package validation
+package test_validation
 
 import (
 	"fmt"

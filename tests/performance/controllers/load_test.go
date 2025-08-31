@@ -1,4 +1,4 @@
-package performance_test
+package performance_tests_test
 
 import (
 	"context"

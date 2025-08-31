@@ -901,7 +901,7 @@ func (s *StreamingService) StreamData(streamType StreamType, data interface{}) {
 
 // StreamAlarm publishes alarm data.
 
-func (s *StreamingService) StreamAlarm(alarm *AlarmData) {
+func (s *StreamingService) StreamAlarm(alarm *StreamingAlarmData) {
 
 	s.StreamData(StreamTypeAlarms, alarm)
 
@@ -923,9 +923,9 @@ func (s *StreamingService) StreamConfigurationChange(change *ConfigurationChange
 
 }
 
-// AlarmData represents alarm data for streaming.
+// StreamingAlarmData represents alarm data for streaming.
 
-type AlarmData struct {
+type StreamingAlarmData struct {
 	ID string `json:"id"`
 
 	Source string `json:"source"`

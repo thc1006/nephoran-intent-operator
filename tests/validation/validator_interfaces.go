@@ -1,6 +1,6 @@
 // Package validation provides validator interfaces for comprehensive testing.
 
-package validation
+package test_validation
 
 import (
 	"context"

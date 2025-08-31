@@ -1,6 +1,6 @@
 // Package validation provides trend analysis capabilities for regression testing.
 
-package validation
+package test_validation
 
 import (
 	"fmt"

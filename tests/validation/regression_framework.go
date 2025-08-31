@@ -2,7 +2,7 @@
 
 // This framework prevents quality degradation by detecting regressions across all validation categories.
 
-package validation
+package test_validation
 
 import (
 	"context"

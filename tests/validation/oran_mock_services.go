@@ -4,7 +4,7 @@
 
 // to support comprehensive O-RAN interface integration testing.
 
-package validation
+package test_validation
 
 import (
 	"fmt"

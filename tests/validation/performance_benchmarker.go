@@ -1,6 +1,6 @@
 // Package validation provides performance benchmarking and validation.
 
-package validation
+package test_validation
 
 import (
 	"context"

@@ -2,7 +2,7 @@
 
 // This validator implements comprehensive chaos engineering scenarios to validate system resilience.
 
-package validation
+package test_validation
 
 import (
 	"context"

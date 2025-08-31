@@ -2,7 +2,7 @@
 
 // This module demonstrates how to integrate O-RAN interface tests with the existing validation framework.
 
-package validation
+package test_validation
 
 import (
 	"context"

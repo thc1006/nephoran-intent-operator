@@ -20,6 +20,32 @@ import (
 	"time"
 )
 
+// SearchQuery represents a search query for RAG
+type SearchQuery struct {
+	Text         string                 `json:"text"`
+	MaxResults   int                    `json:"max_results"`
+	Threshold    float64                `json:"threshold"`
+	Filters      map[string]interface{} `json:"filters"`
+	Namespace    string                 `json:"namespace"`
+}
+
+// SearchResponse represents a response to a search query
+type SearchResponse struct {
+	Query         string         `json:"query"`
+	Results       []*SearchResult `json:"results"`
+	TotalResults  int            `json:"total_results"`
+	ProcessedTime time.Duration  `json:"processed_time"`
+}
+
+// SearchResult represents a single search result
+type SearchResult struct {
+	ID          string                 `json:"id"`
+	Content     string                 `json:"content"`
+	Score       float64                `json:"score"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Embedding   []float32              `json:"embedding,omitempty"`
+}
+
 // BatchSearchRequest represents a batch of search requests
 type BatchSearchRequest struct {
 	Queries           []*SearchQuery         `json:"queries"`

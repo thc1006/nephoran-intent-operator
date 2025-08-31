@@ -2,7 +2,7 @@
 
 // This suite implements a scoring system that targets 90/100 points across all validation criteria.
 
-package validation
+package test_validation
 
 import (
 	"context"

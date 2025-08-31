@@ -1,6 +1,6 @@
 // Package validation provides automated scoring system for comprehensive validation.
 
-package validation
+package test_validation
 
 import (
 	"fmt"

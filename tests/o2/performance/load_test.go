@@ -1,4 +1,4 @@
-package performance_test
+package o2_performance_tests_test
 
 import (
 	"bytes"

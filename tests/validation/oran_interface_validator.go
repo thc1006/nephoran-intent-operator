@@ -4,7 +4,7 @@
 
 // and integrates with the existing validation framework for the 7-point O-RAN compliance scoring.
 
-package validation
+package test_validation
 
 import (
 	"context"

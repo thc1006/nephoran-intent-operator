@@ -125,6 +125,8 @@ type HotSpot struct {
 	CPUPercent  float64       `json:"cpuPercent"`
 	MemoryBytes int64         `json:"memoryBytes"`
 	Severity    string        `json:"severity"`
+	Samples     int           `json:"samples"`     // Number of samples collected
+	Percentage  float64       `json:"percentage"`  // Percentage of total samples
 }
 
 // ProfilerManager manages profiling operations
@@ -179,6 +181,8 @@ func (pm *ProfilerManager) AnalyzeProfile() error {
 			CPUPercent:  15.5,
 			MemoryBytes: 1024 * 1024,
 			Severity:    "high",
+			Samples:     1550,
+			Percentage:  15.5,
 		},
 	}
 	return nil

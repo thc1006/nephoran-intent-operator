@@ -1,4 +1,4 @@
-package performance
+package performance_tests
 
 import (
 	"time"

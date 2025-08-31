@@ -2,7 +2,7 @@
 
 // This checklist ensures all production deployment requirements are met for 8/10 point target.
 
-package validation
+package test_validation
 
 import (
 	"context"

@@ -1,5 +1,5 @@
 // Package performance provides comprehensive performance testing and benchmarking
-package performance
+package performance_tests
 
 import (
 	"context"

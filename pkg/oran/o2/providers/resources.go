@@ -237,6 +237,7 @@ type HealthStatus struct {
 	Timestamp   time.Time         `json:"timestamp"`
 	LastUpdated time.Time         `json:"lastUpdated"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
+	Details     map[string]interface{} `json:"details,omitempty"` // Additional health details
 }
 
 // HealthCheck represents a single health check result

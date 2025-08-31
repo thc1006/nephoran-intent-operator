@@ -1,4 +1,4 @@
-package mocks
+package o2_mocks
 
 import (
 	"context"

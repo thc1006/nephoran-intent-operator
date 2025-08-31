@@ -43,9 +43,11 @@ import (
 
 // Missing type definitions for compilation fix
 type VersionRequirement struct {
-	Name       string `json:"name"`
-	Version    string `json:"version"`
-	Constraint string `json:"constraint"`
+	Name        string               `json:"name"`
+	Version     string               `json:"version"`
+	Constraint  string               `json:"constraint"`
+	PackageRef  *PackageReference    `json:"package_ref"`
+	Constraints []*VersionConstraint `json:"constraints"`
 }
 
 type DependencyConstraints struct {
@@ -78,48 +80,41 @@ type WorkflowEngine struct {
 	logger logr.Logger
 }
 
-type VersionSolution struct {
-	Packages []string `json:"packages"`
-}
-
 // SATSolverConfig configures SAT solver behavior
 type SATSolverConfig struct {
-	Algorithm     string        `json:"algorithm"`     // "minisat", "glucose", "lingeling"
-	MaxVariables  int           `json:"max_variables"`
-	MaxClauses    int           `json:"max_clauses"`
-	TimeoutMs     int           `json:"timeout_ms"`
-	MaxConflicts  int           `json:"max_conflicts"`
-	RestartPolicy string        `json:"restart_policy"` // "luby", "geometric", "fixed"
+	Algorithm     string `json:"algorithm"` // "minisat", "glucose", "lingeling"
+	MaxVariables  int    `json:"max_variables"`
+	MaxClauses    int    `json:"max_clauses"`
+	TimeoutMs     int    `json:"timeout_ms"`
+	MaxConflicts  int    `json:"max_conflicts"`
+	RestartPolicy string `json:"restart_policy"` // "luby", "geometric", "fixed"
 }
 
 // SATSolver interface for different SAT solver implementations
 type SATSolver interface {
-	AddClause(literals []int) error
-	Solve() (bool, error)
-	GetSolution() ([]bool, error)
-	AddVariable() int
-	Reset() error
+	Solve(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error)
+	Close()
 }
 
 // ResolutionResult represents the result of dependency resolution
 type ResolutionResult struct {
-	Success         bool                     `json:"success"`
-	ResolvedPackages []*PackageReference     `json:"resolved_packages,omitempty"`
-	Conflicts       []string                 `json:"conflicts,omitempty"`
-	Errors          []string                 `json:"errors,omitempty"`
-	Duration        time.Duration            `json:"duration"`
-	Stats           *ResolutionStats         `json:"stats,omitempty"`
-	Metadata        map[string]interface{}   `json:"metadata,omitempty"`
+	Success          bool                   `json:"success"`
+	ResolvedPackages []*PackageReference    `json:"resolved_packages,omitempty"`
+	Conflicts        []string               `json:"conflicts,omitempty"`
+	Errors           []string               `json:"errors,omitempty"`
+	Duration         time.Duration          `json:"duration"`
+	Stats            *ResolutionStats       `json:"stats,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ResolutionStats contains statistics about the resolution process
 type ResolutionStats struct {
-	TotalPackages      int `json:"total_packages"`
-	ResolvedPackages   int `json:"resolved_packages"`
-	ConflictCount      int `json:"conflict_count"`
-	IterationCount     int `json:"iteration_count"`
-	CacheHits          int `json:"cache_hits"`
-	CacheMisses        int `json:"cache_misses"`
+	TotalPackages    int `json:"total_packages"`
+	ResolvedPackages int `json:"resolved_packages"`
+	ConflictCount    int `json:"conflict_count"`
+	IterationCount   int `json:"iteration_count"`
+	CacheHits        int `json:"cache_hits"`
+	CacheMisses      int `json:"cache_misses"`
 }
 
 // DependencyGraph represents a dependency graph structure
@@ -132,28 +127,28 @@ type DependencyGraph struct {
 
 // DependencyNode represents a node in the dependency graph
 type DependencyNode struct {
-	ID           string              `json:"id"`
-	Package      *PackageReference   `json:"package"`
-	Dependencies []*DependencyNode   `json:"dependencies,omitempty"`
-	Dependents   []*DependencyNode   `json:"dependents,omitempty"`
+	ID           string                 `json:"id"`
+	Package      *PackageReference      `json:"package"`
+	Dependencies []*DependencyNode      `json:"dependencies,omitempty"`
+	Dependents   []*DependencyNode      `json:"dependents,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // DependencyEdge represents an edge in the dependency graph
 type DependencyEdge struct {
-	From         *DependencyNode     `json:"from"`
-	To           *DependencyNode     `json:"to"`
-	Constraint   string              `json:"constraint"`
-	EdgeType     string              `json:"edge_type"` // "requires", "conflicts", "recommends"
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	From       *DependencyNode        `json:"from"`
+	To         *DependencyNode        `json:"to"`
+	Constraint string                 `json:"constraint"`
+	EdgeType   string                 `json:"edge_type"` // "requires", "conflicts", "recommends"
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // GraphStats contains statistics about the dependency graph
 type GraphStats struct {
-	NodeCount     int `json:"node_count"`
-	EdgeCount     int `json:"edge_count"`
-	MaxDepth      int `json:"max_depth"`
-	CycleCount    int `json:"cycle_count"`
+	NodeCount           int `json:"node_count"`
+	EdgeCount           int `json:"edge_count"`
+	MaxDepth            int `json:"max_depth"`
+	CycleCount          int `json:"cycle_count"`
 	ConnectedComponents int `json:"connected_components"`
 }
 
@@ -272,7 +267,7 @@ type DependencyResolverMetrics struct {
 // VersionSolver represents a versionsolver.
 
 type VersionSolver struct {
-	satSolver *SATSolver
+	satSolver SATSolver
 
 	config *VersionSolverConfig
 
@@ -366,9 +361,9 @@ func NewDependencyGraphBuilder(config *GraphBuilderConfig) *DependencyGraphBuild
 
 // BuildGraph performs buildgraph operation.
 
-func (dgb *DependencyGraphBuilder) BuildGraph(ctx context.Context, graph *DependencyGraph, opts *GraphBuildOptions) error {
+func (dgb *DependencyGraphBuilder) BuildGraph(ctx context.Context, graph *DependencyGraph) error {
 
-	// Implementation would build the graph based on options.
+	// Implementation would build the graph.
 
 	return nil
 

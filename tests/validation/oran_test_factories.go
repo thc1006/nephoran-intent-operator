@@ -2,7 +2,7 @@
 
 // This module creates realistic test data for A1, E2, O1, and O2 interface testing scenarios.
 
-package validation
+package test_validation
 
 import (
 	"fmt"

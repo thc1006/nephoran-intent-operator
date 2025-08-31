@@ -3,7 +3,6 @@ package interfaces
 import (
 	"context"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 )
 
@@ -36,8 +35,8 @@ const (
 
 // IntentProcessor is the main interface for processing network intents
 type IntentProcessor interface {
-	ProcessIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) error
-	ValidateIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) error
+	ProcessIntent(ctx context.Context, intent *contracts.NetworkIntent) error
+	ValidateIntent(ctx context.Context, intent *contracts.NetworkIntent) error
 }
 
 // ComponentController manages component lifecycle

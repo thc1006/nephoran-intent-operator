@@ -1,6 +1,6 @@
 // Package validation provides comprehensive security testing mock services.
 
-package validation
+package test_validation
 
 import (
 	"crypto/rand"

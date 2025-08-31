@@ -25,17 +25,30 @@ import (
 type ComponentType string
 
 const (
+	// Legacy component types for backward compatibility
 	ComponentTypeLLMProcessor       ComponentType = "llm-processor"
 	ComponentTypeResourcePlanner    ComponentType = "resource-planner"
 	ComponentTypeManifestGenerator  ComponentType = "manifest-generator"
 	ComponentTypeGitOpsController   ComponentType = "gitops-controller"
 	ComponentTypeDeploymentVerifier ComponentType = "deployment-verifier"
+	
+	// New component type constants required by interfaces package
+	ComponentUnknown    ComponentType = "unknown"
+	ComponentIntentAPI  ComponentType = "intent-api"
+	ComponentVIMSIM     ComponentType = "vim-sim"
+	ComponentNEPHIO     ComponentType = "nephio"
+	ComponentORAN       ComponentType = "oran"
+	ComponentCACHE      ComponentType = "cache"
+	ComponentCONTROLLER ComponentType = "controller"
+	ComponentMETRICS    ComponentType = "metrics"
+	ComponentPERF       ComponentType = "perf"
 )
 
 // ProcessingPhase represents the current phase of intent processing
 type ProcessingPhase string
 
 const (
+	// Legacy phase constants for backward compatibility
 	PhaseIntentReceived         ProcessingPhase = "IntentReceived"
 	PhaseLLMProcessing          ProcessingPhase = "LLMProcessing"
 	PhaseResourcePlanning       ProcessingPhase = "ResourcePlanning"
@@ -44,6 +57,14 @@ const (
 	PhaseDeploymentVerification ProcessingPhase = "DeploymentVerification"
 	PhaseCompleted              ProcessingPhase = "Completed"
 	PhaseFailed                 ProcessingPhase = "Failed"
+	
+	// New phase constants required by interfaces package
+	PhaseUnknown    ProcessingPhase = "Unknown"
+	PhaseInit       ProcessingPhase = "Init"
+	PhaseValidation ProcessingPhase = "Validation"
+	PhaseProcessing ProcessingPhase = "Processing"
+	PhaseComplete   ProcessingPhase = "Complete"
+	PhaseError      ProcessingPhase = "Error"
 )
 
 // ComponentStatus represents the status of a component

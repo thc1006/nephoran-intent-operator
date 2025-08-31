@@ -1,6 +1,6 @@
 // Package validation provides advanced load generation for performance testing.
 
-package validation
+package test_validation
 
 import (
 	"bytes"

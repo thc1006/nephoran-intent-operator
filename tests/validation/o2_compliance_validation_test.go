@@ -1,4 +1,4 @@
-package validation_test
+package test_validation_test
 
 import (
 	"bytes"

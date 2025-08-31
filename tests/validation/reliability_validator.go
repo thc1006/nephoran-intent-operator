@@ -1,6 +1,6 @@
 // Package validation provides reliability and production readiness validation.
 
-package validation
+package test_validation
 
 import (
 	"context"

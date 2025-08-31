@@ -52,19 +52,7 @@ func (p *Profiler) CaptureGoroutineProfile() (string, error) {
 	return "/tmp/goroutine.prof", nil
 }
 
-// OptimizationEngine provides performance optimization capabilities
-type OptimizationEngine struct {
-	profiler *Profiler
-	metrics  *MetricsCollector
-}
-
-// NewOptimizationEngine creates a new optimization engine
-func NewOptimizationEngine(profiler *Profiler, metrics *MetricsCollector) *OptimizationEngine {
-	return &OptimizationEngine{
-		profiler: profiler,
-		metrics:  metrics,
-	}
-}
+// NOTE: OptimizationEngine is defined in missing_core_types.go
 
 // OptimizedCache provides high-performance caching with generics support
 type OptimizedCache[K comparable, V any] struct {

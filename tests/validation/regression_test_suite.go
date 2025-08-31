@@ -1,6 +1,6 @@
 // Package validation provides comprehensive regression testing suite integration.
 
-package validation
+package test_validation
 
 import (
 	"context"

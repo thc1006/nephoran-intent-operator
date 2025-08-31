@@ -1,5 +1,5 @@
 // Package validation provides comprehensive performance testing for 23/25 points target
-package validation
+package test_validation
 
 import (
 	"context"

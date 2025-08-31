@@ -1,6 +1,6 @@
 // Package validation provides system-level validation components.
 
-package validation
+package test_validation
 
 import (
 	"context"

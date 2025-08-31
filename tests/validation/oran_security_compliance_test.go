@@ -1,5 +1,5 @@
 // Package validation provides O-RAN WG11 security compliance testing
-package validation
+package test_validation
 
 import (
 	"context"
