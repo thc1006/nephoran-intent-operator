@@ -1,1 +1,0 @@
-{"version":"v1","type":"scaling","target":{"service":"test-cnf","namespace":"default","replicas":3}}

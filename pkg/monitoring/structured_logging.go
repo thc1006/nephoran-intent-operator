@@ -1026,3 +1026,11 @@ func GetLogger() *StructuredLogger {
 	return DefaultLogger
 
 }
+
+// getEnv returns environment variable value with fallback
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}

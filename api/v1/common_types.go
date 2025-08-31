@@ -17,76 +17,11 @@ limitations under the License.
 package v1
 
 import (
-	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Priority represents processing priority levels
-// +kubebuilder:validation:Enum=low;normal;medium;high;critical
-type Priority string
-
-const (
-	PriorityLow      Priority = "low"
-	PriorityNormal   Priority = "normal"
-	PriorityMedium   Priority = "medium"
-	PriorityHigh     Priority = "high"
-	PriorityCritical Priority = "critical"
-)
-
-// ObjectReference contains enough information to let you inspect or modify the referred object
-type ObjectReference struct {
-	// Kind of the referent
-	// +kubebuilder:validation:Required
-	Kind string `json:"kind"`
-
-	// APIVersion of the referent
-	// +kubebuilder:validation:Required
-	APIVersion string `json:"apiVersion"`
-
-	// Name of the referent
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-
-	// Namespace of the referent; only applicable for namespaced resources
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-
-	// UID of the referent
-	// +optional
-	UID string `json:"uid,omitempty"`
-
-	// ResourceVersion of the referent
-	// +optional
-	ResourceVersion string `json:"resourceVersion,omitempty"`
-
-	// FieldPath refers to a field within the object
-	// +optional
-	FieldPath string `json:"fieldPath,omitempty"`
-}
-
-// GetObjectReference creates an ObjectReference from a Kubernetes object
-func GetObjectReference(obj metav1.Object, gvk metav1.GroupVersionKind) ObjectReference {
-	return ObjectReference{
-		Kind:            gvk.Kind,
-		APIVersion:      fmt.Sprintf("%s/%s", gvk.Group, gvk.Version),
-		Name:            obj.GetName(),
-		Namespace:       obj.GetNamespace(),
-		UID:             string(obj.GetUID()),
-		ResourceVersion: obj.GetResourceVersion(),
-	}
-}
-
-// ManagedElement represents a managed network element
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-type ManagedElement struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ManagedElementSpec   `json:"spec,omitempty"`
-	Status ManagedElementStatus `json:"status,omitempty"`
-}
+// ... (previous content)
 
 // ManagedElementSpec defines the desired state of ManagedElement
 type ManagedElementSpec struct {
@@ -105,6 +40,15 @@ type ManagedElementSpec struct {
 	// Tags for organizing managed elements
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
+	// Host specifies the hostname or IP address of the managed element
+	// +optional
+	Host string `json:"host,omitempty"`
+	// Port specifies the port number for the managed element
+	// +optional
+	Port int `json:"port,omitempty"`
+	// O1Config specifies the O1 interface configuration for the managed element
+	// +optional
+	O1Config string `json:"o1Config,omitempty"`
 }
 
 // ManagedElementCredentials defines authentication credentials
@@ -144,240 +88,293 @@ type ManagedElementCredentials struct {
 	// CA certificate reference
 	// +optional
 	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
+
 	// Client certificate reference for authentication
 	// +optional
 	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
+
+	// Username reference for basic authentication
+	// +optional
+	UsernameRef *corev1.SecretKeySelector `json:"usernameRef,omitempty"`
 }
 
-// ResourceConstraints defines resource constraints for network functions
+// Priority defines processing priority levels
+type Priority string
+
+const (
+	PriorityLow      Priority = "Low"
+	PriorityMedium   Priority = "Medium"
+	PriorityHigh     Priority = "High"
+	PriorityUrgent   Priority = "Urgent"
+	PriorityCritical Priority = "Critical"
+)
+
+// ObjectReference represents a reference to a Kubernetes object
+type ObjectReference struct {
+	// API version of the referent
+	APIVersion string `json:"apiVersion,omitempty"`
+	// Kind of the referent
+	Kind string `json:"kind,omitempty"`
+	// Name of the referent
+	Name string `json:"name,omitempty"`
+	// Namespace of the referent
+	Namespace string `json:"namespace,omitempty"`
+	// UID of the referent
+	UID string `json:"uid,omitempty"`
+}
+
+// ResourceConstraints defines resource limits and requests
 type ResourceConstraints struct {
-	// CPU resource constraints
-	// +optional
-	CPU *ResourceConstraintSpec `json:"cpu,omitempty"`
-
-	// Memory resource constraints
-	// +optional
-	Memory *ResourceConstraintSpec `json:"memory,omitempty"`
-
-	// Storage resource constraints
-	// +optional
-	Storage *ResourceConstraintSpec `json:"storage,omitempty"`
-
-	// Network bandwidth constraints
-	// +optional
-	Bandwidth *ResourceConstraintSpec `json:"bandwidth,omitempty"`
-
-	// Custom resource constraints
-	// +optional
-	CustomResources map[string]*ResourceConstraintSpec `json:"customResources,omitempty"`
-
-	// Custom additional constraints
-	// +optional
-	Custom map[string]string `json:"custom,omitempty"`
+	// CPU constraints
+	CPU *ResourceConstraint `json:"cpu,omitempty"`
+	// Memory constraints
+	Memory *ResourceConstraint `json:"memory,omitempty"`
+	// Storage constraints
+	Storage *ResourceConstraint `json:"storage,omitempty"`
+	// Bandwidth constraints
+	Bandwidth *ResourceConstraint `json:"bandwidth,omitempty"`
+	// CustomResources for custom resource constraints
+	CustomResources map[string]*ResourceConstraint `json:"customResources,omitempty"`
 }
 
-// ResourceConstraintSpec defines the specification for a resource constraint
-type ResourceConstraintSpec struct {
-	// Minimum required value
-	// +optional
+// ResourceConstraint defines a single resource constraint
+type ResourceConstraint struct {
+	// Minimum required amount
 	Min *string `json:"min,omitempty"`
-
-	// Maximum allowed value
-	// +optional
+	// Maximum allowed amount
 	Max *string `json:"max,omitempty"`
-
-	// Default value if not specified
-	// +optional
-	Default *string `json:"default,omitempty"`
-
-	// Preferred value for allocation
-	// +optional
-	Preferred *string `json:"preferred,omitempty"`
-
-	// Unit of measurement (e.g., "cores", "Gi", "Mbps")
-	// +optional
-	Unit string `json:"unit,omitempty"`
+	// Requested amount
+	Request *string `json:"request,omitempty"`
+	// Limit amount
+	Limit *string `json:"limit,omitempty"`
 }
 
-// ProcessedParameters contains structured parameters from intent processing
+// ProcessedParameters contains structured parameters extracted from the intent
 type ProcessedParameters struct {
-	// Raw parameters as key-value pairs
-	// +optional
+	// Scaling parameters
+	Scaling *ScalingParameters `json:"scaling,omitempty"`
+	// Resource parameters
+	Resources *ResourceParameters `json:"resources,omitempty"`
+	// Network parameters
+	Network *NetworkParameters `json:"network,omitempty"`
+	// Custom parameters as key-value pairs
+	Custom map[string]string `json:"custom,omitempty"`
+	// Raw parameters for backup
 	Raw map[string]string `json:"raw,omitempty"`
-
-	// Structured parameters organized by category
-	// +optional
+	// Structured parameters
 	Structured map[string]string `json:"structured,omitempty"`
-
-	// NetworkFunction specifies the target network function type (e.g., "AMF", "SMF", "UPF")
-	// This field identifies the primary network function for the intent processing
-	// +kubebuilder:validation:Optional
-	// +optional
-	NetworkFunction string `json:"networkFunction,omitempty"`
-
-	// Region specifies the deployment region for the network function
-	// This field is used for regional deployment and resource allocation decisions
-	// +kubebuilder:validation:Optional
-	// +optional
-	Region string `json:"region,omitempty"`
-
-	// CustomParameters contains additional user-defined parameters
-	// These parameters provide flexibility for custom deployment configurations
-	// +kubebuilder:validation:Optional
-	// +optional
+	// CustomParameters as separate field
 	CustomParameters map[string]string `json:"customParameters,omitempty"`
-
-	// Security-related parameters (now structured instead of map[string]interface{})
-	// +optional
+	// SecurityParameters for security-related settings
 	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
-
-	// Processing metadata
-	// +optional
+	// Metadata for additional information
 	Metadata *ParameterMetadata `json:"metadata,omitempty"`
 }
 
-// ParameterMetadata contains metadata about parameter processing
-type ParameterMetadata struct {
-	// Processing timestamp
-	// +optional
-	ProcessedAt *metav1.Time `json:"processedAt,omitempty"`
+// ScalingParameters defines scaling-related parameters
+type ScalingParameters struct {
+	// Minimum replicas
+	MinReplicas *int32 `json:"minReplicas,omitempty"`
+	// Maximum replicas
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
+	// Target replicas
+	TargetReplicas *int32 `json:"targetReplicas,omitempty"`
+	// Scaling triggers
+	Triggers []ScalingTrigger `json:"triggers,omitempty"`
+}
 
-	// Processing version/engine used
-	// +optional
-	ProcessingVersion string `json:"processingVersion,omitempty"`
+// ScalingTrigger defines a scaling trigger condition
+type ScalingTrigger struct {
+	// Metric name
+	Metric string `json:"metric"`
+	// Target value
+	TargetValue string `json:"targetValue"`
+	// Comparison operator (>, <, >=, <=, ==)
+	Operator string `json:"operator"`
+}
 
-	// Source of parameters (llm, user, system, etc.)
-	// +optional
-	Source string `json:"source,omitempty"`
+// ResourceParameters defines resource-related parameters
+type ResourceParameters struct {
+	// CPU requirements
+	CPU string `json:"cpu,omitempty"`
+	// Memory requirements
+	Memory string `json:"memory,omitempty"`
+	// Storage requirements
+	Storage string `json:"storage,omitempty"`
+}
 
-	// Confidence score for the processing
-	// +optional
-	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+// NetworkParameters defines network-related parameters
+type NetworkParameters struct {
+	// Service ports
+	Ports []ServicePortConfig `json:"ports,omitempty"`
+	// Service type
+	ServiceType string `json:"serviceType,omitempty"`
+	// Load balancer settings
+	LoadBalancer *LoadBalancerConfig `json:"loadBalancer,omitempty"`
+}
 
-	// Confidence level for the processing
-	// +optional
-	Confidence string `json:"confidence,omitempty"`
+// ServicePortConfig defines a service port configuration for common use
+type ServicePortConfig struct {
+	// Port name
+	Name string `json:"name,omitempty"`
+	// Port number
+	Port int32 `json:"port"`
+	// Target port
+	TargetPort int32 `json:"targetPort,omitempty"`
+	// Protocol (TCP, UDP)
+	Protocol string `json:"protocol,omitempty"`
+}
 
-	// Additional metadata
-	// +optional
-	Annotations map[string]string `json:"annotations,omitempty"`
+// LoadBalancerConfig defines load balancer configuration
+type LoadBalancerConfig struct {
+	// Load balancer type
+	Type string `json:"type,omitempty"`
+	// Health check configuration
+	HealthCheck *CommonHealthCheckConfig `json:"healthCheck,omitempty"`
+}
+
+// CommonHealthCheckConfig defines health check configuration for common use
+type CommonHealthCheckConfig struct {
+	// Health check path
+	Path string `json:"path,omitempty"`
+	// Health check port
+	Port int32 `json:"port,omitempty"`
+	// Check interval in seconds
+	IntervalSeconds int32 `json:"intervalSeconds,omitempty"`
+	// Timeout in seconds
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+}
+
+// TargetComponent defines a target component
+type TargetComponent struct {
+	// Name of the component
+	Name string `json:"name"`
+	// Type of the component
+	Type string `json:"type"`
+	// Namespace of the component
+	Namespace string `json:"namespace,omitempty"`
+	// Labels for component selection
+	Labels map[string]string `json:"labels,omitempty"`
+}
+
+// BackupCompressionConfig defines backup compression configuration
+type BackupCompressionConfig struct {
+	// Compression type
+	Type string `json:"type,omitempty"`
+	// Compression level
+	Level int `json:"level,omitempty"`
+}
+
+// ManagedElement defines a managed element
+type ManagedElement struct {
+	// Standard object's metadata
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec defines the desired state of the managed element
+	Spec ManagedElementSpec `json:"spec,omitempty"`
+	
+	// Status defines the observed state of the managed element
+	Status ManagedElementStatus `json:"status,omitempty"`
 }
 
 // ManagedElementStatus defines the observed state of ManagedElement
 type ManagedElementStatus struct {
-	// Conditions represent the latest available observations
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// Phase represents the current lifecycle phase
-	// +optional
+	// Phase represents the lifecycle phase of the managed element
 	Phase string `json:"phase,omitempty"`
-
-	// Last successful connection timestamp
-	// +optional
+	// Message contains human-readable information about the status
+	Message string `json:"message,omitempty"`
+	// Ready indicates if the managed element is ready
+	Ready bool `json:"ready,omitempty"`
+	// Last update time
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+	// Conditions represent the current conditions
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LastConnected represents the last connection time
 	LastConnected *metav1.Time `json:"lastConnected,omitempty"`
-
-	// Connection status
-	// +optional
-	ConnectionStatus string `json:"connectionStatus,omitempty"`
-
-	// Current configuration version
-	// +optional
-	ConfigVersion string `json:"configVersion,omitempty"`
-
-	// Observed generation
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // ManagedElementList contains a list of ManagedElement
-// +kubebuilder:object:root=true
 type ManagedElementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ManagedElement `json:"items"`
 }
 
-// ConditionType represents the type of condition
-type ConditionType string
-
-const (
-	// ConditionReady indicates the resource is ready
-	ConditionReady ConditionType = "Ready"
-
-	// ConditionProgressing indicates the resource is progressing
-	ConditionProgressing ConditionType = "Progressing"
-
-	// ConditionDegraded indicates the resource is degraded
-	ConditionDegraded ConditionType = "Degraded"
-
-	// ConditionAvailable indicates the resource is available
-	ConditionAvailable ConditionType = "Available"
-)
-
-// ConditionReason represents the reason for a condition
-type ConditionReason string
-
-const (
-	// ReasonReconciling indicates resource is being reconciled
-	ReasonReconciling ConditionReason = "Reconciling"
-
-	// ReasonReconciled indicates resource has been reconciled
-	ReasonReconciled ConditionReason = "Reconciled"
-
-	// ReasonFailed indicates reconciliation failed
-	ReasonFailed ConditionReason = "Failed"
-
-	// ReasonProgressing indicates resource is progressing
-	ReasonProgressing ConditionReason = "Progressing"
-
-	// ReasonReady indicates resource is ready
-	ReasonReady ConditionReason = "Ready"
-
-	// ReasonDegraded indicates resource is degraded
-	ReasonDegraded ConditionReason = "Degraded"
-)
-
-// TargetComponent represents a target component for deployment or management
-type TargetComponent struct {
-	// Name is the component identifier
+// ParameterMetadata defines metadata for parameters
+type ParameterMetadata struct {
+	// Name of the parameter
 	Name string `json:"name"`
-
-	// Type is the component type (e.g., "O-RAN-CU", "O-RAN-DU", "5GC-AMF")
+	// Type of the parameter
 	Type string `json:"type"`
-
-	// Version specifies the component version
-	// +optional
-	Version string `json:"version,omitempty"`
-
-	// Configuration for the component
-	// +optional
-	Config map[string]string `json:"config,omitempty"`
-
-	// Resource requirements
-	// +optional
-	Resources *ResourceConstraints `json:"resources,omitempty"`
-
-	// Status of the component
-	// +optional
-	Status string `json:"status,omitempty"`
+	// Description of the parameter
+	Description string `json:"description,omitempty"`
+	// Whether the parameter is required
+	Required bool `json:"required,omitempty"`
+	// Default value
+	Default string `json:"default,omitempty"`
+	// ProcessedAt indicates when the parameter was processed
+	ProcessedAt *metav1.Time `json:"processedAt,omitempty"`
+	// ConfidenceScore indicates confidence in parameter extraction
+	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+	// Annotations for additional metadata
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// BackupCompressionConfig defines backup compression settings
-type BackupCompressionConfig struct {
-	// Enabled indicates whether compression is enabled
-	Enabled bool `json:"enabled"`
-
-	// Algorithm specifies the compression algorithm
-	// +kubebuilder:validation:Enum=gzip;bzip2;lz4;zstd
-	// +optional
-	Algorithm string `json:"algorithm,omitempty"`
-
-	// Level specifies the compression level (1-9 for most algorithms)
-	// +optional
-	Level int `json:"level,omitempty"`
-
-	// ChunkSize specifies the chunk size for compression
-	// +optional
-	ChunkSize string `json:"chunkSize,omitempty"`
+// ResourceConstraintSpec defines resource constraint specifications
+type ResourceConstraintSpec struct {
+	// CPU constraints
+	CPU string `json:"cpu,omitempty"`
+	// Memory constraints
+	Memory string `json:"memory,omitempty"`
+	// Storage constraints
+	Storage string `json:"storage,omitempty"`
+	// Min constraints
+	Min *string `json:"min,omitempty"`
+	// Max constraints
+	Max *string `json:"max,omitempty"`
+	// Request constraints
+	Request *string `json:"request,omitempty"`
+	// Limit constraints
+	Limit *string `json:"limit,omitempty"`
+	// Default constraints
+	Default *string `json:"default,omitempty"`
+	// Preferred constraints
+	Preferred *string `json:"preferred,omitempty"`
 }
+
+// Note: SecurityParameters and TLSConfig are defined in other files
+
+// HealthCheck defines health check configuration
+type HealthCheck struct {
+	// Enabled indicates if health check is enabled
+	Enabled bool `json:"enabled,omitempty"`
+	// Path for health check endpoint
+	Path string `json:"path,omitempty"`
+	// Port for health check
+	Port int32 `json:"port,omitempty"`
+	// Interval between checks
+	IntervalSeconds int32 `json:"intervalSeconds,omitempty"`
+	// Timeout for each check
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+	// Resource reference for health check
+	Resource string `json:"resource,omitempty"`
+	// Configuration for the health check
+	Configuration map[string]string `json:"configuration,omitempty"`
+}
+
+// HealthCheckConfig defines health check configuration
+type HealthCheckConfig struct {
+	// Enabled indicates if health checks are enabled
+	Enabled *bool `json:"enabled,omitempty"`
+	// HTTP health check configuration
+	HTTP *HealthCheck `json:"http,omitempty"`
+	// TCP health check configuration
+	TCP *HealthCheck `json:"tcp,omitempty"`
+	// Exec health check configuration
+	Exec *HealthCheck `json:"exec,omitempty"`
+	// Checks is a list of health checks
+	Checks []HealthCheck `json:"checks,omitempty"`
+}
+
+// ... (rest of the previous content)

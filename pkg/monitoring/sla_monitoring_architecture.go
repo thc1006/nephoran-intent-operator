@@ -598,7 +598,15 @@ func NewSLAMonitoringArchitecture(
 
 	// Initialize Predictive Analyzer.
 
-	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(config, logger)
+	// Create a basic seasonality detector
+	detector := &SeasonalityDetector{
+		Pattern:    "daily",
+		Confidence: 0.8,
+		Period:     24 * time.Hour,
+		Amplitude:  1.0,
+	}
+	
+	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(prometheus.DefaultRegisterer, *detector)
 
 	// Initialize Data Collection and Processing.
 
@@ -654,11 +662,11 @@ func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
 
 	// Start predictive analysis.
 
-	if err := arch.PredictiveAnalyzer.Start(ctx); err != nil {
+	// if err := arch.PredictiveAnalyzer.Start(ctx); err != nil {
 
-		return err
+	//	return err
 
-	}
+	// }
 
 	// Start synthetic monitoring.
 

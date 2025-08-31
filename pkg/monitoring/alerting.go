@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

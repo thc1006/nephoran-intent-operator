@@ -6,17 +6,40 @@
   "version": "1.0.0",
   "type": "object",
   "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^[a-zA-Z0-9-_]+$",
-      "minLength": 1,
-      "maxLength": 64,
-      "description": "Unique identifier for the network intent"
-    },
-    "type": {
+    "intent_type": {
       "type": "string",
       "enum": ["scaling", "deployment", "configuration"],
       "description": "Type of network intent operation"
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target resource to scale or modify"
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Kubernetes namespace for the target resource"
+    },
+    "replicas": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Desired number of replicas"
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "Optional reason for the scaling operation"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["user", "planner", "test", ""],
+      "description": "Source of the intent request"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Optional correlation ID for tracking"
     },
     "priority": {
       "type": "integer",
@@ -24,35 +47,6 @@
       "maximum": 10,
       "default": 5,
       "description": "Priority level for intent execution (0=lowest, 10=highest)"
-    },
-    "description": {
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 500,
-      "description": "Human-readable description of the intent"
-    },
-    "parameters": {
-      "type": "object",
-      "additionalProperties": true,
-      "description": "Intent-specific parameters and configuration",
-      "examples": [
-        {
-          "target_replicas": 3,
-          "resource_limits": {
-            "cpu": "1000m",
-            "memory": "1Gi"
-          }
-        }
-      ]
-    },
-    "target_resources": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^[a-z]+/[a-zA-Z0-9-._]+$"
-      },
-      "minItems": 1,
-      "description": "List of target Kubernetes resources (format: kind/name)"
     },
     "constraints": {
       "type": "object",
@@ -92,29 +86,21 @@
     }
   },
   "required": [
-    "id",
-    "type",
-    "description",
-    "parameters",
-    "target_resources",
-    "status"
+    "intent_type",
+    "target",
+    "namespace",
+    "replicas"
   ],
   "examples": [
     {
-      "id": "scale-odu-workload-001",
-      "type": "scaling",
+      "intent_type": "scaling",
+      "target": "odu-high-phy",
+      "namespace": "oran-odu",
+      "replicas": 5,
+      "reason": "Scale O-DU workload based on increased traffic demand in cell sector 123",
+      "source": "planner",
+      "correlation_id": "scale-odu-workload-001",
       "priority": 8,
-      "description": "Scale O-DU workload based on increased traffic demand in cell sector 123",
-      "parameters": {
-        "target_replicas": 5,
-        "scale_direction": "up",
-        "trigger": "cpu_threshold_exceeded",
-        "threshold_value": 80
-      },
-      "target_resources": [
-        "deployment/odu-high-phy",
-        "deployment/odu-low-phy"
-      ],
       "constraints": {
         "max_replicas": 10,
         "min_replicas": 2,

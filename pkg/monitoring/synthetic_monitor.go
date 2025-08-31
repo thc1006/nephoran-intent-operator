@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -139,7 +138,7 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 			result.ResponseTime, check.ThresholdMs)
 	}
 
-	sm.logger.V(1).Info("Executed synthetic check",
+	sm.logger.Debug("Executed synthetic check",
 		"checkID", check.ID,
 		"success", result.Success,
 		"responseTime", result.ResponseTime.String(),
@@ -229,7 +228,7 @@ func (sm *SyntheticMonitor) recordResult(result *CheckResult) {
 		result.Availability = 0.0
 	}
 
-	sm.logger.V(1).Info("Recorded check result",
+	sm.logger.Debug("Recorded check result",
 		"checkID", result.CheckID,
 		"success", result.Success,
 		"responseTime", result.ResponseTime.String(),

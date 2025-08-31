@@ -5,6 +5,7 @@ package rag
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -275,11 +276,9 @@ func calculateCosineSimilarity(a, b []float32) float32 {
 
 	}
 
-	return dotProduct / (float32(sqrt(float64(normA))) * float32(sqrt(float64(normB))))
+	return dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
 
 }
-
-// Note: sqrt function is defined in optimized_rag_pipeline.go.
 
 // generateRequestID generates a unique request ID.
 

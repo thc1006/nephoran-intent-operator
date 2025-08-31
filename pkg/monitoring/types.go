@@ -278,13 +278,8 @@ type SyntheticMonitor struct {
 	logger     *slog.Logger
 	httpClient *http.Client
 
-	// Extended fields from sla_monitoring_architecture.go
-	IntentProcessingTests *IntentProcessingTestSuite `json:"intent_processing_tests,omitempty"`
-	APIEndpointTests      *APIEndpointTestSuite      `json:"api_endpoint_tests,omitempty"`
-	UserJourneyTests      *UserJourneyTestSuite      `json:"user_journey_tests,omitempty"`
-	TestScheduler         *TestScheduler             `json:"test_scheduler,omitempty"`
-	TestExecutor          *TestExecutor              `json:"test_executor,omitempty"`
-	ResultProcessor       *TestResultProcessor       `json:"result_processor,omitempty"`
+	// Note: Extended test suite fields have been moved to sla_monitoring_architecture.go
+	// to avoid circular dependencies. Use SLAMonitoringArchitecture for advanced testing.
 }
 
 // CertificateInfo contains information about TLS certificates
@@ -303,9 +298,8 @@ type SyntheticCheckList struct {
 	Items           []SyntheticCheck `json:"items"`
 }
 
-// Note: IntentProcessingTestSuite, APIEndpointTestSuite, UserJourneyTestSuite, 
-// TestScheduler, TestExecutor, and TestResultProcessor are defined in 
-// sla_monitoring_architecture.go to avoid duplicates
+// Note: Advanced test suite types are defined in sla_monitoring_architecture.go 
+// to maintain proper separation of concerns and avoid circular dependencies.
 
 // Missing types that need to be defined
 type AlertRule struct {

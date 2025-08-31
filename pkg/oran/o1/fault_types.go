@@ -29,18 +29,19 @@ func NewFaultNotificationChannel(id, chType string, config map[string]interface{
 func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error {
 	// Convert alarm to generic notification
 	notification := &Notification{
-		NotificationID:   alarm.AlarmID,
-		NotificationType: "ALARM",
-		EventTime:        alarm.AlarmRaisedTime,
-		SystemDN:         alarm.ManagedObjectID,
-		NotificationData: map[string]interface{}{
-			"title":           template.Subject,
-			"message":         f.formatMessage(alarm, template),
-			"severity":        alarm.PerceivedSeverity,
-			"source":          "FAULT_MANAGER",
-			"alarm_type":      alarm.AlarmType,
+		ID:        alarm.AlarmID,
+		Type:      "ALARM",
+		Severity:  alarm.PerceivedSeverity,
+		Title:     template.Subject,
+		Message:   f.formatMessage(alarm, template),
+		Source:    "FAULT_MANAGER",
+		Target:    alarm.ObjectInstance,
+		Timestamp: alarm.AlarmRaisedTime,
+		AckRequired: true,
+		Metadata: map[string]interface{}{
+			"event_type":      alarm.EventType,
 			"probable_cause":  alarm.ProbableCause,
-			"managed_element": alarm.ManagedObjectID,
+			"managed_element": alarm.ObjectInstance,
 			"additional_info": alarm.AdditionalText,
 		},
 	}
@@ -60,10 +61,10 @@ func (f *FaultNotificationChannelImpl) formatMessage(alarm *EnhancedAlarm, templ
 	replacements := map[string]string{
 		"{{.AlarmID}}":         alarm.AlarmID,
 		"{{.Severity}}":        alarm.PerceivedSeverity,
-		"{{.Type}}":            alarm.AlarmType,
+		"{{.Type}}":            alarm.EventType,
 		"{{.ProbableCause}}":   alarm.ProbableCause,
 		"{{.SpecificProblem}}": alarm.AdditionalText,
-		"{{.ManagedElement}}":  alarm.ManagedObjectID,
+		"{{.ManagedElement}}":  alarm.ObjectInstance,
 		"{{.TimeRaised}}":      alarm.AlarmRaisedTime.Format(time.RFC3339),
 		"{{.AdditionalInfo}}":  alarm.AdditionalText,
 	}

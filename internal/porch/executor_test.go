@@ -424,7 +424,7 @@ func TestGetExitCode(t *testing.T) {
 				t.Skip("Skipping false command test on Windows")
 			}
 
-			cmd, err := tt.setupCmd()
+			_, err := tt.setupCmd()
 			exitCode := getExitCode(err)
 			assert.Equal(t, tt.expectedCode, exitCode)
 		})

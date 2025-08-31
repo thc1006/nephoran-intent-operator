@@ -430,11 +430,13 @@ func (psa *PredictiveSLAAnalyzer) detectAnomalies(data []*MetricsData, metricNam
 			deviation := math.Abs(val - mean)
 			if deviation > threshold {
 				anomalies = append(anomalies, AnomalyPoint{
-					Timestamp: d.Timestamp,
-					Value:     val,
-					Expected:  mean,
-					Severity:  math.Min(deviation/threshold, 1.0),
-					Context:   fmt.Sprintf("Point %d deviates by %.2f from mean", i, deviation),
+					Timestamp:     d.Timestamp,
+					Value:         val,
+					ExpectedValue: mean,
+					Deviation:     deviation,
+					Severity:      fmt.Sprintf("%.2f", math.Min(deviation/threshold, 1.0)),
+					AnomalyScore:  math.Min(deviation/threshold, 1.0),
+					Context:       map[string]interface{}{"description": fmt.Sprintf("Point %d deviates by %.2f from mean", i, deviation)},
 				})
 			}
 		}
@@ -511,10 +513,11 @@ func (psa *PredictiveSLAAnalyzer) generatePredictions(data []*MetricsData, model
 		uncertainty := math.Abs(predictedValue) * 0.1 // 10% uncertainty
 		
 		predictions = append(predictions, PredictionPoint{
-			Timestamp: timestamp,
-			Value:     predictedValue,
-			Lower:     predictedValue - uncertainty,
-			Upper:     predictedValue + uncertainty,
+			Timestamp:  timestamp,
+			Value:      predictedValue,
+			Confidence: math.Max(0, 1.0 - uncertainty/math.Abs(predictedValue)),
+			Source:     "predictive-sla-analyzer",
+			ModelName:  "linear-regression",
 		})
 	}
 	

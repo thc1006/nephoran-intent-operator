@@ -634,65 +634,6 @@ type RetryBackoff struct {
 	MaxDuration string `json:"maxDuration,omitempty"`
 }
 
-// HealthCheckConfig defines health check configuration.
-
-type HealthCheckConfig struct {
-
-	// Enabled determines if health checks are enabled.
-
-	// +optional
-
-	// +kubebuilder:default=true
-
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// Timeout for health checks.
-
-	// +optional
-
-	// +kubebuilder:default="300s"
-
-	Timeout string `json:"timeout,omitempty"`
-
-	// CheckInterval defines how often to check health.
-
-	// +optional
-
-	// +kubebuilder:default="30s"
-
-	CheckInterval string `json:"checkInterval,omitempty"`
-
-	// Checks defines specific health checks.
-
-	// +optional
-
-	Checks []HealthCheck `json:"checks,omitempty"`
-}
-
-// HealthCheck defines a specific health check.
-
-type HealthCheck struct {
-
-	// Name of the health check.
-
-	Name string `json:"name"`
-
-	// Type of health check (readiness, liveness, custom).
-
-	Type string `json:"type"`
-
-	// Resource to check.
-
-	Resource ResourceReference `json:"resource"`
-
-	// Configuration for the health check.
-
-	// +optional
-
-	// +kubebuilder:pruning:PreserveUnknownFields
-
-	Configuration runtime.RawExtension `json:"configuration,omitempty"`
-}
 
 // RollbackConfig defines rollback configuration.
 

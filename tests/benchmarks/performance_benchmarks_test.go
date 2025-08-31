@@ -18,10 +18,10 @@ package benchmarks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
-	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,7 +43,7 @@ func BenchmarkNetworkIntentCreation(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -54,7 +54,7 @@ func BenchmarkNetworkIntentCreation(b *testing.B) {
 		intent.Name = fmt.Sprintf("benchmark-intent-%d", i)
 		intent.Namespace = "default"
 
-		err := client.Create(ctx, intent)
+		err := k8sClient.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create intent %d: %v", i, err)
 		}
@@ -69,7 +69,7 @@ func BenchmarkNetworkIntentRetrieval(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	// Pre-populate with test data
@@ -78,7 +78,7 @@ func BenchmarkNetworkIntentRetrieval(b *testing.B) {
 		intent := fixtures.SimpleNetworkIntent()
 		intent.Name = fmt.Sprintf("benchmark-intent-%d", i)
 		intent.Namespace = "default"
-		err := client.Create(ctx, intent)
+		err := k8sClient.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create intent %d: %v", i, err)
 		}
@@ -89,7 +89,7 @@ func BenchmarkNetworkIntentRetrieval(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		intent := &nephoranv1.NetworkIntent{}
-		err := client.Get(ctx, types.NamespacedName{
+		err := k8sClient.Get(ctx, types.NamespacedName{
 			Name:      fmt.Sprintf("benchmark-intent-%d", i%numObjects),
 			Namespace: "default",
 		}, intent)
@@ -107,14 +107,14 @@ func BenchmarkNetworkIntentUpdate(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	// Pre-create test object
 	intent := fixtures.SimpleNetworkIntent()
 	intent.Name = "benchmark-update-intent"
 	intent.Namespace = "default"
-	err = client.Create(ctx, intent)
+	err = k8sClient.Create(ctx, intent)
 	if err != nil {
 		b.Fatalf("Failed to create intent: %v", err)
 	}
@@ -125,14 +125,14 @@ func BenchmarkNetworkIntentUpdate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Get latest version
 		key := types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace}
-		err := client.Get(ctx, key, intent)
+		err := k8sClient.Get(ctx, key, intent)
 		if err != nil {
 			b.Fatalf("Failed to get intent: %v", err)
 		}
 
 		// Update intent
 		intent.Spec.Intent = fmt.Sprintf("updated intent %d", i)
-		err = client.Update(ctx, intent)
+		err = k8sClient.Update(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to update intent %d: %v", i, err)
 		}
@@ -147,7 +147,7 @@ func BenchmarkNetworkIntentList(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	// Pre-populate with test data
@@ -156,7 +156,7 @@ func BenchmarkNetworkIntentList(b *testing.B) {
 		intent := fixtures.SimpleNetworkIntent()
 		intent.Name = fmt.Sprintf("benchmark-list-%d", i)
 		intent.Namespace = "default"
-		err := client.Create(ctx, intent)
+		err := k8sClient.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create intent %d: %v", i, err)
 		}
@@ -167,7 +167,7 @@ func BenchmarkNetworkIntentList(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		intentList := &nephoranv1.NetworkIntentList{}
-		err := client.List(ctx, intentList, client.InNamespace("default"))
+		err := k8sClient.List(ctx, intentList, &client.ListOptions{Namespace: "default"})
 		if err != nil {
 			b.Fatalf("Failed to list intents: %v", err)
 		}
@@ -185,11 +185,11 @@ func BenchmarkControllerReconcile(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	reconciler := &controllers.NetworkIntentReconciler{
-		Client:          client,
+		Client:          k8sClient,
 		Scheme:          scheme,
 		Log:             zap.New(zap.UseDevMode(false)), // Use production logger for benchmarks
 		EnableLLMIntent: false,                         // Disable LLM for pure reconcile performance
@@ -199,7 +199,7 @@ func BenchmarkControllerReconcile(b *testing.B) {
 	intent := fixtures.SimpleNetworkIntent()
 	intent.Name = "benchmark-reconcile-intent"
 	intent.Namespace = "default"
-	err = client.Create(ctx, intent)
+	err = k8sClient.Create(ctx, intent)
 	if err != nil {
 		b.Fatalf("Failed to create intent: %v", err)
 	}
@@ -227,7 +227,7 @@ func BenchmarkConcurrentNetworkIntentOperations(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -240,7 +240,7 @@ func BenchmarkConcurrentNetworkIntentOperations(b *testing.B) {
 			intent.Name = fmt.Sprintf("concurrent-intent-%d", i)
 			intent.Namespace = "default"
 
-			err := client.Create(ctx, intent)
+			err := k8sClient.Create(ctx, intent)
 			if err != nil {
 				b.Fatalf("Failed to create intent: %v", err)
 			}
@@ -297,7 +297,7 @@ func BenchmarkJSONMarshaling(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := intent.MarshalJSON()
+		_, err := json.Marshal(intent)
 		if err != nil {
 			b.Fatalf("Failed to marshal JSON: %v", err)
 		}
@@ -307,7 +307,7 @@ func BenchmarkJSONMarshaling(b *testing.B) {
 // BenchmarkJSONUnmarshaling benchmarks JSON unmarshaling performance
 func BenchmarkJSONUnmarshaling(b *testing.B) {
 	intent := fixtures.ComplexIntent()
-	data, err := intent.MarshalJSON()
+	data, err := json.Marshal(intent)
 	if err != nil {
 		b.Fatalf("Failed to marshal test data: %v", err)
 	}
@@ -317,7 +317,7 @@ func BenchmarkJSONUnmarshaling(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		var unmarshaled nephoranv1.NetworkIntent
-		err := unmarshaled.UnmarshalJSON(data)
+		err := json.Unmarshal(data, &unmarshaled)
 		if err != nil {
 			b.Fatalf("Failed to unmarshal JSON: %v", err)
 		}
@@ -344,7 +344,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -357,7 +357,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 			intent.Name = fmt.Sprintf("memory-test-%d-%d", i, j)
 			intent.Namespace = "default"
 
-			err := client.Create(ctx, intent)
+			err := k8sClient.Create(ctx, intent)
 			if err != nil {
 				b.Fatalf("Failed to create intent: %v", err)
 			}
@@ -376,7 +376,7 @@ func BenchmarkHighConcurrency(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	const numWorkers = 100
@@ -396,7 +396,7 @@ func BenchmarkHighConcurrency(b *testing.B) {
 				intent.Name = fmt.Sprintf("high-concurrency-%d-%d", iteration, worker)
 				intent.Namespace = "default"
 
-				err := client.Create(ctx, intent)
+				err := k8sClient.Create(ctx, intent)
 				if err != nil {
 					b.Errorf("Worker %d failed to create intent: %v", worker, err)
 				}
@@ -415,11 +415,11 @@ func BenchmarkControllerConcurrentReconcile(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	reconciler := &controllers.NetworkIntentReconciler{
-		Client:          client,
+		Client:          k8sClient,
 		Scheme:          scheme,
 		Log:             zap.New(zap.UseDevMode(false)),
 		EnableLLMIntent: false,
@@ -433,7 +433,7 @@ func BenchmarkControllerConcurrentReconcile(b *testing.B) {
 		intent.Name = fmt.Sprintf("concurrent-reconcile-%d", i)
 		intent.Namespace = "default"
 		
-		err := client.Create(ctx, intent)
+		err := k8sClient.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create intent %d: %v", i, err)
 		}
@@ -471,7 +471,7 @@ func BenchmarkScalabilityTest(b *testing.B) {
 				b.Fatalf("Failed to add scheme: %v", err)
 			}
 
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			ctx := context.Background()
 
 			// Pre-populate with data
@@ -479,7 +479,7 @@ func BenchmarkScalabilityTest(b *testing.B) {
 				intent := fixtures.SimpleNetworkIntent()
 				intent.Name = fmt.Sprintf("scalability-test-%d", i)
 				intent.Namespace = "default"
-				err := client.Create(ctx, intent)
+				err := k8sClient.Create(ctx, intent)
 				if err != nil {
 					b.Fatalf("Failed to create intent %d: %v", i, err)
 				}
@@ -490,7 +490,7 @@ func BenchmarkScalabilityTest(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				intentList := &nephoranv1.NetworkIntentList{}
-				err := client.List(ctx, intentList, client.InNamespace("default"))
+				err := k8sClient.List(ctx, intentList, &client.ListOptions{Namespace: "default"})
 				if err != nil {
 					b.Fatalf("Failed to list intents: %v", err)
 				}
@@ -514,7 +514,7 @@ func BenchmarkResourceCleanup(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		client := fake.NewClientBuilder().WithScheme(scheme).Build()
+		k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 		ctx := context.Background()
 
 		// Create resources
@@ -525,7 +525,7 @@ func BenchmarkResourceCleanup(b *testing.B) {
 			intent.Name = fmt.Sprintf("cleanup-test-%d-%d", i, j)
 			intent.Namespace = "default"
 			
-			err := client.Create(ctx, intent)
+			err := k8sClient.Create(ctx, intent)
 			if err != nil {
 				b.Fatalf("Failed to create intent: %v", err)
 			}
@@ -535,7 +535,7 @@ func BenchmarkResourceCleanup(b *testing.B) {
 		// Benchmark cleanup
 		b.StartTimer()
 		for _, intent := range intents {
-			err := client.Delete(ctx, intent)
+			err := k8sClient.Delete(ctx, intent)
 			if err != nil {
 				b.Fatalf("Failed to delete intent: %v", err)
 			}
@@ -556,10 +556,10 @@ func BenchmarkControllerSetup(b *testing.B) {
 			b.Fatalf("Failed to add scheme: %v", err)
 		}
 
-		client := fake.NewClientBuilder().WithScheme(scheme).Build()
+		k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 		_ = &controllers.NetworkIntentReconciler{
-			Client:          client,
+			Client:          k8sClient,
 			Scheme:          scheme,
 			Log:             zap.New(zap.UseDevMode(false)),
 			EnableLLMIntent: false,
@@ -575,7 +575,7 @@ func BenchmarkLargeIntentProcessing(b *testing.B) {
 		b.Fatalf("Failed to add scheme: %v", err)
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	ctx := context.Background()
 
 	// Create intent with large content
@@ -587,29 +587,20 @@ func BenchmarkLargeIntentProcessing(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		intent.Name = fmt.Sprintf("large-intent-%d", i)
-		err := client.Create(ctx, intent)
+		err := k8sClient.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create large intent: %v", err)
 		}
 	}
 }
 
-// Example benchmark output analysis function (not a benchmark itself)
-func ExampleBenchmarkAnalysis() {
+// BenchmarkAnalysisTips provides guidance on interpreting benchmark results
+func BenchmarkAnalysisTips(b *testing.B) {
 	// This function demonstrates how to analyze benchmark results
 	// Run benchmarks with: go test -bench=. -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof
-	
-	fmt.Println("Benchmark Analysis Tips:")
-	fmt.Println("1. Look for ns/op (nanoseconds per operation) - lower is better")
-	fmt.Println("2. Check B/op (bytes per operation) - indicates memory usage")
-	fmt.Println("3. Monitor allocs/op (allocations per operation) - fewer is better")
-	fmt.Println("4. Use -benchtime to run longer benchmarks for more stable results")
-	fmt.Println("5. Run multiple times and compare results to identify trends")
-	
-	// Output:
-	// Benchmark Analysis Tips:
+	// Guidance:
 	// 1. Look for ns/op (nanoseconds per operation) - lower is better
-	// 2. Check B/op (bytes per operation) - indicates memory usage
+	// 2. Check B/op (bytes per operation) - indicates memory usage  
 	// 3. Monitor allocs/op (allocations per operation) - fewer is better
 	// 4. Use -benchtime to run longer benchmarks for more stable results
 	// 5. Run multiple times and compare results to identify trends

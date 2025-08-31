@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,123 +36,174 @@ var (
 )
 
 // llmClientAdapter adapts llm.Client to shared.ClientInterface.
-
+// This adapter implements the modern shared.ClientInterface while bridging
+// to the legacy llm.Client implementation.
 type llmClientAdapter struct {
 	client *llm.Client
 }
 
-// ProcessIntent performs processintent operation.
+// Compile-time interface compliance check
+var _ shared.ClientInterface = (*llmClientAdapter)(nil)
 
-func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (string, error) {
-
-	return a.client.ProcessIntent(ctx, prompt)
-
-}
-
-// ProcessIntentStream performs processintentstream operation.
-
-func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-
-	// For now, fall back to non-streaming.
-
+// ProcessRequest implements shared.ClientInterface.ProcessRequest
+func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	// Convert modern LLMRequest to legacy prompt
+	prompt := a.convertRequestToPrompt(request)
+	
+	// Call legacy method
 	result, err := a.client.ProcessIntent(ctx, prompt)
-
 	if err != nil {
-
-		return err
-
+		return nil, err
 	}
-
-	if chunks != nil {
-
-		chunks <- &shared.StreamingChunk{
-
-			Content: result,
-
-			IsLast: true,
-		}
-
-		close(chunks)
-
-	}
-
-	return nil
-
-}
-
-// GetSupportedModels performs getsupportedmodels operation.
-
-func (a *llmClientAdapter) GetSupportedModels() []string {
-
-	return []string{"gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"}
-
-}
-
-// GetModelCapabilities performs getmodelcapabilities operation.
-
-func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-
-	return &shared.ModelCapabilities{
-
-		MaxTokens: 8192,
-
-		SupportsChat: true,
-
-		SupportsFunction: false,
-
-		SupportsStreaming: false,
-
-		CostPerToken: 0.001,
-
-		Features: make(map[string]interface{}),
+	
+	// Convert legacy response to modern LLMResponse
+	return &shared.LLMResponse{
+		ID:      "legacy-" + fmt.Sprintf("%d", time.Now().UnixNano()),
+		Content: result,
+		Model:   request.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     a.EstimateTokens(prompt),
+			CompletionTokens: a.EstimateTokens(result),
+			TotalTokens:      a.EstimateTokens(prompt) + a.EstimateTokens(result),
+		},
+		Created: time.Now(),
 	}, nil
-
 }
 
-// ValidateModel performs validatemodel operation.
-
-func (a *llmClientAdapter) ValidateModel(modelName string) error {
-
-	// Basic validation.
-
-	return nil
-
+// ProcessStreamingRequest implements shared.ClientInterface.ProcessStreamingRequest
+func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	chunks := make(chan *shared.StreamingChunk, 1)
+	
+	go func() {
+		defer close(chunks)
+		
+		// Convert to legacy format and process
+		prompt := a.convertRequestToPrompt(request)
+		result, err := a.client.ProcessIntent(ctx, prompt)
+		
+		if err != nil {
+			chunks <- &shared.StreamingChunk{
+				Error: &shared.LLMError{
+					Code:    "processing_error",
+					Message: err.Error(),
+					Type:    "client_error",
+				},
+			}
+			return
+		}
+		
+		// Send result as single chunk (simulated streaming)
+		chunks <- &shared.StreamingChunk{
+			ID:        "legacy-chunk-" + fmt.Sprintf("%d", time.Now().UnixNano()),
+			Content:   result,
+			Delta:     result,
+			Done:      true,
+			IsLast:    true,
+			Timestamp: time.Now(),
+		}
+	}()
+	
+	return chunks, nil
 }
 
-// EstimateTokens performs estimatetokens operation.
-
-func (a *llmClientAdapter) EstimateTokens(text string) int {
-
-	// Simple estimation: roughly 4 characters per token.
-
-	return len(text) / 4
-
+// HealthCheck implements shared.ClientInterface.HealthCheck
+func (a *llmClientAdapter) HealthCheck(ctx context.Context) error {
+	// Perform a simple health check by making a minimal request
+	_, err := a.client.ProcessIntent(ctx, "health check")
+	return err
 }
 
-// GetMaxTokens performs getmaxtokens operation.
-
-func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
-
-	return 8192
-
+// GetStatus implements shared.ClientInterface.GetStatus
+func (a *llmClientAdapter) GetStatus() shared.ClientStatus {
+	// Simple status check - assume healthy if client exists
+	if a.client != nil {
+		return shared.ClientStatusHealthy
+	}
+	return shared.ClientStatusUnavailable
 }
 
-// GetEndpoint performs getendpoint operation.
+// GetModelCapabilities implements shared.ClientInterface.GetModelCapabilities
+// Note: This returns ModelCapabilities directly, not a pointer with error
+func (a *llmClientAdapter) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		SupportsStreaming:    false, // Legacy client doesn't support true streaming
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		SupportsChat:         true,
+		SupportsFunction:     false,
+		MaxTokens:            8192,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "legacy-1.0",
+		Features:             make(map[string]interface{}),
+	}
+}
 
+// GetEndpoint implements shared.ClientInterface.GetEndpoint
 func (a *llmClientAdapter) GetEndpoint() string {
-
 	return a.client.url
-
 }
 
-// Close performs close operation.
-
+// Close implements shared.ClientInterface.Close
 func (a *llmClientAdapter) Close() error {
-
 	a.client.Shutdown()
-
 	return nil
+}
 
+// Legacy compatibility methods (kept for backward compatibility)
+
+// ProcessIntent provides backward compatibility with legacy interface
+func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (string, error) {
+	return a.client.ProcessIntent(ctx, prompt)
+}
+
+// ProcessIntentStream provides backward compatibility with legacy interface
+func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// For now, fall back to non-streaming
+	result, err := a.client.ProcessIntent(ctx, prompt)
+	if err != nil {
+		return err
+	}
+	
+	if chunks != nil {
+		chunks <- &shared.StreamingChunk{
+			Content:   result,
+			IsLast:    true,
+			Timestamp: time.Now(),
+		}
+		close(chunks)
+	}
+	return nil
+}
+
+// Helper methods
+
+// convertRequestToPrompt converts modern LLMRequest to legacy prompt string
+func (a *llmClientAdapter) convertRequestToPrompt(request *shared.LLMRequest) string {
+	if len(request.Messages) == 0 {
+		return ""
+	}
+	
+	// Simple conversion: concatenate all message content
+	var prompt strings.Builder
+	for _, msg := range request.Messages {
+		if msg.Role == "system" {
+			prompt.WriteString("System: ")
+		} else if msg.Role == "user" {
+			prompt.WriteString("User: ")
+		} else if msg.Role == "assistant" {
+			prompt.WriteString("Assistant: ")
+		}
+		prompt.WriteString(msg.Content)
+		prompt.WriteString("\n")
+	}
+	return strings.TrimSpace(prompt.String())
+}
+
+// EstimateTokens estimates token count for a given text
+func (a *llmClientAdapter) EstimateTokens(text string) int {
+	// Simple estimation: roughly 4 characters per token
+	return len(text) / 4
 }
 
 // dependencyImpl implements the Dependencies interface.

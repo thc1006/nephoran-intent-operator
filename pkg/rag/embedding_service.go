@@ -219,6 +219,11 @@ type TokenUsage struct {
 	EstimatedCost float64 `json:"estimated_cost"`
 }
 
+// EmbeddingTokenUsage represents token usage statistics for embedding operations.
+// This is an alias to TokenUsage for interface compatibility.
+
+type EmbeddingTokenUsage = TokenUsage
+
 // EmbeddingMetrics tracks embedding service performance.
 
 type EmbeddingMetrics struct {

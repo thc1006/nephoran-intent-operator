@@ -1,9 +1,11 @@
 package compliance_tests
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -442,11 +444,16 @@ func (s *ORANComplianceTestSuite) makeRequestWithAuth(method, path string, body 
 	var bodyBytes []byte
 	if body != nil {
 		var err error
-		_, err = json.Marshal(body)
+		bodyBytes, err = json.Marshal(body)
 		s.Require().NoError(err)
 	}
 
-	req, err := http.NewRequestWithContext(s.ctx, method, url, nil)
+	var bodyReader io.Reader
+	if len(bodyBytes) > 0 {
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
+	req, err := http.NewRequestWithContext(s.ctx, method, url, bodyReader)
 	s.Require().NoError(err)
 
 	req.Header.Set("Authorization", "Bearer "+apiKey)

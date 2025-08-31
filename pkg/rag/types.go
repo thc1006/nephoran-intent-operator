@@ -12,6 +12,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Doc represents a document retrieved from the RAG system.
@@ -53,7 +55,27 @@ type RAGClient interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Note: SearchResult is defined in enhanced_rag_integration.go.
+// Type aliases for shared types to ensure consistency across the package.
+type SearchQuery = shared.SearchQuery
+type SearchResult = shared.SearchResult
+
+// SearchResponse represents a search response (defined locally to avoid import cycles).
+type SearchResponse struct {
+	Results []*SearchResult `json:"results"`
+	Total int `json:"total"`
+	Took time.Duration `json:"took"`
+	Query string `json:"query"`
+	ProcessedAt time.Time `json:"processed_at"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// WeaviateClient represents the basic Weaviate client interface.
+// Concrete implementations are in their respective files.
+type WeaviateClient interface {
+	Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error)
+	IsHealthy() bool
+	Close() error
+}
 
 // RAGClientConfig holds configuration for RAG clients.
 

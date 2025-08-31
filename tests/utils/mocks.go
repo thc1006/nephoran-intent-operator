@@ -141,11 +141,11 @@ func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBa
 
 // GetMetricsCollector performs getmetricscollector operation.
 
-func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
+func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
 
 	m.incrementCallCount("GetMetricsCollector")
 
-	return &monitoring.MetricsCollector{} // Return a real instance for simplicity
+	return m.metricsCollector
 
 }
 
@@ -475,14 +475,14 @@ type LLMResponse struct {
 }
 
 // MockLLMClient implements shared.ClientInterface for testing.
-
 type MockLLMClient struct {
 	responses map[string]*LLMResponse
-
-	errors map[string]error
-
-	mu sync.RWMutex
+	errors    map[string]error
+	mu        sync.RWMutex
 }
+
+// Compile-time interface compliance check
+var _ shared.ClientInterface = (*MockLLMClient)(nil)
 
 // NewMockLLMClient performs newmockllmclient operation.
 
@@ -561,25 +561,10 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 
 }
 
-// GetModelCapabilities performs getmodelcapabilities operation.
-
-func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-
-	return &shared.ModelCapabilities{
-
-		MaxTokens: 4096,
-
-		SupportsChat: true,
-
-		SupportsFunction: true,
-
-		SupportsStreaming: true,
-
-		CostPerToken: 0.0001,
-
-		Features: make(map[string]interface{}),
-	}, nil
-
+// Legacy method for backward compatibility - returns model capabilities with error
+func (m *MockLLMClient) GetModelCapabilitiesLegacy(modelName string) (*shared.ModelCapabilities, error) {
+	caps := m.GetModelCapabilities()
+	return &caps, nil
 }
 
 // ValidateModel performs validatemodel operation.
@@ -636,6 +621,103 @@ func (m *MockLLMClient) GetMaxTokens(modelName string) int {
 
 	}
 
+}
+
+// GetEndpoint implements shared.ClientInterface.GetEndpoint
+func (m *MockLLMClient) GetEndpoint() string {
+	return "https://mock-llm-endpoint.local"
+}
+
+// ProcessRequest implements shared.ClientInterface.ProcessRequest
+func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if err := m.errors["ProcessRequest"]; err != nil {
+		return nil, err
+	}
+
+	// Return a mock response
+	return &shared.LLMResponse{
+		ID:      "mock-response-123",
+		Content: "Mock LLM response content",
+		Model:   request.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     100,
+			CompletionTokens: 150,
+			TotalTokens:      250,
+		},
+		Created: time.Now(),
+	}, nil
+}
+
+// ProcessStreamingRequest implements shared.ClientInterface.ProcessStreamingRequest
+func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if err := m.errors["ProcessStreamingRequest"]; err != nil {
+		return nil, err
+	}
+
+	chunks := make(chan *shared.StreamingChunk, 2)
+
+	go func() {
+		defer close(chunks)
+		chunks <- &shared.StreamingChunk{
+			ID:        "mock-chunk-1",
+			Content:   "Mock streaming chunk 1",
+			Delta:     "Mock streaming chunk 1",
+			Done:      false,
+			Timestamp: time.Now(),
+		}
+		chunks <- &shared.StreamingChunk{
+			ID:        "mock-chunk-2",
+			Content:   "Mock streaming chunk 2",
+			Delta:     " chunk 2",
+			Done:      true,
+			IsLast:    true,
+			Timestamp: time.Now(),
+		}
+	}()
+
+	return chunks, nil
+}
+
+// HealthCheck performs a health check on the mock client.
+
+func (m *MockLLMClient) HealthCheck(ctx context.Context) error {
+
+	m.mu.RLock()
+
+	defer m.mu.RUnlock()
+
+	return m.errors["HealthCheck"]
+
+}
+
+// GetStatus returns the status of the mock client.
+
+func (m *MockLLMClient) GetStatus() shared.ClientStatus {
+
+	return shared.ClientStatusHealthy
+
+}
+
+// GetModelCapabilities implements shared.ClientInterface.GetModelCapabilities
+func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		SupportsChat:         true,
+		SupportsFunction:     true,
+		MaxTokens:            4096,
+		CostPerToken:         0.0001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "1.0.0",
+		Features:             make(map[string]interface{}),
+	}
 }
 
 // Close performs close operation.
@@ -794,6 +876,8 @@ type MockMetricsCollector struct {
 	labels map[string]map[string]string
 
 	mu sync.RWMutex
+
+	started bool
 }
 
 // NewMockMetricsCollector performs newmockmetricscollector operation.
@@ -805,7 +889,437 @@ func NewMockMetricsCollector() *MockMetricsCollector {
 		metrics: make(map[string]float64),
 
 		labels: make(map[string]map[string]string),
+
+		started: false,
 	}
+
+}
+
+// CollectMetrics implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) CollectMetrics() ([]*monitoring.Metric, error) {
+
+	m.mu.RLock()
+
+	defer m.mu.RUnlock()
+
+	metrics := make([]*monitoring.Metric, 0, len(m.metrics))
+
+	for name, value := range m.metrics {
+
+		metrics = append(metrics, &monitoring.Metric{
+
+			Name:      name,
+
+			Type:      monitoring.MetricTypeGauge,
+
+			Value:     value,
+
+			Labels:    m.labels[name],
+
+			Timestamp: time.Now(),
+
+		})
+
+	}
+
+	return metrics, nil
+
+}
+
+// Start implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) Start() error {
+
+	m.mu.Lock()
+
+	defer m.mu.Unlock()
+
+	m.started = true
+
+	return nil
+
+}
+
+// Stop implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) Stop() error {
+
+	m.mu.Lock()
+
+	defer m.mu.Unlock()
+
+	m.started = false
+
+	return nil
+
+}
+
+// RegisterMetrics implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RegisterMetrics(registry interface{}) error {
+
+	return nil // No-op for mock
+
+}
+
+// UpdateControllerHealth implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateControllerHealth(controllerName, component string, healthy bool) {
+
+	value := 0.0
+
+	if healthy {
+
+		value = 1.0
+
+	}
+
+	m.RecordMetric("controller_health", value, map[string]string{
+
+		"controller": controllerName,
+
+		"component":  component,
+
+	})
+
+}
+
+// RecordKubernetesAPILatency implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordKubernetesAPILatency(latency time.Duration) {
+
+	m.RecordMetric("kubernetes_api_latency_seconds", latency.Seconds(), nil)
+
+}
+
+// UpdateNetworkIntentStatus implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateNetworkIntentStatus(name, namespace, intentType, status string) {
+
+	m.RecordMetric("network_intent_status", 1.0, map[string]string{
+
+		"name":        name,
+
+		"namespace":   namespace,
+
+		"intent_type": intentType,
+
+		"status":      status,
+
+	})
+
+}
+
+// RecordNetworkIntentProcessed implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordNetworkIntentProcessed(intentType, status string, duration time.Duration) {
+
+	m.RecordMetric("network_intent_processed_total", 1.0, map[string]string{
+
+		"intent_type": intentType,
+
+		"status":      status,
+
+	})
+
+	m.RecordMetric("network_intent_processing_duration_seconds", duration.Seconds(), map[string]string{
+
+		"intent_type": intentType,
+
+		"status":      status,
+
+	})
+
+}
+
+// RecordNetworkIntentRetry implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordNetworkIntentRetry(name, namespace, reason string) {
+
+	m.RecordMetric("network_intent_retries_total", 1.0, map[string]string{
+
+		"name":      name,
+
+		"namespace": namespace,
+
+		"reason":    reason,
+
+	})
+
+}
+
+// RecordLLMRequest implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordLLMRequest(model, status string, duration time.Duration, tokensUsed int) {
+
+	m.RecordMetric("llm_requests_total", 1.0, map[string]string{
+
+		"model":  model,
+
+		"status": status,
+
+	})
+
+	m.RecordMetric("llm_request_duration_seconds", duration.Seconds(), map[string]string{
+
+		"model":  model,
+
+		"status": status,
+
+	})
+
+	m.RecordMetric("llm_tokens_used_total", float64(tokensUsed), map[string]string{
+
+		"model": model,
+
+	})
+
+}
+
+// RecordE2NodeSetOperation implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordE2NodeSetOperation(operation string, duration time.Duration) {
+
+	m.RecordMetric("e2nodeset_operations_total", 1.0, map[string]string{
+
+		"operation": operation,
+
+	})
+
+	m.RecordMetric("e2nodeset_operation_duration_seconds", duration.Seconds(), map[string]string{
+
+		"operation": operation,
+
+	})
+
+}
+
+// UpdateE2NodeSetReplicas implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateE2NodeSetReplicas(name, namespace, status string, count int) {
+
+	m.RecordMetric("e2nodeset_replicas", float64(count), map[string]string{
+
+		"name":      name,
+
+		"namespace": namespace,
+
+		"status":    status,
+
+	})
+
+}
+
+// RecordE2NodeSetScaling implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordE2NodeSetScaling(name, namespace, direction string) {
+
+	m.RecordMetric("e2nodeset_scaling_events_total", 1.0, map[string]string{
+
+		"name":      name,
+
+		"namespace": namespace,
+
+		"direction": direction,
+
+	})
+
+}
+
+// RecordORANInterfaceRequest implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordORANInterfaceRequest(interfaceType, operation, status string, duration time.Duration) {
+
+	m.RecordMetric("oran_interface_requests_total", 1.0, map[string]string{
+
+		"interface_type": interfaceType,
+
+		"operation":      operation,
+
+		"status":         status,
+
+	})
+
+	m.RecordMetric("oran_interface_request_duration_seconds", duration.Seconds(), map[string]string{
+
+		"interface_type": interfaceType,
+
+		"operation":      operation,
+
+		"status":         status,
+
+	})
+
+}
+
+// RecordORANInterfaceError implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordORANInterfaceError(interfaceType, operation, errorType string) {
+
+	m.RecordMetric("oran_interface_errors_total", 1.0, map[string]string{
+
+		"interface_type": interfaceType,
+
+		"operation":      operation,
+
+		"error_type":     errorType,
+
+	})
+
+}
+
+// UpdateORANConnectionStatus implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateORANConnectionStatus(interfaceType, endpoint string, connected bool) {
+
+	value := 0.0
+
+	if connected {
+
+		value = 1.0
+
+	}
+
+	m.RecordMetric("oran_connection_status", value, map[string]string{
+
+		"interface_type": interfaceType,
+
+		"endpoint":       endpoint,
+
+	})
+
+}
+
+// UpdateORANPolicyInstances implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateORANPolicyInstances(policyType, status string, count int) {
+
+	m.RecordMetric("oran_policy_instances", float64(count), map[string]string{
+
+		"policy_type": policyType,
+
+		"status":      status,
+
+	})
+
+}
+
+// RecordRAGOperation implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordRAGOperation(duration time.Duration, cacheHit bool) {
+
+	cacheStatus := "miss"
+
+	if cacheHit {
+
+		cacheStatus = "hit"
+
+	}
+
+	m.RecordMetric("rag_operations_total", 1.0, map[string]string{
+
+		"cache_status": cacheStatus,
+
+	})
+
+	m.RecordMetric("rag_operation_duration_seconds", duration.Seconds(), map[string]string{
+
+		"cache_status": cacheStatus,
+
+	})
+
+}
+
+// UpdateRAGDocumentsIndexed implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateRAGDocumentsIndexed(count int) {
+
+	m.RecordMetric("rag_documents_indexed_total", float64(count), nil)
+
+}
+
+// RecordGitOpsOperation implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) RecordGitOpsOperation(operation string, duration time.Duration, success bool) {
+
+	status := "failure"
+
+	if success {
+
+		status = "success"
+
+	}
+
+	m.RecordMetric("gitops_operations_total", 1.0, map[string]string{
+
+		"operation": operation,
+
+		"status":    status,
+
+	})
+
+	m.RecordMetric("gitops_operation_duration_seconds", duration.Seconds(), map[string]string{
+
+		"operation": operation,
+
+		"status":    status,
+
+	})
+
+}
+
+// UpdateGitOpsSyncStatus implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateGitOpsSyncStatus(repository, branch string, inSync bool) {
+
+	value := 0.0
+
+	if inSync {
+
+		value = 1.0
+
+	}
+
+	m.RecordMetric("gitops_sync_status", value, map[string]string{
+
+		"repository": repository,
+
+		"branch":     branch,
+
+	})
+
+}
+
+// UpdateResourceUtilization implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateResourceUtilization(resourceType, unit string, value float64) {
+
+	m.RecordMetric("resource_utilization", value, map[string]string{
+
+		"resource_type": resourceType,
+
+		"unit":          unit,
+
+	})
+
+}
+
+// UpdateWorkerQueueMetrics implements MetricsCollector interface.
+
+func (m *MockMetricsCollector) UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration) {
+
+	m.RecordMetric("worker_queue_depth", float64(depth), map[string]string{
+
+		"queue_name": queueName,
+
+	})
+
+	m.RecordMetric("worker_queue_latency_seconds", latency.Seconds(), map[string]string{
+
+		"queue_name": queueName,
+
+	})
 
 }
 

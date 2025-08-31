@@ -1,1 +1,0 @@
-{"intent_type":"scaling","target":"api-gateway","namespace":"microservices","replicas":10,"source":"test"}
