@@ -35,7 +35,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: nephoran-intent-operator
   GO_VERSION: "1.24.6"
-  CONTROLLER_GEN_VERSION: "v0.19.0"
+  CONTROLLER_GEN_VERSION: "v0.18.0"
   GOLANGCI_LINT_VERSION: "v1.64.3"
   GOVULNCHECK_VERSION: "v1.1.4"
   GOPROXY: "https://proxy.golang.org,direct"
@@ -125,15 +125,16 @@ jobs:
       - name: Install controller-gen
         run: |
           echo "Installing controller-gen ${{ env.CONTROLLER_GEN_VERSION }}..."
-          if ! command -v controller-gen &> /dev/null; then
-            echo "Installing controller-gen..."
-            GOBIN=$(go env GOPATH)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@${{ env.CONTROLLER_GEN_VERSION }}
-          else
-            echo "controller-gen already installed: $(controller-gen --version)"
-          fi
+          # Always install to ensure correct version
+          GOBIN=$(go env GOPATH)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@${{ env.CONTROLLER_GEN_VERSION }}
           
           # Add GOPATH/bin to PATH for this step and subsequent steps
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          
+          # Verify installation immediately
+          which controller-gen
+          controller-gen --version 2>/dev/null || echo "Version check may fail on some versions"
 
       - name: Verify tools installation
         run: |

@@ -1024,10 +1024,16 @@ demo-setup: ## Set up demo environment
 
 ##@ Tools
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
+# Try to find controller-gen in multiple locations
+CONTROLLER_GEN = $(shell which controller-gen 2>/dev/null || echo $(shell pwd)/bin/controller-gen)
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION))
+	@if ! command -v controller-gen &> /dev/null && [ ! -f $(shell pwd)/bin/controller-gen ]; then \
+		echo "Installing controller-gen $(CONTROLLER_GEN_VERSION)..."; \
+		GOBIN=$(shell pwd)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
+	else \
+		echo "controller-gen is already available"; \
+	fi
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
