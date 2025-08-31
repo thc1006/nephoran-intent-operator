@@ -125,7 +125,13 @@ jobs:
         with:
           version: v${{ matrix.golangci-version }}
           install-mode: "binary"
-          args: --version
+          skip-cache: true
+          skip-save-cache: true
+
+      - name: Verify golangci-lint installation
+        run: |
+          echo "Installed golangci-lint version:"
+          golangci-lint version
 
       - name: Make validation script executable
         run: chmod +x scripts/validate-golangci-config.sh

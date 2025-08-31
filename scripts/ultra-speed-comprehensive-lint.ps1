@@ -9,11 +9,11 @@ $env:PATH = "$env:USERPROFILE\go\bin;$env:PATH"
 
 # Check golangci-lint installation
 Write-Host "`nChecking golangci-lint installation..." -ForegroundColor Yellow
-$lintVersion = & golangci-lint --version 2>$null
+$lintVersion = & golangci-lint version 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Installing golangci-lint..." -ForegroundColor Yellow
     go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-    $lintVersion = & golangci-lint --version
+    $lintVersion = & golangci-lint version
 }
 Write-Host "Found: $lintVersion" -ForegroundColor Green
 
