@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	test_validation "github.com/nephio-project/nephoran-intent-operator/tests/validation"
+	test_validation "github.com/thc1006/nephoran-intent-operator/tests/validation"
 )
 
 func main() {

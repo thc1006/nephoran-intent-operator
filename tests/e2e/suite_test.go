@@ -16,8 +16,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/controllers"
+	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to

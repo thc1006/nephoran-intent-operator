@@ -3,8 +3,8 @@ package performance_tests
 import (
 	"context"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // RAGServiceStub provides stub methods for testing

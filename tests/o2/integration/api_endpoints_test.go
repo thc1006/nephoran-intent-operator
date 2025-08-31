@@ -21,9 +21,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 type O2APITestSuite struct {

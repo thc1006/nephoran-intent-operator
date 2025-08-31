@@ -12,9 +12,9 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/config"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/sla"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/sla"
 )
 
 // SLAMonitoringIntegrationTestSuite provides comprehensive integration testing for SLA monitoring

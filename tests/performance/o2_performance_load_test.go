@@ -18,9 +18,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/logging"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Performance testing thresholds and SLA requirements

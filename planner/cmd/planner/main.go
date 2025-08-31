@@ -18,9 +18,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/nephio-project/nephoran-intent-operator/internal/planner"
-	"github.com/nephio-project/nephoran-intent-operator/planner/internal/rules"
-	"github.com/nephio-project/nephoran-intent-operator/planner/internal/security"
+	"github.com/thc1006/nephoran-intent-operator/internal/planner"
+	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
+	"github.com/thc1006/nephoran-intent-operator/planner/internal/security"
 )
 
 // Config represents the main application configuration.

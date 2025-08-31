@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	nephoranv1 "github.com/nephio-project/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // Test helper functions

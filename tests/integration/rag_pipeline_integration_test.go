@@ -15,9 +15,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	nephoran "github.com/nephio-project/nephoran-intent-operator/api/v1"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/rag"
+	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // RAGPipelineIntegrationTestSuite provides comprehensive integration testing for the RAG pipeline

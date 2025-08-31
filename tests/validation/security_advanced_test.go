@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nephio-project/nephoran-intent-operator/tests/framework"
+	"github.com/thc1006/nephoran-intent-operator/tests/framework"
 )
 
 var _ = ginkgo.Describe("Advanced Security Testing Suite", ginkgo.Ordered, func() {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/monitoring/availability"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability"
 )
 
 // AvailabilityTrackingTestSuite tests the comprehensive availability tracking system

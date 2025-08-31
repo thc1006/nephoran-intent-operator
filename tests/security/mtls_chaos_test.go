@@ -12,9 +12,9 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security/ca"
-	"github.com/nephio-project/nephoran-intent-operator/pkg/security/mtls"
-	"github.com/nephio-project/nephoran-intent-operator/tests/utils"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security/ca"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security/mtls"
+	"github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // ChaosEngineeringTestSuite provides comprehensive chaos testing for mTLS and certificate systems
