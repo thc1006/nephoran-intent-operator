@@ -11,27 +11,19 @@ import (
 
 // Standard errors for interface implementations
 var (
-	ErrClientClosed         = errors.New("client is closed")
-	ErrInvalidRequest       = errors.New("invalid request")
-	ErrServiceUnavailable   = errors.New("service unavailable") 
-	ErrRateLimited          = errors.New("rate limited")
+	ErrClientClosed       = errors.New("client is closed")
+	ErrInvalidRequest     = errors.New("invalid request")
+	ErrServiceUnavailable = errors.New("service unavailable")
+	ErrRateLimited        = errors.New("rate limited")
 )
 
 // RequestOptions provides optional configuration for requests
 type RequestOptions struct {
-	Timeout      time.Duration          `json:"timeout,omitempty"`
-	RetryPolicy  *RetryPolicy           `json:"retry_policy,omitempty"`
-	RateLimiter  RateLimiterConfig      `json:"rate_limiter,omitempty"`
-	Headers      map[string]string      `json:"headers,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// RetryPolicy defines retry behavior
-type RetryPolicy struct {
-	MaxAttempts int           `json:"max_attempts"`
-	Backoff     time.Duration `json:"backoff"`
-	Multiplier  float64       `json:"multiplier"`
-	MaxBackoff  time.Duration `json:"max_backoff"`
+	Timeout     time.Duration          `json:"timeout,omitempty"`
+	RetryPolicy *RetryPolicy           `json:"retry_policy,omitempty"`
+	RateLimiter RateLimiterConfig      `json:"rate_limiter,omitempty"`
+	Headers     map[string]string      `json:"headers,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // RateLimiterConfig configures rate limiting
@@ -71,10 +63,10 @@ func WithRateLimiter(config RateLimiterConfig) RequestOption {
 
 // HealthStatus provides detailed health information
 type HealthStatus struct {
-	Status      ClientStatus          `json:"status"`
-	Latency     time.Duration         `json:"latency"`
-	LastChecked time.Time             `json:"last_checked"`
-	Errors      []string              `json:"errors,omitempty"`
+	Status      ClientStatus           `json:"status"`
+	Latency     time.Duration          `json:"latency"`
+	LastChecked time.Time              `json:"last_checked"`
+	Errors      []string               `json:"errors,omitempty"`
 	Details     map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -136,36 +128,36 @@ func ValidateClientInterface(client ClientInterface) error {
 	if client == nil {
 		return errors.New("client is nil")
 	}
-	
+
 	// Check required methods exist by attempting to call them with safe parameters
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	
-	_ = client.HealthCheck(ctx) // Allow this to fail, we're just checking method exists
-	_ = client.GetStatus()      // Should not fail
+
+	_ = client.HealthCheck(ctx)       // Allow this to fail, we're just checking method exists
+	_ = client.GetStatus()            // Should not fail
 	_ = client.GetModelCapabilities() // Should not fail
 	endpoint := client.GetEndpoint()  // Should not fail
-	
+
 	if endpoint == "" {
 		return errors.New("client GetEndpoint() returned empty string")
 	}
-	
+
 	return nil
 }
 
 // EnhancedClientInterface extends ClientInterface with Go 1.24 patterns
 type EnhancedClientInterface interface {
 	ClientInterface
-	
+
 	// Process request with options (Go 1.24 functional options pattern)
 	ProcessRequestWithOptions(ctx context.Context, request *LLMRequest, opts ...RequestOption) (*LLMResponse, error)
-	
+
 	// Batch processing with structured concurrency
 	ProcessBatch(ctx context.Context, requests []*LLMRequest, opts ...RequestOption) ([]*LLMResponse, error)
-	
+
 	// Health check with detailed status
 	HealthCheckDetailed(ctx context.Context) (*HealthStatus, error)
-	
+
 	// Metrics and observability
 	GetMetrics(ctx context.Context) (*ClientMetrics, error)
 }
@@ -192,12 +184,12 @@ func ApplyRequestOptions(base *RequestOptions, opts ...RequestOption) *RequestOp
 	if base == nil {
 		base = &RequestOptions{}
 	}
-	
+
 	result := *base // copy
 	for _, opt := range opts {
 		opt(&result)
 	}
-	
+
 	return &result
 }
 
@@ -206,13 +198,14 @@ var (
 	DefaultRequestOptions = RequestOptions{
 		Timeout: 30 * time.Second,
 		RetryPolicy: &RetryPolicy{
-			MaxAttempts: 3,
-			Backoff:     time.Second,
-			Multiplier:  2.0,
-			MaxBackoff:  10 * time.Second,
+			MaxRetries:      3,
+			BackoffBase:     time.Second,
+			BackoffMax:      10 * time.Second,
+			BackoffJitter:   true,
+			RetryableErrors: nil,
 		},
 	}
-	
+
 	DefaultRateLimiter = RateLimiterConfig{
 		RequestsPerSecond: 10.0,
 		BurstSize:         5,

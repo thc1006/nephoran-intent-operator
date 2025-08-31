@@ -2,7 +2,6 @@ package chaos
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -750,75 +749,3 @@ type SLAChaosTestSuite struct {
 	recoveryEvents    atomic.Int64
 }
 
-// ChaosEngine method implementations
-
-// RegisterExperiment registers a chaos experiment
-func (ce *ChaosEngine) RegisterExperiment(experiment *ChaosExperiment) error {
-	ce.mutex.Lock()
-	defer ce.mutex.Unlock()
-	
-	ce.experiments = append(ce.experiments, experiment)
-	return nil
-}
-
-// StartExperiment starts a chaos experiment
-func (ce *ChaosEngine) StartExperiment(ctx context.Context, experiment *ChaosExperiment) (*RunningExperiment, error) {
-	ce.mutex.Lock()
-	defer ce.mutex.Unlock()
-	
-	runningExperiment := &RunningExperiment{
-		Experiment:       experiment,
-		StartTime:        time.Now(),
-		Status:           ExperimentStatusRunning,
-		Injectors:        make([]*FailureInstance, 0),
-		Observations:     make([]*ChaosObservation, 0),
-		SafetyViolations: make([]*SafetyViolation, 0),
-	}
-	
-	ce.activeExperiments[experiment.ID] = runningExperiment
-	return runningExperiment, nil
-}
-
-// StopExperiment stops a chaos experiment
-func (ce *ChaosEngine) StopExperiment(ctx context.Context, experimentID string) error {
-	ce.mutex.Lock()
-	defer ce.mutex.Unlock()
-	
-	if experiment, exists := ce.activeExperiments[experimentID]; exists {
-		experiment.Status = ExperimentStatusCompleted
-		delete(ce.activeExperiments, experimentID)
-	}
-	return nil
-}
-
-// StopAllExperiments stops all active experiments
-func (ce *ChaosEngine) StopAllExperiments(ctx context.Context) error {
-	ce.mutex.Lock()
-	defer ce.mutex.Unlock()
-	
-	for experimentID := range ce.activeExperiments {
-		if experiment, exists := ce.activeExperiments[experimentID]; exists {
-			experiment.Status = ExperimentStatusCompleted
-		}
-	}
-	
-	ce.activeExperiments = make(map[string]*RunningExperiment)
-	return nil
-}
-
-// ChaosMonitor method implementations
-
-
-// collectMetrics simulates metric collection
-func (cm *ChaosMonitor) collectMetrics() {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-	
-	// Simulate metric collection
-	timestamp := time.Now()
-	cm.metrics.AvailabilityTimeSeries = append(cm.metrics.AvailabilityTimeSeries, MetricPoint{
-		Timestamp: timestamp,
-		Value:     99.5, // Example availability
-		Labels:    map[string]string{"component": "sla-service"},
-	})
-}

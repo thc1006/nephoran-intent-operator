@@ -151,6 +151,10 @@ type ResourceConstraint struct {
 
 // ProcessedParameters contains structured parameters extracted from the intent
 type ProcessedParameters struct {
+	// NetworkFunction specifies the target network function
+	NetworkFunction string `json:"networkFunction,omitempty"`
+	// Region specifies the deployment region
+	Region string `json:"region,omitempty"`
 	// Scaling parameters
 	Scaling *ScalingParameters `json:"scaling,omitempty"`
 	// Resource parameters

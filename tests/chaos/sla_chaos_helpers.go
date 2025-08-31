@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 // Helper method implementations for SLAChaosTestSuite
@@ -115,6 +113,7 @@ func (s *SLAChaosTestSuite) runExperimentWithAlertValidation(ctx context.Context
 	s.Require().NoError(err, "Failed to stop experiment")
 	
 	endTime := time.Now()
+	s.T().Logf("Experiment duration: %v", endTime.Sub(startTime))
 	
 	return &AlertExperimentResults{
 		TotalAlerts:        10, // Mock data
