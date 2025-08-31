@@ -39,7 +39,7 @@ type BatchProcessor interface {
 
 // StreamingProcessor handles streaming requests (concrete implementation for disable_rag builds).
 
-type StreamingProcessor struct {
+type ConsolidatedStreamingProcessor struct {
 
 	// Stub implementation fields.
 
@@ -47,7 +47,7 @@ type StreamingProcessor struct {
 
 // GetMetrics returns streaming processor metrics (stub implementation).
 
-func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
+func (sp *ConsolidatedStreamingProcessor) GetMetrics() map[string]interface{} {
 
 	if sp == nil {
 
@@ -77,7 +77,7 @@ func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
 
 // Shutdown gracefully shuts down the streaming processor (stub implementation).
 
-func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
+func (sp *ConsolidatedStreamingProcessor) Shutdown(ctx context.Context) error {
 
 	// Stub implementation - no actual shutdown needed.
 
@@ -87,21 +87,21 @@ func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
 
 // StreamingProcessorStub is an alias for StreamingProcessor for compatibility.
 
-type StreamingProcessorStub = StreamingProcessor
+type StreamingProcessorStub = ConsolidatedStreamingProcessor
 
 // NewStreamingProcessor creates a new streaming processor.
 
-func NewStreamingProcessor() *StreamingProcessor {
+func NewConsolidatedStreamingProcessor() *ConsolidatedStreamingProcessor {
 
-	return &StreamingProcessor{}
+	return &ConsolidatedStreamingProcessor{}
 
 }
 
 // NewRelevanceScorerStub creates a new relevance scorer stub.
 
-func NewRelevanceScorerStub() *RelevanceScorer {
+func NewConsolidatedRelevanceScorerStub() *ConsolidatedRelevanceScorer {
 
-	return &RelevanceScorer{
+	return &ConsolidatedRelevanceScorer{
 
 		config: &RelevanceScorerConfig{},
 
@@ -328,7 +328,7 @@ type ContextBuilderMetrics struct {
 
 // RelevanceScorer provides relevance scoring functionality.
 
-type RelevanceScorer struct {
+type ConsolidatedRelevanceScorer struct {
 	config *RelevanceScorerConfig
 
 	logger *slog.Logger // Using concrete type instead of interface{}
@@ -443,7 +443,7 @@ type SimpleRelevanceScorerMetrics struct {
 
 // SimpleTokenTracker tracks token usage statistics.
 
-type SimpleTokenTracker struct {
+type ConsolidatedSimpleTokenTracker struct {
 	totalTokens int64
 
 	totalCost float64
@@ -455,15 +455,15 @@ type SimpleTokenTracker struct {
 
 // NewSimpleTokenTracker creates a new token tracker.
 
-func NewSimpleTokenTracker() *SimpleTokenTracker {
+func NewConsolidatedSimpleTokenTracker() *ConsolidatedSimpleTokenTracker {
 
-	return &SimpleTokenTracker{}
+	return &ConsolidatedSimpleTokenTracker{}
 
 }
 
 // RecordUsage records token usage.
 
-func (tt *SimpleTokenTracker) RecordUsage(tokens int) {
+func (tt *ConsolidatedSimpleTokenTracker) RecordUsage(tokens int) {
 
 	tt.mutex.Lock()
 
@@ -483,7 +483,7 @@ func (tt *SimpleTokenTracker) RecordUsage(tokens int) {
 
 // GetStats returns usage statistics.
 
-func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
+func (tt *ConsolidatedSimpleTokenTracker) GetStats() map[string]interface{} {
 
 	tt.mutex.RLock()
 

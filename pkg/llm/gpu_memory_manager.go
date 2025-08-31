@@ -144,7 +144,7 @@ type MemoryAllocation struct {
 
 	// Performance tracking
 	AllocationTime    time.Duration
-	AccessPattern     AccessPattern
+	AccessPattern     GPUAccessPattern
 	FragmentationCost float64
 
 	// Lifecycle management
@@ -670,7 +670,7 @@ type MemoryOwnerType int
 type AllocationPurpose int
 type AllocationPriority int
 type AllocationStrategy int
-type AccessPattern int
+type GPUAccessPattern int
 type GrowthStrategy int
 
 const (

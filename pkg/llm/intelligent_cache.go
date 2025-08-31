@@ -138,7 +138,7 @@ type IntelligentCacheEntry struct {
 
 	AccessFrequency float64
 
-	AccessPattern AccessPattern
+	AccessPattern CacheAccessPattern
 
 	// Dependency tracking.
 
@@ -1143,9 +1143,9 @@ type (
 
 	CacheOperation struct{}
 
-	// AccessPattern represents a accesspattern.
+	// CacheAccessPattern represents a accesspattern.
 
-	AccessPattern int
+	CacheAccessPattern int
 
 	// AccessOrderManager represents a accessordermanager.
 

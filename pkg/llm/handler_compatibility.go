@@ -5,16 +5,16 @@ import "github.com/thc1006/nephoran-intent-operator/pkg/rag"
 // Type aliases to bridge the gap between handler expectations and available stubs
 
 // RelevanceScorer alias for the handlers - use the existing implementation
-type RelevanceScorer = RelevanceScorerImpl
+type CompatibilityRelevanceScorer = RelevanceScorerImpl
 
 // RAGAwarePromptBuilder alias for the handlers - use the stub
 type RAGAwarePromptBuilder = RAGAwarePromptBuilderStub
 
 // StreamingProcessor alias for the handlers - use the stub 
-type StreamingProcessor = StreamingProcessorStub
+type CompatibilityStreamingProcessor = StreamingProcessorStub
 
 // Constructor aliases to match handler expectations
-func NewRelevanceScorer(args ...interface{}) *RelevanceScorer {
+func NewCompatibilityRelevanceScorer(args ...interface{}) *CompatibilityRelevanceScorer {
 	// Use the existing default config function
 	config := getDefaultRelevanceScorerConfig()
 	
@@ -24,7 +24,7 @@ func NewRelevanceScorer(args ...interface{}) *RelevanceScorer {
 	return NewRelevanceScorerImpl(config, embeddingService)
 }
 
-func NewRAGAwarePromptBuilder(args ...interface{}) *RAGAwarePromptBuilder {
+func NewCompatibilityRAGAwarePromptBuilder(args ...interface{}) *RAGAwarePromptBuilder {
 	return NewRAGAwarePromptBuilderStub()
 }
 

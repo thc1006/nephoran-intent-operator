@@ -212,13 +212,13 @@ type SearchQuery struct {
 
 // SimpleTokenTracker stub.
 
-type SimpleTokenTracker struct{}
+type StubSimpleTokenTracker struct{}
 
 // NewSimpleTokenTracker performs newsimpletokentracker operation.
 
-func NewSimpleTokenTracker() *SimpleTokenTracker {
+func NewStubSimpleTokenTracker() *StubSimpleTokenTracker {
 
-	return &SimpleTokenTracker{}
+	return &StubSimpleTokenTracker{}
 
 }
 
@@ -377,11 +377,11 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 
 // RelevanceScorer represents a relevancescorer.
 
-type RelevanceScorer struct{}
+type StubRelevanceScorer struct{}
 
 // GetMetrics performs getmetrics operation.
 
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
+func (rs *StubRelevanceScorer) GetMetrics() map[string]interface{} {
 
 	return make(map[string]interface{})
 
