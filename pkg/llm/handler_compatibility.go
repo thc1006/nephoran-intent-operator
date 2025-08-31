@@ -11,7 +11,7 @@ type CompatibilityRelevanceScorer = RelevanceScorerImpl
 type ConsolidatedRAGAwarePromptBuilder = RAGAwarePromptBuilderStub
 
 // StreamingProcessor alias for the handlers - use the stub 
-type CompatibilityStreamingProcessor = StreamingProcessorStub
+type CompatibilityStreamingProcessor = ConsolidatedStreamingProcessor
 
 // Constructor aliases to match handler expectations
 func NewCompatibilityRelevanceScorer(args ...interface{}) *CompatibilityRelevanceScorer {

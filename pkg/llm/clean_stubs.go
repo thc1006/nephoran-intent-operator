@@ -890,5 +890,4 @@ func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []s
 
 }
 
-// StreamingProcessor type alias for compatibility
-type StreamingProcessor = StreamingProcessorStub
+// StreamingProcessor type alias for compatibility - defined in interface_consolidated.go

@@ -171,22 +171,11 @@ type PromptGenerator interface {
 	ExtractParameters(intent string) map[string]interface{}
 }
 
-// Basic types for compatibility
-type Priority int
-type ClientMetrics struct {
-	TotalRequests int64 `json:"total_requests"`
-	SuccessfulRequests int64 `json:"successful_requests"`
-	FailedRequests int64 `json:"failed_requests"`
-	AverageLatency time.Duration `json:"average_latency"`
-}
-type BatchResult struct {
-	ID string `json:"id"`
-	Success bool `json:"success"`
-}
-type BatchProcessorStats struct {
-	TotalProcessed int64 `json:"total_processed"`
-	SuccessfulProcessed int64 `json:"successful_processed"`
-}
+// Type references - these interfaces reference types defined elsewhere in the package
+// Priority is defined in batch_processor.go
+// ClientMetrics is defined in client_consolidated.go  
+// BatchResult is defined in batch_processor.go
+// BatchProcessorStats is defined in batch_processor.go
 
 // ProcessingRequest represents a request for LLM processing.
 
@@ -836,3 +825,19 @@ type IntentRequest = ProcessingRequest
 // IntentResponse represents a legacy response structure (backward compatibility).
 
 type IntentResponse = ProcessingResponse
+
+// RAGAwarePromptBuilderStub provides stub implementation for RAG-aware prompt building
+type RAGAwarePromptBuilderStub struct{}
+
+// NewRAGAwarePromptBuilderStub creates a new RAG-aware prompt builder stub
+func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
+	return &RAGAwarePromptBuilderStub{}
+}
+
+// GetMetrics returns metrics for the RAG-aware prompt builder stub
+func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"prompt_builder_enabled": false,
+		"stub_mode": true,
+	}
+}
