@@ -283,9 +283,12 @@ verify: fmt vet tidy lint ## Verify code consistency
 
 ##@ Code Generation
 
-.PHONY: gen
-gen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
+.PHONY: generate
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: gen
+gen: generate ## Alias for generate (backwards compatibility)
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
@@ -498,7 +501,7 @@ excellence-dashboard: ## Generate excellence metrics dashboard
 ##@ Building
 
 .PHONY: build
-build: gen fmt vet ## Build the operator binary with Go 1.24+ optimizations
+build: generate fmt vet ## Build the operator binary with Go 1.24+ optimizations
 	@echo "Building operator binary with Go 1.24+ ultra optimization..."
 	$(GO_BUILD_ENV) CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build $(FAST_BUILD_FLAGS) -tags=$(FAST_BUILD_TAGS) -o bin/manager cmd/main.go
@@ -523,12 +526,12 @@ build-all-binaries: build build-porch-publisher build-conductor conductor-loop-b
 	@ls -la bin/
 
 .PHONY: build-debug
-build-debug: gen fmt vet ## Build the operator binary with debug info
+build-debug: generate fmt vet ## Build the operator binary with debug info
 	@echo "Building operator binary with debug info..."
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build -gcflags="all=-N -l" -o bin/manager-debug cmd/main.go
 
 .PHONY: cross-build
-cross-build: gen fmt vet ## Build binaries for multiple platforms with Go 1.24+ optimizations
+cross-build: generate fmt vet ## Build binaries for multiple platforms with Go 1.24+ optimizations
 	@echo "Cross-building for multiple platforms with Go 1.24+ optimizations..."
 	mkdir -p bin
 	@for os in linux windows darwin; do \

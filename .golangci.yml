@@ -220,9 +220,13 @@ issues:
     - "(comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)"
     - "at least one file in a package should have a package comment"
 
-# Output format for golangci-lint
+# Output format for golangci-lint v2.x
 output:
   formats:
-    - format: colored-line-number
+    text:
+      path: stdout
+      colors: true
+      print-linter-name: true
+    github-actions:
+      path: stdout
   print-issued-lines: true
-  print-linter-name: true
