@@ -1301,8 +1301,9 @@ type CacheOption func(*CacheOptions)
 const (
 
 	// CacheStateActive holds cachestateactive value.
-
 	CacheStateActive CacheState = iota
+	// CacheStateShutdown holds cachestateShutdown value.
+	CacheStateShutdown
 
 	// CompressionGzip holds compressiongzip value.
 
