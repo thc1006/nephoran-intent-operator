@@ -164,7 +164,7 @@ linters-settings:
     sections:
       - standard
       - default  
-      - prefix(github.com/nephio-project/nephoran-intent-operator)
+      - prefix(github.com/thc1006/nephoran-intent-operator)
       - prefix(sigs.k8s.io)
       - prefix(k8s.io)
     skip-generated: true
@@ -173,7 +173,7 @@ linters-settings:
   # Formatting
   gofumpt:
     extra-rules: true
-    module-path: github.com/nephio-project/nephoran-intent-operator
+    module-path: github.com/thc1006/nephoran-intent-operator
     
   # Documentation
   misspell:

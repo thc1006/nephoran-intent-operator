@@ -130,7 +130,7 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/nephio-project/nephoran-intent-operator)
+      - prefix(github.com/thc1006/nephoran-intent-operator)
 
 # Issue handling configuration
 issues:
