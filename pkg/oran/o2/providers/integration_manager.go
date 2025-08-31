@@ -883,9 +883,18 @@ type EventProcessor struct {
 	eventCh chan *ProviderEvent
 }
 
-// EventHandlerFunc represents a eventhandler function.
+// EventHandler defines the interface for handling provider events
+type EventHandler interface {
+	HandleEvent(event *ProviderEvent)
+}
 
+// EventHandlerFunc represents a eventhandler function.
 type EventHandlerFunc func(event *ProviderEvent)
+
+// HandleEvent implements EventHandler interface
+func (f EventHandlerFunc) HandleEvent(event *ProviderEvent) {
+	f(event)
+}
 
 // NewEventProcessor performs neweventprocessor operation.
 
@@ -976,7 +985,7 @@ func (ep *EventProcessor) processEvent(event *ProviderEvent) {
 
 	for _, handler := range handlers {
 
-		handler(event)
+		handler.HandleEvent(event)
 
 	}
 

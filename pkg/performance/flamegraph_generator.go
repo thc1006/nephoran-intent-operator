@@ -704,9 +704,9 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 
 				Function: funcName,
 
-				Samples: int(samples),
+				Calls: samples,
 
-				Percentage: percentage,
+				CPUPercent: percentage,
 			})
 
 		}
@@ -717,7 +717,7 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 
 	sort.Slice(spots, func(i, j int) bool {
 
-		return spots[i].Percentage > spots[j].Percentage
+		return spots[i].CPUPercent > spots[j].CPUPercent
 
 	})
 

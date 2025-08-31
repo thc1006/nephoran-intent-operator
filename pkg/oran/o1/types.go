@@ -16,12 +16,7 @@ const (
 	ObjectTypeODU  = "ODU"
 )
 
-// Alarm severity constants
-const (
-	AlarmSeverityMajor   = "major"
-	AlarmSeverityMinor   = "minor"
-	AlarmSeverityWarning = "warning"
-)
+// Note: Alarm severity constants are defined in fault_manager.go
 
 // Alarm represents an O-RAN alarm with all required fields
 type Alarm struct {

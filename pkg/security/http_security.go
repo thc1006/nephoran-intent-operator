@@ -181,7 +181,7 @@ func SecureHTTPServer(addr string, handler http.Handler) *http.Server {
 
 		Addr: addr,
 
-		Handler: SecurityHeadersMiddleware(handler),
+		Handler: NewSecurityHeadersMiddleware(false).Middleware(handler),
 
 		// Timeouts to prevent DoS attacks.
 

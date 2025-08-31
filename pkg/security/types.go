@@ -521,6 +521,8 @@ type VaultStats struct {
 	ActiveConnections     int       `json:"active_connections"`
 	AverageResponseTime   float64   `json:"average_response_time_ms"`
 	UptimeSeconds         int64     `json:"uptime_seconds"`
+	BackupsCreated        int64     `json:"backups_created"`
+	LastBackup            time.Time `json:"last_backup"`
 }
 
 // SecretMetadata represents metadata associated with a secret

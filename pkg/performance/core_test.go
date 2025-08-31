@@ -99,7 +99,7 @@ func TestBenchmarkSuite(t *testing.T) {
 
 // TestOptimizationEngine tests the optimization engine creation
 func TestOptimizationEngine(t *testing.T) {
-	engine := NewOptimizationEngine()
+	engine := NewOptimizationEngine(NewProfiler(), NewMetricsCollector())
 
 	if engine == nil {
 		t.Fatal("NewOptimizationEngine returned nil")

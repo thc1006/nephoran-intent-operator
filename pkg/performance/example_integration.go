@@ -383,11 +383,7 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 				cacheKey := fmt.Sprintf("json_result_%d", i)
 
-				if err := os.cache.Set(cacheKey, result); err != nil {
-
-					return fmt.Errorf("failed to cache result: %w", err)
-
-				}
+				os.cache.Set(cacheKey, result)
 
 				return nil
 
@@ -579,11 +575,7 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 
 		}
 
-		if err := os.cache.Set(key, value); err != nil {
-
-			fmt.Printf("Warning: Failed to cache key %s: %v\n", key, err)
-
-		}
+		os.cache.Set(key, value)
 
 	}
 
@@ -616,11 +608,7 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 						"data": make([]byte, 50),
 					}
 
-					if err := os.cache.Set(key, value); err != nil {
-
-						fmt.Printf("Warning: Failed to cache key %s: %v\n", key, err)
-
-					}
+					os.cache.Set(key, value)
 
 				} else {
 
@@ -639,11 +627,7 @@ func (os *OptimizedSystem) demonstrateCacheOptimizations() error {
 							"type": "generated",
 						}
 
-						if err := os.cache.Set(key, value); err != nil {
-
-							fmt.Printf("Warning: Failed to cache key %s: %v\n", key, err)
-
-						}
+						os.cache.Set(key, value)
 
 					}
 
@@ -811,11 +795,7 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 				cacheKey := fmt.Sprintf("integrated_%d", i)
 
-				if err := os.cache.Set(cacheKey, string(jsonData)); err != nil {
-
-					return fmt.Errorf("failed to cache integrated data: %w", err)
-
-				}
+				os.cache.Set(cacheKey, string(jsonData))
 
 				// Step 3: Memory operations using pools.
 

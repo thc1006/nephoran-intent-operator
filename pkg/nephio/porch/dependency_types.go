@@ -41,6 +41,47 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Missing type definitions for compilation fix
+type VersionRequirement struct {
+	Name       string `json:"name"`
+	Version    string `json:"version"`
+	Constraint string `json:"constraint"`
+}
+
+type DependencyConstraints struct {
+	MaxDepth    int                    `json:"max_depth"`
+	Constraints map[string]interface{} `json:"constraints"`
+}
+
+type DependencyCycle struct {
+	Cycle []string `json:"cycle"`
+}
+
+type EffortLevel int
+
+type DependencyConflict struct {
+	Package1 string `json:"package1"`
+	Package2 string `json:"package2"`
+	Reason   string `json:"reason"`
+}
+
+type DependencyType int
+
+type GraphAnalysisResult struct {
+	Cycles    []DependencyCycle    `json:"cycles"`
+	Conflicts []DependencyConflict `json:"conflicts"`
+}
+
+type DependencyScope int
+
+type WorkflowEngine struct {
+	logger logr.Logger
+}
+
+type VersionSolution struct {
+	Packages []string `json:"packages"`
+}
+
 // SATSolverConfig configures SAT solver behavior
 type SATSolverConfig struct {
 	Algorithm     string        `json:"algorithm"`     // "minisat", "glucose", "lingeling"

@@ -214,10 +214,8 @@ func DefaultSecurityConfig() *ExtendedSecurityConfig {
 			TLS: &TLSConfig{
 				Enabled:    true,
 				MinVersion: "1.2",
-				AutoReload: true,
 			},
 			SecurityHeaders: &SecurityHeadersConfig{
-				Enabled:                 true,
 				StrictTransportSecurity: "max-age=31536000; includeSubDomains",
 				ContentSecurityPolicy:   "default-src 'self'",
 				XContentTypeOptions:     "nosniff",

@@ -29,17 +29,9 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// ComplianceStatus represents the compliance status
-type ComplianceStatus string
-
-const (
-	// ComplianceStatusCompliant indicates full compliance
-	ComplianceStatusCompliant ComplianceStatus = "compliant"
-	// ComplianceStatusPartial indicates partial compliance
-	ComplianceStatusPartial ComplianceStatus = "partial"
-	// ComplianceStatusNonCompliant indicates non-compliance
-	ComplianceStatusNonCompliant ComplianceStatus = "non-compliant"
-)
+// Note: ComplianceStatus is defined in compliance_manager.go
+// Using the constants from compliance_manager.go:
+// StatusCompliant, StatusNonCompliant, StatusPartiallyCompliant, StatusNotApplicable
 
 // ORANSecurityComplianceEngine implements O-RAN WG11 security specifications
 // following O-RAN.WG11.O1-Interface.0-v05.00, O-RAN.WG11.Security-v05.00
@@ -315,11 +307,11 @@ func (o *ORANSecurityComplianceEngine) ValidateCompliance(nodeID string) (*ORANC
 
 	// Determine compliance status
 	if result.ComplianceScore >= 0.95 {
-		result.ComplianceStatus = ComplianceStatusCompliant
+		result.ComplianceStatus = StatusCompliant
 	} else if result.ComplianceScore >= 0.7 {
-		result.ComplianceStatus = ComplianceStatusPartial
+		result.ComplianceStatus = StatusPartiallyCompliant
 	} else {
-		result.ComplianceStatus = ComplianceStatusNonCompliant
+		result.ComplianceStatus = StatusNonCompliant
 	}
 
 	// Add evidence
@@ -561,7 +553,7 @@ func (o *ORANSecurityComplianceEngine) runComplianceMonitoring() {
 					o.complianceMonitor.StoreORANComplianceResult(result)
 
 					// Generate alerts for non-compliant nodes
-					if result.ComplianceStatus == ComplianceStatusNonCompliant {
+					if result.ComplianceStatus == StatusNonCompliant {
 						o.complianceMonitor.TriggerComplianceAlert(result)
 					}
 				}(nodeID)
@@ -832,7 +824,7 @@ func (c *ComplianceMonitor) TriggerComplianceAlert(result *ORANComplianceResult)
 func (c *ComplianceMonitor) GenerateReport() (*ORANComplianceReport, error) {
 	return &ORANComplianceReport{
 		GeneratedAt:     time.Now(),
-		OverallStatus:   ComplianceStatusCompliant,
+		OverallStatus:   StatusCompliant,
 		ComplianceScore: 0.95,
 		NodeResults:     []ORANComplianceResult{},
 		TotalViolations: 0,

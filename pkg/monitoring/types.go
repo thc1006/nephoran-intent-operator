@@ -17,8 +17,8 @@ type MonitoringManager struct {
 	AlertManager        AlertManager
 }
 
-// LatencyTracker interface for tracking operation latencies
-type LatencyTracker interface {
+// LatencyTrackerInterface interface for tracking operation latencies
+type LatencyTrackerInterface interface {
 	StartOperation(ctx context.Context, operationID, operationType, component string, attrs map[string]string) (context.Context, error)
 	EndOperation(ctx context.Context, operationID string, success bool, errorMsg string) error
 	GetSpanFromContext(ctx context.Context) trace.Span
@@ -134,25 +134,7 @@ type CheckResult struct {
 
 // Alert type is defined in alerting.go
 
-// CircularBuffer is a thread-safe circular buffer for time-series data
-type CircularBuffer struct {
-	data     []float64
-	times    []time.Time
-	capacity int
-	head     int
-	tail     int
-	size     int
-	mu       sync.RWMutex
-}
-
-// NewCircularBuffer creates a new circular buffer with the specified capacity
-func NewCircularBuffer(capacity int) *CircularBuffer {
-	return &CircularBuffer{
-		data:     make([]float64, capacity),
-		times:    make([]time.Time, capacity),
-		capacity: capacity,
-	}
-}
+// Note: CircularBuffer is defined in sla_components.go to avoid duplication
 
 // TrendAnalyzer provides trend analysis for time-series data
 type TrendAnalyzer struct {

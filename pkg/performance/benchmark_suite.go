@@ -146,14 +146,16 @@ type DiskMetrics struct {
 // NewBenchmarkSuite creates a new benchmark suite with default baselines.
 
 func NewBenchmarkSuite() *BenchmarkSuite {
-
+	profiler := NewProfiler()
+	metrics := NewMetricsCollector()
+	
 	return &BenchmarkSuite{
 
-		metrics: NewMetricsCollector(),
+		metrics: metrics,
 
-		optimizer: NewOptimizationEngine(),
+		optimizer: NewOptimizationEngine(profiler, metrics),
 
-		profiler: NewProfiler(),
+		profiler: profiler,
 
 		baselines: getDefaultBaselines(),
 

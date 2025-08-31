@@ -124,9 +124,9 @@ type MetricCollector struct {
 	cancel context.CancelFunc
 }
 
-// Alarm represents an O-RAN alarm.
+// AdaptorAlarm represents an O-RAN alarm in adaptor context.
 
-type Alarm struct {
+type AdaptorAlarm struct {
 	ID string `json:"alarm_id"`
 
 	ManagedElementID string `json:"managed_element_id"`

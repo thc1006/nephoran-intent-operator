@@ -359,7 +359,7 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 			ginkgo.By("Generating comprehensive regression reports")
 
-			_, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
+			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(detection).NotTo(gomega.BeNil())

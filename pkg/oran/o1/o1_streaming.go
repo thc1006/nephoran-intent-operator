@@ -941,9 +941,9 @@ type AlarmData struct {
 	Attributes map[string]interface{} `json:"attributes"`
 }
 
-// PerformanceData represents performance data for streaming.
+// StreamingPerformanceData represents performance data for streaming.
 
-type PerformanceData struct {
+type StreamingPerformanceData struct {
 	Source string `json:"source"`
 
 	MetricName string `json:"metric_name"`

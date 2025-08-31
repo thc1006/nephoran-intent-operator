@@ -1785,9 +1785,7 @@ func (tp *ThroughputPredictor) Predict(ctx context.Context, features []float64) 
 type (
 	SeasonalityDetector struct{}
 
-	// AnomalyDetector represents a anomalydetector.
-
-	AnomalyDetector struct{}
+	// Note: AnomalyDetector is defined in nwdaf_analytics_engine.go
 )
 
 // NewSeasonalityDetector performs newseasonalitydetector operation.
@@ -1798,10 +1796,4 @@ func NewSeasonalityDetector(config *SLAMonitoringConfig) *SeasonalityDetector {
 
 }
 
-// NewAnomalyDetector performs newanomalydetector operation.
-
-func NewAnomalyDetector(config *SLAMonitoringConfig) *AnomalyDetector {
-
-	return &AnomalyDetector{}
-
-}
+// Note: NewAnomalyDetector is defined in nwdaf_analytics_engine.go

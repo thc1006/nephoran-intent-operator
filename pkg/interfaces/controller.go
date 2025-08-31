@@ -1,19 +1,3 @@
-/*
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package interfaces
 
 import (
@@ -27,62 +11,77 @@ import (
 type ComponentType = contracts.ComponentType
 type ProcessingPhase = contracts.ProcessingPhase
 
-// Constants for backward compatibility
+// Component type constants
 const (
-	ComponentTypeLLMProcessor       = contracts.ComponentTypeLLMProcessor
-	ComponentTypeResourcePlanner    = contracts.ComponentTypeResourcePlanner
-	ComponentTypeManifestGenerator  = contracts.ComponentTypeManifestGenerator
-	ComponentTypeGitOpsController   = contracts.ComponentTypeGitOpsController
-	ComponentTypeDeploymentVerifier = contracts.ComponentTypeDeploymentVerifier
-
-	PhaseIntentReceived         = contracts.PhaseIntentReceived
-	PhaseLLMProcessing          = contracts.PhaseLLMProcessing
-	PhaseResourcePlanning       = contracts.PhaseResourcePlanning
-	PhaseManifestGeneration     = contracts.PhaseManifestGeneration
-	PhaseGitOpsCommit           = contracts.PhaseGitOpsCommit
-	PhaseDeploymentVerification = contracts.PhaseDeploymentVerification
-	PhaseCompleted              = contracts.PhaseCompleted
-	PhaseFailed                 = contracts.PhaseFailed
+	ComponentUnknown    = contracts.ComponentUnknown
+	ComponentIntentAPI  = contracts.ComponentIntentAPI
+	ComponentVIMSIM     = contracts.ComponentVIMSIM
+	ComponentNEPHIO     = contracts.ComponentNEPHIO
+	ComponentORAN       = contracts.ComponentORAN
+	ComponentCACHE      = contracts.ComponentCACHE
+	ComponentCONTROLLER = contracts.ComponentCONTROLLER
+	ComponentMETRICS    = contracts.ComponentMETRICS
+	ComponentPERF       = contracts.ComponentPERF
 )
 
-// Type aliases for backward compatibility
-type ProcessingResult = contracts.ProcessingResult
-type ProcessingEvent = contracts.ProcessingEvent
-type ResourceReference = contracts.ResourceReference
+// Phase constants
+const (
+	PhaseUnknown    = contracts.PhaseUnknown
+	PhaseInit       = contracts.PhaseInit
+	PhaseValidation = contracts.PhaseValidation
+	PhaseProcessing = contracts.PhaseProcessing
+	PhaseComplete   = contracts.PhaseComplete
+	PhaseError      = contracts.PhaseError
+)
 
-// ControllerInterface defines the contract for specialized controllers
-type ControllerInterface interface {
-	// Process handles the specific phase for this controller
-	Process(ctx context.Context, intent *nephoranv1.NetworkIntent) (*ProcessingResult, error)
-
-	// GetPhase returns the processing phase this controller handles
-	GetPhase() ProcessingPhase
-
-	// CanProcess checks if this controller can handle the given intent in its current state
-	CanProcess(intent *nephoranv1.NetworkIntent) bool
-
-	// GetDependencies returns the phases this controller depends on
-	GetDependencies() []ProcessingPhase
-
-	// GetMetrics returns controller-specific metrics
-	GetMetrics() map[string]float64
-
-	// HealthCheck performs a health check for this controller
-	HealthCheck(ctx context.Context) error
-
-	// GetComponentType returns the component type (for shared package compatibility)
-	GetComponentType() ComponentType
-
-	// IsHealthy returns current health status (for shared package compatibility)
-	IsHealthy() bool
+// IntentProcessor is the main interface for processing network intents
+type IntentProcessor interface {
+	ProcessIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) error
+	ValidateIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) error
 }
 
-// PhaseController is a minimal interface for phase processing without circular dependencies
-type PhaseController interface {
-	ProcessPhase(ctx context.Context, intent *nephoranv1.NetworkIntent, phase ProcessingPhase) (*ProcessingResult, error)
-	GetSupportedPhases() []ProcessingPhase
+// ComponentController manages component lifecycle
+type ComponentController interface {
+	Start(ctx context.Context) error
+	Stop(ctx context.Context) error
+	Status() ComponentStatus
 }
 
-// Interface aliases for backward compatibility
-type StateManager = contracts.StateManager
-type EventBus = contracts.EventBus
+// ComponentStatus represents component health status
+type ComponentStatus struct {
+	Healthy bool
+	Message string
+	Phase   ProcessingPhase
+}
+
+// MetricsCollector collects performance metrics
+type MetricsCollector interface {
+	RecordLatency(operation string, duration float64)
+	RecordThroughput(operation string, value float64)
+	RecordError(operation string, err error)
+}
+
+// EventHandler handles system events
+type EventHandler interface {
+	HandleEvent(ctx context.Context, event Event) error
+}
+
+// Event represents a system event
+type Event struct {
+	Type      string
+	Component ComponentType
+	Data      interface{}
+}
+
+// CacheManager manages caching operations
+type CacheManager interface {
+	Get(key string) (interface{}, bool)
+	Set(key string, value interface{}) error
+	Delete(key string) error
+}
+
+// Ensure contracts types are available
+var (
+	_ ComponentType   = contracts.ComponentUnknown
+	_ ProcessingPhase = contracts.PhaseUnknown
+)

@@ -79,7 +79,18 @@ func GetObjectReference(obj metav1.Object, gvk metav1.GroupVersionKind) ObjectRe
 }
 
 // ManagedElement represents a managed network element
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 type ManagedElement struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ManagedElementSpec   `json:"spec,omitempty"`
+	Status ManagedElementStatus `json:"status,omitempty"`
+}
+
+// ManagedElementSpec defines the desired state of ManagedElement
+type ManagedElementSpec struct {
 	// ID is the unique identifier for the managed element
 	ID string `json:"id"`
 	// Name is the display name of the managed element
@@ -88,8 +99,25 @@ type ManagedElement struct {
 	Type string `json:"type"`
 	// Credentials for accessing the managed element
 	Credentials *ManagedElementCredentials `json:"credentials,omitempty"`
-	// Status represents the current status
-	Status string `json:"status,omitempty"`
+}
+
+// ManagedElementStatus defines the observed state of ManagedElement
+type ManagedElementStatus struct {
+	// Phase represents the current status
+	Phase string `json:"phase,omitempty"`
+	// Conditions represent the current service state
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// ManagedElementList contains a list of ManagedElement
+// +kubebuilder:object:root=true
+type ManagedElementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ManagedElement `json:"items"`
 }
 
 // ManagedElementCredentials defines authentication credentials for managed elements
@@ -166,6 +194,10 @@ type ProcessedParameters struct {
 	// Structured parameters organized by category
 	// +optional
 	Structured map[string]*apiextensionsv1.JSON `json:"structured,omitempty"`
+
+	// Security-related parameters
+	// +optional
+	SecurityParameters map[string]interface{} `json:"securityParameters,omitempty"`
 
 	// Processing metadata
 	// +optional

@@ -18,7 +18,7 @@ func TestPerformanceComponentCreation(t *testing.T) {
 		t.Error("MetricsAnalyzer creation failed")
 	}
 
-	optimizer := NewOptimizationEngine()
+	optimizer := NewOptimizationEngine(NewProfiler(), NewMetricsCollector())
 	if optimizer == nil {
 		t.Error("OptimizationEngine creation failed")
 	}

@@ -22,7 +22,7 @@ func TestPerformancePackageIntegration(t *testing.T) {
 	}
 
 	// Test optimization engine
-	optimizer := NewOptimizationEngine()
+	optimizer := NewOptimizationEngine(NewProfiler(), NewMetricsCollector())
 	if optimizer == nil {
 		t.Fatal("OptimizationEngine creation failed")
 	}

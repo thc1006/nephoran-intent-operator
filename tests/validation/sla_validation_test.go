@@ -37,15 +37,15 @@ type SLAValidationTestSuite struct {
 	claimVerifier       *ClaimVerifier
 
 	// Test configuration
-	config *ValidationConfig
+	config *SLAValidationConfig
 
 	// Results and evidence
-	validationResults *ValidationResults
+	validationResults *SLAValidationResults
 	evidence          *ValidationEvidence
 }
 
-// ValidationConfig defines precise validation parameters
-type ValidationConfig struct {
+// SLAValidationConfig defines precise validation parameters for SLA testing
+type SLAValidationConfig struct {
 	// SLA Claims to validate
 	AvailabilityClaim float64       `yaml:"availability_claim"` // 99.95%
 	LatencyP95Claim   time.Duration `yaml:"latency_p95_claim"`  // Sub-2-second
@@ -75,7 +75,7 @@ type ValidationConfig struct {
 // SLAValidator performs comprehensive SLA validation
 type SLAValidator struct {
 	prometheus   v1.API
-	config       *ValidationConfig
+	config       *SLAValidationConfig
 	measurements map[string]*MeasurementSet
 	mutex        sync.RWMutex
 
@@ -130,7 +130,7 @@ type StatisticalAnalysis struct {
 	ConfidenceLevel    float64             `json:"confidence_level"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
 	HypothesisTest     *HypothesisTest     `json:"hypothesis_test"`
-	TrendAnalysis      *TrendAnalysis      `json:"trend_analysis"`
+	TrendAnalysis      *SLATrendAnalysis      `json:"trend_analysis"`
 	OutlierAnalysis    *OutlierAnalysis    `json:"outlier_analysis"`
 }
 
@@ -151,8 +151,8 @@ type HypothesisTest struct {
 	PowerAnalysis         float64 `json:"power_analysis"`
 }
 
-// TrendAnalysis contains trend analysis results
-type TrendAnalysis struct {
+// SLATrendAnalysis contains trend analysis results for SLA testing
+type SLATrendAnalysis struct {
 	HasTrend     bool    `json:"has_trend"`
 	TrendSlope   float64 `json:"trend_slope"`
 	TrendR2      float64 `json:"trend_r2"`
@@ -244,8 +244,8 @@ type ClaimVerification struct {
 	VerificationTime time.Time            `json:"verification_time"`
 }
 
-// ValidationResults contains comprehensive validation results
-type ValidationResults struct {
+// SLAValidationResults contains comprehensive SLA validation results
+type SLAValidationResults struct {
 	TestID    string        `json:"test_id"`
 	StartTime time.Time     `json:"start_time"`
 	EndTime   time.Time     `json:"end_time"`
@@ -257,9 +257,9 @@ type ValidationResults struct {
 	OverallConfidence   float64 `json:"overall_confidence"`
 
 	// Specific claim results
-	AvailabilityResults *AvailabilityValidationResult `json:"availability_results"`
-	LatencyResults      *LatencyValidationResult      `json:"latency_results"`
-	ThroughputResults   *ThroughputValidationResult   `json:"throughput_results"`
+	AvailabilityResults *SLAAvailabilityValidationResult `json:"availability_results"`
+	LatencyResults      *SLALatencyValidationResult      `json:"latency_results"`
+	ThroughputResults   *SLAThroughputValidationResult   `json:"throughput_results"`
 
 	// Statistical summaries
 	StatisticalSummary *StatisticalSummary `json:"statistical_summary"`
@@ -269,8 +269,8 @@ type ValidationResults struct {
 	EvidencePackage *EvidencePackage `json:"evidence_package"`
 }
 
-// AvailabilityValidationResult contains availability validation results
-type AvailabilityValidationResult struct {
+// SLAAvailabilityValidationResult contains availability validation results for SLA testing
+type SLAAvailabilityValidationResult struct {
 	ClaimedAvailability  float64             `json:"claimed_availability"`
 	MeasuredAvailability float64             `json:"measured_availability"`
 	ConfidenceInterval   *ConfidenceInterval `json:"confidence_interval"`
@@ -287,8 +287,8 @@ type AvailabilityValidationResult struct {
 	IndependentMeasurements []IndependentMeasurement `json:"independent_measurements"`
 }
 
-// LatencyValidationResult contains latency validation results
-type LatencyValidationResult struct {
+// SLALatencyValidationResult contains latency validation results for SLA testing
+type SLALatencyValidationResult struct {
 	ClaimedLatencyP95  float64             `json:"claimed_latency_p95"`
 	MeasuredLatencyP95 float64             `json:"measured_latency_p95"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
@@ -305,8 +305,8 @@ type LatencyValidationResult struct {
 	PeakLatencyEvents []LatencyEvent `json:"peak_latency_events"`
 }
 
-// ThroughputValidationResult contains throughput validation results
-type ThroughputValidationResult struct {
+// SLAThroughputValidationResult contains throughput validation results for SLA testing
+type SLAThroughputValidationResult struct {
 	ClaimedThroughput  float64             `json:"claimed_throughput"`
 	MeasuredThroughput float64             `json:"measured_throughput"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
@@ -358,7 +358,7 @@ func (s *SLAValidationTestSuite) SetupTest() {
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), 2*time.Hour)
 
 	// Initialize validation configuration
-	s.config = &ValidationConfig{
+	s.config = &SLAValidationConfig{
 		// Claims to validate
 		AvailabilityClaim: 99.95,
 		LatencyP95Claim:   2 * time.Second,
@@ -750,7 +750,7 @@ func (s *SLAValidationTestSuite) sampleDirectAvailability() float64 {
 // Additional helper methods would be implemented here...
 // Due to length constraints, showing core structure and key validation methods
 
-func NewSLAValidator(prometheus v1.API, config *ValidationConfig) *SLAValidator {
+func NewSLAValidator(prometheus v1.API, config *SLAValidationConfig) *SLAValidator {
 	return &SLAValidator{
 		prometheus:   prometheus,
 		config:       config,
@@ -892,7 +892,7 @@ func (s *SLAValidationTestSuite) SetupSuite() {
 	s.logger = logging.NewStructuredLogger("sla-validation-test", "info")
 
 	// Initialize configuration with default values
-	s.config = &ValidationConfig{
+	s.config = &SLAValidationConfig{
 		AvailabilityClaim:    99.95,
 		LatencyP95Claim:      2 * time.Second,
 		ThroughputClaim:      45.0,
@@ -925,7 +925,7 @@ func (s *SLAValidationTestSuite) SetupSuite() {
 	}
 
 	// Initialize results containers
-	s.validationResults = &ValidationResults{}
+	s.validationResults = &SLAValidationResults{}
 	s.evidence = &ValidationEvidence{}
 }
 
