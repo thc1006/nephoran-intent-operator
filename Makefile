@@ -296,6 +296,51 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 
 ##@ Testing
 
+# Test configuration
+TEST_OUTPUT_DIR ?= .test-reports
+TEST_FIXTURES_DIR ?= tests/fixtures
+TEST_MOCKS_DIR ?= tests/mocks
+TEST_E2E_DIR ?= tests/e2e
+TEST_INTEGRATION_DIR ?= tests/integration
+TEST_UNIT_DIR ?= tests/unit
+TEST_VALIDATION_DIR ?= tests/validation
+TEST_SMOKE_DIR ?= tests/smoke
+TEST_BENCHMARK_DIR ?= tests/benchmarks
+TEST_TIMEOUT_UNIT ?= 5m
+TEST_TIMEOUT_INTEGRATION ?= 15m  
+TEST_TIMEOUT_E2E ?= 30m
+TEST_TIMEOUT_VALIDATION ?= 10m
+TEST_PARALLEL_JOBS ?= 4
+
+# Test dependencies
+TESTCONTAINERS_VERSION ?= v0.33.0
+GOMOCK_VERSION ?= v0.5.0
+TESTIFY_VERSION ?= v1.10.0
+
+.PHONY: test-deps
+test-deps: ## Install test dependencies
+	@echo "Installing test dependencies..."
+	go install go.uber.org/mock/mockgen@$(GOMOCK_VERSION)
+	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	go install github.com/onsi/gomega/...@latest
+	go mod download github.com/testcontainers/testcontainers-go@$(TESTCONTAINERS_VERSION)
+	go mod download github.com/stretchr/testify@$(TESTIFY_VERSION)
+
+.PHONY: test-setup
+test-setup: test-deps ## Set up test infrastructure
+	@echo "Setting up test infrastructure..."
+	@mkdir -p $(TEST_OUTPUT_DIR) $(TEST_FIXTURES_DIR) $(TEST_MOCKS_DIR)
+	@mkdir -p $(TEST_E2E_DIR) $(TEST_INTEGRATION_DIR) $(TEST_UNIT_DIR)
+	@mkdir -p $(TEST_VALIDATION_DIR) $(TEST_SMOKE_DIR) $(TEST_BENCHMARK_DIR)
+	@mkdir -p $(TEST_OUTPUT_DIR)/coverage $(TEST_OUTPUT_DIR)/junit $(TEST_OUTPUT_DIR)/html
+
+.PHONY: check-test-tools
+check-test-tools: ## Check if test tools are installed
+	@echo "Checking test tools..."
+	@command -v mockgen >/dev/null 2>&1 || (echo "[ERROR] mockgen not found. Run 'make test-deps'" && exit 1)
+	@command -v ginkgo >/dev/null 2>&1 || (echo "[ERROR] ginkgo not found. Run 'make test-deps'" && exit 1)
+	@echo "[SUCCESS] All test tools are available"
+
 .PHONY: check-redis-connectivity
 check-redis-connectivity: ## Check Redis connectivity for integration tests
 	@echo "Checking Redis connectivity..."
@@ -320,37 +365,167 @@ check-redis-connectivity: ## Check Redis connectivity for integration tests
 		echo "[WARNING]  redis-cli not found. Cannot verify Redis connectivity"; \
 	fi
 
+.PHONY: check-k8s-tools
+check-k8s-tools: ## Check if Kubernetes test tools are available
+	@echo "Checking Kubernetes test tools..."
+	@command -v kubectl >/dev/null 2>&1 || (echo "[ERROR] kubectl not found" && exit 1)
+	@command -v kind >/dev/null 2>&1 || echo "[WARNING] kind not found - E2E tests may fail"
+	@command -v helm >/dev/null 2>&1 || echo "[WARNING] helm not found - some tests may fail"
+	@echo "[SUCCESS] Kubernetes tools check completed"
+
 .PHONY: test
-test: check-redis-connectivity ## Run unit tests (fast, no external dependencies)
-	@echo "Running unit tests (excluding integration tests)..."
-	mkdir -p $(REPORTS_DIR)
-	@export CGO_ENABLED=1 GOMAXPROCS=2 GODEBUG=gocachehash=1; \
-	timeout 5m go test ./... -v -race -timeout=4m30s \
-		-coverprofile=$(REPORTS_DIR)/coverage.out \
-		-covermode=atomic \
-		-count=1 \
-		-parallel=4 \
-		-short || echo "Tests completed (may have reached timeout ceiling)"
-	@if [ -f "$(REPORTS_DIR)/coverage.out" ] && [ -s "$(REPORTS_DIR)/coverage.out" ]; then \
-		echo "Coverage report generated successfully"; \
-	else \
-		echo "Warning: Coverage file not generated or empty"; \
-	fi
+test: test-unit ## Run unit tests (alias for test-unit)
 
 .PHONY: test-unit
-test-unit: test ## Alias for test (unit tests only)
+test-unit: test-setup check-test-tools ## Run unit tests with comprehensive coverage
+	@echo "Running unit tests with comprehensive coverage..."
+	@export CGO_ENABLED=1 GOMAXPROCS=$(TEST_PARALLEL_JOBS) GODEBUG=gocachehash=1; \
+	go test ./api/... ./controllers/... ./pkg/... ./cmd/... ./internal/... \
+		-v -race -timeout=$(TEST_TIMEOUT_UNIT) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/unit-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-parallel=$(TEST_PARALLEL_JOBS) \
+		-short \
+		-json > $(TEST_OUTPUT_DIR)/junit/unit-test-results.json \
+		|| (echo "[ERROR] Unit tests failed" && exit 1)
+	@echo "[SUCCESS] Unit tests completed successfully"
+
+.PHONY: test-unit-controllers
+test-unit-controllers: test-setup check-test-tools ## Run controller unit tests with mocks
+	@echo "Running controller unit tests with mocks..."
+	@go test ./controllers/... \
+		-v -race -timeout=$(TEST_TIMEOUT_UNIT) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/controllers-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-parallel=$(TEST_PARALLEL_JOBS) \
+		-short \
+		-json > $(TEST_OUTPUT_DIR)/junit/controllers-test-results.json \
+		|| (echo "[ERROR] Controller unit tests failed" && exit 1)
+	@echo "[SUCCESS] Controller unit tests completed"
+
+.PHONY: test-unit-api
+test-unit-api: test-setup check-test-tools ## Run API unit tests
+	@echo "Running API unit tests..."
+	@go test ./api/... \
+		-v -race -timeout=$(TEST_TIMEOUT_UNIT) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/api-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-parallel=$(TEST_PARALLEL_JOBS) \
+		-short \
+		-json > $(TEST_OUTPUT_DIR)/junit/api-test-results.json \
+		|| (echo "[ERROR] API unit tests failed" && exit 1)
+	@echo "[SUCCESS] API unit tests completed"
 
 .PHONY: test-integration
-test-integration: check-redis-connectivity ## Run integration tests (requires external resources)
-	@echo "Running integration tests with build tag..."
-	mkdir -p $(REPORTS_DIR)
-	go test ./... -tags=integration -v -timeout=30m -race
+test-integration: test-setup check-redis-connectivity check-k8s-tools ## Run integration tests with testcontainers
+	@echo "Running integration tests with testcontainers..."
+	@go test $(TEST_INTEGRATION_DIR)/... \
+		-tags=integration \
+		-v -race -timeout=$(TEST_TIMEOUT_INTEGRATION) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/integration-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-parallel=$(TEST_PARALLEL_JOBS) \
+		-json > $(TEST_OUTPUT_DIR)/junit/integration-test-results.json \
+		|| (echo "[ERROR] Integration tests failed" && exit 1)
+	@echo "[SUCCESS] Integration tests completed"
+
+.PHONY: test-integration-crds
+test-integration-crds: test-setup check-k8s-tools ## Run CRD integration tests
+	@echo "Running CRD integration tests..."
+	@go test $(TEST_INTEGRATION_DIR)/crds/... \
+		-tags=integration \
+		-v -race -timeout=$(TEST_TIMEOUT_INTEGRATION) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/crd-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/crd-test-results.json \
+		|| (echo "[ERROR] CRD integration tests failed" && exit 1)
+	@echo "[SUCCESS] CRD integration tests completed"
+
+.PHONY: test-integration-k8s
+test-integration-k8s: test-setup check-k8s-tools ## Run Kubernetes integration tests
+	@echo "Running Kubernetes integration tests..."
+	@go test $(TEST_INTEGRATION_DIR)/k8s/... \
+		-tags=integration \
+		-v -race -timeout=$(TEST_TIMEOUT_INTEGRATION) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/k8s-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/k8s-test-results.json \
+		|| (echo "[ERROR] Kubernetes integration tests failed" && exit 1)
+	@echo "[SUCCESS] Kubernetes integration tests completed"
 
 .PHONY: test-e2e
-test-e2e: check-redis-connectivity ## Run end-to-end tests
-	@echo "Running end-to-end tests..."
-	mkdir -p $(REPORTS_DIR)
-	go test ./tests/e2e/... -tags=integration -v -timeout=45m
+test-e2e: test-setup check-k8s-tools ## Run end-to-end tests with real cluster
+	@echo "Running end-to-end tests with real cluster..."
+	@go test $(TEST_E2E_DIR)/... \
+		-tags=e2e \
+		-v -timeout=$(TEST_TIMEOUT_E2E) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/e2e-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/e2e-test-results.json \
+		|| (echo "[ERROR] E2E tests failed" && exit 1)
+	@echo "[SUCCESS] E2E tests completed"
+
+.PHONY: test-e2e-operator
+test-e2e-operator: test-setup check-k8s-tools ## Run operator E2E tests
+	@echo "Running operator E2E tests..."
+	@go test $(TEST_E2E_DIR)/operator/... \
+		-tags=e2e \
+		-v -timeout=$(TEST_TIMEOUT_E2E) \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/operator-e2e-test-results.json \
+		|| (echo "[ERROR] Operator E2E tests failed" && exit 1)
+	@echo "[SUCCESS] Operator E2E tests completed"
+
+.PHONY: test-smoke
+test-smoke: test-setup ## Run smoke tests for quick validation
+	@echo "Running smoke tests for quick validation..."
+	@go test $(TEST_SMOKE_DIR)/... \
+		-tags=smoke \
+		-v -timeout=2m \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/smoke-test-results.json \
+		|| (echo "[ERROR] Smoke tests failed" && exit 1)
+	@echo "[SUCCESS] Smoke tests completed"
+
+.PHONY: test-validation
+test-validation: test-setup ## Run validation tests for generated code
+	@echo "Running validation tests for generated code..."
+	@go test $(TEST_VALIDATION_DIR)/... \
+		-tags=validation \
+		-v -timeout=$(TEST_TIMEOUT_VALIDATION) \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/validation-test-results.json \
+		|| (echo "[ERROR] Validation tests failed" && exit 1)
+	@echo "[SUCCESS] Validation tests completed"
+
+.PHONY: test-validation-crds
+test-validation-crds: test-setup manifests ## Validate generated CRDs
+	@echo "Validating generated CRDs..."
+	@go test $(TEST_VALIDATION_DIR)/crds/... \
+		-tags=validation \
+		-v -timeout=$(TEST_TIMEOUT_VALIDATION) \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/crd-validation-test-results.json \
+		|| (echo "[ERROR] CRD validation tests failed" && exit 1)
+	@echo "[SUCCESS] CRD validation tests completed"
+
+.PHONY: test-validation-codegen
+test-validation-codegen: test-setup generate ## Validate generated code
+	@echo "Validating generated code..."
+	@go test $(TEST_VALIDATION_DIR)/codegen/... \
+		-tags=validation \
+		-v -timeout=$(TEST_TIMEOUT_VALIDATION) \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/codegen-validation-test-results.json \
+		|| (echo "[ERROR] Code generation validation tests failed" && exit 1)
+	@echo "[SUCCESS] Code generation validation tests completed"
 
 .PHONY: test-excellence
 test-excellence: ## Run excellence validation test suite with improved reliability
@@ -403,11 +578,126 @@ test-ci: ## Run unit tests with CI-compatible coverage reporting (fast, no integ
 		echo "coverage_available=false" > .test-reports/test-status.txt; \
 	fi
 
+.PHONY: test-benchmark
+test-benchmark: test-setup ## Run performance benchmarks with detailed reporting
+	@echo "Running performance benchmarks with detailed reporting..."
+	@go test $(TEST_BENCHMARK_DIR)/... ./pkg/... ./controllers/... \
+		-bench=. -benchmem -benchtime=5s \
+		-timeout=30m \
+		-count=3 \
+		-cpu=1,2,4 \
+		-json > $(TEST_OUTPUT_DIR)/junit/benchmark-results.json \
+		2>&1 | tee $(TEST_OUTPUT_DIR)/benchmark-results.txt
+	@echo "[SUCCESS] Performance benchmarks completed"
+
+.PHONY: test-benchmark-memory
+test-benchmark-memory: test-setup ## Run memory-focused benchmarks
+	@echo "Running memory-focused benchmarks..."
+	@go test ./controllers/... ./pkg/... \
+		-bench=. -benchmem -memprofile=$(TEST_OUTPUT_DIR)/coverage/memory.prof \
+		-timeout=15m \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/memory-benchmark-results.json
+	@echo "[SUCCESS] Memory benchmarks completed"
+
+.PHONY: test-benchmark-cpu
+test-benchmark-cpu: test-setup ## Run CPU-focused benchmarks  
+	@echo "Running CPU-focused benchmarks..."
+	@go test ./controllers/... ./pkg/... \
+		-bench=. -cpuprofile=$(TEST_OUTPUT_DIR)/coverage/cpu.prof \
+		-timeout=15m \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/cpu-benchmark-results.json
+	@echo "[SUCCESS] CPU benchmarks completed"
+
+.PHONY: test-ci
+test-ci: test-setup ## Run CI-compatible test suite (fast, deterministic)
+	@echo "Running CI-compatible test suite..."
+	@export CGO_ENABLED=1 GOMAXPROCS=2 GODEBUG=gocachehash=1 GO111MODULE=on; \
+	go test ./... -v -race -timeout=$(TEST_TIMEOUT_UNIT) \
+		-coverprofile=$(TEST_OUTPUT_DIR)/coverage/ci-coverage.out \
+		-covermode=atomic \
+		-count=1 \
+		-parallel=$(TEST_PARALLEL_JOBS) \
+		-short \
+		-json > $(TEST_OUTPUT_DIR)/junit/ci-test-results.json \
+		|| (echo "[ERROR] CI tests failed" && exit 1)
+	@echo "[SUCCESS] CI tests completed successfully"
+
+.PHONY: test-ci-pipeline
+test-ci-pipeline: test-setup ## Test CI/CD pipeline functionality
+	@echo "Testing CI/CD pipeline functionality..."
+	@go test $(TEST_VALIDATION_DIR)/ci/... \
+		-tags=ci \
+		-v -timeout=$(TEST_TIMEOUT_VALIDATION) \
+		-count=1 \
+		-json > $(TEST_OUTPUT_DIR)/junit/ci-pipeline-test-results.json \
+		|| (echo "[ERROR] CI pipeline tests failed" && exit 1)
+	@echo "[SUCCESS] CI pipeline tests completed"
+
+.PHONY: test-all
+test-all: test-unit test-integration test-validation test-smoke ## Run all core test suites (excludes E2E and benchmarks)
+	@echo "[SUCCESS] All core test suites completed successfully!"
+
+.PHONY: test-all-comprehensive
+test-all-comprehensive: test-unit test-integration test-e2e test-validation test-smoke test-benchmark ## Run comprehensive test suite (all tests including E2E and benchmarks)
+	@echo "[SUCCESS] Comprehensive test suite completed successfully!"
+
+.PHONY: test-coverage-merge
+test-coverage-merge: ## Merge all coverage reports into a single report
+	@echo "Merging coverage reports..."
+	@mkdir -p $(TEST_OUTPUT_DIR)/coverage
+	@if command -v gocovmerge >/dev/null 2>&1; then \
+		gocovmerge $(TEST_OUTPUT_DIR)/coverage/*-coverage.out > $(TEST_OUTPUT_DIR)/coverage/merged-coverage.out; \
+	else \
+		echo "Installing gocovmerge..."; \
+		go install github.com/wadey/gocovmerge@latest; \
+		gocovmerge $(TEST_OUTPUT_DIR)/coverage/*-coverage.out > $(TEST_OUTPUT_DIR)/coverage/merged-coverage.out; \
+	fi
+	@echo "[SUCCESS] Coverage reports merged"
+
+.PHONY: test-coverage-report
+test-coverage-report: test-coverage-merge ## Generate comprehensive coverage reports
+	@echo "Generating comprehensive coverage reports..."
+	@mkdir -p $(TEST_OUTPUT_DIR)/coverage $(TEST_OUTPUT_DIR)/html
+	@if [ -f "$(TEST_OUTPUT_DIR)/coverage/merged-coverage.out" ]; then \
+		go tool cover -html=$(TEST_OUTPUT_DIR)/coverage/merged-coverage.out -o $(TEST_OUTPUT_DIR)/html/coverage.html; \
+		go tool cover -func=$(TEST_OUTPUT_DIR)/coverage/merged-coverage.out > $(TEST_OUTPUT_DIR)/coverage/coverage-summary.txt; \
+		echo "[SUCCESS] Coverage reports generated:"; \
+		echo "  HTML: $(TEST_OUTPUT_DIR)/html/coverage.html"; \
+		echo "  Summary: $(TEST_OUTPUT_DIR)/coverage/coverage-summary.txt"; \
+		COVERAGE=$$(go tool cover -func=$(TEST_OUTPUT_DIR)/coverage/merged-coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
+		echo "Total Coverage: $${COVERAGE}%"; \
+		if [ $$(echo "$${COVERAGE} >= $(COVERAGE_THRESHOLD)" | bc -l) -eq 1 ]; then \
+			echo "[SUCCESS] Coverage $${COVERAGE}% meets threshold $(COVERAGE_THRESHOLD)%"; \
+		else \
+			echo "[WARNING] Coverage $${COVERAGE}% below threshold $(COVERAGE_THRESHOLD)%"; \
+		fi; \
+	else \
+		echo "[ERROR] No coverage data found. Run tests first."; \
+		exit 1; \
+	fi
+
+.PHONY: test-coverage-check
+test-coverage-check: test-coverage-report ## Check coverage against threshold
+	@echo "Checking coverage against threshold..."
+	@if [ -f "$(TEST_OUTPUT_DIR)/coverage/merged-coverage.out" ]; then \
+		COVERAGE=$$(go tool cover -func=$(TEST_OUTPUT_DIR)/coverage/merged-coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
+		echo "Current Coverage: $${COVERAGE}%"; \
+		echo "Required Threshold: $(COVERAGE_THRESHOLD)%"; \
+		if [ $$(echo "$${COVERAGE} >= $(COVERAGE_THRESHOLD)" | bc -l) -eq 1 ]; then \
+			echo "[SUCCESS] Coverage check passed"; \
+		else \
+			echo "[ERROR] Coverage check failed - below threshold"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "[ERROR] No coverage data available"; \
+		exit 1; \
+	fi
+
 .PHONY: benchmark
-benchmark: ## Run performance benchmarks
-	@echo "Running performance benchmarks..."
-	@mkdir -p $(QUALITY_REPORTS_DIR)/benchmarks
-	go test -bench=. -benchmem -timeout=30m ./... | tee $(QUALITY_REPORTS_DIR)/benchmarks/benchmark-results.txt
+benchmark: test-benchmark ## Alias for test-benchmark (backwards compatibility)
 
 ##@ Quality Assurance
 

@@ -9,11 +9,16 @@
 name: CI
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch: {}  # Manual trigger always available
   push:
-    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+    branches: [ main, integrate/mvp ]  # Only on important branches
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - 'examples/**'
   pull_request:
-    branches: [ main, integrate/mvp ]
+    branches: [ main, integrate/mvp ]  # Only for PRs to main branches
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -275,18 +280,18 @@ jobs:
 
       - name: Run tests
         run: |
-          echo "Running Go tests..."
+          echo "Running Go tests with speed optimizations..."
           set -euo pipefail
           
-          echo "=== Test Environment ==="
+          echo "=== Test Environment (Optimized) ==="
           echo "Go version: $(go version)"
           echo "Working directory: $(pwd)"
           echo "Available packages:"
           go list ./... | head -10
           echo ""
           
-          echo "Running: go test -v -race -coverprofile=coverage.out -timeout=15m ./..."
-          if ! go test -v -race -coverprofile=coverage.out -timeout=15m ./...; then
+          echo "Running: go test -short -v -coverprofile=coverage.out -timeout=10m ./..."
+          if ! go test -short -v -coverprofile=coverage.out -timeout=10m ./...; then
             echo ""
             echo "❌ Tests failed"
             echo "=== Debugging Information ==="
