@@ -56,6 +56,12 @@ func (c *SimpleMetricsCollector) Stop() error {
 	return nil
 }
 
+// RegisterMetrics implements MetricsCollector interface
+func (c *SimpleMetricsCollector) RegisterMetrics(registry interface{}) error {
+	// Simple collector doesn't need to register with external registries
+	return nil
+}
+
 // UpdateControllerHealth records controller health status
 func (c *SimpleMetricsCollector) UpdateControllerHealth(controllerName, component string, healthy bool) {
 	value := 0.0

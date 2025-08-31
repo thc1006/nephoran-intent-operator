@@ -123,38 +123,96 @@ type Alarm struct {
 	AdditionalInfo    map[string]interface{} `json:"additionalInfo,omitempty"`
 }
 
-// Root Cause Analysis and Alarm Masking
+// AlarmRecord represents an alarm record (alias for Alarm for compatibility)
+type AlarmRecord = Alarm
 
-type AlarmMaskingManager interface {
-	CreateAlarmMask(ctx context.Context, mask *AlarmMask) error
-	RemoveAlarmMask(ctx context.Context, maskID string) error
-	ListAlarmMasks(ctx context.Context) ([]*AlarmMask, error)
-	GetAlarmMask(ctx context.Context, maskID string) (*AlarmMask, error)
-	UpdateAlarmMask(ctx context.Context, maskID string, mask *AlarmMask) error
-}
-
-type AlarmMask struct {
-	ID              string                 `json:"id"`
-	MaskType        string                 `json:"maskType"` // "temporary", "permanent"
-	ProbableCause   string                 `json:"probableCause"`
-	Severity        string                 `json:"severity"`
-	Scope           string                 `json:"scope"` // "global", "specific"
-	ObjectClass     string                 `json:"objectClass,omitempty"`
-	ObjectInstance  string                 `json:"objectInstance,omitempty"`
-	StartTime       time.Time              `json:"startTime"`
-	EndTime         *time.Time             `json:"endTime,omitempty"`
-	Reason          string                 `json:"reason"`
-	CreatedBy       string                 `json:"createdBy"`
+// CorrelationRule represents a rule for alarm correlation
+type CorrelationRule struct {
+	RuleID          string                 `json:"ruleId"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description,omitempty"`
+	SourceAlarms    []string               `json:"sourceAlarms"`
+	TargetAlarm     string                 `json:"targetAlarm"`
+	CorrelationType string                 `json:"correlationType"` // "cause-effect", "symptom-root", "temporal"
+	TimeWindow      time.Duration          `json:"timeWindow"`
+	Conditions      []CorrelationCondition `json:"conditions"`
+	Action          string                 `json:"action"` // "suppress", "escalate", "merge"
+	Priority        int                    `json:"priority"`
+	Enabled         bool                   `json:"enabled"`
 	CreatedAt       time.Time              `json:"createdAt"`
-	LastModified    time.Time              `json:"lastModified"`
-	AdditionalInfo  map[string]interface{} `json:"additionalInfo,omitempty"`
+	UpdatedAt       time.Time              `json:"updatedAt"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
-type RootCauseAnalyzer interface {
-	AnalyzeRootCause(ctx context.Context, alarmID string) (*RootCauseAnalysis, error)
-	GenerateCausalGraph(ctx context.Context, events []O1Notification) (*CausalGraph, error)
-	RecommendRemediation(ctx context.Context, analysis *RootCauseAnalysis) ([]RemediationAction, error)
+// CorrelationCondition represents a condition for alarm correlation
+type CorrelationCondition struct {
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"` // "equals", "contains", "matches"
+	Value    interface{} `json:"value"`
+	Weight   float64     `json:"weight"`
 }
+
+// Network Function Management Types
+type NetworkFunction struct {
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	Type             string                 `json:"type"` // "CU", "DU", "RU", "AMF", "SMF", etc.
+	Version          string                 `json:"version"`
+	Vendor           string                 `json:"vendor"`
+	State            string                 `json:"state"` // "active", "inactive", "failed"
+	Endpoint         string                 `json:"endpoint"`
+	Profile          string                 `json:"profile"`
+	Capacity         ResourceRequirements   `json:"capacity"`
+	LoadProfile      map[string]interface{} `json:"loadProfile,omitempty"`
+	SupportedServices []string              `json:"supportedServices"`
+	Dependencies     []string               `json:"dependencies,omitempty"`
+	Configuration    *NetworkFunctionConfig `json:"configuration,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt        time.Time              `json:"createdAt"`
+	UpdatedAt        time.Time              `json:"updatedAt"`
+	LastHeartbeat    time.Time              `json:"lastHeartbeat"`
+}
+
+// NetworkFunctionUpdate represents updates to a network function
+type NetworkFunctionUpdate struct {
+	Name             *string                `json:"name,omitempty"`
+	State            *string                `json:"state,omitempty"`
+	Endpoint         *string                `json:"endpoint,omitempty"`
+	Configuration    *NetworkFunctionConfig `json:"configuration,omitempty"`
+	LoadProfile      map[string]interface{} `json:"loadProfile,omitempty"`
+	SupportedServices []string              `json:"supportedServices,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// DiscoveryCriteria represents criteria for network function discovery
+type DiscoveryCriteria struct {
+	Type             string            `json:"type,omitempty"`
+	Vendor           string            `json:"vendor,omitempty"`
+	State            string            `json:"state,omitempty"`
+	Location         string            `json:"location,omitempty"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	MinCapacity      *ResourceRequirements `json:"minCapacity,omitempty"`
+	SupportedServices []string         `json:"supportedServices,omitempty"`
+}
+
+// NetworkFunctionStatus represents the status of a network function
+type NetworkFunctionStatus struct {
+	ID               string                 `json:"id"`
+	State            string                 `json:"state"`
+	Health           string                 `json:"health"` // "healthy", "degraded", "unhealthy"
+	LastUpdated      time.Time              `json:"lastUpdated"`
+	Performance      map[string]interface{} `json:"performance,omitempty"`
+	ResourceUsage    map[string]interface{} `json:"resourceUsage,omitempty"`
+	ActiveConnections int                   `json:"activeConnections"`
+	Uptime           time.Duration          `json:"uptime"`
+	ErrorRate        float64                `json:"errorRate"`
+	Throughput       map[string]float64     `json:"throughput,omitempty"`
+	Latency          map[string]float64     `json:"latency,omitempty"`
+	Alarms           []string               `json:"alarms,omitempty"`
+	Details          map[string]interface{} `json:"details,omitempty"`
+}
+
+// Root Cause Analysis and Alarm Masking types are defined in fault_manager.go to avoid duplication
 
 type RootCauseAnalysis struct {
 	AlarmID            string                 `json:"alarmId"`
@@ -193,4 +251,216 @@ type RemediationAction struct {
 	Impact      string                 `json:"impact"`
 	Parameters  map[string]interface{} `json:"parameters,omitempty"`
 	Recommended bool                   `json:"recommended"`
+}
+
+// Additional missing types for O1 interface
+
+// AlarmSubscription represents an alarm subscription
+type AlarmSubscription struct {
+	SubscriptionID string        `json:"subscriptionId"`
+	ClientID       string        `json:"clientId"`
+	NotifyURL      string        `json:"notifyUrl"`
+	Filter         AlarmFilter   `json:"filter,omitempty"`
+	CreatedAt      time.Time     `json:"createdAt"`
+	ExpiresAt      *time.Time    `json:"expiresAt,omitempty"`
+	Active         bool          `json:"active"`
+}
+
+// AlarmFilter represents alarm filtering criteria
+type AlarmFilter struct {
+	ObjectClass      []string `json:"objectClass,omitempty"`
+	EventType        []string `json:"eventType,omitempty"`
+	ProbableCause    []string `json:"probableCause,omitempty"`
+	PerceivedSeverity []string `json:"perceivedSeverity,omitempty"`
+}
+
+// NotificationTemplate represents a notification template
+type NotificationTemplate struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type"` // "alarm", "performance", "config"
+	Subject     string                 `json:"subject"`
+	Body        string                 `json:"body"`
+	Format      string                 `json:"format"` // "json", "xml", "plain"
+	Variables   map[string]string      `json:"variables,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
+}
+
+// PerformanceThreshold represents performance thresholds
+type PerformanceThreshold struct {
+	ID               string                 `json:"id"`
+	MetricName       string                 `json:"metricName"`
+	ObjectClass      string                 `json:"objectClass"`
+	ObjectInstance   string                 `json:"objectInstance,omitempty"`
+	ThresholdType    string                 `json:"thresholdType"` // "upper", "lower"
+	ThresholdValue   float64                `json:"thresholdValue"`
+	Hysteresis       float64                `json:"hysteresis,omitempty"`
+	Severity         string                 `json:"severity"`
+	MonitoringState  string                 `json:"monitoringState"`
+	ObservationPeriod time.Duration         `json:"observationPeriod"`
+	NotificationTypes []string              `json:"notificationTypes"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// EscalationRule represents escalation rules for security incidents
+type EscalationRule struct {
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	TriggerType     string                 `json:"triggerType"` // "severity", "duration", "frequency"
+	TriggerValue    interface{}            `json:"triggerValue"`
+	EscalationLevel int                    `json:"escalationLevel"`
+	Actions         []EscalationAction     `json:"actions"`
+	Conditions      []EscalationCondition  `json:"conditions,omitempty"`
+	Enabled         bool                   `json:"enabled"`
+	Priority        int                    `json:"priority"`
+	CreatedAt       time.Time              `json:"createdAt"`
+	UpdatedAt       time.Time              `json:"updatedAt"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// EscalationAction represents an action in escalation
+type EscalationAction struct {
+	Type       string                 `json:"type"` // "notify", "execute", "escalate"
+	Target     string                 `json:"target"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Delay      time.Duration          `json:"delay,omitempty"`
+}
+
+// EscalationCondition represents a condition for escalation
+type EscalationCondition struct {
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"`
+}
+
+// SMOIntegrationLayer represents the SMO integration layer
+type SMOIntegrationLayer struct {
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Endpoint      string                 `json:"endpoint"`
+	Status        string                 `json:"status"`
+	Version       string                 `json:"version"`
+	Capabilities  []string               `json:"capabilities"`
+	Configuration map[string]interface{} `json:"configuration"`
+	LastHeartbeat time.Time              `json:"lastHeartbeat"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	UpdatedAt     time.Time              `json:"updatedAt"`
+}
+
+// Additional missing types for O1 client and SMO integration
+
+// FunctionType represents network function type
+type FunctionType string
+
+const (
+	FunctionTypeCU  FunctionType = "CU"
+	FunctionTypeDU  FunctionType = "DU"
+	FunctionTypeRU  FunctionType = "RU"
+	FunctionTypeAMF FunctionType = "AMF"
+	FunctionTypeSMF FunctionType = "SMF"
+	FunctionTypeUPF FunctionType = "UPF"
+)
+
+// DeploymentTemplate represents deployment template
+type DeploymentTemplate struct {
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Type         FunctionType           `json:"type"`
+	Version      string                 `json:"version"`
+	Template     map[string]interface{} `json:"template"`
+	Parameters   []TemplateParameter    `json:"parameters,omitempty"`
+	Requirements ResourceRequirements   `json:"requirements"`
+	CreatedAt    time.Time              `json:"createdAt"`
+	UpdatedAt    time.Time              `json:"updatedAt"`
+}
+
+// TemplateParameter represents a template parameter
+type TemplateParameter struct {
+	Name        string      `json:"name"`
+	Type        string      `json:"type"`
+	Required    bool        `json:"required"`
+	Default     interface{} `json:"default,omitempty"`
+	Description string      `json:"description,omitempty"`
+}
+
+// Client represents O1 client interface
+type Client interface {
+	Connect(ctx context.Context) error
+	Disconnect() error
+	IsConnected() bool
+	GetConfiguration(ctx context.Context, req *ConfigRequest) (*ConfigResponse, error)
+	SetConfiguration(ctx context.Context, req *ConfigRequest) (*ConfigResponse, error)
+	GetPerformanceData(ctx context.Context, req *PerformanceRequest) (*PerformanceResponse, error)
+	SubscribeToAlarms(ctx context.Context, subscription *AlarmSubscription) error
+	UnsubscribeFromAlarms(ctx context.Context, subscriptionID string) error
+	GetAlarms(ctx context.Context, filter *AlarmFilter) (*AlarmResponse, error)
+}
+
+// PerformanceData represents performance data
+type PerformanceData struct {
+	ObjectInstance string                 `json:"objectInstance"`
+	Measurements   []PerformanceMeasurement `json:"measurements"`
+	Timestamp      time.Time              `json:"timestamp"`
+	CollectionID   string                 `json:"collectionId,omitempty"`
+}
+
+// AlarmResponse represents alarm response
+type AlarmResponse struct {
+	Alarms    []*Alarm `json:"alarms"`
+	Total     int      `json:"total"`
+	RequestID string   `json:"requestId"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// Additional missing types for O1 client implementation
+
+// FileUploadRequest represents file upload request
+type FileUploadRequest struct {
+	FileName    string                 `json:"fileName"`
+	FileType    string                 `json:"fileType"`
+	Content     []byte                 `json:"content"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	RequestID   string                 `json:"requestId"`
+	Timestamp   time.Time              `json:"timestamp"`
+}
+
+// FileUploadResponse represents file upload response
+type FileUploadResponse struct {
+	FileID      string    `json:"fileId"`
+	Status      string    `json:"status"`
+	Message     string    `json:"message,omitempty"`
+	RequestID   string    `json:"requestId"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
+// FileDownloadResponse represents file download response
+type FileDownloadResponse struct {
+	FileID      string                 `json:"fileId"`
+	FileName    string                 `json:"fileName"`
+	Content     []byte                 `json:"content"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Status      string                 `json:"status"`
+	RequestID   string                 `json:"requestId"`
+	Timestamp   time.Time              `json:"timestamp"`
+}
+
+// HeartbeatResponse represents heartbeat response
+type HeartbeatResponse struct {
+	Status      string    `json:"status"`
+	Timestamp   time.Time `json:"timestamp"`
+	RequestID   string    `json:"requestId"`
+	ServerTime  time.Time `json:"serverTime"`
+}
+
+// AlarmHistoryRequest represents alarm history request
+type AlarmHistoryRequest struct {
+	AlarmID     string     `json:"alarmId,omitempty"`
+	StartTime   time.Time  `json:"startTime"`
+	EndTime     time.Time  `json:"endTime"`
+	Filter      *AlarmFilter `json:"filter,omitempty"`
+	Limit       int        `json:"limit,omitempty"`
+	Offset      int        `json:"offset,omitempty"`
+	RequestID   string     `json:"requestId"`
 }

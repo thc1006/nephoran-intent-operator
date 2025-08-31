@@ -15,6 +15,15 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+const (
+	// SpanStatusOK indicates successful span completion
+	SpanStatusOK = "OK"
+	// SpanStatusError indicates span completed with error
+	SpanStatusError = "ERROR"
+	// SpanStatusTimeout indicates span timed out
+	SpanStatusTimeout = "TIMEOUT"
+)
+
 // DistributedTracer manages distributed tracing for O-RAN components
 type DistributedTracer struct {
 	tracer      oteltrace.Tracer
@@ -147,7 +156,7 @@ func (dt *DistributedTracer) Shutdown(ctx context.Context) error {
 func (dt *DistributedTracer) TracingMiddleware() func(next func()) func() {
 	return func(next func()) func() {
 		return func() {
-			ctx, span := dt.StartSpan(context.Background(), "http_request")
+			_, span := dt.StartSpan(context.Background(), "http_request")
 			defer span.End()
 			
 			// Set common attributes

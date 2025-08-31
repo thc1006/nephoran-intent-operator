@@ -2,6 +2,7 @@
 package monitoring
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -328,6 +329,7 @@ type MetricsCollector interface {
 	CollectMetrics() ([]*Metric, error)
 	Start() error
 	Stop() error
+	RegisterMetrics(registry interface{}) error
 	
 	// Controller instrumentation methods
 	UpdateControllerHealth(controllerName, component string, healthy bool)
@@ -366,7 +368,7 @@ type MetricsCollector interface {
 }
 
 type HealthChecker interface {
-	CheckHealth() (HealthStatus, error)
+	CheckHealth(ctx context.Context) (*ComponentHealth, error)
 	GetName() string
 	Start(ctx context.Context) error
 }
@@ -391,6 +393,7 @@ type TraceSpan struct {
 	Duration     time.Duration     `json:"duration"`
 	Tags         map[string]string `json:"tags,omitempty"`
 	Status       string            `json:"status"`
+	ServiceName  string            `json:"service_name,omitempty"`
 }
 
 // ComponentHealth represents the health status of a component
@@ -409,6 +412,8 @@ type MetricsData struct {
 	Timestamp time.Time                 `json:"timestamp"`
 	Source    string                    `json:"source"`
 	Namespace string                    `json:"namespace,omitempty"`
+	Pod       string                    `json:"pod,omitempty"`
+	Container string                    `json:"container,omitempty"`
 	Metrics   map[string]float64        `json:"metrics"`
 	Labels    map[string]string         `json:"labels,omitempty"`
 	Metadata  map[string]interface{}    `json:"metadata,omitempty"`
@@ -416,11 +421,14 @@ type MetricsData struct {
 
 // NWDAFAnalytics represents NWDAF analytics data
 type NWDAFAnalytics struct {
-	AnalyticsID string                 `json:"analytics_id"`
-	Type        NWDAFAnalyticsType     `json:"type"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Data        map[string]interface{} `json:"data"`
-	Consumer    string                 `json:"consumer"`
+	AnalyticsID   string                 `json:"analytics_id"`
+	Type          NWDAFAnalyticsType     `json:"type"`
+	AnalyticsType NWDAFAnalyticsType     `json:"analytics_type"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Data          map[string]interface{} `json:"data"`
+	Consumer      string                 `json:"consumer"`
+	Confidence    float64                `json:"confidence"`
+	Validity      time.Duration          `json:"validity"`
 }
 
 // NWDAFAnalyticsType defines the type of NWDAF analytics
@@ -428,6 +436,10 @@ type NWDAFAnalyticsType string
 
 const (
 	NWDAFAnalyticsTypeLoad        NWDAFAnalyticsType = "load"
+	NWDAFAnalyticsTypeLoadLevel   NWDAFAnalyticsType = "load_level"
+	NWDAFAnalyticsTypeNFLoad      NWDAFAnalyticsType = "nf_load"
+	NWDAFAnalyticsTypeServiceExp  NWDAFAnalyticsType = "service_exp"
+	NWDAFAnalyticsTypeUEComm      NWDAFAnalyticsType = "ue_comm"
 	NWDAFAnalyticsTypeNetworkPerf NWDAFAnalyticsType = "network_perf"
 	NWDAFAnalyticsTypeUEMobility  NWDAFAnalyticsType = "ue_mobility"
 	NWDAFAnalyticsTypeQoS         NWDAFAnalyticsType = "qos"
@@ -436,8 +448,10 @@ const (
 // PerformanceMetrics represents performance monitoring data
 type PerformanceMetrics struct {
 	ServiceName   string            `json:"service_name"`
+	Component     string            `json:"component"`
 	Timestamp     time.Time         `json:"timestamp"`
 	ResponseTime  time.Duration     `json:"response_time"`
+	Latency       time.Duration     `json:"latency"`
 	Throughput    float64           `json:"throughput"`
 	ErrorRate     float64           `json:"error_rate"`
 	ResourceUsage map[string]float64 `json:"resource_usage,omitempty"`
@@ -462,13 +476,15 @@ type SystemHealth struct {
 
 // ReportConfig represents configuration for performance reports
 type ReportConfig struct {
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	TimeRange   TimeRange         `json:"time_range"`
-	Metrics     []string          `json:"metrics"`
-	Filters     map[string]string `json:"filters,omitempty"`
-	Format      string            `json:"format"`
-	Recipients  []string          `json:"recipients,omitempty"`
+	Title            string            `json:"title"`
+	Description      string            `json:"description"`
+	TimeRange        TimeRange         `json:"time_range"`
+	Metrics          []string          `json:"metrics"`
+	Filters          map[string]string `json:"filters,omitempty"`
+	Format           string            `json:"format"`
+	OutputFormat     string            `json:"output_format"`
+	Recipients       []string          `json:"recipients,omitempty"`
+	ThresholdAlerts  []AlertRule       `json:"threshold_alerts,omitempty"`
 }
 
 // PerformanceReport represents a performance analysis report
@@ -477,6 +493,7 @@ type PerformanceReport struct {
 	Title        string              `json:"title"`
 	GeneratedAt  time.Time           `json:"generated_at"`
 	TimeRange    TimeRange           `json:"time_range"`
+	Format       string              `json:"format"`
 	Summary      *ReportSummary      `json:"summary"`
 	Metrics      []*PerformanceMetrics `json:"metrics"`
 	Alerts       []*AlertItem        `json:"alerts,omitempty"`

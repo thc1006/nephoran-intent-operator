@@ -380,7 +380,7 @@ func (kmc *KubernetesMetricsCollector) CollectMetrics(ctx context.Context, sourc
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Collecting Kubernetes metrics", "source", source)
 	
-	metricsData := &MetricsData{
+	_ = &MetricsData{
 		Timestamp: time.Now(),
 		Source:    source,
 		Metrics:   make(map[string]float64),
@@ -566,7 +566,7 @@ func (ma *MetricsAggregator) Start(ctx context.Context) error {
 	ma.mu.RUnlock()
 	
 	for _, collector := range collectors {
-		if err := collector.Start(ctx); err != nil {
+		if err := collector.Start(); err != nil {
 			return fmt.Errorf("failed to start collector: %w", err)
 		}
 	}
@@ -614,23 +614,18 @@ func (ma *MetricsAggregator) CollectMetrics(ctx context.Context, source string) 
 	}
 	
 	for _, collector := range collectors {
-		data, err := collector.CollectMetrics(ctx, source)
+		metricsData, err := collector.CollectMetrics()
 		if err != nil {
 			ma.aggregationErrors.Inc()
 			continue
 		}
 		
-		// Merge metrics data
-		for k, v := range data.Metrics {
-			aggregated.Metrics[k] = v
-		}
-		
-		for k, v := range data.Labels {
-			aggregated.Labels[k] = v
-		}
-		
-		for k, v := range data.Metadata {
-			aggregated.Metadata[k] = v
+		// Convert []*Metric to aggregated data
+		for _, metric := range metricsData {
+			aggregated.Metrics[metric.Name] = metric.Value
+			for k, v := range metric.Labels {
+				aggregated.Labels[k] = v
+			}
 		}
 	}
 	

@@ -139,12 +139,12 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealth {
 	hm.mu.RLock()
 	defer hm.mu.RUnlock()
 
-	components := make([]ComponentHealth, 0, len(hm.lastResults))
+	components := make(map[string]*ComponentHealth)
 	overallStatus := HealthStatusHealthy
 	unhealthyCount := 0
 
-	for _, result := range hm.lastResults {
-		components = append(components, *result)
+	for name, result := range hm.lastResults {
+		components[name] = result
 		
 		switch result.Status {
 		case HealthStatusUnhealthy:
@@ -158,14 +158,14 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealth {
 	}
 
 	// If more than 50% components are unhealthy, system is unhealthy
-	if float64(unhealthyCount)/float64(len(components)) > 0.5 {
+	if len(components) > 0 && float64(unhealthyCount)/float64(len(components)) > 0.5 {
 		overallStatus = HealthStatusUnhealthy
 	}
 
 	return &SystemHealth{
 		OverallStatus: overallStatus,
 		Components:    components,
-		LastChecked:   time.Now(),
+		LastUpdated:   time.Now(),
 	}
 }
 
@@ -243,6 +243,12 @@ func (hc *HTTPHealthChecker) GetName() string {
 	return hc.name
 }
 
+// Start implements HealthChecker interface for HTTP
+func (hc *HTTPHealthChecker) Start(ctx context.Context) error {
+	// HTTP health checker doesn't need startup logic
+	return nil
+}
+
 // NewKubernetesHealthChecker creates a Kubernetes health checker
 func NewKubernetesHealthChecker(name, namespace, selector string) *KubernetesHealthChecker {
 	return &KubernetesHealthChecker{
@@ -273,6 +279,12 @@ func (kc *KubernetesHealthChecker) GetName() string {
 	return kc.name
 }
 
+// Start implements HealthChecker interface for Kubernetes
+func (kc *KubernetesHealthChecker) Start(ctx context.Context) error {
+	// Kubernetes health checker doesn't need startup logic
+	return nil
+}
+
 // NewProcessHealthChecker creates a process health checker
 func NewProcessHealthChecker(name, processName, pidFile string) *ProcessHealthChecker {
 	return &ProcessHealthChecker{
@@ -301,6 +313,12 @@ func (pc *ProcessHealthChecker) CheckHealth(ctx context.Context) (*ComponentHeal
 // GetName implements HealthChecker interface for Process
 func (pc *ProcessHealthChecker) GetName() string {
 	return pc.name
+}
+
+// Start implements HealthChecker interface for Process
+func (pc *ProcessHealthChecker) Start(ctx context.Context) error {
+	// Process health checker doesn't need startup logic
+	return nil
 }
 
 // CreateORANHealthCheckers creates standard O-RAN component health checkers

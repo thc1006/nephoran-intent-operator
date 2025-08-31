@@ -35,11 +35,17 @@ func NewHealthChecker(version string, k8sClient kubernetes.Interface, recorder *
 }
 
 // CheckHealth implements the HealthChecker interface
-func (hc *BasicHealthChecker) CheckHealth() (HealthStatus, error) {
+func (hc *BasicHealthChecker) CheckHealth(ctx context.Context) (*ComponentHealth, error) {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
 	
-	return hc.status, nil
+	return &ComponentHealth{
+		Name:        hc.GetName(),
+		Status:      hc.status,
+		Message:     hc.message,
+		Timestamp:   hc.lastCheck,
+		LastChecked: hc.lastCheck,
+	}, nil
 }
 
 // GetName implements the HealthChecker interface
@@ -81,21 +87,18 @@ func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 	
 	// Check each registered health check
 	for name, checker := range hc.healthChecks {
-		status, err := checker.CheckHealth()
-		componentHealth := &ComponentHealth{
-			Name:        name,
-			Status:      status,
-			Timestamp:   time.Now(),
-			LastChecked: time.Now(),
-		}
-		
+		componentHealth, err := checker.CheckHealth(context.Background())
 		if err != nil {
-			componentHealth.Status = HealthStatusUnhealthy
-			componentHealth.Message = err.Error()
+			componentHealth = &ComponentHealth{
+				Name:        name,
+				Status:      HealthStatusUnhealthy,
+				Message:     err.Error(),
+				Timestamp:   time.Now(),
+				LastChecked: time.Now(),
+			}
 			issues = append(issues, fmt.Sprintf("%s: %v", name, err))
 		} else {
-			componentHealth.Message = "Healthy"
-			if status == HealthStatusHealthy {
+			if componentHealth.Status == HealthStatusHealthy {
 				healthyCount++
 			}
 		}
@@ -103,7 +106,7 @@ func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 		components[name] = componentHealth
 		
 		// Determine overall status
-		switch status {
+		switch componentHealth.Status {
 		case HealthStatusUnhealthy:
 			overallStatus = HealthStatusUnhealthy
 		case HealthStatusDegraded:
@@ -154,10 +157,14 @@ func (hc *BasicHealthChecker) performHealthCheck() {
 	var messages []string
 	
 	for name, checker := range hc.healthChecks {
-		status, err := checker.CheckHealth()
-		if err != nil || status != HealthStatusHealthy {
+		componentHealth, err := checker.CheckHealth(context.Background())
+		if err != nil || componentHealth.Status != HealthStatusHealthy {
 			overallHealthy = false
-			messages = append(messages, fmt.Sprintf("%s: %v", name, err))
+			if err != nil {
+				messages = append(messages, fmt.Sprintf("%s: %v", name, err))
+			} else {
+				messages = append(messages, fmt.Sprintf("%s: %s", name, componentHealth.Message))
+			}
 		} else {
 			healthyCount++
 		}
