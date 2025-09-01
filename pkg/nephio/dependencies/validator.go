@@ -3123,3 +3123,64 @@ func (v *dependencyValidator) updateValidationMetrics(result *ValidationResult) 
 	// Implementation would update validation metrics based on results.
 
 }
+
+// Missing type definitions for compilation fixes
+
+// SecurityValidation contains security validation results
+type SecurityValidation struct {
+	Valid bool `json:"valid"`
+	Issues []string `json:"issues,omitempty"`
+}
+
+// ResourceValidation contains resource validation results
+type ResourceValidation struct {
+	Valid bool `json:"valid"`
+	Issues []string `json:"issues,omitempty"`
+}
+
+// BreakingChangeReport contains breaking change analysis
+type BreakingChangeReport struct {
+	HasBreakingChanges bool `json:"hasBreakingChanges"`
+	Changes []string `json:"changes,omitempty"`
+}
+
+// UpgradeValidation contains upgrade validation results
+type UpgradeValidation struct {
+	Valid bool `json:"valid"`
+	Issues []string `json:"issues,omitempty"`
+}
+
+// ArchitecturalConstraints defines architectural constraints
+type ArchitecturalConstraints struct {
+	Rules []string `json:"rules,omitempty"`
+}
+
+// ArchitecturalValidation contains architectural validation results
+type ArchitecturalValidation struct {
+	Valid bool `json:"valid"`
+	Issues []string `json:"issues,omitempty"`
+}
+
+// VersionConflict represents a version conflict
+type VersionConflict struct {
+	Package string `json:"package"`
+	Versions []string `json:"versions"`
+}
+
+// LicenseConflict represents a license conflict
+type LicenseConflict struct {
+	Package string `json:"package"`
+	License string `json:"license"`
+}
+
+// ConflictImpact represents the impact of a conflict
+type ConflictImpact struct {
+	Severity string `json:"severity"`
+	Description string `json:"description"`
+}
+
+// ConflictResolutionStrategy represents a conflict resolution strategy
+type ConflictResolutionStrategy struct {
+	Type string `json:"type"`
+	Description string `json:"description"`
+}

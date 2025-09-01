@@ -805,7 +805,9 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 
 func (c *Customizer) applyComponentCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
 
-	for _, component := range customCtx.Intent.Spec.TargetComponents {
+	for _, targetComponent := range customCtx.Intent.Spec.TargetComponents {
+
+		component := convertNetworkTargetComponentToORANComponent(targetComponent)
 
 		switch component {
 

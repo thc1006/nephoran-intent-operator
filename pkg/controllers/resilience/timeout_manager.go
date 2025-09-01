@@ -144,9 +144,9 @@ func (tm *TimeoutManager) ApplyTimeout(ctx context.Context, operationName string
 
 		CancelFunc: cancel,
 
-		CompletedChan: make(chan struct{}),
+		CompletedChan: make(chan bool),
 
-		TimeoutChan: make(chan struct{}),
+		TimeoutChan: make(chan bool),
 	}
 
 	// Store operation.
@@ -309,9 +309,9 @@ func (tm *TimeoutManager) getAdaptiveTimeout(operationName string) time.Duration
 
 func (tm *TimeoutManager) getConfigForOperation(operationName string) *TimeoutConfig {
 
-	tm.mutex.RLock()
+	tm.mu.RLock()
 
-	defer tm.mutex.RUnlock()
+	defer tm.mu.RUnlock()
 
 	// Try exact match first.
 
@@ -481,9 +481,10 @@ func (tm *TimeoutManager) updateTimeoutMetrics(timeout time.Duration) {
 
 	if totalOps > 0 {
 
-		prevTotal := time.Duration(totalOps-1) * tm.metrics.AverageTimeout
+		prevTotal := time.Duration(totalOps-1) * tm.metrics.AverageTimeout()
 
-		tm.metrics.AverageTimeout = (prevTotal + timeout) / time.Duration(totalOps)
+		// Store the updated average in AverageLatency for now
+		tm.metrics.AverageLatency = (prevTotal + timeout) / time.Duration(totalOps)
 
 	}
 
@@ -693,7 +694,7 @@ func (tm *TimeoutManager) GetMetrics() *TimeoutMetrics {
 
 		TimeoutOperations: tm.metrics.TimeoutOperations,
 
-		AverageTimeout: tm.metrics.AverageTimeout,
+		AverageLatency: tm.metrics.AverageTimeout(),
 
 		TimeoutRate: tm.metrics.TimeoutRate,
 
@@ -789,9 +790,9 @@ func (tm *TimeoutManager) UpdateConfiguration(name string, config *TimeoutConfig
 
 func (tm *TimeoutManager) GetConfiguration(name string) (*TimeoutConfig, bool) {
 
-	tm.mutex.RLock()
+	tm.mu.RLock()
 
-	defer tm.mutex.RUnlock()
+	defer tm.mu.RUnlock()
 
 	if config, exists := tm.configs[name]; exists {
 
@@ -811,9 +812,9 @@ func (tm *TimeoutManager) GetConfiguration(name string) (*TimeoutConfig, bool) {
 
 func (tm *TimeoutManager) ListConfigurations() map[string]*TimeoutConfig {
 
-	tm.mutex.RLock()
+	tm.mu.RLock()
 
-	defer tm.mutex.RUnlock()
+	defer tm.mu.RUnlock()
 
 	configs := make(map[string]*TimeoutConfig)
 
@@ -891,7 +892,7 @@ func (tm *TimeoutManager) GetHealthReport() map[string]interface{} {
 
 		"timeout_rate": metrics.TimeoutRate,
 
-		"average_timeout": metrics.AverageTimeout,
+		"average_timeout": metrics.AverageTimeout(),
 
 		"adaptive_adjustments": metrics.AdaptiveAdjustments,
 

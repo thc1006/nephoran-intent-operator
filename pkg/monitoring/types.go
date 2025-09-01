@@ -337,6 +337,9 @@ type MetricsCollector interface {
 	// LLM metrics
 	RecordLLMRequest(model, status string, duration time.Duration, tokensUsed int)
 	
+	// CNF deployment metrics
+	RecordCNFDeployment(functionName string, duration time.Duration)
+	
 	// E2NodeSet metrics
 	RecordE2NodeSetOperation(operation string, duration time.Duration)
 	UpdateE2NodeSetReplicas(name, namespace, status string, count int)

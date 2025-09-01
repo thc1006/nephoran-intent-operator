@@ -656,7 +656,7 @@ func (c *Catalog) GetRecommendedTemplates(ctx context.Context, intent *v1.Networ
 
 	criteria := &SearchCriteria{
 
-		TargetComponents: intent.Spec.TargetComponents,
+		TargetComponents: convertNetworkTargetComponentsToORANComponents(intent.Spec.TargetComponents),
 
 		IntentTypes: []v1.IntentType{intent.Spec.IntentType},
 

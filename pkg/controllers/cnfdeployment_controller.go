@@ -306,7 +306,7 @@ func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeplo
 
 	if r.MetricsCollector != nil {
 
-		r.MetricsCollector.RecordCNFDeployment(cnfDeployment.Spec.Function, result.Duration)
+		(*r.MetricsCollector).RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
 
 	}
 

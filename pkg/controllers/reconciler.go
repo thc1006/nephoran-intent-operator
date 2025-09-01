@@ -149,7 +149,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if metricsCollector != nil {
 
-		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
+		(*metricsCollector).UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 
 			r.extractIntentType(networkIntent.Spec.Intent), "processing")
 
@@ -181,7 +181,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		if metricsCollector != nil {
 
-			metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
+			(*metricsCollector).UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 
 				r.extractIntentType(networkIntent.Spec.Intent), "failed")
 
@@ -229,11 +229,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		processingDuration := time.Since(processingCtx.StartTime)
 
-		metricsCollector.RecordNetworkIntentProcessed(
+		(*metricsCollector).RecordNetworkIntentProcessed(
 
 			r.extractIntentType(networkIntent.Spec.Intent), "completed", processingDuration)
 
-		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
+		(*metricsCollector).UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 
 			r.extractIntentType(networkIntent.Spec.Intent), "completed")
 

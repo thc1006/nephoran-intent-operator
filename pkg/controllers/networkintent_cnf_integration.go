@@ -412,9 +412,11 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 			nephoranv1.ORANComponentNearRTRIC, nephoranv1.ORANComponentGNodeB, nephoranv1.ORANComponentXApp,
 		}
 
+		oranComponent := convertNetworkTargetComponentToORANComponent(component)
+		
 		for _, cnfComponent := range cnfComponents {
 
-			if component == cnfComponent {
+			if oranComponent == cnfComponent {
 
 				return true
 
@@ -1259,4 +1261,22 @@ func mustParseQuantity(s string) resource.Quantity {
 
 	return q
 
+}
+
+// convertNetworkTargetComponentToORANComponent converts a NetworkTargetComponent to ORANComponent
+func convertNetworkTargetComponentToORANComponent(component nephoranv1.NetworkTargetComponent) nephoranv1.ORANComponent {
+	switch component {
+	case nephoranv1.NetworkTargetComponentAMF:
+		return nephoranv1.ORANComponentAMF
+	case nephoranv1.NetworkTargetComponentSMF:
+		return nephoranv1.ORANComponent("smf")
+	case nephoranv1.NetworkTargetComponentUPF:
+		return nephoranv1.ORANComponent("upf")
+	case nephoranv1.NetworkTargetComponentNearRTRIC:
+		return nephoranv1.ORANComponentNearRTRIC
+	case nephoranv1.NetworkTargetComponentXApp:
+		return nephoranv1.ORANComponentXApp
+	default:
+		return nephoranv1.ORANComponent(component)
+	}
 }

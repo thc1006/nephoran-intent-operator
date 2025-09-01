@@ -72,7 +72,7 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 
 			Intent: "Deploy a high-performance 5G AMF instance with auto-scaling enabled",
 
-			Priority: nephoranv1.PriorityHigh,
+			Priority: nephoranv1.NetworkPriorityHigh,
 
 			TargetNamespace: "nephio-system",
 

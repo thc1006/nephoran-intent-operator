@@ -53,7 +53,7 @@ func main() {
 
 		// Set value in cache
 		start := time.Now()
-		err := cacheManager.Set(ctx, testKey, testValue, 5*time.Minute)
+		err := cacheManager.Set(ctx, testKey, testValue)
 		setDuration := time.Since(start)
 		if err != nil {
 			fmt.Printf("  ❌ Cache SET failed: %v\n", err)

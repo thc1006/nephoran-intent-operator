@@ -600,47 +600,7 @@ func contains(slice []string, item string) bool {
 
 // Condition and status helper functions.
 
-func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
-
-	for _, condition := range conditions {
-
-		if condition.Type == conditionType && condition.Status == metav1.ConditionTrue {
-
-			return true
-
-		}
-
-	}
-
-	return false
-
-}
-
-func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
-
-	if conditions == nil {
-
-		*conditions = []metav1.Condition{newCondition}
-
-		return
-
-	}
-
-	for i, condition := range *conditions {
-
-		if condition.Type == newCondition.Type {
-
-			(*conditions)[i] = newCondition
-
-			return
-
-		}
-
-	}
-
-	*conditions = append(*conditions, newCondition)
-
-}
+// isConditionTrue and updateCondition functions are already defined in controller_utils.go
 
 // getNetworkIntentRetryCount gets the retry count for a specific operation from NetworkIntent annotations.
 

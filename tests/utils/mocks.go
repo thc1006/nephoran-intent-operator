@@ -1361,6 +1361,34 @@ func (m *MockMetricsCollector) GetLabels(name string) map[string]string {
 
 }
 
+// GetCounter returns a counter interface
+func (m *MockMetricsCollector) GetCounter(name string) interface{} {
+	return m.GetMetric(name)
+}
+
+// GetGauge returns a gauge interface  
+func (m *MockMetricsCollector) GetGauge(name string) interface{} {
+	return m.GetMetric(name)
+}
+
+// GetHistogram returns a histogram interface
+func (m *MockMetricsCollector) GetHistogram(name string) interface{} {
+	return m.GetMetric(name)
+}
+
+// RecordCNFDeployment records CNF deployment metrics
+func (m *MockMetricsCollector) RecordCNFDeployment(functionName string, duration time.Duration) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	if m.metrics == nil {
+		m.metrics = make(map[string]float64)
+	}
+	
+	key := fmt.Sprintf("cnf_deployment_duration_%s", functionName)
+	m.metrics[key] = duration.Seconds()
+}
+
 // MockHTTPClient provides HTTP client mocking utilities.
 
 type MockHTTPClient struct {

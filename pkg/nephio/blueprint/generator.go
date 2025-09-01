@@ -175,7 +175,7 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 		zap.String("intent_type", string(intent.Spec.IntentType)),
 
-		zap.Strings("target_components", g.targetComponentsToStrings(intent.Spec.TargetComponents)))
+		zap.Strings("target_components", networkTargetComponentsToStrings(intent.Spec.TargetComponents)))
 
 	// Step 1: Process intent with LLM to extract parameters.
 
@@ -230,9 +230,10 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 
 	for _, component := range intent.Spec.TargetComponents {
 
-		genCtx.ComponentType = component
+		oranComponent := convertNetworkTargetComponentToORANComponent(component)
+		genCtx.ComponentType = oranComponent
 
-		if err := g.generateComponentBlueprint(ctx, genCtx, component, files); err != nil {
+		if err := g.generateComponentBlueprint(ctx, genCtx, oranComponent, files); err != nil {
 
 			return nil, fmt.Errorf("component blueprint generation failed for %s: %w", component, err)
 

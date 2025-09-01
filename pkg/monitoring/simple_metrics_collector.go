@@ -267,6 +267,22 @@ func (c *SimpleMetricsCollector) RecordORANInterfaceError(interfaceType, operati
 	c.addMetric(metric)
 }
 
+// RecordCNFDeployment records CNF deployment metrics
+func (c *SimpleMetricsCollector) RecordCNFDeployment(functionName string, duration time.Duration) {
+	metric := &Metric{
+		Name:      "cnf_deployment_duration_seconds",
+		Type:      MetricTypeHistogram,
+		Value:     duration.Seconds(),
+		Timestamp: time.Now(),
+		Labels: map[string]string{
+			"function": functionName,
+		},
+		Description: "CNF deployment duration in seconds",
+	}
+	
+	c.addMetric(metric)
+}
+
 // UpdateORANConnectionStatus updates O-RAN connection status
 func (c *SimpleMetricsCollector) UpdateORANConnectionStatus(interfaceType, endpoint string, connected bool) {
 	value := 0.0

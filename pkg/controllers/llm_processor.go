@@ -448,7 +448,7 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 
 	if metricsCollector := p.deps.GetMetricsCollector(); metricsCollector != nil {
 
-		metricsCollector.RecordLLMRequest("gpt-4o-mini", "success", processingDuration, len(processedResult))
+		(*metricsCollector).RecordLLMRequest("gpt-4o-mini", "success", processingDuration, len(processedResult))
 
 	}
 
