@@ -553,7 +553,7 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 			Spec: nephoranv1.IntentProcessingSpec{
 
-				ParentIntentRef: nephoranv1.ObjectReference{
+				ParentIntentRef: &nephoranv1.ObjectReference{
 
 					Kind: "NetworkIntent",
 
@@ -566,7 +566,7 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 				OriginalIntent: networkIntent.Spec.Intent,
 
-				Priority: networkIntent.Spec.Priority,
+				Priority: nephoranv1.ConvertNetworkPriorityToPriority(networkIntent.Spec.Priority),
 
 				// Use default values for timeout and retries as these are not part of NetworkIntent spec.
 
@@ -748,13 +748,18 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 					UID: string(intentProcessing.UID),
 				},
 
-				RequirementsInput: intentProcessing.Status.LLMResponse,
+				RequirementsInput: func() runtime.RawExtension {
+					if intentProcessing.Status.LLMResponse != nil {
+						return *intentProcessing.Status.LLMResponse
+					}
+					return runtime.RawExtension{}
+				}(),
 
 				TargetComponents: r.convertORANComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
 
 				ResourceConstraints: networkIntent.Spec.ResourceConstraints,
 
-				Priority: networkIntent.Spec.Priority,
+				Priority: nephoranv1.ConvertNetworkPriorityToPriority(networkIntent.Spec.Priority),
 			},
 		}
 

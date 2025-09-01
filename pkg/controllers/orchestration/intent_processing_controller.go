@@ -546,7 +546,7 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 // enhanceWithRAG enhances the intent with RAG context.
 
-func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent string, config *nephoranv1.LLMProcessingConfig) (map[string]interface{}, *nephoranv1.RAGMetrics, error) {
+func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent string, config *nephoranv1.ProcessingConfig) (map[string]interface{}, *nephoranv1.RAGMetrics, error) {
 
 	// Prepare RAG request.
 

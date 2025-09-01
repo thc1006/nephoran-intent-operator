@@ -113,6 +113,22 @@ const (
 	PriorityCritical Priority = "Critical"
 )
 
+// ConvertNetworkPriorityToPriority converts NetworkPriority to Priority
+func ConvertNetworkPriorityToPriority(np NetworkPriority) Priority {
+	switch np {
+	case NetworkPriorityLow:
+		return PriorityLow
+	case NetworkPriorityNormal:
+		return PriorityMedium
+	case NetworkPriorityHigh:
+		return PriorityHigh
+	case NetworkPriorityCritical:
+		return PriorityCritical
+	default:
+		return PriorityMedium // Default fallback
+	}
+}
+
 // ObjectReference represents a reference to a Kubernetes object
 type ObjectReference struct {
 	// API version of the referent
@@ -177,6 +193,10 @@ type ProcessedParameters struct {
 	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
 	// Metadata for additional information
 	Metadata *ParameterMetadata `json:"metadata,omitempty"`
+
+	// ScaleParameters for scaling-related parameters
+	// +optional
+	ScaleParameters *ScaleParameters `json:"scaleParameters,omitempty"`
 }
 
 // ScalingParameters defines scaling-related parameters
@@ -200,6 +220,9 @@ type ScalingTrigger struct {
 	// Comparison operator (>, <, >=, <=, ==)
 	Operator string `json:"operator"`
 }
+
+// ScaleParameters defines scaling parameters (alias for ScalingParameters for compatibility)
+type ScaleParameters = ScalingParameters
 
 // ResourceParameters defines resource-related parameters
 type ResourceParameters struct {
