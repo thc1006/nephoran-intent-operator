@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package services
 
 import (
@@ -311,14 +314,20 @@ func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.AP
 
 	if s.secretManager != nil {
 
-		k8sAPIKeys, err := s.secretManager.GetAPIKeys(ctx)
-
-		if err == nil && !k8sAPIKeys.IsEmpty() {
-
-			s.logger.Info("Loaded API keys from Kubernetes secrets")
-
-			return k8sAPIKeys, nil
-
+		// Try to cast to get API keys if supported
+		if ksm, ok := s.secretManager.(*config.KubernetesSecretManager); ok {
+			k8sAPIKeys, err := ksm.GetAPIKeys(ctx)
+			if err == nil && !k8sAPIKeys.IsEmpty() {
+				s.logger.Info("Loaded API keys from Kubernetes secrets")
+				return k8sAPIKeys, nil
+			}
+		} else if _, ok := s.secretManager.(*config.UniversalSecretManager); ok {
+			// Use LoadFileBasedAPIKeysWithValidation for universal manager
+			k8sAPIKeys, err := config.LoadFileBasedAPIKeysWithValidation()
+			if err == nil && !k8sAPIKeys.IsEmpty() {
+				s.logger.Info("Loaded API keys from universal secret manager")
+				return k8sAPIKeys, nil
+			}
 		}
 
 	}
