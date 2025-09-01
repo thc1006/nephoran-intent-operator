@@ -19,6 +19,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ... (previous content)
@@ -49,6 +50,9 @@ type ManagedElementSpec struct {
 	// O1Config specifies the O1 interface configuration for the managed element
 	// +optional
 	O1Config string `json:"o1Config,omitempty"`
+	// A1Policy specifies the A1 policy configuration
+	// +optional
+	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
 }
 
 // ManagedElementCredentials defines authentication credentials

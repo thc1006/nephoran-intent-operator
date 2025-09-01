@@ -288,11 +288,15 @@ func (n *DefaultNotificationChannel) GetConfiguration() map[string]interface{} {
 // NetworkFunction represents a network function in the system
 type NetworkFunction struct {
 	ID              string                 `json:"id"`
+	NFID            string                 `json:"nfid"`
 	Name            string                 `json:"name"`
 	Type            string                 `json:"type"`
 	Version         string                 `json:"version"`
 	Status          string                 `json:"status"`
+	NFStatus        string                 `json:"nf_status"`
 	Configuration   map[string]interface{} `json:"configuration"`
+	NFServices      []interface{}          `json:"nf_services,omitempty"`
+	HeartBeatTimer  int                    `json:"heartbeat_timer,omitempty"`
 	LastUpdated     time.Time              `json:"last_updated"`
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
@@ -301,6 +305,9 @@ type NetworkFunction struct {
 type NetworkFunctionUpdate struct {
 	Name            *string                `json:"name,omitempty"`
 	Status          *string                `json:"status,omitempty"`
+	NFStatus        *string                `json:"nf_status,omitempty"`
+	HeartBeatTimer  *int                   `json:"heartbeat_timer,omitempty"`
+	NFServices      []interface{}          `json:"nf_services,omitempty"`
 	Configuration   map[string]interface{} `json:"configuration,omitempty"`
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
