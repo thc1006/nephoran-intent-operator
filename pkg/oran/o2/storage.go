@@ -962,11 +962,11 @@ func (s *InMemoryStorage) RetrieveLifecycleOperation(ctx context.Context, operat
 }
 
 // CheckStorageHealth checks the health of the storage system.
-func (s *InMemoryStorage) CheckStorageHealth(ctx context.Context) (*o2models.HealthStatus, error) {
+func (s *InMemoryStorage) CheckStorageHealth(ctx context.Context) (*models.HealthStatus, error) {
 	// In-memory storage is always healthy
-	return &o2models.HealthStatus{
+	return &models.HealthStatus{
 		Status:    "UP",
-		Timestamp: time.Now(),
+		LastCheck: time.Now(),
 		Details:   map[string]interface{}{"storage": "in-memory"},
 	}, nil
 }
