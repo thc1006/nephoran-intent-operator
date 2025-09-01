@@ -236,8 +236,8 @@ func (c *ClientImpl) UploadFile(ctx context.Context, file *FileUploadRequest) (*
 	response := &FileUploadResponse{
 		FileID:    fmt.Sprintf("file_%d", time.Now().Unix()),
 		Status:    "success",
-		Message:   "File uploaded successfully",
-		Timestamp: time.Now(),
+		RequestID: fmt.Sprintf("req_%d", time.Now().Unix()),
+		Metadata:  map[string]interface{}{"message": "File uploaded successfully", "timestamp": time.Now()},
 	}
 
 	return response, nil
@@ -249,13 +249,12 @@ func (c *ClientImpl) DownloadFile(ctx context.Context, fileID string) (*FileDown
 	// In a real implementation, this would handle file downloads via the O1 interface
 
 	response := &FileDownloadResponse{
-		FileID:    fileID,
-		FileName:  "example_file.log",
-		Content:   []byte("Example log file content"),
-		Metadata:  map[string]interface{}{"type": "log", "size": 1024},
-		Status:    "success",
-		RequestID: "req_" + fmt.Sprintf("%d", time.Now().Unix()),
-		Timestamp: time.Now(),
+		FileID:      fileID,
+		ID:          "dl_" + fmt.Sprintf("%d", time.Now().Unix()),
+		DownloadURL: "https://example.com/download/" + fileID,
+		Status:      "success",
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		Metadata:    map[string]interface{}{"type": "log", "size": 1024, "filename": "example_file.log"},
 	}
 
 	return response, nil
@@ -268,10 +267,12 @@ func (c *ClientImpl) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, err
 
 	now := time.Now()
 	response := &HeartbeatResponse{
-		Status:     "active",
-		Timestamp:  now,
-		RequestID:  "heartbeat_" + fmt.Sprintf("%d", now.Unix()),
-		ServerTime: now,
+		Status:    "active",
+		Timestamp: now,
+		Version:   "1.0.0",
+		Uptime:    time.Since(time.Now().Add(-24 * time.Hour)),
+		Health:    map[string]interface{}{"status": "healthy"},
+		Metadata:  map[string]interface{}{"request_id": "heartbeat_" + fmt.Sprintf("%d", now.Unix())},
 	}
 
 	return response, nil
@@ -282,17 +283,27 @@ func (c *ClientImpl) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, err
 // NewConfigGetRequest creates a configuration get request
 func NewConfigGetRequest(path string) *ConfigRequest {
 	return &ConfigRequest{
+		ID:             fmt.Sprintf("get_%d", time.Now().Unix()),
+		Type:           "get",
+		Target:         path,
 		ObjectInstance: path,
-		Operation:      "get",
+		RequestedAt:    time.Now(),
+		RequestedBy:    "system",
+		Configuration:  map[string]interface{}{},
 	}
 }
 
 // NewConfigSetRequest creates a configuration set request
 func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigRequest {
 	return &ConfigRequest{
+		ID:             fmt.Sprintf("set_%d", time.Now().Unix()),
+		Type:           "set",
+		Target:         path,
 		ObjectInstance: path,
-		Operation:      "set",
 		Attributes:     data,
+		RequestedAt:    time.Now(),
+		RequestedBy:    "system",
+		Configuration:  data,
 	}
 }
 

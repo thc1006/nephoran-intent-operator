@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 var (

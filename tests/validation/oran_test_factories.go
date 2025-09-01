@@ -149,13 +149,17 @@ func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nep
 
 			IntentType: nephranv1.IntentTypeOptimization,
 
-			Priority: nephranv1.PriorityMedium,
+			Priority: nephranv1.NetworkPriorityNormal,
 
-			TargetComponents: []nephranv1.ORANComponent{
-
-				nephranv1.ORANComponentNearRTRIC,
-
-				nephranv1.ORANComponentXApp,
+			TargetComponents: []nephranv1.NetworkTargetComponent{
+				{
+					ComponentType: "NearRTRIC",
+					Replicas:      1,
+				},
+				{
+					ComponentType: "XApp",
+					Replicas:      1,
+				},
 			},
 		},
 	}
@@ -453,11 +457,15 @@ func (otf *ORANTestFactory) CreateE2NodeManagementIntent(scenario string) *nephr
 
 			Priority: nephranv1.PriorityMedium,
 
-			TargetComponents: []nephranv1.ORANComponent{
-
-				nephranv1.ORANComponentNearRTRIC,
-
-				nephranv1.ORANComponentGNodeB,
+			TargetComponents: []nephranv1.NetworkTargetComponent{
+				{
+					ComponentType: "NearRTRIC",
+					Replicas:      1,
+				},
+				{
+					ComponentType: "GNodeB",
+					Replicas:      1,
+				},
 			},
 		},
 	}
@@ -1026,15 +1034,23 @@ func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.Netw
 
 			Priority: nephranv1.PriorityMedium,
 
-			TargetComponents: []nephranv1.ORANComponent{
-
-				nephranv1.ORANComponentSMO,
-
-				nephranv1.ORANComponentAMF,
-
-				nephranv1.ORANComponentSMF,
-
-				nephranv1.ORANComponentUPF,
+			TargetComponents: []nephranv1.NetworkTargetComponent{
+				{
+					ComponentType: "SMO",
+					Replicas:      1,
+				},
+				{
+					ComponentType: "AMF",
+					Replicas:      2,
+				},
+				{
+					ComponentType: "SMF",
+					Replicas:      2,
+				},
+				{
+					ComponentType: "UPF",
+					Replicas:      3,
+				},
 			},
 		},
 	}
@@ -1408,15 +1424,22 @@ func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1
 
 			IntentType: nephranv1.IntentTypeDeployment,
 
-			Priority: nephranv1.PriorityHigh,
+			Priority: nephranv1.NetworkPriorityHigh,
 
-			TargetComponents: []nephranv1.ORANComponent{
+			TargetComponents: []nephranv1.NetworkTargetComponent{
 
-				nephranv1.ORANComponentAMF,
-
-				nephranv1.ORANComponentSMF,
-
-				nephranv1.ORANComponentUPF,
+				{
+					ComponentType: "AMF",
+					Replicas:      3,
+				},
+				{
+					ComponentType: "SMF",
+					Replicas:      3,
+				},
+				{
+					ComponentType: "UPF",
+					Replicas:      4,
+				},
 			},
 		},
 	}

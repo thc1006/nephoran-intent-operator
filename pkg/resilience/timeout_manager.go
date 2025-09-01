@@ -106,7 +106,7 @@ const (
 type TimeoutManager struct {
 	config *TimeoutConfig
 
-	metricsCollector *monitoring.MetricsCollector
+	metricsCollector monitoring.MetricsCollector
 
 	activeContexts map[string]context.CancelFunc
 
@@ -115,7 +115,7 @@ type TimeoutManager struct {
 
 // NewTimeoutManager creates a new timeout manager.
 
-func NewTimeoutManager(config *TimeoutConfig, metricsCollector *monitoring.MetricsCollector) *TimeoutManager {
+func NewTimeoutManager(config *TimeoutConfig, metricsCollector monitoring.MetricsCollector) *TimeoutManager {
 
 	if config == nil {
 

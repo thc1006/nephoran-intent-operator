@@ -238,7 +238,7 @@ type CNFIntentContext struct {
 
 	TargetCluster string
 
-	Priority nephoranv1.Priority
+	Priority nephoranv1.NetworkPriority
 
 	ProcessingStartTime time.Time
 

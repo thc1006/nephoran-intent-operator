@@ -20,6 +20,11 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 )
 
+// Helper function to create int32 pointer
+func int32Ptr(i int32) *int32 {
+	return &i
+}
+
 // EnhancedDisasterRecoveryTestSuite provides comprehensive disaster recovery testing with enhanced envtest setup.
 
 type EnhancedDisasterRecoveryTestSuite struct {

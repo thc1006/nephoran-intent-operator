@@ -97,9 +97,12 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 
 			IntentType: v1.IntentTypeDeployment,
 
-			Priority: v1.PriorityHigh,
+			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentAMF},
+			TargetComponents: []v1.NetworkTargetComponent{{
+				ComponentType: "AMF",
+				Replicas:      3,
+			}},
 		},
 	}
 

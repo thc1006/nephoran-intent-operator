@@ -35,9 +35,9 @@ type SearchQuery struct {
 	UserID        string                 `json:"user_id,omitempty"`
 	Namespace     string                 `json:"namespace,omitempty"`
 	HybridSearch  bool                   `json:"hybrid_search,omitempty"`
-	HybridAlpha   float64                `json:"hybrid_alpha,omitempty"`
+	HybridAlpha   float32                `json:"hybrid_alpha,omitempty"`
 	UseReranker   bool                   `json:"use_reranker,omitempty"`
-	MinConfidence float64                `json:"min_confidence,omitempty"`
+	MinConfidence float32                `json:"min_confidence,omitempty"`
 	IncludeVector bool                   `json:"include_vector,omitempty"`
 	ExpandQuery   bool                   `json:"expand_query,omitempty"`
 	TargetVectors []string               `json:"target_vectors,omitempty"`

@@ -1319,7 +1319,7 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 	logger.Info("configuring E2 interface", "managedElement", me.ObjectMeta.Name)
 
-	if me.Spec.E2Configuration.Raw == nil {
+	if me.Spec.Config == nil || len(me.Spec.Config) == 0 {
 
 		logger.Info("no E2 configuration to apply", "managedElement", me.ObjectMeta.Name)
 
@@ -1331,7 +1331,13 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 	var e2Config map[string]interface{}
 
-	if err := json.Unmarshal(me.Spec.E2Configuration.Raw, &e2Config); err != nil {
+	// Convert config map to JSON for parsing
+	configJSON, err := json.Marshal(me.Spec.Config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal E2 configuration: %w", err)
+	}
+	
+	if err := json.Unmarshal(configJSON, &e2Config); err != nil {
 
 		return fmt.Errorf("failed to unmarshal E2 configuration: %w", err)
 
@@ -1577,7 +1583,7 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 
 	logger.Info("removing E2 interface", "managedElement", me.ObjectMeta.Name)
 
-	if me.Spec.E2Configuration.Raw == nil {
+	if me.Spec.Config == nil || len(me.Spec.Config) == 0 {
 
 		logger.Info("no E2 configuration to remove", "managedElement", me.ObjectMeta.Name)
 
@@ -1589,7 +1595,13 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 
 	var e2Config map[string]interface{}
 
-	if err := json.Unmarshal(me.Spec.E2Configuration.Raw, &e2Config); err != nil {
+	// Convert config map to JSON for parsing
+	configJSON, err := json.Marshal(me.Spec.Config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal E2 configuration: %w", err)
+	}
+	
+	if err := json.Unmarshal(configJSON, &e2Config); err != nil {
 
 		return fmt.Errorf("failed to unmarshal E2 configuration: %w", err)
 

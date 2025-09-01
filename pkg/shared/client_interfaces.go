@@ -44,13 +44,14 @@ type LLMResponse struct {
 
 // StreamingChunk represents a chunk of streamed response
 type StreamingChunk struct {
-	ID        string    `json:"id"`
-	Content   string    `json:"content"`
-	Delta     string    `json:"delta"`
-	Done      bool      `json:"done"`
-	IsLast    bool      `json:"is_last"`
-	Timestamp time.Time `json:"timestamp"`
-	Error     *LLMError `json:"error,omitempty"`
+	ID        string                 `json:"id"`
+	Content   string                 `json:"content"`
+	Delta     string                 `json:"delta"`
+	Done      bool                   `json:"done"`
+	IsLast    bool                   `json:"is_last"`
+	Timestamp time.Time              `json:"timestamp"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Error     *LLMError              `json:"error,omitempty"`
 }
 
 // ChatMessage represents a chat message

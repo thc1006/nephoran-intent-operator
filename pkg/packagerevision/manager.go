@@ -1836,7 +1836,7 @@ func (m *packageRevisionManager) selectTemplateForIntent(ctx context.Context, in
 
 	// Get available templates for the component.
 
-	availableTemplates, err := m.GetAvailableTemplates(ctx, primaryComponent)
+	availableTemplates, err := m.GetAvailableTemplates(ctx, m.convertToORANComponent(primaryComponent))
 
 	if err != nil {
 
@@ -1866,6 +1866,24 @@ func (m *packageRevisionManager) selectTemplateForIntent(ctx context.Context, in
 
 	return selectedTemplate, nil
 
+}
+
+// convertToORANComponent converts a NetworkTargetComponent to an ORANComponent.
+// This handles the mapping between network function components and O-RAN components.
+func (m *packageRevisionManager) convertToORANComponent(component nephoranv1.NetworkTargetComponent) nephoranv1.ORANComponent {
+	switch component {
+	case nephoranv1.NetworkTargetComponentAMF:
+		return nephoranv1.ORANComponentAMF
+	case nephoranv1.NetworkTargetComponentSMF:
+		return nephoranv1.ORANComponentSMF
+	case nephoranv1.NetworkTargetComponentUPF:
+		return nephoranv1.ORANComponentUPF
+	default:
+		// For components without direct O-RAN equivalents (NRF, UDM, UDR, PCF, AUSF, NSSF),
+		// map them to SMO (Service Management and Orchestration) as they are typically
+		// orchestrated by the SMO in O-RAN architecture.
+		return nephoranv1.ORANComponentSMO
+	}
 }
 
 func (m *packageRevisionManager) generatePackageName(intent *nephoranv1.NetworkIntent) string {

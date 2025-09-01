@@ -330,9 +330,25 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 
 }
 
-// GetModelCapabilities returns capabilities for a specific model.
+// GetModelCapabilities returns default model capabilities.
+func (c *MTLSLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	// Return default capabilities - in production this should be retrieved from service
+	return shared.ModelCapabilities{
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		SupportsChat:         true,
+		SupportsFunction:     false,
+		MaxTokens:            4096,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "1.0.0",
+		Features:             make(map[string]interface{}),
+	}
+}
 
-func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+// GetModelCapabilitiesForModel returns capabilities for a specific model.
+func (c *MTLSLLMClient) GetModelCapabilitiesForModel(modelName string) (*shared.ModelCapabilities, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -414,7 +430,7 @@ func (c *MTLSLLMClient) EstimateTokens(text string) int {
 
 func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
 
-	capabilities, err := c.GetModelCapabilities(modelName)
+	capabilities, err := c.GetModelCapabilitiesForModel(modelName)
 
 	if err != nil {
 
@@ -518,6 +534,126 @@ func (c *MTLSLLMClient) Close() error {
 
 	return nil
 
+}
+
+// HealthCheck performs a health check on the LLM service.
+func (c *MTLSLLMClient) HealthCheck(ctx context.Context) error {
+	healthStatus, err := c.GetHealth()
+	if err != nil {
+		return fmt.Errorf("health check failed: %w", err)
+	}
+	
+	if healthStatus.Status != "healthy" && healthStatus.Status != "ok" {
+		return fmt.Errorf("service unhealthy: %s - %s", healthStatus.Status, healthStatus.Message)
+	}
+	
+	return nil
+}
+
+// GetStatus returns the current client status.
+func (c *MTLSLLMClient) GetStatus() shared.ClientStatus {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	if err := c.HealthCheck(ctx); err != nil {
+		c.logger.Debug("health check failed", "error", err)
+		return shared.ClientStatusUnhealthy
+	}
+	
+	return shared.ClientStatusHealthy
+}
+
+// GetEndpoint returns the base URL of the LLM service.
+func (c *MTLSLLMClient) GetEndpoint() string {
+	return c.baseURL
+}
+
+// ProcessRequest processes an LLM request and returns a response.
+func (c *MTLSLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	if request == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	// Convert shared.LLMRequest to internal LLMRequest format
+	internalReq := &LLMRequest{
+		Prompt:      extractPromptFromMessages(request.Messages),
+		Model:       request.Model,
+		MaxTokens:   request.MaxTokens,
+		Temperature: float64(request.Temperature),
+		Metadata:    request.Metadata,
+	}
+
+	// Use existing makeRequest method
+	response, err := c.makeRequest(ctx, "/api/v1/process", internalReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process request: %w", err)
+	}
+
+	// Convert internal LLMResponse to shared.LLMResponse
+	return &shared.LLMResponse{
+		ID:      fmt.Sprintf("llm-req-%d", time.Now().UnixNano()),
+		Content: response.Content,
+		Model:   response.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     c.EstimateTokens(internalReq.Prompt),
+			CompletionTokens: response.TokensUsed,
+			TotalTokens:      c.EstimateTokens(internalReq.Prompt) + response.TokensUsed,
+		},
+		Created: time.Now(),
+	}, nil
+}
+
+// ProcessStreamingRequest processes a streaming LLM request.
+func (c *MTLSLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	if request == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	prompt := extractPromptFromMessages(request.Messages)
+	chunks := make(chan *shared.StreamingChunk, 10)
+
+	go func() {
+		err := c.ProcessIntentStream(ctx, prompt, chunks)
+		if err != nil {
+			// Send error chunk
+			select {
+			case chunks <- &shared.StreamingChunk{
+				Error: &shared.LLMError{
+					Code:    "streaming_error",
+					Message: err.Error(),
+					Type:    "internal_error",
+				},
+				IsLast: true,
+			}:
+			case <-ctx.Done():
+			}
+		}
+	}()
+
+	return chunks, nil
+}
+
+// extractPromptFromMessages converts chat messages to a single prompt string.
+func extractPromptFromMessages(messages []shared.ChatMessage) string {
+	if len(messages) == 0 {
+		return ""
+	}
+
+	var prompt string
+	for _, msg := range messages {
+		switch msg.Role {
+		case "system":
+			prompt += fmt.Sprintf("System: %s\n", msg.Content)
+		case "user":
+			prompt += fmt.Sprintf("User: %s\n", msg.Content)
+		case "assistant":
+			prompt += fmt.Sprintf("Assistant: %s\n", msg.Content)
+		default:
+			prompt += fmt.Sprintf("%s: %s\n", msg.Role, msg.Content)
+		}
+	}
+
+	return prompt
 }
 
 // GetHealth returns the health status of the LLM service.

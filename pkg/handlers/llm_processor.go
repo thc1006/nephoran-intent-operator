@@ -46,7 +46,7 @@ type LLMProcessorHandler struct {
 
 	startTime time.Time
 
-	metricsCollector *monitoring.MetricsCollector
+	metricsCollector monitoring.MetricsCollector
 }
 
 // Request/Response structures.
@@ -204,7 +204,7 @@ func NewLLMProcessorHandlerWithMetrics(
 
 	startTime time.Time,
 
-	metricsCollector *monitoring.MetricsCollector,
+	metricsCollector monitoring.MetricsCollector,
 
 ) *LLMProcessorHandler {
 

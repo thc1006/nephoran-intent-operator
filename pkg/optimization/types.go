@@ -1,5 +1,4 @@
 /*
-<<<<<<< HEAD
 Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,45 +12,16 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-=======
-
-Copyright 2025.
-
-
-
-Licensed under the Apache License, Version 2.0 (the "License");
-
-you may not use this file except in compliance with the License.
-
-You may obtain a copy of the License at
-
-
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-
-
-Unless required by applicable law or agreed to in writing, software
-
-distributed under the License is distributed on an "AS IS" BASIS,
-
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-
-See the License for the specific language governing permissions and
-
-limitations under the License.
-
->>>>>>> origin/integrate/mvp
 */
 
 package optimization
 
 import (
-<<<<<<< HEAD
 	"context"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Missing types and interfaces for optimization package
@@ -92,90 +62,57 @@ type OptimizationRanker struct {
 	logger logr.Logger
 }
 
-// PerformanceIssue represents a performance issue
-type PerformanceIssue struct {
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	Severity     SeverityLevel `json:"severity"`
-	Impact       ImpactLevel   `json:"impact"`
-	Component    ComponentType `json:"component"`
-	MetricName   string        `json:"metricName"`
-	Threshold    float64       `json:"threshold"`
-	CurrentValue float64       `json:"currentValue"`
-}
+// ImpactLevel represents impact levels for backward compatibility
+type ImpactLevel string
 
-// ResourceConstraint represents a resource constraint
-type ResourceConstraint struct {
-	ResourceType     string  `json:"resourceType"`
-	CurrentUsage     float64 `json:"currentUsage"`
-	MaxCapacity      float64 `json:"maxCapacity"`
-	UtilizationRatio float64 `json:"utilizationRatio"`
-	Impact           string  `json:"impact"`
-}
+const (
+	ImpactLow      ImpactLevel = "low"
+	ImpactMedium   ImpactLevel = "medium"
+	ImpactHigh     ImpactLevel = "high"
+	ImpactCritical ImpactLevel = "critical"
+)
 
-// OptimizationOpportunity represents an optimization opportunity
-type OptimizationOpportunity struct {
-	Name              string          `json:"name"`
-	Description       string          `json:"description"`
-	PotentialImpact   *ExpectedImpact `json:"potentialImpact"`
-	EstimatedEffort   string          `json:"estimatedEffort"`
-	Confidence        float64         `json:"confidence"`
-	Prerequisites     []string        `json:"prerequisites"`
-	RecommendedAction string          `json:"recommendedAction"`
-}
-
-// ResourceUtilization represents resource utilization data
-type ResourceUtilization struct {
-	CPU     float64 `json:"cpu"`
-	Memory  float64 `json:"memory"`
-	Storage float64 `json:"storage"`
-	Network float64 `json:"network"`
-	GPU     float64 `json:"gpu,omitempty"`
-}
-
-// ComponentPerformanceMetrics contains component-specific performance metrics
-type ComponentPerformanceMetrics struct {
-	Latency      time.Duration `json:"latency"`
-	Throughput   float64       `json:"throughput"`
-	ErrorRate    float64       `json:"errorRate"`
-	Availability float64       `json:"availability"`
-	ResponseTime time.Duration `json:"responseTime"`
-	RequestRate  float64       `json:"requestRate"`
-	SuccessRate  float64       `json:"successRate"`
-}
-
-// PerformanceBottleneck represents an identified bottleneck
-type PerformanceBottleneck struct {
-	ComponentType  ComponentType `json:"componentType"`
-	BottleneckType string        `json:"bottleneckType"`
-	Severity       SeverityLevel `json:"severity"`
-	Impact         ImpactLevel   `json:"impact"`
-	Description    string        `json:"description"`
-	MetricName     string        `json:"metricName"`
-	CurrentValue   float64       `json:"currentValue"`
-	ThresholdValue float64       `json:"thresholdValue"`
-	Resolution     []string      `json:"resolution"`
-}
-
-// PerformanceTrend represents performance trend data
-type PerformanceTrend struct {
-	MetricName string           `json:"metricName"`
-	Component  ComponentType    `json:"component"`
-	Direction  TrendDirection   `json:"direction"`
-	Rate       float64          `json:"rate"`
-	Confidence float64          `json:"confidence"`
-	TimeWindow time.Duration    `json:"timeWindow"`
-	Prediction *TrendPrediction `json:"prediction"`
-}
-
-// TrendPrediction represents trend predictions
-type TrendPrediction struct {
-	NextValue   float64       `json:"nextValue"`
-	TimeHorizon time.Duration `json:"timeHorizon"`
+// PerformancePattern represents a performance pattern
+type PerformancePattern struct {
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	MetricName  string        `json:"metricName"`
+	Pattern     string        `json:"pattern"`
 	Confidence  float64       `json:"confidence"`
-	UpperBound  float64       `json:"upperBound"`
-	LowerBound  float64       `json:"lowerBound"`
+	TimeWindow  time.Duration `json:"timeWindow"`
 }
+
+// AnalysisConfig contains configuration for performance analysis
+type AnalysisConfig struct {
+	TimeWindow       time.Duration `json:"timeWindow"`
+	SampleInterval   time.Duration `json:"sampleInterval"`
+	ConfidenceLevel  float64       `json:"confidenceLevel"`
+	AnalysisDepth    string        `json:"analysisDepth"`
+	MetricsEnabled   bool          `json:"metricsEnabled"`
+	PredictionHours  int           `json:"predictionHours"`
+}
+
+// MetricStatistics represents statistical data for metrics
+type MetricStatistics struct {
+	Mean       float64 `json:"mean"`
+	Median     float64 `json:"median"`
+	Mode       float64 `json:"mode"`
+	StdDev     float64 `json:"stdDev"`
+	Variance   float64 `json:"variance"`
+	Min        float64 `json:"min"`
+	Max        float64 `json:"max"`
+	Percentile map[string]float64 `json:"percentile"`
+}
+
+// TrendDirection represents the direction of trends
+type TrendDirection string
+
+const (
+	TrendIncreasing TrendDirection = "increasing"
+	TrendDecreasing TrendDirection = "decreasing"
+	TrendStable     TrendDirection = "stable"
+	TrendVolatile   TrendDirection = "volatile"
+)
 
 // Constructor functions for missing types
 
@@ -228,14 +165,9 @@ func NewOptimizationRanker(config *AnalysisConfig, logger logr.Logger) *Optimiza
 func (pd *PatternDetector) DetectPatterns(ctx context.Context, store *MetricsStore) ([]*PerformancePattern, error) {
 	// Simplified pattern detection
 	return make([]*PerformancePattern, 0), nil
-=======
-	"time"
+}
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-)
-
-// ComponentType is an alias for shared.ComponentType for backward compatibility.
-
+// ComponentType is an alias for shared.ComponentType for backward compatibility
 // and cleaner imports within the optimization package.
 
 type ComponentType = shared.ComponentType
@@ -1656,5 +1588,4 @@ type BenchmarkEnvironment struct {
 	Load string `json:"load"`
 
 	Concurrency int `json:"concurrency"`
->>>>>>> origin/integrate/mvp
 }

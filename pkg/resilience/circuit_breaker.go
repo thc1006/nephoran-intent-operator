@@ -116,14 +116,14 @@ type LLMCircuitBreaker struct {
 
 	config *CircuitBreakerConfig
 
-	metricsCollector *monitoring.MetricsCollector
+	metricsCollector monitoring.MetricsCollector
 
 	mutex sync.RWMutex
 }
 
 // NewLLMCircuitBreaker creates a new circuit breaker for LLM operations.
 
-func NewLLMCircuitBreaker(name string, config *CircuitBreakerConfig, metricsCollector *monitoring.MetricsCollector) *LLMCircuitBreaker {
+func NewLLMCircuitBreaker(name string, config *CircuitBreakerConfig, metricsCollector monitoring.MetricsCollector) *LLMCircuitBreaker {
 
 	if config == nil {
 
@@ -389,14 +389,14 @@ type CircuitBreakerManager struct {
 
 	defaultConfig *CircuitBreakerConfig
 
-	metricsCollector *monitoring.MetricsCollector
+	metricsCollector monitoring.MetricsCollector
 
 	mutex sync.RWMutex
 }
 
 // NewCircuitBreakerManager creates a new circuit breaker manager.
 
-func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig, metricsCollector *monitoring.MetricsCollector) *CircuitBreakerManager {
+func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig, metricsCollector monitoring.MetricsCollector) *CircuitBreakerManager {
 
 	if defaultConfig == nil {
 
