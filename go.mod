@@ -76,6 +76,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.38.0
 	github.com/thc1006/nephoran-intent-operator/api v0.0.0-00010101000000-000000000000
+	github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces v0.0.0
 	github.com/thc1006/nephoran-intent-operator/pkg/rag v0.0.0
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/valyala/fastjson v1.6.4
@@ -389,20 +390,10 @@ replace (
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.0
 )
 
-// Additional local package replacements for user-requested imports
+// Additional local package replacements for packages with go.mod files
 replace (
 	github.com/thc1006/nephoran-intent-operator/api => ./api
-	github.com/thc1006/nephoran-intent-operator/internal/intent => ./internal/intent
-	github.com/thc1006/nephoran-intent-operator/pkg/handlers => ./pkg/handlers
-	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/reporting => ./pkg/monitoring/reporting
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/common => ./pkg/oran/common
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/o1/security => ./pkg/oran/o1/security
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims => ./pkg/oran/o2/ims
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims/modeladapter => ./pkg/oran/o2/ims/modeladapter
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models => ./pkg/oran/o2/models
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers => ./pkg/oran/o2/providers
-	github.com/thc1006/nephoran-intent-operator/pkg/templates => ./pkg/templates
-	github.com/thc1006/nephoran-intent-operator/pkg/validation/yang => ./pkg/validation/yang
+	github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces => ./pkg/controllers/interfaces
 )
 
 // Removed Windows-specific path replacement - should not be in committed code
