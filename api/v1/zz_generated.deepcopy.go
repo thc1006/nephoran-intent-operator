@@ -3316,7 +3316,7 @@ func (in *NetworkIntentSpec) DeepCopyInto(out *NetworkIntentSpec) {
 	*out = *in
 	if in.TargetComponents != nil {
 		in, out := &in.TargetComponents, &out.TargetComponents
-		*out = make([]ORANComponent, len(*in))
+		*out = make([]NetworkTargetComponent, len(*in))
 		copy(*out, *in)
 	}
 	if in.ResourceConstraints != nil {

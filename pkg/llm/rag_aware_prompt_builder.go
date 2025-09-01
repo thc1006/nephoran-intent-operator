@@ -18,7 +18,7 @@ import (
 // RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration.
 
 type RAGAwarePromptBuilder struct {
-	tokenManager *TokenManager
+	tokenManager TokenManager
 
 	telecomQueryEnhancer *TelecomQueryEnhancer
 
@@ -246,7 +246,7 @@ type PromptResponse struct {
 
 // NewRAGAwarePromptBuilder creates a new RAG-aware prompt builder.
 
-func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
+func NewRAGAwarePromptBuilder(tokenManager TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
 
 	if config == nil {
 
@@ -445,7 +445,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 
 	// Calculate final token count.
 
-	tokenCount := pb.tokenManager.EstimateTokensForModel(fullPrompt, request.ModelName)
+	tokenCount, _ := pb.tokenManager.EstimateTokensForModel(fullPrompt, request.ModelName)
 
 	// Create response.
 
@@ -1056,7 +1056,7 @@ func (pb *RAGAwarePromptBuilder) combinePrompts(systemPrompt, userPrompt, modelN
 
 func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, []string, error) {
 
-	currentTokens := pb.tokenManager.EstimateTokensForModel(fullPrompt, modelName)
+	currentTokens, _ := pb.tokenManager.EstimateTokensForModel(fullPrompt, modelName)
 
 	if currentTokens <= maxTokens {
 
@@ -1070,13 +1070,15 @@ func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, use
 
 	// Reserve tokens for system prompt.
 
-	availableTokens := maxTokens - pb.tokenManager.EstimateTokensForModel(systemPrompt, modelName)
+	systemTokens, _ := pb.tokenManager.EstimateTokensForModel(systemPrompt, modelName)
+	availableTokens := maxTokens - systemTokens
 
 	// Truncate user prompt if necessary.
 
-	if pb.tokenManager.EstimateTokensForModel(userPrompt, modelName) > availableTokens {
+	userTokens, _ := pb.tokenManager.EstimateTokensForModel(userPrompt, modelName)
+	if userTokens > availableTokens {
 
-		truncatedUserPrompt := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
+		truncatedUserPrompt, _ := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
 
 		optimizedPrompt = pb.combinePrompts(systemPrompt, truncatedUserPrompt, modelName)
 

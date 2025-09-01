@@ -2729,6 +2729,118 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 
 }
 
+// CalculateSimilarity calculates semantic similarity between two texts.
+// This implements the EmbeddingServiceInterface for compatibility.
+func (es *EmbeddingService) CalculateSimilarity(ctx context.Context, text1, text2 string) (float64, error) {
+	if es == nil {
+		return 0, fmt.Errorf("embedding service not initialized")
+	}
+
+	// Generate embeddings for both texts
+	request := &EmbeddingRequest{
+		Texts: []string{text1, text2},
+		UseCache: true,
+		RequestID: fmt.Sprintf("similarity_%d", time.Now().Unix()),
+		Metadata: map[string]interface{}{
+			"operation": "similarity_calculation",
+			"timestamp": time.Now(),
+		},
+	}
+
+	response, err := es.GenerateEmbeddings(ctx, request)
+	if err != nil {
+		return 0, fmt.Errorf("failed to generate embeddings for similarity: %w", err)
+	}
+
+	if len(response.Embeddings) < 2 {
+		return 0, fmt.Errorf("insufficient embeddings for similarity calculation")
+	}
+
+	// Calculate cosine similarity
+	embedding1 := response.Embeddings[0]
+	embedding2 := response.Embeddings[1]
+	
+	similarity := calculateCosineSimilarityFloat32(embedding1, embedding2)
+	return float64(similarity), nil
+}
+
+// GetEmbedding generates a single embedding for the given text.
+// This implements the EmbeddingServiceInterface for compatibility.
+func (es *EmbeddingService) GetEmbedding(ctx context.Context, text string) ([]float64, error) {
+	if es == nil {
+		return nil, fmt.Errorf("embedding service not initialized")
+	}
+
+	request := &EmbeddingRequest{
+		Texts: []string{text},
+		UseCache: true,
+		RequestID: fmt.Sprintf("single_embedding_%d", time.Now().Unix()),
+		Metadata: map[string]interface{}{
+			"operation": "single_embedding",
+			"timestamp": time.Now(),
+		},
+	}
+
+	response, err := es.GenerateEmbeddings(ctx, request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate embedding: %w", err)
+	}
+
+	if len(response.Embeddings) == 0 {
+		return nil, fmt.Errorf("no embeddings returned")
+	}
+
+	// Convert []float32 to []float64 for interface compatibility
+	embedding := make([]float64, len(response.Embeddings[0]))
+	for i, v := range response.Embeddings[0] {
+		embedding[i] = float64(v)
+	}
+
+	return embedding, nil
+}
+
+// HealthCheck verifies the service is operational.
+// This implements the EmbeddingServiceInterface for compatibility.
+func (es *EmbeddingService) HealthCheck(ctx context.Context) error {
+	status, err := es.CheckStatus(ctx)
+	if err != nil {
+		return fmt.Errorf("health check failed: %w", err)
+	}
+
+	if status.Status != "healthy" {
+		return fmt.Errorf("service is not healthy: %s", status.Message)
+	}
+
+	return nil
+}
+
+// Close releases resources.
+// This implements the EmbeddingServiceInterface for compatibility.
+func (es *EmbeddingService) Close() error {
+	// No cleanup needed for the current implementation
+	return nil
+}
+
+// calculateCosineSimilarityFloat32 calculates cosine similarity between two float32 vectors.
+func calculateCosineSimilarityFloat32(a, b []float32) float32 {
+	if len(a) != len(b) {
+		return 0
+	}
+
+	var dotProduct, normA, normB float32
+	for i := range a {
+		dotProduct += a[i] * b[i]
+		normA += a[i] * a[i]
+		normB += b[i] * b[i]
+	}
+
+	if normA == 0 || normB == 0 {
+		return 0
+	}
+
+	return dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
+}
+
 // copyModelStats creates a deep copy of ModelUsageStats map.
 
 func copyModelStats(original map[string]ModelUsageStats) map[string]ModelUsageStats {

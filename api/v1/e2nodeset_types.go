@@ -388,9 +388,52 @@ type E2NodeSetCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// E2NodeSetPhase represents the phase of E2NodeSet lifecycle.
+
+// +kubebuilder:validation:Enum=Pending;Initializing;Ready;Scaling;Degraded;Failed;Terminating
+
+type E2NodeSetPhase string
+
+const (
+
+	// E2NodeSetPhasePending holds e2nodesetphasepending value.
+
+	E2NodeSetPhasePending E2NodeSetPhase = "Pending"
+
+	// E2NodeSetPhaseInitializing holds e2nodesetphaseinitializing value.
+
+	E2NodeSetPhaseInitializing E2NodeSetPhase = "Initializing"
+
+	// E2NodeSetPhaseReady holds e2nodesetphaseready value.
+
+	E2NodeSetPhaseReady E2NodeSetPhase = "Ready"
+
+	// E2NodeSetPhaseScaling holds e2nodesetphasescaling value.
+
+	E2NodeSetPhaseScaling E2NodeSetPhase = "Scaling"
+
+	// E2NodeSetPhaseDegraded holds e2nodesetphasedegraded value.
+
+	E2NodeSetPhaseDegraded E2NodeSetPhase = "Degraded"
+
+	// E2NodeSetPhaseFailed holds e2nodesetphasefailed value.
+
+	E2NodeSetPhaseFailed E2NodeSetPhase = "Failed"
+
+	// E2NodeSetPhaseTerminating holds e2nodesetphaseterminating value.
+
+	E2NodeSetPhaseTerminating E2NodeSetPhase = "Terminating"
+)
+
 // E2NodeSetStatus defines the observed state of E2NodeSet.
 
 type E2NodeSetStatus struct {
+
+	// Phase represents the current phase of the E2NodeSet lifecycle.
+
+	// +optional
+
+	Phase E2NodeSetPhase `json:"phase,omitempty"`
 
 	// ReadyReplicas is the number of E2 Nodes that are ready and connected.
 
@@ -456,6 +499,8 @@ type E2NodeSetStatus struct {
 //+kubebuilder:printcolumn:name="Ready",type="integer",JSONPath=".status.readyReplicas",description="Number of ready E2 nodes"
 
 //+kubebuilder:printcolumn:name="Available",type="integer",JSONPath=".status.availableReplicas",description="Number of available E2 nodes"
+
+//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Current phase of the E2NodeSet"
 
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Age of the E2NodeSet"
 

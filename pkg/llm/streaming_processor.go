@@ -21,7 +21,7 @@ type StreamingProcessorImpl struct {
 
 	contextManager *StreamingContextManager
 
-	tokenManager *TokenManager
+	tokenManager TokenManager
 
 	config *StreamingConfig
 
@@ -210,7 +210,7 @@ type SSEEvent struct {
 
 // NewStreamingProcessor creates a new streaming processor.
 
-func NewStreamingProcessorImpl(baseClient *Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessorImpl {
+func NewStreamingProcessorImpl(baseClient *Client, tokenManager TokenManager, config *StreamingConfig) *StreamingProcessorImpl {
 
 	if config == nil {
 
@@ -239,7 +239,9 @@ func NewStreamingProcessorImpl(baseClient *Client, tokenManager *TokenManager, c
 
 	// Initialize context manager.
 
-	sp.contextManager = NewStreamingContextManager(tokenManager, config.ContextInjectionOverhead)
+	// For now, create a consolidated token manager for the context manager
+	consolidatedTM := NewConsolidatedTokenManager()
+	sp.contextManager = NewStreamingContextManager(consolidatedTM, config.ContextInjectionOverhead)
 
 	// Start background maintenance.
 

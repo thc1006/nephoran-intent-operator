@@ -2,10 +2,7 @@ package llm
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -17,9 +14,31 @@ import (
 
 // RequestContext type is defined in interface_consolidated.go
 
+// TokenManager interface defines token management capabilities
+type TokenManager interface {
+	AllocateTokens(request string) (int, error)
+	ReleaseTokens(count int) error
+	GetAvailableTokens() int
+	// Model capability methods
+	EstimateTokensForModel(model string, text string) (int, error)
+	SupportsSystemPrompt(model string) bool
+	SupportsChatFormat(model string) bool
+	SupportsStreaming(model string) bool
+	TruncateToFit(text string, maxTokens int, model string) (string, error)
+	// Additional methods for compatibility
+	GetTokenCount(text string) int
+	ValidateModel(model string) error
+	GetSupportedModels() []string
+}
+
+// RelevanceScorer interface for backwards compatibility with handlers
+type RelevanceScorer interface {
+	Score(ctx context.Context, doc string, intent string) (float32, error)
+	GetMetrics() map[string]interface{}
+}
+
 // Types referenced here are defined in their respective files:
 // - HealthChecker, EndpointPool, BatchProcessorConfig: interface_consolidated.go
-// - TokenManager: basic_token_manager.go and interface_consolidated.go
 // - StreamingContextManager: interface_consolidated.go
 // - ProcessingRequest, ProcessingResponse: interface_consolidated.go
 
@@ -49,11 +68,10 @@ func (s *Service) ProcessIntent(ctx context.Context, request *ProcessingRequest)
 		Intent: request.Intent,
 		Context: map[string]string{
 			"intent_type": request.IntentType,
-			"provider":    request.Provider,
 			"model":       request.Model,
 		},
 		Metadata: RequestMetadata{
-			RequestID: request.RequestID,
+			RequestID: request.ID,
 			Source:    "llm-service",
 		},
 		Timestamp: time.Now(),
@@ -66,17 +84,21 @@ func (s *Service) ProcessIntent(ctx context.Context, request *ProcessingRequest)
 	}
 
 	// Convert ProcessIntentResponse to ProcessingResponse
+	// Convert map[string]interface{} to JSON string for ProcessedParameters
+	structuredParams := ""
+	if result.StructuredIntent != nil {
+		structuredParams = fmt.Sprintf("%v", result.StructuredIntent)
+	}
+
 	return &ProcessingResponse{
-		ProcessedIntent:      result.Reasoning,
-		StructuredParameters: result.StructuredIntent,
-		ProcessedParameters:  result.Reasoning,
-		ConfidenceScore:      result.Confidence,
-		TokensUsed:          result.Metadata.TokensUsed,
-		ProcessingTime:      time.Duration(result.Metadata.ProcessingTime * float64(time.Millisecond)),
-		Metadata:            map[string]interface{}{
-			"model_used": result.Metadata.ModelUsed,
-			"cost":       result.Metadata.Cost,
-		},
+		ID:                  request.ID,
+		Response:            result.Reasoning,
+		ProcessedParameters: structuredParams,
+		Confidence:          float32(result.Confidence),
+		TokensUsed:         result.Metadata.TokensUsed,
+		ProcessingTime:     time.Duration(result.Metadata.ProcessingTime * float64(time.Millisecond)),
+		Cost:               result.Metadata.Cost,
+		ModelUsed:          result.Metadata.ModelUsed,
 	}, nil
 }
 

@@ -42,7 +42,7 @@ func convertSearchResults(sharedResults []*shared.SearchResult) []*rag.SearchRes
 type RAGEnhancedProcessorImpl struct {
 	baseClient     interface{}  // Use interface{} to allow type assertions
 	ragService     *rag.RAGService
-	weaviateClient *rag.WeaviateClient
+	weaviateClient rag.WeaviateClient
 	config         *RAGProcessorConfig
 	logger         *slog.Logger
 	metrics        *ProcessorMetrics
@@ -100,7 +100,7 @@ type EnhancedResponse struct {
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
 func NewRAGEnhancedProcessorImpl(
 	baseClient Client,
-	weaviateClient *rag.WeaviateClient,
+	weaviateClient rag.WeaviateClient,
 	ragService *rag.RAGService,
 	config *RAGProcessorConfig,
 ) *RAGEnhancedProcessorImpl {

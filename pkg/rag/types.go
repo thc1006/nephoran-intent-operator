@@ -87,6 +87,8 @@ type WeaviateClient interface {
 	IsHealthy() bool
 	GetHealthStatus() *WeaviateHealthStatus
 	Close() error
+	// AddDocument adds a document to the knowledge base
+	AddDocument(ctx context.Context, doc interface{}) error
 }
 
 // RAGClientConfig holds configuration for RAG clients.
@@ -1068,5 +1070,11 @@ func (w *WeaviateClientBasic) GetHealthStatus() *WeaviateHealthStatus {
 
 // Close implements WeaviateClient interface
 func (w *WeaviateClientBasic) Close() error {
+	return nil
+}
+
+// AddDocument implements WeaviateClient interface
+func (w *WeaviateClientBasic) AddDocument(ctx context.Context, doc interface{}) error {
+	// Basic implementation - just return nil for now
 	return nil
 }

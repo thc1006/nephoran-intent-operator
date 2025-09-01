@@ -113,13 +113,13 @@ type NetworkIntentSpec struct {
 
 	// +optional
 
-	Priority Priority `json:"priority,omitempty"`
+	Priority NetworkPriority `json:"priority,omitempty"`
 
 	// TargetComponents specifies the target components for the intent.
 
 	// +optional
 
-	TargetComponents []ORANComponent `json:"targetComponents,omitempty"`
+	TargetComponents []NetworkTargetComponent `json:"targetComponents,omitempty"`
 
 	// TargetNamespace specifies the target namespace for deployment.
 
@@ -247,6 +247,44 @@ const (
 	// ORANComponentUPF represents UPF component.
 
 	ORANComponentUPF ORANComponent = "upf"
+)
+
+// NetworkPriority represents the priority level for network operations.
+type NetworkPriority string
+
+const (
+	// NetworkPriorityLow represents low priority network operations.
+	NetworkPriorityLow NetworkPriority = "Low"
+	// NetworkPriorityNormal represents normal priority network operations.
+	NetworkPriorityNormal NetworkPriority = "Normal"
+	// NetworkPriorityHigh represents high priority network operations.
+	NetworkPriorityHigh NetworkPriority = "High"
+	// NetworkPriorityCritical represents critical priority network operations.
+	NetworkPriorityCritical NetworkPriority = "Critical"
+)
+
+// NetworkTargetComponent represents target network components for intents.
+type NetworkTargetComponent string
+
+const (
+	// NetworkTargetComponentAMF represents Access and Mobility Management Function.
+	NetworkTargetComponentAMF NetworkTargetComponent = "amf"
+	// NetworkTargetComponentSMF represents Session Management Function.
+	NetworkTargetComponentSMF NetworkTargetComponent = "smf"
+	// NetworkTargetComponentUPF represents User Plane Function.
+	NetworkTargetComponentUPF NetworkTargetComponent = "upf"
+	// NetworkTargetComponentNRF represents Network Repository Function.
+	NetworkTargetComponentNRF NetworkTargetComponent = "nrf"
+	// NetworkTargetComponentUDM represents Unified Data Management.
+	NetworkTargetComponentUDM NetworkTargetComponent = "udm"
+	// NetworkTargetComponentUDR represents Unified Data Repository.
+	NetworkTargetComponentUDR NetworkTargetComponent = "udr"
+	// NetworkTargetComponentPCF represents Policy Control Function.
+	NetworkTargetComponentPCF NetworkTargetComponent = "pcf"
+	// NetworkTargetComponentAUSF represents Authentication Server Function.
+	NetworkTargetComponentAUSF NetworkTargetComponent = "ausf"
+	// NetworkTargetComponentNSSF represents Network Slice Selection Function.
+	NetworkTargetComponentNSSF NetworkTargetComponent = "nssf"
 )
 
 // NetworkIntentPhase represents the phase of NetworkIntent processing.

@@ -32,7 +32,7 @@ type LLMProcessorHandler struct {
 
 	circuitBreakerMgr *llm.CircuitBreakerManager
 
-	tokenManager *llm.TokenManager
+	tokenManager llm.TokenManager
 
 	contextBuilder *llm.ContextBuilder
 
@@ -129,7 +129,7 @@ func NewLLMProcessorHandler(
 
 	circuitBreakerMgr *llm.CircuitBreakerManager,
 
-	tokenManager *llm.TokenManager,
+	tokenManager llm.TokenManager,
 
 	contextBuilder *llm.ContextBuilder,
 
@@ -190,7 +190,7 @@ func NewLLMProcessorHandlerWithMetrics(
 
 	circuitBreakerMgr *llm.CircuitBreakerManager,
 
-	tokenManager *llm.TokenManager,
+	tokenManager llm.TokenManager,
 
 	contextBuilder *llm.ContextBuilder,
 

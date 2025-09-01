@@ -445,7 +445,7 @@ func NewRelevanceScorer() *RelevanceScorer {
 
 // NewRAGAwarePromptBuilder performs newragawarepromptbuilder operation.
 
-func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config interface{}) *RAGAwarePromptBuilder {
+func NewRAGAwarePromptBuilder(tokenManager TokenManager, config interface{}) *RAGAwarePromptBuilder {
 
 	return &RAGAwarePromptBuilder{}
 

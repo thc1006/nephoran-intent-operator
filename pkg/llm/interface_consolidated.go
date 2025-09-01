@@ -572,7 +572,7 @@ type BatchProcessorConfig struct {
 
 // TokenManager manages token counting and limits.
 
-type TokenManager struct {
+type ConsolidatedTokenManager struct {
 	maxTokens int
 
 	tokensPerWord float64
@@ -582,9 +582,9 @@ type TokenManager struct {
 
 // NewConsolidatedTokenManager creates a new token manager.
 
-func NewConsolidatedTokenManager() *TokenManager {
+func NewConsolidatedTokenManager() *ConsolidatedTokenManager {
 
-	return &TokenManager{
+	return &ConsolidatedTokenManager{
 
 		maxTokens: 8192,
 
@@ -596,7 +596,7 @@ func NewConsolidatedTokenManager() *TokenManager {
 
 // CountTokens estimates token count from text.
 
-func (tm *TokenManager) CountTokens(text string) int {
+func (tm *ConsolidatedTokenManager) CountTokens(text string) int {
 
 	// Simple approximation: count words and multiply by average tokens per word.
 
@@ -608,7 +608,7 @@ func (tm *TokenManager) CountTokens(text string) int {
 
 // EstimateTokensForModel estimates tokens for a specific model.
 
-func (tm *TokenManager) EstimateTokensForModel(text, model string) int {
+func (tm *ConsolidatedTokenManager) EstimateTokensForModel(text, model string) int {
 
 	// For now, use the same estimation for all models.
 
@@ -618,7 +618,7 @@ func (tm *TokenManager) EstimateTokensForModel(text, model string) int {
 
 // SupportsSystemPrompt checks if model supports system prompts.
 
-func (tm *TokenManager) SupportsSystemPrompt(model string) bool {
+func (tm *ConsolidatedTokenManager) SupportsSystemPrompt(model string) bool {
 
 	// Most modern models support system prompts.
 
@@ -628,7 +628,7 @@ func (tm *TokenManager) SupportsSystemPrompt(model string) bool {
 
 // SupportsChatFormat checks if model supports chat format.
 
-func (tm *TokenManager) SupportsChatFormat(model string) bool {
+func (tm *ConsolidatedTokenManager) SupportsChatFormat(model string) bool {
 
 	// Most modern models support chat format.
 
@@ -638,7 +638,7 @@ func (tm *TokenManager) SupportsChatFormat(model string) bool {
 
 // TruncateToFit truncates text to fit within token limit.
 
-func (tm *TokenManager) TruncateToFit(text string, maxTokens int, model string) string {
+func (tm *ConsolidatedTokenManager) TruncateToFit(text string, maxTokens int, model string) string {
 
 	// Model parameter is for compatibility, using same logic for all models.
 
@@ -668,7 +668,7 @@ func (tm *TokenManager) TruncateToFit(text string, maxTokens int, model string) 
 
 // SupportsStreaming checks if model supports streaming.
 
-func (tm *TokenManager) SupportsStreaming(model string) bool {
+func (tm *ConsolidatedTokenManager) SupportsStreaming(model string) bool {
 
 	// Most modern models support streaming.
 
@@ -678,7 +678,7 @@ func (tm *TokenManager) SupportsStreaming(model string) bool {
 
 // GetSupportedModels returns list of supported models.
 
-func (tm *TokenManager) GetSupportedModels() []string {
+func (tm *ConsolidatedTokenManager) GetSupportedModels() []string {
 
 	return []string{
 
@@ -707,7 +707,7 @@ type StreamingContextManager struct {
 
 // NewStreamingContextManager creates a new streaming context manager.
 
-func NewStreamingContextManager(tokenManager *TokenManager, contextOverhead time.Duration) *StreamingContextManager {
+func NewStreamingContextManager(tokenManager *ConsolidatedTokenManager, contextOverhead time.Duration) *StreamingContextManager {
 
 	// Parameters are for compatibility but not used in stub implementation.
 

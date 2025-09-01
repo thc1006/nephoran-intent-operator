@@ -58,7 +58,7 @@ func (r *NetworkIntent) Default(ctx context.Context, obj runtime.Object) error {
 
 	// Set default priority if not provided
 	if ni.Spec.Priority == "" {
-		ni.Spec.Priority = PriorityMedium
+		ni.Spec.Priority = NetworkPriorityNormal
 	}
 
 	return nil
@@ -182,13 +182,13 @@ func (r *NetworkIntent) validatePriority() *field.Error {
 		return nil // Priority is optional
 	}
 
-	validPriorities := []Priority{PriorityLow, PriorityMedium, PriorityHigh, PriorityCritical}
+	validPriorities := []NetworkPriority{NetworkPriorityLow, NetworkPriorityNormal, NetworkPriorityHigh, NetworkPriorityCritical}
 	for _, validPriority := range validPriorities {
 		if r.Spec.Priority == validPriority {
 			return nil
 		}
 	}
-	return field.Invalid(field.NewPath("spec", "priority"), r.Spec.Priority, "must be one of: low, medium, high, critical")
+	return field.Invalid(field.NewPath("spec", "priority"), r.Spec.Priority, "must be one of: Low, Normal, High, Critical")
 }
 
 // validateTargetComponents validates the target components
@@ -197,10 +197,10 @@ func (r *NetworkIntent) validateTargetComponents() *field.Error {
 		return nil // Target components are optional
 	}
 
-	validComponents := []ORANComponent{
-		ORANComponentNearRTRIC, ORANComponentSMO, ORANComponentO1, ORANComponentE2,
-		ORANComponentA1, ORANComponentXApp, ORANComponentGNodeB, ORANComponentAMF,
-		ORANComponentSMF, ORANComponentUPF,
+	validComponents := []NetworkTargetComponent{
+		NetworkTargetComponentAMF, NetworkTargetComponentSMF, NetworkTargetComponentUPF,
+		NetworkTargetComponentNRF, NetworkTargetComponentUDM, NetworkTargetComponentUDR,
+		NetworkTargetComponentPCF, NetworkTargetComponentAUSF, NetworkTargetComponentNSSF,
 	}
 
 	for i, component := range r.Spec.TargetComponents {
@@ -212,7 +212,7 @@ func (r *NetworkIntent) validateTargetComponents() *field.Error {
 			}
 		}
 		if !valid {
-			return field.Invalid(field.NewPath("spec", "targetComponents").Index(i), component, "invalid O-RAN component")
+			return field.Invalid(field.NewPath("spec", "targetComponents").Index(i), component, "invalid network target component")
 		}
 	}
 

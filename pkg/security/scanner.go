@@ -1750,14 +1750,24 @@ func (ss *SecurityScanner) extractTargetsFromIntent(intent *nephiov1.NetworkInte
 	for _, component := range intent.Spec.TargetComponents {
 		// Create service endpoints based on O-RAN component types
 		switch component {
-		case nephiov1.ORANComponentAMF:
+		case nephiov1.NetworkTargetComponentAMF:
 			targets = append(targets, "amf-service:80")
-		case nephiov1.ORANComponentSMF:
+		case nephiov1.NetworkTargetComponentSMF:
 			targets = append(targets, "smf-service:80")
-		case nephiov1.ORANComponentUPF:
+		case nephiov1.NetworkTargetComponentUPF:
 			targets = append(targets, "upf-service:80")
-		case nephiov1.ORANComponentNearRTRIC:
-			targets = append(targets, "near-rt-ric:80")
+		case nephiov1.NetworkTargetComponentNRF:
+			targets = append(targets, "nrf-service:80")
+		case nephiov1.NetworkTargetComponentUDM:
+			targets = append(targets, "udm-service:80")
+		case nephiov1.NetworkTargetComponentUDR:
+			targets = append(targets, "udr-service:80")
+		case nephiov1.NetworkTargetComponentPCF:
+			targets = append(targets, "pcf-service:80")
+		case nephiov1.NetworkTargetComponentAUSF:
+			targets = append(targets, "ausf-service:80")
+		case nephiov1.NetworkTargetComponentNSSF:
+			targets = append(targets, "nssf-service:80")
 		default:
 			// Generic service endpoint for other components
 			targets = append(targets, string(component)+"-service:80")
