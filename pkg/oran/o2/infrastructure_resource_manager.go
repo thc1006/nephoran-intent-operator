@@ -1061,7 +1061,7 @@ func (irm *InfrastructureResourceManager) GetResource(ctx context.Context, resou
 
 	// Retrieve from storage.
 
-	resource, err := irm.storage.GetResource(ctx, resourceID)
+	resource, err := irm.storage.RetrieveResource(ctx, resourceID)
 
 	if err != nil {
 
@@ -1263,10 +1263,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 
 			resource.Status.ErrorMessage = fmt.Sprintf("Provisioning failed: %v", err)
 
-			irm.storage.UpdateResource(ctx, resource.ResourceID, map[string]interface{}{
-
-				"status": resource.Status,
-			})
+			irm.storage.UpdateResource(ctx, resource)
 
 			if operationID != "" {
 
@@ -1282,10 +1279,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 
 			resource.Status.ErrorMessage = ""
 
-			irm.storage.UpdateResource(ctx, resource.ResourceID, map[string]interface{}{
-
-				"status": resource.Status,
-			})
+			irm.storage.UpdateResource(ctx, resource)
 
 			if operationID != "" {
 
@@ -1587,10 +1581,7 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 
 	resource.Status.ErrorMessage = ""
 
-	irm.storage.UpdateResource(ctx, resourceID, map[string]interface{}{
-
-		"status": resource.Status,
-	})
+	irm.storage.UpdateResource(ctx, resource)
 
 	// Delete from storage.
 

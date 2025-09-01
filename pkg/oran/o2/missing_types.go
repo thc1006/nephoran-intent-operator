@@ -137,6 +137,9 @@ type O2IMSStorage interface {
 	DeleteResource(ctx context.Context, resourceID string) error
 	ListResources(ctx context.Context, filters map[string]interface{}) ([]*o2models.Resource, error)
 	
+	// Resource type storage
+	ListResourceTypes(ctx context.Context, filter map[string]interface{}) ([]*o2models.ResourceType, error)
+	
 	// Metadata and inventory
 	StoreInventory(ctx context.Context, inventory *InfrastructureAsset) error
 	RetrieveInventory(ctx context.Context, assetID string) (*InfrastructureAsset, error)

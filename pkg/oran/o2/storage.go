@@ -307,7 +307,7 @@ func (s *InMemoryStorage) GetResourceType(ctx context.Context, typeID string) (*
 
 // ListResourceTypes lists resource types with optional filtering.
 
-func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
+func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter map[string]interface{}) ([]*models.ResourceType, error) {
 
 	s.rtMutex.RLock()
 
@@ -317,7 +317,7 @@ func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter *models.
 
 	for _, resourceType := range s.resourceTypes {
 
-		if s.matchesResourceTypeFilter(resourceType, filter) {
+		if s.matchesResourceTypeFilterMap(resourceType, filter) {
 
 			typeCopy := *resourceType
 
@@ -327,11 +327,15 @@ func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter *models.
 
 	}
 
-	// Apply pagination.
+	// Apply pagination if filters contain limit and offset.
 
 	if filter != nil {
 
-		resourceTypes = s.applyResourceTypePagination(resourceTypes, filter.Limit, filter.Offset)
+		limit, hasLimit := filter["limit"].(int)
+		offset, hasOffset := filter["offset"].(int)
+		if hasLimit || hasOffset {
+			resourceTypes = s.applyResourceTypePagination(resourceTypes, limit, offset)
+		}
 
 	}
 
@@ -419,9 +423,17 @@ func (s *InMemoryStorage) GetResource(ctx context.Context, resourceID string) (*
 
 }
 
+// RetrieveResource retrieves a resource by ID (alias for GetResource to match interface).
+
+func (s *InMemoryStorage) RetrieveResource(ctx context.Context, resourceID string) (*models.Resource, error) {
+
+	return s.GetResource(ctx, resourceID)
+
+}
+
 // ListResources lists resources with optional filtering.
 
-func (s *InMemoryStorage) ListResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error) {
+func (s *InMemoryStorage) ListResources(ctx context.Context, filters map[string]interface{}) ([]*models.Resource, error) {
 
 	s.rMutex.RLock()
 
@@ -431,7 +443,7 @@ func (s *InMemoryStorage) ListResources(ctx context.Context, filter *models.Reso
 
 	for _, resource := range s.resources {
 
-		if s.matchesResourceFilter(resource, filter) {
+		if s.matchesResourceFilterMap(resource, filters) {
 
 			resourceCopy := *resource
 
@@ -441,11 +453,15 @@ func (s *InMemoryStorage) ListResources(ctx context.Context, filter *models.Reso
 
 	}
 
-	// Apply pagination.
+	// Apply pagination if filters contain limit and offset.
 
-	if filter != nil {
+	if filters != nil {
 
-		resources = s.applyResourcePagination(resources, filter.Limit, filter.Offset)
+		limit, hasLimit := filters["limit"].(int)
+		offset, hasOffset := filters["offset"].(int)
+		if hasLimit || hasOffset {
+			resources = s.applyResourcePagination(resources, limit, offset)
+		}
 
 	}
 
@@ -455,39 +471,31 @@ func (s *InMemoryStorage) ListResources(ctx context.Context, filter *models.Reso
 
 // UpdateResource updates a resource.
 
-func (s *InMemoryStorage) UpdateResource(ctx context.Context, resourceID string, updates map[string]interface{}) error {
+func (s *InMemoryStorage) UpdateResource(ctx context.Context, resource *models.Resource) error {
 
 	s.rMutex.Lock()
 
 	defer s.rMutex.Unlock()
 
-	resource, exists := s.resources[resourceID]
+	if resource == nil || resource.ResourceID == "" {
+
+		return fmt.Errorf("invalid resource")
+
+	}
+
+	_, exists := s.resources[resource.ResourceID]
 
 	if !exists {
 
-		return fmt.Errorf("resource not found: %s", resourceID)
+		return fmt.Errorf("resource not found: %s", resource.ResourceID)
 
 	}
 
-	// Apply updates.
+	// Update the resource.
 
-	if updatedAt, ok := updates["updated_at"].(time.Time); ok {
+	resource.UpdatedAt = time.Now()
 
-		resource.UpdatedAt = updatedAt
-
-	}
-
-	if status, ok := updates["status"].(string); ok {
-
-		if resource.Status == nil {
-
-			resource.Status = &models.ResourceStatus{}
-
-		}
-
-		resource.Status.State = status
-
-	}
+	s.resources[resource.ResourceID] = resource
 
 	return nil
 
@@ -1270,6 +1278,164 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 		for _, status := range filter.LifecycleStates {
 
 			if resource.Status != nil && resource.Status.State == status {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	return true
+
+}
+
+// matchesResourceTypeFilterMap checks if a resource type matches the filter map.
+
+func (s *InMemoryStorage) matchesResourceTypeFilterMap(resourceType *models.ResourceType, filters map[string]interface{}) bool {
+
+	if filters == nil {
+
+		return true
+
+	}
+
+	// Check vendor filter.
+
+	if vendors, ok := filters["vendors"].([]string); ok && len(vendors) > 0 {
+
+		found := false
+
+		for _, vendor := range vendors {
+
+			if resourceType.Vendor == vendor {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	// Check model filter.
+
+	if models, ok := filters["models"].([]string); ok && len(models) > 0 {
+
+		found := false
+
+		for _, model := range models {
+
+			if resourceType.Model == model {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	return true
+
+}
+
+// matchesResourceFilterMap checks if a resource matches the filter map.
+
+func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, filters map[string]interface{}) bool {
+
+	if filters == nil {
+
+		return true
+
+	}
+
+	// Check resource pool IDs filter.
+
+	if poolIDs, ok := filters["resource_pool_ids"].([]string); ok && len(poolIDs) > 0 {
+
+		found := false
+
+		for _, poolID := range poolIDs {
+
+			if resource.ResourcePoolID == poolID {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	// Check resource type IDs filter.
+
+	if typeIDs, ok := filters["resource_type_ids"].([]string); ok && len(typeIDs) > 0 {
+
+		found := false
+
+		for _, typeID := range typeIDs {
+
+			if resource.ResourceTypeID == typeID {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	// Check lifecycle states filter.
+
+	if states, ok := filters["lifecycle_states"].([]string); ok && len(states) > 0 {
+
+		found := false
+
+		for _, state := range states {
+
+			if resource.Status != nil && resource.Status.State == state {
 
 				found = true
 
