@@ -332,7 +332,7 @@ func (suite *IntegrationTestSuite) TestPackageOperations() {
 	suite.NotNil(packages)
 
 	// Test package retrieval
-	retrievedPkg, err := suite.client.GetPackageRevision(ctx, pkg.Name)
+	retrievedPkg, err := suite.client.GetPackageRevision(ctx, pkg.Name, pkg.Spec.Revision)
 	suite.Require().NoError(err)
 	suite.Equal(pkg.Name, retrievedPkg.Name)
 
@@ -479,7 +479,7 @@ func (suite *IntegrationTestSuite) TestErrorHandlingAndResilience() {
 		_, err := suite.client.GetRepository(ctx, "non-existent-repo")
 		suite.Error(err)
 
-		_, err = suite.client.GetPackageRevision(ctx, "non-existent-package")
+		_, err = suite.client.GetPackageRevision(ctx, "non-existent-package", "v1")
 		suite.Error(err)
 
 		err = suite.client.ValidateAccess(ctx, "non-existent-repo")

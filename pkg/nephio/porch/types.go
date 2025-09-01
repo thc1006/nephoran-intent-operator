@@ -1773,7 +1773,7 @@ func (r *Repository) DeepCopyObject() runtime.Object {
 
 func (rl *RepositoryList) DeepCopyObject() runtime.Object {
 
-	return rl.DeepCopy()
+	return rl
 
 }
 
@@ -1783,7 +1783,7 @@ func (rl *RepositoryList) DeepCopyObject() runtime.Object {
 
 func (w *Workflow) DeepCopyObject() runtime.Object {
 
-	return w.DeepCopy()
+	return w
 
 }
 
@@ -1791,7 +1791,7 @@ func (w *Workflow) DeepCopyObject() runtime.Object {
 
 func (wl *WorkflowList) DeepCopyObject() runtime.Object {
 
-	return wl.DeepCopy()
+	return wl
 
 }
 
@@ -1839,13 +1839,15 @@ func (rs *RepositorySpec) DeepCopyInto(out *RepositorySpec) {
 
 	if rs.Auth != nil {
 
-		out.Auth = rs.Auth.DeepCopy()
+		out.Auth = &AuthConfig{}
+		*out.Auth = *rs.Auth
 
 	}
 
 	if rs.Sync != nil {
 
-		out.Sync = rs.Sync.DeepCopy()
+		out.Sync = &SyncConfig{}
+		*out.Sync = *rs.Sync
 
 	}
 

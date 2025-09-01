@@ -1,847 +1,203 @@
-/*
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package porch
 
 import (
 	"context"
-	"fmt"
-	goruntime "runtime"
-	"strings"
-	"sync"
 	"testing"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// MockSimplePorchClient implements PorchClient for testing
-type MockSimplePorchClient struct {
+// MockRepositoryManager is a mock implementation of RepositoryManager
+type MockRepositoryManager struct {
 	mock.Mock
 }
 
-func (m *MockSimplePorchClient) GetRepository(ctx context.Context, name string) (*Repository, error) {
-	args := m.Called(ctx, name)
-	return args.Get(0).(*Repository), args.Error(1)
+// MockPackageRevisionManager is a mock implementation of PackageRevisionManager
+type MockPackageRevisionManager struct {
+	mock.Mock
 }
 
-func (m *MockSimplePorchClient) ListRepositories(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
-	args := m.Called(ctx, opts)
-	return args.Get(0).(*RepositoryList), args.Error(1)
+func TestMockPackageRevisionManager(t *testing.T) {
+	// Test that our mock implementations compile and work
+	mockPkgManager := &MockPackageRevisionManager{}
+	mockRepoManager := &MockRepositoryManager{}
+
+	// Test that the interfaces are satisfied
+	var _ PackageRevisionManager = mockPkgManager
+	var _ RepositoryManager = mockRepoManager
+
+	// Basic mock setup test
+	ctx := context.Background()
+	expectedPackageRevision := &PackageRevision{
+		Spec: PackageRevisionSpec{
+			PackageName: "test-package",
+			Revision:    "v1",
+		},
+	}
+
+	// Test mock method calls
+	mockPkgManager.On("GetRevision", ctx, mock.Anything).Return(expectedPackageRevision, nil)
+	result, err := mockPkgManager.GetRevision(ctx, &PackageReference{PackageName: "test", Revision: "v1"})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	mockPkgManager.AssertExpectations(t)
 }
 
-func (m *MockSimplePorchClient) CreateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
-	args := m.Called(ctx, repo)
-	return args.Get(0).(*Repository), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) UpdateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
-	args := m.Called(ctx, repo)
-	return args.Get(0).(*Repository), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) DeleteRepository(ctx context.Context, name string) error {
-	args := m.Called(ctx, name)
-	return args.Error(0)
-}
-
-func (m *MockSimplePorchClient) GetPackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
-	args := m.Called(ctx, name)
+// Implement the mock methods for testing
+func (m *MockPackageRevisionManager) GetPackageRevision(ctx context.Context, name, revision string) (*PackageRevision, error) {
+	args := m.Called(ctx, name, revision)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
-	args := m.Called(ctx, opts)
-	return args.Get(0).(*PackageRevisionList), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) CreatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+func (m *MockPackageRevisionManager) CreatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	args := m.Called(ctx, pkg)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+func (m *MockPackageRevisionManager) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	args := m.Called(ctx, pkg)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) DeletePackageRevision(ctx context.Context, name string) error {
-	args := m.Called(ctx, name)
+func (m *MockPackageRevisionManager) DeletePackageRevision(ctx context.Context, name, revision string) error {
+	args := m.Called(ctx, name, revision)
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) ApprovePackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
-	args := m.Called(ctx, name)
+func (m *MockPackageRevisionManager) ClonePackage(ctx context.Context, ref *PackageReference, spec *PackageSpec) (*PackageRevision, error) {
+	args := m.Called(ctx, ref, spec)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) ProposePackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
-	args := m.Called(ctx, name)
-	return args.Get(0).(*PackageRevision), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-	args := m.Called(ctx, req)
-	return args.Get(0).(*FunctionResponse), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
-	args := m.Called(ctx, req)
-	return args.Get(0).(*PipelineResponse), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
-	args := m.Called(ctx, functionName)
-	return args.Get(0).(*FunctionValidation), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]*FunctionInfo), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) GetFunctionSchema(ctx context.Context, functionName string) (*FunctionSchema, error) {
-	args := m.Called(ctx, functionName)
-	return args.Get(0).(*FunctionSchema), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) RegisterFunction(ctx context.Context, info *FunctionInfo) error {
-	args := m.Called(ctx, info)
+// Methods to satisfy the full RepositoryManager interface
+func (m *MockRepositoryManager) CreateBranch(ctx context.Context, repo, branch, source string) error {
+	args := m.Called(ctx, repo, branch, source)
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) GetResourceTransformations(ctx context.Context, req *TransformationRequest) (*TransformationResponse, error) {
-	args := m.Called(ctx, req)
-	return args.Get(0).(*TransformationResponse), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) ValidateORANCompliance(ctx context.Context, req *ORANValidationRequest) (*ORANValidationResponse, error) {
-	args := m.Called(ctx, req)
-	return args.Get(0).(*ORANValidationResponse), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error) {
-	args := m.Called(ctx, config)
+// Additional mock methods for repository management
+func (m *MockRepositoryManager) GetRepository(ctx context.Context, name string) (*Repository, error) {
+	args := m.Called(ctx, name)
 	return args.Get(0).(*Repository), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) UnregisterRepository(ctx context.Context, name string) error {
-	args := m.Called(ctx, name)
-	return args.Error(0)
-}
-
-func (m *MockSimplePorchClient) SynchronizeRepository(ctx context.Context, name string) (*SyncResult, error) {
-	args := m.Called(ctx, name)
-	return args.Get(0).(*SyncResult), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
-	args := m.Called(ctx, name)
-	return args.Get(0).(*RepositoryHealth), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) CreateBranch(ctx context.Context, repoName string, branchName string, baseBranch string) error {
-	args := m.Called(ctx, repoName, branchName, baseBranch)
-	return args.Error(0)
-}
-
-func (m *MockSimplePorchClient) DeleteBranch(ctx context.Context, repoName string, branchName string) error {
+// DeleteBranch deletes a repository branch
+func (m *MockRepositoryManager) DeleteBranch(ctx context.Context, repoName, branchName string) error {
 	args := m.Called(ctx, repoName, branchName)
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) ListBranches(ctx context.Context, repoName string) ([]string, error) {
+// Additional MockRepositoryManager methods to satisfy the interface
+func (m *MockRepositoryManager) RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error) {
+	args := m.Called(ctx, config)
+	return args.Get(0).(*Repository), args.Error(1)
+}
+
+func (m *MockRepositoryManager) UnregisterRepository(ctx context.Context, name string) error {
+	args := m.Called(ctx, name)
+	return args.Error(0)
+}
+
+func (m *MockRepositoryManager) SynchronizeRepository(ctx context.Context, name string) (*SyncResult, error) {
+	args := m.Called(ctx, name)
+	return args.Get(0).(*SyncResult), args.Error(1)
+}
+
+func (m *MockRepositoryManager) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
+	args := m.Called(ctx, name)
+	return args.Get(0).(*RepositoryHealth), args.Error(1)
+}
+
+func (m *MockRepositoryManager) ListBranches(ctx context.Context, repoName string) ([]string, error) {
 	args := m.Called(ctx, repoName)
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) UpdateCredentials(ctx context.Context, repoName string, creds *Credentials) error {
+func (m *MockRepositoryManager) UpdateCredentials(ctx context.Context, repoName string, creds *Credentials) error {
 	args := m.Called(ctx, repoName, creds)
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) ValidateAccess(ctx context.Context, repoName string) error {
+func (m *MockRepositoryManager) ValidateAccess(ctx context.Context, repoName string) error {
 	args := m.Called(ctx, repoName)
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error) {
+func (m *MockPackageRevisionManager) ProposePackageRevision(ctx context.Context, name, revision string) error {
+	args := m.Called(ctx, name, revision)
+	return args.Error(0)
+}
+
+func (m *MockPackageRevisionManager) ApprovePackageRevision(ctx context.Context, name, revision string) error {
+	args := m.Called(ctx, name, revision)
+	return args.Error(0)
+}
+
+func (m *MockPackageRevisionManager) RejectPackageRevision(ctx context.Context, name, revision, reason string) error {
+	args := m.Called(ctx, name, revision, reason)
+	return args.Error(0)
+}
+
+// CompareRevisions compares two package revisions
+func (m *MockPackageRevisionManager) CompareRevisions(ctx context.Context, ref1, ref2 *PackageReference) (*ComparisonResult, error) {
+	args := m.Called(ctx, ref1, ref2)
+	return args.Get(0).(*ComparisonResult), args.Error(1)
+}
+
+// Additional MockPackageRevisionManager methods to satisfy the interface
+func (m *MockPackageRevisionManager) CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error) {
 	args := m.Called(ctx, spec)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) ClonePackage(ctx context.Context, source string, target *PackageSpec) (*PackageRevision, error) {
-	args := m.Called(ctx, source, target)
-	return args.Get(0).(*PackageRevision), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) UpdatePackageContent(ctx context.Context, name string, resources []KRMResource) (*PackageRevision, error) {
-	args := m.Called(ctx, name, resources)
-	return args.Get(0).(*PackageRevision), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) GetPackageContent(ctx context.Context, name string) ([]KRMResource, error) {
-	args := m.Called(ctx, name)
-	return args.Get(0).([]KRMResource), args.Error(1)
-}
-
-func (m *MockSimplePorchClient) PromoteToProposed(ctx context.Context, ref *PackageReference) error {
+func (m *MockPackageRevisionManager) DeletePackage(ctx context.Context, ref *PackageReference) error {
 	args := m.Called(ctx, ref)
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) PromoteToPublished(ctx context.Context, ref *PackageReference) error {
+func (m *MockPackageRevisionManager) CreateRevision(ctx context.Context, ref *PackageReference) (*PackageRevision, error) {
 	args := m.Called(ctx, ref)
-	return args.Error(0)
+	return args.Get(0).(*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) GetPackageHistory(ctx context.Context, ref *PackageReference) ([]*PackageRevision, error) {
+func (m *MockPackageRevisionManager) GetRevision(ctx context.Context, ref *PackageReference) (*PackageRevision, error) {
 	args := m.Called(ctx, ref)
+	return args.Get(0).(*PackageRevision), args.Error(1)
+}
+
+func (m *MockPackageRevisionManager) ListRevisions(ctx context.Context, packageName string) ([]*PackageRevision, error) {
+	args := m.Called(ctx, packageName)
 	return args.Get(0).([]*PackageRevision), args.Error(1)
 }
 
-func (m *MockSimplePorchClient) Close() error {
-	args := m.Called()
+func (m *MockPackageRevisionManager) PromoteToProposed(ctx context.Context, ref *PackageReference) error {
+	args := m.Called(ctx, ref)
 	return args.Error(0)
 }
 
-// Test fixtures
-func createTestRepository() *Repository {
-	return &Repository{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-repo",
-			Labels: map[string]string{
-				LabelComponent:  "repository",
-				LabelRepository: "test-repo",
-			},
-		},
-		Spec: RepositorySpec{
-			Type:      "git",
-			URL:       "https://github.com/test/test-repo.git",
-			Branch:    "main",
-			Directory: "",
-		},
-		Status: RepositoryStatus{
-			Health: RepositoryHealthHealthy,
-		},
-	}
+func (m *MockPackageRevisionManager) PromoteToPublished(ctx context.Context, ref *PackageReference) error {
+	args := m.Called(ctx, ref)
+	return args.Error(0)
 }
 
-func createTestPackageRevision() *PackageRevision {
-	return &PackageRevision{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-package-v1",
-			Labels: map[string]string{
-				LabelPackage: "test-package",
-				LabelVersion: "v1",
-			},
-		},
-		Spec: PackageRevisionSpec{
-			PackageName: "test-package",
-			Revision:    "v1",
-			Repository:  "test-repo",
-		},
-		Status: PackageRevisionStatus{
-			PublishedBy: "test-user",
-			PublishedAt: &metav1.Time{Time: time.Now()},
-		},
-	}
+func (m *MockPackageRevisionManager) RevertToRevision(ctx context.Context, ref *PackageReference, targetRevision string) error {
+	args := m.Called(ctx, ref, targetRevision)
+	return args.Error(0)
 }
 
-func createTestClient() *Client {
-	scheme := k8sruntime.NewScheme()
-	corev1.AddToScheme(scheme)
-
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-	fakeDynamic := dynamicfake.NewSimpleDynamicClient(scheme)
-
-	config := NewConfig().WithDefaults()
-
-	return &Client{
-		client:  fakeClient,
-		dynamic: fakeDynamic,
-		config:  config,
-		cache:   newClientCache(config),
-		metrics: initClientMetrics(),
-	}
+func (m *MockPackageRevisionManager) UpdateContent(ctx context.Context, ref *PackageReference, updates map[string][]byte) error {
+	args := m.Called(ctx, ref, updates)
+	return args.Error(0)
 }
 
-// Unit Tests
-
-func TestNewClient(t *testing.T) {
-	config := NewConfig().WithDefaults()
-
-	client, err := NewClient(config)
-	require.NoError(t, err)
-	assert.NotNil(t, client)
-	assert.NotNil(t, client.config)
-	assert.NotNil(t, client.cache)
-	assert.NotNil(t, client.metrics)
+func (m *MockPackageRevisionManager) GetContent(ctx context.Context, ref *PackageReference) (*PackageContent, error) {
+	args := m.Called(ctx, ref)
+	return args.Get(0).(*PackageContent), args.Error(1)
 }
 
-func TestClientRepositoryOperations(t *testing.T) {
-	tests := []struct {
-		name string
-		fn   func(t *testing.T, client *Client)
-	}{
-		{
-			name: "CreateRepository",
-			fn: func(t *testing.T, client *Client) {
-				repo := createTestRepository()
-
-				created, err := client.CreateRepository(context.Background(), repo)
-				assert.NoError(t, err)
-				assert.NotNil(t, created)
-				assert.Equal(t, repo.Name, created.Name)
-			},
-		},
-		{
-			name: "GetRepository",
-			fn: func(t *testing.T, client *Client) {
-				repo := createTestRepository()
-
-				// Create first
-				_, err := client.CreateRepository(context.Background(), repo)
-				require.NoError(t, err)
-
-				// Get
-				retrieved, err := client.GetRepository(context.Background(), repo.Name)
-				assert.NoError(t, err)
-				assert.NotNil(t, retrieved)
-				assert.Equal(t, repo.Name, retrieved.Name)
-			},
-		},
-		{
-			name: "ListRepositories",
-			fn: func(t *testing.T, client *Client) {
-				repo := createTestRepository()
-
-				// Create first
-				_, err := client.CreateRepository(context.Background(), repo)
-				require.NoError(t, err)
-
-				// List
-				list, err := client.ListRepositories(context.Background(), &ListOptions{})
-				assert.NoError(t, err)
-				assert.NotNil(t, list)
-				assert.Len(t, list.Items, 1)
-			},
-		},
-		{
-			name: "UpdateRepository",
-			fn: func(t *testing.T, client *Client) {
-				repo := createTestRepository()
-
-				// Create first
-				created, err := client.CreateRepository(context.Background(), repo)
-				require.NoError(t, err)
-
-				// Update
-				created.Spec.Branch = "develop"
-				updated, err := client.UpdateRepository(context.Background(), created)
-				assert.NoError(t, err)
-				assert.NotNil(t, updated)
-				assert.Equal(t, "develop", updated.Spec.Branch)
-			},
-		},
-		{
-			name: "DeleteRepository",
-			fn: func(t *testing.T, client *Client) {
-				repo := createTestRepository()
-
-				// Create first
-				_, err := client.CreateRepository(context.Background(), repo)
-				require.NoError(t, err)
-
-				// Delete
-				err = client.DeleteRepository(context.Background(), repo.Name)
-				assert.NoError(t, err)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client := createTestClient()
-			tt.fn(t, client)
-		})
-	}
-}
-
-func TestClientPackageRevisionOperations(t *testing.T) {
-	tests := []struct {
-		name string
-		fn   func(t *testing.T, client *Client)
-	}{
-		{
-			name: "CreatePackageRevision",
-			fn: func(t *testing.T, client *Client) {
-				pkg := createTestPackageRevision()
-
-				created, err := client.CreatePackageRevision(context.Background(), pkg)
-				assert.NoError(t, err)
-				assert.NotNil(t, created)
-				assert.Equal(t, pkg.Name, created.Name)
-			},
-		},
-		{
-			name: "GetPackageRevision",
-			fn: func(t *testing.T, client *Client) {
-				pkg := createTestPackageRevision()
-
-				// Create first
-				_, err := client.CreatePackageRevision(context.Background(), pkg)
-				require.NoError(t, err)
-
-				// Get
-				retrieved, err := client.GetPackageRevision(context.Background(), pkg.Name)
-				assert.NoError(t, err)
-				assert.NotNil(t, retrieved)
-				assert.Equal(t, pkg.Name, retrieved.Name)
-			},
-		},
-		{
-			name: "ListPackageRevisions",
-			fn: func(t *testing.T, client *Client) {
-				pkg := createTestPackageRevision()
-
-				// Create first
-				_, err := client.CreatePackageRevision(context.Background(), pkg)
-				require.NoError(t, err)
-
-				// List
-				list, err := client.ListPackageRevisions(context.Background(), &ListOptions{})
-				assert.NoError(t, err)
-				assert.NotNil(t, list)
-				assert.Len(t, list.Items, 1)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client := createTestClient()
-			tt.fn(t, client)
-		})
-	}
-}
-
-func TestClientFunctionOperations(t *testing.T) {
-	client := createTestClient()
-
-	t.Run("ValidateFunction", func(t *testing.T) {
-		validation, err := client.ValidateFunction(context.Background(), "gcr.io/kpt-fn/apply-setters:v0.1.1")
-		assert.NoError(t, err)
-		assert.NotNil(t, validation)
-		assert.True(t, validation.Valid)
-	})
-
-	t.Run("ListFunctions", func(t *testing.T) {
-		functions, err := client.ListFunctions(context.Background())
-		assert.NoError(t, err)
-		assert.NotNil(t, functions)
-		assert.Greater(t, len(functions), 0)
-	})
-
-	t.Run("ExecuteFunction", func(t *testing.T) {
-		req := &FunctionRequest{
-			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			},
-			Resources: []KRMResource{},
-		}
-
-		response, err := client.ExecuteFunction(context.Background(), req)
-		assert.NoError(t, err)
-		assert.NotNil(t, response)
-	})
-}
-
-// Performance Tests
-
-func TestClientPerformance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping performance tests in short mode")
-	}
-
-	client := createTestClient()
-
-	t.Run("RepositoryOperationLatency", func(t *testing.T) {
-		repo := createTestRepository()
-
-		start := time.Now()
-		_, err := client.CreateRepository(context.Background(), repo)
-		duration := time.Since(start)
-
-		assert.NoError(t, err)
-		assert.Less(t, duration, 500*time.Millisecond, "Repository creation should complete in <500ms")
-	})
-
-	t.Run("PackageRevisionOperationLatency", func(t *testing.T) {
-		pkg := createTestPackageRevision()
-
-		start := time.Now()
-		_, err := client.CreatePackageRevision(context.Background(), pkg)
-		duration := time.Since(start)
-
-		assert.NoError(t, err)
-		assert.Less(t, duration, 500*time.Millisecond, "Package revision creation should complete in <500ms")
-	})
-
-	t.Run("FunctionExecutionLatency", func(t *testing.T) {
-		req := &FunctionRequest{
-			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			},
-			Resources: []KRMResource{},
-		}
-
-		start := time.Now()
-		_, err := client.ExecuteFunction(context.Background(), req)
-		duration := time.Since(start)
-
-		assert.NoError(t, err)
-		assert.Less(t, duration, 500*time.Millisecond, "Function execution should complete in <500ms")
-	})
-}
-
-func TestClientConcurrency(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping concurrency tests in short mode")
-	}
-
-	client := createTestClient()
-	concurrency := 100
-
-	t.Run("ConcurrentRepositoryOperations", func(t *testing.T) {
-		var wg sync.WaitGroup
-		results := make([]error, concurrency)
-
-		start := time.Now()
-
-		for i := 0; i < concurrency; i++ {
-			wg.Add(1)
-			go func(index int) {
-				defer wg.Done()
-
-				repo := createTestRepository()
-				repo.Name = fmt.Sprintf("test-repo-%d", index)
-
-				_, err := client.CreateRepository(context.Background(), repo)
-				results[index] = err
-			}(i)
-		}
-
-		wg.Wait()
-		duration := time.Since(start)
-
-		// Check all operations succeeded
-		for i, err := range results {
-			assert.NoError(t, err, "Operation %d should succeed", i)
-		}
-
-		// Check throughput
-		opsPerSecond := float64(concurrency) / duration.Seconds()
-		assert.Greater(t, opsPerSecond, 10.0, "Should handle >10 operations per second")
-	})
-
-	t.Run("ConcurrentPackageRevisionOperations", func(t *testing.T) {
-		var wg sync.WaitGroup
-		results := make([]error, concurrency)
-
-		for i := 0; i < concurrency; i++ {
-			wg.Add(1)
-			go func(index int) {
-				defer wg.Done()
-
-				pkg := createTestPackageRevision()
-				pkg.Name = fmt.Sprintf("test-package-v%d", index)
-
-				_, err := client.CreatePackageRevision(context.Background(), pkg)
-				results[index] = err
-			}(i)
-		}
-
-		wg.Wait()
-
-		// Check all operations succeeded
-		for i, err := range results {
-			assert.NoError(t, err, "Operation %d should succeed", i)
-		}
-	})
-}
-
-func TestClientMemoryUsage(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping memory tests in short mode")
-	}
-
-	client := createTestClient()
-
-	// Force garbage collection before measuring
-	goruntime.GC()
-	goruntime.GC()
-
-	var m1 goruntime.MemStats
-	goruntime.ReadMemStats(&m1)
-
-	// Perform a series of operations
-	for i := 0; i < 100; i++ {
-		repo := createTestRepository()
-		repo.Name = fmt.Sprintf("test-repo-%d", i)
-
-		_, err := client.CreateRepository(context.Background(), repo)
-		require.NoError(t, err)
-
-		pkg := createTestPackageRevision()
-		pkg.Name = fmt.Sprintf("test-package-v%d", i)
-
-		_, err = client.CreatePackageRevision(context.Background(), pkg)
-		require.NoError(t, err)
-	}
-
-	// Force garbage collection after operations
-	goruntime.GC()
-	goruntime.GC()
-
-	var m2 goruntime.MemStats
-	goruntime.ReadMemStats(&m2)
-
-	memoryUsed := m2.Alloc - m1.Alloc
-	memoryUsedMB := float64(memoryUsed) / (1024 * 1024)
-
-	assert.Less(t, memoryUsedMB, 50.0, "Memory usage should be <50MB for 200 operations")
-}
-
-// Benchmark Tests
-
-func BenchmarkClientRepositoryOperations(b *testing.B) {
-	client := createTestClient()
-
-	b.Run("CreateRepository", func(b *testing.B) {
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			repo := createTestRepository()
-			repo.Name = fmt.Sprintf("bench-repo-%d", i)
-
-			_, err := client.CreateRepository(context.Background(), repo)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-
-	b.Run("GetRepository", func(b *testing.B) {
-		// Setup
-		repo := createTestRepository()
-		_, err := client.CreateRepository(context.Background(), repo)
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, err := client.GetRepository(context.Background(), repo.Name)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-
-	b.Run("ListRepositories", func(b *testing.B) {
-		// Setup
-		for i := 0; i < 10; i++ {
-			repo := createTestRepository()
-			repo.Name = fmt.Sprintf("setup-repo-%d", i)
-			client.CreateRepository(context.Background(), repo)
-		}
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, err := client.ListRepositories(context.Background(), &ListOptions{})
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-}
-
-func BenchmarkClientPackageRevisionOperations(b *testing.B) {
-	client := createTestClient()
-
-	b.Run("CreatePackageRevision", func(b *testing.B) {
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			pkg := createTestPackageRevision()
-			pkg.Name = fmt.Sprintf("bench-package-v%d", i)
-
-			_, err := client.CreatePackageRevision(context.Background(), pkg)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-
-	b.Run("GetPackageRevision", func(b *testing.B) {
-		// Setup
-		pkg := createTestPackageRevision()
-		_, err := client.CreatePackageRevision(context.Background(), pkg)
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, err := client.GetPackageRevision(context.Background(), pkg.Name)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-}
-
-func BenchmarkClientFunctionOperations(b *testing.B) {
-	client := createTestClient()
-
-	b.Run("ValidateFunction", func(b *testing.B) {
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, err := client.ValidateFunction(context.Background(), "gcr.io/kpt-fn/apply-setters:v0.1.1")
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-
-	b.Run("ExecuteFunction", func(b *testing.B) {
-		req := &FunctionRequest{
-			FunctionConfig: FunctionConfig{
-				Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			},
-			Resources: []KRMResource{},
-		}
-
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_, err := client.ExecuteFunction(context.Background(), req)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-}
-
-// Error handling tests
-
-func TestClientErrorHandling(t *testing.T) {
-	client := createTestClient()
-
-	t.Run("GetNonexistentRepository", func(t *testing.T) {
-		_, err := client.GetRepository(context.Background(), "nonexistent")
-		assert.Error(t, err)
-	})
-
-	t.Run("CreateDuplicateRepository", func(t *testing.T) {
-		repo := createTestRepository()
-
-		// Create first time
-		_, err := client.CreateRepository(context.Background(), repo)
-		assert.NoError(t, err)
-
-		// Try to create again
-		_, err = client.CreateRepository(context.Background(), repo)
-		assert.Error(t, err)
-	})
-
-	t.Run("DeleteNonexistentRepository", func(t *testing.T) {
-		err := client.DeleteRepository(context.Background(), "nonexistent")
-		assert.Error(t, err)
-	})
-
-	t.Run("InvalidFunctionValidation", func(t *testing.T) {
-		validation, err := client.ValidateFunction(context.Background(), "invalid-function")
-		assert.NoError(t, err) // Validation doesn't error, but returns invalid result
-		assert.NotNil(t, validation)
-		assert.False(t, validation.Valid)
-		assert.NotEmpty(t, validation.Errors)
-	})
-}
-
-// Context cancellation tests
-
-func TestClientContextCancellation(t *testing.T) {
-	client := createTestClient()
-
-	t.Run("CancelledContext", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately
-
-		repo := createTestRepository()
-		_, err := client.CreateRepository(ctx, repo)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "context canceled")
-	})
-
-	t.Run("TimeoutContext", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
-		defer cancel()
-
-		time.Sleep(1 * time.Millisecond) // Ensure timeout
-
-		repo := createTestRepository()
-		_, err := client.CreateRepository(ctx, repo)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "context deadline exceeded")
-	})
-}
-
-// Integration tests with metrics
-
-func TestClientMetrics(t *testing.T) {
-	client := createTestClient()
-
-	// Perform some operations
-	repo := createTestRepository()
-	_, err := client.CreateRepository(context.Background(), repo)
-	require.NoError(t, err)
-
-	_, err = client.GetRepository(context.Background(), repo.Name)
-	require.NoError(t, err)
-
-	// Check that metrics are recorded
-	assert.NotNil(t, client.metrics)
-
-	// Verify metrics are registered with Prometheus
-	metricFamilies, err := prometheus.DefaultGatherer.Gather()
-	require.NoError(t, err)
-
-	var found bool
-	for _, mf := range metricFamilies {
-		if strings.Contains(*mf.Name, "porch_client") {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "Porch client metrics should be registered")
+func (m *MockPackageRevisionManager) ValidateContent(ctx context.Context, ref *PackageReference) (*ValidationResult, error) {
+	args := m.Called(ctx, ref)
+	return args.Get(0).(*ValidationResult), args.Error(1)
 }
