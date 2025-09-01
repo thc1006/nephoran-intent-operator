@@ -26,7 +26,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		config := &shared.CircuitBreakerConfig{
+		config := &CircuitBreakerConfig{
 			FailureThreshold: 3,
 			ResetTimeout:     time.Second,
 		}
@@ -326,7 +326,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 
 			// Reset circuit breaker
-			config := &shared.CircuitBreakerConfig{
+			config := &CircuitBreakerConfig{
 				FailureThreshold: 3,
 				ResetTimeout:     time.Second,
 			}

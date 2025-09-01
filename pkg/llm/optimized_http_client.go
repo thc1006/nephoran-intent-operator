@@ -199,6 +199,12 @@ type OptimizedClientConfig struct {
 	// TLS optimization.
 
 	TLSOptimization TLSConfig `json:"tls_optimization"`
+	
+	// API Configuration
+	APIKey string `json:"api_key,omitempty"`
+	
+	// Batch processing configuration
+	BatchConfig *BatchProcessorConfig `json:"batch_config,omitempty"`
 }
 
 // TLSConfig holds TLS optimization settings.

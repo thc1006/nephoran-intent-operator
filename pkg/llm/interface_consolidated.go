@@ -573,6 +573,13 @@ type BatchProcessorConfig struct {
 	Priority int
 
 	ProcessingTimeout time.Duration
+	
+	// Additional fields for compatibility
+	BatchSize int
+
+	FlushInterval time.Duration
+
+	MaxConcurrency int
 }
 
 // TokenManager manages token counting and limits.

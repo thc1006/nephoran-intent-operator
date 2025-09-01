@@ -92,4 +92,13 @@ type ValidationError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 	Code    string `json:"code"`
+	MissingFields []string `json:"missingFields,omitempty"`
+}
+
+// Error implements the error interface for ValidationError
+func (ve *ValidationError) Error() string {
+	if ve.Message != "" {
+		return ve.Message
+	}
+	return "validation error"
 }

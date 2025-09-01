@@ -2,18 +2,10 @@ package o2
 
 import (
 	"context"
-	"net/http"
-	"net/url"
-	"sync"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 	o2models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-	providers "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 

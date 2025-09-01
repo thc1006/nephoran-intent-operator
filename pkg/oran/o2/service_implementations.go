@@ -77,7 +77,12 @@ func (s *O2IMSServiceImpl) GetResourcePools(ctx context.Context, filter interfac
 
 	}
 
-	pools, err := s.storage.ListResourcePools(ctx, poolFilter)
+	// Convert filter to map
+	var filterMap map[string]interface{}
+	if poolFilter != nil {
+		filterMap = s.convertResourcePoolFilterToMap(poolFilter)
+	}
+	pools, err := s.storage.ListResourcePools(ctx, filterMap)
 
 	if err != nil {
 
@@ -310,20 +315,8 @@ func (s *O2IMSServiceImpl) UpdateResourcePool(ctx context.Context, resourcePoolI
 
 	pool.UpdatedAt = time.Now()
 
-	// Save updates.
-
-	updates := map[string]interface{}{
-
-		"name": pool.Name,
-
-		"description": pool.Description,
-
-		"location": pool.Location,
-
-		"updated_at": pool.UpdatedAt,
-	}
-
-	if err := s.storage.UpdateResourcePool(ctx, resourcePoolID, updates); err != nil {
+	// Save updates using the updated pool object
+	if err := s.storage.UpdateResourcePool(ctx, resourcePoolID, pool); err != nil {
 
 		return nil, fmt.Errorf("failed to update resource pool: %w", err)
 
@@ -368,12 +361,12 @@ func (s *O2IMSServiceImpl) DeleteResourcePool(ctx context.Context, resourcePoolI
 
 	// Check if pool has resources.
 
-	resources, err := s.storage.ListResources(ctx, &models.ResourceFilter{
-
-		ResourcePoolIDs: []string{resourcePoolID},
-
-		Limit: 1,
-	})
+	// Check if pool has resources using filter map
+	filterMap := map[string]interface{}{
+		"resource_pool_ids": []string{resourcePoolID},
+		"limit":             1,
+	}
+	resources, err := s.storage.ListResources(ctx, filterMap)
 
 	if err != nil {
 
@@ -433,7 +426,12 @@ func (s *O2IMSServiceImpl) GetResourceTypes(ctx context.Context, filter ...inter
 
 	}
 
-	resourceTypes, err := s.storage.ListResourceTypes(ctx, typeFilter)
+	// Convert filter to map
+	var filterMap map[string]interface{}
+	if typeFilter != nil {
+		filterMap = s.convertResourceTypeFilterToMap(typeFilter)
+	}
+	resourceTypes, err := s.storage.ListResourceTypes(ctx, filterMap)
 
 	if err != nil {
 
@@ -637,12 +635,12 @@ func (s *O2IMSServiceImpl) DeleteResourceType(ctx context.Context, resourceTypeI
 
 	// Check if type is in use by any resources.
 
-	resources, err := s.storage.ListResources(ctx, &models.ResourceFilter{
-
-		ResourceTypeIDs: []string{resourceTypeID},
-
-		Limit: 1,
-	})
+	// Check if type is in use using filter map
+	filterMap := map[string]interface{}{
+		"resource_type_ids": []string{resourceTypeID},
+		"limit":             1,
+	}
+	resources, err := s.storage.ListResources(ctx, filterMap)
 
 	if err != nil {
 
@@ -702,7 +700,12 @@ func (s *O2IMSServiceImpl) GetResources(ctx context.Context, filter interface{})
 
 	}
 
-	resources, err := s.storage.ListResources(ctx, resFilter)
+	// Convert filter to map
+	var filterMap map[string]interface{}
+	if resFilter != nil {
+		filterMap = s.convertResourceFilterToMap(resFilter)
+	}
+	resources, err := s.storage.ListResources(ctx, filterMap)
 
 	if err != nil {
 
@@ -757,7 +760,7 @@ func (s *O2IMSServiceImpl) GetResource(ctx context.Context, resourceID string) (
 
 	}
 
-	resource, err := s.storage.GetResource(ctx, resourceID)
+	resource, err := s.storage.RetrieveResource(ctx, resourceID)
 
 	if err != nil {
 
@@ -939,8 +942,7 @@ func (s *O2IMSServiceImpl) UpdateResource(ctx context.Context, resourceID string
 	}
 
 	// Get existing resource.
-
-	resource, err := s.storage.GetResource(ctx, resourceID)
+	resource, err := s.storage.RetrieveResource(ctx, resourceID)
 
 	if err != nil {
 
@@ -952,14 +954,8 @@ func (s *O2IMSServiceImpl) UpdateResource(ctx context.Context, resourceID string
 
 	resource.UpdatedAt = time.Now()
 
-	// Save updates.
-
-	updates := map[string]interface{}{
-
-		"updated_at": resource.UpdatedAt,
-	}
-
-	if err := s.storage.UpdateResource(ctx, resourceID, updates); err != nil {
+	// Save updates using the resource object
+	if err := s.storage.UpdateResource(ctx, resource); err != nil {
 
 		return nil, fmt.Errorf("failed to update resource: %w", err)
 
@@ -1520,7 +1516,7 @@ type ResourceManagerImpl struct {
 
 // NewResourceManagerImpl creates a new resource manager implementation.
 
-func NewResourceManagerImpl(config *O2IMSConfig, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) ResourceManager {
+func NewResourceManagerImpl(config *O2IMSConfig, providerRegistry providers.ProviderRegistry, logger *logging.StructuredLogger) ResourceManager {
 
 	// Create a simple implementation that satisfies the interface.
 
@@ -1659,7 +1655,7 @@ type InventoryServiceImpl struct {
 
 // NewInventoryServiceImpl creates a new inventory service implementation.
 
-func NewInventoryServiceImpl(config *O2IMSConfig, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) InventoryService {
+func NewInventoryServiceImpl(config *O2IMSConfig, providerRegistry providers.ProviderRegistry, logger *logging.StructuredLogger) InventoryService {
 
 	return &InventoryServiceImpl{
 
@@ -1989,6 +1985,93 @@ func (ms *MonitoringServiceImpl) GetAlarms(ctx context.Context, filter AlarmFilt
 
 	return []Alarm{}, nil
 
+}
+
+// Filter conversion helper methods.
+
+// convertResourcePoolFilterToMap converts a ResourcePoolFilter to map[string]interface{}.
+func (s *O2IMSServiceImpl) convertResourcePoolFilterToMap(filter *models.ResourcePoolFilter) map[string]interface{} {
+	if filter == nil {
+		return nil
+	}
+
+	filterMap := make(map[string]interface{})
+
+	if len(filter.Names) > 0 {
+		filterMap["names"] = filter.Names
+	}
+	if len(filter.Regions) > 0 {
+		filterMap["regions"] = filter.Regions
+	}
+	if len(filter.Providers) > 0 {
+		filterMap["providers"] = filter.Providers
+	}
+	if filter.Limit > 0 {
+		filterMap["limit"] = filter.Limit
+	}
+	if filter.Offset > 0 {
+		filterMap["offset"] = filter.Offset
+	}
+
+	return filterMap
+}
+
+// convertResourceTypeFilterToMap converts a ResourceTypeFilter to map[string]interface{}.
+func (s *O2IMSServiceImpl) convertResourceTypeFilterToMap(filter *models.ResourceTypeFilter) map[string]interface{} {
+	if filter == nil {
+		return nil
+	}
+
+	filterMap := make(map[string]interface{})
+
+	if len(filter.Names) > 0 {
+		filterMap["names"] = filter.Names
+	}
+	if len(filter.Vendors) > 0 {
+		filterMap["vendors"] = filter.Vendors
+	}
+	if len(filter.Models) > 0 {
+		filterMap["models"] = filter.Models
+	}
+	if len(filter.Categories) > 0 {
+		filterMap["categories"] = filter.Categories
+	}
+	if filter.Limit > 0 {
+		filterMap["limit"] = filter.Limit
+	}
+	if filter.Offset > 0 {
+		filterMap["offset"] = filter.Offset
+	}
+
+	return filterMap
+}
+
+// convertResourceFilterToMap converts a ResourceFilter to map[string]interface{}.
+func (s *O2IMSServiceImpl) convertResourceFilterToMap(filter *models.ResourceFilter) map[string]interface{} {
+	if filter == nil {
+		return nil
+	}
+
+	filterMap := make(map[string]interface{})
+
+	if len(filter.ResourcePoolIDs) > 0 {
+		filterMap["resource_pool_ids"] = filter.ResourcePoolIDs
+	}
+	if len(filter.ResourceTypeIDs) > 0 {
+		filterMap["resource_type_ids"] = filter.ResourceTypeIDs
+	}
+	if len(filter.LifecycleStates) > 0 {
+		filterMap["lifecycle_states"] = filter.LifecycleStates
+	}
+	// ResourceFilter doesn't have Vendors and Models fields
+	if filter.Limit > 0 {
+		filterMap["limit"] = filter.Limit
+	}
+	if filter.Offset > 0 {
+		filterMap["offset"] = filter.Offset
+	}
+
+	return filterMap
 }
 
 // Supporting types.

@@ -19,7 +19,7 @@ func BenchmarkLLMProcessorSuite(b *testing.B) {
 	ctx := context.Background()
 
 	// Create mock LLM client for consistent benchmarking
-	mockClient := &MockLLMClient{
+	mockClient := &BenchmarkMockLLMClient{
 		responses: map[string]string{
 			"simple":  `{"choices":[{"message":{"content":"{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test-amf\",\"replicas\":3}"}}]}`,
 			"complex": `{"choices":[{"message":{"content":"{\"type\":\"NetworkFunctionDeployment\",\"name\":\"test-smf\",\"spec\":{\"replicas\":5,\"autoscaling\":{\"enabled\":true,\"minReplicas\":3,\"maxReplicas\":10},\"resources\":{\"requests\":{\"cpu\":\"500m\",\"memory\":\"1Gi\"},\"limits\":{\"cpu\":\"2\",\"memory\":\"4Gi\"}}}}"}}]}`,
@@ -245,7 +245,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 			processor.circuitBreaker.Reset()
 
 			// Configure mock client failure rate
-			if mockClient, ok := processor.client.(*MockLLMClient); ok {
+			if mockClient, ok := processor.client.(*BenchmarkMockLLMClient); ok {
 				mockClient.SetFailureRate(scenario.failureRate)
 			}
 
@@ -479,14 +479,14 @@ func BenchmarkLLMTokenManager(b *testing.B) {
 
 // Mock implementations for consistent benchmarking
 
-type MockLLMClient struct {
+type BenchmarkMockLLMClient struct {
 	responses   map[string]string
 	latencyMs   int
 	failureRate float64
 	mu          sync.RWMutex
 }
 
-func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error) {
+func (m *BenchmarkMockLLMClient) ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error) {
 	// Simulate API latency
 	time.Sleep(time.Duration(m.latencyMs) * time.Millisecond)
 
@@ -539,7 +539,7 @@ func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *LLMRequest)
 	}, nil
 }
 
-func (m *MockLLMClient) SetFailureRate(rate float64) {
+func (m *BenchmarkMockLLMClient) SetFailureRate(rate float64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.failureRate = rate
@@ -674,7 +674,7 @@ type BenchmarkLLMClient interface {
 }
 
 // Placeholder interfaces for the enhanced components
-type IntelligentCache interface {
+type BenchmarkIntelligentCache interface {
 	Get(key string) interface{}
 	Set(key string, value interface{})
 	Has(key string) bool
@@ -692,7 +692,7 @@ type IntelligentCache interface {
 // WorkerPool is already defined in worker_pool.go
 // Using the actual implementation instead of mock
 
-type ProcessorMetrics interface {
+type BenchmarkProcessorMetrics interface {
 	RecordLatency(duration time.Duration)
 	RecordCacheHit()
 	RecordCacheMiss()

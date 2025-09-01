@@ -78,6 +78,8 @@ type BatchRequest struct {
 	Context context.Context
 
 	ResultChan chan *BatchResult
+	
+	ResponseCh chan *ProcessingResult
 
 	Metadata map[string]interface{}
 
@@ -102,6 +104,8 @@ type BatchResult struct {
 	BatchSize int
 
 	QueueTime time.Duration
+	
+	Tokens int
 }
 
 // Batch represents a collection of requests to be processed together.

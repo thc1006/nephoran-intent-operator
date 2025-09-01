@@ -3,8 +3,6 @@ package o2
 import (
 	"context"
 	"time"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Additional missing types for resource lifecycle

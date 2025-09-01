@@ -51,7 +51,7 @@ func BenchmarkGPUBatchInference(b *testing.B) {
 		b.Run(fmt.Sprintf("BatchSize%d", batchSize), func(b *testing.B) {
 			config := getDefaultGPUConfig()
 			config.EnableBatching = true
-			config.BatchConfig.BatchSize = batchSize
+			config.BatchConfig.MaxBatchSize = batchSize
 
 			accelerator, err := NewGPUAccelerator(config)
 			if err != nil {

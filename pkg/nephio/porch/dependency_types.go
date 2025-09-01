@@ -1045,13 +1045,14 @@ type VulnerableDependency struct {
 // Vulnerability represents a vulnerability.
 
 type Vulnerability struct {
-	CVE string
-
-	Severity string
-
+	ID          string // CVE or other vulnerability identifier
+	CVE         string // For backward compatibility
+	Severity    string
 	Description string
-
-	FixVersion string
+	Package     string // Package affected
+	Version     string // Current version
+	FixedIn     string // Fixed version (replaces FixVersion)
+	FixVersion  string // For backward compatibility
 }
 
 // ConflictingDependency represents a conflictingdependency.

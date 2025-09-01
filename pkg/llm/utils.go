@@ -118,3 +118,29 @@ func CalculateConfidenceScore(classification ClassificationResult, validation Pi
 	// Combine classification confidence with validation score
 	return (classification.Confidence + validation.Score) / 2.0
 }
+
+// isValidKubernetesName checks if a name is valid for Kubernetes resources
+func isValidKubernetesName(name string) bool {
+	if name == "" || len(name) > 63 {
+		return false
+	}
+
+	// Must start and end with alphanumeric
+	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
+		return false
+	}
+
+	// Check each character
+	for _, char := range name {
+		if !isAlphaNumeric(byte(char)) && char != '-' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isAlphaNumeric checks if a character is alphanumeric
+func isAlphaNumeric(char byte) bool {
+	return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')
+}

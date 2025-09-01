@@ -2302,3 +2302,142 @@ func (d *defaultLifecycleManager) GetManagerHealth(ctx context.Context) (*Lifecy
 func (d *defaultLifecycleManager) Close() error {
 	return nil
 }
+
+// Additional Function Execution Types needed for tests
+
+// FunctionExecutionRequest extends FunctionRequest with execution-specific details.
+type FunctionExecutionRequest struct {
+	*FunctionRequest
+	ExecutionID      string
+	Runtime          string
+	ResourceLimits   *FunctionResourceLimits
+	Timeout          time.Duration
+	Environment      map[string]string
+	WorkingDir       string
+	NetworkAccess    bool
+	Privileged       bool
+}
+
+// FunctionExecutionResult extends FunctionResponse with execution details.
+type FunctionExecutionResult struct {
+	*FunctionResponse
+	ExecutionID   string
+	ResourceUsage *ResourceUsage
+	ExitCode      int
+	StartTime     time.Time
+	EndTime       time.Time
+	Runtime       string
+}
+
+// ResourceRequirement defines resource requirements.
+type ResourceRequirement struct {
+	CPU     float64
+	Memory  int64
+	Storage int64
+	Network int64
+}
+
+// QuotaUsage represents current quota usage.
+type QuotaUsage struct {
+	Used      *ResourceRequirement
+	Available *ResourceRequirement
+	Limit     *ResourceRequirement
+}
+
+// SecurityScanResult represents security scan results.
+type SecurityScanResult struct {
+	Vulnerabilities  []Vulnerability
+	PolicyViolations []PolicyViolation
+	RiskScore        int
+	Approved         bool
+}
+
+// PolicyViolation represents a policy violation.
+type PolicyViolation struct {
+	Policy      string
+	Severity    string
+	Description string
+	Remediation string
+}
+
+// PipelineMetrics represents pipeline execution metrics.
+type PipelineMetrics struct {
+	TotalDuration   time.Duration
+	StageExecutions map[string]time.Duration
+	ResourceUsage   *ResourceUsage
+	SuccessRate     float64
+	ErrorRate       float64
+}
+
+// ResourceUsage tracks resource consumption during execution.
+type ResourceUsage struct {
+	CPU       float64
+	Memory    int64
+	Storage   int64
+	Network   int64
+	Duration  time.Duration
+	ExitCode  int
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+// CacheStats represents cache statistics.
+type CacheStats struct {
+	HitCount  int64
+	MissCount int64
+	Size      int64
+	HitRate   float64
+}
+
+// ComplianceResult represents O-RAN compliance validation results.
+type ComplianceResult struct {
+	Compliant bool
+	Violations []ComplianceViolation
+	Warnings []ComplianceWarning
+	Score int
+}
+
+// ComplianceViolation represents a compliance violation.
+type ComplianceViolation struct {
+	Rule string
+	Severity string
+	Description string
+	Resource string
+	Field string
+	Remediation string
+}
+
+// ComplianceWarning represents a compliance warning.
+type ComplianceWarning struct {
+	Rule string
+	Description string
+	Resource string
+	Field string
+	Suggestion string
+}
+
+// NetworkFunctionSpec represents a network function specification.
+type NetworkFunctionSpec struct {
+	Type string
+	Interfaces []ORANInterface
+	Resources map[string]interface{}
+	Metadata map[string]string
+}
+
+// GitClient interface for Git operations (placeholder for testing)
+type GitClient interface {
+	Clone(url, dir string) error
+	Pull(dir string) error
+	Push(dir string) error
+	GetCommitHash(dir string) (string, error)
+}
+
+// functionRunner - placeholder implementation type for testing
+type functionRunner struct {
+	// Implementation details would be here
+}
+
+// repositoryManager - placeholder implementation type for testing 
+type repositoryManager struct {
+	// Implementation details would be here
+}
