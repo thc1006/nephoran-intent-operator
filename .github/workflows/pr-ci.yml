@@ -284,8 +284,10 @@ jobs:
           use (
             ./
             ./api
-            ./controllers
-            ./pkg
+            ./pkg/controllers/interfaces
+            ./pkg/edge
+            ./pkg/errors
+            ./pkg/rag
           )
           EOF
           
