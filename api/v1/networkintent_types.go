@@ -285,6 +285,10 @@ const (
 	NetworkTargetComponentAUSF NetworkTargetComponent = "ausf"
 	// NetworkTargetComponentNSSF represents Network Slice Selection Function.
 	NetworkTargetComponentNSSF NetworkTargetComponent = "nssf"
+	// NetworkTargetComponentNearRTRIC represents Near-RT RIC component.
+	NetworkTargetComponentNearRTRIC NetworkTargetComponent = "near-rt-ric"
+	// NetworkTargetComponentXApp represents xApp component.
+	NetworkTargetComponentXApp NetworkTargetComponent = "xapp"
 )
 
 // NetworkIntentPhase represents the phase of NetworkIntent processing.

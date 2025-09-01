@@ -1389,6 +1389,49 @@ func (m *MockMetricsCollector) RecordCNFDeployment(functionName string, duration
 	m.metrics[key] = duration.Seconds()
 }
 
+// RecordHTTPRequest records HTTP request metrics
+func (m *MockMetricsCollector) RecordHTTPRequest(method, endpoint, status string, duration time.Duration) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	if m.metrics == nil {
+		m.metrics = make(map[string]float64)
+	}
+	
+	key := fmt.Sprintf("http_request_duration_%s_%s_%s", method, endpoint, status)
+	m.metrics[key] = duration.Seconds()
+}
+
+// RecordSSEStream records server-sent events stream metrics
+func (m *MockMetricsCollector) RecordSSEStream(endpoint string, connected bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	if m.metrics == nil {
+		m.metrics = make(map[string]float64)
+	}
+	
+	key := fmt.Sprintf("sse_stream_connection_%s", endpoint)
+	if connected {
+		m.metrics[key] = 1.0
+	} else {
+		m.metrics[key] = 0.0
+	}
+}
+
+// RecordLLMRequestError records LLM request error metrics
+func (m *MockMetricsCollector) RecordLLMRequestError(model, errorType string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	if m.metrics == nil {
+		m.metrics = make(map[string]float64)
+	}
+	
+	key := fmt.Sprintf("llm_request_errors_%s_%s", model, errorType)
+	m.metrics[key] = m.metrics[key] + 1.0
+}
+
 // MockHTTPClient provides HTTP client mocking utilities.
 
 type MockHTTPClient struct {
