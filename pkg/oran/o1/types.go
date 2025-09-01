@@ -2,8 +2,6 @@ package o1
 
 import (
 	"time"
-	"net/http"
-	"github.com/gorilla/websocket"
 )
 
 // Missing types for fault_manager.go compilation

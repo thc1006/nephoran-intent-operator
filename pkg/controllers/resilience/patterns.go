@@ -28,7 +28,7 @@ limitations under the License.
 
 */
 
-package resilience
+package resiliencecontroller
 
 import (
 	"context"

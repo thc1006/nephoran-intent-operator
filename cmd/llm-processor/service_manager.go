@@ -30,7 +30,7 @@ type ServiceManager struct {
 
 	healthChecker *health.HealthChecker
 
-	secretManager *config.SecretManager
+	secretManager config.SecretManager
 
 	oauth2Manager *auth.OAuth2Manager
 
@@ -44,11 +44,11 @@ type ServiceManager struct {
 
 	circuitBreakerMgr *llm.CircuitBreakerManager
 
-	tokenManager *llm.TokenManager
+	tokenManager llm.TokenManager
 
 	contextBuilder *llm.ContextBuilder
 
-	relevanceScorer *llm.RelevanceScorer
+	relevanceScorer llm.RelevanceScorer
 
 	promptBuilder *llm.RAGAwarePromptBuilder
 }

@@ -292,6 +292,7 @@ type NetworkFunction struct {
 	Name            string                 `json:"name"`
 	Type            string                 `json:"type"`
 	Version         string                 `json:"version"`
+	NFType          string                 `json:"nf_type"`
 	Status          string                 `json:"status"`
 	NFStatus        string                 `json:"nf_status"`
 	Configuration   map[string]interface{} `json:"configuration"`
@@ -314,17 +315,30 @@ type NetworkFunctionUpdate struct {
 
 // DiscoveryCriteria represents criteria for discovering network functions
 type DiscoveryCriteria struct {
+	NFType          string                 `json:"nf_type,omitempty"`
 	Type            string                 `json:"type,omitempty"`
 	Status          string                 `json:"status,omitempty"`
 	NamePattern     string                 `json:"name_pattern,omitempty"`
+	Limit           int                    `json:"limit,omitempty"`
 	Filters         map[string]interface{} `json:"filters,omitempty"`
 }
 
 // NetworkFunctionStatus represents the status of a network function
 type NetworkFunctionStatus struct {
 	ID              string                 `json:"id"`
+	NFID            string                 `json:"nfid"`
+	NFType          string                 `json:"nf_type"`
 	Status          string                 `json:"status"`
 	Health          string                 `json:"health"`
+	NFStatus        string                 `json:"nf_status"`
+	OperationalState string                 `json:"operational_state"`
+	AdministrativeState string                 `json:"administrative_state"`
+	AvailabilityState string                 `json:"availability_state"`
+	HealthStatus     string                 `json:"health_status"`
+	LastHeartbeat    time.Time              `json:"last_heartbeat"`
+	Uptime           time.Duration          `json:"uptime"`
+	Load             float64                `json:"load"`
+	LoadTimeStamp    time.Time              `json:"load_timestamp"`
 	LastSeen        time.Time              `json:"last_seen"`
 	Metrics         map[string]interface{} `json:"metrics,omitempty"`
 	Errors          []string               `json:"errors,omitempty"`
@@ -333,10 +347,14 @@ type NetworkFunctionStatus struct {
 // NetworkFunctionConfig represents configuration for a network function
 type NetworkFunctionConfig struct {
 	ID              string                 `json:"id"`
+	ConfigID        string                 `json:"config_id"`
+	ConfigName      string                 `json:"config_name"`
 	Configuration   map[string]interface{} `json:"configuration"`
 	Schema          map[string]interface{} `json:"schema,omitempty"`
 	Version         string                 `json:"version"`
 	AppliedAt       time.Time              `json:"applied_at"`
+	Description     string                 `json:"description"`
+	ConfigData      map[string]interface{} `json:"config_data"`
 }
 
 // NotificationTemplate represents a notification template
@@ -378,6 +396,7 @@ type Alarm struct {
 // PerformanceThreshold represents a performance threshold
 type PerformanceThreshold struct {
 	ID          string                 `json:"id"`
+	ObjectID    string                 `json:"object_id"`
 	Name        string                 `json:"name"`
 	Metric      string                 `json:"metric"`
 	Operator    string                 `json:"operator"`
