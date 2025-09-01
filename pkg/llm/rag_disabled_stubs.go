@@ -474,7 +474,7 @@ func NewCircuitBreakerManager() *CircuitBreakerManager {
 
 func NewTokenManagerStub() TokenManager {
 
-	return NewUniversalTokenManager()
+	return NewTokenManager()
 
 }
 

@@ -158,15 +158,28 @@ type CacheConfig struct {
 
 func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 
+	// For small caches, use single-level (L1 only) to avoid complexity
+	var l1MaxSize, l2MaxSize int
+	if maxSize <= 4 {
+		l1MaxSize = maxSize  // All goes to L1
+		l2MaxSize = 0        // No L2
+	} else {
+		l1MaxSize = maxSize / 4  // 25% for L1
+		if l1MaxSize < 1 {
+			l1MaxSize = 1
+		}
+		l2MaxSize = maxSize  // Total for L2
+	}
+
 	config := &CacheConfig{
 
 		TTL: ttl,
 
 		MaxSize: maxSize,
 
-		L1MaxSize: maxSize / 4, // 25% for L1
+		L1MaxSize: l1MaxSize,
 
-		L2MaxSize: maxSize, // Remaining for L2
+		L2MaxSize: l2MaxSize,
 
 		SimilarityThreshold: 0.85,
 
@@ -430,19 +443,14 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 func (c *ResponseCache) setInL1(key string, entry *CacheEntry) {
 
 	c.l1Mutex.Lock()
-
 	defer c.l1Mutex.Unlock()
 
-	// Check if L1 is full.
-
+	// Check if L1 is full and evict if needed
 	if len(c.l1Entries) >= c.l1MaxSize {
-
-		c.evictFromL1()
-
+		c.evictFromL1WithLock()
 	}
 
 	entry.Level = 1
-
 	c.l1Entries[key] = entry
 
 }
@@ -451,20 +459,19 @@ func (c *ResponseCache) setInL1(key string, entry *CacheEntry) {
 
 func (c *ResponseCache) setInL2(key string, entry *CacheEntry) {
 
-	c.l2Mutex.Lock()
+	if c.l2MaxSize == 0 {
+		return // L2 disabled
+	}
 
+	c.l2Mutex.Lock()
 	defer c.l2Mutex.Unlock()
 
-	// Check if L2 is full.
-
+	// Check if L2 is full and evict if needed
 	if len(c.l2Entries) >= c.l2MaxSize {
-
-		c.evictFromL2()
-
+		c.evictFromL2WithLock()
 	}
 
 	entry.Level = 2
-
 	c.l2Entries[key] = entry
 
 }
@@ -523,9 +530,9 @@ func (c *ResponseCache) evictFromL1() {
 
 	for key, entry := range c.l1Entries {
 
-		if entry.LastAccess.Before(oldestTime) {
+		if entry.Timestamp.Before(oldestTime) {
 
-			oldestTime = entry.LastAccess
+			oldestTime = entry.Timestamp
 
 			oldestKey = key
 
@@ -573,9 +580,9 @@ func (c *ResponseCache) evictFromL2() {
 
 	for key, entry := range c.l2Entries {
 
-		if entry.LastAccess.Before(oldestTime) {
+		if entry.Timestamp.Before(oldestTime) {
 
-			oldestTime = entry.LastAccess
+			oldestTime = entry.Timestamp
 
 			oldestKey = key
 
@@ -595,6 +602,153 @@ func (c *ResponseCache) evictFromL2() {
 
 	}
 
+}
+
+// evictFromL1WithLock removes least recently used entries from L1 (assumes L1 is locked).
+func (c *ResponseCache) evictFromL1WithLock() {
+	if len(c.l1Entries) == 0 {
+		return
+	}
+
+	// Find LRU entry.
+	var oldestKey string
+	oldestTime := time.Now()
+
+	for key, entry := range c.l1Entries {
+		if entry.Timestamp.Before(oldestTime) {
+			oldestTime = entry.Timestamp
+			oldestKey = key
+		}
+	}
+
+	if oldestKey != "" {
+		// Move to L2 before evicting from L1, only if L2 is enabled
+		if c.l2MaxSize > 0 {
+			if entry, exists := c.l1Entries[oldestKey]; exists {
+				// Need to lock L2 to move entry
+				c.l2Mutex.Lock()
+				c.setInL2WithLock(oldestKey, entry)
+				c.l2Mutex.Unlock()
+			}
+		}
+
+		delete(c.l1Entries, oldestKey)
+
+		c.updateMetrics(func(m *CacheMetrics) {
+			m.Evictions++
+		})
+	}
+}
+
+// evictFromL2WithLock removes least recently used entries from L2 (assumes L2 is locked).
+func (c *ResponseCache) evictFromL2WithLock() {
+	if len(c.l2Entries) == 0 {
+		return
+	}
+
+	// Find LRU entry.
+	var oldestKey string
+	oldestTime := time.Now()
+
+	for key, entry := range c.l2Entries {
+		if entry.Timestamp.Before(oldestTime) {
+			oldestTime = entry.Timestamp
+			oldestKey = key
+		}
+	}
+
+	if oldestKey != "" {
+		delete(c.l2Entries, oldestKey)
+
+		c.updateMetrics(func(m *CacheMetrics) {
+			m.Evictions++
+		})
+	}
+}
+
+// setInL2WithLock stores entry in L2 cache (assumes L2 is locked).
+func (c *ResponseCache) setInL2WithLock(key string, entry *CacheEntry) {
+	// Check if L2 is full.
+	if len(c.l2Entries) >= c.l2MaxSize {
+		c.evictFromL2WithLock()
+	}
+
+	entry.Level = 2
+	c.l2Entries[key] = entry
+}
+
+// evictOverallWithLocks removes the least recently used entry from either cache level (assumes both locks held)
+func (c *ResponseCache) evictOverallWithLocks() {
+	var oldestKey string
+	var oldestTime time.Time = time.Now()
+	var fromL1 bool
+
+	// Find the oldest entry across both cache levels
+	for key, entry := range c.l1Entries {
+		if entry.LastAccess.Before(oldestTime) {
+			oldestTime = entry.LastAccess
+			oldestKey = key
+			fromL1 = true
+		}
+	}
+
+	for key, entry := range c.l2Entries {
+		if entry.LastAccess.Before(oldestTime) {
+			oldestTime = entry.LastAccess
+			oldestKey = key
+			fromL1 = false
+		}
+	}
+
+	// Remove the oldest entry
+	if oldestKey != "" {
+		if fromL1 {
+			delete(c.l1Entries, oldestKey)
+		} else {
+			delete(c.l2Entries, oldestKey)
+		}
+
+		c.updateMetrics(func(m *CacheMetrics) {
+			m.Evictions++
+		})
+	}
+}
+
+// evictOverall removes the least recently used entry from either cache level
+func (c *ResponseCache) evictOverall() {
+	var oldestKey string
+	var oldestTime time.Time = time.Now()
+	var fromL1 bool
+
+	// Find the oldest entry across both cache levels
+	for key, entry := range c.l1Entries {
+		if entry.LastAccess.Before(oldestTime) {
+			oldestTime = entry.LastAccess
+			oldestKey = key
+			fromL1 = true
+		}
+	}
+
+	for key, entry := range c.l2Entries {
+		if entry.LastAccess.Before(oldestTime) {
+			oldestTime = entry.LastAccess
+			oldestKey = key
+			fromL1 = false
+		}
+	}
+
+	// Remove the oldest entry
+	if oldestKey != "" {
+		if fromL1 {
+			delete(c.l1Entries, oldestKey)
+		} else {
+			delete(c.l2Entries, oldestKey)
+		}
+
+		c.updateMetrics(func(m *CacheMetrics) {
+			m.Evictions++
+		})
+	}
 }
 
 // getSemanticSimilar finds semantically similar cached entries.
