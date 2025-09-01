@@ -103,7 +103,7 @@ func (f *fakeHTTPClient) Reset() {
 
 // fakeDependencies implements Dependencies interface for testing
 type fakeDependencies struct {
-	gitClient        *fake.Client
+	gitClient        *gitfake.Client
 	llmClient        *fakeLLMClient
 	packageGenerator *fakePackageGenerator
 	httpClient       *fakeHTTPClient

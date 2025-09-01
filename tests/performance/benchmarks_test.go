@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 // Package performance provides comprehensive performance testing and benchmarking
 package performance_tests
 

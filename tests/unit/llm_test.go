@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 // Package unit provides comprehensive unit tests for LLM integration components
 package unit
 

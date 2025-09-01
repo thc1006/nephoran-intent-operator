@@ -194,3 +194,100 @@ type MockRAGService = SharedMockRAGService
 func NewMockRAGService() *MockRAGService {
 	return NewSharedMockRAGService()
 }
+
+// MockTelecomResourceCalculator provides mock telecom resource calculation functionality
+type MockTelecomResourceCalculator struct {
+	mock.Mock
+	calculationDelay time.Duration
+	shouldReturnError bool
+	mutex sync.RWMutex
+}
+
+// NewMockTelecomResourceCalculator creates a new mock telecom resource calculator
+func NewMockTelecomResourceCalculator() *MockTelecomResourceCalculator {
+	return &MockTelecomResourceCalculator{}
+}
+
+// CalculateResources performs mock resource calculation
+func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, request interface{}) (interface{}, error) {
+	args := m.Called(ctx, request)
+	
+	// Simulate delay if configured
+	m.mutex.RLock()
+	delay := m.calculationDelay
+	shouldError := m.shouldReturnError
+	m.mutex.RUnlock()
+	
+	if delay > 0 {
+		time.Sleep(delay)
+	}
+
+	// Return error if configured
+	if shouldError {
+		return nil, args.Error(1)
+	}
+
+	// Return mock calculation result
+	result := map[string]interface{}{
+		"cpu_requirements": "500m",
+		"memory_requirements": "1Gi",
+		"storage_requirements": "10Gi",
+		"estimated_cost": 0.05,
+		"optimization_suggestions": []string{
+			"Consider using CPU burst for variable workloads",
+			"Memory overcommit ratio can be increased to 1.2",
+		},
+	}
+
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+
+	return result, nil
+}
+
+// SetCalculationDelay sets the delay for mock calculations
+func (m *MockTelecomResourceCalculator) SetCalculationDelay(delay time.Duration) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.calculationDelay = delay
+}
+
+// SetShouldReturnError configures whether the mock should return errors
+func (m *MockTelecomResourceCalculator) SetShouldReturnError(shouldError bool) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.shouldReturnError = shouldError
+}
+
+// Additional mock types needed for compilation (non-duplicates only)
+
+// MockResourceOptimizationEngine provides mock resource optimization functionality
+type MockResourceOptimizationEngine struct {
+	mock.Mock
+}
+
+// NewMockResourceOptimizationEngine creates a new mock resource optimization engine
+func NewMockResourceOptimizationEngine() *MockResourceOptimizationEngine {
+	return &MockResourceOptimizationEngine{}
+}
+
+// MockResourceConstraintSolver provides mock resource constraint solving functionality
+type MockResourceConstraintSolver struct {
+	mock.Mock
+}
+
+// NewMockResourceConstraintSolver creates a new mock resource constraint solver
+func NewMockResourceConstraintSolver() *MockResourceConstraintSolver {
+	return &MockResourceConstraintSolver{}
+}
+
+// MockTelecomCostEstimator provides mock telecom cost estimation functionality
+type MockTelecomCostEstimator struct {
+	mock.Mock
+}
+
+// NewMockTelecomCostEstimator creates a new mock telecom cost estimator
+func NewMockTelecomCostEstimator() *MockTelecomCostEstimator {
+	return &MockTelecomCostEstimator{}
+}

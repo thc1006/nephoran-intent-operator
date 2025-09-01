@@ -531,14 +531,6 @@ func TestUpdatePhase(t *testing.T) {
 }
 
 // Test helper functions for conditions
-func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
-	for _, condition := range conditions {
-		if condition.Type == conditionType {
-			return condition.Status == metav1.ConditionTrue
-		}
-	}
-	return false
-}
 
 func isConditionFalse(conditions []metav1.Condition, conditionType string) bool {
 	for _, condition := range conditions {

@@ -97,9 +97,3 @@ func (c *noOpRAGClient) Query(ctx context.Context, query string) ([]*Doc, error)
 	return []*Doc{}, nil
 
 }
-
-// Query returns empty results for no-op implementation
-func (c *noOpRAGClient) Query(ctx context.Context, query string) (interface{}, error) {
-	// Return empty result - no error, just no content
-	return nil, nil
-}

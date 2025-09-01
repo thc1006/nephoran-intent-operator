@@ -70,12 +70,8 @@ var _ = Describe("EventDrivenCoordinator", func() {
 			},
 			Spec: nephoranv1.NetworkIntentSpec{
 				Intent: "Deploy AMF for 5G core",
-				TargetComponents: []nephoranv1.TargetComponent{
-					{
-						Type:     "amf",
-						Version:  "v1.0.0",
-						Replicas: 2,
-					},
+				TargetComponents: []nephoranv1.NetworkTargetComponent{
+					nephoranv1.NetworkTargetComponentAMF,
 				},
 			},
 		}

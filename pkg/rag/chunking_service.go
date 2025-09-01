@@ -1,4 +1,4 @@
-//go:build !disable_rag && !test
+//go:build !disable_rag && !test && !stub
 
 package rag
 

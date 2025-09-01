@@ -1,5 +1,5 @@
-//go:build !disable_rag
-// +build !disable_rag
+//go:build !disable_rag && !stub
+// +build !disable_rag,!stub
 
 package llm
 

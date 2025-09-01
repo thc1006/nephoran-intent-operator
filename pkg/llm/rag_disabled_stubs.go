@@ -1,4 +1,4 @@
-//go:build stub
+//go:build stub && !disable_rag
 
 package llm
 
@@ -473,7 +473,7 @@ func NewCircuitBreakerManager() *CircuitBreakerManager {
 
 func NewTokenManager() TokenManager {
 
-	return &TokenManager{}
+	return NewUniversalTokenManager()
 
 }
 

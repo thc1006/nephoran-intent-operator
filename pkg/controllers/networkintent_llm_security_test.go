@@ -16,6 +16,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // MockLLMClient for testing that returns different responses based on input
@@ -32,7 +33,7 @@ func (m *MockSecurityLLMClient) ProcessIntent(ctx context.Context, prompt string
 	return `{"network_functions": ["AMF"], "replicas": 3}`, nil
 }
 
-func (m *MockSecurityLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *StreamingChunk) error {
+func (m *MockSecurityLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
 	return nil
 }
 
@@ -40,8 +41,8 @@ func (m *MockSecurityLLMClient) GetSupportedModels() []string {
 	return []string{"gpt-4"}
 }
 
-func (m *MockSecurityLLMClient) GetModelCapabilities(modelName string) (*ModelCapabilities, error) {
-	return &ModelCapabilities{MaxTokens: 4096}, nil
+func (m *MockSecurityLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	return &shared.ModelCapabilities{MaxTokens: 4096}, nil
 }
 
 func (m *MockSecurityLLMClient) ValidateModel(modelName string) error {

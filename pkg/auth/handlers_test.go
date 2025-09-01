@@ -3,6 +3,7 @@ package auth_test
 import (
 	"bytes"
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,12 +11,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
+
+// Compatibility function to create handlers that works around interface issues
+func createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager interface{}, config *auth.HandlersConfig) *auth.AuthHandlers {
+	// This uses the interface{}-accepting version from config_stubs.go
+	return auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, config)
+}
+
+// Helper function to create properly typed managers for tests
+func setupTestManagers(tc *testutil.TestContext) (*testutil.JWTManagerMock, *testutil.SessionManagerMock, *testutil.RBACManagerMock) {
+	jwtManagerMock := tc.SetupJWTManager()
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
+
+	return jwtManagerMock, sessionManagerMock, rbacManagerMock
+}
 
 func TestAuthHandlers_Login(t *testing.T) {
 	tc := testutil.NewTestContext(t)
@@ -25,12 +42,10 @@ func TestAuthHandlers_Login(t *testing.T) {
 	oauthServer := testutil.NewOAuth2MockServer("test")
 	defer oauthServer.Close()
 
-	// Setup dependencies
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
-
-	// Create handlers
+	// Setup test managers
+	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
+	
+	// Use the interface{} accepting version of NewAuthHandlers (from config_stubs.go)
 	handlersConfig := &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
@@ -41,7 +56,7 @@ func TestAuthHandlers_Login(t *testing.T) {
 		EnableAPITokens: true,
 		TokenPath:       "/auth/token",
 	}
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, handlersConfig)
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, handlersConfig)
 
 	tests := []struct {
 		name          string
@@ -183,10 +198,8 @@ func TestAuthHandlers_Callback(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	// Setup dependencies
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	// Setup test managers
+	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Setup mock provider
 	mockProvider := testutil.NewMockOAuthProvider("test")
@@ -205,7 +218,7 @@ func TestAuthHandlers_Callback(t *testing.T) {
 	mockProvider.On("GetUserInfo", context.Background(), tokenResponse.AccessToken).
 		Return(testUser, nil)
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -331,9 +344,9 @@ func TestAuthHandlers_RefreshToken(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	jwtManager, _, _ := setupTestManagers(tc)
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
 
 	// Create test user and tokens
 	uf := testutil.NewUserFactory()
@@ -342,7 +355,7 @@ func TestAuthHandlers_RefreshToken(t *testing.T) {
 	accessToken, refreshToken, err := jwtManager.GenerateTokenPair(user, nil)
 	require.NoError(t, err)
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -439,21 +452,21 @@ func TestAuthHandlers_Logout(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	jwtManager, _, _ := setupTestManagers(tc)
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
 
 	// Create test session and token
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
-	session, err := sessionManager.CreateSession(context.Background(), user, nil)
+	session, err := sessionManager.CreateSession(context.Background(), user)
 	require.NoError(t, err)
 
 	token, err := jwtManager.GenerateToken(user, nil)
 	require.NoError(t, err)
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -565,9 +578,9 @@ func TestAuthHandlers_UserInfo(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	jwtManager, _, _ := setupTestManagers(tc)
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
 
 	// Create test user and token
 	uf := testutil.NewUserFactory()
@@ -576,7 +589,7 @@ func TestAuthHandlers_UserInfo(t *testing.T) {
 	token, err := jwtManager.GenerateToken(user, nil)
 	require.NoError(t, err)
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -658,11 +671,11 @@ func TestAuthHandlers_HealthCheck_DISABLED(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	jwtManager, _, _ := setupTestManagers(tc)
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -731,9 +744,9 @@ func TestAuthHandlers_JWKS_DISABLED(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
+	jwtManager, _, _ := setupTestManagers(tc)
 
-	handlers := auth.NewAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -773,7 +786,7 @@ func TestAuthHandlers_ErrorHandling(t *testing.T) {
 	defer tc.Cleanup()
 
 	// Create handlers with nil dependencies to trigger errors
-	handlers := auth.NewAuthHandlers(nil, nil, nil, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(nil, nil, nil, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -849,11 +862,11 @@ func TestAuthHandlers_CSRF_DISABLED(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	jwtManager, _, _ := setupTestManagers(tc)
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -932,7 +945,7 @@ func BenchmarkAuthHandlers_UserInfo_DISABLED(b *testing.B) {
 	tc := testutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
+	jwtManager, _, _ := setupTestManagers(tc)
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
@@ -941,7 +954,7 @@ func BenchmarkAuthHandlers_UserInfo_DISABLED(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	handlers := auth.NewAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -969,9 +982,9 @@ func BenchmarkAuthHandlers_JWKS_DISABLED(b *testing.B) {
 	tc := testutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
+	jwtManager, _, _ := setupTestManagers(tc)
 
-	handlers := auth.NewAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",
@@ -999,11 +1012,11 @@ func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager := tc.SetupJWTManager()
-	sessionManager := tc.SetupSessionManager()
-	rbacManager := tc.SetupRBACManager()
+	jwtManager, _, _ := setupTestManagers(tc)
+	sessionManagerMock := tc.SetupSessionManager()
+	rbacManagerMock := tc.SetupRBACManager()
 
-	handlers := auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
 		DefaultRedirect: "/dashboard",
 		LoginPath:       "/auth/login",

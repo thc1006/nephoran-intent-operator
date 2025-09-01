@@ -225,10 +225,12 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs"}`),
 						},
 						RetryPolicy: &nephv1.RetryPolicy{
-							MaxRetries:    5,
-							InitialDelay:  2,
-							MaxDelay:      30,
-							BackoffFactor: 2.0,
+							Limit: int64Ptr(5),
+							Backoff: &nephv1.RetryBackoff{
+								Duration:    "2s",
+								Factor:      int64Ptr(2),
+								MaxDuration: "30s",
+							},
 						},
 						TLS: &nephv1.TLSConfig{
 							Enabled:    true,
@@ -858,13 +860,8 @@ func BenchmarkAuditTrailControllerReconcile(b *testing.B) {
 
 // Test helper functions
 
-func findCondition(conditions []metav1.Condition, conditionType string) *metav1.Condition {
-	for _, condition := range conditions {
-		if condition.Type == conditionType {
-			return &condition
-		}
-	}
-	return nil
+func int64Ptr(i int64) *int64 {
+	return &i
 }
 
 // Table-driven tests for various scenarios
