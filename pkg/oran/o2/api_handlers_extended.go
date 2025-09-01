@@ -581,16 +581,28 @@ func (s *O2APIServer) parseResourceFilter(r *http.Request) *models.ResourceFilte
 
 func (s *O2APIServer) parseAlarmFilter(r *http.Request) *models.AlarmFilter {
 
-	return &models.AlarmFilter{
+	filter := &models.AlarmFilter{
 
-		PerceivedSeverity: []string{s.getQueryParam(r, "severity")},
+		Severities: []string{},
 
-		AlarmState: []string{s.getQueryParam(r, "status")},
+		Statuses: []string{},
 
-		ResourceID: s.getQueryParam(r, "resourceId"),
-
-		ResourceType: s.getQueryParam(r, "resourceType"),
+		ResourceIDs: []string{},
 	}
+	
+	if severity := s.getQueryParam(r, "severity"); severity != "" {
+		filter.Severities = []string{severity}
+	}
+	
+	if status := s.getQueryParam(r, "status"); status != "" {
+		filter.Statuses = []string{status}
+	}
+	
+	if resourceID := s.getQueryParam(r, "resourceId"); resourceID != "" {
+		filter.ResourceIDs = []string{resourceID}
+	}
+	
+	return filter
 
 }
 

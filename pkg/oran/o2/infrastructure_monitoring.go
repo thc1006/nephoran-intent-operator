@@ -25,13 +25,13 @@ type InfrastructureMonitoringService struct {
 
 	// Provider registry for multi-cloud monitoring.
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	// Monitoring components.
 
 	metrics *InfrastructureMetrics
 
-	healthChecker *InfrastructureHealthChecker
+	healthChecker InfrastructureHealthChecker
 
 	slaMonitor *SLAMonitor
 
@@ -232,7 +232,7 @@ func NewInfrastructureMonitoringService(
 
 	config *InfrastructureMonitoringConfig,
 
-	providerRegistry *providers.ProviderRegistry,
+	providerRegistry providers.ProviderRegistry,
 
 	logger *logging.StructuredLogger,
 
@@ -1042,7 +1042,10 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 
 		healthy = healthStatus.Status == "healthy"
 
-		details = healthStatus.Metadata
+		// Convert string metadata to interface{} map
+		for k, v := range healthStatus.Metadata {
+			details[k] = v
+		}
 
 	}
 
@@ -1372,11 +1375,20 @@ func (s *InfrastructureMonitoringService) GetResourceMetrics(resourceID string) 
 
 }
 
+// InfrastructureHealthCheckerImpl implements the InfrastructureHealthChecker interface
+type InfrastructureHealthCheckerImpl struct {
+	config *InfrastructureMonitoringConfig
+	logger *logging.StructuredLogger
+}
+
 // Stub implementations for missing functions.
 
-func newInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *InfrastructureHealthChecker {
+func newInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) InfrastructureHealthChecker {
 
-	return &InfrastructureHealthChecker{}
+	return &InfrastructureHealthCheckerImpl{
+		config: config,
+		logger: logger,
+	}
 
 }
 

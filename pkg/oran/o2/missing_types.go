@@ -162,8 +162,26 @@ type O2IMSStorage interface {
 // ===== SUPPORTING TYPE DEFINITIONS =====
 
 
-// SecurityConfig defines security configuration for the O2 IMS service - use common config
-type SecurityConfig = securityconfig.CommonSecurityConfig
+// SecurityConfig defines security configuration for the O2 IMS service - extends common config
+type SecurityConfig struct {
+	securityconfig.CommonSecurityConfig
+	
+	// CORS Configuration
+	CORSEnabled        bool     `json:"corsEnabled"`
+	CORSAllowedOrigins []string `json:"corsAllowedOrigins,omitempty"`
+	CORSAllowedMethods []string `json:"corsAllowedMethods,omitempty"`
+	CORSAllowedHeaders []string `json:"corsAllowedHeaders,omitempty"`
+	
+	// Rate Limiting
+	RateLimitConfig *RateLimitConfig `json:"rateLimitConfig,omitempty"`
+	
+	// Input Validation
+	InputValidation *InputValidationConfig `json:"inputValidation,omitempty"`
+	
+	// Additional Security Settings
+	EnableCSRF   bool `json:"enableCSRF"`
+	AuditLogging bool `json:"auditLogging"`
+}
 
 // RateLimitConfig defines rate limiting configuration
 type RateLimitConfig struct {

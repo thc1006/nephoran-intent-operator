@@ -146,7 +146,7 @@ func NewO2APIServer(config *O2IMSConfig) (*O2APIServer, error) {
 
 			Enabled: config.HealthCheckConfig.Enabled,
 
-			CheckInterval: config.HealthCheckConfig.Interval,
+			CheckInterval: config.HealthCheckConfig.CheckInterval,
 
 			Timeout: 10 * time.Second,
 
