@@ -115,19 +115,19 @@ func (s CircuitState) String() string {
 
 	case StateClosed:
 
-		return "closed"
+		return "Closed"
 
 	case StateOpen:
 
-		return "open"
+		return "Open"
 
 	case StateHalfOpen:
 
-		return "half-open"
+		return "HalfOpen"
 
 	default:
 
-		return "unknown"
+		return "Unknown"
 
 	}
 

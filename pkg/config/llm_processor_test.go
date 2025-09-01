@@ -680,6 +680,7 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 			name: "CORS disabled via environment",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"AUTH_ENABLED":     "false",
 				"CORS_ENABLED":     "false",
 			},
@@ -697,6 +698,7 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 				"AUTH_ENABLED":        "false",
 				"CORS_ENABLED":        "true",
 				"LLM_ALLOWED_ORIGINS": "https://example.com,http://localhost:3000",
+				"MAX_REQUEST_SIZE":    "10485760", // 10MB
 			},
 			description: "CORS enabled with valid origins should load correctly",
 			wantErr:     false,
@@ -709,6 +711,7 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 			name: "CORS enabled without origins in development",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"AUTH_ENABLED":     "false",
 				"CORS_ENABLED":     "true",
 				"GO_ENV":           "development",
@@ -724,6 +727,7 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 			name: "CORS enabled without origins in production",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"AUTH_ENABLED":     "false",
 				"CORS_ENABLED":     "true",
 				"LLM_ENVIRONMENT":  "production",
@@ -739,6 +743,7 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 				"AUTH_ENABLED":        "false",
 				"CORS_ENABLED":        "true",
 				"LLM_ALLOWED_ORIGINS": "invalid-origin,https://valid.com",
+				"MAX_REQUEST_SIZE":    "10485760", // 10MB
 			},
 			description: "CORS enabled with invalid origins should fail validation",
 			wantErr:     true,
@@ -895,6 +900,7 @@ func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
 			envVars: map[string]string{
 				"PORT":             "99999",
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 			},
 			wantErr: true,
 			errMsg:  "PORT: invalid port number",
@@ -904,6 +910,7 @@ func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
 			envVars: map[string]string{
 				"LOG_LEVEL":        "invalid",
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 			},
 			wantErr: true,
 			errMsg:  "LOG_LEVEL: invalid log level",
@@ -920,6 +927,7 @@ func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
 			name: "invalid URL format",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"RAG_API_URL":      "invalid-url",
 			},
 			wantErr: true,
@@ -929,6 +937,7 @@ func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
 			name: "invalid retry backoff",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"RETRY_BACKOFF":    "invalid",
 			},
 			wantErr: true,
@@ -1176,6 +1185,7 @@ func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 			name: "TLS configuration loaded from environment - disabled",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"TLS_ENABLED":      "false",
 				"AUTH_ENABLED":     "false",
 				"CORS_ENABLED":     "false",
@@ -1194,6 +1204,7 @@ func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 			name: "TLS configuration loaded from environment - enabled with valid paths",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"TLS_ENABLED":      "true",
 				"AUTH_ENABLED":     "false",
 				"CORS_ENABLED":     "false",
@@ -1214,6 +1225,7 @@ func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 			name: "TLS enabled via environment but missing certificate file",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"TLS_ENABLED":      "true",
 				"TLS_CERT_PATH":    "/non/existent/cert.pem",
 				"TLS_KEY_PATH":     "/non/existent/key.pem",
@@ -1229,6 +1241,7 @@ func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 			name: "TLS configuration with empty paths when enabled",
 			envVars: map[string]string{
 				"LLM_BACKEND_TYPE": "mock",
+				"MAX_REQUEST_SIZE": "10485760",
 				"TLS_ENABLED":      "true",
 				"TLS_CERT_PATH":    "",
 				"TLS_KEY_PATH":     "",

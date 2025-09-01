@@ -89,6 +89,10 @@ type SecretManager interface {
 	// GetSecretRotationInfo returns information about when a secret was last rotated.
 
 	GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error)
+
+	// GetAPIKeys retrieves all API keys from the configured secret source.
+
+	GetAPIKeys(ctx context.Context) (*APIKeys, error)
 }
 
 // AuditLogger interface defines methods for security audit logging.

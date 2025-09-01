@@ -330,7 +330,7 @@ func (gmm *GPUMemoryManager) AllocateMemory(ctx context.Context, size int64, pur
 	span.SetAttributes(
 		attribute.Int("device_id", deviceID),
 		attribute.Int64("size", size),
-		attribute.String("purpose", fmt.Sprintf("%d", purpose)),
+		attribute.String("purpose", purpose.String()),
 		attribute.String("allocation_id", allocation.ID),
 	)
 
@@ -672,6 +672,22 @@ type AllocationPriority int
 type AllocationStrategy int
 type GPUAccessPattern int
 type GrowthStrategy int
+
+// String method for AllocationPurpose to fix conversion issues
+func (ap AllocationPurpose) String() string {
+	switch ap {
+	case AllocationPurposeModelWeights:
+		return "model_weights"
+	case AllocationPurposeInferenceBuffer:
+		return "inference_buffer"
+	case AllocationPurposeVectorData:
+		return "vector_data"
+	case AllocationPurposeCache:
+		return "cache"
+	default:
+		return "unknown"
+	}
+}
 
 const (
 	ManagerStateActive ManagerState = iota

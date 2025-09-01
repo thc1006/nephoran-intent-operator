@@ -143,6 +143,11 @@ func (m *UniversalSecretManager) GetSecretRotationInfo(ctx context.Context, secr
 	}, nil
 }
 
+// GetAPIKeys retrieves API keys using fallback strategy
+func (m *UniversalSecretManager) GetAPIKeys(ctx context.Context) (*APIKeys, error) {
+	return LoadFileBasedAPIKeysWithValidation()
+}
+
 // LoadFileBasedAPIKeysWithValidation loads API keys from files and validates them
 // Returns empty APIKeys on error to maintain backward compatibility with mock backends
 func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
