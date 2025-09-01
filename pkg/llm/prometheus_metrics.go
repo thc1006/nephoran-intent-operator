@@ -14,14 +14,20 @@ import (
 )
 
 var (
-
 	// prometheusOnce ensures metrics are only registered once.
-
 	prometheusOnce sync.Once
 
 	// prometheusMetrics holds the registered Prometheus metrics.
-
 	prometheusMetrics *PrometheusMetrics
+
+	// testMode indicates if we're running in test mode
+	testMode bool
+
+	// testMutex protects test mode operations
+	testMutex sync.RWMutex
+
+	// metricsRegistry allows test isolation
+	metricsRegistry prometheus.Registerer = prometheus.DefaultRegisterer
 )
 
 // PrometheusMetrics holds all LLM-related Prometheus metrics.
@@ -47,32 +53,35 @@ type PrometheusMetrics struct {
 	ProcessingDurationSeconds *prometheus.HistogramVec
 
 	// Registration flag.
-
 	registered bool
 
+	// Thread-safe access protection.
 	mutex sync.RWMutex
+
+	// Test registry for isolation.
+	testRegistry prometheus.Registerer
 }
 
 // NewPrometheusMetrics creates and registers LLM Prometheus metrics if enabled.
-
 func NewPrometheusMetrics() *PrometheusMetrics {
+	testMutex.RLock()
+	isTest := testMode
+	testMutex.RUnlock()
+
+	if isTest {
+		// In test mode, create fresh metrics for each test
+		return createAndRegisterMetricsForTest()
+	}
 
 	prometheusOnce.Do(func() {
-
 		if isMetricsEnabled() {
-
 			prometheusMetrics = createAndRegisterMetrics()
-
 		} else {
-
 			prometheusMetrics = &PrometheusMetrics{registered: false}
-
 		}
-
 	})
 
 	return prometheusMetrics
-
 }
 
 // isMetricsEnabled checks if metrics are enabled via environment variable.
@@ -83,91 +92,116 @@ func isMetricsEnabled() bool {
 
 }
 
-// createAndRegisterMetrics creates and registers all LLM Prometheus metrics.
+// SetTestMode enables/disables test mode for metrics isolation.
+func SetTestMode(enabled bool) {
+	testMutex.Lock()
+	defer testMutex.Unlock()
+	testMode = enabled
+	if enabled {
+		// Create a new registry for test isolation
+		metricsRegistry = prometheus.NewRegistry()
+	} else {
+		metricsRegistry = prometheus.DefaultRegisterer
+	}
+}
 
+// ResetMetricsForTest resets metrics state for testing (only works in test mode).
+func ResetMetricsForTest() {
+	testMutex.Lock()
+	defer testMutex.Unlock()
+	if testMode {
+		// Create new test registry
+		metricsRegistry = prometheus.NewRegistry()
+		prometheusMetrics = nil
+		prometheusOnce = sync.Once{}
+	}
+}
+
+// createAndRegisterMetricsForTest creates metrics with a test registry.
+func createAndRegisterMetricsForTest() *PrometheusMetrics {
+	if !isMetricsEnabled() {
+		return &PrometheusMetrics{registered: false}
+	}
+
+	testMutex.RLock()
+	registry := metricsRegistry
+	testMutex.RUnlock()
+
+	return createMetricsWithRegistry(registry)
+}
+
+// createAndRegisterMetrics creates and registers all LLM Prometheus metrics.
 func createAndRegisterMetrics() *PrometheusMetrics {
+	return createMetricsWithRegistry(prometheus.DefaultRegisterer)
+}
+
+// createMetricsWithRegistry creates metrics with the specified registry.
+func createMetricsWithRegistry(registry prometheus.Registerer) *PrometheusMetrics {
+	// Create a promauto factory with the specified registry
+	factory := promauto.With(registry)
 
 	pm := &PrometheusMetrics{
-
 		// Counters with appropriate labels.
-
-		RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
+		RequestsTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_requests_total",
-
 			Help: "Total number of LLM requests by model and status",
 		}, []string{"model", "status"}),
 
-		ErrorsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
+		ErrorsTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_errors_total",
-
 			Help: "Total number of LLM errors by model and error type",
 		}, []string{"model", "error_type"}),
 
-		CacheHitsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
+		CacheHitsTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_cache_hits_total",
-
 			Help: "Total number of LLM cache hits by model",
 		}, []string{"model"}),
 
-		CacheMissesTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
+		CacheMissesTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_cache_misses_total",
-
 			Help: "Total number of LLM cache misses by model",
 		}, []string{"model"}),
 
-		FallbackAttemptsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
+		FallbackAttemptsTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_fallback_attempts_total",
-
 			Help: "Total number of LLM fallback attempts by original model and fallback model",
 		}, []string{"original_model", "fallback_model"}),
 
-		RetryAttemptsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-
+		RetryAttemptsTotal: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_retry_attempts_total",
-
 			Help: "Total number of LLM retry attempts by model",
 		}, []string{"model"}),
 
 		// Histogram for processing duration.
-
-		ProcessingDurationSeconds: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
+		ProcessingDurationSeconds: factory.NewHistogramVec(prometheus.HistogramOpts{
 			Name: "nephoran_llm_processing_duration_seconds",
-
 			Help: "Duration of LLM processing requests by model and status",
-
 			Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0},
 		}, []string{"model", "status"}),
 
-		registered: true,
+		registered:    true,
+		testRegistry: registry,
 	}
 
-	// Register with controller-runtime metrics registry.
+	// Only register with controller-runtime metrics if not in test mode
+	testMutex.RLock()
+	isTest := testMode
+	testMutex.RUnlock()
 
-	metrics.Registry.MustRegister(
-
-		pm.RequestsTotal,
-
-		pm.ErrorsTotal,
-
-		pm.CacheHitsTotal,
-
-		pm.CacheMissesTotal,
-
-		pm.FallbackAttemptsTotal,
-
-		pm.RetryAttemptsTotal,
-
-		pm.ProcessingDurationSeconds,
-	)
+	if !isTest {
+		// Register with controller-runtime metrics registry for production
+		metrics.Registry.MustRegister(
+			pm.RequestsTotal,
+			pm.ErrorsTotal,
+			pm.CacheHitsTotal,
+			pm.CacheMissesTotal,
+			pm.FallbackAttemptsTotal,
+			pm.RetryAttemptsTotal,
+			pm.ProcessingDurationSeconds,
+		)
+	}
 
 	return pm
-
 }
 
 // GetPrometheusMetrics returns the singleton instance.

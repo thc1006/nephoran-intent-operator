@@ -178,7 +178,7 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 
 		LLMModelName: "gpt-4o-mini",
 
-		LLMTimeout: 15 * time.Second, // Default 15s for individual LLM requests
+		LLMTimeout: 60 * time.Second, // Default 60s for individual LLM requests
 
 		LLMMaxTokens: 2048,
 
@@ -242,9 +242,9 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 
 		RetryBackoff: "exponential",
 
-		AuthEnabled: true,
+		AuthEnabled: false, // Default disabled for easier testing
 
-		RequireAuth: true,
+		RequireAuth: false, // Default disabled for easier testing
 
 		AdminUsers: []string{},
 

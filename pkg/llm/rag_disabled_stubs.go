@@ -469,9 +469,10 @@ func NewCircuitBreakerManager() *CircuitBreakerManager {
 
 }
 
-// NewTokenManager performs newtokenmanager operation.
+// NewTokenManagerStub creates a stub token manager
+// Note: The main NewTokenManager is provided by token_manager_default.go
 
-func NewTokenManager() TokenManager {
+func NewTokenManagerStub() TokenManager {
 
 	return NewUniversalTokenManager()
 
