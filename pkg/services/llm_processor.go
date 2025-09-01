@@ -16,7 +16,7 @@ import (
 type LLMProcessorService struct {
 	config *config.LLMProcessorConfig
 
-	secretManager *config.SecretManager
+	secretManager config.SecretManager
 
 	processor *handlers.IntentProcessor
 
@@ -24,11 +24,11 @@ type LLMProcessorService struct {
 
 	circuitBreakerMgr *llm.CircuitBreakerManager
 
-	tokenManager *llm.TokenManager
+	tokenManager llm.TokenManager
 
 	contextBuilder *llm.ContextBuilder
 
-	relevanceScorer *llm.RelevanceScorer
+	relevanceScorer llm.RelevanceScorer
 
 	promptBuilder *llm.RAGAwarePromptBuilder
 
@@ -478,11 +478,11 @@ func (s *LLMProcessorService) GetComponents() (
 
 	*llm.CircuitBreakerManager,
 
-	*llm.TokenManager,
+	llm.TokenManager,
 
 	*llm.ContextBuilder,
 
-	*llm.RelevanceScorer,
+	llm.RelevanceScorer,
 
 	*llm.RAGAwarePromptBuilder,
 

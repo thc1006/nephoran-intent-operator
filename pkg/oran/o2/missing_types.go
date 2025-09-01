@@ -42,57 +42,7 @@ const (
 
 // ===== MISSING INTERFACE DEFINITIONS =====
 
-// ResourceManager provides resource management capabilities for O-RAN O2 IMS
-type ResourceManager interface {
-	// Resource lifecycle operations
-	ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*o2models.Resource, error)
-	ConfigureResource(ctx context.Context, resourceID string, config interface{}) error
-	ScaleResource(ctx context.Context, resourceID string, req *ScaleResourceRequest) error
-	TerminateResource(ctx context.Context, resourceID string) error
-	MigrateResource(ctx context.Context, resourceID string, req *MigrateResourceRequest) error
 
-	// Backup and restore operations
-	BackupResource(ctx context.Context, resourceID string, req *BackupResourceRequest) (*BackupInfo, error)
-	RestoreResource(ctx context.Context, resourceID string, backupID string) error
-
-	// Resource discovery and inventory
-	DiscoverResources(ctx context.Context, providerID string) ([]*o2models.Resource, error)
-	SyncInventory(ctx context.Context) error
-	
-	// Resource monitoring
-	GetResourceStatus(ctx context.Context, resourceID string) (*o2models.ResourceStatus, error)
-	GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error)
-	GetResourceHealth(ctx context.Context, resourceID string) (*o2models.HealthStatus, error)
-
-	// Resource operations
-	StartResource(ctx context.Context, resourceID string) error
-	StopResource(ctx context.Context, resourceID string) error
-	RestartResource(ctx context.Context, resourceID string) error
-}
-
-// MonitoringService provides comprehensive monitoring capabilities following O-RAN specifications
-type MonitoringService interface {
-	// Infrastructure monitoring
-	StartMonitoring(ctx context.Context, resourceID string, config *MonitoringConfig) error
-	StopMonitoring(ctx context.Context, resourceID string) error
-	
-	// Metrics collection
-	CollectMetrics(ctx context.Context, resourceIDs []string) (map[string]interface{}, error)
-	GetMetrics(ctx context.Context, resourceID string, metricNames []string) (map[string]interface{}, error)
-	
-	// Health monitoring
-	CheckHealth(ctx context.Context, resourceID string) (*o2models.HealthStatus, error)
-	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]*o2models.HealthHistoryEntry, error)
-	
-	// Alerting and notifications
-	CreateAlert(ctx context.Context, alert *AlertO2) error
-	GetActiveAlerts(ctx context.Context) ([]*AlertO2, error)
-	ResolveAlert(ctx context.Context, alertID string) error
-	
-	// Performance monitoring
-	MonitorPerformance(ctx context.Context, resourceID string) (*PerformanceMetrics, error)
-	GetPerformanceTrends(ctx context.Context, resourceID string, duration time.Duration) (*PerformanceTrends, error)
-}
 
 // CNFLifecycleManager manages CNF lifecycle operations
 type CNFLifecycleManager interface {
@@ -133,8 +83,8 @@ type HelmManager interface {
 	ValidateValues(ctx context.Context, chartPath string, values map[string]interface{}) error
 }
 
-// OperatorManager manages Kubernetes operators
-type OperatorManager interface {
+// OperatorManagerInterface manages Kubernetes operators
+type OperatorManagerInterface interface {
 	// Operator installation
 	InstallOperator(ctx context.Context, req *OperatorInstallRequest) (*OperatorInstance, error)
 	UninstallOperator(ctx context.Context, operatorName, namespace string) error
@@ -154,8 +104,8 @@ type OperatorManager interface {
 	SearchOperators(ctx context.Context, query string) ([]*OperatorInfo, error)
 }
 
-// ServiceMeshManager manages service mesh integrations
-type ServiceMeshManager interface {
+// ServiceMeshManagerInterface manages service mesh integrations
+type ServiceMeshManagerInterface interface {
 	// Service mesh management
 	EnableServiceMesh(ctx context.Context, namespace string, config *ServiceMeshConfig) error
 	DisableServiceMesh(ctx context.Context, namespace string) error
@@ -173,8 +123,8 @@ type ServiceMeshManager interface {
 	GetTraceData(ctx context.Context, serviceName, namespace string, duration time.Duration) ([]*TraceData, error)
 }
 
-// ContainerRegistryManager manages container registry operations
-type ContainerRegistryManager interface {
+// ContainerRegistryManagerInterface manages container registry operations
+type ContainerRegistryManagerInterface interface {
 	// Registry management
 	AddRegistry(ctx context.Context, registry *ContainerRegistry) error
 	RemoveRegistry(ctx context.Context, registryName string) error
@@ -268,57 +218,6 @@ type O2IMSStorage interface {
 
 // ===== SUPPORTING TYPE DEFINITIONS =====
 
-// Configuration and service types
-type O2IMSConfig struct {
-	ServiceName     string            `json:"serviceName"`
-	ServiceVersion  string            `json:"serviceVersion"`
-	Host            string            `json:"host"`
-	Port            int               `json:"port"`
-	ListenAddress   string            `json:"listenAddress"`
-	ListenPort      int               `json:"listenPort"`
-	MetricsPort     int               `json:"metricsPort"`
-	HealthPort      int               `json:"healthPort"`
-	TLSEnabled      bool              `json:"tlsEnabled"`
-	LogLevel        string            `json:"logLevel"`
-	DatabaseURL     string            `json:"databaseUrl"`
-	RedisURL        string            `json:"redisUrl"`
-	CloudProviders  []string          `json:"cloudProviders"`
-	Features        map[string]bool   `json:"features"`
-	Timeouts        map[string]string `json:"timeouts"`
-	Limits          map[string]int    `json:"limits"`
-	Authentication  map[string]string `json:"authentication"`
-	TLS             map[string]string `json:"tls"`
-	Monitoring      map[string]string `json:"monitoring"`
-	Storage         map[string]string `json:"storage"`
-	Cache           map[string]string `json:"cache"`
-	Notifications   map[string]string `json:"notifications"`
-	CustomSettings  map[string]interface{} `json:"customSettings"`
-	
-	// Logger instance
-	Logger          *logging.StructuredLogger `json:"-"`
-	
-	// Security configuration
-	SecurityConfig  *SecurityConfig `json:"securityConfig"`
-	
-	// Health check configuration - using separate type to avoid conflicts
-	// The health checker will create its own default config
-	
-	// Server timeouts configuration
-	ReadTimeout    time.Duration `json:"readTimeout"`
-	WriteTimeout   time.Duration `json:"writeTimeout"`
-	IdleTimeout    time.Duration `json:"idleTimeout"`
-	MaxHeaderBytes int           `json:"maxHeaderBytes"`
-	
-	// Authentication configuration
-	AuthenticationConfig *AuthenticationConfig `json:"authenticationConfig"`
-	
-	// Metrics configuration
-	MetricsConfig *MetricsConfig `json:"metricsConfig"`
-	
-	// Certificate configuration for TLS
-	CertFile string `json:"certFile"`
-	KeyFile  string `json:"keyFile"`
-}
 
 // SecurityConfig defines security configuration for the O2 IMS service - use common config
 type SecurityConfig = securityconfig.CommonSecurityConfig
@@ -478,61 +377,10 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 	}
 }
 
-// NewO2IMSServiceImpl creates a new O2 IMS service implementation
-func NewO2IMSServiceImpl(config *O2IMSConfig, storage O2IMSStorage, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) O2IMSService {
-	return &IMSService{
-		config:           config,
-		storage:          storage,
-		providerRegistry: providerRegistry,
-		logger:           logger,
-	}
-}
 
-// NewResourceManagerImpl creates a new resource manager implementation
-func NewResourceManagerImpl(config *O2IMSConfig, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) ResourceManager {
-	return &ResourceManagerImpl{
-		config:           config,
-		providerRegistry: providerRegistry,
-		logger:           logger,
-	}
-}
 
-// NewInventoryServiceImpl creates a new inventory service implementation
-func NewInventoryServiceImpl(config *O2IMSConfig, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) InventoryService {
-	return &InventoryServiceImpl{
-		config:           config,
-		providerRegistry: providerRegistry,
-		logger:           logger,
-	}
-}
 
-// NewMonitoringServiceImpl creates a new monitoring service implementation
-func NewMonitoringServiceImpl(config *O2IMSConfig, logger *logging.StructuredLogger) MonitoringService {
-	return &MonitoringServiceImpl{
-		config: config,
-		logger: logger,
-	}
-}
 
-// Stub implementation for ResourceManagerImpl
-type ResourceManagerImpl struct {
-	config           *O2IMSConfig
-	providerRegistry *providers.ProviderRegistry
-	logger           *logging.StructuredLogger
-}
-
-// Stub implementation for InventoryServiceImpl
-type InventoryServiceImpl struct {
-	config           *O2IMSConfig
-	providerRegistry *providers.ProviderRegistry
-	logger           *logging.StructuredLogger
-}
-
-// Stub implementation for MonitoringServiceImpl
-type MonitoringServiceImpl struct {
-	config *O2IMSConfig
-	logger *logging.StructuredLogger
-}
 
 // Component health check types are defined in health_checker.go
 

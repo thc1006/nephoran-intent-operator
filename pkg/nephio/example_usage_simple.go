@@ -99,10 +99,9 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 
 			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.NetworkTargetComponent{{
-				ComponentType: "AMF",
-				Replicas:      3,
-			}},
+			TargetComponents: []v1.NetworkTargetComponent{
+				v1.NetworkTargetComponentAMF,
+			},
 		},
 	}
 
@@ -163,9 +162,9 @@ func (seu *SimpleExampleUsage) ORANRICDeployment(ctx context.Context) error {
 
 			IntentType: v1.IntentTypeDeployment,
 
-			Priority: v1.PriorityHigh,
+			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentNearRTRIC, v1.ORANComponentE2, v1.ORANComponentA1},
+			TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF, v1.NetworkTargetComponentSMF},
 		},
 	}
 
@@ -222,9 +221,9 @@ func (seu *SimpleExampleUsage) NetworkSliceConfiguration(ctx context.Context) er
 
 			IntentType: v1.IntentTypeOptimization,
 
-			Priority: v1.PriorityHigh,
+			Priority: v1.NetworkPriorityHigh,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentAMF, v1.ORANComponentSMF, v1.ORANComponentUPF},
+			TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF, v1.NetworkTargetComponentSMF, v1.NetworkTargetComponentUPF},
 		},
 	}
 
@@ -281,9 +280,9 @@ func (seu *SimpleExampleUsage) AutoScalingConfiguration(ctx context.Context) err
 
 			IntentType: v1.IntentTypeScaling,
 
-			Priority: v1.PriorityMedium,
+			Priority: v1.NetworkPriorityNormal,
 
-			TargetComponents: []v1.ORANComponent{v1.ORANComponentUPF},
+			TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentUPF},
 		},
 	}
 

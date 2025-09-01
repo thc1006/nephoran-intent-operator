@@ -28,7 +28,8 @@ func main() {
 	fmt.Println("✅ Performance integrator initialized")
 
 	// Demonstrate profiler capabilities
-	fmt.Println("\n📊 Performance Metrics:")
+	if profiler := integrator.GetProfiler(); profiler != nil {
+		fmt.Println("\n📊 Performance Metrics:")
 		metrics := profiler.GetMetrics()
 		fmt.Printf("  • CPU Usage: %.2f%%\n", metrics.CPUUsagePercent)
 		fmt.Printf("  • Memory Usage: %.2f MB\n", metrics.MemoryUsageMB)

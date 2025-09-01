@@ -36,7 +36,12 @@ func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context
 		Message:   f.formatMessage(alarm, template),
 		Source:    "FAULT_MANAGER",
 		Target:    alarm.ObjectInstance,
-		Timestamp: alarm.AlarmRaisedTime,
+		Timestamp: func() time.Time {
+			if alarm.AlarmRaisedTime != nil {
+				return *alarm.AlarmRaisedTime
+			}
+			return time.Now()
+		}(),
 		AckRequired: true,
 		Metadata: map[string]interface{}{
 			"event_type":      alarm.EventType,

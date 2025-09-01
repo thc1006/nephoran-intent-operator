@@ -338,6 +338,8 @@ type NotificationTemplate struct {
 	Name            string                 `json:"name"`
 	Type            string                 `json:"type"`
 	Template        string                 `json:"template"`
+	Subject         string                 `json:"subject,omitempty"`
+	Body            string                 `json:"body,omitempty"`
 	Variables       map[string]interface{} `json:"variables,omitempty"`
 }
 

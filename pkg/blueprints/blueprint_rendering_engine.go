@@ -1134,7 +1134,7 @@ func (bre *BlueprintRenderingEngine) optimizeResourceConfigurations(rendered *Re
 
 	// Apply priority-based configurations.
 
-	if req.Intent.Spec.Priority == v1.PriorityCritical {
+	if req.Intent.Spec.Priority == v1.NetworkPriorityCritical {
 
 		bre.applyCriticalPriorityOptimizations(rendered)
 
@@ -1185,15 +1185,19 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 		if requestsMap, ok := requests.(map[string]interface{}); ok {
 
 			if constraints.CPU != nil {
-
-				requestsMap["cpu"] = constraints.CPU.String()
-
+				if constraints.CPU.Request != nil {
+					requestsMap["cpu"] = *constraints.CPU.Request
+				} else if constraints.CPU.Min != nil {
+					requestsMap["cpu"] = *constraints.CPU.Min
+				}
 			}
 
 			if constraints.Memory != nil {
-
-				requestsMap["memory"] = constraints.Memory.String()
-
+				if constraints.Memory.Request != nil {
+					requestsMap["memory"] = *constraints.Memory.Request
+				} else if constraints.Memory.Min != nil {
+					requestsMap["memory"] = *constraints.Memory.Min
+				}
 			}
 
 		}
@@ -1203,15 +1207,19 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 		requestsMap := make(map[string]interface{})
 
 		if constraints.CPU != nil {
-
-			requestsMap["cpu"] = constraints.CPU.String()
-
+			if constraints.CPU.Request != nil {
+				requestsMap["cpu"] = *constraints.CPU.Request
+			} else if constraints.CPU.Min != nil {
+				requestsMap["cpu"] = *constraints.CPU.Min
+			}
 		}
 
 		if constraints.Memory != nil {
-
-			requestsMap["memory"] = constraints.Memory.String()
-
+			if constraints.Memory.Request != nil {
+				requestsMap["memory"] = *constraints.Memory.Request
+			} else if constraints.Memory.Min != nil {
+				requestsMap["memory"] = *constraints.Memory.Min
+			}
 		}
 
 		resourcesMap["requests"] = requestsMap
@@ -1224,16 +1232,20 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 
 		if limitsMap, ok := limits.(map[string]interface{}); ok {
 
-			if constraints.MaxCPU != nil {
-
-				limitsMap["cpu"] = constraints.MaxCPU.String()
-
+			if constraints.CPU != nil {
+				if constraints.CPU.Limit != nil {
+					limitsMap["cpu"] = *constraints.CPU.Limit
+				} else if constraints.CPU.Max != nil {
+					limitsMap["cpu"] = *constraints.CPU.Max
+				}
 			}
 
-			if constraints.MaxMemory != nil {
-
-				limitsMap["memory"] = constraints.MaxMemory.String()
-
+			if constraints.Memory != nil {
+				if constraints.Memory.Limit != nil {
+					limitsMap["memory"] = *constraints.Memory.Limit
+				} else if constraints.Memory.Max != nil {
+					limitsMap["memory"] = *constraints.Memory.Max
+				}
 			}
 
 		}
@@ -1242,16 +1254,20 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 
 		limitsMap := make(map[string]interface{})
 
-		if constraints.MaxCPU != nil {
-
-			limitsMap["cpu"] = constraints.MaxCPU.String()
-
+		if constraints.CPU != nil {
+			if constraints.CPU.Limit != nil {
+				limitsMap["cpu"] = *constraints.CPU.Limit
+			} else if constraints.CPU.Max != nil {
+				limitsMap["cpu"] = *constraints.CPU.Max
+			}
 		}
 
-		if constraints.MaxMemory != nil {
-
-			limitsMap["memory"] = constraints.MaxMemory.String()
-
+		if constraints.Memory != nil {
+			if constraints.Memory.Limit != nil {
+				limitsMap["memory"] = *constraints.Memory.Limit
+			} else if constraints.Memory.Max != nil {
+				limitsMap["memory"] = *constraints.Memory.Max
+			}
 		}
 
 		resourcesMap["limits"] = limitsMap

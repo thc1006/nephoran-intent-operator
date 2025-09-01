@@ -51,6 +51,11 @@ func NewSimpleRelevanceScorer() *SimpleRelevanceScorer {
 	}
 }
 
+// NewRelevanceScorerStub creates a new relevance scorer stub (alias for NewSimpleRelevanceScorer)
+func NewRelevanceScorerStub() RelevanceScorer {
+	return NewSimpleRelevanceScorer()
+}
+
 // NewSimpleRelevanceScorerWithEmbeddingService creates a scorer with a legacy embedding service
 // This method is deprecated. Use NewSimpleRelevanceScorerWithEmbeddingInterface instead.
 func NewSimpleRelevanceScorerWithEmbeddingService(embeddingService *rag.EmbeddingService) *SimpleRelevanceScorer {

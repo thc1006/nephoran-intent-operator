@@ -1191,3 +1191,8 @@ func (c *Client) Close() error {
 	return nil
 
 }
+
+// GetEndpoint returns the client's endpoint URL
+func (c *Client) GetEndpoint() string {
+	return c.url
+}

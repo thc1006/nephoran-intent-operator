@@ -36,7 +36,7 @@ type LLMProcessorHandler struct {
 
 	contextBuilder *llm.ContextBuilder
 
-	relevanceScorer *llm.RelevanceScorer
+	relevanceScorer llm.RelevanceScorer
 
 	promptBuilder interface{} // Stub for RAG aware prompt builder
 
@@ -133,7 +133,7 @@ func NewLLMProcessorHandler(
 
 	contextBuilder *llm.ContextBuilder,
 
-	relevanceScorer *llm.RelevanceScorer,
+	relevanceScorer llm.RelevanceScorer,
 
 	promptBuilder interface{}, // Stub for RAG aware prompt builder
 
@@ -194,7 +194,7 @@ func NewLLMProcessorHandlerWithMetrics(
 
 	contextBuilder *llm.ContextBuilder,
 
-	relevanceScorer *llm.RelevanceScorer,
+	relevanceScorer llm.RelevanceScorer,
 
 	promptBuilder interface{}, // Stub for RAG aware prompt builder
 
@@ -465,9 +465,9 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 
 		if statusCode == http.StatusOK {
 
-			streamDuration := time.Since(streamStartTime)
+			_ = time.Since(streamStartTime) // Could be used for duration metrics
 
-			h.metricsCollector.RecordSSEStream(streamRoute, streamDuration)
+			h.metricsCollector.RecordSSEStream(streamRoute, false) // Stream ended
 
 		}
 

@@ -98,6 +98,11 @@ func NewConsolidatedStreamingProcessor() *ConsolidatedStreamingProcessor {
 
 }
 
+// NewStreamingProcessor creates a new streaming processor (alias for NewConsolidatedStreamingProcessor)
+func NewStreamingProcessor() *StreamingProcessorStub {
+	return NewConsolidatedStreamingProcessor()
+}
+
 // NewRelevanceScorerStub creates a new relevance scorer stub.
 
 func NewConsolidatedRelevanceScorerStub() *ConsolidatedRelevanceScorer {

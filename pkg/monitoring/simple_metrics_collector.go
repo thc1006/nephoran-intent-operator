@@ -418,6 +418,86 @@ func (c *SimpleMetricsCollector) UpdateWorkerQueueMetrics(queueName string, dept
 	c.addMetric(latencyMetric)
 }
 
+// RecordHTTPRequest records HTTP request metrics
+func (c *SimpleMetricsCollector) RecordHTTPRequest(method, endpoint, status string, duration time.Duration) {
+	metric := &Metric{
+		Name:      "http_request_duration_seconds",
+		Type:      MetricTypeHistogram,
+		Value:     duration.Seconds(),
+		Timestamp: time.Now(),
+		Labels: map[string]string{
+			"method":   method,
+			"endpoint": endpoint,
+			"status":   status,
+		},
+		Description: "Duration of HTTP requests in seconds",
+	}
+	c.addMetric(metric)
+}
+
+// RecordSSEStream records Server-Sent Events stream metrics
+func (c *SimpleMetricsCollector) RecordSSEStream(endpoint string, connected bool) {
+	value := 0.0
+	if connected {
+		value = 1.0
+	}
+	
+	metric := &Metric{
+		Name:      "sse_stream_active",
+		Type:      MetricTypeGauge,
+		Value:     value,
+		Timestamp: time.Now(),
+		Labels: map[string]string{
+			"endpoint": endpoint,
+		},
+		Description: "Active SSE stream connections",
+	}
+	c.addMetric(metric)
+}
+
+// RecordLLMRequestError records LLM request error metrics
+func (c *SimpleMetricsCollector) RecordLLMRequestError(model, errorType string) {
+	metric := &Metric{
+		Name:      "llm_request_errors_total",
+		Type:      MetricTypeCounter,
+		Value:     1.0,
+		Timestamp: time.Now(),
+		Labels: map[string]string{
+			"model":      model,
+			"error_type": errorType,
+		},
+		Description: "Total number of LLM request errors",
+	}
+	c.addMetric(metric)
+}
+
+// GetGauge returns a gauge metric interface (stub implementation)
+func (c *SimpleMetricsCollector) GetGauge(name string) interface{} {
+	// Stub implementation - return a simple struct that satisfies interface{} needs
+	return map[string]interface{}{
+		"type": "gauge",
+		"name": name,
+	}
+}
+
+// GetHistogram returns a histogram metric interface (stub implementation)
+func (c *SimpleMetricsCollector) GetHistogram(name string) interface{} {
+	// Stub implementation - return a simple struct that satisfies interface{} needs
+	return map[string]interface{}{
+		"type": "histogram",
+		"name": name,
+	}
+}
+
+// GetCounter returns a counter metric interface (stub implementation)
+func (c *SimpleMetricsCollector) GetCounter(name string) interface{} {
+	// Stub implementation - return a simple struct that satisfies interface{} needs
+	return map[string]interface{}{
+		"type": "counter",
+		"name": name,
+	}
+}
+
 // addMetric adds a metric to the collection (thread-safe)
 func (c *SimpleMetricsCollector) addMetric(metric *Metric) {
 	c.mu.Lock()

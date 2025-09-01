@@ -87,7 +87,7 @@ func (a *O1Adaptor) parseAlarmData(xmlData, managedElementID string) ([]*Alarm, 
 
 			SpecificProblem: oranAlarm.FaultText,
 
-			TimeRaised: oranAlarm.EventTime,
+			AlarmRaisedTime: oranAlarm.EventTime,
 		}
 
 		// Map O-RAN severity to standard alarm severity.
@@ -144,8 +144,6 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*
 
 			ID: fmt.Sprintf("generic-%d", time.Now().Unix()),
 
-			ManagedElementID: managedElementID,
-
 			Severity: "MINOR",
 
 			Type: "COMMUNICATIONS",
@@ -154,9 +152,9 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData, managedElementID string) ([]*
 
 			SpecificProblem: "Generic alarm parsed from NETCONF response",
 
-			TimeRaised: time.Now(),
+			AlarmRaisedTime: time.Now(),
 
-			AdditionalInfo: "Parsed from XML: " + xmlData[:min(100, len(xmlData))],
+			AdditionalText: "Parsed from XML: " + xmlData[:min(100, len(xmlData))],
 		}
 
 		alarms = append(alarms, alarm)
@@ -183,8 +181,6 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
 
-		ManagedElementID: managedElementID,
-
 		Severity: "MINOR",
 
 		Type: "COMMUNICATIONS",
@@ -193,7 +189,7 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 
 		SpecificProblem: "Alarm notification received",
 
-		TimeRaised: event.Timestamp,
+		AlarmRaisedTime: event.Timestamp,
 	}
 
 	// Extract more specific information from event data.

@@ -328,7 +328,7 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *corev1.Se
 
 func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedElement) (*tls.Config, error) {
 
-	credentials := &me.Spec.Credentials
+	credentials := me.Spec.Credentials
 
 	// If no client certificate references, return basic TLS config.
 

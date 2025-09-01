@@ -154,11 +154,11 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 
 			IntentType: v1.IntentTypeDeployment,
 
-			Priority: v1.PriorityMedium,
+			Priority: v1.NetworkPriorityNormal,
 
-			TargetComponents: []v1.ORANComponent{
+			TargetComponents: []v1.NetworkTargetComponent{
 
-				v1.ORANComponentAMF,
+				v1.NetworkTargetComponentAMF,
 			},
 		},
 
@@ -202,7 +202,7 @@ func WithIntentType(intentType v1.IntentType) NetworkIntentOption {
 
 // WithIntentPriority sets the intent priority.
 
-func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
+func WithIntentPriority(priority v1.NetworkPriority) NetworkIntentOption {
 
 	return func(intent *v1.NetworkIntent) {
 
@@ -214,7 +214,7 @@ func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
 
 // WithTargetComponent adds a target component.
 
-func WithTargetComponent(component v1.ORANComponent) NetworkIntentOption {
+func WithTargetComponent(component v1.NetworkTargetComponent) NetworkIntentOption {
 
 	return func(intent *v1.NetworkIntent) {
 

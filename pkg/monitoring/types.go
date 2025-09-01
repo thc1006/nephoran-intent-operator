@@ -359,6 +359,16 @@ type MetricsCollector interface {
 	// System metrics
 	UpdateResourceUtilization(resourceType, unit string, value float64)
 	UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration)
+	
+	// Missing HTTP and streaming metrics methods
+	RecordHTTPRequest(method, endpoint, status string, duration time.Duration)
+	RecordSSEStream(endpoint string, connected bool)
+	RecordLLMRequestError(model, errorType string)
+	
+	// Prometheus-style metrics getters
+	GetGauge(name string) interface{}
+	GetHistogram(name string) interface{}
+	GetCounter(name string) interface{}
 }
 
 type HealthChecker interface {

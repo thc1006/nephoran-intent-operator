@@ -347,14 +347,23 @@ type SecurityScanResult struct {
 }
 
 // Vulnerability represents a security vulnerability.
+type Vulnerability struct {
+	// ID uniquely identifies the vulnerability
+	ID string `json:"id"`
 
+	// Severity indicates the vulnerability severity level
+	Severity string `json:"severity"`
 
+	// Description provides details about the vulnerability
+	Description string `json:"description"`
+
+	// FixedInVersion indicates the version where the vulnerability is fixed
 	FixedInVersion string `json:"fixedInVersion,omitempty"`
 
+	// Remediation provides guidance on fixing the vulnerability
 	Remediation string `json:"remediation,omitempty"`
 
 	// References and metadata.
-
 	References []string `json:"references,omitempty"`
 
 	PublishedAt time.Time `json:"publishedAt,omitempty"`
