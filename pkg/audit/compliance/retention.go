@@ -190,3 +190,11 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 	return policies
 
 }
+
+// ShouldRetainEvent determines if an event should be retained based on a retention policy.
+func (rm *RetentionManager) ShouldRetainEvent(event *types.AuditEvent, policy RetentionPolicy) bool {
+	if event.EventType != policy.EventType {
+		return false
+	}
+	return time.Since(event.Timestamp) < policy.RetentionPeriod
+}

@@ -499,6 +499,46 @@ func (m *MockGitClient) CommitAndPushChanges(message string) error {
 	return args.Error(0)
 }
 
+func (m *MockGitClient) InitRepo() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	args := m.Called(path, commitMessage)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) CommitFiles(files []string, msg string) error {
+	args := m.Called(files, msg)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) CreateBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) SwitchBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClient) GetCurrentBranch() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClient) ListBranches() ([]string, error) {
+	args := m.Called()
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
+	args := m.Called(path)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
 type MockMetricsCollector struct {
 	mock.Mock
 }
@@ -683,7 +723,6 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 		fakeClient   client.Client
 		fakeRecorder *record.FakeRecorder
 		scheme       *runtime.Scheme
-		ctx          context.Context
 	)
 
 	BeforeEach(func() {
