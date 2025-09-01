@@ -76,9 +76,6 @@ require (
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.38.0
 	github.com/thc1006/nephoran-intent-operator/api v0.0.0-00010101000000-000000000000
-	github.com/thc1006/nephoran-intent-operator/controllers v0.0.0-00010101000000-000000000000
-	github.com/thc1006/nephoran-intent-operator/pkg/controllers v0.0.0
-	github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces v0.0.0
 	github.com/thc1006/nephoran-intent-operator/pkg/rag v0.0.0
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/valyala/fastjson v1.6.4
@@ -376,27 +373,11 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
 
-// Replace local modules
+// Replace local modules that actually have go.mod files
 replace (
-	github.com/thc1006/nephoran-intent-operator/pkg/audit => ./pkg/audit
-	github.com/thc1006/nephoran-intent-operator/pkg/audit/backends => ./pkg/audit/backends
-	github.com/thc1006/nephoran-intent-operator/pkg/auth => ./pkg/auth
-	github.com/thc1006/nephoran-intent-operator/pkg/clients => ./pkg/clients
-	github.com/thc1006/nephoran-intent-operator/pkg/cnf => ./pkg/cnf
-	github.com/thc1006/nephoran-intent-operator/pkg/controllers => ./pkg/controllers
-	github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces => ./pkg/controllers/interfaces
 	github.com/thc1006/nephoran-intent-operator/pkg/edge => ./pkg/edge
 	github.com/thc1006/nephoran-intent-operator/pkg/errors => ./pkg/errors
-	github.com/thc1006/nephoran-intent-operator/pkg/interfaces => ./pkg/interfaces
-	github.com/thc1006/nephoran-intent-operator/pkg/llm => ./pkg/llm
-	github.com/thc1006/nephoran-intent-operator/pkg/monitoring => ./pkg/monitoring
-	github.com/thc1006/nephoran-intent-operator/pkg/nephio => ./pkg/nephio
-	github.com/thc1006/nephoran-intent-operator/pkg/oran => ./pkg/oran
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/a1 => ./pkg/oran/a1
-	github.com/thc1006/nephoran-intent-operator/pkg/oran/o1 => ./pkg/oran/o1
 	github.com/thc1006/nephoran-intent-operator/pkg/rag => ./pkg/rag
-	github.com/thc1006/nephoran-intent-operator/pkg/resilience => ./pkg/resilience
-	github.com/thc1006/nephoran-intent-operator/pkg/telecom => ./pkg/telecom
 )
 
 // Enforce Kubernetes versions
@@ -411,7 +392,6 @@ replace (
 // Additional local package replacements for user-requested imports
 replace (
 	github.com/thc1006/nephoran-intent-operator/api => ./api
-	github.com/thc1006/nephoran-intent-operator/controllers => ./controllers
 	github.com/thc1006/nephoran-intent-operator/internal/intent => ./internal/intent
 	github.com/thc1006/nephoran-intent-operator/pkg/handlers => ./pkg/handlers
 	github.com/thc1006/nephoran-intent-operator/pkg/monitoring/reporting => ./pkg/monitoring/reporting
@@ -425,4 +405,4 @@ replace (
 	github.com/thc1006/nephoran-intent-operator/pkg/validation/yang => ./pkg/validation/yang
 )
 
-replace github.com/thc1006/nephoran-intent-operator => C:/Users/tingy/dev/_worktrees/nephoran/feat-e2e
+// Removed Windows-specific path replacement - should not be in committed code

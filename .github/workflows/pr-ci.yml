@@ -279,7 +279,7 @@ jobs:
           # Create a minimal go.work file to help with discovery
           echo "🔨 Creating go.work for better module discovery..."
           cat > go.work << EOF
-          go 1.24
+          go 1.24.6
           
           use (
             ./
