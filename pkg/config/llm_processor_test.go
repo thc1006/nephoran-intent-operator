@@ -819,6 +819,7 @@ func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
 		"MAX_CONTEXT_TOKENS":             "8000",
 		"CONTEXT_TTL":                    "10m",
 		"API_KEY_REQUIRED":               "true",
+		"API_KEY":                        "test-api-key-123",
 		"CORS_ENABLED":                   "false",
 		"LLM_ALLOWED_ORIGINS":            "http://localhost:3000",
 		"REQUEST_TIMEOUT":                "60s",
