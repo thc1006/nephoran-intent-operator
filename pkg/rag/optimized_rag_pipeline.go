@@ -658,7 +658,7 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 
 		UseReranker: request.EnableReranking,
 
-		MinConfidence: float64(request.MinConfidence),
+		MinConfidence: float32(request.MinConfidence),
 	}
 
 	// Execute search.
@@ -729,7 +729,7 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 
 			UseReranker: request.EnableReranking,
 
-			MinConfidence: float64(request.MinConfidence),
+			MinConfidence: float32(request.MinConfidence),
 		}
 
 	}

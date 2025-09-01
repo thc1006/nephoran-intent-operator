@@ -269,7 +269,7 @@ func (m *OptimizedRAGManager) ProcessWithGRPC(ctx context.Context, requests []*R
 
 			UseReranker: req.EnableReranking,
 
-			MinConfidence: float64(req.MinConfidence),
+			MinConfidence: float32(req.MinConfidence),
 		}
 
 	}

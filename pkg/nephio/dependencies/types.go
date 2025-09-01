@@ -6,17 +6,6 @@ import (
 
 // Basic types used across the dependency management system
 
-// PackageReference represents a reference to a package
-type PackageReference struct {
-	Name       string            `json:"name"`
-	Version    string            `json:"version"`
-	Repository string            `json:"repository"`
-	Namespace  string            `json:"namespace,omitempty"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
-}
-
-// DependencyScope defines the scope of a dependency
-type DependencyScope string
 
 const (
 	ScopeRuntime     DependencyScope = "runtime"
@@ -253,17 +242,6 @@ type OptimizationImpact struct {
 	SecurityImprovement float64       `json:"securityImprovement"`
 }
 
-// UpdateStep represents a single step in an update plan
-type UpdateStep struct {
-	StepID      string        `json:"stepId"`
-	Name        string        `json:"name"`
-	Type        string        `json:"type"`
-	Order       int           `json:"order"`
-	Required    bool          `json:"required"`
-	Timeout     time.Duration `json:"timeout"`
-	Config      interface{}   `json:"config,omitempty"`
-	Status      string        `json:"status,omitempty"`
-}
 
 // RollbackPlan represents a plan for rolling back dependency changes
 type RollbackPlan struct {
@@ -360,24 +338,6 @@ type RollbackValidationWarning struct {
 	Suggestion  string            `json:"suggestion,omitempty"`
 }
 
-// Missing types from analyzer.go and graph.go
-type Vulnerability struct {
-	ID          string    `json:"id"`
-	CVE         string    `json:"cve,omitempty"`
-	Severity    string    `json:"severity"`
-	Score       float64   `json:"score"`
-	Description string    `json:"description"`
-	FixVersion  string    `json:"fixVersion,omitempty"`
-	PublishedAt time.Time `json:"publishedAt"`
-}
-
-type ComplianceStatus string
-
-const (
-	ComplianceStatusCompliant    ComplianceStatus = "compliant"
-	ComplianceStatusNonCompliant ComplianceStatus = "non-compliant"
-	ComplianceStatusUnknown      ComplianceStatus = "unknown"
-)
 
 type PackageInfo struct {
 	Name        string            `json:"name"`
@@ -433,13 +393,6 @@ type Repository struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-type UpdateStrategy string
-
-const (
-	UpdateStrategyConservative UpdateStrategy = "conservative"
-	UpdateStrategyAggressive   UpdateStrategy = "aggressive"
-	UpdateStrategyBalanced     UpdateStrategy = "balanced"
-)
 
 type UpdateConstraints struct {
 	MaxVersionJump  int           `json:"maxVersionJump"`
@@ -568,13 +521,6 @@ type UpdateStatistics struct {
 	CompletedAt     time.Time     `json:"completedAt,omitempty"`
 }
 
-type UpdateType string
-const (
-	UpdateTypeMinor    UpdateType = "minor"
-	UpdateTypeMajor    UpdateType = "major"
-	UpdateTypePatch    UpdateType = "patch"
-	UpdateTypeSecurity UpdateType = "security"
-)
 
 type UpdateReason string
 const (

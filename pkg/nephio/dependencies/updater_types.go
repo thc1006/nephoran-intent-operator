@@ -47,13 +47,6 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 	}
 }
 
-type PackageRegistryConfig struct {
-	Endpoint    string        `json:"endpoint"`
-	Timeout     time.Duration `json:"timeout"`
-	RetryCount  int           `json:"retryCount"`
-	EnableTLS   bool          `json:"enableTls"`
-	CacheSize   int           `json:"cacheSize"`
-}
 
 type ApprovalWorkflowConfig struct {
 	RequireApproval   bool          `json:"requireApproval"`

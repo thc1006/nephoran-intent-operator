@@ -348,30 +348,6 @@ type SecurityScanResult struct {
 
 // Vulnerability represents a security vulnerability.
 
-type Vulnerability struct {
-	ID string `json:"id"`
-
-	CVE string `json:"cve,omitempty"`
-
-	Title string `json:"title"`
-
-	Description string `json:"description"`
-
-	// Severity and scoring.
-
-	Severity VulnerabilitySeverity `json:"severity"`
-
-	CVSSScore float64 `json:"cvssScore,omitempty"`
-
-	CVSSVector string `json:"cvssVector,omitempty"`
-
-	// Affected packages.
-
-	AffectedPackages []*AffectedPackage `json:"affectedPackages"`
-
-	// Fix information.
-
-	FixAvailable bool `json:"fixAvailable"`
 
 	FixedInVersion string `json:"fixedInVersion,omitempty"`
 
@@ -685,28 +661,6 @@ const (
 	RiskLevelCritical RiskLevel = "critical"
 )
 
-// ComplianceStatus defines compliance status.
-
-type ComplianceStatus string
-
-const (
-
-	// ComplianceStatusCompliant holds compliancestatuscompliant value.
-
-	ComplianceStatusCompliant ComplianceStatus = "compliant"
-
-	// ComplianceStatusNonCompliant holds compliancestatusnoncompliant value.
-
-	ComplianceStatusNonCompliant ComplianceStatus = "non_compliant"
-
-	// ComplianceStatusPartial holds compliancestatuspartial value.
-
-	ComplianceStatusPartial ComplianceStatus = "partial"
-
-	// ComplianceStatusUnknown holds compliancestatusunknown value.
-
-	ComplianceStatusUnknown ComplianceStatus = "unknown"
-)
 
 // ErrorType defines validation error types.
 

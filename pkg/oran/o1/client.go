@@ -3,6 +3,7 @@ package o1
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -310,37 +311,34 @@ func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigReques
 // NewPerformanceRequest creates a performance data request
 func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity string) *PerformanceRequest {
 	return &PerformanceRequest{
-		PerformanceTypes:  measurementTypes,
-		StartTime:         startTime,
-		EndTime:           endTime,
-		GranularityPeriod: granularity,
+		MetricType: strings.Join(measurementTypes, ","),
+		TimeRange:  map[string]interface{}{"start": startTime, "end": endTime, "granularity": granularity},
 	}
 }
 
 // NewAlarmFilter creates an alarm filter
 func NewAlarmFilter() *AlarmFilter {
 	return &AlarmFilter{
-		ObjectClass:       []string{},
-		EventType:         []string{},
-		ProbableCause:     []string{},
-		PerceivedSeverity: []string{},
+		Severity: "",
+		Source:   "",
+		Status:   "",
 	}
 }
 
 // WithAlarmSeverities adds severity filter to alarm filter
-func (f *AlarmFilter) WithAlarmSeverities(severities []string) *AlarmFilter {
-	f.PerceivedSeverity = severities
+func (f *AlarmFilter) WithAlarmSeverities(severity string) *AlarmFilter {
+	f.Severity = severity
 	return f
 }
 
 // WithAlarmTypes adds alarm type filter to alarm filter
-func (f *AlarmFilter) WithAlarmTypes(alarmTypes []string) *AlarmFilter {
-	f.EventType = alarmTypes
+func (f *AlarmFilter) WithAlarmTypes(source string) *AlarmFilter {
+	f.Source = source
 	return f
 }
 
 // WithObjectClass adds object class filter to alarm filter
-func (f *AlarmFilter) WithObjectClass(objectClass []string) *AlarmFilter {
-	f.ObjectClass = objectClass
+func (f *AlarmFilter) WithStatus(status string) *AlarmFilter {
+	f.Status = status
 	return f
 }

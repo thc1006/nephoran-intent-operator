@@ -410,11 +410,11 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 		HybridSearch: request.UseHybridSearch,
 
-		HybridAlpha: float64(rs.config.DefaultHybridAlpha),
+		HybridAlpha: float32(rs.config.DefaultHybridAlpha),
 
 		UseReranker: request.EnableReranking && rs.config.EnableReranking,
 
-		MinConfidence: float64(request.MinConfidence),
+		MinConfidence: float32(request.MinConfidence),
 
 		ExpandQuery: rs.config.EnableQueryExpansion,
 	}

@@ -152,10 +152,7 @@ func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nep
 			Priority: nephranv1.NetworkPriorityNormal,
 
 			TargetComponents: []nephranv1.NetworkTargetComponent{
-				{
-					ComponentType: "NearRTRIC",
-					Replicas:      1,
-				},
+				nephranv1.NetworkTargetComponentNRF,
 				{
 					ComponentType: "XApp",
 					Replicas:      1,
@@ -455,17 +452,11 @@ func (otf *ORANTestFactory) CreateE2NodeManagementIntent(scenario string) *nephr
 
 			IntentType: nephranv1.IntentTypeDeployment,
 
-			Priority: nephranv1.PriorityMedium,
+			Priority: nephranv1.NetworkPriorityNormal,
 
 			TargetComponents: []nephranv1.NetworkTargetComponent{
-				{
-					ComponentType: "NearRTRIC",
-					Replicas:      1,
-				},
-				{
-					ComponentType: "GNodeB",
-					Replicas:      1,
-				},
+				nephranv1.NetworkTargetComponentAMF,
+				nephranv1.NetworkTargetComponentSMF,
 			},
 		},
 	}
@@ -1032,7 +1023,7 @@ func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.Netw
 
 			IntentType: nephranv1.IntentTypeOptimization,
 
-			Priority: nephranv1.PriorityMedium,
+			Priority: nephranv1.NetworkPriorityNormal,
 
 			TargetComponents: []nephranv1.NetworkTargetComponent{
 				{

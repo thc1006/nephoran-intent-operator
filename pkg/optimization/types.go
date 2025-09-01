@@ -26,27 +26,6 @@ import (
 
 // Missing types and interfaces for optimization package
 
-// MetricsStore stores and manages metrics data
-type MetricsStore struct {
-	data   map[string]interface{}
-	logger logr.Logger
-}
-
-// HistoricalDataStore manages historical data
-type HistoricalDataStore struct {
-	data   []interface{}
-	logger logr.Logger
-}
-
-// PatternDetector detects performance patterns
-type PatternDetector struct {
-	window time.Duration
-	logger logr.Logger
-}
-
-// BottleneckPredictor predicts performance bottlenecks
-type BottleneckPredictor struct {
-	config *AnalysisConfig
 	logger logr.Logger
 }
 

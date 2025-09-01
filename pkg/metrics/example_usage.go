@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"math"
+	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -62,7 +62,7 @@ func StatisticalAnalysis(data []float64) {
 	min := floats.Min(data)
 	
 	// Optional: Matrix operations
-	denseData := mat.NewDense(len(data), 1, data)
+	_ = mat.NewDense(len(data), 1, data)
 	
 	prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{

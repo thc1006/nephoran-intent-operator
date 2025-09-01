@@ -2202,10 +2202,6 @@ type LifecycleManagerHealth struct {
 	Errors             []string               `json:"errors,omitempty"`
 }
 
-// Client represents a concrete porch client implementation.
-type Client struct {
-	PorchClient
-}
 
 // Factory functions
 

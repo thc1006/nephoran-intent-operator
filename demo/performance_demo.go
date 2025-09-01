@@ -15,23 +15,20 @@ func main() {
 
 	// Initialize performance integrator with default configuration
 	config := performance.DefaultIntegrationConfig
-	config.EnableProfiler = true
-	config.EnableCache = true
-	config.EnableAsync = true
-	config.EnableMonitoring = true
-	config.TargetResponseTime = 50 * time.Millisecond
-	config.TargetThroughput = 2000.0
+	config.EnableProfiling = true
+	config.EnableMetrics = true
+	config.UseSONIC = true
+	config.EnableHTTP2 = true
 
 	integrator := performance.NewPerformanceIntegrator(config)
-	if err != nil {
-		log.Fatalf("Failed to create performance integrator: %v", err)
+	if integrator == nil {
+		log.Fatal("Failed to create performance integrator")
 	}
 
 	fmt.Println("✅ Performance integrator initialized")
 
 	// Demonstrate profiler capabilities
-	if profiler := integrator.GetProfiler(); profiler != nil {
-		fmt.Println("\n📊 Profiler Metrics:")
+	fmt.Println("\n📊 Performance Metrics:")
 		metrics := profiler.GetMetrics()
 		fmt.Printf("  • CPU Usage: %.2f%%\n", metrics.CPUUsagePercent)
 		fmt.Printf("  • Memory Usage: %.2f MB\n", metrics.MemoryUsageMB)

@@ -503,11 +503,11 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 
 		HybridSearch: true,
 
-		HybridAlpha: float64(ers.config.DefaultHybridAlpha),
+		HybridAlpha: float32(ers.config.DefaultHybridAlpha),
 
 		UseReranker: false, // We'll do our own reranking
 
-		MinConfidence: float64(request.MinQualityScore),
+		MinConfidence: float32(request.MinQualityScore),
 
 		ExpandQuery: false, // Already done in enhancement step
 
