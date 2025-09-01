@@ -2449,23 +2449,7 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 
 		switch component {
 
-		case v1.ORANComponentNearRTRIC:
-
-			if template, exists := obm.oranCatalog.NearRTRIC["default"]; exists {
-
-				templates = append(templates, template)
-
-			}
-
-		case v1.ORANComponentXApp:
-
-			if template, exists := obm.oranCatalog.xApps["default"]; exists {
-
-				templates = append(templates, template)
-
-			}
-
-		case v1.ORANComponentAMF:
+		case v1.NetworkTargetComponentAMF:
 
 			if obm.fiveGCatalog.AMF != nil {
 
@@ -2473,7 +2457,7 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 
 			}
 
-		case v1.ORANComponentSMF:
+		case v1.NetworkTargetComponentSMF:
 
 			if obm.fiveGCatalog.SMF != nil {
 
@@ -2481,7 +2465,7 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 
 			}
 
-		case v1.ORANComponentUPF:
+		case v1.NetworkTargetComponentUPF:
 
 			if obm.fiveGCatalog.UPF != nil {
 

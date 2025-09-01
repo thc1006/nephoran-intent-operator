@@ -711,3 +711,26 @@ func (rm *ResilienceManager) performHealthChecks() {
 	rm.metrics.HealthMetrics.OverallHealthy = overallHealthy
 	rm.metrics.HealthMetrics.LastHealthCheck = time.Now()
 }
+
+// TimeoutManager manages timeout operations across the system
+type TimeoutManager struct {
+	configs    map[string]*TimeoutConfig
+	operations sync.Map // map[string]*TimeoutOperation
+	metrics    *TimeoutMetrics
+	mu         sync.RWMutex
+	mutex      sync.Mutex
+	logger     logr.Logger
+}
+
+// TimeoutOperation represents a timeout operation
+type TimeoutOperation struct {
+	ID             string            `json:"id"`
+	Duration       time.Duration     `json:"duration"`
+	StartTime      time.Time         `json:"startTime"`
+	Cancelled      bool              `json:"cancelled"`
+	Timeout        time.Duration     `json:"timeout"`
+	Context        context.Context   `json:"-"`
+	CancelFunc     context.CancelFunc `json:"-"`
+	CompletedChan  chan bool         `json:"-"`
+	TimeoutChan    chan bool         `json:"-"`
+}

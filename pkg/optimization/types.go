@@ -26,6 +26,8 @@ import (
 
 // Missing types and interfaces for optimization package
 
+// OptimizerManager manages optimization processes
+type OptimizerManager struct {
 	logger logr.Logger
 }
 
@@ -41,57 +43,57 @@ type OptimizationRanker struct {
 	logger logr.Logger
 }
 
-// ImpactLevel represents impact levels for backward compatibility
-type ImpactLevel string
+// ImpactLevel represents impact levels for backward compatibility - COMMENTED OUT TO AVOID DUPLICATION
+// type ImpactLevel string
+//
+// const (
+// 	ImpactLow      ImpactLevel = "low"
+// 	ImpactMedium   ImpactLevel = "medium"
+// 	ImpactHigh     ImpactLevel = "high"
+// 	ImpactCritical ImpactLevel = "critical"
+// )
 
-const (
-	ImpactLow      ImpactLevel = "low"
-	ImpactMedium   ImpactLevel = "medium"
-	ImpactHigh     ImpactLevel = "high"
-	ImpactCritical ImpactLevel = "critical"
-)
+// PerformancePattern represents a performance pattern - COMMENTED OUT TO AVOID DUPLICATION
+// type PerformancePattern struct {
+// 	Name        string        `json:"name"`
+// 	Description string        `json:"description"`
+// 	MetricName  string        `json:"metricName"`
+// 	Pattern     string        `json:"pattern"`
+// 	Confidence  float64       `json:"confidence"`
+// 	TimeWindow  time.Duration `json:"timeWindow"`
+// }
 
-// PerformancePattern represents a performance pattern
-type PerformancePattern struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	MetricName  string        `json:"metricName"`
-	Pattern     string        `json:"pattern"`
-	Confidence  float64       `json:"confidence"`
-	TimeWindow  time.Duration `json:"timeWindow"`
-}
+// AnalysisConfig contains configuration for performance analysis - COMMENTED OUT TO AVOID DUPLICATION
+// type AnalysisConfig struct {
+// 	TimeWindow       time.Duration `json:"timeWindow"`
+// 	SampleInterval   time.Duration `json:"sampleInterval"`
+// 	ConfidenceLevel  float64       `json:"confidenceLevel"`
+// 	AnalysisDepth    string        `json:"analysisDepth"`
+// 	MetricsEnabled   bool          `json:"metricsEnabled"`
+// 	PredictionHours  int           `json:"predictionHours"`
+// }
 
-// AnalysisConfig contains configuration for performance analysis
-type AnalysisConfig struct {
-	TimeWindow       time.Duration `json:"timeWindow"`
-	SampleInterval   time.Duration `json:"sampleInterval"`
-	ConfidenceLevel  float64       `json:"confidenceLevel"`
-	AnalysisDepth    string        `json:"analysisDepth"`
-	MetricsEnabled   bool          `json:"metricsEnabled"`
-	PredictionHours  int           `json:"predictionHours"`
-}
+// MetricStatistics represents statistical data for metrics - COMMENTED OUT TO AVOID DUPLICATION
+// type MetricStatistics struct {
+// 	Mean       float64 `json:"mean"`
+// 	Median     float64 `json:"median"`
+// 	Mode       float64 `json:"mode"`
+// 	StdDev     float64 `json:"stdDev"`
+// 	Variance   float64 `json:"variance"`
+// 	Min        float64 `json:"min"`
+// 	Max        float64 `json:"max"`
+// 	Percentile map[string]float64 `json:"percentile"`
+// }
 
-// MetricStatistics represents statistical data for metrics
-type MetricStatistics struct {
-	Mean       float64 `json:"mean"`
-	Median     float64 `json:"median"`
-	Mode       float64 `json:"mode"`
-	StdDev     float64 `json:"stdDev"`
-	Variance   float64 `json:"variance"`
-	Min        float64 `json:"min"`
-	Max        float64 `json:"max"`
-	Percentile map[string]float64 `json:"percentile"`
-}
-
-// TrendDirection represents the direction of trends
-type TrendDirection string
-
-const (
-	TrendIncreasing TrendDirection = "increasing"
-	TrendDecreasing TrendDirection = "decreasing"
-	TrendStable     TrendDirection = "stable"
-	TrendVolatile   TrendDirection = "volatile"
-)
+// TrendDirection represents the direction of trends - COMMENTED OUT TO AVOID DUPLICATION
+// type TrendDirection string
+//
+// const (
+// 	TrendIncreasing TrendDirection = "increasing"
+// 	TrendDecreasing TrendDirection = "decreasing"
+// 	TrendStable     TrendDirection = "stable"
+// 	TrendVolatile   TrendDirection = "volatile"
+// )
 
 // Constructor functions for missing types
 
@@ -190,28 +192,28 @@ const (
 	CategoryTelecommunications OptimizationCategory = "telecommunications"
 )
 
-// OptimizationPriority represents priority levels for optimizations.
+// OptimizationPriority represents priority levels for optimizations - COMMENTED OUT TO AVOID DUPLICATION
 
-type OptimizationPriority string
+// type OptimizationPriority string
 
-const (
-
-	// PriorityCritical holds prioritycritical value.
-
-	PriorityCritical OptimizationPriority = "critical"
-
-	// PriorityHigh holds priorityhigh value.
-
-	PriorityHigh OptimizationPriority = "high"
-
-	// PriorityMedium holds prioritymedium value.
-
-	PriorityMedium OptimizationPriority = "medium"
-
-	// PriorityLow holds prioritylow value.
-
-	PriorityLow OptimizationPriority = "low"
-)
+// const (
+//
+// 	// PriorityCritical holds prioritycritical value.
+//
+// 	PriorityCritical OptimizationPriority = "critical"
+//
+// 	// PriorityHigh holds priorityhigh value.
+//
+// 	PriorityHigh OptimizationPriority = "high"
+//
+// 	// PriorityMedium holds prioritymedium value.
+//
+// 	PriorityMedium OptimizationPriority = "medium"
+//
+// 	// PriorityLow holds prioritylow value.
+//
+// 	PriorityLow OptimizationPriority = "low"
+// )
 
 // SeverityLevel represents severity levels.
 
@@ -323,19 +325,19 @@ type ConfidenceInterval struct {
 	ConfidenceLevel float64 `json:"confidenceLevel"`
 }
 
-// ExpectedImpact represents the expected impact of optimization changes.
+// ExpectedImpact represents the expected impact of optimization changes - COMMENTED OUT TO AVOID DUPLICATION
 
-type ExpectedImpact struct {
-	LatencyReduction float64 `json:"latencyReduction"`
-
-	ThroughputIncrease float64 `json:"throughputIncrease"`
-
-	ResourceSavings float64 `json:"resourceSavings"`
-
-	CostSavings float64 `json:"costSavings"`
-
-	EfficiencyGain float64 `json:"efficiencyGain"`
-}
+// type ExpectedImpact struct {
+// 	LatencyReduction float64 `json:"latencyReduction"`
+//
+// 	ThroughputIncrease float64 `json:"throughputIncrease"`
+//
+// 	ResourceSavings float64 `json:"resourceSavings"`
+//
+// 	CostSavings float64 `json:"costSavings"`
+//
+// 	EfficiencyGain float64 `json:"efficiencyGain"`
+// }
 
 // ResourceType represents different types of resources.
 
