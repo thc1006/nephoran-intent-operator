@@ -163,17 +163,17 @@ func ConvertRiskAssessment(ra *RiskAssessment) *OptimizationRiskAssessment {
 
 	return &OptimizationRiskAssessment{
 
-		OverallRiskLevel: scoreToRiskLevel(ra.OverallRiskScore),
+		OverallRiskLevel: ra.OverallRiskLevel,
 
-		ImplementationRisk: ra.OverallRiskScore,
+		ImplementationRisk: ra.ImplementationRisk,
 
-		PerformanceRisk: ra.OverallRiskScore * 0.7,
+		PerformanceRisk: ra.PerformanceRisk,
 
-		AvailabilityRisk: ra.OverallRiskScore * 0.6,
+		AvailabilityRisk: ra.AvailabilityRisk,
 
-		SecurityRisk: ra.OverallRiskScore * 0.3,
+		SecurityRisk: ra.SecurityRisk,
 
-		ComplianceRisk: ra.OverallRiskScore * 0.3,
+		ComplianceRisk: ra.ComplianceRisk,
 	}
 
 }

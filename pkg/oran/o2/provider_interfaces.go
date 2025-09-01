@@ -106,16 +106,6 @@ type ResourceFilter struct {
 	Offset        int               `json:"offset,omitempty"`
 }
 
-// ResourceEvent represents an event related to a resource
-type ResourceEvent struct {
-	EventID   string                 `json:"eventId"`
-	Type      string                 `json:"type"`
-	Reason    string                 `json:"reason"`
-	Message   string                 `json:"message"`
-	Source    string                 `json:"source"`
-	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-}
 
 // ProviderEvent represents an event from a provider
 type ProviderEvent struct {

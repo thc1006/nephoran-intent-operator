@@ -716,9 +716,9 @@ func NewPerformanceAnalysisEngine(config *AnalysisConfig, prometheusClient v1.AP
 
 	engine.bottleneckPredictor = NewBottleneckPredictor(config.PredictionHorizon)
 
-	engine.performanceForecaster = NewPerformanceForecaster(config.PredictionHorizon)
+	engine.performanceForecaster = NewPerformanceForecaster(config, logger.WithName("performance-forecaster"))
 
-	engine.optimizationRanker = NewOptimizationRanker()
+	engine.optimizationRanker = NewOptimizationRanker(config, logger.WithName("optimization-ranker"))
 
 	return engine
 

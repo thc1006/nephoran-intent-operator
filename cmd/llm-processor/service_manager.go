@@ -42,7 +42,7 @@ type ServiceManager struct {
 		GetMetrics() map[string]interface{}
 	}
 
-	circuitBreakerMgr *llm.CircuitBreakerManager
+	circuitBreakerMgr llm.CircuitBreakerManagerInterface
 
 	tokenManager llm.TokenManager
 
@@ -614,7 +614,7 @@ func (sm *ServiceManager) GetStreamingProcessor() interface {
 
 // GetCircuitBreakerMgr returns the circuit breaker manager.
 
-func (sm *ServiceManager) GetCircuitBreakerMgr() *llm.CircuitBreakerManager {
+func (sm *ServiceManager) GetCircuitBreakerMgr() llm.CircuitBreakerManagerInterface {
 
 	return sm.circuitBreakerMgr
 

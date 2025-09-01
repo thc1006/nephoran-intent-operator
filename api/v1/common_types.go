@@ -53,6 +53,9 @@ type ManagedElementSpec struct {
 	// A1Policy specifies the A1 policy configuration
 	// +optional
 	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
+	// DeploymentName specifies the name of the associated Kubernetes deployment
+	// +optional
+	DeploymentName string `json:"deploymentName,omitempty"`
 }
 
 // ManagedElementCredentials defines authentication credentials
@@ -346,8 +349,9 @@ type ParameterMetadata struct {
 	Default string `json:"default,omitempty"`
 	// ProcessedAt indicates when the parameter was processed
 	ProcessedAt *metav1.Time `json:"processedAt,omitempty"`
-	// ConfidenceScore indicates confidence in parameter extraction
-	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+	// ConfidenceScore indicates confidence in parameter extraction (as string to avoid float issues)
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	ConfidenceScore *string `json:"confidenceScore,omitempty"`
 	// Annotations for additional metadata
 	Annotations map[string]string `json:"annotations,omitempty"`
 }

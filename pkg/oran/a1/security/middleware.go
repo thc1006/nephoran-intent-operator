@@ -37,27 +37,7 @@ type SecurityMiddleware struct {
 	rateLimiter *RateLimiter
 }
 
-// SecurityConfig holds comprehensive security configuration.
-
-type SecurityConfig struct {
-	Authentication *AuthConfig `json:"authentication"`
-
-	MTLS *MTLSConfig `json:"mtls"`
-
-	Encryption *EncryptionConfig `json:"encryption"`
-
-	Sanitization *SanitizationConfig `json:"sanitization"`
-
-	Audit *AuditConfig `json:"audit"`
-
-	RateLimit *RateLimitConfig `json:"rate_limit"`
-
-	SecurityHeaders *HeadersConfig `json:"security_headers"`
-
-	CORS *CORSConfig `json:"cors"`
-
-	CSRF *CSRFConfig `json:"csrf"`
-}
+// SecurityConfig is defined in config.go
 
 // HeadersConfig holds security headers configuration.
 

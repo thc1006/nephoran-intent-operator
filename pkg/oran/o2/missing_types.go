@@ -44,44 +44,7 @@ const (
 
 
 
-// CNFLifecycleManager manages CNF lifecycle operations
-type CNFLifecycleManager interface {
-	// CNF deployment operations
-	DeployCNF(ctx context.Context, spec *CNFSpec) (*CNFInstance, error)
-	UpdateCNF(ctx context.Context, cnfID string, spec *CNFSpec) error
-	ScaleCNF(ctx context.Context, cnfID string, replicas int32) error
-	TerminateCNF(ctx context.Context, cnfID string) error
-	
-	// CNF state management
-	GetCNFState(ctx context.Context, cnfID string) (*CNFState, error)
-	ListCNFs(ctx context.Context, filter *CNFFilter) ([]*CNFInstance, error)
-	
-	// CNF monitoring
-	MonitorCNF(ctx context.Context, cnfID string) error
-	GetCNFMetrics(ctx context.Context, cnfID string) (map[string]interface{}, error)
-	GetCNFHealth(ctx context.Context, cnfID string) (*o2models.HealthStatus, error)
-}
 
-// HelmManager manages Helm chart deployments
-type HelmManager interface {
-	// Chart management
-	InstallChart(ctx context.Context, req *HelmInstallRequest) (*HelmRelease, error)
-	UpgradeChart(ctx context.Context, req *HelmUpgradeRequest) (*HelmRelease, error)
-	UninstallChart(ctx context.Context, releaseName, namespace string) error
-	
-	// Release operations
-	GetRelease(ctx context.Context, releaseName, namespace string) (*HelmRelease, error)
-	ListReleases(ctx context.Context, namespace string) ([]*HelmRelease, error)
-	RollbackRelease(ctx context.Context, releaseName, namespace string, revision int) error
-	
-	// Chart repository management
-	AddRepository(ctx context.Context, repo *HelmRepositoryO2) error
-	UpdateRepository(ctx context.Context, repoName string) error
-	
-	// Values and configuration
-	GetValues(ctx context.Context, releaseName, namespace string) (map[string]interface{}, error)
-	ValidateValues(ctx context.Context, chartPath string, values map[string]interface{}) error
-}
 
 // OperatorManagerInterface manages Kubernetes operators
 type OperatorManagerInterface interface {
@@ -164,29 +127,6 @@ type InfrastructureInventoryManager interface {
 	GetAsset(ctx context.Context, assetID string) (*InfrastructureAsset, error)
 }
 
-// InfrastructureHealthChecker provides infrastructure health checking capabilities
-type InfrastructureHealthChecker interface {
-	// Health checking
-	CheckHealth(ctx context.Context, resourceID string) (*o2models.HealthStatus, error)
-	CheckAllResources(ctx context.Context) (map[string]*o2models.HealthStatus, error)
-	
-	// Health monitoring
-	StartHealthMonitoring(ctx context.Context, resourceID string, interval time.Duration) error
-	StopHealthMonitoring(ctx context.Context, resourceID string) error
-	
-	// Health policies
-	SetHealthPolicy(ctx context.Context, resourceID string, policy *HealthPolicy) error
-	GetHealthPolicy(ctx context.Context, resourceID string) (*HealthPolicy, error)
-	
-	// Health history and trends
-	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]*o2models.HealthHistoryEntry, error)
-	GetHealthTrends(ctx context.Context, resourceID string, duration time.Duration) (*HealthTrendsO2, error)
-	
-	// Health events and callbacks
-	RegisterHealthEventCallback(ctx context.Context, resourceID string, callback func(*HealthEventO2) error) error
-	UnregisterHealthEventCallback(ctx context.Context, resourceID string) error
-	EmitHealthEvent(ctx context.Context, event *HealthEventO2) error
-}
 
 // O2IMSStorage provides storage capabilities for O2 IMS data
 type O2IMSStorage interface {
@@ -543,43 +483,9 @@ type CNFState struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-type CNFFilter struct {
-	Names       []string `json:"names,omitempty"`
-	Namespaces  []string `json:"namespaces,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Status      []string `json:"status,omitempty"`
-	Types       []string `json:"types,omitempty"`
-}
 
 // Helm management types
-type HelmInstallRequest struct {
-	ChartName   string                 `json:"chartName"`
-	ReleaseName string                 `json:"releaseName"`
-	Namespace   string                 `json:"namespace"`
-	Values      map[string]interface{} `json:"values,omitempty"`
-	Version     string                 `json:"version,omitempty"`
-	RepoURL     string                 `json:"repoUrl,omitempty"`
-}
 
-type HelmUpgradeRequest struct {
-	ReleaseName string                 `json:"releaseName"`
-	Namespace   string                 `json:"namespace"`
-	ChartName   string                 `json:"chartName,omitempty"`
-	Values      map[string]interface{} `json:"values,omitempty"`
-	Version     string                 `json:"version,omitempty"`
-	ResetValues bool                   `json:"resetValues"`
-}
-
-type HelmRelease struct {
-	Name        string                 `json:"name"`
-	Namespace   string                 `json:"namespace"`
-	Chart       string                 `json:"chart"`
-	Version     string                 `json:"version"`
-	Status      string                 `json:"status"`
-	Revision    int                    `json:"revision"`
-	UpdatedAt   time.Time              `json:"updatedAt"`
-	Values      map[string]interface{} `json:"values,omitempty"`
-}
 
 type HelmRepositoryO2 struct {
 	Name     string `json:"name"`

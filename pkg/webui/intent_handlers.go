@@ -56,7 +56,7 @@ type IntentRequest struct {
 
 	IntentType nephoranv1.IntentType `json:"intent_type"`
 
-	Priority nephoranv1.Priority `json:"priority,omitempty"`
+	Priority nephoranv1.NetworkPriority `json:"priority,omitempty"`
 
 	TargetComponents []nephoranv1.TargetComponent `json:"target_components,omitempty"`
 
@@ -451,7 +451,7 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 
 	if req.Priority == "" {
 
-		req.Priority = nephoranv1.PriorityMedium
+		req.Priority = nephoranv1.NetworkPriorityNormal
 
 	}
 

@@ -400,8 +400,8 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure session management
 			sessionConfig := SessionConfig{
-				SessionTTL:    scenario.sessionTTL,
-				CleanupPeriod: time.Minute * 5,
+				SessionTimeout:    scenario.sessionTTL,
+				RefreshThreshold: time.Minute * 5,
 			}
 
 			authSystem.ConfigureSessionManagement(sessionConfig)
@@ -1031,20 +1031,22 @@ func min(a, b int) int {
 
 func setupBenchmarkAuthSystem() *EnhancedAuthSystem {
 	config := AuthSystemConfig{
-		JWTConfig: JWTConfig{
-			Secret: "test-secret-key",
+		JWTConfig: BenchmarkJWTConfig{
+			SigningMethod: "HS256",
+			KeySize:       256,
 		},
-		LDAPConfig: providers.LDAPConfig{
+		LDAPConfig: BenchmarkLDAPConfig{
 			Host:   "localhost:389",
 			BaseDN: "dc=example,dc=com",
 		},
-		OAuth2Providers: []OAuth2Config{
-			{DefaultScopes: []string{"read:user"}, TokenTTL: time.Hour},
-			{DefaultScopes: []string{"openid", "profile"}, TokenTTL: time.Hour},
+		OAuth2Providers: []BenchmarkOAuth2Config{
+			{Provider: "test1", Scopes: []string{"read:user"}},
+			{Provider: "test2", Scopes: []string{"openid", "profile"}},
 		},
-		SessionConfig: SessionConfig{
-			SessionTimeout: time.Hour,
-			MaxSessions:    1000,
+		SessionConfig: BenchmarkSessionConfig{
+			TTL:             time.Hour,
+			StorageBackend:  "memory",
+			CleanupInterval: time.Minute * 5,
 		},
 	}
 
@@ -1271,7 +1273,7 @@ func (a *EnhancedAuthSystem) ExchangeOAuth2Token(ctx context.Context, token OAut
 	return &OAuth2ExchangeResult{
 		Success:         true,
 		ValidationTime:  10 * time.Millisecond,
-		ScopesValidated: len(config.Scopes),
+		ScopesValidated: len(config.DefaultScopes),
 	}, nil
 }
 

@@ -370,27 +370,6 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 
 }
 
-// GetModelCapabilities implements the shared.ClientInterface.
-
-func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-
-	return &shared.ModelCapabilities{
-
-		MaxTokens: 4096,
-
-		SupportsChat: true,
-
-		SupportsFunction: true,
-
-		SupportsStreaming: true,
-
-		CostPerToken: 0.001,
-
-		Features: make(map[string]interface{}),
-	}, nil
-
-}
-
 // ValidateModel implements the shared.ClientInterface.
 
 func (m *MockLLMClient) ValidateModel(modelName string) error {
@@ -435,6 +414,132 @@ func (m *MockLLMClient) Close() error {
 
 	return nil // Nothing to close in mock
 
+}
+
+// ProcessRequest implements the shared.ClientInterface.
+func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	if m.shouldReturnError || m.Error != nil {
+		if m.Error != nil {
+			return nil, m.Error
+		}
+		return nil, fmt.Errorf("mock LLM client error")
+	}
+
+	// Simulate processing delay
+	if m.processingDelay > 0 {
+		select {
+		case <-time.After(m.processingDelay):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+
+	// Use the first message content as the intent
+	intent := ""
+	if len(request.Messages) > 0 {
+		intent = request.Messages[0].Content
+	}
+
+	response, _ := m.ProcessIntent(ctx, intent)
+	
+	return &shared.LLMResponse{
+		ID:      "mock-response-id",
+		Content: response,
+		Model:   request.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     100,
+			CompletionTokens: 50,
+			TotalTokens:      150,
+		},
+		Created: time.Now(),
+	}, nil
+}
+
+// ProcessStreamingRequest implements the shared.ClientInterface.
+func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	if m.shouldReturnError || m.Error != nil {
+		if m.Error != nil {
+			return nil, m.Error
+		}
+		return nil, fmt.Errorf("mock LLM client streaming error")
+	}
+
+	chunks := make(chan *shared.StreamingChunk, 10)
+	
+	go func() {
+		defer close(chunks)
+		
+		// Use the first message content as the intent
+		intent := ""
+		if len(request.Messages) > 0 {
+			intent = request.Messages[0].Content
+		}
+
+		response, _ := m.ProcessIntent(ctx, intent)
+		
+		// Split response into chunks
+		words := strings.Split(response, " ")
+		for i, word := range words {
+			select {
+			case <-ctx.Done():
+				return
+			case chunks <- &shared.StreamingChunk{
+				ID:        "mock-chunk-id",
+				Content:   strings.Join(words[:i+1], " "),
+				Delta:     word + " ",
+				Done:      i == len(words)-1,
+				IsLast:    i == len(words)-1,
+				Timestamp: time.Now(),
+			}:
+			}
+			
+			if m.processingDelay > 0 {
+				time.Sleep(m.processingDelay / time.Duration(len(words)))
+			}
+		}
+	}()
+	
+	return chunks, nil
+}
+
+// HealthCheck implements the shared.ClientInterface.
+func (m *MockLLMClient) HealthCheck(ctx context.Context) error {
+	if m.shouldReturnError || m.Error != nil {
+		if m.Error != nil {
+			return m.Error
+		}
+		return fmt.Errorf("mock LLM client unhealthy")
+	}
+	return nil
+}
+
+// GetStatus implements the shared.ClientInterface.
+func (m *MockLLMClient) GetStatus() shared.ClientStatus {
+	if m.shouldReturnError || m.Error != nil {
+		return shared.ClientStatusUnhealthy
+	}
+	return shared.ClientStatusHealthy
+}
+
+// GetModelCapabilities implements the shared.ClientInterface.
+func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		MaxTokens:            4096,
+		SupportsChat:         true,
+		SupportsFunction:     true,
+		SupportsStreaming:    true,
+		SupportsSystemPrompt: true,
+		SupportsChatFormat:   true,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain", "application/json"},
+		ModelVersion:         "mock-v1.0",
+		Features:             make(map[string]interface{}),
+	}
+}
+
+// GetEndpoint implements the shared.ClientInterface.
+func (m *MockLLMClient) GetEndpoint() string {
+	return "mock://localhost:8080/llm"
 }
 
 // GetError returns the current error state for test convenience.
@@ -1216,7 +1321,7 @@ func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBa
 
 // GetMetricsCollector performs getmetricscollector operation.
 
-func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector { return nil }
+func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector { return nil }
 
 // MockDependenciesBuilder provides a builder pattern for creating mock dependencies.
 

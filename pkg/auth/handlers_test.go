@@ -30,16 +30,17 @@ func TestAuthHandlers_Login(t *testing.T) {
 	rbacManager := tc.SetupRBACManager()
 
 	// Create handlers
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
-		JWTManager:     jwtManager,
-		SessionManager: sessionManager,
-		RBACManager:    rbacManager,
-		OAuthProviders: map[string]interface{}{
-			"test": &testutil.MockOAuthProvider{Name: "test"},
-		},
-		BaseURL: "http://localhost:8080",
-		Logger:  tc.Logger,
-	})
+	handlersConfig := &HandlersConfig{
+		BaseURL:         "http://localhost:8080",
+		DefaultRedirect: "/dashboard",
+		LoginPath:       "/auth/login",
+		CallbackPath:    "/auth/callback",
+		LogoutPath:      "/auth/logout",
+		UserInfoPath:    "/auth/userinfo",
+		EnableAPITokens: true,
+		TokenPath:       "/auth/token",
+	}
+	handlers := NewAuthHandlers(sessionManager, jwtManager, rbacManager, handlersConfig)
 
 	tests := []struct {
 		name          string

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // BufferLogHandler implements slog.Handler to capture log output in a buffer
@@ -699,6 +700,45 @@ func (m *MockCircuitBreakerManager) GetAllStats() map[string]interface{} {
 	return m.stats
 }
 
+// GetOrCreate is a mock implementation of GetOrCreate
+func (m *MockCircuitBreakerManager) GetOrCreate(name string, config *llm.CircuitBreakerConfig) *llm.CircuitBreaker {
+	return nil // Mock implementation
+}
+
+// Get is a mock implementation of Get
+func (m *MockCircuitBreakerManager) Get(name string) (*llm.CircuitBreaker, bool) {
+	return nil, false // Mock implementation
+}
+
+// Remove is a mock implementation of Remove
+func (m *MockCircuitBreakerManager) Remove(name string) {
+	// Mock implementation - no-op
+}
+
+// List is a mock implementation of List
+func (m *MockCircuitBreakerManager) List() []string {
+	names := make([]string, 0, len(m.stats))
+	for name := range m.stats {
+		names = append(names, name)
+	}
+	return names
+}
+
+// GetStats returns the mock circuit breaker stats (interface-compatible method)
+func (m *MockCircuitBreakerManager) GetStats() (map[string]interface{}, error) {
+	return m.stats, nil
+}
+
+// Shutdown is a mock implementation of Shutdown
+func (m *MockCircuitBreakerManager) Shutdown() {
+	// Mock implementation - no-op
+}
+
+// ResetAll is a mock implementation of ResetAll
+func (m *MockCircuitBreakerManager) ResetAll() {
+	// Mock implementation - no-op
+}
+
 // TestCircuitBreakerHealthValidation tests the circuit breaker health check functionality
 func TestCircuitBreakerHealthValidation(t *testing.T) {
 	tests := []struct {
@@ -826,7 +866,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			}
 
 			// Create mock health checker
-			healthChecker := &health.HealthChecker{}
+			healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
 
 			// Create service manager with mock components
 			sm := &ServiceManager{
@@ -880,7 +920,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 			},
 		}
 
-		healthChecker := &health.HealthChecker{}
+		healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
 		sm := &ServiceManager{
 			circuitBreakerMgr: mockCBMgr,
 			healthChecker:     healthChecker,
@@ -899,7 +939,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 	})
 
 	t.Run("without_circuit_breaker_manager", func(t *testing.T) {
-		healthChecker := &health.HealthChecker{}
+		healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
 		sm := &ServiceManager{
 			circuitBreakerMgr: nil, // No circuit breaker manager
 			healthChecker:     healthChecker,
@@ -929,7 +969,7 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 	}
 
 	mockCBMgr := &MockCircuitBreakerManager{stats: stats}
-	healthChecker := &health.HealthChecker{}
+	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
 	sm := &ServiceManager{
 		circuitBreakerMgr: mockCBMgr,
 		healthChecker:     healthChecker,

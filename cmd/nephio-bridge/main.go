@@ -262,7 +262,7 @@ func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
 
 // GetMetricsCollector returns the metrics collector (placeholder implementation).
 
-func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
+func (d *dependencyImpl) GetMetricsCollector() monitoring.MetricsCollector {
 
 	return nil // TODO: Implement metrics collector
 

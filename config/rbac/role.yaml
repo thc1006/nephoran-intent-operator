@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - nephoran.io
+  resources:
+  - networkintents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - nephoran.io
+  resources:
+  - networkintents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - nephoran.io
+  resources:
+  - networkintents/status
+  verbs:
+  - get
+  - patch
+  - update

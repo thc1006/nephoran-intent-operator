@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -492,6 +493,12 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 	// Convert retry policy.
 
 	if spec.RetryPolicy != nil {
+		// Parse BackoffFactor from string to float64
+		backoffFactor, err := strconv.ParseFloat(spec.RetryPolicy.BackoffFactor, 64)
+		if err != nil {
+			// Use default value if parsing fails
+			backoffFactor = 2.0
+		}
 
 		config.RetryPolicy = backends.RetryPolicy{
 
@@ -501,7 +508,7 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 
 			MaxDelay: time.Duration(spec.RetryPolicy.MaxDelay) * time.Second,
 
-			BackoffFactor: spec.RetryPolicy.BackoffFactor,
+			BackoffFactor: backoffFactor,
 		}
 
 	} else {

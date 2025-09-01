@@ -18,6 +18,7 @@ package optimization
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ExpectedImpact represents the expected impact of implementing an optimization
@@ -76,7 +77,7 @@ func NewImpactPredictor(logger logr.Logger) *ImpactPredictor {
 
 // PredictImpact predicts the expected impact of implementing a strategy
 func (ip *ImpactPredictor) PredictImpact(
-	strategy *OptimizationStrategy,
+	strategy *OptimizationStrategyConfig,
 	analysis *ComponentAnalysis,
 	overallResult *PerformanceAnalysisResult,
 ) *ExpectedImpact {
@@ -100,7 +101,7 @@ func (ip *ImpactPredictor) PredictImpact(
 		DataQuality:             0.85, // Default data quality
 	}
 
-	// Adjust based on component health
+	// Adjust based on component health  
 	if analysis.HealthStatus == HealthStatusCritical {
 		impact.ConfidenceLevel *= 0.9 // Slightly less confident with critical health
 	}
@@ -131,7 +132,7 @@ func (ip *ImpactPredictor) calculateScalingFactor(analysis *ComponentAnalysis) f
 	switch analysis.HealthStatus {
 	case HealthStatusCritical:
 		scalingFactor *= 2.0 // Critical systems have high improvement potential
-	case HealthStatusUnhealthy:
+	case HealthStatusWarning:
 		scalingFactor *= 1.5
 	case HealthStatusHealthy:
 		scalingFactor *= 0.9 // Healthy systems have less potential
@@ -154,7 +155,7 @@ func NewROICalculator(logger logr.Logger) *ROICalculator {
 
 // CalculateROI calculates the ROI for implementing an optimization
 func (rc *ROICalculator) CalculateROI(
-	strategy *OptimizationStrategy,
+	strategy *OptimizationStrategyConfig,
 	expectedImpact *ExpectedImpact,
 	riskAssessment *RiskAssessment,
 ) float64 {
@@ -185,7 +186,7 @@ func (rc *ROICalculator) CalculateROI(
 }
 
 // estimateImplementationCost estimates the cost of implementing a strategy
-func (rc *ROICalculator) estimateImplementationCost(strategy *OptimizationStrategy) float64 {
+func (rc *ROICalculator) estimateImplementationCost(strategy *OptimizationStrategyConfig) float64 {
 	baseCost := 1000.0 // Base cost in arbitrary units
 
 	// Scale cost based on number of implementation steps
@@ -248,7 +249,7 @@ func NewRiskAssessor(logger logr.Logger) *RiskAssessor {
 
 // AssessRisk assesses the risk of implementing an optimization strategy
 func (ra *RiskAssessor) AssessRisk(
-	strategy *OptimizationStrategy,
+	strategy *OptimizationStrategyConfig,
 	analysis *ComponentAnalysis,
 	overallResult *PerformanceAnalysisResult,
 ) *RiskAssessment {
@@ -299,16 +300,16 @@ func (ra *RiskAssessor) AssessRisk(
 }
 
 // getHealthRiskMultiplier returns risk multiplier based on health status
-func (ra *RiskAssessor) getHealthRiskMultiplier(healthStatus HealthStatus) float64 {
+func (ra *RiskAssessor) getHealthRiskMultiplier(healthStatus SystemHealthStatus) float64 {
 	switch healthStatus {
 	case HealthStatusCritical:
 		return 2.0 // High risk for critical systems
-	case HealthStatusUnhealthy:
-		return 1.5 // Moderate additional risk
+	case HealthStatusWarning:
+		return 1.5 // Moderate additional risk  
 	case HealthStatusHealthy:
 		return 1.0 // No additional risk
-	case HealthStatusOptimal:
-		return 0.8 // Lower risk for optimal systems
+	case HealthStatusUnknown:
+		return 1.2 // Slightly higher risk for unknown systems
 	default:
 		return 1.0
 	}
@@ -349,7 +350,7 @@ func (ra *RiskAssessor) determineOverallRiskLevel(totalRisk float64) RiskLevel {
 
 // generateMitigationStrategies generates mitigation strategies for identified risks
 func (ra *RiskAssessor) generateMitigationStrategies(
-	strategy *OptimizationStrategy,
+	strategy *OptimizationStrategyConfig,
 	assessment *RiskAssessment,
 ) []MitigationStrategy {
 	var strategies []MitigationStrategy
@@ -390,18 +391,14 @@ func (ra *RiskAssessor) generateMitigationStrategies(
 	return strategies
 }
 
-// OptimizationKnowledgeBase contains historical data and best practices
-type OptimizationKnowledgeBase struct {
-	strategies     map[string]*OptimizationStrategy
-	historicalData map[string]interface{}
-	bestPractices  map[string]string
-}
-
 // NewOptimizationKnowledgeBase creates a new knowledge base
+// Note: OptimizationKnowledgeBase type is defined in types.go
 func NewOptimizationKnowledgeBase() *OptimizationKnowledgeBase {
 	return &OptimizationKnowledgeBase{
-		strategies:     make(map[string]*OptimizationStrategy),
-		historicalData: make(map[string]interface{}),
-		bestPractices:  make(map[string]string),
+		BestPractices:       make(map[shared.ComponentType][]*OptimizationBestPractice),
+		OptimizationHistory: make([]*OptimizationHistoryEntry, 0),
+		KnownBottlenecks:    make(map[string]*BottleneckSolution),
+		TelecomRules:        make([]*TelecomOptimizationRule, 0),
+		// PerformanceBaselines: make(map[shared.ComponentType]*PerformanceBaseline), // Field doesn't exist in OptimizationKnowledgeBase
 	}
 }

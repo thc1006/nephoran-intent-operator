@@ -214,7 +214,7 @@ func (c *Container) getTelecomKnowledgeBase() (*telecom.TelecomKnowledgeBase, er
 
 }
 
-func (c *Container) getMetricsCollector() (*monitoring.MetricsCollector, error) {
+func (c *Container) getMetricsCollector() (monitoring.MetricsCollector, error) {
 
 	dep, err := c.Get("metrics_collector")
 
@@ -224,7 +224,12 @@ func (c *Container) getMetricsCollector() (*monitoring.MetricsCollector, error) 
 
 	}
 
-	return dep.(*monitoring.MetricsCollector), nil
+	collector, ok := dep.(monitoring.MetricsCollector)
+	if !ok {
+		return nil, fmt.Errorf("dependency is not a MetricsCollector")
+	}
+
+	return collector, nil
 
 }
 
@@ -326,7 +331,7 @@ func (c *Container) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 
 // GetMetricsCollector performs getmetricscollector operation.
 
-func (c *Container) GetMetricsCollector() *monitoring.MetricsCollector {
+func (c *Container) GetMetricsCollector() monitoring.MetricsCollector {
 
 	collector, err := c.getMetricsCollector()
 

@@ -198,11 +198,12 @@ type RetryPolicySpec struct {
 
 	MaxDelay int `json:"maxDelay,omitempty"`
 
-	// BackoffFactor defines the multiplier for exponential backoff.
+	// BackoffFactor defines the multiplier for exponential backoff (as string to avoid float issues).
 
-	// +kubebuilder:default:=20
+	// +kubebuilder:default:="2.0"
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d+)?$`
 
-	BackoffFactor float64 `json:"backoffFactor,omitempty"`
+	BackoffFactor string `json:"backoffFactor,omitempty"`
 }
 
 // TLSConfigSpec defines TLS settings for secure connections.

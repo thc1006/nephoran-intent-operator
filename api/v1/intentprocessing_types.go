@@ -96,13 +96,12 @@ type IntentProcessingStatus struct {
 
 	// ExtractedEntities contains entities extracted from the intent
 	// +optional
-	ExtractedEntities map[string]interface{} `json:"extractedEntities,omitempty"`
+	ExtractedEntities map[string]runtime.RawExtension `json:"extractedEntities,omitempty"`
 
-	// QualityScore indicates the quality of processing
+	// QualityScore indicates the quality of processing (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	QualityScore *float64 `json:"qualityScore,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	QualityScore *string `json:"qualityScore,omitempty"`
 
 	// Metrics processing metrics
 	// +optional
@@ -167,11 +166,10 @@ type LLMProcessingConfig struct {
 	// +kubebuilder:default="gpt-4"
 	Model string `json:"model,omitempty"`
 
-	// Temperature for text generation
+	// Temperature for text generation (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=2.0
-	Temperature *float64 `json:"temperature,omitempty"`
+	// +kubebuilder:validation:Pattern=`^([01](\.[0-9]+)?|2(\.0+)?)$`
+	Temperature *string `json:"temperature,omitempty"`
 
 	// MaxTokens maximum tokens in response
 	// +optional
@@ -199,11 +197,10 @@ type RAGProcessingConfig struct {
 	// +kubebuilder:validation:Maximum=50
 	MaxRetrievalResults *int32 `json:"maxRetrievalResults,omitempty"`
 
-	// SimilarityThreshold threshold for similarity matching
+	// SimilarityThreshold threshold for similarity matching (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	SimilarityThreshold *float64 `json:"similarityThreshold,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	SimilarityThreshold *string `json:"similarityThreshold,omitempty"`
 
 	// MaxDocuments maximum number of documents to retrieve
 	// +optional
@@ -211,11 +208,10 @@ type RAGProcessingConfig struct {
 	// +kubebuilder:validation:Maximum=100
 	MaxDocuments *int32 `json:"maxDocuments,omitempty"`
 
-	// RetrievalThreshold threshold for retrieval
+	// RetrievalThreshold threshold for retrieval (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	RetrievalThreshold *float64 `json:"retrievalThreshold,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	RetrievalThreshold *string `json:"retrievalThreshold,omitempty"`
 }
 
 // ProcessingConfig defines general processing configuration
@@ -228,11 +224,10 @@ type ProcessingConfig struct {
 	// +optional
 	Model string `json:"model,omitempty"`
 
-	// Temperature for text generation
+	// Temperature for text generation (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=2.0
-	Temperature *float64 `json:"temperature,omitempty"`
+	// +kubebuilder:validation:Pattern=`^([01](\.[0-9]+)?|2(\.0+)?)$`
+	Temperature *string `json:"temperature,omitempty"`
 
 	// MaxTokens maximum tokens in response
 	// +optional
@@ -276,10 +271,9 @@ type LLMMetrics struct {
 	// Model the LLM model used
 	Model string `json:"model,omitempty"`
 
-	// ConfidenceScore confidence in the response
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
+	// ConfidenceScore confidence in the response (as string to avoid float issues)
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	ConfidenceScore string `json:"confidenceScore,omitempty"`
 }
 
 // RAGMetrics contains metrics for RAG processing
@@ -294,16 +288,14 @@ type RAGMetrics struct {
 	// DocumentsRetrieved number of documents retrieved
 	DocumentsRetrieved int32 `json:"documentsRetrieved,omitempty"`
 
-	// AverageRelevanceScore average relevance score of retrieved documents
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	AverageRelevanceScore float64 `json:"averageRelevanceScore,omitempty"`
+	// AverageRelevanceScore average relevance score of retrieved documents (as string to avoid float issues)
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	AverageRelevanceScore string `json:"averageRelevanceScore,omitempty"`
 
-	// TopRelevanceScore highest relevance score
+	// TopRelevanceScore highest relevance score (as string to avoid float issues)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
-	TopRelevanceScore float64 `json:"topRelevanceScore,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	TopRelevanceScore string `json:"topRelevanceScore,omitempty"`
 
 	// SourcesUsed list of knowledge sources used
 	SourcesUsed []string `json:"sourcesUsed,omitempty"`
@@ -330,9 +322,10 @@ type TokenUsageInfo struct {
 	// TotalTokens total number of tokens
 	TotalTokens int32 `json:"totalTokens,omitempty"`
 
-	// Cost estimated cost in USD
+	// Cost estimated cost in USD (as string to avoid float issues)
 	// +optional
-	Cost *float64 `json:"cost,omitempty"`
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d{1,4})?$`
+	Cost *string `json:"cost,omitempty"`
 }
 
 // +kubebuilder:object:root=true

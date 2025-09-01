@@ -47,7 +47,7 @@ type Dependencies interface {
 
 	GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase
 
-	GetMetricsCollector() *monitoring.MetricsCollector
+	GetMetricsCollector() monitoring.MetricsCollector
 }
 
 // GitClientInterface is an alias to the git package ClientInterface.

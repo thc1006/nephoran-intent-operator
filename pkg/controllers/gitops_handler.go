@@ -295,7 +295,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 
 		commitDuration := time.Since(startTime)
 
-		(*metricsCollector).RecordGitOpsOperation("commit", commitDuration, true)
+		metricsCollector.RecordGitOpsOperation("commit", commitDuration, true)
 
 		// (*metricsCollector).GitOpsPackagesGenerated.Inc() // TODO: Add this method to interface
 
@@ -495,7 +495,7 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 
 	if metricsCollector := g.deps.GetMetricsCollector(); metricsCollector != nil {
 
-		(*metricsCollector).RecordGitOpsOperation("cleanup", time.Since(time.Now()), true)
+		metricsCollector.RecordGitOpsOperation("cleanup", time.Since(time.Now()), true)
 
 	}
 

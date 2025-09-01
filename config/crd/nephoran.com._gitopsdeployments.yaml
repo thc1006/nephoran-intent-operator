@@ -1,0 +1,786 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: gitopsdeployments.nephoran.com.
+spec:
+  group: nephoran.com.
+  names:
+    kind: GitOpsDeployment
+    listKind: GitOpsDeploymentList
+    plural: gitopsdeployments
+    singular: gitopsdeployment
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              autoSync:
+                default: true
+                type: boolean
+              deploymentConfig:
+                properties:
+                  dependencyChecks:
+                    properties:
+                      dependencies:
+                        items:
+                          properties:
+                            apiVersion:
+                              type: string
+                            condition:
+                              type: string
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - apiVersion
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                      enabled:
+                        default: true
+                        type: boolean
+                      timeout:
+                        default: 120s
+                        type: string
+                    type: object
+                  maxRetries:
+                    format: int32
+                    maximum: 10
+                    type: integer
+                  postDeploymentHooks:
+                    items:
+                      properties:
+                        configuration:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        name:
+                          type: string
+                        onFailure:
+                          enum:
+                          - abort
+                          - continue
+                          - retry
+                          type: string
+                        timeout:
+                          default: 300s
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - configuration
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  preDeploymentHooks:
+                    items:
+                      properties:
+                        configuration:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        name:
+                          type: string
+                        onFailure:
+                          enum:
+                          - abort
+                          - continue
+                          - retry
+                          type: string
+                        timeout:
+                          default: 300s
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - configuration
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  resourceOrder:
+                    items:
+                      type: string
+                    type: array
+                  retryBackoff:
+                    properties:
+                      initialInterval:
+                        default: 30s
+                        type: string
+                      maxInterval:
+                        default: 300s
+                        type: string
+                      multiplier:
+                        default: "2.0"
+                        pattern: ^\d+(\.\d+)?$
+                        type: string
+                    type: object
+                  timeoutSeconds:
+                    format: int32
+                    maximum: 3600
+                    type: integer
+                type: object
+              deploymentStrategy:
+                default: RollingUpdate
+                type: string
+              gitRepository:
+                properties:
+                  authorEmail:
+                    default: noreply@nephorancom
+                    type: string
+                  authorName:
+                    default: nephoran-intent-operator
+                    type: string
+                  branch:
+                    default: main
+                    type: string
+                  commitMessage:
+                    type: string
+                  path:
+                    default: deployments
+                    type: string
+                  provider:
+                    default: generic
+                    type: string
+                  secretRef:
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  signCommits:
+                    default: false
+                    type: boolean
+                  url:
+                    type: string
+                required:
+                - url
+                type: object
+              healthChecks:
+                description: HealthCheckConfig defines health check configuration
+                properties:
+                  checks:
+                    description: Checks is a list of health checks
+                    items:
+                      description: HealthCheck defines health check configuration
+                      properties:
+                        configuration:
+                          additionalProperties:
+                            type: string
+                          description: Configuration for the health check
+                          type: object
+                        enabled:
+                          description: Enabled indicates if health check is enabled
+                          type: boolean
+                        intervalSeconds:
+                          description: Interval between checks
+                          format: int32
+                          type: integer
+                        path:
+                          description: Path for health check endpoint
+                          type: string
+                        port:
+                          description: Port for health check
+                          format: int32
+                          type: integer
+                        resource:
+                          description: Resource reference for health check
+                          type: string
+                        timeoutSeconds:
+                          description: Timeout for each check
+                          format: int32
+                          type: integer
+                      type: object
+                    type: array
+                  enabled:
+                    description: Enabled indicates if health checks are enabled
+                    type: boolean
+                  exec:
+                    description: Exec health check configuration
+                    properties:
+                      configuration:
+                        additionalProperties:
+                          type: string
+                        description: Configuration for the health check
+                        type: object
+                      enabled:
+                        description: Enabled indicates if health check is enabled
+                        type: boolean
+                      intervalSeconds:
+                        description: Interval between checks
+                        format: int32
+                        type: integer
+                      path:
+                        description: Path for health check endpoint
+                        type: string
+                      port:
+                        description: Port for health check
+                        format: int32
+                        type: integer
+                      resource:
+                        description: Resource reference for health check
+                        type: string
+                      timeoutSeconds:
+                        description: Timeout for each check
+                        format: int32
+                        type: integer
+                    type: object
+                  http:
+                    description: HTTP health check configuration
+                    properties:
+                      configuration:
+                        additionalProperties:
+                          type: string
+                        description: Configuration for the health check
+                        type: object
+                      enabled:
+                        description: Enabled indicates if health check is enabled
+                        type: boolean
+                      intervalSeconds:
+                        description: Interval between checks
+                        format: int32
+                        type: integer
+                      path:
+                        description: Path for health check endpoint
+                        type: string
+                      port:
+                        description: Port for health check
+                        format: int32
+                        type: integer
+                      resource:
+                        description: Resource reference for health check
+                        type: string
+                      timeoutSeconds:
+                        description: Timeout for each check
+                        format: int32
+                        type: integer
+                    type: object
+                  tcp:
+                    description: TCP health check configuration
+                    properties:
+                      configuration:
+                        additionalProperties:
+                          type: string
+                        description: Configuration for the health check
+                        type: object
+                      enabled:
+                        description: Enabled indicates if health check is enabled
+                        type: boolean
+                      intervalSeconds:
+                        description: Interval between checks
+                        format: int32
+                        type: integer
+                      path:
+                        description: Path for health check endpoint
+                        type: string
+                      port:
+                        description: Port for health check
+                        format: int32
+                        type: integer
+                      resource:
+                        description: Resource reference for health check
+                        type: string
+                      timeoutSeconds:
+                        description: Timeout for each check
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              manifestGenerationRef:
+                description: ObjectReference represents a reference to a Kubernetes
+                  object
+                properties:
+                  apiVersion:
+                    description: API version of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent
+                    type: string
+                  uid:
+                    description: UID of the referent
+                    type: string
+                type: object
+              manifests:
+                additionalProperties:
+                  type: string
+                type: object
+              parentIntentRef:
+                description: ObjectReference represents a reference to a Kubernetes
+                  object
+                properties:
+                  apiVersion:
+                    description: API version of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent
+                    type: string
+                  uid:
+                    description: UID of the referent
+                    type: string
+                type: object
+              priority:
+                default: medium
+                description: Priority defines processing priority levels
+                type: string
+              rollbackConfig:
+                properties:
+                  autoRollback:
+                    default: false
+                    type: boolean
+                  enabled:
+                    default: true
+                    type: boolean
+                  strategy:
+                    enum:
+                    - immediate
+                    - gradual
+                    - manual
+                    type: string
+                  timeout:
+                    default: 300s
+                    type: string
+                  trigger:
+                    properties:
+                      errorThreshold:
+                        maximum: 100
+                        type: integer
+                      onFailure:
+                        default: true
+                        type: boolean
+                      onHealthCheckFailure:
+                        default: false
+                        type: boolean
+                      timeWindow:
+                        default: 5m
+                        type: string
+                    type: object
+                type: object
+              syncPolicy:
+                properties:
+                  automated:
+                    properties:
+                      allowEmpty:
+                        default: false
+                        type: boolean
+                      prune:
+                        default: false
+                        type: boolean
+                      selfHeal:
+                        default: true
+                        type: boolean
+                    type: object
+                  retry:
+                    properties:
+                      backoff:
+                        properties:
+                          duration:
+                            default: 5s
+                            type: string
+                          factor:
+                            format: int64
+                            minimum: 1
+                            type: integer
+                          maxDuration:
+                            default: 3m
+                            type: string
+                        type: object
+                      limit:
+                        format: int64
+                        maximum: 20
+                        type: integer
+                    type: object
+                  syncOptions:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              targetClusters:
+                items:
+                  properties:
+                    config:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    priority:
+                      maximum: 10
+                      type: integer
+                    secretRef:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    server:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+            required:
+            - gitRepository
+            - manifests
+            - parentIntentRef
+            type: object
+          status:
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-type: atomic
+              deploymentCompletionTime:
+                format: date-time
+                type: string
+              deploymentDuration:
+                type: string
+              deploymentStartTime:
+                format: date-time
+                type: string
+              deploymentStatus:
+                items:
+                  properties:
+                    clusterName:
+                      type: string
+                    deployedResources:
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          uid:
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        type: object
+                      type: array
+                    failedResources:
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          uid:
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        type: object
+                      type: array
+                    lastUpdateTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    status:
+                      type: string
+                  required:
+                  - clusterName
+                  - status
+                  type: object
+                type: array
+              gitCommit:
+                properties:
+                  author:
+                    type: string
+                  branch:
+                    type: string
+                  files:
+                    items:
+                      type: string
+                    type: array
+                  hash:
+                    type: string
+                  message:
+                    type: string
+                  timestamp:
+                    format: date-time
+                    type: string
+                  url:
+                    type: string
+                required:
+                - author
+                - branch
+                - hash
+                - message
+                - timestamp
+                type: object
+              healthStatus:
+                properties:
+                  checkResults:
+                    items:
+                      properties:
+                        duration:
+                          type: string
+                        lastCheckTime:
+                          format: date-time
+                          type: string
+                        message:
+                          type: string
+                        name:
+                          type: string
+                        status:
+                          type: string
+                      required:
+                      - name
+                      - status
+                      type: object
+                    type: array
+                  healthScore:
+                    pattern: ^(0(\.\d+)?|1(\.0+)?)$
+                    type: string
+                  lastCheckTime:
+                    format: date-time
+                    type: string
+                  overallStatus:
+                    type: string
+                required:
+                - overallStatus
+                type: object
+              lastSyncTime:
+                format: date-time
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                type: string
+              resourceStatus:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    createdAt:
+                      format: date-time
+                      type: string
+                    health:
+                      type: string
+                    kind:
+                      type: string
+                    message:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    status:
+                      type: string
+                    syncWave:
+                      type: integer
+                    uid:
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  - status
+                  type: object
+                type: array
+              retryCount:
+                format: int32
+                type: integer
+              rollbackInfo:
+                properties:
+                  completedAt:
+                    format: date-time
+                    type: string
+                  initiated:
+                    type: boolean
+                  initiatedAt:
+                    format: date-time
+                    type: string
+                  originalRevision:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  targetRevision:
+                    type: string
+                required:
+                - initiated
+                type: object
+              syncStatus:
+                properties:
+                  comparedTo:
+                    properties:
+                      destination:
+                        properties:
+                          namespace:
+                            type: string
+                          server:
+                            type: string
+                        required:
+                        - namespace
+                        - server
+                        type: object
+                      source:
+                        properties:
+                          path:
+                            type: string
+                          repoURL:
+                            type: string
+                          targetRevision:
+                            type: string
+                        required:
+                        - path
+                        - repoURL
+                        - targetRevision
+                        type: object
+                    required:
+                    - destination
+                    - source
+                    type: object
+                  health:
+                    type: string
+                  resources:
+                    items:
+                      properties:
+                        health:
+                          type: string
+                        kind:
+                          type: string
+                        message:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        status:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      - status
+                      type: object
+                    type: array
+                  revision:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - status
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true

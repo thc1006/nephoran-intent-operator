@@ -11,20 +11,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 // BenchmarkSuite provides comprehensive performance benchmarking
 type BenchmarkSuite struct {
-	jwtManager     *JWTManager
-	sessionManager *SessionManager
-	rbacManager    *RBACManager
+	jwtManager     *auth.JWTManager
+	sessionManager *auth.SessionManager
+	rbacManager    *auth.RBACManager
 	testUsers      []*providers.UserInfo
 	testTokens     []string
-	testSessions   []*UserSession
-	testRoles      []*Role
-	testPerms      []*Permission
+	testSessions   []*auth.UserSession
+	testRoles      []*auth.Role
+	testPerms      []*auth.Permission
 }
 
 func NewBenchmarkSuite() *BenchmarkSuite {

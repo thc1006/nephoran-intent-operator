@@ -18,6 +18,7 @@ package optimization
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -105,24 +106,27 @@ func NewMetricsStore() *MetricsStore {
 }
 
 // NewHistoricalDataStore creates a new historical data store
-func NewHistoricalDataStore() *HistoricalDataStore {
+func NewHistoricalDataStore(retentionPeriod time.Duration) *HistoricalDataStore {
 	return &HistoricalDataStore{
-		data: make([]interface{}, 0),
+		retentionPeriod: retentionPeriod,
+		data:            make([]DataPoint, 0),
 	}
 }
 
-// NewPatternDetector creates a new pattern detector
-func NewPatternDetector(window time.Duration) *PatternDetector {
+// NewPatternDetector creates a new pattern detector  
+func NewPatternDetector(sensitivity float64, window time.Duration) *PatternDetector {
 	return &PatternDetector{
-		window: window,
+		window:      window,
+		sensitivity: sensitivity,
+		patterns:    make([]*PerformancePattern, 0),
 	}
 }
 
 // NewBottleneckPredictor creates a new bottleneck predictor
-func NewBottleneckPredictor(config *AnalysisConfig, logger logr.Logger) *BottleneckPredictor {
+func NewBottleneckPredictor(predictionHorizon time.Duration) *BottleneckPredictor {
 	return &BottleneckPredictor{
-		config: config,
-		logger: logger.WithName("bottleneck-predictor"),
+		predictionHorizon: predictionHorizon,
+		models:           make(map[string]interface{}),
 	}
 }
 
@@ -1570,3 +1574,105 @@ type BenchmarkEnvironment struct {
 
 	Concurrency int `json:"concurrency"`
 }
+
+// =======================
+// Missing Types for Performance Analysis Engine
+// =======================
+
+// MetricsStore stores metrics data for analysis
+type MetricsStore struct {
+	data map[string]interface{}
+	mutex sync.RWMutex
+}
+
+// HistoricalDataStore stores historical performance data
+type HistoricalDataStore struct {
+	retentionPeriod time.Duration
+	data            []DataPoint
+	mutex           sync.RWMutex
+}
+
+// PatternDetector detects patterns in performance data
+type PatternDetector struct {
+	window              time.Duration
+	sensitivity         float64
+	patterns            []*PerformancePattern
+	mutex               sync.RWMutex
+}
+
+// BottleneckPredictor predicts performance bottlenecks using ML
+type BottleneckPredictor struct {
+	config             *AnalysisConfig
+	logger             logr.Logger
+	predictionHorizon  time.Duration
+	models             map[string]interface{}
+}
+
+// Note: DataPoint type already exists in optimization_dashboard.go
+// Note: ImpactLevel type and constants already exist in recommendation_helpers.go
+
+// =======================
+// Missing Types for ML Models
+// =======================
+
+// RiskAssessment represents a comprehensive risk assessment
+type RiskAssessment struct {
+	OverallRiskLevel     RiskLevel                 `json:"overallRiskLevel"`
+	ImplementationRisk   float64                   `json:"implementationRisk"`
+	PerformanceRisk      float64                   `json:"performanceRisk"`
+	AvailabilityRisk     float64                   `json:"availabilityRisk"`
+	SecurityRisk         float64                   `json:"securityRisk"`
+	ComplianceRisk       float64                   `json:"complianceRisk"`
+	IdentifiedRisks      []string                  `json:"identifiedRisks"`
+	MitigationStrategies []MitigationStrategy      `json:"mitigationStrategies"`
+	RiskScoreBreakdown   map[string]float64        `json:"riskScoreBreakdown"`
+	AssessmentTimestamp  time.Time                 `json:"assessmentTimestamp"`
+	ValidityPeriod       time.Duration             `json:"validityPeriod"`
+}
+
+// HealthStatus represents the health status of a component
+type HealthStatus string
+
+const (
+	// HealthStatusOptimal holds healthstatusoptimal value (unique to HealthStatus)
+	HealthStatusOptimal HealthStatus = "optimal"
+	// HealthStatusUnhealthy holds healthstatusunhealthy value (unique to HealthStatus)
+	HealthStatusUnhealthy HealthStatus = "unhealthy"
+	// Note: healthy, critical, unknown constants reuse SystemHealthStatus values to avoid conflicts
+)
+
+// MitigationStrategy represents a strategy to mitigate risks
+type MitigationStrategy struct {
+	Name            string        `json:"name"`
+	Description     string        `json:"description"`
+	Effectiveness   float64       `json:"effectiveness"`   // 0.0 to 1.0
+	Cost            float64       `json:"cost"`
+	TimeToImplement time.Duration `json:"timeToImplement"`
+	Priority        int           `json:"priority"`
+	Prerequisites   []string      `json:"prerequisites,omitempty"`
+	Steps           []string      `json:"steps,omitempty"`
+}
+
+// OptimizationStrategyConfig represents a complete optimization strategy configuration
+// Note: OptimizationStrategy already exists as a string type in ai_configuration_tuner.go  
+type OptimizationStrategyConfig struct {
+	ID                  string                    `json:"id"`
+	Name                string                    `json:"name"`
+	Description         string                    `json:"description"`
+	Category            OptimizationCategory      `json:"category"`
+	TargetComponent     ComponentType             `json:"targetComponent"`
+	Priority            OptimizationPriority      `json:"priority"`
+	ExpectedBenefits    *ExpectedBenefits         `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep      `json:"implementationSteps"`
+	RiskFactors         []string                  `json:"riskFactors"`
+	RiskLevel           RiskLevel                 `json:"riskLevel"`
+	Confidence          float64                   `json:"confidence"`
+	EstimatedDuration   time.Duration             `json:"estimatedDuration"`
+	ValidationCriteria  []string                  `json:"validationCriteria"`
+	RollbackPlan        string                    `json:"rollbackPlan"`
+	ApprovalRequired    bool                      `json:"approvalRequired"`
+	CreatedAt           time.Time                 `json:"createdAt"`
+	UpdatedAt           time.Time                 `json:"updatedAt"`
+}
+
+// Note: PerformanceBaseline already exists in automated_optimization_pipeline.go

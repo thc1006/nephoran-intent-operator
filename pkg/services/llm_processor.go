@@ -32,6 +32,10 @@ type LLMProcessorService struct {
 
 	promptBuilder *llm.RAGAwarePromptBuilder
 
+	cacheManager interface{}
+
+	asyncProcessor interface{}
+
 	logger *slog.Logger
 
 	healthChecker *health.HealthChecker
@@ -48,6 +52,11 @@ func NewLLMProcessorService(config *config.LLMProcessorConfig, logger *slog.Logg
 		logger: logger,
 	}
 
+}
+
+// NewLLMProcessor is an alias for NewLLMProcessorService for backward compatibility.
+func NewLLMProcessor(config *config.LLMProcessorConfig, logger *slog.Logger) *LLMProcessorService {
+	return NewLLMProcessorService(config, logger)
 }
 
 // Initialize initializes all components of the LLM processor service.
@@ -464,6 +473,9 @@ func (s *LLMProcessorService) registerHealthChecks() {
 
 	}
 
+	// Mark service as ready after all health checks are registered
+	s.healthChecker.SetReady(true)
+	
 	s.logger.Info("Health checks registered")
 
 }
@@ -534,6 +546,26 @@ func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 
 	return nil
 
+}
+
+// SetCacheManager sets the cache manager (for testing and dependency injection).
+func (s *LLMProcessorService) SetCacheManager(cacheManager interface{}) {
+	s.cacheManager = cacheManager
+}
+
+// GetCacheManager returns the current cache manager.
+func (s *LLMProcessorService) GetCacheManager() interface{} {
+	return s.cacheManager
+}
+
+// SetAsyncProcessor sets the async processor (for testing and dependency injection).
+func (s *LLMProcessorService) SetAsyncProcessor(asyncProcessor interface{}) {
+	s.asyncProcessor = asyncProcessor
+}
+
+// GetAsyncProcessor returns the current async processor.
+func (s *LLMProcessorService) GetAsyncProcessor() interface{} {
+	return s.asyncProcessor
 }
 
 // Note: Helper functions have been moved to pkg/config/env_helpers.go.

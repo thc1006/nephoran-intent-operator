@@ -156,6 +156,12 @@ type NetworkIntentSpec struct {
 	// +optional
 
 	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
+
+	// Parameters contains raw parameters for the intent as a runtime extension.
+
+	// +optional
+
+	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
 }
 
 // ProcessingResult contains the results of intent processing.
@@ -172,7 +178,8 @@ type ProcessingResult struct {
 
 	// ConfidenceScore represents the confidence in the processing results.
 
-	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
+	ConfidenceScore *string `json:"confidenceScore,omitempty"`
 
 	// ProcessingTimestamp when the processing completed.
 

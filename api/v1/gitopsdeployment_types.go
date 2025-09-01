@@ -430,9 +430,10 @@ type RetryBackoffConfig struct {
 
 	// +optional
 
-	// +kubebuilder:default=20
+	// +kubebuilder:default="2.0"
+	// +kubebuilder:validation:Pattern=`^\d+(\.\d+)?$`
 
-	Multiplier *float64 `json:"multiplier,omitempty"`
+	Multiplier *string `json:"multiplier,omitempty"`
 }
 
 // DependencyCheckConfig defines dependency validation configuration.
@@ -1014,11 +1015,12 @@ type HealthStatus struct {
 
 	LastCheckTime *metav1.Time `json:"lastCheckTime,omitempty"`
 
-	// HealthScore represents overall health score (0.0-1.0).
+	// HealthScore represents overall health score (0.0-1.0, as string to avoid float issues).
 
 	// +optional
+	// +kubebuilder:validation:Pattern=`^(0(\.\d+)?|1(\.0+)?)$`
 
-	HealthScore *float64 `json:"healthScore,omitempty"`
+	HealthScore *string `json:"healthScore,omitempty"`
 }
 
 // HealthCheckResult contains result of a health check.

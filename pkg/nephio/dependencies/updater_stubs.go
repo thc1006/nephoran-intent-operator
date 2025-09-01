@@ -2,7 +2,14 @@ package dependencies
 
 import (
 	"context"
+	"sync"
 )
+
+// dependencyUpdater is a stub struct for compilation
+type dependencyUpdater struct {
+	metrics interface{} // stub field
+	wg      sync.WaitGroup // proper wait group
+}
 
 // Additional stub types for compilation
 type ImpactRecommendation struct {
@@ -93,7 +100,8 @@ func (u *dependencyUpdater) GetUpdaterHealth(ctx context.Context) (*UpdaterHealt
 }
 
 func (u *dependencyUpdater) GetUpdateMetrics(ctx context.Context) (*UpdaterMetrics, error) {
-	return u.metrics, nil
+	// Stub implementation returning nil metrics
+	return nil, nil
 }
 
 // Helper methods

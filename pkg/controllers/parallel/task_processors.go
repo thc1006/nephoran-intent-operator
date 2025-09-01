@@ -37,7 +37,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 )
 
 // IntentProcessor processes general intent tasks.
@@ -190,11 +190,11 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 			"model": "gpt-4o-mini",
 		},
 
-		ProcessingResult: &interfaces.ProcessingResult{
+		ProcessingResult: &contracts.ProcessingResult{
 
 			Success: true,
 
-			NextPhase: interfaces.PhaseResourcePlanning,
+			NextPhase: contracts.PhaseResourcePlanning,
 
 			Data: llmResponse,
 
@@ -343,11 +343,11 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 			"search_time_ms": 300,
 		},
 
-		ProcessingResult: &interfaces.ProcessingResult{
+		ProcessingResult: &contracts.ProcessingResult{
 
 			Success: true,
 
-			NextPhase: interfaces.PhaseResourcePlanning,
+			NextPhase: contracts.PhaseResourcePlanning,
 
 			Data: ragResponse,
 
@@ -519,11 +519,11 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 			"planning_time_ms": 400,
 		},
 
-		ProcessingResult: &interfaces.ProcessingResult{
+		ProcessingResult: &contracts.ProcessingResult{
 
 			Success: true,
 
-			NextPhase: interfaces.PhaseManifestGeneration,
+			NextPhase: contracts.PhaseManifestGeneration,
 
 			Data: resourcePlan,
 
@@ -778,11 +778,11 @@ spec:
 			"validation_passed": true,
 		},
 
-		ProcessingResult: &interfaces.ProcessingResult{
+		ProcessingResult: &contracts.ProcessingResult{
 
 			Success: true,
 
-			NextPhase: interfaces.PhaseGitOpsCommit,
+			NextPhase: contracts.PhaseGitOpsCommit,
 
 			Data: map[string]interface{}{"manifests": manifests},
 
@@ -898,11 +898,11 @@ func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 			"files_updated": 3,
 		},
 
-		ProcessingResult: &interfaces.ProcessingResult{
+		ProcessingResult: &contracts.ProcessingResult{
 
 			Success: true,
 
-			NextPhase: interfaces.PhaseDeploymentVerification,
+			NextPhase: contracts.PhaseDeploymentVerification,
 
 			Data: commitResult,
 
@@ -1049,11 +1049,11 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 			"all_healthy": true,
 		},
 
-		ProcessingResult: &interfaces.ProcessingResult{
+		ProcessingResult: &contracts.ProcessingResult{
 
 			Success: true,
 
-			NextPhase: interfaces.PhaseCompleted,
+			NextPhase: contracts.PhaseCompleted,
 
 			Data: verificationResult,
 

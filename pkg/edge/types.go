@@ -2,31 +2,6 @@ package edge
 
 import "context"
 
-// EdgeNode represents an edge computing node in the O-RAN network
-type EdgeNode struct {
-	ID       string            `json:"id"`
-	Name     string            `json:"name"`
-	Location Location          `json:"location"`
-	Metadata map[string]string `json:"metadata"`
-	Status   EdgeNodeStatus    `json:"status"`
-}
-
-// Location represents geographical location of an edge node
-type Location struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	Region    string  `json:"region"`
-	Zone      string  `json:"zone"`
-}
-
-// EdgeNodeStatus represents the status of an edge node
-type EdgeNodeStatus struct {
-	Phase      EdgeNodePhase `json:"phase"`
-	Ready      bool          `json:"ready"`
-	LastSeen   int64         `json:"lastSeen"`
-	Conditions []Condition   `json:"conditions"`
-}
-
 // EdgeNodePhase represents the lifecycle phase of an edge node
 type EdgeNodePhase string
 
@@ -45,8 +20,8 @@ type Condition struct {
 	Message string `json:"message"`
 }
 
-// EdgeService defines the interface for edge node management
-type EdgeService interface {
+// EdgeServiceInterface defines the interface for edge node management
+type EdgeServiceInterface interface {
 	RegisterNode(ctx context.Context, node *EdgeNode) error
 	GetNode(ctx context.Context, id string) (*EdgeNode, error)
 	ListNodes(ctx context.Context) ([]*EdgeNode, error)
@@ -63,7 +38,15 @@ type EdgeCompute struct {
 
 // ResourceSpec defines resource specifications
 type ResourceSpec struct {
-	Available int64 `json:"available"`
-	Used      int64 `json:"used"`
+	Available int64  `json:"available"`
+	Used      int64  `json:"used"`
 	Unit      string `json:"unit"`
+}
+
+// Location represents geographical location of an edge node
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Region    string  `json:"region"`
+	Zone      string  `json:"zone"`
 }

@@ -37,6 +37,18 @@ type RelevanceScorer interface {
 	GetMetrics() map[string]interface{}
 }
 
+// CircuitBreakerManagerInterface defines the interface for circuit breaker management
+type CircuitBreakerManagerInterface interface {
+	GetOrCreate(name string, config *CircuitBreakerConfig) *CircuitBreaker
+	Get(name string) (*CircuitBreaker, bool)
+	Remove(name string)
+	List() []string
+	GetAllStats() map[string]interface{}
+	GetStats() (map[string]interface{}, error)
+	Shutdown()
+	ResetAll()
+}
+
 // Types referenced here are defined in their respective files:
 // - HealthChecker, EndpointPool, BatchProcessorConfig: interface_consolidated.go
 // - StreamingContextManager: interface_consolidated.go

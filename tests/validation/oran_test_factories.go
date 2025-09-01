@@ -153,10 +153,7 @@ func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nep
 
 			TargetComponents: []nephranv1.NetworkTargetComponent{
 				nephranv1.NetworkTargetComponentNRF,
-				{
-					ComponentType: "XApp",
-					Replicas:      1,
-				},
+				nephranv1.NetworkTargetComponentXApp,
 			},
 		},
 	}
@@ -1026,22 +1023,10 @@ func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.Netw
 			Priority: nephranv1.NetworkPriorityNormal,
 
 			TargetComponents: []nephranv1.NetworkTargetComponent{
-				{
-					ComponentType: "SMO",
-					Replicas:      1,
-				},
-				{
-					ComponentType: "AMF",
-					Replicas:      2,
-				},
-				{
-					ComponentType: "SMF",
-					Replicas:      2,
-				},
-				{
-					ComponentType: "UPF",
-					Replicas:      3,
-				},
+				nephranv1.NetworkTargetComponentSMF,
+				nephranv1.NetworkTargetComponentAMF,
+				nephranv1.NetworkTargetComponentSMF,
+				nephranv1.NetworkTargetComponentUPF,
 			},
 		},
 	}
@@ -1418,19 +1403,9 @@ func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1
 			Priority: nephranv1.NetworkPriorityHigh,
 
 			TargetComponents: []nephranv1.NetworkTargetComponent{
-
-				{
-					ComponentType: "AMF",
-					Replicas:      3,
-				},
-				{
-					ComponentType: "SMF",
-					Replicas:      3,
-				},
-				{
-					ComponentType: "UPF",
-					Replicas:      4,
-				},
+				nephranv1.NetworkTargetComponentAMF,
+				nephranv1.NetworkTargetComponentSMF,
+				nephranv1.NetworkTargetComponentUPF,
 			},
 		},
 	}

@@ -127,27 +127,27 @@ type dependencyValidator struct {
 
 	// Validation engines.
 
-	compatibilityChecker *CompatibilityChecker
+	compatibilityChecker CompatibilityChecker
 
-	securityScanner *SecurityScanner
+	securityScanner SecurityScanner
 
-	licenseValidator *LicenseValidator
+	licenseValidator LicenseValidator
 
-	performanceAnalyzer *PerformanceAnalyzer
+	performanceAnalyzer PerformanceAnalyzer
 
-	policyEngine *PolicyEngine
+	policyEngine PolicyEngine
 
 	// Conflict detection.
 
 	conflictDetectors []ConflictDetector
 
-	conflictAnalyzer *ConflictAnalyzer
+	conflictAnalyzer ConflictAnalyzer
 
 	// Caching and optimization.
 
-	validationCache *ValidationCache
+	validationCache ValidationCache
 
-	scanResultCache *ScanResultCache
+	scanResultCache ScanResultCache
 
 	// External integrations.
 
@@ -1593,15 +1593,15 @@ func (v *dependencyValidator) categorizeVulnerabilities(result *SecurityScanResu
 
 		switch vuln.Severity {
 
-		case VulnerabilitySeverityHigh, VulnerabilitySeverityCritical:
+		case string(VulnerabilitySeverityHigh), string(VulnerabilitySeverityCritical):
 
 			result.HighRiskCount++
 
-		case VulnerabilitySeverityMedium:
+		case string(VulnerabilitySeverityMedium):
 
 			result.MediumRiskCount++
 
-		case VulnerabilitySeverityLow, VulnerabilitySeverityInfo:
+		case string(VulnerabilitySeverityLow), string(VulnerabilitySeverityInfo):
 
 			result.LowRiskCount++
 
@@ -1685,11 +1685,11 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 
 		switch vuln.Severity {
 
-		case VulnerabilitySeverityCritical:
+		case string(VulnerabilitySeverityCritical):
 
 			criticalRiskCount++
 
-		case VulnerabilitySeverityHigh:
+		case string(VulnerabilitySeverityHigh):
 
 			highRiskCount++
 
@@ -1707,15 +1707,13 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 
 		violations = append(violations, &PolicyViolation{
 
-			PolicyName: "Maximum Critical Vulnerabilities",
+			PolicyID: "Maximum Critical Vulnerabilities",
 
-			RuleName: "max_critical_vulnerabilities",
+			RuleID: "max_critical_vulnerabilities",
 
-			Description: fmt.Sprintf("Found %d critical vulnerabilities, maximum allowed is %d", criticalRiskCount, maxCritical),
+			Message: fmt.Sprintf("Found %d critical vulnerabilities, maximum allowed is %d", criticalRiskCount, maxCritical),
 
 			Severity: "high",
-
-			Action: "block",
 
 			DetectedAt: time.Now(),
 		})
@@ -1726,15 +1724,13 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 
 		violations = append(violations, &PolicyViolation{
 
-			PolicyName: "Maximum High Vulnerabilities",
+			PolicyID: "Maximum High Vulnerabilities",
 
-			RuleName: "max_high_vulnerabilities",
+			RuleID: "max_high_vulnerabilities",
 
-			Description: fmt.Sprintf("Found %d high vulnerabilities, maximum allowed is %d", highRiskCount, maxHigh),
+			Message: fmt.Sprintf("Found %d high vulnerabilities, maximum allowed is %d", highRiskCount, maxHigh),
 
 			Severity: "medium",
-
-			Action: "warn",
 
 			DetectedAt: time.Now(),
 		})
@@ -2246,9 +2242,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 
 		validation.RiskAssessment = &RiskAssessment{
 
-			OverallRisk: RiskLevelHigh,
-
-			RiskScore: 0.8,
+			RiskLevel: string(RiskLevelHigh),
 
 			AssessedAt: time.Now(),
 		}
@@ -2257,9 +2251,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 
 		validation.RiskAssessment = &RiskAssessment{
 
-			OverallRisk: RiskLevelLow,
-
-			RiskScore: 0.2,
+			RiskLevel: string(RiskLevelLow),
 
 			AssessedAt: time.Now(),
 		}
@@ -3128,26 +3120,30 @@ func (v *dependencyValidator) updateValidationMetrics(result *ValidationResult) 
 
 // SecurityValidation contains security validation results
 type SecurityValidation struct {
-	Valid bool `json:"valid"`
-	Issues []string `json:"issues,omitempty"`
+	Valid         bool        `json:"valid"`
+	SecurityScore float64     `json:"securityScore"`
+	Issues        []string    `json:"issues,omitempty"`
+	ValidatedAt   time.Time   `json:"validatedAt"`
 }
 
 // ResourceValidation contains resource validation results
 type ResourceValidation struct {
-	Valid bool `json:"valid"`
-	Issues []string `json:"issues,omitempty"`
+	Valid       bool                         `json:"valid"`
+	Score       float64                      `json:"score"`
+	Limits      *ResourceLimits              `json:"limits,omitempty"`
+	Issues      []*ResourceValidationIssue   `json:"issues,omitempty"`
+	ValidatedAt time.Time                    `json:"validatedAt"`
 }
 
-// BreakingChangeReport contains breaking change analysis
-type BreakingChangeReport struct {
-	HasBreakingChanges bool `json:"hasBreakingChanges"`
-	Changes []string `json:"changes,omitempty"`
-}
+// BreakingChangeReport is defined in basic_types.go
 
 // UpgradeValidation contains upgrade validation results
 type UpgradeValidation struct {
-	Valid bool `json:"valid"`
-	Issues []string `json:"issues,omitempty"`
+	Valid           bool                        `json:"valid"`
+	UpgradeScore    float64                     `json:"upgradeScore"`
+	Issues          []*UpgradeValidationIssue   `json:"issues,omitempty"`
+	ValidatedAt     time.Time                   `json:"validatedAt"`
+	RiskAssessment  *RiskAssessment            `json:"riskAssessment,omitempty"`
 }
 
 // ArchitecturalConstraints defines architectural constraints
@@ -3157,8 +3153,11 @@ type ArchitecturalConstraints struct {
 
 // ArchitecturalValidation contains architectural validation results
 type ArchitecturalValidation struct {
-	Valid bool `json:"valid"`
-	Issues []string `json:"issues,omitempty"`
+	Valid       bool                               `json:"valid"`
+	Score       float64                            `json:"score"`
+	Constraints *ArchitecturalConstraints          `json:"constraints,omitempty"`
+	Issues      []*ArchitecturalValidationIssue    `json:"issues,omitempty"`
+	ValidatedAt time.Time                          `json:"validatedAt"`
 }
 
 // VersionConflict represents a version conflict
@@ -3173,11 +3172,7 @@ type LicenseConflict struct {
 	License string `json:"license"`
 }
 
-// ConflictImpact represents the impact of a conflict
-type ConflictImpact struct {
-	Severity string `json:"severity"`
-	Description string `json:"description"`
-}
+// ConflictImpact is defined in basic_types.go as string type
 
 // ConflictResolutionStrategy represents a conflict resolution strategy
 type ConflictResolutionStrategy struct {

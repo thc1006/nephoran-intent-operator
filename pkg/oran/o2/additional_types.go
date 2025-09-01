@@ -29,14 +29,6 @@ type ResourceEventBus interface {
 	GetEventHistory(ctx context.Context, resourceID string, limit int) ([]*ResourceLifecycleEvent, error)
 }
 
-type EventFilter struct {
-	ResourceIDs []string  `json:"resourceIds,omitempty"`
-	EventTypes  []string  `json:"eventTypes,omitempty"`
-	States      []string  `json:"states,omitempty"`
-	Sources     []string  `json:"sources,omitempty"`
-	After       time.Time `json:"after,omitempty"`
-	Before      time.Time `json:"before,omitempty"`
-}
 
 // Simple event bus implementation
 type simpleEventBus struct {

@@ -29,7 +29,7 @@ type Dependencies interface {
 
 	GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase
 
-	GetMetricsCollector() *monitoring.MetricsCollector
+	GetMetricsCollector() monitoring.MetricsCollector
 }
 
 // Ensure Container implements Dependencies interface.

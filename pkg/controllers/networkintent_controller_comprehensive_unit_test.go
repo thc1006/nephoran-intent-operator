@@ -76,7 +76,7 @@ func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBa
 	return m.telecomKnowledgeBase
 }
 
-func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
+func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
 	return nil // Return nil for now
 }
 
