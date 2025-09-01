@@ -19,6 +19,7 @@ import (
 
 // Type aliases for backward compatibility
 type SecretManager = interfaces.SecretManager
+
 // APIKeys is already defined in api_keys_final.go
 
 // UniversalSecretManager provides a universal secret manager implementation
@@ -35,7 +36,7 @@ func NewSecretManager(namespace string) (SecretManager, error) {
 	if namespace == "" {
 		namespace = "default"
 	}
-	
+
 	return &UniversalSecretManager{
 		namespace: namespace,
 		logger:    slog.Default(),
@@ -48,7 +49,7 @@ func NewUniversalSecretManager(namespace string) SecretManager {
 	if namespace == "" {
 		namespace = "default"
 	}
-	
+
 	return &UniversalSecretManager{
 		namespace: namespace,
 		logger:    slog.Default(),
@@ -60,25 +61,25 @@ func NewUniversalSecretManager(namespace string) SecretManager {
 func (m *UniversalSecretManager) GetSecretValue(ctx context.Context, secretName, key, envVarName string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	// Try environment variable first
 	if envVarName != "" {
 		if value := os.Getenv(envVarName); value != "" {
 			return value, nil
 		}
 	}
-	
+
 	// Try cache
 	cacheKey := fmt.Sprintf("%s/%s", secretName, key)
 	if value, exists := m.cache[cacheKey]; exists {
 		return value, nil
 	}
-	
+
 	// Try environment variable based on key
 	if value := os.Getenv(strings.ToUpper(key)); value != "" {
 		return value, nil
 	}
-	
+
 	return "", fmt.Errorf("secret value not found for %s/%s", secretName, key)
 }
 
@@ -86,14 +87,14 @@ func (m *UniversalSecretManager) GetSecretValue(ctx context.Context, secretName,
 func (m *UniversalSecretManager) CreateSecretFromEnvVars(ctx context.Context, secretName string, envVarMapping map[string]string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for key, envVar := range envVarMapping {
 		if value := os.Getenv(envVar); value != "" {
 			cacheKey := fmt.Sprintf("%s/%s", secretName, key)
 			m.cache[cacheKey] = value
 		}
 	}
-	
+
 	return nil
 }
 
@@ -101,12 +102,12 @@ func (m *UniversalSecretManager) CreateSecretFromEnvVars(ctx context.Context, se
 func (m *UniversalSecretManager) UpdateSecret(ctx context.Context, secretName string, data map[string][]byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for key, value := range data {
 		cacheKey := fmt.Sprintf("%s/%s", secretName, key)
 		m.cache[cacheKey] = string(value)
 	}
-	
+
 	return nil
 }
 
@@ -114,13 +115,13 @@ func (m *UniversalSecretManager) UpdateSecret(ctx context.Context, secretName st
 func (m *UniversalSecretManager) SecretExists(ctx context.Context, secretName string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	for key := range m.cache {
 		if strings.HasPrefix(key, secretName+"/") {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -128,17 +129,17 @@ func (m *UniversalSecretManager) SecretExists(ctx context.Context, secretName st
 func (m *UniversalSecretManager) RotateSecret(ctx context.Context, secretName, secretKey, newValue string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	cacheKey := fmt.Sprintf("%s/%s", secretName, secretKey)
 	m.cache[cacheKey] = newValue
-	
+
 	return nil
 }
 
 // GetSecretRotationInfo returns secret rotation information
 func (m *UniversalSecretManager) GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error) {
 	return map[string]string{
-		"last_rotated": "not_applicable",
+		"last_rotated":    "not_applicable",
 		"rotation_policy": "manual",
 	}, nil
 }
@@ -152,7 +153,7 @@ func (m *UniversalSecretManager) GetAPIKeys(ctx context.Context) (*APIKeys, erro
 // Returns empty APIKeys on error to maintain backward compatibility with mock backends
 func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
 	apiKeys := &APIKeys{}
-	
+
 	// Try to load from environment variables
 	apiKeys.OpenAI = os.Getenv("OPENAI_API_KEY")
 	apiKeys.Anthropic = os.Getenv("ANTHROPIC_API_KEY")
@@ -160,12 +161,12 @@ func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
 	apiKeys.Weaviate = os.Getenv("WEAVIATE_API_KEY")
 	apiKeys.Generic = os.Getenv("API_KEY")
 	apiKeys.JWTSecret = os.Getenv("JWT_SECRET_KEY")
-	
+
 	// Try to load from files in user's home directory
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
 		secretsDir := filepath.Join(homeDir, ".nephoran", "secrets")
-		
+
 		keyFiles := map[string]*string{
 			"openai_api_key":    &apiKeys.OpenAI,
 			"anthropic_api_key": &apiKeys.Anthropic,
@@ -174,7 +175,7 @@ func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
 			"generic_api_key":   &apiKeys.Generic,
 			"jwt_secret_key":    &apiKeys.JWTSecret,
 		}
-		
+
 		for filename, keyPtr := range keyFiles {
 			if *keyPtr == "" { // Only load from file if env var wasn't set
 				secretFile := filepath.Join(secretsDir, filename)
@@ -184,7 +185,7 @@ func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
 			}
 		}
 	}
-	
+
 	return apiKeys, nil
 }
 
@@ -251,7 +252,7 @@ func (m *KubernetesSecretManager) RotateSecret(ctx context.Context, secretName, 
 // GetSecretRotationInfo returns secret rotation information (stub implementation)
 func (m *KubernetesSecretManager) GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error) {
 	return map[string]string{
-		"last_rotated": "not_applicable_stub",
+		"last_rotated":    "not_applicable_stub",
 		"rotation_policy": "stub",
 	}, nil
 }
@@ -264,12 +265,12 @@ func (m *KubernetesSecretManager) GetSecretValue(ctx context.Context, secretName
 			return value, nil
 		}
 	}
-	
+
 	// Try environment variable based on key
 	if value := os.Getenv(strings.ToUpper(key)); value != "" {
 		return value, nil
 	}
-	
+
 	return "", fmt.Errorf("secret value not found for %s/%s (stub implementation)", secretName, key)
 }
 
@@ -306,13 +307,13 @@ func (sl *SecretLoader) LoadSecret(filename string) (string, error) {
 	if strings.Contains(filename, "..") || strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
 		return "", errors.New("invalid filename")
 	}
-	
+
 	secretPath := filepath.Join(sl.basePath, filename)
 	data, err := os.ReadFile(secretPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret file %s: %w", filename, err)
 	}
-	
+
 	return strings.TrimSpace(string(data)), nil
 }
 
@@ -342,7 +343,7 @@ func ValidateAPIKeyFormat(service, key string) error {
 	if key == "" {
 		return errors.New("API key cannot be empty")
 	}
-	
+
 	service = strings.ToLower(service)
 	switch service {
 	case "openai":
@@ -358,7 +359,7 @@ func ValidateAPIKeyFormat(service, key string) error {
 			return errors.New("API key too short")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -384,12 +385,12 @@ func NewSecretCache() *SecretCache {
 func (sc *SecretCache) Get(key string) (string, bool) {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
-	
+
 	cached, exists := sc.cache[key]
 	if !exists {
 		return "", false
 	}
-	
+
 	if time.Now().After(cached.expiresAt) {
 		sc.mu.RUnlock()
 		sc.mu.Lock()
@@ -398,7 +399,7 @@ func (sc *SecretCache) Get(key string) (string, bool) {
 		sc.mu.RLock()
 		return "", false
 	}
-	
+
 	return cached.value, true
 }
 
@@ -406,7 +407,7 @@ func (sc *SecretCache) Get(key string) (string, bool) {
 func (sc *SecretCache) Set(key, value string, ttlMs int64) {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
-	
+
 	sc.cache[key] = cachedSecret{
 		value:     value,
 		expiresAt: time.Now().Add(time.Duration(ttlMs) * time.Millisecond),
@@ -417,7 +418,7 @@ func (sc *SecretCache) Set(key, value string, ttlMs int64) {
 func (sc *SecretCache) Clear() {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
-	
+
 	for key, cached := range sc.cache {
 		ClearString(&cached.value)
 		delete(sc.cache, key)

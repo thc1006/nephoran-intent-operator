@@ -55,19 +55,19 @@ func TestResponseCacheStop(t *testing.T) {
 		// Test that cache operations work before stopping
 		testKey := "test-key"
 		testResponse := "test content"
-		
+
 		// Set an entry - should work before stop
 		cache.Set(testKey, testResponse)
-		
+
 		// Get the entry - should work before stop
 		retrieved, found := cache.Get(testKey)
 		if !found || retrieved != testResponse {
 			t.Error("Expected to retrieve cache entry before stopping")
 		}
-		
+
 		// Stop the cache
 		cache.Stop()
-		
+
 		// Test passes if Stop() doesn't panic or cause issues
 	})
 

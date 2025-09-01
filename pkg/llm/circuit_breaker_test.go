@@ -161,6 +161,7 @@ func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
 		Timeout:             1 * time.Second,
 		ResetTimeout:        50 * time.Millisecond,
 		SuccessThreshold:    2,
+		HalfOpenMaxRequests: 5, // Allow multiple requests in half-open state
 	}
 
 	cb := NewCircuitBreaker("test-service", config)

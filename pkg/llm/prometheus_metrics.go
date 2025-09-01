@@ -174,12 +174,12 @@ func createMetricsWithRegistry(registry prometheus.Registerer) *PrometheusMetric
 
 		// Histogram for processing duration.
 		ProcessingDurationSeconds: factory.NewHistogramVec(prometheus.HistogramOpts{
-			Name: "nephoran_llm_processing_duration_seconds",
-			Help: "Duration of LLM processing requests by model and status",
+			Name:    "nephoran_llm_processing_duration_seconds",
+			Help:    "Duration of LLM processing requests by model and status",
 			Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0},
 		}, []string{"model", "status"}),
 
-		registered:    true,
+		registered:   true,
 		testRegistry: registry,
 	}
 

@@ -484,7 +484,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 
 	// Mark service as ready after all health checks are registered
 	s.healthChecker.SetReady(true)
-	
+
 	s.logger.Info("Health checks registered")
 
 }
