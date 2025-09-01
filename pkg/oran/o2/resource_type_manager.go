@@ -689,9 +689,24 @@ func (rtm *ResourceTypeManager) GetResourceTypes(ctx context.Context, filter *mo
 
 	}
 
-	// Retrieve from storage.
+	// Retrieve from storage - convert filter to map
+	filterMap := make(map[string]interface{})
+	if filter != nil {
+		if len(filter.Vendors) > 0 {
+			filterMap["vendors"] = filter.Vendors
+		}
+		if len(filter.Models) > 0 {
+			filterMap["models"] = filter.Models
+		}
+		if filter.Limit > 0 {
+			filterMap["limit"] = filter.Limit
+		}
+		if filter.Offset > 0 {
+			filterMap["offset"] = filter.Offset
+		}
+	}
 
-	types, err := rtm.storage.ListResourceTypes(ctx, filter)
+	types, err := rtm.storage.ListResourceTypes(ctx, filterMap)
 
 	if err != nil {
 
@@ -1206,7 +1221,14 @@ func (rtm *ResourceTypeManager) checkResourceTypeDependencies(ctx context.Contex
 		Limit: 1,
 	}
 
-	resources, err := rtm.storage.ListResources(ctx, filter)
+	// Convert filter to map for storage interface
+	filterMap := make(map[string]interface{})
+	if len(filter.ResourceTypeIDs) > 0 {
+		filterMap["resource_type_ids"] = filter.ResourceTypeIDs
+	}
+	filterMap["limit"] = filter.Limit
+
+	resources, err := rtm.storage.ListResources(ctx, filterMap)
 
 	if err != nil {
 

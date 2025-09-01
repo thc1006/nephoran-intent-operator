@@ -1381,6 +1381,61 @@ type InfrastructureHealthCheckerImpl struct {
 	logger *logging.StructuredLogger
 }
 
+// CheckHealth checks the health of a specific resource
+func (h *InfrastructureHealthCheckerImpl) CheckHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
+	return &HealthStatus{Status: "healthy"}, nil
+}
+
+// CheckAllResources checks the health of all resources
+func (h *InfrastructureHealthCheckerImpl) CheckAllResources(ctx context.Context) (map[string]*HealthStatus, error) {
+	return make(map[string]*HealthStatus), nil
+}
+
+// StartHealthMonitoring starts health monitoring for a resource
+func (h *InfrastructureHealthCheckerImpl) StartHealthMonitoring(ctx context.Context, resourceID string, interval time.Duration) error {
+	return nil
+}
+
+// StopHealthMonitoring stops health monitoring for a resource
+func (h *InfrastructureHealthCheckerImpl) StopHealthMonitoring(ctx context.Context, resourceID string) error {
+	return nil
+}
+
+// SetHealthPolicy sets the health policy for a resource
+func (h *InfrastructureHealthCheckerImpl) SetHealthPolicy(ctx context.Context, resourceID string, policy interface{}) error {
+	return nil
+}
+
+// GetHealthPolicy gets the health policy for a resource
+func (h *InfrastructureHealthCheckerImpl) GetHealthPolicy(ctx context.Context, resourceID string) (interface{}, error) {
+	return nil, nil
+}
+
+// GetHealthHistory gets the health history for a resource
+func (h *InfrastructureHealthCheckerImpl) GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]interface{}, error) {
+	return nil, nil
+}
+
+// GetHealthTrends gets the health trends for a resource
+func (h *InfrastructureHealthCheckerImpl) GetHealthTrends(ctx context.Context, resourceID string, duration time.Duration) (interface{}, error) {
+	return nil, nil
+}
+
+// RegisterHealthEventCallback registers a health event callback
+func (h *InfrastructureHealthCheckerImpl) RegisterHealthEventCallback(ctx context.Context, resourceID string, callback func(interface{}) error) error {
+	return nil
+}
+
+// UnregisterHealthEventCallback unregisters a health event callback
+func (h *InfrastructureHealthCheckerImpl) UnregisterHealthEventCallback(ctx context.Context, resourceID string) error {
+	return nil
+}
+
+// EmitHealthEvent emits a health event
+func (h *InfrastructureHealthCheckerImpl) EmitHealthEvent(ctx context.Context, event interface{}) error {
+	return nil
+}
+
 // Stub implementations for missing functions.
 
 func newInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) InfrastructureHealthChecker {

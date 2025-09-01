@@ -28,7 +28,7 @@ type InventoryManagementService struct {
 
 	// Provider registry for multi-cloud inventory.
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	// Storage components.
 
@@ -367,7 +367,7 @@ func NewInventoryManagementService(
 
 	config *InventoryConfig,
 
-	providerRegistry *providers.ProviderRegistry,
+	providerRegistry providers.ProviderRegistry,
 
 	logger *logging.StructuredLogger,
 

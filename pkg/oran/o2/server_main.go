@@ -343,8 +343,6 @@ func CreateProductionConfig() *O2IMSConfig {
 
 	config.AuthenticationConfig.Enabled = true
 
-	config.AuthenticationConfig.TokenValidation = true
-
 	// Enhanced monitoring.
 
 	config.MetricsConfig.Enabled = true
@@ -506,15 +504,20 @@ func SetupDefaultProviders(config *O2IMSConfig) {
 
 	if config.CloudProviders == nil {
 
-		config.CloudProviders = make(map[string]*CloudProviderConfig)
+		config.CloudProviders = []string{"kubernetes"}
 
+	}
+
+	// Initialize CloudProviderConfigs if nil
+	if config.CloudProviderConfigs == nil {
+		config.CloudProviderConfigs = make(map[string]*CloudProviderConfig)
 	}
 
 	// Add default Kubernetes provider if not exists.
 
-	if _, exists := config.CloudProviders["kubernetes"]; !exists {
+	if _, exists := config.CloudProviderConfigs["kubernetes"]; !exists {
 
-		config.CloudProviders["kubernetes"] = &CloudProviderConfig{
+		config.CloudProviderConfigs["kubernetes"] = &CloudProviderConfig{
 
 			ProviderID: "kubernetes",
 
@@ -530,12 +533,9 @@ func SetupDefaultProviders(config *O2IMSConfig) {
 
 			Status: "ACTIVE",
 
-			Properties: map[string]interface{}{
+			Metadata: map[string]interface{}{
 
 				"in_cluster": true,
-			},
-
-			Tags: map[string]string{
 
 				"environment": "development",
 

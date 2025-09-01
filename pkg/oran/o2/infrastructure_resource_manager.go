@@ -1003,9 +1003,27 @@ func (irm *InfrastructureResourceManager) GetResources(ctx context.Context, filt
 
 	}
 
-	// Retrieve from storage.
+	// Retrieve from storage - convert filter to map.
+	filterMap := make(map[string]interface{})
+	if filter != nil {
+		if len(filter.ResourcePoolIDs) > 0 {
+			filterMap["resource_pool_ids"] = filter.ResourcePoolIDs
+		}
+		if len(filter.ResourceTypeIDs) > 0 {
+			filterMap["resource_type_ids"] = filter.ResourceTypeIDs
+		}
+		if len(filter.LifecycleStates) > 0 {
+			filterMap["lifecycle_states"] = filter.LifecycleStates
+		}
+		if filter.Limit > 0 {
+			filterMap["limit"] = filter.Limit
+		}
+		if filter.Offset > 0 {
+			filterMap["offset"] = filter.Offset
+		}
+	}
 
-	resources, err := irm.storage.ListResources(ctx, filter)
+	resources, err := irm.storage.ListResources(ctx, filterMap)
 
 	if err != nil {
 
@@ -1430,7 +1448,7 @@ func (irm *InfrastructureResourceManager) UpdateResource(ctx context.Context, re
 
 	// Update in storage.
 
-	if err := irm.storage.UpdateResource(ctx, resourceID, updates); err != nil {
+	if err := irm.storage.UpdateResource(ctx, resource); err != nil {
 
 		if operationID != "" {
 
@@ -1717,7 +1735,14 @@ func (irm *InfrastructureResourceManager) checkResourceDependencies(ctx context.
 		Limit: 1,
 	}
 
-	resources, err := irm.storage.ListResources(ctx, filter)
+	// Convert filter to map for storage interface
+	filterMap := make(map[string]interface{})
+	if len(filter.ParentResourceIDs) > 0 {
+		filterMap["parent_resource_ids"] = filter.ParentResourceIDs
+	}
+	filterMap["limit"] = filter.Limit
+
+	resources, err := irm.storage.ListResources(ctx, filterMap)
 
 	if err != nil {
 

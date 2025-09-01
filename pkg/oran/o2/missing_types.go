@@ -137,8 +137,19 @@ type O2IMSStorage interface {
 	DeleteResource(ctx context.Context, resourceID string) error
 	ListResources(ctx context.Context, filters map[string]interface{}) ([]*o2models.Resource, error)
 	
+	// Resource pool storage
+	ListResourcePools(ctx context.Context, filters map[string]interface{}) ([]*o2models.ResourcePool, error)
+	GetResourcePool(ctx context.Context, poolID string) (*o2models.ResourcePool, error)
+	StoreResourcePool(ctx context.Context, pool *o2models.ResourcePool) error
+	UpdateResourcePool(ctx context.Context, poolID string, pool *o2models.ResourcePool) error
+	DeleteResourcePool(ctx context.Context, poolID string) error
+	
 	// Resource type storage
 	ListResourceTypes(ctx context.Context, filter map[string]interface{}) ([]*o2models.ResourceType, error)
+	GetResourceType(ctx context.Context, typeID string) (*o2models.ResourceType, error)
+	StoreResourceType(ctx context.Context, resourceType *o2models.ResourceType) error
+	UpdateResourceType(ctx context.Context, typeID string, resourceType *o2models.ResourceType) error
+	DeleteResourceType(ctx context.Context, typeID string) error
 	
 	// Metadata and inventory
 	StoreInventory(ctx context.Context, inventory *InfrastructureAsset) error
@@ -288,12 +299,6 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 				RequestsPerMin: 1000,
 				BurstSize:      10,
 				KeyFunc:        "ip",
-			},
-			TLSConfig: TLSSecurityConfig{
-				Enabled: false,
-			},
-			AuthConfig: AuthConfigSecurity{
-				Enabled: false,
 			},
 			CORSEnabled:           true,
 			CORSAllowedOrigins:    []string{"*"},

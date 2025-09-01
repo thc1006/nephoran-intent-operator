@@ -43,7 +43,7 @@ type IntegratedO2IMS struct {
 
 	// Provider registry (shared across all services).
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	// Kubernetes client (for CNF management).
 

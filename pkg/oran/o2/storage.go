@@ -167,7 +167,7 @@ func (s *InMemoryStorage) GetResourcePool(ctx context.Context, poolID string) (*
 
 // ListResourcePools lists resource pools with optional filtering.
 
-func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error) {
+func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filters map[string]interface{}) ([]*models.ResourcePool, error) {
 
 	s.rpMutex.RLock()
 
@@ -177,7 +177,7 @@ func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filter *models.
 
 	for _, pool := range s.resourcePools {
 
-		if s.matchesResourcePoolFilter(pool, filter) {
+		if s.matchesResourcePoolFilterMap(pool, filters) {
 
 			poolCopy := *pool
 
@@ -187,11 +187,15 @@ func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filter *models.
 
 	}
 
-	// Apply pagination.
+	// Apply pagination if filters contain limit and offset.
 
-	if filter != nil {
+	if filters != nil {
 
-		pools = s.applyPagination(pools, filter.Limit, filter.Offset)
+		limit, hasLimit := filters["limit"].(int)
+		offset, hasOffset := filters["offset"].(int)
+		if hasLimit || hasOffset {
+			pools = s.applyPagination(pools, limit, offset)
+		}
 
 	}
 
@@ -201,13 +205,19 @@ func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filter *models.
 
 // UpdateResourcePool updates a resource pool.
 
-func (s *InMemoryStorage) UpdateResourcePool(ctx context.Context, poolID string, updates map[string]interface{}) error {
+func (s *InMemoryStorage) UpdateResourcePool(ctx context.Context, poolID string, pool *models.ResourcePool) error {
 
 	s.rpMutex.Lock()
 
 	defer s.rpMutex.Unlock()
 
-	pool, exists := s.resourcePools[poolID]
+	if pool == nil || poolID == "" {
+
+		return fmt.Errorf("invalid pool or poolID")
+
+	}
+
+	_, exists := s.resourcePools[poolID]
 
 	if !exists {
 
@@ -215,31 +225,11 @@ func (s *InMemoryStorage) UpdateResourcePool(ctx context.Context, poolID string,
 
 	}
 
-	// Apply updates.
+	// Update the pool.
 
-	if name, ok := updates["name"].(string); ok {
+	pool.UpdatedAt = time.Now()
 
-		pool.Name = name
-
-	}
-
-	if description, ok := updates["description"].(string); ok {
-
-		pool.Description = description
-
-	}
-
-	if location, ok := updates["location"].(string); ok {
-
-		pool.Location = location
-
-	}
-
-	if updatedAt, ok := updates["updated_at"].(time.Time); ok {
-
-		pool.UpdatedAt = updatedAt
-
-	}
+	s.resourcePools[poolID] = pool
 
 	return nil
 
@@ -1022,6 +1012,98 @@ func (s *InMemoryStorage) RollbackTransaction(ctx context.Context, tx interface{
 }
 
 // Helper methods for filtering and pagination.
+
+// matchesResourcePoolFilterMap checks if a resource pool matches the filter map.
+
+func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool, filters map[string]interface{}) bool {
+
+	if filters == nil {
+
+		return true
+
+	}
+
+	// Check names filter.
+
+	if names, ok := filters["names"].([]string); ok && len(names) > 0 {
+
+		found := false
+
+		for _, name := range names {
+
+			if pool.Name == name {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	// Check regions filter.
+
+	if regions, ok := filters["regions"].([]string); ok && len(regions) > 0 {
+
+		found := false
+
+		for _, region := range regions {
+
+			if pool.Region == region {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	// Check providers filter.
+
+	if providers, ok := filters["providers"].([]string); ok && len(providers) > 0 {
+
+		found := false
+
+		for _, provider := range providers {
+
+			if pool.Provider == provider {
+
+				found = true
+
+				break
+
+			}
+
+		}
+
+		if !found {
+
+			return false
+
+		}
+
+	}
+
+	return true
+
+}
 
 // matchesResourcePoolFilter checks if a resource pool matches the filter.
 
