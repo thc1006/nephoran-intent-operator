@@ -77,7 +77,6 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.38.0
 	github.com/thc1006/nephoran-intent-operator/api v0.0.0-00010101000000-000000000000
 	github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces v0.0.0
-	github.com/thc1006/nephoran-intent-operator/pkg/errors v0.0.0
 	github.com/thc1006/nephoran-intent-operator/pkg/rag v0.0.0
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/valyala/fastjson v1.6.4
@@ -91,6 +90,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0
 	go.opentelemetry.io/otel/sdk v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
+	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.41.0
 	golang.org/x/mod v0.27.0
@@ -114,7 +114,7 @@ require (
 	k8s.io/code-generator v0.34.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/metrics v0.33.3
-	sigs.k8s.io/controller-runtime v0.22.0
+	sigs.k8s.io/controller-runtime v0.34.0
 	sigs.k8s.io/controller-tools v0.19.0
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
@@ -320,6 +320,7 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/thc1006/nephoran-intent-operator/pkg/errors v0.0.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

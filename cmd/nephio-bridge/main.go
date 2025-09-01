@@ -141,7 +141,7 @@ func (a *llmClientAdapter) GetModelCapabilities() shared.ModelCapabilities {
 
 // GetEndpoint implements shared.ClientInterface.GetEndpoint
 func (a *llmClientAdapter) GetEndpoint() string {
-	return a.client.url
+	return a.client.GetEndpoint()
 }
 
 // Close implements shared.ClientInterface.Close

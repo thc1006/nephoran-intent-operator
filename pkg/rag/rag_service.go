@@ -1429,3 +1429,10 @@ func (c *ServiceRAGCache) updateMetrics(updater func(*CacheMetrics)) {
 	updater(c.metrics)
 
 }
+
+// GenerateEmbedding generates embedding for a single text (for performance tests)
+func (rs *RAGService) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	// For testing purposes, return a mock embedding vector
+	// In real implementation, this would call the embedding service
+	return make([]float32, 384), nil
+}

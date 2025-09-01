@@ -686,7 +686,7 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 
 		Type: "process_intent",
 
-		Priority: intent.Spec.Priority,
+		Priority: v1.ConvertNetworkPriorityToPriority(intent.Spec.Priority),
 
 		Context: ctx,
 

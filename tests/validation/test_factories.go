@@ -147,7 +147,7 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 
 	// Add processing results.
 
-	confidenceScore := float64(0.95)
+	confidenceScore := "0.95"
 
 	ni.Status.ProcessingResults = &nephranv1.ProcessingResult{
 

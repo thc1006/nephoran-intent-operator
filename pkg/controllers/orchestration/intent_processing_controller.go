@@ -34,6 +34,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -398,9 +399,9 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 		request.Model = config.Model
 
 		if config.Temperature != nil {
-
-			request.Temperature = float32(*config.Temperature)
-
+			if temp, err := strconv.ParseFloat(*config.Temperature, 32); err == nil {
+				request.Temperature = float32(temp)
+			}
 		}
 
 		if config.MaxTokens != nil {
@@ -568,9 +569,9 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 		}
 
 		if ragConfig.RetrievalThreshold != nil {
-
-			request.MinConfidence = float64(*ragConfig.RetrievalThreshold)
-
+			if threshold, err := strconv.ParseFloat(*ragConfig.RetrievalThreshold, 64); err == nil {
+				request.MinConfidence = threshold
+			}
 		}
 
 	}
@@ -602,13 +603,13 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 		DocumentsRetrieved: int32(len(response.SourceDocuments)),
 
-		RetrievalDuration: metav1.Duration{Duration: time.Duration(response.RetrievalTime) * time.Millisecond},
+		RetrievalDuration: int64(response.RetrievalTime),
 
-		AverageRelevanceScore: float64(response.Confidence),
+		AverageRelevanceScore: fmt.Sprintf("%.4f", response.Confidence),
 
-		TopRelevanceScore: float64(response.Confidence),
+		TopRelevanceScore: fmt.Sprintf("%.4f", response.Confidence),
 
-		QueryEnhancement: false, // Default to false
+		QueryEnhancement: "false", // Default to false as string
 
 	}
 
@@ -879,7 +880,7 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	if responseBytes, err := json.Marshal(result.Response); err == nil {
 
-		intentProcessing.Status.LLMResponse = runtime.RawExtension{Raw: responseBytes}
+		intentProcessing.Status.LLMResponse = &runtime.RawExtension{Raw: responseBytes}
 
 	}
 
@@ -888,12 +889,17 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 	intentProcessing.Status.ProcessedParameters = result.ProcessedParameters
 
 	// Set extracted entities.
-
-	intentProcessing.Status.ExtractedEntities = result.ExtractedEntities
+	extractedEntities := make(map[string]runtime.RawExtension)
+	for key, value := range result.ExtractedEntities {
+		if valueBytes, err := json.Marshal(value); err == nil {
+			extractedEntities[key] = runtime.RawExtension{Raw: valueBytes}
+		}
+	}
+	intentProcessing.Status.ExtractedEntities = extractedEntities
 
 	// Set quality score.
-
-	intentProcessing.Status.QualityScore = &result.QualityScore
+	qualityScoreStr := fmt.Sprintf("%.4f", result.QualityScore)
+	intentProcessing.Status.QualityScore = &qualityScoreStr
 
 	// Set validation errors.
 
@@ -911,11 +917,15 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	if result.Response.Metadata != nil {
 
-		if contextBytes, err := json.Marshal(result.Response.Metadata); err == nil {
-
-			intentProcessing.Status.TelecomContext = runtime.RawExtension{Raw: contextBytes}
-
+		telecomContext := make(map[string]string)
+		for k, v := range result.Response.Metadata {
+			if str, ok := v.(string); ok {
+				telecomContext[k] = str
+			} else {
+				telecomContext[k] = fmt.Sprintf("%v", v)
+			}
 		}
+		intentProcessing.Status.TelecomContext = telecomContext
 
 	}
 
@@ -1006,7 +1016,7 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 			fmt.Sprintf("Retrying intent processing (attempt %d/%d): %v",
 
-				intentProcessing.Status.RetryCount, *intentProcessing.Spec.MaxRetries, err))
+				intentProcessing.Status.RetryCount, intentProcessing.Spec.MaxRetries, err))
 
 		// Publish retry event.
 

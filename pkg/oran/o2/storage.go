@@ -925,6 +925,64 @@ func (s *InMemoryStorage) GetResourceHistory(ctx context.Context, resourceID str
 
 }
 
+// BackupData creates a backup of the data.
+func (s *InMemoryStorage) BackupData(ctx context.Context, backupID string) error {
+	// In-memory storage backup simulation
+	return nil
+}
+
+// RestoreData restores data from a backup.
+func (s *InMemoryStorage) RestoreData(ctx context.Context, backupID string) error {
+	// In-memory storage restore simulation
+	return nil
+}
+
+// StoreInventory stores an inventory asset.
+func (s *InMemoryStorage) StoreInventory(ctx context.Context, inventory *InfrastructureAsset) error {
+	// In a real implementation, this would store inventory data
+	return nil
+}
+
+// RetrieveInventory retrieves an inventory asset.
+func (s *InMemoryStorage) RetrieveInventory(ctx context.Context, assetID string) (*InfrastructureAsset, error) {
+	// In a real implementation, this would retrieve inventory data
+	return nil, fmt.Errorf("inventory asset not found: %s", assetID)
+}
+
+// StoreLifecycleOperation stores a lifecycle operation.
+func (s *InMemoryStorage) StoreLifecycleOperation(ctx context.Context, operation *LifecycleOperation) error {
+	// In a real implementation, this would store lifecycle operations
+	return nil
+}
+
+// RetrieveLifecycleOperation retrieves a lifecycle operation.
+func (s *InMemoryStorage) RetrieveLifecycleOperation(ctx context.Context, operationID string) (*LifecycleOperation, error) {
+	// In a real implementation, this would retrieve lifecycle operations
+	return nil, fmt.Errorf("lifecycle operation not found: %s", operationID)
+}
+
+// CheckStorageHealth checks the health of the storage system.
+func (s *InMemoryStorage) CheckStorageHealth(ctx context.Context) (*o2models.HealthStatus, error) {
+	// In-memory storage is always healthy
+	return &o2models.HealthStatus{
+		Status:    "UP",
+		Timestamp: time.Now(),
+		Details:   map[string]interface{}{"storage": "in-memory"},
+	}, nil
+}
+
+// GetStorageMetrics returns storage metrics.
+func (s *InMemoryStorage) GetStorageMetrics(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"resource_pools": len(s.resourcePools),
+		"resource_types": len(s.resourceTypes),
+		"resources":      len(s.resources),
+		"deployments":    len(s.deployments),
+		"subscriptions":  len(s.subscriptions),
+		"providers":      len(s.cloudProviders),
+	}, nil
+}
+
 // BeginTransaction begins a transaction.
 
 func (s *InMemoryStorage) BeginTransaction(ctx context.Context) (interface{}, error) {

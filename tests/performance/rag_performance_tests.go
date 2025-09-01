@@ -498,7 +498,7 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 					complexityAccuracies = append(complexityAccuracies, accuracy)
 
 					// Collect similarity scores
-					for _, doc := range response.Documents {
+					for _, doc := range response.SourceDocuments {
 						similarities = append(similarities, float64(doc.Score))
 					}
 				}
@@ -555,7 +555,7 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 				results.SuccessfulAssemblies++
 
 				// Collect token utilization data
-				tokenCount := len(response.Context) / 4 // Rough token estimation
+				tokenCount := len(response.Answer) / 4 // Rough token estimation
 				tokenCounts = append(tokenCounts, tokenCount)
 
 				// Calculate context quality (placeholder)
@@ -986,17 +986,17 @@ func calculateThroughputStatistics(latencies []time.Duration, duration time.Dura
 
 func calculateRetrievalAccuracy(response *rag.RAGResponse) float64 {
 	// Placeholder accuracy calculation
-	if response == nil || len(response.Documents) == 0 {
+	if response == nil || len(response.SourceDocuments) == 0 {
 		return 0.0
 	}
 
 	// Simple accuracy based on similarity scores
 	totalSimilarity := 0.0
-	for _, doc := range response.Documents {
+	for _, doc := range response.SourceDocuments {
 		totalSimilarity += float64(doc.Score)
 	}
 
-	return totalSimilarity / float64(len(response.Documents))
+	return totalSimilarity / float64(len(response.SourceDocuments))
 }
 
 func calculateAccuracyMetrics(accuracyScores []float64) RetrievalAccuracyMetrics {
@@ -1065,8 +1065,8 @@ func calculateContextQuality(response *rag.RAGResponse) float64 {
 	}
 
 	// Base quality on context length and document diversity
-	contextLength := len(response.Context)
-	documentCount := len(response.Documents)
+	contextLength := len(response.Answer)
+	documentCount := len(response.SourceDocuments)
 
 	qualityScore := 0.5
 	if contextLength > 1000 {

@@ -1026,7 +1026,7 @@ func (v *Validator) validateORANCompliance(ctx context.Context, intent *v1.Netwo
 
 	for _, component := range intent.Spec.TargetComponents {
 
-		if err := v.oranValidator.ValidateComponent(component, files, result); err != nil {
+		if err := v.oranValidator.ValidateComponent(convertNetworkTargetComponentToORANComponent(component), files, result); err != nil {
 
 			v.logger.Warn("O-RAN component validation failed",
 

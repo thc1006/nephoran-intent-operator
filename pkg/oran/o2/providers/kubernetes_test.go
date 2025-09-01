@@ -76,7 +76,7 @@ func TestKubernetesProviderGetDeployment(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test getDeployment
-	response, err := kProvider.getDeployment(context.Background(), "default", "test-deployment")
+	response, err := kProvider.GetDeployment(context.Background(), "default", "test-deployment")
 	if err != nil {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestKubernetesProviderGetService(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test getService
-	response, err := kProvider.getService(context.Background(), "default", "test-service")
+	response, err := kProvider.GetService(context.Background(), "default", "test-service")
 	if err != nil {
 		t.Fatalf("Failed to get service: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestKubernetesProviderGetConfigMap(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test getConfigMap
-	response, err := kProvider.getConfigMap(context.Background(), "default", "test-config")
+	response, err := kProvider.GetConfigMap(context.Background(), "default", "test-config")
 	if err != nil {
 		t.Fatalf("Failed to get configmap: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestKubernetesProviderGetSecret(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test getSecret
-	response, err := kProvider.getSecret(context.Background(), "default", "test-secret")
+	response, err := kProvider.GetSecret(context.Background(), "default", "test-secret")
 	if err != nil {
 		t.Fatalf("Failed to get secret: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestKubernetesProviderGetPVC(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test getPersistentVolumeClaim
-	response, err := kProvider.getPersistentVolumeClaim(context.Background(), "default", "test-pvc")
+	response, err := kProvider.GetPersistentVolumeClaim(context.Background(), "default", "test-pvc")
 	if err != nil {
 		t.Fatalf("Failed to get pvc: %v", err)
 	}
@@ -289,7 +289,7 @@ func TestKubernetesProviderUpdateDeployment(t *testing.T) {
 		},
 	}
 
-	response, err := kProvider.updateDeployment(context.Background(), "default", "test-deployment", updateReq)
+	response, err := kProvider.UpdateDeployment(context.Background(), "default", "test-deployment", updateReq)
 	if err != nil {
 		t.Fatalf("Failed to update deployment: %v", err)
 	}

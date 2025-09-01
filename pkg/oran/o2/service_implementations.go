@@ -21,7 +21,7 @@ type O2IMSServiceImpl struct {
 
 	storage O2IMSStorage
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	logger *logging.StructuredLogger
 
@@ -30,7 +30,7 @@ type O2IMSServiceImpl struct {
 
 // NewO2IMSServiceImpl creates a new O2 IMS service implementation.
 
-func NewO2IMSServiceImpl(config *O2IMSConfig, storage O2IMSStorage, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) O2IMSService {
+func NewO2IMSServiceImpl(config *O2IMSConfig, storage O2IMSStorage, providerRegistry providers.ProviderRegistry, logger *logging.StructuredLogger) O2IMSService {
 
 	return &O2IMSServiceImpl{
 
@@ -1513,7 +1513,7 @@ func (s *O2IMSServiceImpl) generateResourceID(name, resourceType string) string 
 type ResourceManagerImpl struct {
 	config *O2IMSConfig
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	logger *logging.StructuredLogger
 }
@@ -1652,7 +1652,7 @@ func (rm *ResourceManagerImpl) TerminateResource(ctx context.Context, resourceID
 type InventoryServiceImpl struct {
 	config *O2IMSConfig
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	logger *logging.StructuredLogger
 }

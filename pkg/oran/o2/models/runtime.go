@@ -33,3 +33,11 @@ type NetworkTrafficMetrics struct {
     PacketsReceived   int64   `json:"packets_received,omitempty"`
     PacketsSent       int64   `json:"packets_sent,omitempty"`
 }
+
+// HealthStatus represents the health status of a resource or component
+type HealthStatus struct {
+    Status      string    `json:"status"`
+    Message     string    `json:"message,omitempty"`
+    LastCheck   time.Time `json:"last_check"`
+    Details     map[string]interface{} `json:"details,omitempty"`
+}

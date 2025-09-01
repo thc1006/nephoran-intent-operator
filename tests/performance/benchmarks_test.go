@@ -44,8 +44,13 @@ func TestBenchmarks(t *testing.T) {
 
 // BenchmarkIntentProcessing benchmarks intent processing performance
 func BenchmarkIntentProcessing(b *testing.B) {
+	config := &framework.TestConfig{
+		// Add minimal test config for benchmarks
+		Timeout: 30 * time.Second,
+		CleanupTimeout: 10 * time.Second,
+	}
 	testSuite := &BenchmarkTestSuite{
-		TestSuite: framework.NewTestSuite(),
+		TestSuite: framework.NewTestSuite(config),
 	}
 	testSuite.SetupSuite()
 	defer testSuite.TearDownSuite()
@@ -132,7 +137,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 				if i >= len(texts) {
 					i = 0
 				}
-				tokenManager.CountTokens(texts[i])
+				tokenManager.EstimateTokensForModel("gpt-3.5-turbo", texts[i])
 				i++
 			}
 		})
@@ -450,7 +455,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 							start := time.Now()
 
 							text := fmt.Sprintf("Goroutine %d request %d: Deploy network function with specific configuration", goroutineID, j)
-							tokenManager.CountTokens(text)
+							tokenManager.EstimateTokensForModel("gpt-3.5-turbo", text)
 
 							latency := time.Since(start)
 							latencies <- latency
@@ -505,7 +510,7 @@ func (suite *BenchmarkTestSuite) TestMemoryProfiling() {
 
 			for i := 0; i < 10000; i++ {
 				text := fmt.Sprintf("Operation %d: Network function deployment with configuration", i)
-				tokenManager.CountTokens(text)
+				tokenManager.EstimateTokensForModel("gpt-3.5-turbo", text)
 
 				// Periodically force GC to detect leaks
 				if i%1000 == 0 {

@@ -16,8 +16,8 @@ import (
 	vegeta "github.com/tsenart/vegeta/v12/lib"
 )
 
-// LoadTestConfig defines load test configuration
-type LoadTestConfig struct {
+// ProductionLoadTestConfig defines load test configuration
+type ProductionLoadTestConfig struct {
 	Duration         time.Duration
 	RampUpDuration   time.Duration
 	TargetRPS        int
@@ -41,8 +41,8 @@ type TestScenario struct {
 // ResponseValidator validates response
 type ResponseValidator func(*http.Response, []byte) error
 
-// LoadTestResult contains test results
-type LoadTestResult struct {
+// ProductionLoadTestResult contains test results
+type ProductionLoadTestResult struct {
 	StartTime           time.Time                  `json:"start_time"`
 	EndTime             time.Time                  `json:"end_time"`
 	Duration            time.Duration              `json:"duration"`
@@ -58,7 +58,7 @@ type LoadTestResult struct {
 	Throughput          float64                    `json:"throughput"`
 	ErrorRate           float64                    `json:"error_rate"`
 	ScenarioResults     map[string]*ScenarioResult `json:"scenario_results"`
-	ResourceUtilization *ResourceMetrics           `json:"resource_utilization"`
+	ResourceUtilization *ProductionResourceMetrics           `json:"resource_utilization"`
 	SystemPerformance   *SystemMetrics             `json:"system_performance"`
 }
 
@@ -71,8 +71,8 @@ type ScenarioResult struct {
 	ErrorsByType map[string]int64 `json:"errors_by_type"`
 }
 
-// ResourceMetrics tracks resource utilization
-type ResourceMetrics struct {
+// ProductionResourceMetrics tracks resource utilization
+type ProductionResourceMetrics struct {
 	CPUUsage         float64 `json:"cpu_usage"`
 	MemoryUsage      float64 `json:"memory_usage"`
 	DiskIOPS         float64 `json:"disk_iops"`

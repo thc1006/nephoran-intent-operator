@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -674,10 +674,7 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 }
 
 // Helper functions
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}
+// int32Ptr is defined in example_integration.go
 
 // Integration tests
 

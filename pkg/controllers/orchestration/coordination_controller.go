@@ -755,7 +755,7 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 					return runtime.RawExtension{}
 				}(),
 
-				TargetComponents: r.convertORANComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
+				TargetComponents: r.convertNetworkTargetComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
 
 				ResourceConstraints: networkIntent.Spec.ResourceConstraints,
 
@@ -1722,6 +1722,18 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 		RecoveryTimeout: 120 * time.Second,
 	}
 
+}
+
+// convertNetworkTargetComponentsToTargetComponents converts NetworkTargetComponent slice to TargetComponent slice.
+func (r *CoordinationController) convertNetworkTargetComponentsToTargetComponents(networkComponents []nephoranv1.NetworkTargetComponent) []nephoranv1.TargetComponent {
+	targetComponents := make([]nephoranv1.TargetComponent, len(networkComponents))
+	for i, networkComp := range networkComponents {
+		targetComponents[i] = nephoranv1.TargetComponent{
+			Name: string(networkComp),
+			Type: "deployment", // Default type for network components
+		}
+	}
+	return targetComponents
 }
 
 // convertORANComponentsToTargetComponents converts ORANComponent slice to TargetComponent slice.

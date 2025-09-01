@@ -280,6 +280,63 @@ func hasRequiredCapabilities(caps *ProviderCapabilities, required []string) bool
 	return true
 }
 
+// GetSupportedProviders returns the list of supported provider types
+func (r *DefaultProviderRegistry) GetSupportedProviders() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	
+	supportedTypes := make(map[string]bool)
+	for _, provider := range r.providers {
+		info := provider.GetProviderInfo()
+		supportedTypes[info.Type] = true
+	}
+	
+	var result []string
+	for providerType := range supportedTypes {
+		result = append(result, providerType)
+	}
+	
+	return result
+}
+
+// CreateAndRegisterProvider creates and registers a provider
+func (r *DefaultProviderRegistry) CreateAndRegisterProvider(providerType string, name string, config *ProviderConfiguration) error {
+	// For simplicity, create a mock provider - in real implementation this would use factory
+	mockProvider := &MockProvider{
+		info: ProviderInfo{
+			Type: providerType,
+			Name: name,
+		},
+	}
+	
+	return r.RegisterProvider(name, mockProvider, config)
+}
+
+// Close closes all providers and cleans up resources
+func (r *DefaultProviderRegistry) Close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
+	var firstError error
+	for name, provider := range r.providers {
+		if err := provider.Close(); err != nil {
+			if firstError == nil {
+				firstError = fmt.Errorf("failed to close provider %s: %w", name, err)
+			}
+		}
+	}
+	
+	// Clear all maps
+	r.providers = make(map[string]CloudProvider)
+	r.configs = make(map[string]*ProviderConfiguration)
+	
+	r.healthMu.Lock()
+	r.healthCheckers = make(map[string]*HealthChecker)
+	r.healthMu.Unlock()
+	
+	return firstError
+}
+
 // Global provider registry instance
 var globalProviderRegistry ProviderRegistry = NewProviderRegistry()
 

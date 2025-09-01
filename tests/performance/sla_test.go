@@ -691,7 +691,7 @@ func (s *SLATestSuite) extractScalarValue(result interface{}) (float64, error) {
 }
 
 // BenchmarkIntentProcessing benchmarks intent processing performance
-func BenchmarkIntentProcessing(b *testing.B) {
+func BenchmarkSLAIntentProcessing(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 

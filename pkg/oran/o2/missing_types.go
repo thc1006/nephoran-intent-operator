@@ -345,14 +345,21 @@ func WrapCommonComponentCheck(checkFunc func(ctx context.Context) common.Compone
 // Cloud provider configuration with O2 suffix to avoid conflicts
 type CloudProviderConfigO2 struct {
 	ID             string                 `json:"id"`
+	ProviderID     string                 `json:"providerId"`
 	Name           string                 `json:"name"`
 	Type           string                 `json:"type"` // AWS, Azure, GCP, OpenStack, VMware
+	Version        string                 `json:"version,omitempty"`
+	Description    string                 `json:"description,omitempty"`
+	Enabled        bool                   `json:"enabled"`
 	Region         string                 `json:"region,omitempty"`
+	Zone           string                 `json:"zone,omitempty"`
 	Endpoint       string                 `json:"endpoint,omitempty"`
 	Credentials    map[string]string      `json:"credentials"`
 	Configuration  map[string]interface{} `json:"configuration,omitempty"`
 	Capabilities   []string               `json:"capabilities"`
 	Status         string                 `json:"status"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
 	LastSync       time.Time              `json:"lastSync,omitempty"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }

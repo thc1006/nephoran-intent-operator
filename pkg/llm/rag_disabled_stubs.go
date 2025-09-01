@@ -355,6 +355,56 @@ func (cbm *CircuitBreakerManager) Get(name string) *CircuitBreaker {
 
 type TokenManager struct{}
 
+// AllocateTokens performs allocatetokens operation.
+func (tm *TokenManager) AllocateTokens(request string) (int, error) {
+	return 0, nil
+}
+
+// ReleaseTokens performs releasetokens operation.
+func (tm *TokenManager) ReleaseTokens(count int) error {
+	return nil
+}
+
+// GetAvailableTokens performs getavailabletokens operation.
+func (tm *TokenManager) GetAvailableTokens() int {
+	return 0
+}
+
+// EstimateTokensForModel performs estimatetokensformodel operation.
+func (tm *TokenManager) EstimateTokensForModel(model string, text string) (int, error) {
+	return 0, nil
+}
+
+// SupportsSystemPrompt performs supportssystemprompt operation.
+func (tm *TokenManager) SupportsSystemPrompt(model string) bool {
+	return false
+}
+
+// SupportsChatFormat performs supportschatformat operation.
+func (tm *TokenManager) SupportsChatFormat(model string) bool {
+	return false
+}
+
+// SupportsStreaming performs supportsstreaming operation.
+func (tm *TokenManager) SupportsStreaming(model string) bool {
+	return false
+}
+
+// TruncateToFit performs truncatetofit operation.
+func (tm *TokenManager) TruncateToFit(text string, maxTokens int, model string) (string, error) {
+	return text, nil
+}
+
+// GetTokenCount performs gettokencount operation.
+func (tm *TokenManager) GetTokenCount(text string) int {
+	return 0
+}
+
+// ValidateModel performs validatemodel operation.
+func (tm *TokenManager) ValidateModel(model string) error {
+	return nil
+}
+
 // GetSupportedModels performs getsupportedmodels operation.
 
 func (tm *TokenManager) GetSupportedModels() []string {
@@ -421,7 +471,7 @@ func NewCircuitBreakerManager() *CircuitBreakerManager {
 
 // NewTokenManager performs newtokenmanager operation.
 
-func NewTokenManager() *TokenManager {
+func NewTokenManager() TokenManager {
 
 	return &TokenManager{}
 

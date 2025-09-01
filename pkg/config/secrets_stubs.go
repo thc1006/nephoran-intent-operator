@@ -9,13 +9,38 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
+// APIKeys is an alias to interfaces.APIKeys for backward compatibility within the config package
+type APIKeys = interfaces.APIKeys
+
+// SecretManager interface defines the contract for secret management operations
+// (stub implementation for disable_rag builds)
+type SecretManager interface {
+	// Get retrieves a secret value by key
+	Get(ctx context.Context, key string) (string, error)
+	
+	// GetAPIKeys retrieves all API keys in a structured format
+	GetAPIKeys(ctx context.Context) (*APIKeys, error)
+	
+	// Set stores a secret value by key (for development/testing)
+	Set(ctx context.Context, key, value string) error
+	
+	// Refresh invalidates any cached secrets and forces reload
+	Refresh(ctx context.Context) error
+	
+	// CreateSecretFromEnvVars creates a secret from environment variables
+	CreateSecretFromEnvVars(ctx context.Context, key string) error
+	
+	// Close cleans up any resources (optional)
+	Close() error
+}
+
 // KubernetesSecretManager provides a concrete type for disable_rag builds
 type KubernetesSecretManager struct {
 	namespace string
 }
 
 // Stub implementations for disable_rag builds
-func NewSecretManager(namespace string) (*KubernetesSecretManager, error) {
+func NewSecretManager(namespace string) (SecretManager, error) {
 	return &KubernetesSecretManager{namespace: namespace}, nil
 }
 
@@ -33,7 +58,7 @@ func (sm *KubernetesSecretManager) GetSecretValue(ctx context.Context, secretNam
 	return "", fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
-func (sm *KubernetesSecretManager) CreateSecretFromEnvVars(ctx context.Context, secretName string, envVarMapping map[string]string) error {
+func (sm *KubernetesSecretManager) CreateSecretFromEnvVars(ctx context.Context, key string) error {
 	return fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
@@ -53,14 +78,19 @@ func (sm *KubernetesSecretManager) GetSecretRotationInfo(ctx context.Context, se
 	return nil, fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
-// Deprecated - use KubernetesSecretManager instead
-type SecretManager = KubernetesSecretManager
-
 func (sm *KubernetesSecretManager) Get(ctx context.Context, key string) (string, error) {
 	return "", fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
+func (sm *KubernetesSecretManager) Set(ctx context.Context, key, value string) error {
+	return fmt.Errorf("secret manager disabled with disable_rag build tag")
+}
+
 func (sm *KubernetesSecretManager) Refresh(ctx context.Context) error {
+	return nil
+}
+
+func (sm *KubernetesSecretManager) Close() error {
 	return nil
 }
 

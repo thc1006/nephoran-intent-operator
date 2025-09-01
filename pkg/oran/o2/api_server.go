@@ -65,7 +65,7 @@ type O2APIServer struct {
 
 	// Provider registry.
 
-	providerRegistry *providers.ProviderRegistry
+	providerRegistry providers.ProviderRegistry
 
 	// Lifecycle management.
 

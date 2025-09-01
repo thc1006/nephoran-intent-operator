@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // SharedMockRAGService provides a centralized mock RAG service for all tests
@@ -90,12 +91,22 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 	}
 
 	response := &rag.RetrievalResponse{
-		Documents:   documents,
-		Query:       request.Query,
-		TotalFound:  len(documents),
-		ProcessTime: 50 * time.Millisecond,
-		Context:     make(map[string]interface{}),
-		Metadata:    make(map[string]interface{}),
+		Documents:             make([]map[string]interface{}, len(documents)),
+		Duration:              50 * time.Millisecond,
+		AverageRelevanceScore: 0.8,
+		TopRelevanceScore:     0.9,
+		QueryWasEnhanced:      false,
+		Metadata:              make(map[string]interface{}),
+	}
+	
+	// Convert rag.Doc to map[string]interface{}
+	for i, doc := range documents {
+		response.Documents[i] = map[string]interface{}{
+			"id":         doc.ID,
+			"content":    doc.Content,
+			"confidence": doc.Confidence,
+			"metadata":   doc.Metadata,
+		}
 	}
 
 	if args.Error(1) != nil {
@@ -131,15 +142,23 @@ func (m *SharedMockRAGService) Query(ctx context.Context, req *rag.QueryRequest)
 		avgSimilarity /= float64(len(filteredDocs))
 	}
 
+	// Convert filteredDocs to SearchResult format for QueryResponse
+	results := make([]*shared.SearchResult, len(filteredDocs))
+	for i, doc := range filteredDocs {
+		results[i] = &shared.SearchResult{
+			ID:      fmt.Sprintf("doc-%d", i),
+			Content: doc["content"].(string),
+			Score:   float32(doc["similarity"].(float64)),
+			Metadata: doc["metadata"].(map[string]interface{}),
+		}
+	}
+	
 	return &rag.QueryResponse{
-		// TODO: Fix struct fields - these fields don't exist in rag.QueryResponse
-		// Documents:     filteredDocs,
-		// MaxSimilarity: m.maxSimilarity,
-		// AvgSimilarity: avgSimilarity,
-		// Metadata: map[string]interface{}{
-		// 	"queryTime": m.queryDelay,
-		// 	"totalDocs": len(m.documents),
-		// },
+		Query:          req.Query,
+		Results:        results,
+		ProcessingTime: m.queryDelay,
+		EmbeddingCost:  0.001,
+		ProviderUsed:   "mock-provider",
 	}, nil
 }
 

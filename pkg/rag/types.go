@@ -71,6 +71,9 @@ type SearchResponse struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
+// Note: RAGRequest and RAGResponse types are defined in rag_service.go to avoid duplication
+
+
 // WeaviateHealthStatus represents the health status of the Weaviate client.
 type WeaviateHealthStatus struct {
 	IsHealthy  bool      `json:"is_healthy"`

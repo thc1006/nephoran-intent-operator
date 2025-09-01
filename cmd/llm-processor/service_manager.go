@@ -21,6 +21,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
+// Note: startTime is declared in main.go to avoid duplication
+
 // ServiceManager manages the overall service lifecycle and components.
 
 type ServiceManager struct {

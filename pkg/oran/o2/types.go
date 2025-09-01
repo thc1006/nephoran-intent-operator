@@ -48,7 +48,7 @@ type O2IMSConfig struct {
 
 	TokenExpiry time.Duration `json:"tokenExpiry"`
 
-	AuthenticationConfig *BasicAuthConfig `json:"authenticationConfig,omitempty"`
+	AuthenticationConfig *AuthenticationConfig `json:"authenticationConfig,omitempty"`
 
 	// Database.
 
@@ -68,7 +68,7 @@ type O2IMSConfig struct {
 
 	// Security.
 
-	SecurityConfig *APISecurityConfig `json:"securityConfig,omitempty"`
+	SecurityConfig *SecurityConfig `json:"securityConfig,omitempty"`
 
 	// Additional Configuration Fields.
 
@@ -76,9 +76,23 @@ type O2IMSConfig struct {
 
 	Host string `json:"host,omitempty"`
 
-	CloudProviders map[string]*CloudProviderConfig `json:"cloudProviders,omitempty"`
+	// Service configuration from DefaultO2IMSConfig
+	ServiceName    string `json:"serviceName"`
+	ServiceVersion string `json:"serviceVersion"`
+	ListenAddress  string `json:"listenAddress"`
+	ListenPort     int    `json:"listenPort"`
+	MetricsPort    int    `json:"metricsPort"`
+	HealthPort     int    `json:"healthPort"`
+	LogLevel       string `json:"logLevel"`
+	RedisURL       string `json:"redisUrl"`
+	CloudProviders []string `json:"cloudProviders"`
+	Features       map[string]bool `json:"features"`
+	Timeouts       map[string]string `json:"timeouts"`
+	Limits         map[string]int `json:"limits"`
 
-	HealthCheckConfig *APIHealthCheckConfig `json:"healthCheckConfig,omitempty"`
+	CloudProviderConfigs map[string]*CloudProviderConfig `json:"cloudProviderConfigs,omitempty"`
+
+	HealthCheckConfig *HealthCheckConfigForAPI `json:"healthCheckConfig,omitempty"`
 
 	MetricsConfig *MetricsConfig `json:"metricsConfig,omitempty"`
 
