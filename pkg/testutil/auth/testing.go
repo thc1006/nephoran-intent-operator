@@ -831,6 +831,18 @@ func (j *JWTManagerMock) BlacklistToken(tokenString string) error {
 
 }
 
+// IsTokenBlacklisted checks if a token is in the blacklist.
+
+func (j *JWTManagerMock) IsTokenBlacklisted(ctx context.Context, tokenString string) (bool, error) {
+
+	j.mutex.RLock()
+
+	defer j.mutex.RUnlock()
+
+	return j.blacklistedTokens[tokenString], nil
+
+}
+
 // CleanupBlacklist performs cleanupblacklist operation.
 
 func (j *JWTManagerMock) CleanupBlacklist() error {

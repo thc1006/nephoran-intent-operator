@@ -865,7 +865,7 @@ func createJWTManagerForTest(t *testing.T) (*auth.JWTManager, *authtestutil.Test
 	return manager, tc
 }
 
-func generateTestTokenWithClaims(t *testing.T, manager *JWTManager, claims map[string]interface{}) string {
+func generateTestTokenWithClaims(t *testing.T, manager *auth.JWTManager, claims map[string]interface{}) string {
 	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
