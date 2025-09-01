@@ -792,9 +792,9 @@ func (c *Config) isRAGFeatureEnabled() bool {
 
 	// RAG features are enabled when RAG API URL is set or when Weaviate is configured.
 
-	// (indicating intention to use RAG even if internal URL is missing - validation error).
+	// Only consider RAG enabled if External URL or Weaviate URL is provided.
 
-	return c.RAGAPIURLInternal != "" || c.RAGAPIURLExternal != "" || c.WeaviateURL != ""
+	return c.RAGAPIURLExternal != "" || c.WeaviateURL != ""
 
 }
 

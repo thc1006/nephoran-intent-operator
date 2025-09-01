@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {

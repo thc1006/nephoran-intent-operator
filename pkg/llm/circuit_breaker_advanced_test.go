@@ -2,17 +2,13 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 var _ = Describe("Advanced Circuit Breaker Tests", func() {

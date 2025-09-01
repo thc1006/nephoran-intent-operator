@@ -330,7 +330,7 @@ func (gmm *GPUMemoryManager) AllocateMemory(ctx context.Context, size int64, pur
 	span.SetAttributes(
 		attribute.Int("device_id", deviceID),
 		attribute.Int64("size", size),
-		attribute.String("purpose", string(purpose)),
+		attribute.String("purpose", fmt.Sprintf("%d", purpose)),
 		attribute.String("allocation_id", allocation.ID),
 	)
 

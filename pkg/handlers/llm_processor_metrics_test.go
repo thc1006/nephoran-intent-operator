@@ -38,7 +38,7 @@ func TestProcessIntentHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -114,7 +114,7 @@ func TestStatusHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -163,7 +163,7 @@ func TestStreamingHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -215,7 +215,7 @@ func TestMetricsHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
@@ -245,7 +245,7 @@ func TestCircuitBreakerStatusHandlerMetrics(t *testing.T) {
 		nil, // relevanceScorer
 		nil, // promptBuilder
 		slog.Default(),
-		health.NewHealthChecker(),
+		health.NewHealthChecker("test-service", "test-v1", slog.Default()),
 		time.Now(),
 		metricsCollector,
 	)
