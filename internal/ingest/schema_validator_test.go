@@ -13,29 +13,22 @@ import (
 
 // Test schema for validation tests
 var testSchema = map[string]interface{}{
-		"apiVersion": json.RawMessage(`{}`),
+	"apiVersion": json.RawMessage(`{}`),
+	"kind":       json.RawMessage(`{}`),
+	"metadata": map[string]interface{}{
+		"name":      json.RawMessage(`{}`),
+		"namespace": json.RawMessage(`{}`),
+		"required":  []string{"name"},
+	},
+	"spec": map[string]interface{}{
+		"intentType": json.RawMessage(`{}`),
+		"target":     json.RawMessage(`{}`),
+		"replicas":   json.RawMessage(`{}`),
+		"resources": map[string]interface{}{
+			"cpu":    json.RawMessage(`{}`),
+			"memory": json.RawMessage(`{}`),
 		},
-		"kind": json.RawMessage(`{}`),
-		},
-		"metadata": map[string]interface{}{
-				"name": json.RawMessage(`{}`),
-				"namespace": json.RawMessage(`{}`),
-			},
-			"required": []string{"name"},
-		},
-		"spec": map[string]interface{}{
-				"intentType": json.RawMessage(`{}`),
-				},
-				"target": json.RawMessage(`{}`),
-				"replicas": json.RawMessage(`{}`),
-				"resources": map[string]interface{}{
-						"cpu": json.RawMessage(`{}`),
-						"memory": json.RawMessage(`{}`),
-					},
-				},
-			},
-			"required": []string{"intentType", "target"},
-		},
+		"required": []string{"intentType", "target"},
 	},
 	"required": []string{"apiVersion", "kind", "metadata", "spec"},
 }

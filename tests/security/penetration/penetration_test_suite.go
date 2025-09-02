@@ -47,7 +47,7 @@ type TestResults struct {
 	ComplianceResults  map[string]bool        `json:"compliance_results"`
 	PenetrationResults []PenetrationResult    `json:"penetration_results"`
 	RecommendedActions []string               `json:"recommended_actions"`
-	DetailedFindings   json.RawMessage `json:"detailed_findings"`
+	DetailedFindings   json.RawMessage        `json:"detailed_findings"`
 }
 
 // SecurityIssue represents a discovered security vulnerability
@@ -69,7 +69,7 @@ type PenetrationResult struct {
 	Status          string                 `json:"status"`
 	ExecutionTime   time.Duration          `json:"execution_time"`
 	Vulnerabilities []SecurityIssue        `json:"vulnerabilities"`
-	Details         json.RawMessage `json:"details"`
+	Details         map[string]interface{} `json:"details"` // Fixed: Changed from json.RawMessage to map
 }
 
 // NewPenetrationTestSuite creates a new penetration testing suite

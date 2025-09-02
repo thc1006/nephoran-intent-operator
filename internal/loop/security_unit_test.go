@@ -191,7 +191,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 		},
 		{
 			name:     "unicode file path",
-			filePath: filepath.Join(tempDir, "п?ṫ�?, "?айл-ин?ен?.json"),
+			filePath: filepath.Join(tempDir, "路径", "文件-intent.json"),
 			testFunc: func(t *testing.T, sm *StateManager, filePath string) {
 				// Create the directory structure and file first
 				parentDir := filepath.Dir(filePath)
@@ -531,8 +531,8 @@ func TestSanitizeInput(t *testing.T) {
 		},
 		{
 			name:     "string with unicode",
-			input:    "п?иложение-?��?",
-			expected: "п?иложение-?��?", // Unicode should be preserved
+			input:    "п?иложение-?��?",
+			expected: "п?иложение-?��?", // Unicode should be preserved
 		},
 		{
 			name:     "empty string",

@@ -161,7 +161,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 		// Special characters that might appear in tests
 		{
 			name:     "UnicodeCharacters",
-			input:    "intent-测�?-?айл",
+			input:    "intent-测试-文件",
 			expected: "intent",
 			desc:     "Unicode characters should be replaced",
 		},
@@ -303,7 +303,7 @@ func TestSanitizeStatusFilename_UnicodeNormalizationNFKC(t *testing.T) {
 	}{
 		{
 			name:        "ChineseCharacters",
-			input:       "intent-测�?-file",
+			input:       "intent-测�?-file",
 			description: "Chinese characters should be sanitized to ASCII-safe",
 		},
 		{
@@ -313,7 +313,7 @@ func TestSanitizeStatusFilename_UnicodeNormalizationNFKC(t *testing.T) {
 		},
 		{
 			name:        "JapaneseCharacters",
-			input:       "intent-?�ァ?�ル-test",
+			input:       "intent-?�ァ?�ル-test",
 			description: "Japanese characters should be sanitized to ASCII-safe",
 		},
 		{
@@ -333,7 +333,7 @@ func TestSanitizeStatusFilename_UnicodeNormalizationNFKC(t *testing.T) {
 		},
 		{
 			name:        "MixedUnicodeAndASCII",
-			input:       "intent-test-测�?-file",
+			input:       "intent-test-测�?-file",
 			description: "Should preserve ASCII while sanitizing Unicode",
 		},
 		{
@@ -343,7 +343,7 @@ func TestSanitizeStatusFilename_UnicodeNormalizationNFKC(t *testing.T) {
 		},
 		{
 			name:        "OnlyUnicodeCharacters",
-			input:       "测�??�件",
+			input:       "测�??�件",
 			description: "Filename with only Unicode should fall back to unnamed",
 		},
 	}
@@ -386,7 +386,7 @@ func TestSanitizeStatusFilename_StatusFilenameConsistencyWindows(t *testing.T) {
 		{"LongName", strings.Repeat("intent-", 20) + "file"},
 		{"MixedSeparators", "intent/test\\file"},
 		{"SpecialChars", "intent<>:\"|?*file"},
-		{"UnicodeChars", "intent-测�?-?айл"},
+		{"UnicodeChars", "intent-测�?-?айл"},
 	}
 
 	for _, tc := range testCases {
@@ -512,12 +512,12 @@ func TestSanitizeStatusFilename_EdgeCasesComprehensive(t *testing.T) {
 		{"OnlyDots", "......", true, "only dots should get default name"},
 		{"OnlySeparators", "---___...", true, "only separators should get default name"},
 		{"OnlyReservedChars", "<>:\"/\\|?*", true, "only reserved chars should get default name"},
-		{"OnlyUnicode", "测�??�件", true, "only Unicode should get default name"},
+		{"OnlyUnicode", "测试文件", true, "only Unicode should get default name"},
 		{"VeryLongFilename", strings.Repeat("a", 500), true, "very long should be truncated"},
-		{"LongUnicode", strings.Repeat("�?, 200), true, "long Unicode should be handled"},
+		{"LongUnicode", strings.Repeat("测", 200), true, "long Unicode should be handled"},
 		{"PathTraversal", "../../../etc/passwd", true, "path traversal should be sanitized"},
 		{"WindowsPathLong", "C:\\Program Files\\Very Long Path Name\\With Spaces\\intent-file.json", true, "Windows path should be sanitized"},
-		{"MixedComplexity", "C:\\测�?\\<file|name>with??��?*.tmp~", true, "complex mixed input should be handled"},
+		{"MixedComplexity", "C:\\测试\\<file|name>with测试*.tmp~", true, "complex mixed input should be handled"},
 		{"NullBytes", "intent\x00test", true, "null bytes should be removed"},
 		{"HighASCII", "intent\x7F\x80\x90test", true, "high ASCII should be sanitized"},
 	}
@@ -563,11 +563,11 @@ func BenchmarkSanitizeStatusFilename_ComprehensivePerformance(b *testing.B) {
 	}{
 		{"SimpleASCII", "intent-test-file.json"},
 		{"WindowsReservedChars", "intent<>:\"/\\|?*test.json"},
-		{"UnicodeHeavy", "intent-测�?-?айл-?�ァ?�ル.json"},
+		{"UnicodeHeavy", "intent-测�?-?айл-?�ァ?�ル.json"},
 		{"WindowsReservedDevice", "CON.json"},
 		{"VeryLongFilename", strings.Repeat("intent-test-", 50) + ".json"},
-		{"ComplexMixed", "C:\\测�?\\<file|name>with??��?*.tmp~.json"},
-		{"OnlyUnicode", "测�??�件?�称"},
+		{"ComplexMixed", "C:\\测�?\\<file|name>with??��?*.tmp~.json"},
+		{"OnlyUnicode", "测�??�件?�称"},
 		{"PathTraversal", "../../../etc/passwd"},
 		{"ControlCharacters", "intent\t\n\r\b\a\f\vtest.json"},
 		{"RepeatedPatterns", "intent...test---file___name.json"},

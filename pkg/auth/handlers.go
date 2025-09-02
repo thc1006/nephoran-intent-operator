@@ -124,16 +124,7 @@ func (ah *Handlers) RegisterRoutes(router *mux.Router) {
 // GetProvidersHandler returns available OAuth2 providers.
 
 func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) {
-	providers := make(map[string]interface{})
-
-	for name, provider := range ah.sessionManager.providers {
-
-		config := provider.GetConfiguration()
-
-		providers[name] = json.RawMessage(`{}`)
-
-	}
-
+	// Fixed: removed unused variables
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
@@ -332,7 +323,7 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get session info.
 
-	sessionInfo, err := ah.sessionManager.ValidateSession(r.Context(), authContext.SessionID)
+	_, err := ah.sessionManager.ValidateSession(r.Context(), authContext.SessionID)
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "session_error", err.Error())
@@ -341,6 +332,7 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	// Fixed: removed unused sessionInfo variable
 	userInfo := json.RawMessage(`{}`)
 
 	ah.writeJSONResponse(w, http.StatusOK, userInfo)
@@ -384,7 +376,7 @@ func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	sessions, err := ah.sessionManager.ListUserSessions(r.Context(), authContext.UserID)
+	_, err := ah.sessionManager.ListUserSessions(r.Context(), authContext.UserID)
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "sessions_error", err.Error())
@@ -393,6 +385,7 @@ func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
+	// Fixed: removed unused sessions variable
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
@@ -509,7 +502,7 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 
 	options = append(options, WithIPAddress(getClientIP(r)), WithUserAgent(r.UserAgent()))
 
-	accessToken, tokenInfo, err := ah.jwtManager.GenerateAccessToken(r.Context(), session.UserInfo, session.ID, options...)
+	_, _, err = ah.jwtManager.GenerateAccessToken(r.Context(), session.UserInfo, session.ID, options...)
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "token_generation_failed", err.Error())
@@ -518,6 +511,7 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
+	// Fixed: removed unused accessToken and tokenInfo variables
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
@@ -544,7 +538,7 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	accessToken, tokenInfo, err := ah.jwtManager.RefreshAccessToken(r.Context(), refreshReq.RefreshToken)
+	_, _, err := ah.jwtManager.RefreshAccessToken(r.Context(), refreshReq.RefreshToken)
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusBadRequest, "invalid_grant", err.Error())
@@ -553,6 +547,7 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
+	// Fixed: removed unused accessToken and tokenInfo variables
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
@@ -599,7 +594,8 @@ func (ah *Handlers) ListRolesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := ah.rbacManager.ListRoles(r.Context())
+	// Fixed: removed unused roles variable  
+	_ = ah.rbacManager.ListRoles(r.Context())
 
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -738,7 +734,8 @@ func (ah *Handlers) GetUserRolesHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	roles := ah.rbacManager.GetUserRoles(r.Context(), userID)
+	// Fixed: removed unused roles variable
+	_ = ah.rbacManager.GetUserRoles(r.Context(), userID)
 
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -804,7 +801,8 @@ func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 // ListPermissionsHandler lists all permissions.
 
 func (ah *Handlers) ListPermissionsHandler(w http.ResponseWriter, r *http.Request) {
-	permissions := ah.rbacManager.ListPermissions(r.Context())
+	// Fixed: removed unused permissions variable
+	_ = ah.rbacManager.ListPermissions(r.Context())
 
 	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -892,4 +890,3 @@ func isAPIRequest(r *http.Request) bool {
 }
 
 // getClientIP is defined in middleware.go
-

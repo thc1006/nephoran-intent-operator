@@ -981,13 +981,14 @@ func (s *StreamingService) sendMessage(conn *StreamConnection, message interface
 // sendError sends an error message to a connection.
 
 func (s *StreamingService) sendError(conn *StreamConnection, message string, err error) {
-	errorMsg := json.RawMessage(`{}`)
+	errorMsg := map[string]interface{}{}
 
 	if err != nil {
 		errorMsg["details"] = err.Error()
 	}
 
-	s.sendMessage(conn, errorMsg)
+	errorMsgBytes, _ := json.Marshal(errorMsg)
+	s.sendMessage(conn, json.RawMessage(errorMsgBytes))
 }
 
 // Start starts the streaming service.

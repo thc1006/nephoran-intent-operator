@@ -363,9 +363,8 @@ var _ = Describe("CNF Orchestrator", func() {
 			template = &CNFTemplate{
 				Function: nephoranv1.CNFFunctionAMF,
 				DefaultValues: map[string]interface{}{
-						"repository": "5gc/amf",
-						"tag":        "latest",
-					},
+					"repository": "5gc/amf",
+					"tag":        "latest",
 				},
 			}
 		})

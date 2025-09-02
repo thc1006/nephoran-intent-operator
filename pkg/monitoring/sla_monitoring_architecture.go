@@ -623,14 +623,18 @@ func NewSLAMonitoringArchitecture(
 func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
 	// Start data collection.
 
-	if err := arch.MetricsCollector.Start(ctx); err != nil {
-		return err
+	if arch.MetricsCollector != nil {
+		if err := arch.MetricsCollector.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Start real-time processing.
 
-	if err := arch.DataAggregator.Start(ctx); err != nil {
-		return err
+	if arch.DataAggregator != nil {
+		if err := arch.DataAggregator.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Start predictive analysis.
@@ -643,14 +647,18 @@ func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
 
 	// Start synthetic monitoring.
 
-	if err := arch.SyntheticMonitor.Start(ctx); err != nil {
-		return err
+	if arch.SyntheticMonitor != nil {
+		if err := arch.SyntheticMonitor.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Start automated remediation.
 
-	if err := arch.RemediationEngine.Start(ctx); err != nil {
-		return err
+	if arch.RemediationEngine != nil {
+		if err := arch.RemediationEngine.Start(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -663,45 +671,47 @@ func (arch *SLAMonitoringArchitecture) GetSLAStatus(ctx context.Context) (*SLASt
 		Timestamp: time.Now(),
 	}
 
-	// Get availability status.
+	if arch.SLIFramework != nil && arch.SLIFramework.ComponentAvailability != nil {
+		// Get availability status.
 
-	availabilityStatus, err := arch.SLIFramework.ComponentAvailability.GetStatus(ctx)
-	if err != nil {
-		return nil, err
+		availabilityStatus, err := arch.SLIFramework.ComponentAvailability.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.AvailabilityStatus = availabilityStatus
+
+		// Get latency status.
+
+		latencyStatus, err := arch.SLIFramework.EndToEndLatency.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.LatencyStatus = latencyStatus
+
+		// Get throughput status.
+
+		throughputStatus, err := arch.SLIFramework.ThroughputCapacity.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.ThroughputStatus = throughputStatus
+
+		// Get error budget status.
+
+		errorBudgetStatus, err := arch.SLIFramework.WeightedErrorBudget.GetStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		status.ErrorBudgetStatus = errorBudgetStatus
+
+		// Calculate composite SLA score.
+
+		status.CompositeSLAScore = arch.calculateCompositeSLAScore(status)
 	}
-
-	status.AvailabilityStatus = availabilityStatus
-
-	// Get latency status.
-
-	latencyStatus, err := arch.SLIFramework.EndToEndLatency.GetStatus(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	status.LatencyStatus = latencyStatus
-
-	// Get throughput status.
-
-	throughputStatus, err := arch.SLIFramework.ThroughputCapacity.GetStatus(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	status.ThroughputStatus = throughputStatus
-
-	// Get error budget status.
-
-	errorBudgetStatus, err := arch.SLIFramework.WeightedErrorBudget.GetStatus(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	status.ErrorBudgetStatus = errorBudgetStatus
-
-	// Calculate composite SLA score.
-
-	status.CompositeSLAScore = arch.calculateCompositeSLAScore(status)
 
 	return status, nil
 }
@@ -743,15 +753,32 @@ func (arch *SLAMonitoringArchitecture) calculateCompositeSLAScore(status *SLASta
 
 	score := 0.0
 
-	score += status.AvailabilityStatus.CompliancePercentage * weights["availability"]
+	if status.AvailabilityStatus != nil {
+		score += status.AvailabilityStatus.CompliancePercentage * weights["availability"]
+	}
 
-	score += status.LatencyStatus.CompliancePercentage * weights["latency"]
+	if status.LatencyStatus != nil {
+		score += status.LatencyStatus.CompliancePercentage * weights["latency"]
+	}
 
-	score += status.ThroughputStatus.CompliancePercentage * weights["throughput"]
+	if status.ThroughputStatus != nil {
+		score += status.ThroughputStatus.CompliancePercentage * weights["throughput"]
+	}
 
-	score += (1.0 - status.ErrorBudgetStatus.BurnRate) * weights["reliability"]
+	if status.ErrorBudgetStatus != nil {
+		score += (1.0 - status.ErrorBudgetStatus.BurnRate) * weights["reliability"]
+	}
 
 	return score
+}
+
+// Additional type definitions for monitoring architecture
+
+// StreamingMetricsCollector collects metrics from streaming sources
+type StreamingMetricsCollector struct {
+	StreamRate time.Duration
+	BufferSize int
+	Sources    []string
 }
 
 // ServiceAvailabilitySLI measures service-level availability.
@@ -960,12 +987,10 @@ type EdgeMetricsCollector struct {
 	MetricsQueue []MetricData
 }
 
-// MetricsPruningEngine prunes old metrics.
-
-type MetricsPruningEngine struct {
-	RetentionPeriod time.Duration
-
-	PruningInterval time.Duration
+// CardinalityManager manages metric cardinality
+type CardinalityManager struct {
+	MaxCardinality int
+	PruningRules   []string
 }
 
 // MetricsCache caches metrics for performance.
@@ -1012,22 +1037,17 @@ type WindowAggregator struct {
 	AggregationType string
 }
 
+// RealTimeSLICalculator calculates SLIs in real-time
+type RealTimeSLICalculator struct {
+	Metrics map[string]float64
+}
+
 // RealTimeSLOEvaluator evaluates SLOs in real-time.
 
 type RealTimeSLOEvaluator struct {
 	EvaluationInterval time.Duration
 
 	SLOTargets map[string]float64
-}
-
-// StateStore stores streaming state.
-
-type StateStore interface {
-	Store(key string, value interface{}) error
-
-	Retrieve(key string) (interface{}, error)
-
-	Delete(key string) error
 }
 
 // CheckpointManager manages checkpoints for streaming.
@@ -1196,164 +1216,6 @@ type DashboardWidget struct {
 	Config map[string]interface{}
 }
 
-// IntentProcessingTestSuite tests intent processing.
-
-type IntentProcessingTestSuite struct {
-	TestCases []TestCase
-
-	ExecutionRate time.Duration
-
-	Timeout time.Duration
-}
-
-// APIEndpointTestSuite tests API endpoints.
-
-type APIEndpointTestSuite struct {
-	Endpoints []EndpointTest
-
-	ExecutionRate time.Duration
-
-	Timeout time.Duration
-}
-
-// UserJourneyTestSuite tests user journeys.
-
-type UserJourneyTestSuite struct {
-	Journeys []UserJourneyTest
-
-	ExecutionRate time.Duration
-
-	Timeout time.Duration
-}
-
-// TestCase defines a test case.
-
-type TestCase struct {
-	Name string
-
-	Description string
-
-	Steps []TestStep
-
-	ExpectedSLA map[string]float64
-}
-
-// EndpointTest defines an endpoint test.
-
-type EndpointTest struct {
-	URL string
-
-	Method string
-
-	Headers map[string]string
-
-	Body string
-
-	ExpectedCode int
-}
-
-// UserJourneyTest defines a user journey test.
-
-type UserJourneyTest struct {
-	Name string
-
-	Description string
-
-	Steps []JourneyStep
-
-	SLATargets map[string]float64
-}
-
-// TestStep defines a test step.
-
-type TestStep struct {
-	Name string
-
-	Action string
-
-	Parameters map[string]interface{}
-
-	Validation string
-}
-
-// JourneyStep defines a journey step.
-
-type JourneyStep struct {
-	Name string
-
-	Endpoint string
-
-	Method string
-
-	Payload interface{}
-
-	Validation string
-}
-
-// TestScheduler schedules tests.
-
-type TestScheduler struct {
-	Schedule string
-
-	TestSuites []string
-
-	MaxParallel int
-}
-
-// TestExecutor executes tests.
-
-type TestExecutor struct {
-	MaxWorkers int
-
-	Timeout time.Duration
-
-	RetryPolicy RetryPolicy
-}
-
-// TestResultProcessor processes test results.
-
-type TestResultProcessor struct {
-	ResultStore ResultStore
-
-	AlertThresholds map[string]float64
-
-	ReportingInterval time.Duration
-}
-
-// RetryPolicy defines retry behavior.
-
-type RetryPolicy struct {
-	MaxRetries int
-
-	BackoffStrategy string
-
-	InitialDelay time.Duration
-}
-
-// ResultStore stores test results.
-
-type ResultStore interface {
-	Store(result TestResult) error
-
-	Query(filters map[string]interface{}) ([]TestResult, error)
-}
-
-// TestResult represents a test result.
-
-type TestResult struct {
-	TestName string
-
-	Success bool
-
-	Duration time.Duration
-
-	Timestamp time.Time
-
-	Metrics map[string]float64
-
-	ErrorMsg string
-}
-
 // ChaosExperiment defines chaos experiments.
 
 type ChaosExperiment struct {
@@ -1400,16 +1262,6 @@ type ResilienceValidator struct {
 	MinRecoveryTime time.Duration
 
 	MaxFailureRate float64
-}
-
-// ValidationRule defines validation rules.
-
-type ValidationRule struct {
-	Name string
-
-	Condition string
-
-	Weight float64
 }
 
 // RecoveryTimeTracker tracks recovery times.
@@ -1621,14 +1473,6 @@ func (amc *AdvancedMetricsCollector) Start(ctx context.Context) error {
 // Start method for RealTimeDataAggregator.
 
 func (rtda *RealTimeDataAggregator) Start(ctx context.Context) error {
-	// TODO: Implement actual start logic.
-
-	return nil
-}
-
-// Start method for SyntheticMonitor.
-
-func (sm *SyntheticMonitor) Start(ctx context.Context) error {
 	// TODO: Implement actual start logic.
 
 	return nil

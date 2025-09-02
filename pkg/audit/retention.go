@@ -1,10 +1,10 @@
 package audit
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -463,7 +463,7 @@ func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 
 	for name, policy := range rm.policies {
 
-		policyStatus := json.RawMessage(`{}`)
+		policyStatusMap := map[string]interface{}{}
 
 		// Add legal hold information.
 
@@ -479,9 +479,10 @@ func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 
 		policy.legalHoldMutex.RUnlock()
 
-		policyStatus["active_legal_holds"] = activeLegalHolds
+		policyStatusMap["active_legal_holds"] = activeLegalHolds
 
-		status[name] = policyStatus
+		policyStatusBytes, _ := json.Marshal(policyStatusMap)
+		status[name] = json.RawMessage(policyStatusBytes)
 
 	}
 

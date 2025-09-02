@@ -345,17 +345,25 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 	}
 
 	// Start from root schema.
+	var schemaMap map[string]interface{}
+	if err := json.Unmarshal(model.Schema, &schemaMap); err != nil {
+		return nil, fmt.Errorf("failed to parse schema: %v", err)
+	}
 
-	rootNode, ok := model.Schema[pathParts[0]]
-
+	rootNodeData, ok := schemaMap[pathParts[0]]
 	if !ok {
 		return nil, fmt.Errorf("root node not found: %s", pathParts[0])
 	}
 
-	currentNode, ok := rootNode.(*YANGNode)
+	// Convert to YANGNode
+	rootNodeBytes, err := json.Marshal(rootNodeData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal root node: %v", err)
+	}
 
-	if !ok {
-		return nil, fmt.Errorf("invalid root node type")
+	var currentNode YANGNode
+	if err := json.Unmarshal(rootNodeBytes, &currentNode); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal root node: %v", err)
 	}
 
 	// Navigate through path.
@@ -372,11 +380,11 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName, path string) (*YANGNode, e
 			return nil, fmt.Errorf("child node not found: %s", pathParts[i])
 		}
 
-		currentNode = nextNode
+		currentNode = *nextNode
 
 	}
 
-	return currentNode, nil
+	return &currentNode, nil
 }
 
 // StandardYANGValidator implementation.
@@ -414,8 +422,12 @@ func (sv *StandardYANGValidator) ValidateData(data interface{}, modelName string
 	}
 
 	// Validate against schema.
+	var schemaMap map[string]interface{}
+	if err := json.Unmarshal(model.Schema, &schemaMap); err != nil {
+		return fmt.Errorf("failed to parse schema: %v", err)
+	}
 
-	return sv.validateNode(dataMap, model.Schema)
+	return sv.validateNode(dataMap, schemaMap)
 }
 
 // validateNode validates a data node against schema node.
@@ -533,23 +545,21 @@ func (sv *StandardYANGValidator) validateLeaf(value interface{}, node *YANGNode)
 			return fmt.Errorf("enumeration value must be string, got %T", value)
 		}
 
-		if node.Constraints != nil {
-			if enumValues, exists := node.Constraints["enum"]; exists {
+		if len(node.Constraints) > 0 {
+			var constraintsMap map[string]interface{}
+			if err := json.Unmarshal(node.Constraints, &constraintsMap); err == nil {
+				if enumValues, exists := constraintsMap["enum"]; exists {
 
-				validEnums, ok := enumValues.([]string)
-
-				if ok {
-
-					for _, validValue := range validEnums {
-						if strValue == validValue {
-							return nil
+					validEnums, ok := enumValues.([]interface{})
+					if ok {
+						for _, validValue := range validEnums {
+							if validStr, ok := validValue.(string); ok && strValue == validStr {
+								return nil
+							}
 						}
+						return fmt.Errorf("invalid enumeration value: %s, valid values: %v", strValue, validEnums)
 					}
-
-					return fmt.Errorf("invalid enumeration value: %s, valid values: %v", strValue, validEnums)
-
 				}
-
 			}
 		}
 

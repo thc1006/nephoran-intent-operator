@@ -36,7 +36,7 @@ func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
 		},
 		{
 			name:        "JSON with unicode characters",
-			jsonData:    []byte(`{"intent_type": "scaling", "target": "测�?-应用", "namespace": "?��?空间", "replicas": 3}`),
+			jsonData:    []byte(`{"intent_type": "scaling", "target": "测试-应用", "namespace": "名称空间", "replicas": 3}`),
 			expectError: true,
 			description: "Unicode characters should be handled properly",
 		},

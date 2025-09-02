@@ -270,8 +270,7 @@ func TestIntentValidation(t *testing.T) {
 		},
 		{
 			name: "command injection in target",
-			intent: json.RawMessage(`{}`)"),
-			},
+			intent: json.RawMessage(`{}`),
 			shouldError: true,
 			description: "should reject command injection in target",
 		},

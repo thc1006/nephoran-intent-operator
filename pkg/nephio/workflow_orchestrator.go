@@ -1261,16 +1261,14 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 
 	execution.BlueprintPackage = blueprint
 
-	phaseExec.Results = json.RawMessage(`{}`){
-			"name": blueprint.Name,
-
-			"repository": blueprint.Repository,
-
-			"version": blueprint.Version,
-
-			"category": blueprint.Category,
-		},
+	blueprintInfo := map[string]interface{}{
+		"name": blueprint.Name,
+		"repository": blueprint.Repository,
+		"version": blueprint.Version,
+		"category": blueprint.Category,
 	}
+	blueprintBytes, _ := json.Marshal(blueprintInfo)
+	phaseExec.Results = json.RawMessage(blueprintBytes)
 
 	logger.Info("Selected blueprint",
 
@@ -1876,15 +1874,17 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	if len(execution.Deployments) > 0 {
 
-		deploymentInfo := json.RawMessage(`{}`), 0, len(execution.Deployments)),
+		deploymentInfo := map[string]interface{}{
+			"targets": make([]map[string]interface{}, 0, len(execution.Deployments)),
 		}
 
 		for _, deployment := range execution.Deployments {
-
-			target := json.RawMessage(`{}`)
-
+			target := map[string]interface{}{
+				"name": deployment.Name,
+				"namespace": deployment.Namespace,
+				"status": deployment.Status,
+			}
 			deploymentInfo["targets"] = append(deploymentInfo["targets"].([]map[string]interface{}), target)
-
 		}
 
 		deploymentInfoJSON := fmt.Sprintf(`{"phase":"Deployed","targetCount":%d}`, len(execution.Deployments))

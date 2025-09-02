@@ -606,9 +606,13 @@ func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
 	}
 
 	// Add filters.
-
-	for field, value := range query.Filters {
-		search += fmt.Sprintf(" %s=\"%v\"", field, value)
+	if len(query.Filters) > 0 {
+		var filters map[string]interface{}
+		if err := json.Unmarshal(query.Filters, &filters); err == nil {
+			for field, value := range filters {
+				search += fmt.Sprintf(" %s=\"%v\"", field, value)
+			}
+		}
 	}
 
 	// Add sorting.

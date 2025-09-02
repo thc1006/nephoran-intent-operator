@@ -93,9 +93,8 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 				w.WriteHeader(http.StatusCreated)
 			case http.MethodGet:
 				json.NewEncoder(w).Encode(map[string]interface{}{
-						"latency_ms":      10,
-						"throughput_mbps": 100,
-					},
+					"latency_ms":      10,
+					"throughput_mbps": 100,
 				})
 			case http.MethodDelete:
 				w.WriteHeader(http.StatusNoContent)

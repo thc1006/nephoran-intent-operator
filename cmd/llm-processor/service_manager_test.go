@@ -752,9 +752,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers operational (closed)",
 			stats: map[string]interface{}{
-					"state":    "closed",
-					"failures": 0,
-				},
+				"state":     "closed",
+				"failures":  0,
 				"service-b": json.RawMessage(`{}`),
 			},
 			expectedStatus:  health.StatusHealthy,
@@ -764,9 +763,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "All circuit breakers half-open (should be operational)",
 			stats: map[string]interface{}{
-					"state":    "half-open",
-					"failures": 2,
-				},
+				"state":    "half-open",
+				"failures": 2,
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -775,9 +773,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Single circuit breaker open",
 			stats: map[string]interface{}{
-					"state":    "open",
-					"failures": 5,
-				},
+				"state":    "open",
+				"failures": 5,
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a]",
@@ -786,9 +783,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Multiple circuit breakers with one open",
 			stats: map[string]interface{}{
-					"state":    "closed",
-					"failures": 0,
-				},
+				"state":     "closed",
+				"failures":  0,
 				"service-b": json.RawMessage(`{}`),
 				"service-c": json.RawMessage(`{}`),
 			},

@@ -88,11 +88,11 @@ func TestFileSystemEdgeCases(t *testing.T) {
 			name: "unicode filename",
 			setupFunc: func(t *testing.T, tempDir string) string {
 				// Create file with unicode characters
-				unicodeFile := filepath.Join(tempDir, "?айл-ин?ен?-??.json")
+				unicodeFile := filepath.Join(tempDir, "文件-intent-测试.json")
 				content := `{
 					"intent_type": "scaling",
-					"target": "my-app-?��",
-					"namespace": "п?о???ан??во",
+					"target": "my-app-测试",
+					"namespace": "程序名称空间",
 					"replicas": 3
 				}`
 				require.NoError(t, os.WriteFile(unicodeFile, []byte(content), 0o644))

@@ -41,8 +41,7 @@ func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
 			name:  "Valid update intent",
 			input: "update myapp set replicas=5 in ns prod",
 			want: map[string]interface{}{
-					"replicas": "5",
-				},
+				"replicas":  "5",
 				"namespace": "prod",
 			},
 			wantErr: false,
@@ -121,17 +120,14 @@ func TestValidateIntent(t *testing.T) {
 		{
 			name: "Valid configuration intent",
 			intent: map[string]interface{}{
-					"replicas": "5",
-				},
+				"replicas":  "5",
 				"namespace": "prod",
 			},
 			wantErr: false,
 		},
 		{
-			name: "Invalid configuration (empty config)",
-			intent: json.RawMessage(`{}`)"),
-				"namespace":   "prod",
-			},
+			name:    "Invalid configuration (empty config)",
+			intent:  json.RawMessage(`{}`),
 			wantErr: true,
 		},
 		{

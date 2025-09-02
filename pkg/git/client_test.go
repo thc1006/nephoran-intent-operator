@@ -2451,7 +2451,7 @@ func TestNewGitClientConfig_EdgeCases(t *testing.T) {
 		tokenFile := filepath.Join(tmpDir, "unicode-token.txt")
 
 		// Create a file with Unicode content
-		unicodeToken := "github_pat_??_token_测�?"
+		unicodeToken := "github_pat_测试_token_测试"
 		err := os.WriteFile(tokenFile, []byte(unicodeToken), 0o600)
 		require.NoError(t, err)
 

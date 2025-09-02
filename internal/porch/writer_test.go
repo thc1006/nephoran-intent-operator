@@ -366,7 +366,7 @@ func TestWriteIntent_EdgeCases(t *testing.T) {
 			name: "unicode characters in target",
 			intent: testIntent{
 				IntentType: "scaling",
-				Target:     "测�?-应用",
+				Target:     "测试-应用",
 				Namespace:  "default",
 				Replicas:   1,
 			},

@@ -907,31 +907,31 @@ PERFORMANCE TESTING REPORT - NEPHORAN INTENT OPERATOR
 TOTAL PERFORMANCE SCORE: %d/23 points
 
 LATENCY PERFORMANCE (%d/8 points):
-?œâ??€ P50 Latency:        %v
-?œâ??€ P75 Latency:        %v
-?œâ??€ P90 Latency:        %v
-?œâ??€ P95 Latency:        %v (Target: < 2s)
-?œâ??€ P99 Latency:        %v (Target: < 5s)
-?œâ??€ Average:            %v
-?œâ??€ Std Dev:            %v
-?”â??€ Min/Max:            %v / %v
+â€¢ P50 Latency:        %v
+â€¢ P75 Latency:        %v
+â€¢ P90 Latency:        %v
+â€¢ P95 Latency:        %v (Target: < 2s)
+â€¢ P99 Latency:        %v (Target: < 5s)
+â€¢ Average:            %v
+â€¢ Std Dev:            %v
+â€¢ Min/Max:            %v / %v
 
 THROUGHPUT PERFORMANCE (%d/8 points):
-?œâ??€ Sustained:          %.1f intents/min (Target: ??45)
-?œâ??€ Peak:               %.1f intents/min
-?œâ??€ Variance:           %.2f
-?”â??€ Error Rate:         %.2f%%
+?ï¿½ï¿½??ï¿½ Sustained:          %.1f intents/min (Target: ??45)
+?ï¿½ï¿½??ï¿½ Peak:               %.1f intents/min
+?ï¿½ï¿½??ï¿½ Variance:           %.2f
+?ï¿½ï¿½??ï¿½ Error Rate:         %.2f%%
 
 SCALABILITY PERFORMANCE (%d/5 points):
-?œâ??€ Max Concurrency:    %d operations (Target: 200+)
-?œâ??€ Linear Scaling:     %v
-?”â??€ Scaling Efficiency: %.1f%%
+?ï¿½ï¿½??ï¿½ Max Concurrency:    %d operations (Target: 200+)
+?ï¿½ï¿½??ï¿½ Linear Scaling:     %v
+?ï¿½ï¿½??ï¿½ Scaling Efficiency: %.1f%%
 
 RESOURCE EFFICIENCY (%d/2 points):
-?œâ??€ Memory Usage:       %.1f MB (Target: < 4096 MB)
-?œâ??€ CPU Usage:          %.1f%% (Target: < 200%%)
-?œâ??€ Network Bandwidth:  %.1f MB/s
-?”â??€ Disk IOPS:          %.0f
+?ï¿½ï¿½??ï¿½ Memory Usage:       %.1f MB (Target: < 4096 MB)
+?ï¿½ï¿½??ï¿½ CPU Usage:          %.1f%% (Target: < 200%%)
+?ï¿½ï¿½??ï¿½ Network Bandwidth:  %.1f MB/s
+?ï¿½ï¿½??ï¿½ Disk IOPS:          %.0f
 
 COMPONENT LATENCIES:
 `,
@@ -964,10 +964,10 @@ COMPONENT LATENCIES:
 
 	// Add component latencies
 	for name, comp := range result.ComponentLatencies {
-		report += fmt.Sprintf("?œâ??€ %s:\n", name)
-		report += fmt.Sprintf("??  ?œâ??€ Average: %v\n", comp.AverageLatency)
-		report += fmt.Sprintf("??  ?œâ??€ P95:     %v\n", comp.P95Latency)
-		report += fmt.Sprintf("??  ?”â??€ P99:     %v\n", comp.P99Latency)
+		report += fmt.Sprintf("?ï¿½ï¿½??ï¿½ %s:\n", name)
+		report += fmt.Sprintf("??  ?ï¿½ï¿½??ï¿½ Average: %v\n", comp.AverageLatency)
+		report += fmt.Sprintf("??  ?ï¿½ï¿½??ï¿½ P95:     %v\n", comp.P95Latency)
+		report += fmt.Sprintf("??  ?ï¿½ï¿½??ï¿½ P99:     %v\n", comp.P99Latency)
 	}
 
 	report += "\n============================================================================="

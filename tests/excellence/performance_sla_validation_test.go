@@ -396,9 +396,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				performanceResults = append(performanceResults, result)
 
 				if duration > maxResponseTime {
-					GinkgoWriter.Printf("? ï?  Endpoint %s exceeded SLA: %v > %v\n", endpoint, duration, maxResponseTime)
+					GinkgoWriter.Printf("âš ï¸  Endpoint %s exceeded SLA: %v > %v\n", endpoint, duration, maxResponseTime)
 				} else {
-					GinkgoWriter.Printf("??Endpoint %s meets SLA: %v\n", endpoint, duration)
+					GinkgoWriter.Printf("âœ… Endpoint %s meets SLA: %v\n", endpoint, duration)
 				}
 			}
 
@@ -722,7 +722,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			if slaScore >= 90 {
 				GinkgoWriter.Printf("??Excellent SLA compliance: %d%%\n", slaScore)
 			} else if slaScore >= 80 {
-				GinkgoWriter.Printf("? ï?  Good SLA compliance with room for improvement: %d%%\n", slaScore)
+				GinkgoWriter.Printf("?ï¿½ï¿½?  Good SLA compliance with room for improvement: %d%%\n", slaScore)
 			} else {
 				GinkgoWriter.Printf("??Poor SLA compliance needs attention: %d%%\n", slaScore)
 				Fail(fmt.Sprintf("SLA compliance below acceptable threshold: %d%% < 80%%", slaScore))

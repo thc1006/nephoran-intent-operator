@@ -319,10 +319,9 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-					"cpu":    "500m",
-					"memory": "1Gi",
-					"ports":  []int{8080, 8443},
-				},
+				"cpu":    "500m",
+				"memory": "1Gi",
+				"ports":  []int{8080, 8443},
 			}),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
@@ -605,8 +604,8 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		{
 			name:       "ComplexIntent",
 			intentText: "Deploy comprehensive 5G core with AMF, SMF, UPF, and network slicing",
-			llmResponse: mustMarshal(json.RawMessage(`{}`),
-				"slicing":    true,
+			llmResponse: mustMarshal(map[string]interface{}{
+				"slicing": true,
 			}),
 			mockSetup: func(deps *MockDependencies) {},
 		},

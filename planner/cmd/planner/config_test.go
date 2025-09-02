@@ -639,8 +639,8 @@ func TestYAMLParsingErrorScenarios(t *testing.T) {
 		{
 			"Unicode content",
 			`planner:
-  metrics_url: "http://测�?:9090/metrics"
-  output_dir: "./输出?��?"`,
+  metrics_url: "http://测试:9090/metrics"
+  output_dir: "./输出目录"`,
 			false,
 		},
 		{
