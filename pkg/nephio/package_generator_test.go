@@ -96,7 +96,7 @@ func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 				Spec: v1.NetworkIntentSpec{
 					Intent:     "Test intent for " + tt.intentType,
 					IntentType: tt.intentType,
-					Parameters: runtime.RawExtension{
+					Parameters: &runtime.RawExtension{
 						Raw: paramsJSON,
 					},
 				},
@@ -156,7 +156,7 @@ func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 		Spec: v1.NetworkIntentSpec{
 			Intent: "Deploy a network function",
 			// IntentType is intentionally not set
-			Parameters: runtime.RawExtension{
+			Parameters: &runtime.RawExtension{
 				Raw: paramsJSON,
 			},
 		},

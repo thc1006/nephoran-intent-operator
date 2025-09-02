@@ -307,7 +307,7 @@ func TestNetworkIntentController_Reconcile(t *testing.T) {
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
 					Intent:     "Deploy a test network",
-					Parameters: runtime.RawExtension{Raw: []byte(`{"deployment_type": "test"}`)},
+					Parameters: &runtime.RawExtension{Raw: []byte(`{"deployment_type": "test"}`)},
 				},
 				Status: nephoranv1.NetworkIntentStatus{
 					Conditions: []metav1.Condition{

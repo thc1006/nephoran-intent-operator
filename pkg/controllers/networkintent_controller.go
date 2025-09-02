@@ -396,6 +396,16 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 	return r, nil
 }
 
+// GetConfig returns the reconciler configuration for testing
+func (r *NetworkIntentReconciler) GetConfig() *Config {
+	return r.config
+}
+
+// GetDependencies returns the reconciler dependencies for testing
+func (r *NetworkIntentReconciler) GetDependencies() Dependencies {
+	return r.deps
+}
+
 // validateAndSetConfigDefaults validates and sets default values for the configuration.
 
 func validateAndSetConfigDefaults(config *Config, constants *configPkg.Constants) (*Config, error) {

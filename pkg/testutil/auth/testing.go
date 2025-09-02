@@ -24,71 +24,19 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Import types from main auth package to avoid circular dependencies.
+// Use aliases to avoid naming conflicts but maintain compatibility
+type TokenStore = auth.TokenStore
+type TokenBlacklist = auth.TokenBlacklist
+type TokenInfo = auth.TokenInfo
+type NephoranJWTClaims = auth.NephoranJWTClaims
 
-// TokenStore interface for token storage (matches auth.TokenStore)
-type TokenStore interface {
-	StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error
-	GetToken(ctx context.Context, tokenID string) (*TokenInfo, error)
-	UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error
-	DeleteToken(ctx context.Context, tokenID string) error
-	ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error)
-	CleanupExpired(ctx context.Context) error
-}
-
-// TokenBlacklist interface for token blacklisting (matches auth.TokenBlacklist)
-type TokenBlacklist interface {
-	BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error
-	IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error)
-	CleanupExpired(ctx context.Context) error
-}
-
-type NephoranJWTClaims struct {
-	jwt.RegisteredClaims
-
-	Email string `json:"email"`
-
-	EmailVerified bool `json:"email_verified"`
-
-	Name string `json:"name"`
-
-	PreferredName string `json:"preferred_username"`
-
-	Picture string `json:"picture"`
-
-	Groups []string `json:"groups"`
-
-	Roles []string `json:"roles"`
-
-	Permissions []string `json:"permissions"`
-
-	Organizations []string `json:"organizations"`
-
-	Provider string `json:"provider"`
-
-	ProviderID string `json:"provider_id"`
-
-	TenantID string `json:"tenant_id,omitempty"`
-
-	SessionID string `json:"session_id"`
-
-	TokenType string `json:"token_type"`
-
-	Scope string `json:"scope,omitempty"`
-
-	IPAddress string `json:"ip_address,omitempty"`
-
-	UserAgent string `json:"user_agent,omitempty"`
-
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
-}
-
-// TokenInfo represents stored token information.
-
-type TokenInfo struct {
+// Legacy type aliases for backward compatibility (will be deprecated)
+type LegacyTokenInfo struct {
 	TokenID string `json:"token_id"`
 
 	UserID string `json:"user_id"`
@@ -735,10 +683,128 @@ func (j *JWTManagerMock) IsTokenBlacklisted(ctx context.Context, tokenString str
 	return j.blacklistedTokens[tokenString], nil
 }
 
-// CleanupBlacklist performs cleanupblacklist operation.
+// GetPublicKey returns the public key for the given key ID
+func (j *JWTManagerMock) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
+	j.mutex.RLock()
+	defer j.mutex.RUnlock()
 
+	if j.privateKey == nil {
+		return nil, fmt.Errorf("no private key configured")
+	}
+
+	if keyID != j.keyID {
+		return nil, fmt.Errorf("unknown key ID: %s", keyID)
+	}
+
+	return &j.privateKey.PublicKey, nil
+}
+
+// GetJWKS returns the JSON Web Key Set
+func (j *JWTManagerMock) GetJWKS() (map[string]interface{}, error) {
+	j.mutex.RLock()
+	defer j.mutex.RUnlock()
+
+	if j.privateKey == nil {
+		return nil, fmt.Errorf("no private key configured")
+	}
+
+	// Mock JWKS response matching real implementation format
+	return map[string]interface{}{
+		"keys": []interface{}{
+			map[string]interface{}{
+				"kty": "RSA",
+				"use": "sig",
+				"kid": j.keyID,
+				"alg": "RS256",
+			},
+		},
+	}, nil
+}
+
+// RotateKeys generates a new signing key pair
+func (j *JWTManagerMock) RotateKeys() error {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+
+	// Generate new RSA key pair
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return fmt.Errorf("failed to generate private key: %w", err)
+	}
+
+	j.privateKey = privateKey
+	j.keyID = fmt.Sprintf("mock-key-%d", time.Now().Unix())
+
+	return nil
+}
+
+// GetKeyID returns the current key ID
+func (j *JWTManagerMock) GetKeyID() string {
+	j.mutex.RLock()
+	defer j.mutex.RUnlock()
+	return j.keyID
+}
+
+// GetIssuer returns the token issuer
+func (j *JWTManagerMock) GetIssuer() string {
+	return "test-issuer"
+}
+
+// GetDefaultTTL returns the default token TTL
+func (j *JWTManagerMock) GetDefaultTTL() time.Duration {
+	return time.Hour
+}
+
+// GetRefreshTTL returns the refresh token TTL
+func (j *JWTManagerMock) GetRefreshTTL() time.Duration {
+	return 24 * time.Hour
+}
+
+// GetRequireSecureCookies returns whether secure cookies are required
+func (j *JWTManagerMock) GetRequireSecureCookies() bool {
+	return false
+}
+
+// ExtractClaims extracts claims from a token without full validation
+func (j *JWTManagerMock) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return &j.privateKey.PublicKey, nil
+	})
+
+	if err != nil && !strings.Contains(err.Error(), "token is expired") {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token claims")
+}
+
+// CleanupBlacklist removes expired tokens from the blacklist
 func (j *JWTManagerMock) CleanupBlacklist() error {
-	// Mock implementation - in real scenario would clean up expired tokens.
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+
+	// Mock implementation - in real scenario would clean up expired tokens from blacklist
+	// For mock, we can remove tokens that have been expired for more than an hour
+	for tokenString := range j.blacklistedTokens {
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return &j.privateKey.PublicKey, nil
+		})
+
+		if err != nil && strings.Contains(err.Error(), "token is expired") {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok {
+				if exp, ok := claims["exp"].(float64); ok {
+					expTime := time.Unix(int64(exp), 0)
+					if time.Since(expTime) > time.Hour {
+						delete(j.blacklistedTokens, tokenString)
+					}
+				}
+			}
+		}
+	}
 
 	return nil
 }

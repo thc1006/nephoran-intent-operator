@@ -506,13 +506,27 @@ func TestJWTManager_GetJWKS(t *testing.T) {
 	jwks, err := manager.GetJWKS()
 	assert.NoError(t, err)
 	assert.NotNil(t, jwks)
-	assert.Len(t, jwks.Keys, 1)
+	
+	// Verify JWKS structure
+	keys, exists := jwks["keys"]
+	assert.True(t, exists, "JWKS should contain 'keys' field")
+	
+	keysArray, ok := keys.([]interface{})
+	assert.True(t, ok, "keys should be an array")
+	assert.Len(t, keysArray, 1)
 
-	key := jwks.Keys[0]
-	assert.Equal(t, "RSA", key.KeyType)
-	assert.Equal(t, tc.KeyID, key.KeyID)
-	assert.Equal(t, "sig", key.Use)
-	assert.Equal(t, "RS256", key.Algorithm)
+	// Verify key structure
+	keyMap, ok := keysArray[0].(map[string]interface{})
+	assert.True(t, ok, "key should be a map")
+	
+	assert.Equal(t, "RSA", keyMap["kty"])
+	assert.Equal(t, tc.KeyID, keyMap["kid"])
+	assert.Equal(t, "sig", keyMap["use"])
+	assert.Equal(t, "RS256", keyMap["alg"])
+	
+	// Verify key components exist
+	assert.NotEmpty(t, keyMap["n"], "RSA modulus should be present")
+	assert.NotEmpty(t, keyMap["e"], "RSA exponent should be present")
 }
 
 func TestJWTManager_RotateKeys(t *testing.T) {

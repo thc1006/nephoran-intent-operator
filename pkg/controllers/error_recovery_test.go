@@ -1,23 +1,232 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+// Mock types for testing
+type MockLLMClient struct {
+	response  string
+	error     error
+	CallCount int
+	Mutex     sync.Mutex
+}
+
+func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.CallCount++
+	return m.response, m.error
+}
+
+func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.CallCount++
+	if m.error != nil {
+		return nil, m.error
+	}
+	return &shared.LLMResponse{Result: m.response}, nil
+}
+
+func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	// Simple mock implementation
+	return nil, fmt.Errorf("streaming not implemented in mock")
+}
+
+func (m *MockLLMClient) HealthCheck(ctx context.Context) error {
+	return m.error
+}
+
+func (m *MockLLMClient) GetStatus() shared.ClientStatus {
+	return shared.ClientStatus{Status: "mock"}
+}
+
+func (m *MockLLMClient) Close() error {
+	return nil
+}
+
+type MockGitClient struct {
+	CommitHash string
+	Error      error
+	FailCount  int
+	callCount  int
+	Mutex      sync.Mutex
+}
+
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return "", m.Error
+	}
+	return m.CommitHash, nil
+}
+
+func (m *MockGitClient) CommitAndPushChanges(message string) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *MockGitClient) InitRepo() error {
+	return m.Error
+}
+
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *MockGitClient) CommitFiles(files []string, msg string) error {
+	m.Mutex.Lock()
+	defer m.Mutex.Unlock()
+	m.callCount++
+
+	if m.FailCount > 0 && m.callCount <= m.FailCount {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *MockGitClient) CreateBranch(name string) error {
+	return m.Error
+}
+
+func (m *MockGitClient) SwitchBranch(name string) error {
+	return m.Error
+}
+
+// MockDependencies provides mock implementations for Dependencies interface
+type MockDependencies struct {
+	gitClient            git.ClientInterface
+	llmClient            shared.ClientInterface
+	packageGenerator     *nephio.PackageGenerator
+	httpClient           *http.Client
+	eventRecorder        record.EventRecorder
+	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
+	metricsCollector     monitoring.MetricsCollector
+}
+
+func (m *MockDependencies) GetGitClient() git.ClientInterface {
+	return m.gitClient
+}
+
+func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
+	return m.llmClient
+}
+
+func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
+	return m.packageGenerator
+}
+
+func (m *MockDependencies) GetHTTPClient() *http.Client {
+	return m.httpClient
+}
+
+func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
+	return m.eventRecorder
+}
+
+func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return m.telecomKnowledgeBase
+}
+
+func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
+	return m.metricsCollector
+}
+
+// Package-level test variables
+var (
+	k8sClient client.Client
+	testEnv   *envtest.Environment
+	ctx       context.Context
+)
+
+func init() {
+	// Initialize the scheme and fake client for unit tests
+	s := scheme.Scheme
+	err := nephoranv1.AddToScheme(s)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a fake client for unit testing
+	k8sClient = fake.NewClientBuilder().WithScheme(s).Build()
+	ctx = context.Background()
+
+	// Create a mock testEnv for compatibility
+	testEnv = &envtest.Environment{}
+	testEnv.Scheme = s
+}
+
+// Helper functions for the error recovery tests
+func CreateIsolatedNamespace(prefix string) string {
+	return testutils.CreateIsolatedNamespace(prefix)
+}
+
+func CleanupIsolatedNamespace(namespaceName string) {
+	testutils.CleanupIsolatedNamespace(namespaceName)
+}
+
+func GetUniqueName(prefix string) string {
+	return testutils.GetUniqueName(prefix)
+}
+
+func CreateTestNetworkIntent(name, namespace, intent string) *nephoranv1.NetworkIntent {
+	return testutils.CreateTestNetworkIntent(name, namespace, intent)
+}
+
+func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
+	return testutils.IsConditionTrue(conditions, conditionType)
+}
+
+func WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) {
+	testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, expectedReplicas)
+}
 
 var _ = Describe("Error Handling and Recovery Tests", func() {
 	const (
@@ -36,16 +245,35 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 		namespaceName = CreateIsolatedNamespace("error-recovery")
 
 		By("Setting up reconcilers for error testing")
-		networkIntentReconciler = &NetworkIntentReconciler{
-			Client:        k8sClient,
-			Scheme:        testEnv.Scheme,
-			EventRecorder: &record.FakeRecorder{},
+		// Create mock dependencies
+		mockDeps := &MockDependencies{
+			gitClient:        &MockGitClient{},
+			llmClient:        &MockLLMClient{},
+			eventRecorder:    &record.FakeRecorder{},
+			httpClient:       &http.Client{Timeout: 30 * time.Second},
+			metricsCollector: &monitoring.SimpleMetricsCollector{},
+		}
+
+		// Create config
+		config := &Config{
 			MaxRetries:    3,
 			RetryDelay:    time.Second * 1,
 			GitRepoURL:    "https://github.com/test/deployments.git",
 			GitBranch:     "main",
 			GitDeployPath: "networkintents",
+			Timeout:       time.Minute * 5,
+			Constants:     &configPkg.Constants{},
 		}
+
+		// Create NetworkIntentReconciler with proper constructor
+		var err error
+		networkIntentReconciler, err = NewNetworkIntentReconciler(
+			k8sClient,
+			testEnv.Scheme,
+			mockDeps,
+			config,
+		)
+		Expect(err).NotTo(HaveOccurred())
 
 		e2nodeSetReconciler = &E2NodeSetReconciler{
 			Client: k8sClient,
@@ -78,9 +306,11 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up persistently failing LLM client")
-			networkIntentReconciler.LLMClient = &MockLLMClient{
-				Response: "",
-				Error:    fmt.Errorf("persistent LLM service unavailable"),
+			// Update the mock dependencies to use failing LLM client
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.llmClient = &MockLLMClient{
+				response: "",
+				error:    fmt.Errorf("persistent LLM service unavailable"),
 			}
 
 			namespacedName := types.NamespacedName{
@@ -89,14 +319,14 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Exhausting all retry attempts")
-			for i := 0; i <= networkIntentReconciler.MaxRetries; i++ {
+			for i := 0; i <= networkIntentReconciler.GetConfig().MaxRetries; i++ {
 				result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				if i < networkIntentReconciler.MaxRetries {
-					Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+				if i < networkIntentReconciler.GetConfig().MaxRetries {
+					Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 				} else {
 					Expect(result.Requeue).To(BeFalse())
 					Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
@@ -127,7 +357,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
 					Intent: "Deploy network function for Git recovery testing",
-					Parameters: runtime.RawExtension{
+					Parameters: &runtime.RawExtension{
 						Raw: []byte(`{"action": "deploy", "component": "test-nf", "replicas": 2}`),
 					},
 				},
@@ -153,7 +383,9 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Error:      fmt.Errorf("temporary git authentication failure"),
 				FailCount:  2, // Fail first 2 attempts, succeed on 3rd
 			}
-			networkIntentReconciler.GitClient = mockGitClient
+			// Update the mock dependencies to use failing Git client
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.gitClient = mockGitClient
 
 			namespacedName := types.NamespacedName{
 				Name:      networkIntent.Name,
@@ -165,14 +397,14 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 			By("Second reconciliation should also fail")
 			result, err = networkIntentReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 			By("Third reconciliation should succeed after Git recovery")
 			mockGitClient.CommitHash = "recovery-commit-success"
@@ -237,16 +469,18 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			for i, malformedResponse := range malformedResponses {
 				By(fmt.Sprintf("Testing malformed response %d: %s", i+1, malformedResponse))
 
-				networkIntentReconciler.LLMClient = &MockLLMClient{
-					Response: malformedResponse,
-					Error:    nil,
+				// Update the mock dependencies to use malformed LLM client
+				mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+				mockDeps.llmClient = &MockLLMClient{
+					response: malformedResponse,
+					error:    nil,
 				}
 
 				result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
+				Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 				// Verify error condition is set
 				updatedIntent := &nephoranv1.NetworkIntent{}
@@ -289,11 +523,13 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				"replicas":  1,
 			}
 			successResponseBytes, _ := json.Marshal(successResponse)
-			networkIntentReconciler.LLMClient = &MockLLMClient{
-				Response: string(successResponseBytes),
-				Error:    nil,
+			// Update mock dependencies for concurrent processing test
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.llmClient = &MockLLMClient{
+				response: string(successResponseBytes),
+				error:    nil,
 			}
-			networkIntentReconciler.GitClient = &MockGitClient{
+			mockDeps.gitClient = &MockGitClient{
 				CommitHash: "concurrent-commit",
 				Error:      nil,
 			}
@@ -703,11 +939,13 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				"replicas":      3,
 			}
 			mockResponseBytes, _ := json.Marshal(mockResponse)
-			networkIntentReconciler.LLMClient = &MockLLMClient{
-				Response: string(mockResponseBytes),
-				Error:    nil,
+			// Update mock dependencies for cascading failure test
+			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
+			mockDeps.llmClient = &MockLLMClient{
+				response: string(mockResponseBytes),
+				error:    nil,
 			}
-			networkIntentReconciler.GitClient = &MockGitClient{
+			mockDeps.gitClient = &MockGitClient{
 				CommitHash: "cascading-commit",
 				Error:      nil,
 			}

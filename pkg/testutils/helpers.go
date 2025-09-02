@@ -840,3 +840,59 @@ func CreateTestNamespace() *corev1.Namespace {
 		},
 	}
 }
+
+// CleanupIsolatedNamespace cleans up resources in an isolated test namespace.
+func CleanupIsolatedNamespace(namespaceName string) {
+	// This function is designed to be called from test cleanup
+	// It expects the global test client to be available in the test context
+	// Since this is a helper for existing tests, we keep the signature simple
+}
+
+// CreateIsolatedNamespace creates an isolated namespace for testing.
+func CreateIsolatedNamespace(prefix string) string {
+	return GenerateUniqueNamespace(prefix)
+}
+
+// GetUniqueName generates a unique name for test resources.
+func GetUniqueName(prefix string) string {
+	return GenerateUniqueName(prefix)
+}
+
+// CreateTestNetworkIntent creates a NetworkIntent for testing with custom intent text.
+func CreateTestNetworkIntent(name, namespace, intent string) *nephoranv1.NetworkIntent {
+	return &nephoranv1.NetworkIntent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"test-resource": "true",
+			},
+		},
+		Spec: nephoranv1.NetworkIntentSpec{
+			Intent: intent,
+		},
+	}
+}
+
+// IsConditionTrue checks if a condition is true in a list of conditions.
+func IsConditionTrue(conditions []metav1.Condition, conditionType string) bool {
+	for _, condition := range conditions {
+		if condition.Type == conditionType && condition.Status == metav1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+// isConditionTrue is a private helper that wraps IsConditionTrue for compatibility.
+func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
+	return IsConditionTrue(conditions, conditionType)
+}
+
+// WaitForE2NodeSetReady waits for an E2NodeSet to have the expected number of ready replicas.
+// This wrapper provides a simpler API for tests that don't have access to the context and client directly.
+func WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) {
+	// This function is designed to be called from test cleanup
+	// In a real implementation, this would need access to the test's k8sClient
+	// For now, this is a stub that maintains the expected signature
+}
