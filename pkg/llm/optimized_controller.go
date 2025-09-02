@@ -553,19 +553,15 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 
 	// Build optimized payload.
 
-	payload := json.RawMessage("{}"),
-
+	payload := map[string]interface{}{
+		"messages": []map[string]string{
 			{
 				"role": "user",
-
 				"content": intent,
 			},
 		},
-
 		"max_tokens": 2048,
-
 		"temperature": 0.0,
-
 		"response_format": map[string]string{"type": "json_object"},
 	}
 

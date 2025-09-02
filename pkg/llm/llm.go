@@ -603,7 +603,9 @@ func (c *LegacyClient) processWithLLMBackend(ctx context.Context, intent, intent
 
 // processWithChatCompletion handles OpenAI/Mistral-style chat completions
 func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
-	requestBody := json.RawMessage("{}"),
+	requestBody := map[string]interface{}{
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
 			{"role": "user", "content": intent},
 		},
 		"max_tokens":      c.maxTokens,
@@ -710,7 +712,8 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 	}
 
 	// Fallback to direct API call (legacy compatibility)
-	req := json.RawMessage("{}"),
+	req := map[string]interface{}{
+		"query": intent,
 	}
 
 	// Use buffer pool for JSON marshaling

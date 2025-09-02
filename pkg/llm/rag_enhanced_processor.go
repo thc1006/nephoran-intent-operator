@@ -305,7 +305,8 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 	}
 
 	// Add telecom-specific filters
-	ragRequest.SearchFilters = json.RawMessage("{}"){
+	ragRequest.SearchFilters = map[string]interface{}{
+		"confidence": map[string]interface{}{
 			"operator": "GreaterThan",
 			"value":    rep.config.RAGConfidenceThreshold,
 		},

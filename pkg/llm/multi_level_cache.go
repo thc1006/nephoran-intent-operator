@@ -693,27 +693,38 @@ func (mlc *MultiLevelCache) GetMetrics() *MultiLevelCacheMetrics {
 func (mlc *MultiLevelCache) GetStats() map[string]interface{} {
 	metrics := mlc.GetMetrics()
 
-	return json.RawMessage("{}"){
-			"hits": metrics.L1Hits,
-
-			"misses": metrics.L1Misses,
-
-			"sets": metrics.L1Sets,
-
-			"evictions": metrics.L1Evictions,
-
-			"size": metrics.L1Size,
-
-			"hit_rate": float64(metrics.L1Hits) / float64(metrics.L1Hits+metrics.L1Misses),
+	return map[string]interface{}{
+		"l1_stats": map[string]interface{}{
+			"hits":       metrics.L1Hits,
+			"misses":     metrics.L1Misses,
+			"sets":       metrics.L1Sets,
+			"evictions":  metrics.L1Evictions,
+			"size":       metrics.L1Size,
+			"hit_rate":   func() float64 {
+				if metrics.L1Hits+metrics.L1Misses == 0 {
+					return 0.0
+				}
+				return float64(metrics.L1Hits) / float64(metrics.L1Hits+metrics.L1Misses)
+			}(),
 		},
-
-		"l2_stats": json.RawMessage("{}")
-
+		"l2_stats": map[string]interface{}{
+			"hits":       metrics.L2Hits,
+			"misses":     metrics.L2Misses,
+			"sets":       metrics.L2Sets,
+			"evictions":  metrics.L2Evictions,
+			"size":       metrics.L2Size,
+			"hit_rate":   func() float64 {
+				if metrics.L2Hits+metrics.L2Misses == 0 {
+					return 0.0
+				}
 				return float64(metrics.L2Hits) / float64(metrics.L2Hits+metrics.L2Misses)
 			}(),
 		},
-
-		"overall_stats": json.RawMessage("{}"),
+		"overall_stats": map[string]interface{}{
+			"total_hits":   metrics.L1Hits + metrics.L2Hits,
+			"total_misses": metrics.L1Misses + metrics.L2Misses,
+			"total_sets":   metrics.L1Sets + metrics.L2Sets,
+		},
 	}
 }
 

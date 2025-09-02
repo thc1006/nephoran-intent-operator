@@ -852,11 +852,11 @@ Performance Benchmark Results:
 
 
 
-?íæ CPU OPTIMIZATION:
+‚ñ∂ CPU OPTIMIZATION:
 
-  ??CPU Usage Reduction: %.1f%% (Target: 60%%)
+  ‚Ä¢ CPU Usage Reduction: %.1f%% (Target: 60%%)
 
-  ??Connection Reuse Rate: %.1f%%
+  ‚Ä¢ Connection Reuse Rate: %.1f%%
 
 
 
@@ -880,11 +880,11 @@ Performance Benchmark Results:
 
 
 
-?ì¶ BATCH PROCESSING:
+‚ñ∂ BATCH PROCESSING:
 
-  ??Batching Efficiency: %.1f%%
+  ‚Ä¢ Batching Efficiency: %.1f%%
 
-  ??Average Batch Size: %.1f requests
+  ‚Ä¢ Average Batch Size: %.1f requests
 
 
 
@@ -950,12 +950,12 @@ STATUS: %s
 
 func (pb *PerformanceBenchmarks) getOverallStatus() string {
 	if pb.results.TotalLatencyReduction >= 30.0 && pb.results.TotalCPUReduction >= 60.0 {
-		return "??ALL TARGETS ACHIEVED"
+		return "‚úì ALL TARGETS ACHIEVED"
 	} else if pb.results.TotalLatencyReduction >= 30.0 {
-		return "?†Ô?  LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
+		return "‚ö† LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
 	} else if pb.results.TotalCPUReduction >= 60.0 {
-		return "?†Ô?  CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
+		return "‚ö† CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
 	} else {
-		return "?? OPTIMIZATION IN PROGRESS"
+		return "‚è≥ OPTIMIZATION IN PROGRESS"
 	}
 }

@@ -530,15 +530,12 @@ func (c *Client) processWithBackend(ctx context.Context, intent string) (string,
 // processWithChatCompletion handles OpenAI/Mistral-style APIs.
 
 func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (string, error) {
-	requestBody := json.RawMessage("{}"),
-
+	requestBody := map[string]interface{}{
+		"messages": []map[string]string{
 			{"role": "user", "content": intent},
 		},
-
 		"max_tokens": c.maxTokens,
-
 		"temperature": 0.0,
-
 		"response_format": map[string]string{"type": "json_object"},
 	}
 
@@ -608,7 +605,8 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 // processWithRAGAPI handles RAG API requests.
 
 func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
-	req := json.RawMessage("{}"),
+	req := map[string]interface{}{
+		"query": intent,
 	}
 
 	reqBody, err := json.Marshal(req)
