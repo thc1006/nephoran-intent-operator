@@ -28,19 +28,14 @@ import (
 //
 //	A normalized, cleaned path string and any encountered error
 func NormalizeWindowsPath(p string) (string, error) {
-
 	if p == "" {
-
 		return "", fmt.Errorf("empty path")
-
 	}
 
 	// On non-Windows, just clean the path and return.
 
 	if runtime.GOOS != "windows" {
-
 		return filepath.Clean(p), nil
-
 	}
 
 	// Step 1: Convert forward slashes to backslashes for Windows consistency.
@@ -58,11 +53,8 @@ func NormalizeWindowsPath(p string) (string, error) {
 		// Use filepath.Abs to resolve it properly.
 
 		absPath, err := filepath.Abs(p)
-
 		if err != nil {
-
 			return "", fmt.Errorf("failed to resolve drive-relative path %q: %w", p, err)
-
 		}
 
 		p = absPath
@@ -80,11 +72,8 @@ func NormalizeWindowsPath(p string) (string, error) {
 	if !filepath.IsAbs(cleaned) {
 
 		absPath, err := filepath.Abs(cleaned)
-
 		if err != nil {
-
 			return "", fmt.Errorf("failed to get absolute path for %q: %w", cleaned, err)
-
 		}
 
 		cleaned = absPath
@@ -96,15 +85,12 @@ func NormalizeWindowsPath(p string) (string, error) {
 	// Don't add prefix if path is already using it or if it's a UNC path.
 
 	if len(cleaned) >= 248 && !strings.HasPrefix(cleaned, `\\?\`) && !strings.HasPrefix(cleaned, `\\`) {
-
 		// Add extended-length path prefix for long paths.
 
 		cleaned = `\\?\` + cleaned
-
 	}
 
 	return cleaned, nil
-
 }
 
 // IsValidWindowsPath checks if a given path is valid according to Windows path conventions.
@@ -125,17 +111,12 @@ func NormalizeWindowsPath(p string) (string, error) {
 //
 //	true if the path is valid on Windows, false otherwise
 func IsValidWindowsPath(p string) bool {
-
 	if runtime.GOOS != "windows" {
-
 		return true // Skip validation on non-Windows
-
 	}
 
 	if p == "" {
-
 		return false
-
 	}
 
 	// Allow paths with . and .. segments - filepath.Clean() will resolve them safely.
@@ -151,13 +132,9 @@ func IsValidWindowsPath(p string) bool {
 	invalidChars := []string{"<", ">", "\"", "|", "?", "*"}
 
 	for _, char := range invalidChars {
-
 		if strings.Contains(p, char) {
-
 			return false
-
 		}
-
 	}
 
 	// Check for multiple colons (only one allowed for drive letter).
@@ -165,9 +142,7 @@ func IsValidWindowsPath(p string) bool {
 	colonCount := strings.Count(p, ":")
 
 	if colonCount > 1 {
-
 		return false
-
 	}
 
 	if colonCount == 1 {
@@ -177,17 +152,13 @@ func IsValidWindowsPath(p string) bool {
 		colonIndex := strings.Index(p, ":")
 
 		if colonIndex != 1 {
-
 			return false
-
 		}
 
 		// Check that it's preceded by a letter.
 
 		if p[0] < 'A' || (p[0] > 'Z' && p[0] < 'a') || p[0] > 'z' {
-
 			return false
-
 		}
 
 	}
@@ -195,7 +166,6 @@ func IsValidWindowsPath(p string) bool {
 	// Check for reserved names.
 
 	reservedNames := []string{
-
 		"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
 
 		"COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4",
@@ -208,23 +178,16 @@ func IsValidWindowsPath(p string) bool {
 	// Remove extension for checking.
 
 	if dotIndex := strings.LastIndex(baseName, "."); dotIndex != -1 {
-
 		baseName = baseName[:dotIndex]
-
 	}
 
 	for _, reserved := range reservedNames {
-
 		if baseName == reserved {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 // ResolveDriveRelativePath resolves a drive-relative path to an absolute path on Windows.
@@ -240,25 +203,19 @@ func IsValidWindowsPath(p string) bool {
 //
 //	The resolved absolute path and any encountered error
 func ResolveDriveRelativePath(p string) (string, error) {
-
 	if runtime.GOOS != "windows" {
-
 		return p, nil
-
 	}
 
 	// Check if it's a drive-relative path.
 
 	if len(p) >= 2 && p[1] == ':' && (len(p) == 2 || (len(p) > 2 && p[2] != '\\' && p[2] != '/')) {
-
 		// Use filepath.Abs which properly handles drive-relative paths on Windows.
 
 		return filepath.Abs(p)
-
 	}
 
 	return p, nil
-
 }
 
 // EnsureParentDirectory creates the parent directory for a given file path if it doesn't exist.
@@ -279,41 +236,31 @@ func ResolveDriveRelativePath(p string) (string, error) {
 //
 //	An error if directory creation fails, nil otherwise
 func EnsureParentDirectory(path string) error {
-
 	if path == "" {
-
 		return fmt.Errorf("empty path")
-
 	}
 
 	// Normalize the path first for consistent handling.
 
 	normalized, err := NormalizeWindowsPath(path)
-
 	if err != nil {
-
 		// If normalization fails, try with the original path as fallback.
 
 		// This allows the function to work even with malformed paths.
 
 		normalized = filepath.Clean(path)
-
 	}
 
 	dir := filepath.Dir(normalized)
 
 	if dir == "" || dir == "." || dir == "/" {
-
 		return nil // Current directory or root, assume it exists
-
 	}
 
 	// Handle absolute paths that resolve to drive root on Windows.
 
 	if runtime.GOOS == "windows" && len(dir) == 3 && dir[1] == ':' && dir[2] == '\\' {
-
 		return nil // Drive root like C:\, assume it exists
-
 	}
 
 	// Check if directory already exists (os.MkdirAll is idempotent but this avoids syscall).
@@ -321,9 +268,7 @@ func EnsureParentDirectory(path string) error {
 	if info, err := os.Stat(dir); err == nil {
 
 		if !info.IsDir() {
-
 			return fmt.Errorf("parent path exists but is not a directory: %q", dir)
-
 		}
 
 		return nil // Directory already exists
@@ -339,15 +284,11 @@ func EnsureParentDirectory(path string) error {
 		// Check if error is due to concurrent creation (directory exists now).
 
 		if os.IsExist(err) {
-
 			// Double-check that it's actually a directory.
 
 			if info, statErr := os.Stat(dir); statErr == nil && info.IsDir() {
-
 				return nil // Successfully created by another goroutine
-
 			}
-
 		}
 
 		return fmt.Errorf("failed to create parent directory %q: %w", dir, err)
@@ -355,7 +296,6 @@ func EnsureParentDirectory(path string) error {
 	}
 
 	return nil
-
 }
 
 // IsExtendedLengthPath determines whether a path uses the \\?\ prefix for Windows extended-length paths.
@@ -369,7 +309,5 @@ func EnsureParentDirectory(path string) error {
 //
 //	true if the path starts with \\?\, false otherwise
 func IsExtendedLengthPath(path string) bool {
-
 	return strings.HasPrefix(path, `\\?\`)
-
 }

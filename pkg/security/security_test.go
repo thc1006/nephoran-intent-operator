@@ -88,13 +88,13 @@ func TestSecretRotationManager(t *testing.T) {
 func TestFileSecretLoader(t *testing.T) {
 	// Create temporary directory structure
 	tmpDir := "/tmp/secrets-test"
-	err := os.MkdirAll(tmpDir+"/llm", 0700)
+	err := os.MkdirAll(tmpDir+"/llm", 0o700)
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
 	// Create test secret file
 	secretContent := "sk-test1234567890abcdef1234567890abcdef"
-	err = os.WriteFile(tmpDir+"/llm/openai-api-key", []byte(secretContent), 0600)
+	err = os.WriteFile(tmpDir+"/llm/openai-api-key", []byte(secretContent), 0o600)
 	require.NoError(t, err)
 
 	// Test loading with valid path
@@ -169,12 +169,12 @@ func TestAuditLevels(t *testing.T) {
 // Benchmark tests for performance validation
 func BenchmarkSecretLoading(b *testing.B) {
 	tmpDir := "/tmp/secrets-bench"
-	err := os.MkdirAll(tmpDir+"/llm", 0700)
+	err := os.MkdirAll(tmpDir+"/llm", 0o700)
 	require.NoError(b, err)
 	defer os.RemoveAll(tmpDir)
 
 	secretContent := "sk-test1234567890abcdef1234567890abcdef"
-	err = os.WriteFile(tmpDir+"/llm/openai-api-key", []byte(secretContent), 0600)
+	err = os.WriteFile(tmpDir+"/llm/openai-api-key", []byte(secretContent), 0o600)
 	require.NoError(b, err)
 
 	loader, err := config.NewSecretLoader(tmpDir+"/llm", nil)
@@ -248,12 +248,12 @@ func TestSecurityFeatures(t *testing.T) {
 	t.Run("PermissionValidation", func(t *testing.T) {
 		// Create temporary file with overly permissive permissions
 		tmpDir := "/tmp/perms-test"
-		err := os.MkdirAll(tmpDir, 0700)
+		err := os.MkdirAll(tmpDir, 0o700)
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpDir)
 
 		testFile := tmpDir + "/test-secret"
-		err = os.WriteFile(testFile, []byte("secret"), 0644) // World-readable
+		err = os.WriteFile(testFile, []byte("secret"), 0o644) // World-readable
 		require.NoError(t, err)
 
 		loader, err := config.NewSecretLoader(tmpDir, nil)

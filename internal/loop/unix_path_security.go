@@ -140,12 +140,12 @@ func isUnixHidden(filename string) bool {
 
 // getUnixFileMode returns the file mode for newly created files on Unix
 func getUnixFileMode() os.FileMode {
-	return 0644 // rw-r--r--
+	return 0o644 // rw-r--r--
 }
 
 // getUnixDirMode returns the directory mode for newly created directories on Unix
 func getUnixDirMode() os.FileMode {
-	return 0755 // rwxr-xr-x
+	return 0o755 // rwxr-xr-x
 }
 
 // unixStat is a wrapper around os.Stat that returns Unix-specific information

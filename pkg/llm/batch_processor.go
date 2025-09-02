@@ -202,9 +202,7 @@ type PriorityQueue struct {
 // NewBatchProcessor creates a new batch processor.
 
 func NewBatchProcessor(config BatchConfig) *BatchProcessorImpl {
-
 	bp := &BatchProcessorImpl{
-
 		config: config,
 
 		logger: slog.Default().With("component", "batch-processor"),
@@ -231,24 +229,19 @@ func NewBatchProcessor(config BatchConfig) *BatchProcessorImpl {
 	go bp.batchFormationRoutine()
 
 	return bp
-
 }
 
 // NewPriorityQueue creates a new priority queue.
 
 func NewPriorityQueue() *PriorityQueue {
-
 	return &PriorityQueue{
-
 		items: make([]*BatchRequest, 0),
 	}
-
 }
 
 // Push adds a request to the priority queue.
 
 func (pq *PriorityQueue) Push(request *BatchRequest) {
-
 	pq.mutex.Lock()
 
 	defer pq.mutex.Unlock()
@@ -258,33 +251,25 @@ func (pq *PriorityQueue) Push(request *BatchRequest) {
 	// Sort by priority (higher priority first).
 
 	sort.Slice(pq.items, func(i, j int) bool {
-
 		if pq.items[i].Priority != pq.items[j].Priority {
-
 			return pq.items[i].Priority > pq.items[j].Priority
-
 		}
 
 		// If same priority, sort by submit time (FIFO).
 
 		return pq.items[i].SubmitTime.Before(pq.items[j].SubmitTime)
-
 	})
-
 }
 
 // Pop removes and returns the highest priority request.
 
 func (pq *PriorityQueue) Pop() *BatchRequest {
-
 	pq.mutex.Lock()
 
 	defer pq.mutex.Unlock()
 
 	if len(pq.items) == 0 {
-
 		return nil
-
 	}
 
 	item := pq.items[0]
@@ -292,25 +277,21 @@ func (pq *PriorityQueue) Pop() *BatchRequest {
 	pq.items = pq.items[1:]
 
 	return item
-
 }
 
 // Len returns the number of items in the queue.
 
 func (pq *PriorityQueue) Len() int {
-
 	pq.mutex.RLock()
 
 	defer pq.mutex.RUnlock()
 
 	return len(pq.items)
-
 }
 
 // ProcessRequest processes a single request through batching.
 
 func (bp *BatchProcessorImpl) ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error) {
-
 	bp.shutdownMutex.RLock()
 
 	if bp.isShutdown {
@@ -326,7 +307,6 @@ func (bp *BatchProcessorImpl) ProcessRequest(ctx context.Context, intent, intent
 	// Create batch request.
 
 	request := &BatchRequest{
-
 		ID: generateRequestID(),
 
 		Intent: intent,
@@ -352,11 +332,8 @@ func (bp *BatchProcessorImpl) ProcessRequest(ctx context.Context, intent, intent
 	// Add to queue.
 
 	if bp.config.EnablePrioritization {
-
 		bp.priorityQueue.Push(request)
-
 	} else {
-
 		select {
 
 		case bp.requestQueue <- request:
@@ -370,7 +347,6 @@ func (bp *BatchProcessorImpl) ProcessRequest(ctx context.Context, intent, intent
 			return nil, fmt.Errorf("request queue is full")
 
 		}
-
 	}
 
 	// Wait for result.
@@ -390,17 +366,14 @@ func (bp *BatchProcessorImpl) ProcessRequest(ctx context.Context, intent, intent
 		return nil, fmt.Errorf("batch processing timeout")
 
 	}
-
 }
 
 // startWorkers starts the batch processing workers.
 
 func (bp *BatchProcessorImpl) startWorkers() {
-
 	for i := range bp.config.ConcurrentBatches {
 
 		worker := &BatchWorker{
-
 			id: i,
 
 			processor: bp,
@@ -417,13 +390,11 @@ func (bp *BatchProcessorImpl) startWorkers() {
 		go worker.run()
 
 	}
-
 }
 
 // batchFormationRoutine forms batches from incoming requests.
 
 func (bp *BatchProcessorImpl) batchFormationRoutine() {
-
 	ticker := time.NewTicker(bp.config.BatchTimeout)
 
 	defer ticker.Stop()
@@ -431,7 +402,6 @@ func (bp *BatchProcessorImpl) batchFormationRoutine() {
 	pendingRequests := make(map[string][]*BatchRequest) // Group by model
 
 	for {
-
 		select {
 
 		case <-bp.shutdown:
@@ -443,9 +413,7 @@ func (bp *BatchProcessorImpl) batchFormationRoutine() {
 			// Group requests by model.
 
 			if pendingRequests[request.ModelName] == nil {
-
 				pendingRequests[request.ModelName] = make([]*BatchRequest, 0)
-
 			}
 
 			pendingRequests[request.ModelName] = append(pendingRequests[request.ModelName], request)
@@ -465,15 +433,12 @@ func (bp *BatchProcessorImpl) batchFormationRoutine() {
 			// Process priority queue if enabled.
 
 			if bp.config.EnablePrioritization {
-
 				bp.processPriorityQueue(pendingRequests)
-
 			}
 
 			// Form batches from pending requests.
 
 			for modelName, requests := range pendingRequests {
-
 				if len(requests) > 0 {
 
 					bp.formBatch(modelName, requests)
@@ -481,19 +446,15 @@ func (bp *BatchProcessorImpl) batchFormationRoutine() {
 					delete(pendingRequests, modelName)
 
 				}
-
 			}
 
 		}
-
 	}
-
 }
 
 // processPriorityQueue processes requests from the priority queue.
 
 func (bp *BatchProcessorImpl) processPriorityQueue(pendingRequests map[string][]*BatchRequest) {
-
 	// Move high priority requests from priority queue to processing.
 
 	for bp.priorityQueue.Len() > 0 {
@@ -501,17 +462,13 @@ func (bp *BatchProcessorImpl) processPriorityQueue(pendingRequests map[string][]
 		request := bp.priorityQueue.Pop()
 
 		if request == nil {
-
 			break
-
 		}
 
 		// Group by model.
 
 		if pendingRequests[request.ModelName] == nil {
-
 			pendingRequests[request.ModelName] = make([]*BatchRequest, 0)
-
 		}
 
 		pendingRequests[request.ModelName] = append(pendingRequests[request.ModelName], request)
@@ -529,21 +486,16 @@ func (bp *BatchProcessorImpl) processPriorityQueue(pendingRequests map[string][]
 		}
 
 	}
-
 }
 
 // formBatch creates a batch from pending requests.
 
 func (bp *BatchProcessorImpl) formBatch(modelName string, requests []*BatchRequest) {
-
 	if len(requests) == 0 {
-
 		return
-
 	}
 
 	batch := &Batch{
-
 		ID: generateBatchID(),
 
 		Requests: requests,
@@ -573,17 +525,14 @@ func (bp *BatchProcessorImpl) formBatch(modelName string, requests []*BatchReque
 
 		"batch_size", len(requests),
 	)
-
 }
 
 // assignBatchToWorker assigns a batch to an available worker.
 
 func (bp *BatchProcessorImpl) assignBatchToWorker(batch *Batch) {
-
 	// Simple round-robin assignment.
 
 	for _, worker := range bp.workers {
-
 		select {
 
 		case <-worker.stopChan:
@@ -597,7 +546,6 @@ func (bp *BatchProcessorImpl) assignBatchToWorker(batch *Batch) {
 			return
 
 		}
-
 	}
 
 	// If no worker is immediately available, wait and retry.
@@ -605,19 +553,16 @@ func (bp *BatchProcessorImpl) assignBatchToWorker(batch *Batch) {
 	time.Sleep(10 * time.Millisecond)
 
 	bp.assignBatchToWorker(batch)
-
 }
 
 // run starts the worker processing loop.
 
 func (worker *BatchWorker) run() {
-
 	defer worker.processor.workerWg.Done()
 
 	worker.logger.Info("Batch worker started")
 
 	for {
-
 		select {
 
 		case <-worker.stopChan:
@@ -633,15 +578,12 @@ func (worker *BatchWorker) run() {
 			time.Sleep(100 * time.Millisecond)
 
 		}
-
 	}
-
 }
 
 // processBatch processes a batch of requests.
 
 func (worker *BatchWorker) processBatch(batch *Batch) {
-
 	ctx, span := worker.processor.tracer.Start(context.Background(), "batch_processor.process_batch")
 
 	defer span.End()
@@ -685,7 +627,6 @@ func (worker *BatchWorker) processBatch(batch *Batch) {
 		wg.Add(1)
 
 		go func(idx int, req *BatchRequest) {
-
 			defer wg.Done()
 
 			result := worker.processRequest(ctx, req, batch)
@@ -703,7 +644,6 @@ func (worker *BatchWorker) processBatch(batch *Batch) {
 				worker.logger.Warn("Failed to send result to requester", "request_id", req.ID)
 
 			}
-
 		}(i, request)
 
 	}
@@ -739,13 +679,11 @@ func (worker *BatchWorker) processBatch(batch *Batch) {
 
 		"processing_time", processingTime,
 	)
-
 }
 
 // processRequest processes a single request within a batch.
 
 func (worker *BatchWorker) processRequest(_ context.Context, request *BatchRequest, batch *Batch) *BatchResult {
-
 	start := time.Now()
 
 	queueTime := start.Sub(request.SubmitTime)
@@ -776,7 +714,6 @@ func (worker *BatchWorker) processRequest(_ context.Context, request *BatchReque
 	processingTime := time.Since(start)
 
 	return &BatchResult{
-
 		RequestID: request.ID,
 
 		Response: response,
@@ -791,13 +728,11 @@ func (worker *BatchWorker) processRequest(_ context.Context, request *BatchReque
 
 		QueueTime: queueTime,
 	}
-
 }
 
 // updateMetrics updates batch processing metrics.
 
 func (bp *BatchProcessorImpl) updateMetrics(batchSize int, processingTime time.Duration) {
-
 	bp.metricsMutex.Lock()
 
 	defer bp.metricsMutex.Unlock()
@@ -815,13 +750,11 @@ func (bp *BatchProcessorImpl) updateMetrics(batchSize int, processingTime time.D
 	totalTime := bp.averageProcessTime*time.Duration(bp.processedBatches-1) + processingTime
 
 	bp.averageProcessTime = totalTime / time.Duration(bp.processedBatches)
-
 }
 
 // GetStats returns current batch processor statistics.
 
 func (bp *BatchProcessorImpl) GetStats() BatchProcessorStats {
-
 	bp.metricsMutex.RLock()
 
 	defer bp.metricsMutex.RUnlock()
@@ -833,7 +766,6 @@ func (bp *BatchProcessorImpl) GetStats() BatchProcessorStats {
 	bp.batchesMutex.RUnlock()
 
 	return BatchProcessorStats{
-
 		ProcessedBatches: bp.processedBatches,
 
 		TotalRequests: bp.totalRequests,
@@ -850,7 +782,6 @@ func (bp *BatchProcessorImpl) GetStats() BatchProcessorStats {
 
 		WorkerCount: int64(len(bp.workers)),
 	}
-
 }
 
 // BatchProcessorStats holds batch processor statistics.
@@ -876,7 +807,6 @@ type BatchProcessorStats struct {
 // GetBatch returns information about a specific batch.
 
 func (bp *BatchProcessorImpl) GetBatch(batchID string) (*Batch, bool) {
-
 	bp.batchesMutex.RLock()
 
 	defer bp.batchesMutex.RUnlock()
@@ -884,13 +814,11 @@ func (bp *BatchProcessorImpl) GetBatch(batchID string) (*Batch, bool) {
 	batch, exists := bp.batches[batchID]
 
 	return batch, exists
-
 }
 
 // Close gracefully shuts down the batch processor.
 
 func (bp *BatchProcessorImpl) Close() error {
-
 	bp.shutdownMutex.Lock()
 
 	bp.isShutdown = true
@@ -906,9 +834,7 @@ func (bp *BatchProcessorImpl) Close() error {
 	// Stop all workers.
 
 	for _, worker := range bp.workers {
-
 		close(worker.stopChan)
-
 	}
 
 	// Wait for workers to finish.
@@ -918,19 +844,14 @@ func (bp *BatchProcessorImpl) Close() error {
 	bp.logger.Info("Batch processor shutdown complete")
 
 	return nil
-
 }
 
 // Helper functions.
 
 func generateBatchID() string {
-
 	return fmt.Sprintf("batch_%d", time.Now().UnixNano())
-
 }
 
 func generateRequestID() string {
-
 	return fmt.Sprintf("req_%d", time.Now().UnixNano())
-
 }

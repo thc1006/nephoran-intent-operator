@@ -13,7 +13,6 @@ import (
 // This test-only version provides the type when build tag 'test' is used.
 
 type DocumentChunk struct {
-
 	// Basic chunk information.
 
 	ID string `json:"id"`

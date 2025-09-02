@@ -107,7 +107,6 @@ type DisasterScenario struct {
 	ValidateRecovery interface{} // func(*DisasterRecoveryTestSuite) error
 
 	PostRecoveryCleanup interface{} // func(*DisasterRecoveryTestSuite) error
-
 }
 
 // TestDataSet contains test data for disaster recovery scenarios.

@@ -25,7 +25,6 @@ type PackageFile struct {
 	Content []byte
 
 	Path string // Relative path within the package
-
 }
 
 // PackageGenerator orchestrates the generation of complete KRM packages.
@@ -39,26 +38,21 @@ type PackageGenerator struct {
 // NewPackageGenerator creates a new package generator.
 
 func NewPackageGenerator() *PackageGenerator {
-
 	return &PackageGenerator{
-
 		deploymentGen: NewDeploymentGenerator(),
 
 		kptfileGen: NewKptfileGenerator(),
 	}
-
 }
 
 // GeneratePackage creates a complete KRM package from a scaling intent.
 
 func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputDir string) (*Package, error) {
-
 	packageName := fmt.Sprintf("%s-scaling", intent.Target)
 
 	packageDir := filepath.Join(outputDir, packageName)
 
 	pkg := &Package{
-
 		Name: packageName,
 
 		Directory: packageDir,
@@ -69,15 +63,11 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 	// Generate Kptfile.
 
 	kptfileContent, err := g.kptfileGen.Generate(intent)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate Kptfile: %w", err)
-
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
-
 		Name: "Kptfile",
 
 		Content: kptfileContent,
@@ -88,15 +78,11 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 	// Generate Deployment.
 
 	deploymentContent, err := g.deploymentGen.Generate(intent)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate deployment: %w", err)
-
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
-
 		Name: "deployment.yaml",
 
 		Content: deploymentContent,
@@ -107,15 +93,11 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 	// Generate Service.
 
 	serviceContent, err := g.deploymentGen.GenerateService(intent)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate service: %w", err)
-
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
-
 		Name: "service.yaml",
 
 		Content: serviceContent,
@@ -128,7 +110,6 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 	readmeContent := g.generateReadme(intent)
 
 	pkg.Files = append(pkg.Files, PackageFile{
-
 		Name: "README.md",
 
 		Content: readmeContent,
@@ -137,19 +118,16 @@ func (g *PackageGenerator) GeneratePackage(intent *intent.ScalingIntent, outputD
 	})
 
 	return pkg, nil
-
 }
 
 // GenerateMinimalPackage creates a minimal KRM package with just Deployment and Kptfile.
 
 func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, outputDir string) (*Package, error) {
-
 	packageName := fmt.Sprintf("%s-minimal", intent.Target)
 
 	packageDir := filepath.Join(outputDir, packageName)
 
 	pkg := &Package{
-
 		Name: packageName,
 
 		Directory: packageDir,
@@ -160,15 +138,11 @@ func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, 
 	// Generate minimal Kptfile.
 
 	kptfileContent, err := g.kptfileGen.GenerateMinimal(intent)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate minimal Kptfile: %w", err)
-
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
-
 		Name: "Kptfile",
 
 		Content: kptfileContent,
@@ -179,15 +153,11 @@ func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, 
 	// Generate Deployment only.
 
 	deploymentContent, err := g.deploymentGen.Generate(intent)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate deployment: %w", err)
-
 	}
 
 	pkg.Files = append(pkg.Files, PackageFile{
-
 		Name: "deployment.yaml",
 
 		Content: deploymentContent,
@@ -196,13 +166,11 @@ func (g *PackageGenerator) GenerateMinimalPackage(intent *intent.ScalingIntent, 
 	})
 
 	return pkg, nil
-
 }
 
 // generateReadme creates a README.md file for the package.
 
 func (g *PackageGenerator) generateReadme(intent *intent.ScalingIntent) []byte {
-
 	readme := fmt.Sprintf(`# %s Scaling Package
 
 
@@ -290,67 +258,48 @@ kpt live apply
 `, intent.Target, intent.Target, intent.Namespace, intent.Replicas, intent.IntentType, intent.Source, "TODO: timestamp")
 
 	if intent.Reason != "" {
-
 		readme += fmt.Sprintf("\n**Reason**: %s\n", intent.Reason)
-
 	}
 
 	if intent.CorrelationID != "" {
-
 		readme += fmt.Sprintf("**Correlation ID**: %s\n", intent.CorrelationID)
-
 	}
 
 	return []byte(readme)
-
 }
 
 // GetPackageFiles returns all files in the package.
 
 func (pkg *Package) GetPackageFiles() []PackageFile {
-
 	return pkg.Files
-
 }
 
 // GetFile returns a specific file by name.
 
 func (pkg *Package) GetFile(name string) (*PackageFile, error) {
-
 	for _, file := range pkg.Files {
-
 		if file.Name == name {
-
 			return &file, nil
-
 		}
-
 	}
 
 	return nil, fmt.Errorf("file %s not found in package", name)
-
 }
 
 // GetFileCount returns the number of files in the package.
 
 func (pkg *Package) GetFileCount() int {
-
 	return len(pkg.Files)
-
 }
 
 // GetFiles returns the files as a map for Porch API.
 
 func (pkg *Package) GetFiles() map[string]interface{} {
-
 	files := make(map[string]interface{})
 
 	for _, file := range pkg.Files {
-
 		files[file.Path] = string(file.Content)
-
 	}
 
 	return files
-
 }

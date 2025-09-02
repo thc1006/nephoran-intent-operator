@@ -389,7 +389,6 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 				Namespace: "default",
 			},
 		})
-
 		// Should not crash, might return error or handle gracefully
 		if err != nil {
 			suite.T().Logf("Expected error handling malformed config: %v", err)

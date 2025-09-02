@@ -46,9 +46,7 @@ type ResponseCache struct {
 // NewResponseCacheTest performs newresponsecachetest operation.
 
 func NewResponseCacheTest(ttl time.Duration, maxSize int) *ResponseCache {
-
 	cache := &ResponseCache{
-
 		entries: make(map[string]*CacheEntry),
 
 		ttl: ttl,
@@ -65,17 +63,14 @@ func NewResponseCacheTest(ttl time.Duration, maxSize int) *ResponseCache {
 	go cache.cleanup()
 
 	return cache
-
 }
 
 func (c *ResponseCache) cleanup() {
-
 	ticker := time.NewTicker(time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-c.stopCh:
@@ -89,29 +84,21 @@ func (c *ResponseCache) cleanup() {
 			now := time.Now()
 
 			for key, entry := range c.entries {
-
 				if now.Sub(entry.Timestamp) > c.ttl {
-
 					delete(c.entries, key)
-
 				}
-
 			}
 
 			c.mutex.Unlock()
 
 		}
-
 	}
-
 }
 
 // Stop performs stop operation.
 
 func (c *ResponseCache) Stop() {
-
 	c.stopOnce.Do(func() {
-
 		c.mutex.Lock()
 
 		c.stopped = true
@@ -119,57 +106,44 @@ func (c *ResponseCache) Stop() {
 		c.mutex.Unlock()
 
 		close(c.stopCh)
-
 	})
-
 }
 
 // Get performs get operation.
 
 func (c *ResponseCache) Get(key string) (string, bool) {
-
 	c.mutex.RLock()
 
 	defer c.mutex.RUnlock()
 
 	if c.stopped {
-
 		return "", false
-
 	}
 
 	entry, exists := c.entries[key]
 
 	if !exists {
-
 		return "", false
-
 	}
 
 	if time.Since(entry.Timestamp) > c.ttl {
-
 		return "", false
-
 	}
 
 	entry.HitCount++
 
 	return entry.Response, true
-
 }
 
 // Set performs set operation.
 
 func (c *ResponseCache) Set(key, response string) {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
 
 	if c.stopped {
-
 		return
-
 	}
 
 	if len(c.entries) >= c.maxSize {
@@ -179,7 +153,6 @@ func (c *ResponseCache) Set(key, response string) {
 		oldestKey := ""
 
 		for k, v := range c.entries {
-
 			if v.Timestamp.Before(oldest) {
 
 				oldest = v.Timestamp
@@ -187,32 +160,26 @@ func (c *ResponseCache) Set(key, response string) {
 				oldestKey = k
 
 			}
-
 		}
 
 		if oldestKey != "" {
-
 			delete(c.entries, oldestKey)
-
 		}
 
 	}
 
 	c.entries[key] = &CacheEntry{
-
 		Response: response,
 
 		Timestamp: time.Now(),
 
 		HitCount: 0,
 	}
-
 }
 
 // Test functions.
 
 func testBasicStopFunctionality() {
-
 	fmt.Println("Test 1: Basic Stop functionality")
 
 	cache := NewResponseCacheTest(5*time.Minute, 10)
@@ -266,11 +233,9 @@ func testBasicStopFunctionality() {
 	}
 
 	fmt.Println("PASS: Basic Stop functionality works")
-
 }
 
 func testMultipleStopCalls() {
-
 	fmt.Println("Test 2: Multiple Stop calls safety")
 
 	cache := NewResponseCacheTest(5*time.Minute, 10)
@@ -292,11 +257,9 @@ func testMultipleStopCalls() {
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			cache.Stop()
-
 		}()
 
 	}
@@ -314,11 +277,9 @@ func testMultipleStopCalls() {
 	}
 
 	fmt.Println("PASS: Multiple Stop calls handled safely")
-
 }
 
 func testCacheFunctionalityBeforeStop() {
-
 	fmt.Println("Test 3: Cache functionality before Stop")
 
 	cache := NewResponseCacheTest(5*time.Minute, 10)
@@ -354,11 +315,9 @@ func testCacheFunctionalityBeforeStop() {
 	}
 
 	fmt.Println("PASS: Cache functionality works before Stop")
-
 }
 
 func testCacheFunctionalityAfterStop() {
-
 	fmt.Println("Test 4: Cache functionality after Stop")
 
 	cache := NewResponseCacheTest(5*time.Minute, 10)
@@ -408,11 +367,9 @@ func testCacheFunctionalityAfterStop() {
 	}
 
 	fmt.Println("PASS: Cache functionality correctly blocked after Stop")
-
 }
 
 func testGoroutineTermination() {
-
 	fmt.Println("Test 5: Goroutine termination")
 
 	initialGoroutines := runtime.NumGoroutine()
@@ -426,11 +383,9 @@ func testGoroutineTermination() {
 	afterCreateGoroutines := runtime.NumGoroutine()
 
 	if afterCreateGoroutines <= initialGoroutines {
-
 		fmt.Printf("INFO: Goroutine count did not increase detectably (initial: %d, after create: %d)\n",
 
 			initialGoroutines, afterCreateGoroutines)
-
 	}
 
 	// Stop the cache.
@@ -448,9 +403,7 @@ func testGoroutineTermination() {
 		time.Sleep(10 * time.Millisecond)
 
 		if runtime.NumGoroutine() <= afterCreateGoroutines {
-
 			break
-
 		}
 
 	}
@@ -462,11 +415,9 @@ func testGoroutineTermination() {
 		initialGoroutines, afterCreateGoroutines, finalGoroutines)
 
 	fmt.Println("PASS: Goroutine termination test completed")
-
 }
 
 func testConcurrentAccess() {
-
 	fmt.Println("Test 6: Concurrent access scenarios")
 
 	cache := NewResponseCacheTest(5*time.Minute, 100)
@@ -484,7 +435,6 @@ func testConcurrentAccess() {
 		wg.Add(1)
 
 		go func(workerID int) {
-
 			defer wg.Done()
 
 			for j := 0; j < numOperations; j++ {
@@ -498,7 +448,6 @@ func testConcurrentAccess() {
 				cache.Get(key)
 
 			}
-
 		}(i)
 
 	}
@@ -508,15 +457,11 @@ func testConcurrentAccess() {
 	stopCalled := int32(0)
 
 	go func() {
-
 		time.Sleep(10 * time.Millisecond)
 
 		if atomic.CompareAndSwapInt32(&stopCalled, 0, 1) {
-
 			cache.Stop()
-
 		}
-
 	}()
 
 	wg.Wait()
@@ -524,9 +469,7 @@ func testConcurrentAccess() {
 	// Ensure stop was called.
 
 	if atomic.LoadInt32(&stopCalled) == 0 {
-
 		cache.Stop()
-
 	}
 
 	stopped := cache.IsStopped()
@@ -540,11 +483,9 @@ func testConcurrentAccess() {
 	}
 
 	fmt.Println("PASS: Concurrent access handled safely")
-
 }
 
 func testTTLFunctionality() {
-
 	fmt.Println("Test 7: TTL functionality")
 
 	cache := NewResponseCacheTest(50*time.Millisecond, 10)
@@ -588,11 +529,9 @@ func testTTLFunctionality() {
 	}
 
 	fmt.Println("PASS: TTL functionality works correctly")
-
 }
 
 func testMaxSizeEnforcement() {
-
 	fmt.Println("Test 8: Max size enforcement")
 
 	cache := NewResponseCacheTest(5*time.Minute, 2)
@@ -670,11 +609,9 @@ func testMaxSizeEnforcement() {
 	}
 
 	fmt.Println("PASS: Max size enforcement works correctly")
-
 }
 
 func main() {
-
 	fmt.Println("Running ResponseCache Stop() method comprehensive tests")
 
 	fmt.Println("============================================================")
@@ -698,17 +635,14 @@ func main() {
 	fmt.Println("============================================================")
 
 	fmt.Println("All tests completed successfully!")
-
 }
 
 // IsStopped returns whether the cache is stopped.
 
 func (c *ResponseCache) IsStopped() bool {
-
 	c.mutex.RLock()
 
 	defer c.mutex.RUnlock()
 
 	return c.stopped
-
 }

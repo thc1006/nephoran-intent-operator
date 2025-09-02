@@ -13,7 +13,6 @@ package reporting
 // BusinessImpact represents the business impact of performance issues or SLA violations.
 
 type BusinessImpact struct {
-
 	// Cost impact.
 
 	CostPerIntent float64 `json:"costPerIntent,omitempty"` // dollars
@@ -37,7 +36,6 @@ type BusinessImpact struct {
 	ReputationScore float64 `json:"reputationScore,omitempty"` // 0-100 score
 
 	CompetitivePosition string `json:"competitivePosition,omitempty"` // Leading, Competitive, Lagging
-
 }
 
 // Recommendation provides actionable performance improvement suggestions.

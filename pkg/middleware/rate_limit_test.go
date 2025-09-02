@@ -20,7 +20,7 @@ func TestRateLimiter_BasicFunctionality(t *testing.T) {
 		IPTimeout:       1 * time.Hour,
 	}
 
-	rateLimiter := NewRateLimiter(&config, logger)
+	rateLimiter := NewRateLimiter(config, logger)
 	defer rateLimiter.Stop()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func TestRateLimiter_DifferentIPs(t *testing.T) {
 		IPTimeout:       1 * time.Hour,
 	}
 
-	rateLimiter := NewRateLimiter(&config, logger)
+	rateLimiter := NewRateLimiter(config, logger)
 	defer rateLimiter.Stop()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -267,7 +267,7 @@ func TestRateLimiterStats(t *testing.T) {
 		IPTimeout:       1 * time.Hour,
 	}
 
-	rateLimiter := NewRateLimiter(&config, logger)
+	rateLimiter := NewRateLimiter(config, logger)
 	defer rateLimiter.Stop()
 
 	stats := rateLimiter.GetStats()
@@ -313,7 +313,7 @@ func BenchmarkRateLimiter(b *testing.B) {
 		IPTimeout:       1 * time.Hour,
 	}
 
-	rateLimiter := NewRateLimiter(&config, logger)
+	rateLimiter := NewRateLimiter(config, logger)
 	defer rateLimiter.Stop()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

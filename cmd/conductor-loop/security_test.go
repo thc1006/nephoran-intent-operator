@@ -78,12 +78,12 @@ func TestPathTraversalSecurity(t *testing.T) {
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
 
-			require.NoError(t, os.MkdirAll(handoffDir, 0755))
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			// Create malicious intent file
 			intentFile := filepath.Join(handoffDir, "intent-malicious.json")
-			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0o644))
 
 			// Create mock porch executable
 			mockPorch := createSecureMockPorch(t, tempDir)
@@ -186,12 +186,12 @@ func TestCommandInjectionSecurity(t *testing.T) {
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
 
-			require.NoError(t, os.MkdirAll(handoffDir, 0755))
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			// Create intent file
 			intentFile := filepath.Join(handoffDir, "intent-test.json")
-			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0o644))
 
 			// Configure executor
 			config := porch.ExecutorConfig{
@@ -246,7 +246,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 						"replicas": 1
 					}`, i)
 					file := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
-					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
+					require.NoError(t, os.WriteFile(file, []byte(content), 0o644))
 				}
 			},
 			expectedFiles:  100,
@@ -265,7 +265,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 					"large_data": "%s"
 				}`, largeData)
 				file := filepath.Join(handoffDir, "large-intent.json")
-				require.NoError(t, os.WriteFile(file, []byte(content), 0644))
+				require.NoError(t, os.WriteFile(file, []byte(content), 0o644))
 			},
 			expectedFiles:  1,
 			maxProcessTime: 10 * time.Second,
@@ -283,7 +283,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 							"replicas": 1
 						}`, i)
 						file := filepath.Join(handoffDir, fmt.Sprintf("intent-rapid-%d.json", i))
-						_ = os.WriteFile(file, []byte(content), 0644)
+						_ = os.WriteFile(file, []byte(content), 0o644)
 						time.Sleep(10 * time.Millisecond)
 					}
 				}()
@@ -297,7 +297,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 						"replicas": 1
 					}`, i)
 					file := filepath.Join(handoffDir, fmt.Sprintf("intent-initial-%d.json", i))
-					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
+					require.NoError(t, os.WriteFile(file, []byte(content), 0o644))
 				}
 			},
 			expectedFiles:  10, // Only count initial files for deterministic testing
@@ -311,8 +311,8 @@ func TestResourceExhaustionResilience(t *testing.T) {
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
 
-			require.NoError(t, os.MkdirAll(handoffDir, 0755))
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			// Setup test files
 			tt.setupFunc(t, handoffDir)
@@ -359,8 +359,8 @@ func TestFilePermissionValidation(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create intent file
 	intentContent := `{
@@ -370,7 +370,7 @@ func TestFilePermissionValidation(t *testing.T) {
 		"replicas": 3
 	}`
 	intentFile := filepath.Join(handoffDir, "intent-test.json")
-	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 	// Create mock porch
 	mockPorch := createSecureMockPorch(t, tempDir)
@@ -409,19 +409,19 @@ func TestFilePermissionValidation(t *testing.T) {
 
 		if d.IsDir() {
 			// Directories should be readable/writable by owner, readable by group
-			expectedMode := fs.FileMode(0755)
-			assert.Equal(t, expectedMode, mode&0777, "Directory %s has incorrect permissions", path)
+			expectedMode := fs.FileMode(0o755)
+			assert.Equal(t, expectedMode, mode&0o777, "Directory %s has incorrect permissions", path)
 		} else {
 			// Determine expected permissions based on file type
 			var expectedMode fs.FileMode
 			if isExecutableScript(path) {
 				// Executable scripts need execute permissions on Unix systems
-				expectedMode = fs.FileMode(0755)
+				expectedMode = fs.FileMode(0o755)
 			} else {
 				// Regular files should be readable/writable by owner, readable by group
-				expectedMode = fs.FileMode(0644)
+				expectedMode = fs.FileMode(0o644)
 			}
-			assert.Equal(t, expectedMode, mode&0777, "File %s has incorrect permissions", path)
+			assert.Equal(t, expectedMode, mode&0o777, "File %s has incorrect permissions", path)
 		}
 
 		return nil
@@ -549,12 +549,12 @@ func TestInputValidation(t *testing.T) {
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
 
-			require.NoError(t, os.MkdirAll(handoffDir, 0755))
-			require.NoError(t, os.MkdirAll(outDir, 0755))
+			require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+			require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 			// Create intent file
 			intentFile := filepath.Join(handoffDir, "intent-test.json")
-			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0o644))
 
 			// Create mock porch
 			mockPorch := createSecureMockPorch(t, tempDir)
@@ -604,8 +604,8 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create mock porch with random delays to simulate real processing
 	mockPorch := createMockPorchWithRandomDelay(t, tempDir)
@@ -654,7 +654,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 			// Add small random delay to increase chance of race conditions
 			time.Sleep(time.Duration(id%10) * time.Millisecond)
 
-			err := os.WriteFile(file, []byte(content), 0644)
+			err := os.WriteFile(file, []byte(content), 0o644)
 			if err != nil {
 				t.Errorf("Failed to write file %d: %v", id, err)
 			}
@@ -798,7 +798,7 @@ func assertSystemHealth(t *testing.T) {
 
 	// Ensure we can still create files (system not locked up)
 	testFile := filepath.Join(os.TempDir(), fmt.Sprintf("health-check-%d.tmp", time.Now().UnixNano()))
-	err := os.WriteFile(testFile, []byte("health check"), 0644)
+	err := os.WriteFile(testFile, []byte("health check"), 0o644)
 	assert.NoError(t, err, "System should still be responsive")
 
 	if err == nil {

@@ -18,7 +18,6 @@ var (
 	requestCounter = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "nephio_webui_requests_total",
 
 			Help: "Total number of HTTP requests",
@@ -30,7 +29,6 @@ var (
 	requestDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "nephio_webui_request_duration_seconds",
 
 			Help: "HTTP request latencies in seconds",
@@ -45,11 +43,8 @@ var (
 // AuthMiddleware handles JWT/OIDC token validation.
 
 func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Claims, error)) func(http.Handler) http.Handler {
-
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			authHeader := r.Header.Get("Authorization")
 
 			if authHeader == "" {
@@ -71,7 +66,6 @@ func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Cla
 			}
 
 			claims, err := jwtVerifier(parts[1])
-
 			if err != nil {
 
 				logger.Error("Token validation failed", zap.Error(err))
@@ -87,21 +81,15 @@ func AuthMiddleware(logger *zap.Logger, jwtVerifier func(token string) (*jwt.Cla
 			ctx := context.WithValue(r.Context(), "claims", claims)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
-
 		})
-
 	}
-
 }
 
 // RBACMiddleware handles role-based access control.
 
 func RBACMiddleware(logger *zap.Logger, checkAccess func(claims *jwt.Claims, path, method string) bool) func(http.Handler) http.Handler {
-
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			claims, ok := r.Context().Value("claims").(*jwt.Claims)
 
 			if !ok {
@@ -121,29 +109,21 @@ func RBACMiddleware(logger *zap.Logger, checkAccess func(claims *jwt.Claims, pat
 			}
 
 			next.ServeHTTP(w, r)
-
 		})
-
 	}
-
 }
 
 // LoggingMiddleware provides structured logging for HTTP requests.
 
 func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
-
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			start := time.Now()
 
 			correlationID := r.Header.Get("X-Correlation-ID")
 
 			if correlationID == "" {
-
 				correlationID = uuid.New().String()
-
 			}
 
 			ctx := context.WithValue(r.Context(), "correlation_id", correlationID)
@@ -176,27 +156,20 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 			requestCounter.WithLabelValues(r.Method, r.URL.Path, http.StatusText(crw.status)).Inc()
 
 			requestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration.Seconds())
-
 		})
-
 	}
-
 }
 
 // CORSMiddleware handles Cross-Origin Resource Sharing.
 
 func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
-
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			origin := r.Header.Get("Origin")
 
 			allowOrigin := false
 
 			for _, allowed := range allowedOrigins {
-
 				if allowed == "*" || allowed == origin {
 
 					allowOrigin = true
@@ -204,7 +177,6 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 					break
 
 				}
-
 			}
 
 			if allowOrigin {
@@ -228,23 +200,17 @@ func CORSMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(w, r)
-
 		})
-
 	}
-
 }
 
 // RateLimitMiddleware provides request rate limiting.
 
 func RateLimitMiddleware(requestsPerSecond float64, burst int) func(http.Handler) http.Handler {
-
 	limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), burst)
 
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			if !limiter.Allow() {
 
 				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
@@ -254,19 +220,14 @@ func RateLimitMiddleware(requestsPerSecond float64, burst int) func(http.Handler
 			}
 
 			next.ServeHTTP(w, r)
-
 		})
-
 	}
-
 }
 
 // SecurityHeadersMiddleware adds security-related HTTP headers.
 
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 
 		w.Header().Set("X-Frame-Options", "DENY")
@@ -280,9 +241,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
 
 		next.ServeHTTP(w, r)
-
 	})
-
 }
 
 // customResponseWriter wraps http.ResponseWriter to capture status code.
@@ -296,9 +255,7 @@ type customResponseWriter struct {
 // WriteHeader performs writeheader operation.
 
 func (crw *customResponseWriter) WriteHeader(status int) {
-
 	crw.status = status
 
 	crw.ResponseWriter.WriteHeader(status)
-
 }

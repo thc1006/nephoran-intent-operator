@@ -19,7 +19,6 @@ import (
 // RegressionFramework provides comprehensive regression detection capabilities.
 
 type RegressionFramework struct {
-
 	// Core components.
 
 	validationSuite *ValidationSuite
@@ -48,7 +47,6 @@ type RegressionFramework struct {
 // RegressionConfig holds configuration for regression testing.
 
 type RegressionConfig struct {
-
 	// Baseline management.
 
 	BaselineStoragePath string
@@ -94,15 +92,12 @@ type RegressionConfig struct {
 	GenerateJUnitReport bool
 
 	ExportMetricsFormat string // "prometheus", "json", "csv"
-
 }
 
 // DefaultRegressionConfig returns production-ready regression configuration.
 
 func DefaultRegressionConfig() *RegressionConfig {
-
 	return &RegressionConfig{
-
 		BaselineStoragePath: "./regression-baselines",
 
 		AutoBaselineUpdate: false,
@@ -133,13 +128,11 @@ func DefaultRegressionConfig() *RegressionConfig {
 
 		ExportMetricsFormat: "prometheus",
 	}
-
 }
 
 // BaselineSnapshot represents a validation baseline at a specific point in time.
 
 type BaselineSnapshot struct {
-
 	// Metadata.
 
 	ID string `json:"id"`
@@ -248,7 +241,6 @@ type BaselineStatistics struct {
 // RegressionDetection holds the results of regression detection.
 
 type RegressionDetection struct {
-
 	// Overall regression status.
 
 	HasRegression bool `json:"has_regression"`
@@ -357,21 +349,15 @@ type ProductionRegression struct {
 // NewRegressionFramework creates a new regression testing framework.
 
 func NewRegressionFramework(config *RegressionConfig, validationConfig *ValidationConfig) *RegressionFramework {
-
 	if config == nil {
-
 		config = DefaultRegressionConfig()
-
 	}
 
 	if validationConfig == nil {
-
 		validationConfig = DefaultValidationConfig()
-
 	}
 
 	rf := &RegressionFramework{
-
 		config: config,
 
 		validationSuite: NewValidationSuite(validationConfig),
@@ -388,19 +374,15 @@ func NewRegressionFramework(config *RegressionConfig, validationConfig *Validati
 	// Initialize storage directory.
 
 	if err := os.MkdirAll(config.BaselineStoragePath, 0o755); err != nil {
-
 		ginkgo.Fail(fmt.Sprintf("Failed to create baseline storage directory: %v", err))
-
 	}
 
 	return rf
-
 }
 
 // ExecuteRegressionTest runs comprehensive regression testing.
 
 func (rf *RegressionFramework) ExecuteRegressionTest(ctx context.Context) (*RegressionDetection, error) {
-
 	ginkgo.By("Starting Comprehensive Regression Testing")
 
 	startTime := time.Now()
@@ -410,7 +392,6 @@ func (rf *RegressionFramework) ExecuteRegressionTest(ctx context.Context) (*Regr
 	ginkgo.By("Loading latest baseline for comparison")
 
 	baseline, err := rf.baselineManager.LoadLatestBaseline()
-
 	if err != nil {
 
 		if os.IsNotExist(err) {
@@ -432,11 +413,8 @@ func (rf *RegressionFramework) ExecuteRegressionTest(ctx context.Context) (*Regr
 	ginkgo.By("Executing current validation suite")
 
 	currentResults, err := rf.validationSuite.ExecuteComprehensiveValidation(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("validation execution failed: %w", err)
-
 	}
 
 	rf.currentResults = currentResults
@@ -446,11 +424,8 @@ func (rf *RegressionFramework) ExecuteRegressionTest(ctx context.Context) (*Regr
 	ginkgo.By("Detecting regressions against baseline")
 
 	regressionDetection, err := rf.detectionEngine.DetectRegressions(baseline, currentResults)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("regression detection failed: %w", err)
-
 	}
 
 	// Step 4: Perform trend analysis.
@@ -492,53 +467,39 @@ func (rf *RegressionFramework) ExecuteRegressionTest(ctx context.Context) (*Regr
 	// Step 8: Handle CI/CD integration.
 
 	if rf.config.FailOnRegression && regressionDetection.HasRegression {
-
 		return regressionDetection, fmt.Errorf("regression detected: %s", regressionDetection.RegressionSeverity)
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Regression testing completed: %s",
 
 		func() string {
-
 			if regressionDetection.HasRegression {
-
 				return fmt.Sprintf("REGRESSION DETECTED (%s)", regressionDetection.RegressionSeverity)
-
 			}
 
 			return "NO REGRESSION"
-
 		}()))
 
 	return regressionDetection, nil
-
 }
 
 // EstablishNewBaseline creates a new baseline when none exists.
 
 func (rf *RegressionFramework) EstablishNewBaseline(ctx context.Context) (*RegressionDetection, error) {
-
 	ginkgo.By("Establishing new baseline")
 
 	// Execute validation to establish baseline.
 
 	results, err := rf.validationSuite.ExecuteComprehensiveValidation(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to execute validation for baseline: %w", err)
-
 	}
 
 	// Create baseline.
 
 	baseline, err := rf.baselineManager.CreateBaseline(results, "initial-baseline")
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create baseline: %w", err)
-
 	}
 
 	ginkgo.By(fmt.Sprintf("Baseline established with ID: %s", baseline.ID))
@@ -546,7 +507,6 @@ func (rf *RegressionFramework) EstablishNewBaseline(ctx context.Context) (*Regre
 	// Return no regression detection for new baseline.
 
 	return &RegressionDetection{
-
 		HasRegression: false,
 
 		RegressionSeverity: "none",
@@ -565,65 +525,48 @@ func (rf *RegressionFramework) EstablishNewBaseline(ctx context.Context) (*Regre
 
 		ProductionRegressions: []*ProductionRegression{},
 	}, nil
-
 }
 
 // GetRegressionHistory returns historical regression data.
 
 func (rf *RegressionFramework) GetRegressionHistory(days int) ([]*RegressionDetection, error) {
-
 	return rf.baselineManager.GetRegressionHistory(days)
-
 }
 
 // GenerateRegressionTrends creates trend analysis over time.
 
 func (rf *RegressionFramework) GenerateRegressionTrends() (*TrendAnalysis, error) {
-
 	baselines, err := rf.baselineManager.LoadAllBaselines()
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	return rf.trendAnalyzer.GenerateTrends(baselines), nil
-
 }
 
 // enrichRegressionWithTrends adds trend information to regression detection.
 
 func (rf *RegressionFramework) enrichRegressionWithTrends(detection *RegressionDetection, trends *TrendAnalysis) {
-
 	// Add trend context to regression detection.
 
 	// This would enhance the regression report with trend information.
 
 	for _, perfRegression := range detection.PerformanceRegressions {
-
 		if trend, exists := trends.PerformanceTrends[perfRegression.MetricName]; exists {
-
 			perfRegression.Impact = fmt.Sprintf("%s (Trend: %s)", perfRegression.Impact, trend.Direction)
-
 		}
-
 	}
-
 }
 
 // generateRegressionReport creates comprehensive regression report.
 
 func (rf *RegressionFramework) generateRegressionReport(detection *RegressionDetection, executionTime time.Duration) {
-
 	ginkgo.By("Generating comprehensive regression report")
 
 	status := "PASSED"
 
 	if detection.HasRegression {
-
 		status = fmt.Sprintf("FAILED (%s)", detection.RegressionSeverity)
-
 	}
 
 	report := fmt.Sprintf(`
@@ -734,9 +677,7 @@ DETECTION THRESHOLDS:
 				i+1, reg.TestCategory, reg.BaselinePassRate, reg.CurrentPassRate)
 
 			if len(reg.NewFailures) > 0 {
-
 				report += fmt.Sprintf("     New failures: %v\n", reg.NewFailures)
-
 			}
 
 		}
@@ -748,11 +689,9 @@ DETECTION THRESHOLDS:
 		report += "\nSECURITY REGRESSIONS:\n"
 
 		for i, reg := range detection.SecurityRegressions {
-
 			report += fmt.Sprintf("  %d. %s: %s (%s)\n",
 
 				i+1, reg.Finding.Type, reg.Finding.Description, reg.Finding.Severity)
-
 		}
 
 	}
@@ -762,11 +701,9 @@ DETECTION THRESHOLDS:
 		report += "\nPRODUCTION REGRESSIONS:\n"
 
 		for i, reg := range detection.ProductionRegressions {
-
 			report += fmt.Sprintf("  %d. %s: %.2f → %.2f\n",
 
 				i+1, reg.Metric, reg.BaselineValue, reg.CurrentValue)
-
 		}
 
 	}
@@ -782,27 +719,22 @@ DETECTION THRESHOLDS:
 	// Generate JUnit report if configured.
 
 	if rf.config.GenerateJUnitReport {
-
 		rf.generateJUnitReport(detection)
-
 	}
 
 	// Export metrics in configured format.
 
 	rf.exportMetrics(detection)
-
 }
 
 // writeDetailedRegressionReport writes detailed JSON report.
 
 func (rf *RegressionFramework) writeDetailedRegressionReport(detection *RegressionDetection) {
-
 	reportPath := filepath.Join(rf.config.BaselineStoragePath, fmt.Sprintf("regression-report-%s.json",
 
 		detection.ComparisonTime.Format("2006-01-02T15-04-05")))
 
 	data, err := json.MarshalIndent(detection, "", "  ")
-
 	if err != nil {
 
 		ginkgo.By(fmt.Sprintf("Warning: Failed to marshal regression report: %v", err))
@@ -812,27 +744,21 @@ func (rf *RegressionFramework) writeDetailedRegressionReport(detection *Regressi
 	}
 
 	if err := os.WriteFile(reportPath, data, 0o640); err != nil {
-
 		ginkgo.By(fmt.Sprintf("Warning: Failed to write regression report: %v", err))
-
 	}
-
 }
 
 // generateJUnitReport generates JUnit XML report for CI/CD integration.
 
 func (rf *RegressionFramework) generateJUnitReport(detection *RegressionDetection) {
-
 	// Implementation would generate JUnit XML format report.
 
 	// This enables integration with CI/CD systems like Jenkins, GitHub Actions, etc.
-
 }
 
 // exportMetrics exports metrics in configured format.
 
 func (rf *RegressionFramework) exportMetrics(detection *RegressionDetection) {
-
 	switch rf.config.ExportMetricsFormat {
 
 	case "prometheus":
@@ -848,29 +774,22 @@ func (rf *RegressionFramework) exportMetrics(detection *RegressionDetection) {
 		rf.exportCSVMetrics(detection)
 
 	}
-
 }
 
 // exportPrometheusMetrics exports metrics in Prometheus format.
 
 func (rf *RegressionFramework) exportPrometheusMetrics(detection *RegressionDetection) {
-
 	// Implementation would export metrics in Prometheus format.
-
 }
 
 // exportJSONMetrics exports metrics in JSON format.
 
 func (rf *RegressionFramework) exportJSONMetrics(detection *RegressionDetection) {
-
 	// Implementation would export metrics in JSON format.
-
 }
 
 // exportCSVMetrics exports metrics in CSV format.
 
 func (rf *RegressionFramework) exportCSVMetrics(detection *RegressionDetection) {
-
 	// Implementation would export metrics in CSV format.
-
 }

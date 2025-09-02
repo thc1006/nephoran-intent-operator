@@ -114,7 +114,6 @@ type O2IMSConfig struct {
 // O2IMSService defines the interface for O2 IMS core service.
 
 type O2IMSService interface {
-
 	// Resource Management.
 
 	ListResources(ctx context.Context, filter ResourceFilter) ([]Resource, error)
@@ -229,7 +228,6 @@ type O2IMSService interface {
 // ResourceManager handles resource lifecycle operations.
 
 type ResourceManager interface {
-
 	// Resource Operations.
 
 	AllocateResource(ctx context.Context, request *AllocationRequest) (*AllocationResponse, error)
@@ -270,7 +268,6 @@ type ResourceManager interface {
 // InventoryService manages the inventory of resources.
 
 type InventoryService interface {
-
 	// Inventory Management.
 
 	SyncInventory(ctx context.Context) error
@@ -303,7 +300,6 @@ type InventoryService interface {
 // MonitoringService provides monitoring and alerting capabilities.
 
 type MonitoringService interface {
-
 	// Metrics.
 
 	CollectMetrics(ctx context.Context, resourceID string) (*ResourceMetrics, error)
@@ -362,7 +358,6 @@ type CheckResult struct {
 // CNFLifecycleManager manages CNF lifecycle operations.
 
 type CNFLifecycleManager interface {
-
 	// CNF Operations.
 
 	InstantiateCNF(ctx context.Context, request *CNFInstantiationRequest) (*CNFInstance, error)
@@ -393,70 +388,54 @@ type CNFLifecycleManagerImpl struct {
 // NewCNFLifecycleManager creates a new CNF lifecycle manager.
 
 func NewCNFLifecycleManager(config *CNFLifecycleConfig, k8sClient client.Client, logger *logging.StructuredLogger) *CNFLifecycleManagerImpl {
-
 	return &CNFLifecycleManagerImpl{
-
 		config: config,
 
 		k8sClient: k8sClient,
 
 		logger: logger,
 	}
-
 }
 
 // Implement CNFLifecycleManager methods (placeholders).
 
 func (clm *CNFLifecycleManagerImpl) InstantiateCNF(ctx context.Context, request *CNFInstantiationRequest) (*CNFInstance, error) {
-
 	return nil, nil
-
 }
 
 // TerminateCNF performs terminatecnf operation.
 
 func (clm *CNFLifecycleManagerImpl) TerminateCNF(ctx context.Context, instanceID string) error {
-
 	return nil
-
 }
 
 // ScaleCNF performs scalecnf operation.
 
 func (clm *CNFLifecycleManagerImpl) ScaleCNF(ctx context.Context, instanceID string, scaleRequest *CNFScaleRequest) error {
-
 	return nil
-
 }
 
 // UpdateCNF performs updatecnf operation.
 
 func (clm *CNFLifecycleManagerImpl) UpdateCNF(ctx context.Context, instanceID string, updateRequest *CNFUpdateRequest) error {
-
 	return nil
-
 }
 
 // GetCNFStatus performs getcnfstatus operation.
 
 func (clm *CNFLifecycleManagerImpl) GetCNFStatus(ctx context.Context, instanceID string) (*CNFStatus, error) {
-
 	return nil, nil
-
 }
 
 // ListCNFInstances performs listcnfinstances operation.
 
 func (clm *CNFLifecycleManagerImpl) ListCNFInstances(ctx context.Context, filter CNFFilter) ([]CNFInstance, error) {
-
 	return nil, nil
-
 }
 
 // HelmManager manages Helm chart operations.
 
 type HelmManager interface {
-
 	// Lifecycle.
 
 	Initialize() error
@@ -501,102 +480,77 @@ type HelmManagerImpl struct {
 // NewHelmManager creates a new Helm manager.
 
 func NewHelmManager(config *HelmConfig, logger *logging.StructuredLogger) *HelmManagerImpl {
-
 	return &HelmManagerImpl{
-
 		config: config,
 
 		logger: logger,
 	}
-
 }
 
 // Implement HelmManager methods (placeholders).
 
 func (hm *HelmManagerImpl) Initialize() error {
-
 	return nil
-
 }
 
 // InstallChart performs installchart operation.
 
 func (hm *HelmManagerImpl) InstallChart(ctx context.Context, request *HelmInstallRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // UpgradeChart performs upgradechart operation.
 
 func (hm *HelmManagerImpl) UpgradeChart(ctx context.Context, releaseName string, request *HelmUpgradeRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // UninstallChart performs uninstallchart operation.
 
 func (hm *HelmManagerImpl) UninstallChart(ctx context.Context, releaseName string) error {
-
 	return nil
-
 }
 
 // Deploy performs deploy operation.
 
 func (hm *HelmManagerImpl) Deploy(ctx context.Context, request *HelmDeployRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // Upgrade performs upgrade operation.
 
 func (hm *HelmManagerImpl) Upgrade(ctx context.Context, request *HelmUpgradeRequest) (*HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // Uninstall performs uninstall operation.
 
 func (hm *HelmManagerImpl) Uninstall(ctx context.Context, releaseName, namespace string) error {
-
 	return nil
-
 }
 
 // GetReleaseStatus performs getreleasestatus operation.
 
 func (hm *HelmManagerImpl) GetReleaseStatus(ctx context.Context, releaseName string) (*HelmReleaseStatus, error) {
-
 	return nil, nil
-
 }
 
 // ListReleases performs listreleases operation.
 
 func (hm *HelmManagerImpl) ListReleases(ctx context.Context, namespace string) ([]HelmRelease, error) {
-
 	return nil, nil
-
 }
 
 // AddRepository performs addrepository operation.
 
 func (hm *HelmManagerImpl) AddRepository(ctx context.Context, repo *HelmRepository) error {
-
 	return nil
-
 }
 
 // UpdateRepository performs updaterepository operation.
 
 func (hm *HelmManagerImpl) UpdateRepository(ctx context.Context, repoName string) error {
-
 	return nil
-
 }
 
 // NetworkPolicyRule defines network policy rules.
@@ -1131,7 +1085,6 @@ type ResourceConfig struct {
 // APISecurityConfig defines security configuration for the API server.
 
 type APISecurityConfig struct {
-
 	// CORS Configuration.
 
 	CORSEnabled bool `json:"corsEnabled"`

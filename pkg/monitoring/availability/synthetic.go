@@ -99,7 +99,6 @@ type SyntheticCheck struct {
 // CheckConfig holds configuration specific to check types.
 
 type CheckConfig struct {
-
 	// HTTP check configuration.
 
 	URL string `json:"url,omitempty"`
@@ -318,11 +317,8 @@ type AlertManager interface {
 // NewSyntheticMonitor creates a new synthetic monitor.
 
 func NewSyntheticMonitor(config *SyntheticMonitorConfig, promClient api.Client, alertManager AlertManager) (*SyntheticMonitor, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config cannot be nil")
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -330,11 +326,9 @@ func NewSyntheticMonitor(config *SyntheticMonitorConfig, promClient api.Client, 
 	// Configure HTTP client with sensible defaults.
 
 	httpClient := &http.Client{
-
 		Timeout: config.HTTPTimeout,
 
 		Transport: &http.Transport{
-
 			MaxIdleConns: config.HTTPMaxIdleConns,
 
 			MaxIdleConnsPerHost: config.HTTPMaxConnsPerHost,
@@ -344,7 +338,6 @@ func NewSyntheticMonitor(config *SyntheticMonitorConfig, promClient api.Client, 
 			TLSHandshakeTimeout: 10 * time.Second,
 
 			TLSClientConfig: &tls.Config{
-
 				InsecureSkipVerify: config.HTTPSkipTLS,
 			},
 		},
@@ -353,13 +346,10 @@ func NewSyntheticMonitor(config *SyntheticMonitorConfig, promClient api.Client, 
 	var promAPI v1.API
 
 	if promClient != nil {
-
 		promAPI = v1.NewAPI(promClient)
-
 	}
 
 	monitor := &SyntheticMonitor{
-
 		checks: make(map[string]*SyntheticCheck),
 
 		results: make([]SyntheticResult, 0, 10000),
@@ -388,13 +378,11 @@ func NewSyntheticMonitor(config *SyntheticMonitorConfig, promClient api.Client, 
 	monitor.initializeExecutors()
 
 	return monitor, nil
-
 }
 
 // initializeExecutors initializes check executors.
 
 func (sm *SyntheticMonitor) initializeExecutors() {
-
 	sm.executors[CheckTypeHTTP] = NewHTTPCheckExecutor(sm.httpClient)
 
 	sm.executors[CheckTypeIntentFlow] = NewIntentFlowExecutor(sm.httpClient, sm.config.IntentAPIEndpoint, sm.config.IntentAPIToken)
@@ -404,17 +392,13 @@ func (sm *SyntheticMonitor) initializeExecutors() {
 	sm.executors[CheckTypeExternal] = NewExternalServiceExecutor(sm.httpClient)
 
 	if sm.config.EnableChaosTests {
-
 		sm.executors[CheckTypeChaos] = NewChaosCheckExecutor()
-
 	}
-
 }
 
 // Start begins synthetic monitoring.
 
 func (sm *SyntheticMonitor) Start() error {
-
 	ctx, span := sm.tracer.Start(sm.ctx, "synthetic-monitor-start")
 
 	defer span.End()
@@ -432,73 +416,53 @@ func (sm *SyntheticMonitor) Start() error {
 	// Start chaos testing if enabled.
 
 	if sm.config.EnableChaosTests {
-
 		go sm.runChaosTests(ctx)
-
 	}
 
 	return nil
-
 }
 
 // Stop stops synthetic monitoring.
 
 func (sm *SyntheticMonitor) Stop() error {
-
 	sm.cancel()
 
 	close(sm.stopCh)
 
 	return nil
-
 }
 
 // AddCheck adds a new synthetic check.
 
 func (sm *SyntheticMonitor) AddCheck(check *SyntheticCheck) error {
-
 	if check == nil {
-
 		return fmt.Errorf("check cannot be nil")
-
 	}
 
 	if check.ID == "" {
-
 		return fmt.Errorf("check ID cannot be empty")
-
 	}
 
 	// Apply defaults.
 
 	if check.Interval == 0 {
-
 		check.Interval = 30 * time.Second
-
 	}
 
 	if check.Timeout == 0 {
-
 		check.Timeout = sm.config.DefaultTimeout
-
 	}
 
 	if check.RetryCount == 0 {
-
 		check.RetryCount = sm.config.DefaultRetryCount
-
 	}
 
 	if check.RetryDelay == 0 {
-
 		check.RetryDelay = sm.config.DefaultRetryDelay
-
 	}
 
 	if check.Region == "" {
-
 		check.Region = sm.config.RegionID
-
 	}
 
 	sm.checksMutex.Lock()
@@ -508,13 +472,11 @@ func (sm *SyntheticMonitor) AddCheck(check *SyntheticCheck) error {
 	sm.checks[check.ID] = check
 
 	return nil
-
 }
 
 // RemoveCheck removes a synthetic check.
 
 func (sm *SyntheticMonitor) RemoveCheck(checkID string) error {
-
 	sm.checksMutex.Lock()
 
 	defer sm.checksMutex.Unlock()
@@ -522,13 +484,11 @@ func (sm *SyntheticMonitor) RemoveCheck(checkID string) error {
 	delete(sm.checks, checkID)
 
 	return nil
-
 }
 
 // GetCheck retrieves a synthetic check by ID.
 
 func (sm *SyntheticMonitor) GetCheck(checkID string) (*SyntheticCheck, bool) {
-
 	sm.checksMutex.RLock()
 
 	defer sm.checksMutex.RUnlock()
@@ -536,13 +496,11 @@ func (sm *SyntheticMonitor) GetCheck(checkID string) (*SyntheticCheck, bool) {
 	check, exists := sm.checks[checkID]
 
 	return check, exists
-
 }
 
 // ListChecks returns all synthetic checks.
 
 func (sm *SyntheticMonitor) ListChecks() []*SyntheticCheck {
-
 	sm.checksMutex.RLock()
 
 	defer sm.checksMutex.RUnlock()
@@ -550,19 +508,15 @@ func (sm *SyntheticMonitor) ListChecks() []*SyntheticCheck {
 	checks := make([]*SyntheticCheck, 0, len(sm.checks))
 
 	for _, check := range sm.checks {
-
 		checks = append(checks, check)
-
 	}
 
 	return checks
-
 }
 
 // runCheckExecution runs the main check execution loop.
 
 func (sm *SyntheticMonitor) runCheckExecution(ctx context.Context) {
-
 	// Create a semaphore to limit concurrent check executions.
 
 	semaphore := make(chan struct{}, sm.config.MaxConcurrentChecks)
@@ -574,7 +528,6 @@ func (sm *SyntheticMonitor) runCheckExecution(ctx context.Context) {
 	sm.checksMutex.RLock()
 
 	for _, check := range sm.checks {
-
 		if check.Enabled {
 
 			ticker := time.NewTicker(check.Interval)
@@ -584,7 +537,6 @@ func (sm *SyntheticMonitor) runCheckExecution(ctx context.Context) {
 			go sm.scheduleCheck(ctx, check, ticker, semaphore)
 
 		}
-
 	}
 
 	sm.checksMutex.RUnlock()
@@ -594,21 +546,16 @@ func (sm *SyntheticMonitor) runCheckExecution(ctx context.Context) {
 	// Cleanup tickers.
 
 	for _, ticker := range checkScheduler {
-
 		ticker.Stop()
-
 	}
-
 }
 
 // scheduleCheck schedules execution of a single check.
 
 func (sm *SyntheticMonitor) scheduleCheck(ctx context.Context, check *SyntheticCheck, ticker *time.Ticker, semaphore chan struct{}) {
-
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -624,11 +571,9 @@ func (sm *SyntheticMonitor) scheduleCheck(ctx context.Context, check *SyntheticC
 			case semaphore <- struct{}{}:
 
 				go func() {
-
 					defer func() { <-semaphore }()
 
 					sm.executeCheck(ctx, check)
-
 				}()
 
 			default:
@@ -640,15 +585,12 @@ func (sm *SyntheticMonitor) scheduleCheck(ctx context.Context, check *SyntheticC
 			}
 
 		}
-
 	}
-
 }
 
 // executeCheck executes a single synthetic check.
 
 func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCheck) {
-
 	ctx, span := sm.tracer.Start(ctx, "execute-check",
 
 		trace.WithAttributes(
@@ -682,7 +624,6 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 	for attempt := 0; attempt <= check.RetryCount; attempt++ {
 
 		if attempt > 0 {
-
 			select {
 
 			case <-ctx.Done():
@@ -692,7 +633,6 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 			case <-time.After(check.RetryDelay):
 
 			}
-
 		}
 
 		// Create timeout context for this attempt.
@@ -704,9 +644,7 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 		cancel()
 
 		if err == nil && result.Status == CheckStatusPass {
-
 			break
-
 		}
 
 		span.AddEvent(fmt.Sprintf("Attempt %d failed", attempt+1),
@@ -720,9 +658,7 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 	}
 
 	if result == nil {
-
 		result = &SyntheticResult{
-
 			CheckID: check.ID,
 
 			CheckName: check.Name,
@@ -737,7 +673,6 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 
 			Region: check.Region,
 		}
-
 	}
 
 	// Store result.
@@ -747,9 +682,7 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 	// Check alerting thresholds.
 
 	if sm.config.AlertingEnabled && sm.alertManager != nil {
-
 		sm.evaluateAlerts(ctx, check, result)
-
 	}
 
 	span.AddEvent("Check executed",
@@ -761,55 +694,42 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 			attribute.Int64("response_time_ms", result.ResponseTime.Milliseconds()),
 		),
 	)
-
 }
 
 // storeResult stores a check result.
 
 func (sm *SyntheticMonitor) storeResult(result *SyntheticResult) {
-
 	sm.resultsMutex.Lock()
 
 	defer sm.resultsMutex.Unlock()
 
 	sm.results = append(sm.results, *result)
-
 }
 
 // evaluateAlerts evaluates alerting thresholds for a check.
 
 func (sm *SyntheticMonitor) evaluateAlerts(ctx context.Context, check *SyntheticCheck, result *SyntheticResult) {
-
 	// Get recent results for this check to evaluate trends.
 
 	recentResults := sm.getRecentResults(check.ID, time.Hour) // Look at last hour
 
 	shouldAlert, err := sm.alertManager.EvaluateThresholds(ctx, check, recentResults)
-
 	if err != nil {
-
 		// Log error but don't fail.
 
 		return
-
 	}
 
 	if shouldAlert {
-
 		if err := sm.alertManager.SendAlert(ctx, check, result); err != nil {
-
 			// Log error but don't fail.
-
 		}
-
 	}
-
 }
 
 // getRecentResults gets recent results for a specific check.
 
 func (sm *SyntheticMonitor) getRecentResults(checkID string, duration time.Duration) []SyntheticResult {
-
 	sm.resultsMutex.RLock()
 
 	defer sm.resultsMutex.RUnlock()
@@ -819,29 +739,22 @@ func (sm *SyntheticMonitor) getRecentResults(checkID string, duration time.Durat
 	results := make([]SyntheticResult, 0)
 
 	for _, result := range sm.results {
-
 		if result.CheckID == checkID && result.Timestamp.After(cutoff) {
-
 			results = append(results, result)
-
 		}
-
 	}
 
 	return results
-
 }
 
 // runResultCleanup cleans up old results.
 
 func (sm *SyntheticMonitor) runResultCleanup(ctx context.Context) {
-
 	ticker := time.NewTicker(time.Hour)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -853,15 +766,12 @@ func (sm *SyntheticMonitor) runResultCleanup(ctx context.Context) {
 			sm.cleanupResults()
 
 		}
-
 	}
-
 }
 
 // cleanupResults removes old results based on retention policy.
 
 func (sm *SyntheticMonitor) cleanupResults() {
-
 	sm.resultsMutex.Lock()
 
 	defer sm.resultsMutex.Unlock()
@@ -871,29 +781,22 @@ func (sm *SyntheticMonitor) cleanupResults() {
 	validResults := make([]SyntheticResult, 0, len(sm.results))
 
 	for _, result := range sm.results {
-
 		if result.Timestamp.After(cutoff) {
-
 			validResults = append(validResults, result)
-
 		}
-
 	}
 
 	sm.results = validResults
-
 }
 
 // runChaosTests runs periodic chaos testing.
 
 func (sm *SyntheticMonitor) runChaosTests(ctx context.Context) {
-
 	ticker := time.NewTicker(sm.config.ChaosTestInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -905,15 +808,12 @@ func (sm *SyntheticMonitor) runChaosTests(ctx context.Context) {
 			sm.executeChaosTest(ctx)
 
 		}
-
 	}
-
 }
 
 // executeChaosTest executes a random chaos test.
 
 func (sm *SyntheticMonitor) executeChaosTest(ctx context.Context) {
-
 	ctx, span := sm.tracer.Start(ctx, "execute-chaos-test")
 
 	defer span.End()
@@ -925,21 +825,15 @@ func (sm *SyntheticMonitor) executeChaosTest(ctx context.Context) {
 	var criticalChecks []*SyntheticCheck
 
 	for _, check := range sm.checks {
-
 		if check.BusinessImpact >= ImpactHigh {
-
 			criticalChecks = append(criticalChecks, check)
-
 		}
-
 	}
 
 	sm.checksMutex.RUnlock()
 
 	if len(criticalChecks) == 0 {
-
 		return
-
 	}
 
 	// Select a random critical check.
@@ -949,7 +843,6 @@ func (sm *SyntheticMonitor) executeChaosTest(ctx context.Context) {
 	// Create a chaos test version.
 
 	chaosCheck := &SyntheticCheck{
-
 		ID: fmt.Sprintf("chaos-%s-%d", selectedCheck.ID, time.Now().Unix()),
 
 		Name: fmt.Sprintf("Chaos Test - %s", selectedCheck.Name),
@@ -969,7 +862,6 @@ func (sm *SyntheticMonitor) executeChaosTest(ctx context.Context) {
 		Region: selectedCheck.Region,
 
 		Config: CheckConfig{
-
 			ChaosType: "network_latency", // Could be expanded to other types
 
 			ChaosDuration: 2 * time.Minute,
@@ -984,7 +876,6 @@ func (sm *SyntheticMonitor) executeChaosTest(ctx context.Context) {
 	if executor, exists := sm.executors[CheckTypeChaos]; exists {
 
 		result, err := executor.Execute(ctx, chaosCheck)
-
 		if err != nil {
 
 			span.RecordError(err)
@@ -1008,13 +899,11 @@ func (sm *SyntheticMonitor) executeChaosTest(ctx context.Context) {
 		)
 
 	}
-
 }
 
 // GetResults returns synthetic check results within a time window.
 
 func (sm *SyntheticMonitor) GetResults(since, until time.Time) []SyntheticResult {
-
 	sm.resultsMutex.RLock()
 
 	defer sm.resultsMutex.RUnlock()
@@ -1022,23 +911,17 @@ func (sm *SyntheticMonitor) GetResults(since, until time.Time) []SyntheticResult
 	results := make([]SyntheticResult, 0)
 
 	for _, result := range sm.results {
-
 		if result.Timestamp.After(since) && result.Timestamp.Before(until) {
-
 			results = append(results, result)
-
 		}
-
 	}
 
 	return results
-
 }
 
 // GetResultsByCheck returns results for a specific check.
 
 func (sm *SyntheticMonitor) GetResultsByCheck(checkID string, since, until time.Time) []SyntheticResult {
-
 	sm.resultsMutex.RLock()
 
 	defer sm.resultsMutex.RUnlock()
@@ -1046,7 +929,6 @@ func (sm *SyntheticMonitor) GetResultsByCheck(checkID string, since, until time.
 	results := make([]SyntheticResult, 0)
 
 	for _, result := range sm.results {
-
 		if result.CheckID == checkID &&
 
 			result.Timestamp.After(since) &&
@@ -1054,33 +936,25 @@ func (sm *SyntheticMonitor) GetResultsByCheck(checkID string, since, until time.
 			result.Timestamp.Before(until) {
 
 			results = append(results, result)
-
 		}
-
 	}
 
 	return results
-
 }
 
 // GetAvailabilityMetrics converts synthetic results to availability metrics.
 
 func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until time.Time) (*AvailabilityMetric, error) {
-
 	results := sm.GetResultsByCheck(checkID, since, until)
 
 	if len(results) == 0 {
-
 		return nil, fmt.Errorf("no results found for check %s", checkID)
-
 	}
 
 	check, exists := sm.GetCheck(checkID)
 
 	if !exists {
-
 		return nil, fmt.Errorf("check %s not found", checkID)
-
 	}
 
 	// Calculate metrics.
@@ -1098,13 +972,9 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 		totalResponseTime += result.ResponseTime
 
 		if result.Status == CheckStatusPass {
-
 			successCount++
-
 		} else {
-
 			errorCount++
-
 		}
 
 	}
@@ -1118,21 +988,14 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 	var status HealthStatus
 
 	if errorRate == 0 && avgResponseTime < time.Duration(check.AlertThresholds.ResponseTime*float64(time.Millisecond)) {
-
 		status = HealthHealthy
-
 	} else if errorRate < check.AlertThresholds.ErrorRate {
-
 		status = HealthDegraded
-
 	} else {
-
 		status = HealthUnhealthy
-
 	}
 
 	metric := &AvailabilityMetric{
-
 		Timestamp: latestResult.Timestamp,
 
 		Dimension: DimensionService, // Synthetic checks are service-level
@@ -1152,7 +1015,6 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 		Layer: LayerAPI, // Most synthetic checks are API-level
 
 		Metadata: map[string]interface{}{
-
 			"region": check.Region,
 
 			"total_checks": len(results),
@@ -1166,5 +1028,4 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 	}
 
 	return metric, nil
-
 }

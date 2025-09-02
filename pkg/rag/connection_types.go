@@ -59,12 +59,12 @@ type ConnectionManagerConfig struct {
 
 // ConnectionMetrics tracks connection metrics
 type ConnectionMetrics struct {
-	totalQueries    int64
-	failedQueries   int64
-	totalLatency    time.Duration
-	activeConns     int64
-	idleConns       int64
-	mu              sync.RWMutex
+	totalQueries  int64
+	failedQueries int64
+	totalLatency  time.Duration
+	activeConns   int64
+	idleConns     int64
+	mu            sync.RWMutex
 }
 
 // RAGConnection represents a connection to a RAG system
@@ -110,11 +110,11 @@ func NewConnectionPool(config *ConnectionConfig) (*ConnectionPool, error) {
 func (cp *ConnectionPool) GetConnection(ctx context.Context, name string) (*sql.DB, error) {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
-	
+
 	if conn, exists := cp.pool[name]; exists {
 		return conn, nil
 	}
-	
+
 	return nil, ErrConnectionNotFound
 }
 
@@ -122,7 +122,7 @@ func (cp *ConnectionPool) GetConnection(ctx context.Context, name string) (*sql.
 func (cp *ConnectionPool) AddConnection(name string, db *sql.DB) error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	
+
 	cp.pool[name] = db
 	return nil
 }
@@ -131,12 +131,12 @@ func (cp *ConnectionPool) AddConnection(name string, db *sql.DB) error {
 func (cp *ConnectionPool) RemoveConnection(name string) error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	
+
 	if conn, exists := cp.pool[name]; exists {
 		conn.Close()
 		delete(cp.pool, name)
 	}
-	
+
 	return nil
 }
 
@@ -144,7 +144,7 @@ func (cp *ConnectionPool) RemoveConnection(name string) error {
 func (cp *ConnectionPool) GetStats() ConnectionPoolStats {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
-	
+
 	return cp.stats
 }
 
@@ -152,11 +152,11 @@ func (cp *ConnectionPool) GetStats() ConnectionPoolStats {
 func (cp *ConnectionPool) Close() error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	
+
 	for _, conn := range cp.pool {
 		conn.Close()
 	}
-	
+
 	cp.pool = make(map[string]*sql.DB)
 	return nil
 }
@@ -174,7 +174,7 @@ func NewConnectionManager(config *ConnectionManagerConfig) *ConnectionManager {
 func (cm *ConnectionManager) AddPool(name string, pool *ConnectionPool) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	cm.pools[name] = pool
 }
 
@@ -182,11 +182,11 @@ func (cm *ConnectionManager) AddPool(name string, pool *ConnectionPool) {
 func (cm *ConnectionManager) GetPool(name string) (*ConnectionPool, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	if pool, exists := cm.pools[name]; exists {
 		return pool, nil
 	}
-	
+
 	return nil, ErrPoolNotFound
 }
 
@@ -194,12 +194,12 @@ func (cm *ConnectionManager) GetPool(name string) (*ConnectionPool, error) {
 func (cm *ConnectionManager) RemovePool(name string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	if pool, exists := cm.pools[name]; exists {
 		pool.Close()
 		delete(cm.pools, name)
 	}
-	
+
 	return nil
 }
 
@@ -207,7 +207,7 @@ func (cm *ConnectionManager) RemovePool(name string) error {
 func (cm *ConnectionManager) GetMetrics() *ConnectionMetrics {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	return cm.metrics
 }
 
@@ -215,14 +215,14 @@ func (cm *ConnectionManager) GetMetrics() *ConnectionMetrics {
 func (cm *ConnectionManager) Shutdown(ctx context.Context) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	for name, pool := range cm.pools {
 		if err := pool.Close(); err != nil {
 			return err
 		}
 		delete(cm.pools, name)
 	}
-	
+
 	return nil
 }
 
@@ -232,7 +232,7 @@ func NewRAGConnection(id, provider string, config *ConnectionConfig) (*RAGConnec
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &RAGConnection{
 		id:       id,
 		provider: provider,
@@ -249,7 +249,7 @@ func NewRAGConnection(id, provider string, config *ConnectionConfig) (*RAGConnec
 func (rc *RAGConnection) GetHealth() *ConnectionHealth {
 	rc.mu.RLock()
 	defer rc.mu.RUnlock()
-	
+
 	return rc.health
 }
 
@@ -257,11 +257,11 @@ func (rc *RAGConnection) GetHealth() *ConnectionHealth {
 func (rc *RAGConnection) UpdateHealth(healthy bool, details string) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
-	
+
 	rc.health.IsHealthy = healthy
 	rc.health.LastCheck = time.Now()
 	rc.health.Details = details
-	
+
 	if !healthy {
 		rc.health.ConsecutiveErr++
 	} else {
@@ -278,10 +278,10 @@ func (rc *RAGConnection) Close() error {
 func (cm *ConnectionMetrics) RecordQuery(duration time.Duration, success bool) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	cm.totalQueries++
 	cm.totalLatency += duration
-	
+
 	if !success {
 		cm.failedQueries++
 	}
@@ -291,17 +291,17 @@ func (cm *ConnectionMetrics) RecordQuery(duration time.Duration, success bool) {
 func (cm *ConnectionMetrics) GetStats() map[string]interface{} {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	var avgLatency time.Duration
 	if cm.totalQueries > 0 {
 		avgLatency = cm.totalLatency / time.Duration(cm.totalQueries)
 	}
-	
+
 	var errorRate float64
 	if cm.totalQueries > 0 {
 		errorRate = float64(cm.failedQueries) / float64(cm.totalQueries)
 	}
-	
+
 	return map[string]interface{}{
 		"total_queries":      cm.totalQueries,
 		"failed_queries":     cm.failedQueries,

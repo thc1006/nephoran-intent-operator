@@ -83,7 +83,7 @@ func TestRunWithSampleIntent(t *testing.T) {
 				t.Fatalf("Failed to marshal intent: %v", err)
 			}
 
-			err = os.WriteFile(intentFile, intentData, 0644)
+			err = os.WriteFile(intentFile, intentData, 0o644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
@@ -222,7 +222,7 @@ func TestRunWithInvalidIntents(t *testing.T) {
 				t.Fatalf("Failed to marshal intent: %v", err)
 			}
 
-			err = os.WriteFile(intentFile, intentData, 0644)
+			err = os.WriteFile(intentFile, intentData, 0o644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
@@ -268,7 +268,7 @@ func TestIdempotency(t *testing.T) {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
 
-	err = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -346,7 +346,7 @@ func TestMinimalPackageGeneration(t *testing.T) {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
 
-	err = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -404,7 +404,7 @@ func TestDryRun(t *testing.T) {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
 
-	err = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -712,7 +712,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) (string, string) {
 				tempDir := t.TempDir()
 				dirPath := filepath.Join(tempDir, "intent-dir")
-				err := os.Mkdir(dirPath, 0755)
+				err := os.Mkdir(dirPath, 0o755)
 				if err != nil {
 					t.Fatalf("Failed to create directory: %v", err)
 				}
@@ -736,13 +736,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
 
 				// Remove read permissions
-				err = os.Chmod(intentFile, 0000)
+				err = os.Chmod(intentFile, 0o000)
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
@@ -767,19 +767,19 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
 
 				// Create restricted directory
-				err = os.Mkdir(restrictedDir, 0755)
+				err = os.Mkdir(restrictedDir, 0o755)
 				if err != nil {
 					t.Fatalf("Failed to create restricted directory: %v", err)
 				}
 
 				// Remove write permissions
-				err = os.Chmod(restrictedDir, 0444)
+				err = os.Chmod(restrictedDir, 0o444)
 				if err != nil {
 					t.Skipf("Cannot modify directory permissions on this system: %v", err)
 				}
@@ -803,13 +803,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
 
 				// Create file where directory should be
-				err = os.WriteFile(outDir, []byte("not a directory"), 0644)
+				err = os.WriteFile(outDir, []byte("not a directory"), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create file: %v", err)
 				}
@@ -839,7 +839,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
@@ -857,13 +857,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
-				if err := os.Chmod(filepath.Dir(intentFile), 0755); err != nil {
+				if err := os.Chmod(filepath.Dir(intentFile), 0o755); err != nil {
 					t.Logf("Failed to restore intent dir permissions: %v", err)
 				}
-				if err := os.Chmod(intentFile, 0644); err != nil {
+				if err := os.Chmod(intentFile, 0o644); err != nil {
 					t.Logf("Failed to restore intent file permissions: %v", err)
 				}
-				if err := os.Chmod(filepath.Dir(outDir), 0755); err != nil {
+				if err := os.Chmod(filepath.Dir(outDir), 0o755); err != nil {
 					t.Logf("Failed to restore out dir permissions: %v", err)
 				}
 			}()
@@ -945,7 +945,7 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 			outDir := filepath.Join(tempDir, "output")
 
 			// Write malformed intent file
-			err := os.WriteFile(intentFile, []byte(tt.fileContent), 0644)
+			err := os.WriteFile(intentFile, []byte(tt.fileContent), 0o644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
@@ -997,7 +997,7 @@ func TestRunWithResourceExhaustion(t *testing.T) {
 
 			// Write intent file
 			intentData, _ := json.MarshalIndent(intent, "", "  ")
-			err := os.WriteFile(intentFile, intentData, 0644)
+			err := os.WriteFile(intentFile, intentData, 0o644)
 			if err != nil {
 				done <- fmt.Errorf("failed to write intent file: %v", err)
 				return
@@ -1070,7 +1070,7 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 	outDir := filepath.Join(tempDir, "output")
 
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
-	err = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -1123,7 +1123,7 @@ func BenchmarkRunValidIntent(b *testing.B) {
 
 	// Write intent file
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
-	if err := os.WriteFile(intentFile, intentData, 0644); err != nil {
+	if err := os.WriteFile(intentFile, intentData, 0o644); err != nil {
 		b.Fatalf("Failed to write intent file: %v", err)
 	}
 

@@ -34,13 +34,11 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 			BlockOnViolation:             false,       // Disabled for testing
 			MaxBodySize:                  1024 * 1024, // 1MB
 		},
-		RateLimit: &RateLimitConfig{
+		RateLimit: &RateLimiterConfig{
 			QPS:   10,
 			Burst: 20,
 		},
-		RequestSize: &RequestSizeConfig{
-			MaxBodySize: 1024 * 1024, // 1MB
-		},
+		RequestSize: nil, // RequestSizeLimiter will be created by NewSecuritySuite
 		CORS: &CORSConfig{
 			AllowedOrigins: []string{"https://example.com"},
 			AllowedMethods: []string{"GET", "POST"},
@@ -376,9 +374,9 @@ func BenchmarkSecuritySuite(b *testing.B) {
 	config := &SecuritySuiteConfig{
 		SecurityHeaders: DefaultSecurityHeadersConfig(),
 		InputValidation: DefaultInputValidationConfig(),
-		RateLimit:       DefaultRateLimitConfig(),
-		RequestSize:     DefaultRequestSizeConfig(),
-		CORS:            DefaultCORSConfig(),
+		RateLimit:       func() *RateLimiterConfig { c := DefaultRateLimiterConfig(); return &c }(),
+		RequestSize:     nil, // RequestSizeLimiter will be created by NewSecuritySuite
+		CORS:            func() *CORSConfig { c := DefaultCORSConfig(); return &c }(),
 		EnableMetrics:   false,
 		EnableAudit:     false,
 	}

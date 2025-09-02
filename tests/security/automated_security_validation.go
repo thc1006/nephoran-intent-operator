@@ -900,8 +900,8 @@ func (v *AutomatedSecurityValidator) generateSecurityValidationReport() {
 	// Save report to file
 	reportData, _ := json.MarshalIndent(v.results, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/security-validation-report-%s.json", v.results.ValidationID)
-	os.MkdirAll("test-results/security", 0755)
-	os.WriteFile(reportFile, reportData, 0644)
+	os.MkdirAll("test-results/security", 0o755)
+	os.WriteFile(reportFile, reportData, 0o644)
 
 	// Generate HTML report
 	v.generateHTMLValidationReport()
@@ -1043,5 +1043,5 @@ func (v *AutomatedSecurityValidator) generateHTMLValidationReport() {
 	)
 
 	htmlFile := fmt.Sprintf("test-results/security/security-validation-report-%s.html", v.results.ValidationID)
-	os.WriteFile(htmlFile, []byte(htmlContent), 0644)
+	os.WriteFile(htmlFile, []byte(htmlContent), 0o644)
 }

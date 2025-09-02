@@ -234,7 +234,7 @@ func UpdateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 // Helper functions for GitOps handler - these provide convenience wrappers
 // around the existing NetworkIntent retry count functions
 
-// getRetryCount retrieves the retry count for any object with annotations  
+// getRetryCount retrieves the retry count for any object with annotations
 func getRetryCount(obj metav1.Object, operation string) int {
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
@@ -311,7 +311,7 @@ func calculateExponentialBackoffForOperation(retryCount int, operation string) t
 
 	// Exponential backoff: delay = baseDelay * (multiplier ^ retryCount)
 	delay := baseDelay * time.Duration(math.Pow(multiplier, float64(retryCount)))
-	
+
 	// Cap at max delay
 	if delay > maxDelay {
 		delay = maxDelay
@@ -320,7 +320,7 @@ func calculateExponentialBackoffForOperation(retryCount int, operation string) t
 	// Add jitter (±10%)
 	jitter := float64(delay) * 0.1
 	randomJitter := (rand.Float64() - 0.5) * 2 * jitter
-	
+
 	finalDelay := time.Duration(float64(delay) + randomJitter)
 	if finalDelay < 0 {
 		finalDelay = delay / 2
@@ -338,6 +338,3 @@ func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 	}
 	return false
 }
-
-
-

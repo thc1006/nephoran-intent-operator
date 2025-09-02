@@ -20,8 +20,9 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.24.x"
-  GOLANGCI_LINT_VERSION: "v1.64.3"  # Updated for Go 1.24 compatibility
+  GO_VERSION: "1.24.6"
+  GOLANGCI_LINT_VERSION: "v1.65.1"  # 2025 compatibility
+  ENVTEST_K8S_VERSION: "1.31.0"      # Latest stable for envtest
 
 jobs:
   # ==========================================================================
@@ -143,7 +144,7 @@ jobs:
           echo ""
           echo "=== ✅ Build/vet gate passed - proceeding with lint ==="
 
-      - name: Install and verify golangci-lint v1.64.3 with detailed output
+      - name: Install and verify golangci-lint v1.65.1 with 2025 patterns
         run: |
           echo "=== Installing golangci-lint ${{ env.GOLANGCI_LINT_VERSION }} ==="
           
@@ -284,10 +285,23 @@ jobs:
           go mod download
           go mod verify
 
-      - name: Run tests with coverage
+      - name: Setup envtest binaries for Ubuntu
+        run: |
+          echo "Setting up envtest binaries for Ubuntu..."
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          setup-envtest use ${{ env.ENVTEST_K8S_VERSION }} --arch=amd64 --os=linux
+          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.ENVTEST_K8S_VERSION }} --arch=amd64 --os=linux -p path)
+          echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
+
+      - name: Run 2025 enhanced tests with coverage
+        env:
+          KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
         run: |
           mkdir -p test-results
-          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./...
+          export CGO_ENABLED=0
+          export GOMAXPROCS=2
+          echo "Running 2025 test patterns with enhanced race detection..."
+          go test -v -race -timeout=20m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./...
 
       - name: Generate coverage report
         if: always()

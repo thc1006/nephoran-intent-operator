@@ -36,8 +36,8 @@ func TestCriticalFixes_NilPointerDereference(t *testing.T) {
 		tempDir := t.TempDir()
 		handoffDir := filepath.Join(tempDir, "handoff")
 		outDir := filepath.Join(tempDir, "out")
-		require.NoError(t, os.MkdirAll(handoffDir, 0755))
-		require.NoError(t, os.MkdirAll(outDir, 0755))
+		require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+		require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 		mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
 			ExitCode: 0,
@@ -111,7 +111,7 @@ func TestCriticalFixes_CrossPlatformScripting(t *testing.T) {
 		// Verify executable permissions
 		info, err := os.Stat(mockPath)
 		require.NoError(t, err)
-		assert.True(t, info.Mode()&0111 != 0, "Unix shell script should be executable")
+		assert.True(t, info.Mode()&0o111 != 0, "Unix shell script should be executable")
 	})
 
 	t.Run("cross_platform_execution", func(t *testing.T) {
@@ -135,8 +135,8 @@ func TestCriticalFixes_CrossPlatformScripting(t *testing.T) {
 
 		// Create dummy intent file for testing
 		intentFile := filepath.Join(tempDir, "test-intent.json")
-		require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-		require.NoError(t, os.MkdirAll(config.OutDir, 0755))
+		require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+		require.NoError(t, os.MkdirAll(config.OutDir, 0o755))
 
 		result, err := executor.Execute(ctx, intentFile)
 		require.NoError(t, err)
@@ -153,8 +153,8 @@ func TestCriticalFixes_DataRaceConditions(t *testing.T) {
 		tempDir := t.TempDir()
 		handoffDir := filepath.Join(tempDir, "handoff")
 		outDir := filepath.Join(tempDir, "out")
-		require.NoError(t, os.MkdirAll(handoffDir, 0755))
-		require.NoError(t, os.MkdirAll(outDir, 0755))
+		require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+		require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 		mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
 			ExitCode: 0,
@@ -201,7 +201,7 @@ func TestCriticalFixes_DataRaceConditions(t *testing.T) {
 				fileName := fmt.Sprintf("race-test-%d.json", i)
 				filePath := filepath.Join(handoffDir, fileName)
 				content := fmt.Sprintf(`{"id": %d}`, i)
-				os.WriteFile(filePath, []byte(content), 0644)
+				os.WriteFile(filePath, []byte(content), 0o644)
 				time.Sleep(5 * time.Millisecond)
 			}
 		}()
@@ -291,8 +291,8 @@ func TestAllFixesIntegration(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create cross-platform mock (Fix 2)
 	crossPlatformMock, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
@@ -353,7 +353,7 @@ func TestAllFixesIntegration(t *testing.T) {
 				"spec": {"action": "scale", "replicas": %d}
 			}`, fileID, fileID%5+1)
 
-			err := os.WriteFile(filePath, []byte(content), 0644)
+			err := os.WriteFile(filePath, []byte(content), 0o644)
 			require.NoError(t, err)
 
 			// Small delay to trigger concurrent processing
@@ -399,8 +399,8 @@ func TestPerformanceRegression(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
 		ExitCode: 0,
@@ -425,7 +425,7 @@ func TestPerformanceRegression(t *testing.T) {
 		fileName := fmt.Sprintf("perf-test-%d.json", i)
 		filePath := filepath.Join(handoffDir, fileName)
 		content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "id": %d}`, i)
-		require.NoError(t, os.WriteFile(filePath, []byte(content), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte(content), 0o644))
 	}
 
 	watcher, err := NewWatcher(handoffDir, config)
@@ -461,8 +461,8 @@ func TestStressTest(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
 		ExitCode: 0,
@@ -509,7 +509,7 @@ func TestStressTest(t *testing.T) {
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"id": %d}`, i)
 
-			os.WriteFile(filePath, []byte(content), 0644)
+			os.WriteFile(filePath, []byte(content), 0o644)
 			if i%25 == 0 {
 				time.Sleep(5 * time.Millisecond)
 			}

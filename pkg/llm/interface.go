@@ -43,9 +43,7 @@ import (
 // HealthCheck performs a health check on the LLM client.
 
 func (c *Client) HealthCheck(ctx context.Context) bool {
-
 	// Implementation would check LLM service availability.
 
 	return true
-
 }

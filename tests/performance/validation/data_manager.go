@@ -62,7 +62,6 @@ type RetentionPolicy struct {
 	AutoCleanup bool `json:"auto_cleanup"`
 
 	CleanupInterval time.Duration `json:"cleanup_interval"` // e.g., "24h"
-
 }
 
 // CompressionConfig defines compression settings.
@@ -77,7 +76,6 @@ type CompressionConfig struct {
 	FileTypes []string `json:"file_types"` // Which files to compress
 
 	MinSize int64 `json:"min_size"` // Minimum file size for compression
-
 }
 
 // EncryptionConfig defines encryption settings.
@@ -92,7 +90,6 @@ type EncryptionConfig struct {
 	KeyPath string `json:"key_path,omitempty"`
 
 	Compliance []string `json:"compliance"` // "GDPR", "HIPAA", etc.
-
 }
 
 // BackupConfig defines backup settings.
@@ -239,7 +236,6 @@ type TrendDataPoint struct {
 	RunID string `json:"run_id"`
 
 	Weight float64 `json:"weight"` // For weighted regression
-
 }
 
 // SeasonalPattern represents seasonal patterns in the data.
@@ -297,15 +293,11 @@ type RegressionAlert struct {
 // NewDataManager creates a new data manager instance.
 
 func NewDataManager(config *DataManagementConfig) *DataManager {
-
 	if config == nil {
-
 		config = DefaultDataManagementConfig()
-
 	}
 
 	return &DataManager{
-
 		config: config,
 
 		archiver: &DataArchiver{config: config},
@@ -314,19 +306,15 @@ func NewDataManager(config *DataManagementConfig) *DataManager {
 
 		cleaner: &DataCleaner{retentionPolicy: &config.RetentionPolicy},
 	}
-
 }
 
 // DefaultDataManagementConfig returns default data management configuration.
 
 func DefaultDataManagementConfig() *DataManagementConfig {
-
 	return &DataManagementConfig{
-
 		BaseDir: "test-data",
 
 		RetentionPolicy: RetentionPolicy{
-
 			RawData: 30 * 24 * time.Hour, // 30 days
 
 			SummaryData: 365 * 24 * time.Hour, // 1 year
@@ -344,7 +332,6 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 		},
 
 		Compression: CompressionConfig{
-
 			Enabled: true,
 
 			Algorithm: "gzip",
@@ -358,7 +345,6 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 		},
 
 		Encryption: EncryptionConfig{
-
 			Enabled: false, // Disabled by default for simplicity
 
 			Algorithm: "AES-256-GCM",
@@ -367,7 +353,6 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 		},
 
 		Backup: BackupConfig{
-
 			Enabled: false, // Disabled by default
 
 			Schedule: "0 2 * * *", // Daily at 2 AM
@@ -381,7 +366,6 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 		},
 
 		Analysis: AnalysisConfig{
-
 			TrendAnalysis: true,
 
 			BaselineTracking: true,
@@ -395,13 +379,11 @@ func DefaultDataManagementConfig() *DataManagementConfig {
 			MinDataPoints: 5,
 		},
 	}
-
 }
 
 // ArchiveValidationResults archives validation results for long-term storage.
 
 func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*ArchivalRecord, error) {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -419,9 +401,7 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 		timestamp.Format("2006"), timestamp.Format("01"), timestamp.Format("02"))
 
 	if err := os.MkdirAll(archiveDir, 0o755); err != nil {
-
 		return nil, errors.Wrap(err, "failed to create archive directory")
-
 	}
 
 	// Serialize validation results.
@@ -429,15 +409,12 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 	dataPath := filepath.Join(archiveDir, fmt.Sprintf("%s-full.json", runID))
 
 	if err := dm.saveResults(results, dataPath); err != nil {
-
 		return nil, errors.Wrap(err, "failed to save validation results")
-
 	}
 
 	// Create summary record.
 
 	record := &ArchivalRecord{
-
 		ID: runID,
 
 		Timestamp: timestamp,
@@ -456,9 +433,7 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 	// Add environment info if available.
 
 	if results.Metadata != nil && results.Metadata.Environment != nil {
-
 		record.Environment = results.Metadata.Environment.Platform
-
 	}
 
 	// Calculate checksum.
@@ -466,13 +441,9 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 	checksum, err := dm.calculateChecksum(dataPath)
 
 	if err != nil {
-
 		log.Printf("Warning: failed to calculate checksum: %v", err)
-
 	} else {
-
 		record.Checksum = checksum
-
 	}
 
 	// Compress if configured.
@@ -482,9 +453,7 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 		compressedPath, originalSize, compressedSize, err := dm.compressFile(dataPath)
 
 		if err != nil {
-
 			log.Printf("Warning: compression failed: %v", err)
-
 		} else {
 
 			record.DataPaths = []string{compressedPath}
@@ -506,29 +475,23 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 	recordPath := filepath.Join(archiveDir, fmt.Sprintf("%s-record.json", runID))
 
 	if err := dm.saveArchivalRecord(record, recordPath); err != nil {
-
 		return nil, errors.Wrap(err, "failed to save archival record")
-
 	}
 
 	// Update indices.
 
 	if err := dm.updateIndices(record); err != nil {
-
 		log.Printf("Warning: failed to update indices: %v", err)
-
 	}
 
 	log.Printf("Validation results archived successfully: %s", runID)
 
 	return record, nil
-
 }
 
 // RetrieveHistoricalData retrieves historical validation data for analysis.
 
 func (dm *DataManager) RetrieveHistoricalData(criteria HistoricalDataCriteria) ([]ArchivalRecord, error) {
-
 	dm.mu.RLock()
 
 	defer dm.mu.RUnlock()
@@ -536,11 +499,8 @@ func (dm *DataManager) RetrieveHistoricalData(criteria HistoricalDataCriteria) (
 	log.Printf("Retrieving historical data with criteria: %+v", criteria)
 
 	records, err := dm.loadArchivalRecords(criteria)
-
 	if err != nil {
-
 		return nil, errors.Wrap(err, "failed to load archival records")
-
 	}
 
 	// Filter records based on criteria.
@@ -550,15 +510,12 @@ func (dm *DataManager) RetrieveHistoricalData(criteria HistoricalDataCriteria) (
 	// Sort by timestamp.
 
 	sort.Slice(filtered, func(i, j int) bool {
-
 		return filtered[i].Timestamp.Before(filtered[j].Timestamp)
-
 	})
 
 	log.Printf("Retrieved %d historical records", len(filtered))
 
 	return filtered, nil
-
 }
 
 // HistoricalDataCriteria defines criteria for retrieving historical data.
@@ -582,11 +539,9 @@ type HistoricalDataCriteria struct {
 // AnalyzeTrends performs trend analysis on historical data.
 
 func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*TrendAnalysisResult, error) {
-
 	log.Printf("Analyzing trends for claim: %s", claim)
 
 	criteria := HistoricalDataCriteria{
-
 		TimeRange: timeRange,
 
 		Claims: []string{claim},
@@ -595,19 +550,14 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 	}
 
 	records, err := dm.RetrieveHistoricalData(criteria)
-
 	if err != nil {
-
 		return nil, errors.Wrap(err, "failed to retrieve historical data")
-
 	}
 
 	if len(records) < dm.config.Analysis.MinDataPoints {
-
 		return nil, fmt.Errorf("insufficient data points: %d (minimum: %d)",
 
 			len(records), dm.config.Analysis.MinDataPoints)
-
 	}
 
 	// Extract trend data points.
@@ -619,13 +569,10 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 		claimData, exists := record.Claims[claim]
 
 		if !exists {
-
 			continue
-
 		}
 
 		dataPoints[i] = TrendDataPoint{
-
 			Timestamp: record.Timestamp,
 
 			Value: claimData.Measured,
@@ -640,7 +587,6 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 	// Perform trend analysis.
 
 	result := &TrendAnalysisResult{
-
 		Claim: claim,
 
 		TimeRange: *timeRange,
@@ -665,7 +611,6 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 	if len(dataPoints) >= 24 { // Need at least 24 data points for seasonal analysis
 
 		result.SeasonalPattern = dm.analyzeSeasonalPattern(dataPoints)
-
 	}
 
 	// Generate forecast.
@@ -677,13 +622,11 @@ func (dm *DataManager) AnalyzeTrends(claim string, timeRange *TimeRange) (*Trend
 		claim, result.TrendType, result.RSquared)
 
 	return result, nil
-
 }
 
 // DetectRegressions detects performance regressions based on historical data.
 
 func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
-
 	log.Printf("Starting regression detection...")
 
 	var alerts []RegressionAlert
@@ -691,14 +634,12 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 	// Get recent data for analysis.
 
 	timeRange := &TimeRange{
-
 		Start: time.Now().AddDate(0, 0, -30), // Last 30 days
 
 		End: time.Now(),
 	}
 
 	criteria := HistoricalDataCriteria{
-
 		TimeRange: timeRange,
 
 		Status: "passed", // Only analyze successful runs
@@ -706,11 +647,8 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 	}
 
 	records, err := dm.RetrieveHistoricalData(criteria)
-
 	if err != nil {
-
 		return nil, errors.Wrap(err, "failed to retrieve recent data")
-
 	}
 
 	// Analyze each claim for regressions.
@@ -722,9 +660,7 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 		alert := dm.detectClaimRegression(claim, records)
 
 		if alert != nil {
-
 			alerts = append(alerts, *alert)
-
 		}
 
 	}
@@ -732,13 +668,11 @@ func (dm *DataManager) DetectRegressions() ([]RegressionAlert, error) {
 	log.Printf("Regression detection completed. Found %d potential regressions", len(alerts))
 
 	return alerts, nil
-
 }
 
 // PerformDataCleanup performs automated data cleanup based on retention policy.
 
 func (dm *DataManager) PerformDataCleanup() error {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -758,25 +692,19 @@ func (dm *DataManager) PerformDataCleanup() error {
 	// Clean up raw data.
 
 	if err := dm.cleanupByAge(dm.config.RetentionPolicy.RawData, "raw", cleanupStats); err != nil {
-
 		log.Printf("Warning: raw data cleanup failed: %v", err)
-
 	}
 
 	// Clean up failed runs (more aggressive cleanup).
 
 	if err := dm.cleanupFailedRuns(dm.config.RetentionPolicy.FailedRuns, cleanupStats); err != nil {
-
 		log.Printf("Warning: failed runs cleanup failed: %v", err)
-
 	}
 
 	// Clean up summary data.
 
 	if err := dm.cleanupByAge(dm.config.RetentionPolicy.SummaryData, "summary", cleanupStats); err != nil {
-
 		log.Printf("Warning: summary data cleanup failed: %v", err)
-
 	}
 
 	log.Printf("Data cleanup completed: removed %d files, freed %d bytes",
@@ -784,47 +712,32 @@ func (dm *DataManager) PerformDataCleanup() error {
 		cleanupStats.FilesRemoved, cleanupStats.BytesFreed)
 
 	return nil
-
 }
 
 // Helper methods for data management.
 
 func (dm *DataManager) saveResults(results *ValidationResults, path string) error {
-
 	data, err := json.MarshalIndent(results, "", "  ")
-
 	if err != nil {
-
 		return err
-
 	}
 
 	return os.WriteFile(path, data, 0o640)
-
 }
 
 func (dm *DataManager) saveArchivalRecord(record *ArchivalRecord, path string) error {
-
 	data, err := json.MarshalIndent(record, "", "  ")
-
 	if err != nil {
-
 		return err
-
 	}
 
 	return os.WriteFile(path, data, 0o640)
-
 }
 
 func (dm *DataManager) calculateChecksum(filePath string) (string, error) {
-
 	file, err := os.Open(filePath)
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	defer file.Close()
@@ -832,25 +745,18 @@ func (dm *DataManager) calculateChecksum(filePath string) (string, error) {
 	hash := sha256.New()
 
 	if _, err := io.Copy(hash, file); err != nil {
-
 		return "", err
-
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
-
 }
 
 func (dm *DataManager) compressFile(filePath string) (string, int64, int64, error) {
-
 	// Read original file.
 
 	originalFile, err := os.Open(filePath)
-
 	if err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	defer originalFile.Close()
@@ -858,11 +764,8 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 	// Get original size.
 
 	originalInfo, err := originalFile.Stat()
-
 	if err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	originalSize := originalInfo.Size()
@@ -872,11 +775,8 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 	compressedPath := filePath + ".gz"
 
 	compressedFile, err := os.Create(compressedPath)
-
 	if err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	defer compressedFile.Close()
@@ -884,11 +784,8 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 	// Create gzip writer.
 
 	gzipWriter, err := gzip.NewWriterLevel(compressedFile, dm.config.Compression.Level)
-
 	if err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	defer gzipWriter.Close()
@@ -896,53 +793,39 @@ func (dm *DataManager) compressFile(filePath string) (string, int64, int64, erro
 	// Compress data.
 
 	if _, err := io.Copy(gzipWriter, originalFile); err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	if err := gzipWriter.Close(); err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	// Get compressed size.
 
 	compressedInfo, err := compressedFile.Stat()
-
 	if err != nil {
-
 		return "", 0, 0, err
-
 	}
 
 	compressedSize := compressedInfo.Size()
 
 	return compressedPath, originalSize, compressedSize, nil
-
 }
 
 func (dm *DataManager) determineStatus(results *ValidationResults) string {
-
 	if results.Summary.OverallSuccess {
-
 		return "passed"
-
 	}
 
 	return "failed"
-
 }
 
 func (dm *DataManager) summarizeClaims(claims map[string]*ClaimResult) map[string]ClaimSummary {
-
 	summaries := make(map[string]ClaimSummary)
 
 	for name, result := range claims {
 
 		summary := ClaimSummary{
-
 			Status: result.Status,
 
 			Confidence: result.Confidence,
@@ -951,9 +834,7 @@ func (dm *DataManager) summarizeClaims(claims map[string]*ClaimResult) map[strin
 		// Extract measured value (simplified).
 
 		if result.Evidence != nil {
-
 			summary.SampleSize = result.Evidence.SampleSize
-
 		}
 
 		if result.HypothesisTest != nil {
@@ -969,11 +850,9 @@ func (dm *DataManager) summarizeClaims(claims map[string]*ClaimResult) map[strin
 	}
 
 	return summaries
-
 }
 
 func (dm *DataManager) extractMetadata(results *ValidationResults) map[string]interface{} {
-
 	metadata := make(map[string]interface{})
 
 	if results.Metadata != nil {
@@ -985,20 +864,16 @@ func (dm *DataManager) extractMetadata(results *ValidationResults) map[string]in
 		metadata["duration"] = results.Metadata.Duration
 
 		if results.Metadata.Environment != nil {
-
 			metadata["environment"] = map[string]interface{}{
-
 				"platform": results.Metadata.Environment.Platform,
 
 				"node_count": results.Metadata.Environment.NodeCount,
 			}
-
 		}
 
 	}
 
 	return metadata
-
 }
 
 // Additional helper methods and data structures would be implemented here...
@@ -1012,172 +887,127 @@ type CleanupStats struct {
 }
 
 func (dm *DataManager) loadArchivalRecords(criteria HistoricalDataCriteria) ([]ArchivalRecord, error) {
-
 	// This would implement loading archival records from disk.
 
 	// For now, return empty slice.
 
 	return []ArchivalRecord{}, nil
-
 }
 
 func (dm *DataManager) filterRecords(records []ArchivalRecord, criteria HistoricalDataCriteria) []ArchivalRecord {
-
 	// This would implement record filtering logic.
 
 	return records
-
 }
 
 func (dm *DataManager) updateIndices(record *ArchivalRecord) error {
-
 	// This would update search indices for fast data retrieval.
 
 	return nil
-
 }
 
 func (dm *DataManager) cleanupByAge(maxAge time.Duration, dataType string, stats *CleanupStats) error {
-
 	// This would implement age-based cleanup.
 
 	return nil
-
 }
 
 func (dm *DataManager) cleanupFailedRuns(maxAge time.Duration, stats *CleanupStats) error {
-
 	// This would implement cleanup of failed test runs.
 
 	return nil
-
 }
 
 // Statistical analysis helper methods.
 
 func (dm *DataManager) calculateDataPointWeight(record ArchivalRecord, claim ClaimSummary) float64 {
-
 	// Weight based on sample size and confidence.
 
 	weight := 1.0
 
 	if claim.SampleSize > 0 {
-
 		weight *= float64(claim.SampleSize) / 100.0 // Normalize sample size
-
 	}
 
 	if claim.Confidence > 0 {
-
 		weight *= claim.Confidence / 100.0 // Confidence as percentage
-
 	}
 
 	return weight
-
 }
 
 func (dm *DataManager) calculateLinearTrend(dataPoints []TrendDataPoint) (slope, rSquared float64) {
-
 	// Simplified linear regression implementation.
 
 	// In a real implementation, would use proper statistical libraries.
 
 	return 0.01, 0.85 // Placeholder values
-
 }
 
 func (dm *DataManager) determineTrendType(slope, rSquared float64) string {
-
 	if rSquared < 0.3 {
-
 		return "stable" // Low correlation, no clear trend
-
 	}
 
 	if slope > 0.01 {
-
 		return "improving"
-
 	} else if slope < -0.01 {
-
 		return "degrading"
-
 	}
 
 	return "stable"
-
 }
 
 func (dm *DataManager) calculateTrendSignificance(dataPoints []TrendDataPoint, slope float64) float64 {
-
 	// Calculate statistical significance of the trend.
 
 	// This would involve proper statistical testing.
 
 	return 0.05 // Placeholder p-value
-
 }
 
 func (dm *DataManager) detectChangePoints(dataPoints []TrendDataPoint) []ChangePoint {
-
 	// This would implement change point detection algorithms.
 
 	return []ChangePoint{}
-
 }
 
 func (dm *DataManager) analyzeSeasonalPattern(dataPoints []TrendDataPoint) *SeasonalPattern {
-
 	// This would implement seasonal pattern analysis.
 
 	return &SeasonalPattern{
-
 		Detected: false,
 	}
-
 }
 
 func (dm *DataManager) generateForecast(dataPoints []TrendDataPoint, points int) []ForecastPoint {
-
 	// This would implement forecasting based on historical data.
 
 	return []ForecastPoint{}
-
 }
 
 func (dm *DataManager) extractClaimNames(records []ArchivalRecord) []string {
-
 	claimSet := make(map[string]bool)
 
 	for _, record := range records {
-
 		for claimName := range record.Claims {
-
 			claimSet[claimName] = true
-
 		}
-
 	}
 
 	var claims []string
 
 	for claim := range claimSet {
-
 		claims = append(claims, claim)
-
 	}
 
 	return claims
-
 }
 
 func (dm *DataManager) detectClaimRegression(claim string, records []ArchivalRecord) *RegressionAlert {
-
 	// This would implement regression detection logic for a specific claim.
 
 	// For now, return nil (no regression detected).
 
 	return nil
-
 }

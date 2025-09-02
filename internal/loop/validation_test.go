@@ -59,8 +59,8 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_SafeDefers() {
 
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:    s.porchPath,
@@ -151,8 +151,8 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_WindowsBatFiles() 
 
 	// Create dummy intent file for testing
 	intentFile := filepath.Join(tempDir, "test-intent.json")
-	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	s.Require().NoError(os.MkdirAll(config.OutDir, 0755))
+	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	s.Require().NoError(os.MkdirAll(config.OutDir, 0o755))
 
 	result, err := executor.Execute(ctx, intentFile)
 	s.Require().NoError(err)
@@ -184,7 +184,7 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_UnixShellFiles() {
 	// Verify executable permissions
 	info, err := os.Stat(mockPath)
 	s.Require().NoError(err)
-	s.Assert().True(info.Mode()&0111 != 0, "Unix shell script should be executable")
+	s.Assert().True(info.Mode()&0o111 != 0, "Unix shell script should be executable")
 
 	// Test execution
 	config := porch.ExecutorConfig{
@@ -199,8 +199,8 @@ func (s *ValidationTestSuite) TestFix2_CrossPlatformScripting_UnixShellFiles() {
 
 	// Create dummy intent file for testing
 	intentFile := filepath.Join(tempDir, "test-intent.json")
-	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	s.Require().NoError(os.MkdirAll(config.OutDir, 0755))
+	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	s.Require().NoError(os.MkdirAll(config.OutDir, 0o755))
 
 	result, err := executor.Execute(ctx, intentFile)
 	s.Require().NoError(err)
@@ -249,8 +249,8 @@ exit 0`,
 
 	// Create dummy intent file for testing
 	intentFile := filepath.Join(tempDir, "test-intent.json")
-	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	s.Require().NoError(os.MkdirAll(config.OutDir, 0755))
+	s.Require().NoError(os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	s.Require().NoError(os.MkdirAll(config.OutDir, 0o755))
 
 	result, err := executor.Execute(ctx, intentFile)
 	s.Require().NoError(err)
@@ -273,8 +273,8 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	// Create IntentProcessor with concurrent access - using mock validator and porch function
 	mockValidator := &MockValidator{}
@@ -318,7 +318,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 				"spec": {"action": "scale", "replicas": %d}
 			}`, fileID, fileID%10+1)
 
-			err := os.WriteFile(filePath, []byte(content), 0644)
+			err := os.WriteFile(filePath, []byte(content), 0o644)
 			s.Require().NoError(err)
 
 			// Process file - this should be race-safe
@@ -357,8 +357,8 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperat
 
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:    s.porchPath,
@@ -399,7 +399,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperat
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "id": %d}`, i)
 
-			os.WriteFile(filePath, []byte(content), 0644)
+			os.WriteFile(filePath, []byte(content), 0o644)
 			time.Sleep(10 * time.Millisecond)
 		}
 	}()
@@ -492,8 +492,8 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	// Create cross-platform mock (Fix 2)
 	mockOptions := porch.CrossPlatformMockOptions{
@@ -555,7 +555,7 @@ func (s *ValidationTestSuite) TestIntegration_AllFixesTogether() {
 				"spec": {"action": "scale", "replicas": %d}
 			}`, fileID, fileID%5+1)
 
-			err := os.WriteFile(filePath, []byte(content), 0644)
+			err := os.WriteFile(filePath, []byte(content), 0o644)
 			s.Require().NoError(err)
 
 			// Small delay to trigger concurrent processing
@@ -603,8 +603,8 @@ func (s *ValidationTestSuite) TestPerformance_NoRegressionFromFixes() {
 
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:    s.porchPath,
@@ -622,7 +622,7 @@ func (s *ValidationTestSuite) TestPerformance_NoRegressionFromFixes() {
 		fileName := fmt.Sprintf("perf-test-%d.json", i)
 		filePath := filepath.Join(handoffDir, fileName)
 		content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "id": %d}`, i)
-		s.Require().NoError(os.WriteFile(filePath, []byte(content), 0644))
+		s.Require().NoError(os.WriteFile(filePath, []byte(content), 0o644))
 	}
 
 	watcher, err := NewWatcher(handoffDir, config)
@@ -658,8 +658,8 @@ func (s *ValidationTestSuite) TestStress_HighConcurrencyWithFixes() {
 
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:    s.porchPath,
@@ -699,7 +699,7 @@ func (s *ValidationTestSuite) TestStress_HighConcurrencyWithFixes() {
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "id": %d}`, i)
 
-			os.WriteFile(filePath, []byte(content), 0644)
+			os.WriteFile(filePath, []byte(content), 0o644)
 			if i%50 == 0 {
 				time.Sleep(10 * time.Millisecond) // Brief pause every 50 files
 			}
@@ -818,8 +818,8 @@ func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 	// Simulate memory pressure scenario
 	handoffDir := filepath.Join(s.tempDir, "handoff")
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(handoffDir, 0755))
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(handoffDir, 0o755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	config := Config{
 		PorchPath:    s.porchPath,
@@ -856,7 +856,7 @@ func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 				"spec": {"data": "%s", "replicas": %d}
 			}`, fileID, largeData, fileID%10+1)
 
-			err := os.WriteFile(filePath, []byte(content), 0644)
+			err := os.WriteFile(filePath, []byte(content), 0o644)
 			s.Require().NoError(err)
 		}(i)
 	}
@@ -899,8 +899,8 @@ func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create cross-platform mock
 	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
@@ -945,7 +945,7 @@ func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
 			fileName := fmt.Sprintf("race-test-%d.json", id)
 			filePath := filepath.Join(handoffDir, fileName)
 			content := fmt.Sprintf(`{"id": %d}`, id)
-			os.WriteFile(filePath, []byte(content), 0644)
+			os.WriteFile(filePath, []byte(content), 0o644)
 		}(i)
 	}
 

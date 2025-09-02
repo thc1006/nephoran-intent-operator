@@ -529,15 +529,11 @@ type ViolationTracker struct {
 // NewAuditLogger creates a new audit logger.
 
 func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*AuditLogger, error) {
-
 	if config == nil {
-
 		return nil, errors.New("audit config is required")
-
 	}
 
 	al := &AuditLogger{
-
 		config: config,
 
 		logger: logger,
@@ -547,7 +543,6 @@ func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*Aud
 		shutdown: make(chan bool),
 
 		stats: &AuditStats{
-
 			EventsByType: make(map[EventType]int64),
 
 			EventsBySeverity: make(map[EventSeverity]int64),
@@ -557,33 +552,25 @@ func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*Aud
 	// Initialize destinations.
 
 	if err := al.initializeDestinations(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize audit destinations: %w", err)
-
 	}
 
 	// Initialize encryption if enabled.
 
 	if config.EncryptEvents {
-
 		al.encryptor = NewEventEncryptor()
-
 	}
 
 	// Initialize signing if enabled.
 
 	if config.SignEvents {
-
 		al.signer = NewEventSigner()
-
 	}
 
 	// Initialize alert manager if enabled.
 
 	if config.AlertOnViolation && config.AlertThresholds != nil {
-
 		al.alertManager = NewAlertManager(config.AlertThresholds, logger)
-
 	}
 
 	// Start background workers.
@@ -591,21 +578,16 @@ func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*Aud
 	al.start()
 
 	return al, nil
-
 }
 
 // initializeDestinations initializes audit destinations.
 
 func (al *AuditLogger) initializeDestinations() error {
-
 	for _, dest := range al.config.Destinations {
 
 		writer, err := al.createWriter(dest)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to create writer for %s: %w", dest.Type, err)
-
 		}
 
 		al.destinations = append(al.destinations, writer)
@@ -613,13 +595,11 @@ func (al *AuditLogger) initializeDestinations() error {
 	}
 
 	return nil
-
 }
 
 // createWriter creates an audit writer based on destination type.
 
 func (al *AuditLogger) createWriter(dest AuditDestination) (AuditWriter, error) {
-
 	switch dest.Type {
 
 	case DestinationFile:
@@ -639,13 +619,11 @@ func (al *AuditLogger) createWriter(dest AuditDestination) (AuditWriter, error) 
 		return nil, fmt.Errorf("unsupported destination type: %s", dest.Type)
 
 	}
-
 }
 
 // start starts background workers.
 
 func (al *AuditLogger) start() {
-
 	// Start event processor.
 
 	al.wg.Add(1)
@@ -657,41 +635,31 @@ func (al *AuditLogger) start() {
 	al.wg.Add(1)
 
 	go al.periodicFlush()
-
 }
 
 // LogEvent logs an audit event.
 
 func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
-
 	if !al.config.Enabled {
-
 		return
-
 	}
 
 	// Check audit level.
 
 	if !al.shouldLog(event) {
-
 		return
-
 	}
 
 	// Generate event ID if not set.
 
 	if event.ID == "" {
-
 		event.ID = uuid.New().String()
-
 	}
 
 	// Set timestamp if not set.
 
 	if event.Timestamp.IsZero() {
-
 		event.Timestamp = time.Now().UTC()
-
 	}
 
 	// Extract context information.
@@ -701,9 +669,7 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 	// Mask sensitive data if configured.
 
 	if al.config.MaskSensitiveData {
-
 		al.maskSensitiveData(event)
-
 	}
 
 	// Sign event if configured.
@@ -713,13 +679,9 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 		signature, err := al.signer.Sign(event)
 
 		if err != nil {
-
 			al.logger.Error("failed to sign audit event", "error", err)
-
 		} else {
-
 			event.Signature = signature
-
 		}
 
 	}
@@ -731,13 +693,9 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 		encryptedEvent, err := al.encryptor.Encrypt(event)
 
 		if err != nil {
-
 			al.logger.Error("failed to encrypt audit event", "error", err)
-
 		} else {
-
 			event = encryptedEvent
-
 		}
 
 	}
@@ -745,9 +703,7 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 	// Check for security violations.
 
 	if al.alertManager != nil {
-
 		al.alertManager.CheckEvent(event)
-
 	}
 
 	// Send to buffer.
@@ -777,13 +733,11 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 			slog.String("event_type", string(event.EventType)))
 
 	}
-
 }
 
 // LogAuthenticationEvent logs an authentication event.
 
 func (al *AuditLogger) LogAuthenticationEvent(ctx context.Context, username string, success bool, reason string) {
-
 	result := ResultSuccess
 
 	severity := SeverityInfo
@@ -797,20 +751,17 @@ func (al *AuditLogger) LogAuthenticationEvent(ctx context.Context, username stri
 	}
 
 	event := &AuditEvent{
-
 		EventType: EventTypeAuthentication,
 
 		Severity: severity,
 
 		Actor: &Actor{
-
 			Type: ActorTypeUser,
 
 			Username: username,
 		},
 
 		Action: &Action{
-
 			Type: "authenticate",
 
 			Method: "login",
@@ -822,13 +773,11 @@ func (al *AuditLogger) LogAuthenticationEvent(ctx context.Context, username stri
 	}
 
 	al.LogEvent(ctx, event)
-
 }
 
 // LogAuthorizationEvent logs an authorization event.
 
 func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, resource, action string, allowed bool) {
-
 	result := ResultSuccess
 
 	severity := SeverityInfo
@@ -842,13 +791,11 @@ func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, re
 	}
 
 	event := &AuditEvent{
-
 		EventType: EventTypeAuthorization,
 
 		Severity: severity,
 
 		Actor: &Actor{
-
 			Type: ActorTypeUser,
 
 			ID: user.ID,
@@ -859,14 +806,12 @@ func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, re
 		},
 
 		Action: &Action{
-
 			Type: "authorize",
 
 			Method: action,
 		},
 
 		Resource: &Resource{
-
 			Type: "policy",
 
 			Path: resource,
@@ -876,15 +821,12 @@ func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, re
 	}
 
 	al.LogEvent(ctx, event)
-
 }
 
 // LogPolicyEvent logs a policy-related event.
 
 func (al *AuditLogger) LogPolicyEvent(ctx context.Context, eventType EventType, policyID string, actor *Actor, result EventResult) {
-
 	event := &AuditEvent{
-
 		EventType: eventType,
 
 		Severity: SeverityInfo,
@@ -892,12 +834,10 @@ func (al *AuditLogger) LogPolicyEvent(ctx context.Context, eventType EventType, 
 		Actor: actor,
 
 		Action: &Action{
-
 			Type: string(eventType),
 		},
 
 		Resource: &Resource{
-
 			Type: "policy",
 
 			ID: policyID,
@@ -907,21 +847,17 @@ func (al *AuditLogger) LogPolicyEvent(ctx context.Context, eventType EventType, 
 	}
 
 	al.LogEvent(ctx, event)
-
 }
 
 // LogSecurityViolation logs a security violation.
 
 func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType string, details map[string]interface{}) {
-
 	event := &AuditEvent{
-
 		EventType: EventTypeSecurityViolation,
 
 		Severity: SeverityCritical,
 
 		Action: &Action{
-
 			Type: "security_violation",
 
 			Parameters: details,
@@ -930,7 +866,6 @@ func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType s
 		Result: ResultFailure,
 
 		SecurityContext: &SecurityContext{
-
 			ThreatLevel: "high",
 
 			Violations: []string{violationType},
@@ -938,13 +873,11 @@ func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType s
 	}
 
 	al.LogEvent(ctx, event)
-
 }
 
 // processEvents processes buffered events.
 
 func (al *AuditLogger) processEvents() {
-
 	defer al.wg.Done()
 
 	batch := make([]*AuditEvent, 0, 100)
@@ -954,7 +887,6 @@ func (al *AuditLogger) processEvents() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case event := <-al.buffer:
@@ -984,9 +916,7 @@ func (al *AuditLogger) processEvents() {
 			// Flush remaining events.
 
 			if len(batch) > 0 {
-
 				al.writeBatch(batch)
-
 			}
 
 			// Drain buffer.
@@ -1006,29 +936,23 @@ func (al *AuditLogger) processEvents() {
 			}
 
 			if len(batch) > 0 {
-
 				al.writeBatch(batch)
-
 			}
 
 			return
 
 		}
-
 	}
-
 }
 
 // writeBatch writes a batch of events to destinations.
 
 func (al *AuditLogger) writeBatch(events []*AuditEvent) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
 
 	for _, dest := range al.destinations {
-
 		if err := dest.Write(ctx, events); err != nil {
 
 			al.logger.Error("failed to write audit events",
@@ -1044,15 +968,12 @@ func (al *AuditLogger) writeBatch(events []*AuditEvent) {
 			al.stats.mu.Unlock()
 
 		}
-
 	}
-
 }
 
 // periodicFlush performs periodic flush of events.
 
 func (al *AuditLogger) periodicFlush() {
-
 	defer al.wg.Done()
 
 	ticker := time.NewTicker(al.config.FlushInterval)
@@ -1060,7 +981,6 @@ func (al *AuditLogger) periodicFlush() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1072,15 +992,12 @@ func (al *AuditLogger) periodicFlush() {
 			return
 
 		}
-
 	}
-
 }
 
 // shouldLog determines if an event should be logged based on audit level.
 
 func (al *AuditLogger) shouldLog(event *AuditEvent) bool {
-
 	switch al.config.Level {
 
 	case AuditLevelNone:
@@ -1108,61 +1025,47 @@ func (al *AuditLogger) shouldLog(event *AuditEvent) bool {
 		return true
 
 	}
-
 }
 
 // enrichEventFromContext enriches event with context information.
 
 func (al *AuditLogger) enrichEventFromContext(ctx context.Context, event *AuditEvent) {
-
 	// Extract request ID from context.
 
 	if reqID := ctx.Value("request_id"); reqID != nil {
-
 		event.RequestID = fmt.Sprintf("%v", reqID)
-
 	}
 
 	// Extract session ID from context.
 
 	if sessionID := ctx.Value("session_id"); sessionID != nil {
-
 		event.SessionID = fmt.Sprintf("%v", sessionID)
-
 	}
 
 	// Extract correlation ID from context.
 
 	if corrID := ctx.Value("correlation_id"); corrID != nil {
-
 		event.CorrelationID = fmt.Sprintf("%v", corrID)
-
 	}
 
 	// Add runtime information.
 
 	if event.Metadata == nil {
-
 		event.Metadata = make(map[string]interface{})
-
 	}
 
 	event.Metadata["go_version"] = runtime.Version()
 
 	event.Metadata["num_goroutines"] = runtime.NumGoroutine()
-
 }
 
 // maskSensitiveData masks sensitive data in the event.
 
 func (al *AuditLogger) maskSensitiveData(event *AuditEvent) {
-
 	// Mask sensitive fields.
 
 	for _, field := range al.config.SensitiveFields {
-
 		al.maskField(event, field)
-
 	}
 
 	// Mask common sensitive patterns.
@@ -1182,31 +1085,25 @@ func (al *AuditLogger) maskSensitiveData(event *AuditEvent) {
 		event.ResponseBody = masked
 
 	}
-
 }
 
 // maskField masks a specific field in the event.
 
 func (al *AuditLogger) maskField(event *AuditEvent, field string) {
-
 	// Implementation would mask specific fields.
-
 }
 
 // maskJSON masks sensitive data in JSON.
 
 func (al *AuditLogger) maskJSON(data json.RawMessage) json.RawMessage {
-
 	// Implementation would mask sensitive JSON fields.
 
 	return data
-
 }
 
 // updateStats updates audit statistics.
 
 func (al *AuditLogger) updateStats(event *AuditEvent) {
-
 	al.stats.mu.Lock()
 
 	defer al.stats.mu.Unlock()
@@ -1218,13 +1115,11 @@ func (al *AuditLogger) updateStats(event *AuditEvent) {
 	al.stats.EventsBySeverity[event.Severity]++
 
 	al.stats.LastEventTime = event.Timestamp
-
 }
 
 // Close gracefully shuts down the audit logger.
 
 func (al *AuditLogger) Close() error {
-
 	close(al.shutdown)
 
 	al.wg.Wait()
@@ -1232,23 +1127,17 @@ func (al *AuditLogger) Close() error {
 	// Close all destinations.
 
 	for _, dest := range al.destinations {
-
 		if err := dest.Close(); err != nil {
-
 			al.logger.Error("failed to close audit destination", "error", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetStats returns audit statistics.
 
 func (al *AuditLogger) GetStats() *AuditStats {
-
 	al.stats.mu.RLock()
 
 	defer al.stats.mu.RUnlock()
@@ -1256,7 +1145,6 @@ func (al *AuditLogger) GetStats() *AuditStats {
 	// Return a copy of stats.
 
 	return &AuditStats{
-
 		EventsLogged: al.stats.EventsLogged,
 
 		EventsDropped: al.stats.EventsDropped,
@@ -1269,7 +1157,6 @@ func (al *AuditLogger) GetStats() *AuditStats {
 
 		LastEventTime: al.stats.LastEventTime,
 	}
-
 }
 
 // Implementation stubs for interfaces and helpers.
@@ -1277,34 +1164,27 @@ func (al *AuditLogger) GetStats() *AuditStats {
 // NewAlertManager performs newalertmanager operation.
 
 func NewAlertManager(thresholds *AlertThresholds, logger *logging.StructuredLogger) *AlertManager {
-
 	return &AlertManager{
-
 		config: thresholds,
 
 		logger: logger,
 
 		violations: make(map[string]*ViolationTracker),
 	}
-
 }
 
 // CheckEvent performs checkevent operation.
 
 func (am *AlertManager) CheckEvent(event *AuditEvent) {
-
 	// Check for violations and raise alerts.
-
 }
 
 // NewEventEncryptor performs neweventencryptor operation.
 
 func NewEventEncryptor() EventEncryptor {
-
 	// Return default encryptor implementation.
 
 	return &defaultEventEncryptor{}
-
 }
 
 type defaultEventEncryptor struct{}
@@ -1312,31 +1192,25 @@ type defaultEventEncryptor struct{}
 // Encrypt performs encrypt operation.
 
 func (e *defaultEventEncryptor) Encrypt(event *AuditEvent) (*AuditEvent, error) {
-
 	// Encryption implementation.
 
 	return event, nil
-
 }
 
 // Decrypt performs decrypt operation.
 
 func (e *defaultEventEncryptor) Decrypt(event *AuditEvent) (*AuditEvent, error) {
-
 	// Decryption implementation.
 
 	return event, nil
-
 }
 
 // NewEventSigner performs neweventsigner operation.
 
 func NewEventSigner() EventSigner {
-
 	// Return default signer implementation.
 
 	return &defaultEventSigner{}
-
 }
 
 type defaultEventSigner struct{}
@@ -1344,7 +1218,6 @@ type defaultEventSigner struct{}
 // Sign performs sign operation.
 
 func (s *defaultEventSigner) Sign(event *AuditEvent) (string, error) {
-
 	// Create signature.
 
 	data, _ := json.Marshal(event)
@@ -1352,17 +1225,14 @@ func (s *defaultEventSigner) Sign(event *AuditEvent) (string, error) {
 	hash := sha256.Sum256(data)
 
 	return hex.EncodeToString(hash[:]), nil
-
 }
 
 // Verify performs verify operation.
 
 func (s *defaultEventSigner) Verify(event *AuditEvent, signature string) (bool, error) {
-
 	// Verify signature.
 
 	return true, nil
-
 }
 
 // Audit writer implementations.
@@ -1370,11 +1240,9 @@ func (s *defaultEventSigner) Verify(event *AuditEvent, signature string) (bool, 
 // NewFileWriter performs newfilewriter operation.
 
 func NewFileWriter(dest AuditDestination) (AuditWriter, error) {
-
 	// File writer implementation.
 
 	return &fileWriter{dest: dest}, nil
-
 }
 
 type fileWriter struct {
@@ -1384,29 +1252,23 @@ type fileWriter struct {
 // Write performs write operation.
 
 func (fw *fileWriter) Write(ctx context.Context, events []*AuditEvent) error {
-
 	// Write to file.
 
 	return nil
-
 }
 
 // Close performs close operation.
 
 func (fw *fileWriter) Close() error {
-
 	return nil
-
 }
 
 // NewHTTPWriter performs newhttpwriter operation.
 
 func NewHTTPWriter(dest AuditDestination) (AuditWriter, error) {
-
 	// HTTP writer implementation.
 
 	return &httpWriter{dest: dest}, nil
-
 }
 
 type httpWriter struct {
@@ -1416,29 +1278,23 @@ type httpWriter struct {
 // Write performs write operation.
 
 func (hw *httpWriter) Write(ctx context.Context, events []*AuditEvent) error {
-
 	// Send via HTTP.
 
 	return nil
-
 }
 
 // Close performs close operation.
 
 func (hw *httpWriter) Close() error {
-
 	return nil
-
 }
 
 // NewSyslogWriter performs newsyslogwriter operation.
 
 func NewSyslogWriter(dest AuditDestination) (AuditWriter, error) {
-
 	// Syslog writer implementation.
 
 	return &syslogWriter{dest: dest}, nil
-
 }
 
 type syslogWriter struct {
@@ -1448,17 +1304,13 @@ type syslogWriter struct {
 // Write performs write operation.
 
 func (sw *syslogWriter) Write(ctx context.Context, events []*AuditEvent) error {
-
 	// Write to syslog.
 
 	return nil
-
 }
 
 // Close performs close operation.
 
 func (sw *syslogWriter) Close() error {
-
 	return nil
-
 }

@@ -593,8 +593,8 @@ func (s *mTLSSecurityTestSuite) createExpiredCertificate(commonName string) *tls
 }
 
 func (s *mTLSSecurityTestSuite) createCertificate(commonName string, dnsNames []string, ipAddresses []net.IP,
-	keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) *tls.Certificate {
-
+	keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage,
+) *tls.Certificate {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 
 	template := &x509.Certificate{

@@ -31,19 +31,16 @@ import (
 //	}
 
 func IntegrateWeaviatePoolWithMetrics(config *PoolConfig, metricsCollector *monitoring.SimpleMetricsCollector) *WeaviateConnectionPool {
-
 	// NewWeaviateConnectionPoolWithMetrics is not available in current build
 	// Return a basic WeaviateConnectionPool instead
 	return &WeaviateConnectionPool{
 		config: config,
 	}
-
 }
 
 // SetupWeaviatePoolWithMonitoring creates a complete setup with monitoring integration.
 
 func SetupWeaviatePoolWithMonitoring(config *PoolConfig) (*WeaviateConnectionPool, *monitoring.SimpleMetricsCollector) {
-
 	metricsCollector := monitoring.NewMetricsCollector()
 
 	// NewWeaviateConnectionPoolWithMetrics is not available in current build
@@ -53,5 +50,4 @@ func SetupWeaviatePoolWithMonitoring(config *PoolConfig) (*WeaviateConnectionPoo
 	}
 
 	return pool, metricsCollector
-
 }

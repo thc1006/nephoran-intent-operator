@@ -149,7 +149,6 @@ type ReportSummary struct {
 	MTTR float64 `json:"mttr"` // Mean Time to Resolution in minutes
 
 	MTBF float64 `json:"mtbf"` // Mean Time Between Failures in hours
-
 }
 
 // ReportTrends shows trending information.
@@ -225,9 +224,7 @@ type ReportGenerator interface {
 // NewSLAReporter creates a new SLA reporter instance.
 
 func NewSLAReporter(promClient v1.API, logger *logrus.Logger) *SLAReporter {
-
 	return &SLAReporter{
-
 		promClient: promClient,
 
 		logger: logger,
@@ -237,9 +234,7 @@ func NewSLAReporter(promClient v1.API, logger *logrus.Logger) *SLAReporter {
 		stopCh: make(chan struct{}),
 
 		slaTargets: []SLATarget{
-
 			{
-
 				Name: "System Availability",
 
 				Type: "availability",
@@ -257,7 +252,6 @@ func NewSLAReporter(promClient v1.API, logger *logrus.Logger) *SLAReporter {
 			},
 
 			{
-
 				Name: "Intent Processing Latency",
 
 				Type: "latency",
@@ -275,7 +269,6 @@ func NewSLAReporter(promClient v1.API, logger *logrus.Logger) *SLAReporter {
 			},
 
 			{
-
 				Name: "Intent Throughput",
 
 				Type: "throughput",
@@ -293,21 +286,17 @@ func NewSLAReporter(promClient v1.API, logger *logrus.Logger) *SLAReporter {
 			},
 		},
 	}
-
 }
 
 // Start begins the SLA monitoring process.
 
 func (s *SLAReporter) Start(ctx context.Context) error {
-
 	s.logger.Info("Starting SLA Reporter")
 
 	// Initialize current statuses.
 
 	for _, target := range s.slaTargets {
-
 		s.currentStatuses[target.Name] = &SLAStatus{
-
 			Target: target,
 
 			ComplianceStatus: "unknown",
@@ -318,7 +307,6 @@ func (s *SLAReporter) Start(ctx context.Context) error {
 
 			Violations: make([]SLAViolation, 0),
 		}
-
 	}
 
 	// Start monitoring loop.
@@ -330,23 +318,19 @@ func (s *SLAReporter) Start(ctx context.Context) error {
 	go s.violationDetectionLoop(ctx)
 
 	return nil
-
 }
 
 // Stop stops the SLA monitoring process.
 
 func (s *SLAReporter) Stop() {
-
 	s.logger.Info("Stopping SLA Reporter")
 
 	close(s.stopCh)
-
 }
 
 // GetCurrentStatus returns the current SLA status for all targets.
 
 func (s *SLAReporter) GetCurrentStatus() []SLAStatus {
-
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
@@ -354,19 +338,15 @@ func (s *SLAReporter) GetCurrentStatus() []SLAStatus {
 	statuses := make([]SLAStatus, 0, len(s.currentStatuses))
 
 	for _, status := range s.currentStatuses {
-
 		statuses = append(statuses, *status)
-
 	}
 
 	return statuses
-
 }
 
 // GetSLAStatus returns the current status for a specific SLA target.
 
 func (s *SLAReporter) GetSLAStatus(targetName string) (*SLAStatus, error) {
-
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
@@ -374,28 +354,22 @@ func (s *SLAReporter) GetSLAStatus(targetName string) (*SLAStatus, error) {
 	status, exists := s.currentStatuses[targetName]
 
 	if !exists {
-
 		return nil, fmt.Errorf("SLA target %s not found", targetName)
-
 	}
 
 	return status, nil
-
 }
 
 // GenerateReport generates a comprehensive SLA report.
 
 func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLAReport, error) {
-
 	s.logger.WithFields(logrus.Fields{
-
 		"report_type": reportType,
 
 		"period": period,
 	}).Info("Generating SLA report")
 
 	report := &SLAReport{
-
 		ID: fmt.Sprintf("sla-report-%d", time.Now().Unix()),
 
 		GeneratedAt: time.Now(),
@@ -416,11 +390,8 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 	// Generate summary.
 
 	summary, err := s.generateSummary(period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate summary: %w", err)
-
 	}
 
 	report.Summary = summary
@@ -428,11 +399,8 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 	// Analyze trends.
 
 	trends, err := s.analyzeTrends(period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to analyze trends: %w", err)
-
 	}
 
 	report.Trends = trends
@@ -444,29 +412,23 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 	// Calculate business metrics.
 
 	businessMetrics, err := s.calculateBusinessMetrics(period)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to calculate business metrics: %w", err)
-
 	}
 
 	report.BusinessMetrics = businessMetrics
 
 	return report, nil
-
 }
 
 // monitoringLoop continuously monitors SLA targets.
 
 func (s *SLAReporter) monitoringLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -482,21 +444,17 @@ func (s *SLAReporter) monitoringLoop(ctx context.Context) {
 			s.updateSLAStatuses(ctx)
 
 		}
-
 	}
-
 }
 
 // violationDetectionLoop detects and handles SLA violations.
 
 func (s *SLAReporter) violationDetectionLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Minute) // Check for violations every minute
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -512,15 +470,12 @@ func (s *SLAReporter) violationDetectionLoop(ctx context.Context) {
 			s.detectViolations(ctx)
 
 		}
-
 	}
-
 }
 
 // updateSLAStatuses updates the current status of all SLA targets.
 
 func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
-
 	s.mu.Lock()
 
 	defer s.mu.Unlock()
@@ -532,7 +487,6 @@ func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
 		// Query current value.
 
 		value, err := s.queryCurrentValue(ctx, target.Query)
-
 		if err != nil {
 
 			s.logger.WithError(err).WithField("target", target.Name).Error("Failed to query current value")
@@ -550,7 +504,6 @@ func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
 		// Add to history (keep last 100 points).
 
 		dataPoint := DataPoint{
-
 			Timestamp: time.Now(),
 
 			Value: value,
@@ -559,9 +512,7 @@ func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
 		status.History = append(status.History, dataPoint)
 
 		if len(status.History) > 100 {
-
 			status.History = status.History[1:]
-
 		}
 
 		// Calculate error budget usage.
@@ -593,25 +544,18 @@ func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
 		}
 
 	}
-
 }
 
 // queryCurrentValue queries Prometheus for the current value of a metric.
 
 func (s *SLAReporter) queryCurrentValue(ctx context.Context, query string) (float64, error) {
-
 	result, warnings, err := s.promClient.Query(ctx, query, time.Now())
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	if len(warnings) > 0 {
-
 		s.logger.WithField("warnings", warnings).Warn("Prometheus query returned warnings")
-
 	}
 
 	switch result.Type() {
@@ -621,9 +565,7 @@ func (s *SLAReporter) queryCurrentValue(ctx context.Context, query string) (floa
 		vector := result.(model.Vector)
 
 		if len(vector) == 0 {
-
 			return 0, fmt.Errorf("no data returned from query")
-
 		}
 
 		return float64(vector[0].Value), nil
@@ -639,21 +581,17 @@ func (s *SLAReporter) queryCurrentValue(ctx context.Context, query string) (floa
 		return 0, fmt.Errorf("unexpected result type: %v", result.Type())
 
 	}
-
 }
 
 // calculateErrorBudgetUsage calculates how much of the error budget has been used.
 
 func (s *SLAReporter) calculateErrorBudgetUsage(target SLATarget, currentValue float64) float64 {
-
 	switch target.Type {
 
 	case "availability":
 
 		if currentValue >= target.Target {
-
 			return 0 // No error budget used if above target
-
 		}
 
 		shortage := target.Target - currentValue
@@ -663,9 +601,7 @@ func (s *SLAReporter) calculateErrorBudgetUsage(target SLATarget, currentValue f
 	case "latency":
 
 		if currentValue <= target.Target {
-
 			return 0 // No error budget used if below target
-
 		}
 
 		excess := currentValue - target.Target
@@ -677,9 +613,7 @@ func (s *SLAReporter) calculateErrorBudgetUsage(target SLATarget, currentValue f
 	case "throughput":
 
 		if currentValue >= target.Target {
-
 			return 0 // No error budget used if above target
-
 		}
 
 		shortage := target.Target - currentValue
@@ -693,17 +627,13 @@ func (s *SLAReporter) calculateErrorBudgetUsage(target SLATarget, currentValue f
 		return 0
 
 	}
-
 }
 
 // calculateBurnRate calculates the current error budget burn rate.
 
 func (s *SLAReporter) calculateBurnRate(history []DataPoint) float64 {
-
 	if len(history) < 2 {
-
 		return 0
-
 	}
 
 	// Calculate burn rate based on last 10 points.
@@ -711,17 +641,13 @@ func (s *SLAReporter) calculateBurnRate(history []DataPoint) float64 {
 	start := len(history) - 10
 
 	if start < 0 {
-
 		start = 0
-
 	}
 
 	recent := history[start:]
 
 	if len(recent) < 2 {
-
 		return 0
-
 	}
 
 	// Simple linear regression to calculate rate of change.
@@ -747,47 +673,34 @@ func (s *SLAReporter) calculateBurnRate(history []DataPoint) float64 {
 	}
 
 	if n*sumX2-sumX*sumX == 0 {
-
 		return 0
-
 	}
 
 	slope := (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX)
 
 	return slope
-
 }
 
 // determineComplianceStatus determines the current compliance status.
 
 func (s *SLAReporter) determineComplianceStatus(target SLATarget, currentValue, errorBudgetUsed float64) string {
-
 	if errorBudgetUsed <= 0 {
-
 		return "compliant"
-
 	} else if errorBudgetUsed < 0.8 {
-
 		return "at_risk"
-
 	} else {
-
 		return "violation"
-
 	}
-
 }
 
 // detectViolations detects and handles SLA violations.
 
 func (s *SLAReporter) detectViolations(ctx context.Context) {
-
 	s.mu.RLock()
 
 	defer s.mu.RUnlock()
 
 	for _, status := range s.currentStatuses {
-
 		if status.ComplianceStatus == "violation" {
 
 			// Check if this is a new violation or ongoing.
@@ -799,7 +712,6 @@ func (s *SLAReporter) detectViolations(ctx context.Context) {
 				// New violation.
 
 				violation := SLAViolation{
-
 					ID: fmt.Sprintf("violation-%s-%d", status.Target.Name, time.Now().Unix()),
 
 					Target: status.Target.Name,
@@ -814,17 +726,12 @@ func (s *SLAReporter) detectViolations(ctx context.Context) {
 				}
 
 				if s.violationStore != nil {
-
 					if err := s.violationStore.Store(violation); err != nil {
-
 						s.logger.WithError(err).Error("Failed to store violation")
-
 					}
-
 				}
 
 				s.logger.WithFields(logrus.Fields{
-
 					"target": violation.Target,
 
 					"violation": violation.ID,
@@ -835,73 +742,50 @@ func (s *SLAReporter) detectViolations(ctx context.Context) {
 			}
 
 		}
-
 	}
-
 }
 
 // getLastViolation gets the last violation for a target.
 
 func (s *SLAReporter) getLastViolation(target string) *SLAViolation {
-
 	if s.violationStore == nil {
-
 		return nil
-
 	}
 
 	violations, err := s.violationStore.List(target, time.Now().Add(-24*time.Hour))
 
 	if err != nil || len(violations) == 0 {
-
 		return nil
-
 	}
 
 	// Sort by start time and return the most recent.
 
 	sort.Slice(violations, func(i, j int) bool {
-
 		return violations[i].StartTime.After(violations[j].StartTime)
-
 	})
 
 	return &violations[0]
-
 }
 
 // determineSeverity determines the severity of a violation.
 
 func (s *SLAReporter) determineSeverity(errorBudgetUsed float64) string {
-
 	if errorBudgetUsed >= 2.0 {
-
 		return "critical"
-
 	} else if errorBudgetUsed >= 1.5 {
-
 		return "high"
-
 	} else if errorBudgetUsed >= 1.0 {
-
 		return "medium"
-
 	} else {
-
 		return "low"
-
 	}
-
 }
 
 // calculateOverallSLAScore calculates an overall SLA compliance score.
 
 func (s *SLAReporter) calculateOverallSLAScore(statuses []SLAStatus) float64 {
-
 	if len(statuses) == 0 {
-
 		return 0
-
 	}
 
 	var totalScore float64
@@ -937,19 +821,16 @@ func (s *SLAReporter) calculateOverallSLAScore(statuses []SLAStatus) float64 {
 	}
 
 	return totalScore / float64(len(statuses))
-
 }
 
 // generateSummary generates a summary of SLA performance for the period.
 
 func (s *SLAReporter) generateSummary(period Period) (ReportSummary, error) {
-
 	// This would typically query historical data from Prometheus.
 
 	// For now, return a placeholder implementation.
 
 	return ReportSummary{
-
 		TotalViolations: 0,
 
 		CriticalViolations: 0,
@@ -964,19 +845,16 @@ func (s *SLAReporter) generateSummary(period Period) (ReportSummary, error) {
 
 		MTBF: 168.0,
 	}, nil
-
 }
 
 // analyzeTrends analyzes trends in SLA performance.
 
 func (s *SLAReporter) analyzeTrends(period Period) (ReportTrends, error) {
-
 	// This would typically analyze historical data.
 
 	// For now, return a placeholder implementation.
 
 	return ReportTrends{
-
 		AvailabilityTrend: "stable",
 
 		LatencyTrend: "improving",
@@ -987,23 +865,19 @@ func (s *SLAReporter) analyzeTrends(period Period) (ReportTrends, error) {
 
 		TrendConfidence: 0.85,
 	}, nil
-
 }
 
 // generateRecommendations generates actionable recommendations.
 
 func (s *SLAReporter) generateRecommendations(statuses []SLAStatus, trends ReportTrends) []Recommendation {
-
 	recommendations := make([]Recommendation, 0)
 
 	// Analyze each SLA status for recommendations.
 
 	for _, status := range statuses {
-
 		if status.ComplianceStatus == "violation" || status.ComplianceStatus == "at_risk" {
 
 			recommendation := Recommendation{
-
 				Type: "reliability",
 
 				Priority: "high",
@@ -1022,15 +896,12 @@ func (s *SLAReporter) generateRecommendations(statuses []SLAStatus, trends Repor
 			recommendations = append(recommendations, recommendation)
 
 		}
-
 	}
 
 	// Add trend-based recommendations.
 
 	if trends.LatencyTrend == "degrading" {
-
 		recommendations = append(recommendations, Recommendation{
-
 			Type: "performance",
 
 			Priority: "medium",
@@ -1043,23 +914,19 @@ func (s *SLAReporter) generateRecommendations(statuses []SLAStatus, trends Repor
 
 			Impact: "Maintain responsive user experience",
 		})
-
 	}
 
 	return recommendations
-
 }
 
 // calculateBusinessMetrics calculates business impact metrics.
 
 func (s *SLAReporter) calculateBusinessMetrics(period Period) (BusinessMetrics, error) {
-
 	// This would typically integrate with business systems.
 
 	// For now, return a placeholder implementation.
 
 	return BusinessMetrics{
-
 		TotalRevenue: 1000000.0,
 
 		RevenueAtRisk: 5000.0,
@@ -1068,13 +935,11 @@ func (s *SLAReporter) calculateBusinessMetrics(period Period) (BusinessMetrics, 
 
 		CompetitivePosition: "strong",
 	}, nil
-
 }
 
 // ServeHTTP provides an HTTP interface for the SLA reporter.
 
 func (s *SLAReporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	switch r.URL.Path {
 
 	case "/sla/status":
@@ -1094,13 +959,11 @@ func (s *SLAReporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 
 	}
-
 }
 
 // handleSLAStatus handles requests for current SLA status.
 
 func (s *SLAReporter) handleSLAStatus(w http.ResponseWriter, r *http.Request) {
-
 	statuses := s.GetCurrentStatus()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1110,25 +973,20 @@ func (s *SLAReporter) handleSLAStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 }
 
 // handleSLAReport handles requests for SLA reports.
 
 func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
-
 	reportType := r.URL.Query().Get("type")
 
 	if reportType == "" {
-
 		reportType = "daily"
-
 	}
 
 	// Parse period from query parameters.
 
 	period := Period{
-
 		StartTime: time.Now().Add(-24 * time.Hour),
 
 		EndTime: time.Now(),
@@ -1137,27 +995,18 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if start := r.URL.Query().Get("start"); start != "" {
-
 		if t, err := time.Parse(time.RFC3339, start); err == nil {
-
 			period.StartTime = t
-
 		}
-
 	}
 
 	if end := r.URL.Query().Get("end"); end != "" {
-
 		if t, err := time.Parse(time.RFC3339, end); err == nil {
-
 			period.EndTime = t
-
 		}
-
 	}
 
 	report, err := s.GenerateReport(reportType, period)
-
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1175,7 +1024,6 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 		if s.reportGenerator != nil {
 
 			data, err := s.reportGenerator.GeneratePDF(*report)
-
 			if err != nil {
 
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1193,9 +1041,7 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 			}
 
 		} else {
-
 			http.Error(w, "PDF generation not available", http.StatusNotImplemented)
-
 		}
 
 	case "html":
@@ -1203,7 +1049,6 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 		if s.reportGenerator != nil {
 
 			html, err := s.reportGenerator.GenerateHTML(*report)
-
 			if err != nil {
 
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1221,9 +1066,7 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 			}
 
 		} else {
-
 			http.Error(w, "HTML generation not available", http.StatusNotImplemented)
-
 		}
 
 	case "csv":
@@ -1231,7 +1074,6 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 		if s.reportGenerator != nil {
 
 			csv, err := s.reportGenerator.GenerateCSV(*report)
-
 			if err != nil {
 
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1249,9 +1091,7 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 			}
 
 		} else {
-
 			http.Error(w, "CSV generation not available", http.StatusNotImplemented)
-
 		}
 
 	default:
@@ -1265,25 +1105,19 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
 }
 
 // handleViolations handles requests for SLA violations.
 
 func (s *SLAReporter) handleViolations(w http.ResponseWriter, r *http.Request) {
-
 	target := r.URL.Query().Get("target")
 
 	since := time.Now().Add(-24 * time.Hour)
 
 	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
-
 		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
-
 			since = t
-
 		}
-
 	}
 
 	if s.violationStore == nil {
@@ -1295,7 +1129,6 @@ func (s *SLAReporter) handleViolations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	violations, err := s.violationStore.List(target, since)
-
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1311,5 +1144,4 @@ func (s *SLAReporter) handleViolations(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 }

@@ -42,11 +42,8 @@ import (
 // - https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd.
 
 func cmdSafeQuote(args []string) string {
-
 	if len(args) == 0 {
-
 		return ""
-
 	}
 
 	// Build command line directly without excessive escaping.
@@ -56,17 +53,13 @@ func cmdSafeQuote(args []string) string {
 	// First argument (the command itself).
 
 	if len(args) > 0 {
-
 		cmdLine = quoteIfNeeded(args[0])
-
 	}
 
 	// Add remaining arguments.
 
 	for i := 1; i < len(args); i++ {
-
 		cmdLine += " " + quoteIfNeeded(args[i])
-
 	}
 
 	// If command contains special meta-characters that could be interpreted by cmd,.
@@ -84,19 +77,15 @@ func cmdSafeQuote(args []string) string {
 	}
 
 	return cmdLine
-
 }
 
 // quoteWindowsArg quotes a single argument for Windows cmd.exe.
 
 func quoteWindowsArg(arg string) string {
-
 	// Empty argument needs quotes.
 
 	if arg == "" {
-
 		return `""`
-
 	}
 
 	// Check if argument needs quoting.
@@ -106,7 +95,6 @@ func quoteWindowsArg(arg string) string {
 	hasMetaChars := false
 
 	for _, r := range arg {
-
 		switch r {
 
 		case ' ', '\t', '\n', '\v', '"':
@@ -126,23 +114,18 @@ func quoteWindowsArg(arg string) string {
 			hasMetaChars = true
 
 		}
-
 	}
 
 	// If no special characters, return as-is.
 
 	if !needsQuotes && !hasMetaChars {
-
 		return arg
-
 	}
 
 	// Escape meta-characters.
 
 	if hasMetaChars {
-
 		arg = escapeMetaChars(arg)
-
 	}
 
 	// Add quotes if needed.
@@ -158,17 +141,14 @@ func quoteWindowsArg(arg string) string {
 	}
 
 	return arg
-
 }
 
 // escapeMetaChars escapes cmd.exe meta-characters with ^.
 
 func escapeMetaChars(s string) string {
-
 	var result strings.Builder
 
 	for _, r := range s {
-
 		switch r {
 
 		case '&', '|', '(', ')', '<', '>', '^':
@@ -188,21 +168,16 @@ func escapeMetaChars(s string) string {
 			result.WriteRune(r)
 
 		}
-
 	}
 
 	return result.String()
-
 }
 
 // quoteIfNeeded quotes an argument only if it needs quoting.
 
 func quoteIfNeeded(arg string) string {
-
 	if arg == "" {
-
 		return `""`
-
 	}
 
 	// Check if argument needs quoting.
@@ -210,29 +185,21 @@ func quoteIfNeeded(arg string) string {
 	needsQuotes := false
 
 	for _, r := range arg {
-
 		switch r {
-
 		case ' ', '\t', '&', '|', '(', ')', '<', '>', '^', '"':
 
 			needsQuotes = true
-
 		}
-
 	}
 
 	// Handle percent signs - always double them.
 
 	if strings.Contains(arg, "%") {
-
 		arg = strings.ReplaceAll(arg, "%", "%%")
-
 	}
 
 	if !needsQuotes {
-
 		return arg
-
 	}
 
 	// Escape special characters within the argument.
@@ -240,7 +207,6 @@ func quoteIfNeeded(arg string) string {
 	var result strings.Builder
 
 	for _, r := range arg {
-
 		switch r {
 
 		case '&', '|', '(', ')', '<', '>', '^':
@@ -258,17 +224,14 @@ func quoteIfNeeded(arg string) string {
 			result.WriteRune(r)
 
 		}
-
 	}
 
 	return `"` + result.String() + `"`
-
 }
 
 // needsOuterWrapping checks if the entire command needs to be wrapped in quotes.
 
 func needsOuterWrapping(cmdLine string) bool {
-
 	// Check for unquoted special characters.
 
 	inQuotes := false
@@ -284,19 +247,14 @@ func needsOuterWrapping(cmdLine string) bool {
 		}
 
 		if !inQuotes {
-
 			switch r {
-
 			case '&', '|', '(', ')', '<', '>':
 
 				return true
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }

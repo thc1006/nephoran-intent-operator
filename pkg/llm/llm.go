@@ -312,7 +312,7 @@ func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache
 func (c *LegacyClient) GetMetrics() LegacyClientMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
-	
+
 	// Return a copy without the mutex to avoid copying the lock
 	return LegacyClientMetrics{
 		RequestsTotal:    c.metrics.RequestsTotal,
@@ -429,7 +429,6 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 		retryCount++
 		return processErr
 	})
-
 	if err != nil {
 		// Try fallback URLs if available
 		if len(c.fallbackURLs) > 0 {

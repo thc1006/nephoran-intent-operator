@@ -16,7 +16,6 @@ import (
 // Test that the PerformanceAnalysisEngine compiles and runs.
 
 func main() {
-
 	logger := logr.Discard()
 
 	var prometheusClient v1.API
@@ -32,13 +31,8 @@ func main() {
 	result, err := engine.AnalyzePerformance(ctx)
 
 	if err != nil {
-
 		log.Printf("Analysis failed: %v", err)
-
 	} else {
-
 		log.Printf("Analysis completed: %s, System Health: %s", result.AnalysisID, result.SystemHealth)
-
 	}
-
 }

@@ -49,28 +49,21 @@ type TracingConfig struct {
 // NewTracingManager creates a new tracing manager.
 
 func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
-
 	if !config.EnableTracing {
-
 		return &TracingManager{
-
 			tracer: otel.Tracer("noop"),
 
 			serviceName: config.ServiceName,
 
 			version: config.ServiceVersion,
 		}, nil
-
 	}
 
 	// Create Jaeger exporter.
 
 	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(config.JaegerEndpoint)))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Jaeger exporter: %w", err)
-
 	}
 
 	// Create resource.
@@ -92,11 +85,8 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 			attribute.String("nephoran.component", "rag-pipeline"),
 		),
 	)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create resource: %w", err)
-
 	}
 
 	// Create tracer provider.
@@ -124,7 +114,6 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 	tracer := tp.Tracer(config.ServiceName)
 
 	return &TracingManager{
-
 		tracer: tracer,
 
 		tracerProvider: tp,
@@ -133,31 +122,24 @@ func NewTracingManager(config *TracingConfig) (*TracingManager, error) {
 
 		version: config.ServiceVersion,
 	}, nil
-
 }
 
 // Shutdown gracefully shuts down the tracing manager.
 
 func (tm *TracingManager) Shutdown(ctx context.Context) error {
-
 	if tm.tracerProvider != nil {
-
 		return tm.tracerProvider.Shutdown(ctx)
-
 	}
 
 	return nil
-
 }
 
 // StartSpan starts a new trace span with comprehensive attributes.
 
 func (tm *TracingManager) StartSpan(ctx context.Context, operationName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-
 	// Add default attributes.
 
 	defaultOpts := []trace.SpanStartOption{
-
 		trace.WithAttributes(
 
 			attribute.String("nephoran.service", tm.serviceName),
@@ -173,13 +155,11 @@ func (tm *TracingManager) StartSpan(ctx context.Context, operationName string, o
 	allOpts := append(defaultOpts, opts...)
 
 	return tm.tracer.Start(ctx, operationName, allOpts...)
-
 }
 
 // InstrumentDocumentProcessing adds tracing to document processing.
 
 func (tm *TracingManager) InstrumentDocumentProcessing(ctx context.Context, docID, docType string, fn func(context.Context) error) error {
-
 	ctx, span := tm.StartSpan(ctx, "document_processing",
 
 		trace.WithAttributes(
@@ -214,19 +194,15 @@ func (tm *TracingManager) InstrumentDocumentProcessing(ctx context.Context, docI
 		span.SetAttributes(attribute.String("error.type", "processing_error"))
 
 	} else {
-
 		span.SetStatus(codes.Ok, "document processed successfully")
-
 	}
 
 	return err
-
 }
 
 // InstrumentChunking adds tracing to document chunking.
 
 func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, strategy string, fn func(context.Context) ([]DocumentChunk, error)) ([]DocumentChunk, error) {
-
 	ctx, span := tm.StartSpan(ctx, "document_chunking",
 
 		trace.WithAttributes(
@@ -273,9 +249,7 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 			totalSize := 0
 
 			for _, chunk := range chunks {
-
 				totalSize += len(chunk.Content)
-
 			}
 
 			avgChunkSize := totalSize / len(chunks)
@@ -292,13 +266,11 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 	}
 
 	return chunks, err
-
 }
 
 // InstrumentEmbeddingGeneration adds tracing to embedding generation.
 
 func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, modelName string, inputTexts []string, fn func(context.Context) ([][]float32, error)) ([][]float32, error) {
-
 	ctx, span := tm.StartSpan(ctx, "embedding_generation",
 
 		trace.WithAttributes(
@@ -331,9 +303,7 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 		totalInputLength := 0
 
 		for _, text := range inputTexts {
-
 			totalInputLength += len(text)
-
 		}
 
 		avgInputLength := totalInputLength / len(inputTexts)
@@ -360,24 +330,20 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 		span.SetStatus(codes.Ok, "embeddings generated successfully")
 
 		if len(embeddings) > 0 && len(embeddings[0]) > 0 {
-
 			span.SetAttributes(
 
 				attribute.Int("embedding.vector_dimension", len(embeddings[0])),
 			)
-
 		}
 
 	}
 
 	return embeddings, err
-
 }
 
 // InstrumentVectorStore adds tracing to vector store operations.
 
 func (tm *TracingManager) InstrumentVectorStore(ctx context.Context, operation string, objectCount int, fn func(context.Context) error) error {
-
 	ctx, span := tm.StartSpan(ctx, "vector_store_operation",
 
 		trace.WithAttributes(
@@ -412,19 +378,15 @@ func (tm *TracingManager) InstrumentVectorStore(ctx context.Context, operation s
 		span.SetAttributes(attribute.String("error.type", "vector_store_error"))
 
 	} else {
-
 		span.SetStatus(codes.Ok, "vector store operation completed successfully")
-
 	}
 
 	return err
-
 }
 
 // InstrumentRetrieval adds tracing to document retrieval.
 
 func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string, searchType string, fn func(context.Context) ([]RetrievedDocument, error)) ([]RetrievedDocument, error) {
-
 	ctx, span := tm.StartSpan(ctx, "document_retrieval",
 
 		trace.WithAttributes(
@@ -473,9 +435,7 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 			totalScore := 0.0
 
 			for _, doc := range documents {
-
 				totalScore += float64(doc.Score)
-
 			}
 
 			avgScore := totalScore / float64(len(documents))
@@ -492,13 +452,11 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 	}
 
 	return documents, err
-
 }
 
 // InstrumentContextAssembly adds tracing to context assembly.
 
 func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documents []RetrievedDocument, strategy string, fn func(context.Context) (string, error)) (string, error) {
-
 	ctx, span := tm.StartSpan(ctx, "context_assembly",
 
 		trace.WithAttributes(
@@ -545,9 +503,7 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 			totalInputLength := 0
 
 			for _, doc := range documents {
-
 				totalInputLength += len(doc.Content)
-
 			}
 
 			compressionRatio := float64(len(context_str)) / float64(totalInputLength)
@@ -564,13 +520,11 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 	}
 
 	return context_str, err
-
 }
 
 // InstrumentRAGQuery adds end-to-end tracing for RAG queries.
 
 func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, intentType string, fn func(context.Context) (*RAGResponse, error)) (*RAGResponse, error) {
-
 	ctx, span := tm.StartSpan(ctx, "rag_query",
 
 		trace.WithAttributes(
@@ -628,9 +582,7 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 				totalScore := 0.0
 
 				for _, source := range response.SourceDocuments {
-
 					totalScore += float64(source.Score)
-
 				}
 
 				avgRelevance := totalScore / float64(len(response.SourceDocuments))
@@ -647,13 +599,11 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 	}
 
 	return response, err
-
 }
 
 // InstrumentCacheOperation adds tracing to cache operations.
 
 func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operation string, cacheKey string, fn func(context.Context) (interface{}, bool, error)) (interface{}, bool, error) {
-
 	ctx, span := tm.StartSpan(ctx, "cache_operation",
 
 		trace.WithAttributes(
@@ -694,59 +644,45 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 		span.SetStatus(codes.Ok, "cache operation completed successfully")
 
 		if hit {
-
 			span.SetAttributes(attribute.String("cache.status", "hit"))
-
 		} else {
-
 			span.SetAttributes(attribute.String("cache.status", "miss"))
-
 		}
 
 	}
 
 	return value, hit, err
-
 }
 
 // PropagateTraceContext extracts trace context for cross-service calls.
 
 func (tm *TracingManager) PropagateTraceContext(ctx context.Context) map[string]string {
-
 	headers := make(map[string]string)
 
 	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(headers))
 
 	return headers
-
 }
 
 // ExtractTraceContext injects trace context from incoming requests.
 
 func (tm *TracingManager) ExtractTraceContext(ctx context.Context, headers map[string]string) context.Context {
-
 	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(headers))
-
 }
 
 // AddCustomAttributes adds custom attributes to the current span.
 
 func (tm *TracingManager) AddCustomAttributes(ctx context.Context, attributes ...attribute.KeyValue) {
-
 	span := trace.SpanFromContext(ctx)
 
 	if span != nil {
-
 		span.SetAttributes(attributes...)
-
 	}
-
 }
 
 // RecordException records an exception in the current span.
 
 func (tm *TracingManager) RecordException(ctx context.Context, err error, description string) {
-
 	span := trace.SpanFromContext(ctx)
 
 	if span != nil {
@@ -763,23 +699,18 @@ func (tm *TracingManager) RecordException(ctx context.Context, err error, descri
 		)
 
 	}
-
 }
 
 // CreateChildSpan creates a child span from the current context.
 
 func (tm *TracingManager) CreateChildSpan(ctx context.Context, operationName string, attributes ...attribute.KeyValue) (context.Context, trace.Span) {
-
 	return tm.StartSpan(ctx, operationName, trace.WithAttributes(attributes...))
-
 }
 
 // GetDefaultTracingConfig returns default tracing configuration.
 
 func GetDefaultTracingConfig() *TracingConfig {
-
 	return &TracingConfig{
-
 		ServiceName: "nephoran-rag-service",
 
 		ServiceVersion: "1.0.0",
@@ -792,5 +723,4 @@ func GetDefaultTracingConfig() *TracingConfig {
 
 		EnableTracing: true,
 	}
-
 }

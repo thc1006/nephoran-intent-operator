@@ -24,7 +24,6 @@ import (
 // O2APIServer represents the O2 IMS RESTful API server.
 
 type O2APIServer struct {
-
 	// Configuration.
 
 	config *O2IMSConfig
@@ -108,21 +107,22 @@ type HealthChecker struct {
 
 type ComponentHealthCheck func(ctx context.Context) ComponentCheck
 
-// NewO2APIServer creates a new O2 IMS API server instance.
+// NewO2APIServer creates a new O2 IMS API server instance with flexible constructor patterns for 2025 Go testing best practices.
 
-func NewO2APIServer(config *O2IMSConfig) (*O2APIServer, error) {
-
+func NewO2APIServer(config *O2IMSConfig, logger *logging.StructuredLogger, k8sClient interface{}) (*O2APIServer, error) {
 	if config == nil {
-
 		config = DefaultO2IMSConfig()
-
 	}
 
-	if config.Logger == nil {
-
+	// Use provided logger or create default
+	if logger != nil {
+		config.Logger = logger
+	} else if config.Logger == nil {
 		config.Logger = logging.NewStructuredLogger(logging.DefaultConfig("o2-ims-api", "1.0.0", "production"))
-
 	}
+
+	// Store k8sClient for testing (will be used in future implementations)
+	_ = k8sClient
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -141,9 +141,7 @@ func NewO2APIServer(config *O2IMSConfig) (*O2APIServer, error) {
 	var healthConfig *APIHealthCheckerConfig
 
 	if config.HealthCheckConfig != nil {
-
 		healthConfig = &APIHealthCheckerConfig{
-
 			Enabled: config.HealthCheckConfig.Enabled,
 
 			CheckInterval: config.HealthCheckConfig.CheckInterval,
@@ -156,11 +154,9 @@ func NewO2APIServer(config *O2IMSConfig) (*O2APIServer, error) {
 
 			DeepHealthCheck: true,
 		}
-
 	}
 
 	healthChecker, err := newHealthChecker(healthConfig, config.Logger)
-
 	if err != nil {
 
 		cancel()
@@ -170,7 +166,6 @@ func NewO2APIServer(config *O2IMSConfig) (*O2APIServer, error) {
 	}
 
 	server := &O2APIServer{
-
 		config: config,
 
 		logger: config.Logger,
@@ -209,13 +204,21 @@ func NewO2APIServer(config *O2IMSConfig) (*O2APIServer, error) {
 	}
 
 	return server, nil
+}
 
+// NewO2APIServerWithConfig creates a server with only config (backward compatibility).
+func NewO2APIServerWithConfig(config *O2IMSConfig) (*O2APIServer, error) {
+	return NewO2APIServer(config, nil, nil)
+}
+
+// GetRouter returns the HTTP router for testing purposes.
+func (s *O2APIServer) GetRouter() *mux.Router {
+	return s.router
 }
 
 // initializeServices initializes the core O2 IMS services.
 
 func (s *O2APIServer) initializeServices() error {
-
 	s.logger.Info("initializing O2 IMS services")
 
 	// Initialize storage if configured (temporarily disabled).
@@ -251,13 +254,11 @@ func (s *O2APIServer) initializeServices() error {
 	s.healthChecker.RegisterHealthCheck("monitoring-service", s.monitoringServiceHealthCheck)
 
 	return nil
-
 }
 
 // initializeHTTPServer initializes the HTTP server and routing.
 
 func (s *O2APIServer) initializeHTTPServer() error {
-
 	s.logger.Info("initializing HTTP server",
 
 		"port", s.config.Port,
@@ -271,9 +272,7 @@ func (s *O2APIServer) initializeHTTPServer() error {
 	// Initialize middleware.
 
 	if err := s.initializeMiddleware(); err != nil {
-
 		return fmt.Errorf("failed to initialize middleware: %w", err)
-
 	}
 
 	// Setup routes.
@@ -285,7 +284,6 @@ func (s *O2APIServer) initializeHTTPServer() error {
 	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 
 	s.httpServer = &http.Server{
-
 		Addr: addr,
 
 		Handler: s.router,
@@ -300,13 +298,11 @@ func (s *O2APIServer) initializeHTTPServer() error {
 	}
 
 	return nil
-
 }
 
 // initializeMiddleware initializes HTTP middleware stack.
 
 func (s *O2APIServer) initializeMiddleware() error {
-
 	s.logger.Info("initializing middleware stack")
 
 	// Initialize authentication middleware (temporarily disabled for compilation).
@@ -314,7 +310,6 @@ func (s *O2APIServer) initializeMiddleware() error {
 	// TODO: Implement proper authentication middleware.
 
 	if s.config.AuthenticationConfig != nil && s.config.AuthenticationConfig.Enabled {
-
 		s.logger.Warn("Authentication middleware not yet implemented")
 
 		// authMiddleware, err := auth.NewJWTMiddleware(&auth.JWTConfig{.
@@ -336,7 +331,6 @@ func (s *O2APIServer) initializeMiddleware() error {
 		// }.
 
 		// s.authMiddleware = authMiddleware.
-
 	}
 
 	// Initialize CORS middleware.
@@ -344,7 +338,6 @@ func (s *O2APIServer) initializeMiddleware() error {
 	if s.config.SecurityConfig != nil && s.config.SecurityConfig.CORSEnabled {
 
 		corsConfig := middleware.CORSConfig{
-
 			AllowedOrigins: s.config.SecurityConfig.CORSAllowedOrigins,
 
 			AllowedMethods: s.config.SecurityConfig.CORSAllowedMethods,
@@ -355,9 +348,7 @@ func (s *O2APIServer) initializeMiddleware() error {
 		}
 
 		if err := middleware.ValidateConfig(corsConfig); err != nil {
-
 			return fmt.Errorf("invalid CORS config: %w", err)
-
 		}
 
 		s.corsMiddleware = middleware.NewCORSMiddleware(corsConfig, s.logger.Logger)
@@ -367,23 +358,19 @@ func (s *O2APIServer) initializeMiddleware() error {
 	// Initialize rate limiting middleware.
 
 	if s.config.SecurityConfig != nil && s.config.SecurityConfig.RateLimitConfig != nil && s.config.SecurityConfig.RateLimitConfig.Enabled {
-
 		// rateLimitMiddleware := s.createRateLimitMiddleware().
 
 		// s.rateLimitMiddleware = rateLimitMiddleware.
 
 		s.logger.Info("Rate limiting middleware not implemented yet")
-
 	}
 
 	return nil
-
 }
 
 // setupRoutes configures all API routes following O-RAN O2 specification.
 
 func (s *O2APIServer) setupRoutes() {
-
 	s.logger.Info("setting up API routes")
 
 	// Apply global middleware (temporarily disabled).
@@ -395,19 +382,13 @@ func (s *O2APIServer) setupRoutes() {
 	// s.router.Use(s.recoveryMiddleware).
 
 	if s.corsMiddleware != nil {
-
 		s.router.Use(s.corsMiddleware.Middleware)
-
 	}
 
 	if s.rateLimitMiddleware != nil {
-
 		s.router.Use(func(next http.Handler) http.Handler {
-
 			return s.rateLimitMiddleware
-
 		})
-
 	}
 
 	// API versioning - O2 IMS v1.0.
@@ -439,9 +420,7 @@ func (s *O2APIServer) setupRoutes() {
 	// Metrics endpoint (usually should be on separate port in production).
 
 	if s.config.MetricsConfig != nil && s.config.MetricsConfig.Enabled {
-
 		s.router.Handle("/metrics", promhttp.HandlerFor(s.metricsRegistry, promhttp.HandlerOpts{}))
-
 	}
 
 	// All route handlers are temporarily commented out for compilation testing.
@@ -471,27 +450,22 @@ func (s *O2APIServer) setupRoutes() {
 	// Infrastructure Discovery and Inventory (Extended API).
 
 	s.logger.Info("API routes configured successfully")
-
 }
 
 // Start starts the O2 IMS API server.
 
 func (s *O2APIServer) Start(ctx context.Context) error {
-
 	s.logger.Info("starting O2 IMS API server")
 
 	// Start background services.
 
 	if err := s.startBackgroundServices(ctx); err != nil {
-
 		return fmt.Errorf("failed to start background services: %w", err)
-
 	}
 
 	// Start HTTP server.
 
 	go func() {
-
 		var err error
 
 		if s.config.TLSEnabled {
@@ -515,11 +489,8 @@ func (s *O2APIServer) Start(ctx context.Context) error {
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-
 			s.logger.Error("HTTP server error", "error", err)
-
 		}
-
 	}()
 
 	// Wait for shutdown signal.
@@ -527,13 +498,11 @@ func (s *O2APIServer) Start(ctx context.Context) error {
 	<-ctx.Done()
 
 	return s.Shutdown(context.Background())
-
 }
 
 // Shutdown gracefully shuts down the API server.
 
 func (s *O2APIServer) Shutdown(ctx context.Context) error {
-
 	s.logger.Info("shutting down O2 IMS API server")
 
 	// Cancel server context.
@@ -549,9 +518,7 @@ func (s *O2APIServer) Shutdown(ctx context.Context) error {
 		defer cancel()
 
 		if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
-
 			s.logger.Error("HTTP server shutdown error", "error", err)
-
 		}
 
 	}
@@ -563,59 +530,45 @@ func (s *O2APIServer) Shutdown(ctx context.Context) error {
 	s.logger.Info("O2 IMS API server shutdown completed")
 
 	return nil
-
 }
 
 // startBackgroundServices starts background services like health checking.
 
 func (s *O2APIServer) startBackgroundServices(ctx context.Context) error {
-
 	s.logger.Info("starting background services")
 
 	// Start health checker.
 
 	if s.healthChecker != nil {
-
 		go s.healthChecker.Start(ctx)
-
 	}
 
 	// Start metrics collection.
 
 	if s.config.MetricsConfig != nil && s.config.MetricsConfig.Enabled {
-
 		go s.startMetricsCollection(ctx)
-
 	}
 
 	return nil
-
 }
 
 // stopBackgroundServices stops all background services.
 
 func (s *O2APIServer) stopBackgroundServices() {
-
 	s.logger.Info("stopping background services")
 
 	if s.healthChecker != nil {
-
 		s.healthChecker.Stop()
-
 	}
-
 }
 
 // startMetricsCollection starts periodic metrics collection.
 
 func (s *O2APIServer) startMetricsCollection(ctx context.Context) {
-
 	collectionInterval := s.config.MetricsConfig.CollectionInterval
 
 	if collectionInterval == 0 {
-
 		collectionInterval = 30 * time.Second // Default interval
-
 	}
 
 	ticker := time.NewTicker(collectionInterval)
@@ -623,7 +576,6 @@ func (s *O2APIServer) startMetricsCollection(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -635,15 +587,12 @@ func (s *O2APIServer) startMetricsCollection(ctx context.Context) {
 			s.collectMetrics()
 
 		}
-
 	}
-
 }
 
 // collectMetrics collects and updates metrics.
 
 func (s *O2APIServer) collectMetrics() {
-
 	// Update active connections metric.
 
 	// This would typically be implemented with actual connection tracking.
@@ -651,7 +600,6 @@ func (s *O2APIServer) collectMetrics() {
 	s.metrics.activeConnections.Set(0) // Placeholder
 
 	// Additional metrics collection would be implemented here.
-
 }
 
 // Utility methods for extracting path parameters and query parameters.
@@ -659,80 +607,60 @@ func (s *O2APIServer) collectMetrics() {
 // getPathParam extracts a path parameter from the request.
 
 func (s *O2APIServer) getPathParam(r *http.Request, param string) string {
-
 	vars := mux.Vars(r)
 
 	return vars[param]
-
 }
 
 // getQueryParam extracts a query parameter from the request.
 
 func (s *O2APIServer) getQueryParam(r *http.Request, param string) string {
-
 	return r.URL.Query().Get(param)
-
 }
 
 // getQueryParamInt extracts an integer query parameter.
 
 func (s *O2APIServer) getQueryParamInt(r *http.Request, param string, defaultValue int) int {
-
 	value := r.URL.Query().Get(param)
 
 	if value == "" {
-
 		return defaultValue
-
 	}
 
 	if intValue, err := strconv.Atoi(value); err == nil {
-
 		return intValue
-
 	}
 
 	return defaultValue
-
 }
 
 // getQueryParamBool extracts a boolean query parameter.
 
 func (s *O2APIServer) getQueryParamBool(r *http.Request, param string, defaultValue bool) bool {
-
 	value := r.URL.Query().Get(param)
 
 	if value == "" {
-
 		return defaultValue
-
 	}
 
 	if boolValue, err := strconv.ParseBool(value); err == nil {
-
 		return boolValue
-
 	}
 
 	return defaultValue
-
 }
 
 // parseResourcePoolFilter parses resource pool filter from query parameters.
 
 func (s *O2APIServer) parseResourcePoolFilter(r *http.Request) *models.ResourcePoolFilter {
-
 	filter := &models.ResourcePoolFilter{
-
 		Limit: s.getQueryParamInt(r, "limit", 100),
 
 		Offset: s.getQueryParamInt(r, "offset", 0),
 	}
 
 	if names := r.URL.Query().Get("names"); names != "" {
-
 		filter.Names = []string{names} // Simple implementation - could be enhanced for multiple names
-
 	}
 
 	// Note: locations filter not supported in ResourcePoolFilter.
@@ -744,23 +672,18 @@ func (s *O2APIServer) parseResourcePoolFilter(r *http.Request) *models.ResourceP
 	// }.
 
 	if providers := r.URL.Query().Get("providers"); providers != "" {
-
 		filter.Providers = []string{providers}
-
 	}
 
 	return filter
-
 }
 
 // Helper methods for service health checks.
 
 func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) ComponentCheck {
-
 	// Implement actual health check for IMS service.
 
 	return ComponentCheck{
-
 		Name: "ims-service",
 
 		Status: "UP",
@@ -769,15 +692,12 @@ func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) ComponentCheck 
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) ComponentCheck {
-
 	// Implement actual health check for resource manager.
 
 	return ComponentCheck{
-
 		Name: "resource-manager",
 
 		Status: "UP",
@@ -786,15 +706,12 @@ func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) ComponentC
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) ComponentCheck {
-
 	// Implement actual health check for inventory service.
 
 	return ComponentCheck{
-
 		Name: "inventory-service",
 
 		Status: "UP",
@@ -803,15 +720,12 @@ func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) Component
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 func (s *O2APIServer) monitoringServiceHealthCheck(ctx context.Context) ComponentCheck {
-
 	// Implement actual health check for monitoring service.
 
 	return ComponentCheck{
-
 		Name: "monitoring-service",
 
 		Status: "UP",
@@ -820,5 +734,4 @@ func (s *O2APIServer) monitoringServiceHealthCheck(ctx context.Context) Componen
 
 		Timestamp: time.Now(),
 	}
-
 }

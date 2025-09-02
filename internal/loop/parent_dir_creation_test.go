@@ -29,9 +29,9 @@ func TestParentDirectoryCreation(t *testing.T) {
 		defer sm.Close()
 
 		// Create the directory first and then create a test file
-		require.NoError(t, os.MkdirAll(nestedDir, 0755))
+		require.NoError(t, os.MkdirAll(nestedDir, 0o755))
 		testFile := filepath.Join(nestedDir, "test.json")
-		require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0o644))
 
 		// Mark the file as processed - this should trigger state file write
 		// and test that the StateManager can create parent directories for its state file
@@ -49,7 +49,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		statusDir := filepath.Join(watchDir, "status")
 
 		// Create the watch directory but not the status directory
-		require.NoError(t, os.MkdirAll(watchDir, 0755))
+		require.NoError(t, os.MkdirAll(watchDir, 0o755))
 
 		// Verify the status directory doesn't exist initially
 		_, err := os.Stat(statusDir)
@@ -75,7 +75,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 			"spec": {"replicas": 3}
 		}`
 
-		require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+		require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 		// Manually trigger status file write (simulating successful processing)
 		// This should create the status directory
@@ -102,7 +102,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 
 		// Use atomicWriteFile to write to the nested path
 		testData := []byte("test content for atomic write")
-		err = atomicWriteFile(nestedPath, testData, 0644)
+		err = atomicWriteFile(nestedPath, testData, 0o644)
 		require.NoError(t, err, "atomicWriteFile should succeed")
 
 		// Verify the file was created
@@ -133,7 +133,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		}
 
 		// Test atomicWriteFile with empty filename
-		err = atomicWriteFile("", []byte("test"), 0644)
+		err = atomicWriteFile("", []byte("test"), 0o644)
 		assert.Error(t, err, "atomicWriteFile should fail with empty filename")
 	})
 
@@ -147,7 +147,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			go func(id int) {
 				filePath := filepath.Join(concurrentDir, "file"+string(rune('0'+id))+".txt")
-				err := atomicWriteFile(filePath, []byte("concurrent test"), 0644)
+				err := atomicWriteFile(filePath, []byte("concurrent test"), 0o644)
 				done <- err
 			}(i)
 		}
@@ -182,7 +182,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		longPath := filepath.Join(tempDir, longDirName, longDirName, longDirName, "test.txt")
 
 		// Attempt to write to the long path
-		err := atomicWriteFile(longPath, []byte("long path test"), 0644)
+		err := atomicWriteFile(longPath, []byte("long path test"), 0o644)
 		// On Windows, this should either succeed or fail gracefully
 		if err != nil {
 			// If it fails, it should be a clear error about path length
@@ -211,12 +211,12 @@ func TestDirectoryCreationErrorHandling(t *testing.T) {
 
 		// Create a directory with restricted permissions
 		restrictedDir := filepath.Join(tempDir, "restricted")
-		require.NoError(t, os.Mkdir(restrictedDir, 0000)) // No permissions
-		defer os.Chmod(restrictedDir, 0755)               // Restore permissions for cleanup
+		require.NoError(t, os.Mkdir(restrictedDir, 0o000)) // No permissions
+		defer os.Chmod(restrictedDir, 0o755)               // Restore permissions for cleanup
 
 		// Try to create a file in a subdirectory of the restricted directory
 		testFile := filepath.Join(restrictedDir, "subdir", "test.txt")
-		err := atomicWriteFile(testFile, []byte("test"), 0644)
+		err := atomicWriteFile(testFile, []byte("test"), 0o644)
 
 		// Should fail with permission error
 		assert.Error(t, err, "Should fail to create file in restricted directory")
@@ -241,7 +241,7 @@ func TestDirectoryCreationErrorHandling(t *testing.T) {
 		}
 
 		for _, path := range problematicPaths {
-			err := atomicWriteFile(path, []byte("test"), 0644)
+			err := atomicWriteFile(path, []byte("test"), 0o644)
 			// Should fail gracefully
 			assert.Error(t, err, "Should fail with invalid path characters: %s", path)
 		}

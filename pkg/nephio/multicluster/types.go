@@ -292,17 +292,13 @@ type GitLock struct {
 // SetCondition adds or updates a condition in the PackageRevision status.
 
 func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
-
 	if pr.Status.Conditions == nil {
-
 		pr.Status.Conditions = []metav1.Condition{}
-
 	}
 
 	// Look for existing condition with the same type.
 
 	for i, existing := range pr.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			// Update existing condition.
@@ -312,11 +308,9 @@ func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
 			return
 
 		}
-
 	}
 
 	// Add new condition.
 
 	pr.Status.Conditions = append(pr.Status.Conditions, condition)
-
 }

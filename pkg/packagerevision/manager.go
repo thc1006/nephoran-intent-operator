@@ -54,7 +54,6 @@ import (
 // template rendering, YANG model validation, and O-RAN compliance checks.
 
 type PackageRevisionManager interface {
-
 	// Core lifecycle management.
 
 	CreateFromIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (*porch.PackageRevision, error)
@@ -105,7 +104,6 @@ type PackageRevisionManager interface {
 // packageRevisionManager implements comprehensive PackageRevision lifecycle orchestration.
 
 type packageRevisionManager struct {
-
 	// Core dependencies.
 
 	porchClient porch.PorchClient
@@ -229,7 +227,6 @@ type ValidationError struct {
 	Remediation string `json:"remediation,omitempty"`
 
 	Source string `json:"source"` // yang, policy, compliance, security
-
 }
 
 // ValidationWarning represents a validation warning.
@@ -643,7 +640,6 @@ type NotificationResult struct {
 // ManagerConfig contains manager configuration.
 
 type ManagerConfig struct {
-
 	// General settings.
 
 	DefaultRepository string `yaml:"defaultRepository"`
@@ -764,7 +760,6 @@ type ManagerMetrics struct {
 // NewPackageRevisionManager creates a new PackageRevision manager.
 
 func NewPackageRevisionManager(
-
 	porchClient porch.PorchClient,
 
 	lifecycleManager porch.LifecycleManager,
@@ -774,35 +769,24 @@ func NewPackageRevisionManager(
 	yangValidator yang.YANGValidator,
 
 	config *ManagerConfig,
-
 ) (PackageRevisionManager, error) {
-
 	if porchClient == nil {
-
 		return nil, fmt.Errorf("porchClient cannot be nil")
-
 	}
 
 	if lifecycleManager == nil {
-
 		return nil, fmt.Errorf("lifecycleManager cannot be nil")
-
 	}
 
 	if templateEngine == nil {
-
 		return nil, fmt.Errorf("templateEngine cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = getDefaultManagerConfig()
-
 	}
 
 	manager := &packageRevisionManager{
-
 		porchClient: porchClient,
 
 		lifecycleManager: lifecycleManager,
@@ -825,21 +809,15 @@ func NewPackageRevisionManager(
 	// Initialize additional components.
 
 	approvalEngine, err := NewApprovalEngine(config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create approval engine: %w", err)
-
 	}
 
 	manager.approvalEngine = approvalEngine
 
 	driftDetector, err := NewDriftDetector(porchClient, config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create drift detector: %w", err)
-
 	}
 
 	manager.driftDetector = driftDetector
@@ -857,13 +835,11 @@ func NewPackageRevisionManager(
 	manager.logger.Info("PackageRevision manager initialized successfully")
 
 	return manager, nil
-
 }
 
 // CreateFromIntent creates a new PackageRevision from a NetworkIntent.
 
 func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (*porch.PackageRevision, error) {
-
 	m.logger.Info("Creating PackageRevision from NetworkIntent",
 
 		"intent", intent.Name,
@@ -873,23 +849,18 @@ func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *n
 	startTime := time.Now()
 
 	defer func() {
-
 		m.metrics.TransitionDuration.WithLabelValues("create").Observe(time.Since(startTime).Seconds())
-
 	}()
 
 	// Validate NetworkIntent.
 
 	if err := m.validateNetworkIntent(intent); err != nil {
-
 		return nil, fmt.Errorf("invalid NetworkIntent: %w", err)
-
 	}
 
 	// Create PackageRevision specification.
 
 	packageSpec := &porch.PackageSpec{
-
 		Repository: m.config.DefaultRepository,
 
 		PackageName: m.generatePackageName(intent),
@@ -906,9 +877,7 @@ func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *n
 	// Create the PackageRevision.
 
 	pkg := &porch.PackageRevision{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: packageSpec.PackageName,
 
 			Labels: packageSpec.Labels,
@@ -917,7 +886,6 @@ func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *n
 		},
 
 		Spec: porch.PackageRevisionSpec{
-
 			PackageName: packageSpec.PackageName,
 
 			Repository: packageSpec.Repository,
@@ -931,7 +899,6 @@ func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *n
 	// Create the PackageRevision in Porch.
 
 	createdPkg, err := m.porchClient.CreatePackageRevision(ctx, pkg)
-
 	if err != nil {
 
 		m.metrics.ValidationResults.WithLabelValues("create", "error").Inc()
@@ -953,13 +920,11 @@ func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *n
 		"lifecycle", createdPkg.Spec.Lifecycle)
 
 	return createdPkg, nil
-
 }
 
 // UpdateFromIntent updates an existing PackageRevision from a NetworkIntent.
 
 func (m *packageRevisionManager) UpdateFromIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, existing *porch.PackageRevision) (*porch.PackageRevision, error) {
-
 	m.logger.Info("Updating PackageRevision from NetworkIntent",
 
 		"intent", intent.Name,
@@ -971,25 +936,21 @@ func (m *packageRevisionManager) UpdateFromIntent(ctx context.Context, intent *n
 	// For now, return the existing package unchanged.
 
 	return existing, nil
-
 }
 
 // DeletePackageRevision deletes a PackageRevision.
 
 func (m *packageRevisionManager) DeletePackageRevision(ctx context.Context, ref *porch.PackageReference) error {
-
 	m.logger.Info("Deleting PackageRevision", "package", ref.GetPackageKey())
 
 	// Delete the PackageRevision using Porch client.
 
 	return m.porchClient.DeletePackageRevision(ctx, ref.PackageName, ref.Revision)
-
 }
 
 // RollbackRevision rolls back a PackageRevision to a previous version.
 
 func (m *packageRevisionManager) RollbackRevision(ctx context.Context, ref *porch.PackageReference, targetRevision string) (*RollbackResult, error) {
-
 	m.logger.Info("Rolling back PackageRevision",
 
 		"package", ref.GetPackageKey(),
@@ -1001,7 +962,6 @@ func (m *packageRevisionManager) RollbackRevision(ctx context.Context, ref *porc
 	// For now, return a successful result.
 
 	return &RollbackResult{
-
 		Success: true,
 
 		Duration: time.Second,
@@ -1010,48 +970,38 @@ func (m *packageRevisionManager) RollbackRevision(ctx context.Context, ref *porc
 
 		RestoredStage: porch.PackageRevisionLifecycleDraft,
 	}, nil
-
 }
 
 // TransitionToProposed transitions a PackageRevision to Proposed stage.
 
 func (m *packageRevisionManager) TransitionToProposed(ctx context.Context, ref *porch.PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
-
 	return m.performLifecycleTransition(ctx, ref, porch.PackageRevisionLifecycleProposed, opts)
-
 }
 
 // TransitionToPublished transitions a PackageRevision to Published stage.
 
 func (m *packageRevisionManager) TransitionToPublished(ctx context.Context, ref *porch.PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
-
 	return m.performLifecycleTransition(ctx, ref, porch.PackageRevisionLifecyclePublished, opts)
-
 }
 
 // BatchCreateFromIntents creates multiple PackageRevisions from NetworkIntents in batch.
 
 func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, intents []*nephoranv1.NetworkIntent, opts *BatchOptions) (*BatchResult, error) {
-
 	m.logger.Info("Creating PackageRevisions from NetworkIntents in batch", "count", len(intents))
 
 	startTime := time.Now()
 
 	if opts == nil {
-
 		opts = &BatchOptions{
-
 			Concurrency: 5,
 
 			ContinueOnError: true,
 
 			Timeout: 30 * time.Minute,
 		}
-
 	}
 
 	result := &BatchResult{
-
 		TotalRequests: len(intents),
 
 		SuccessfulOperations: 0,
@@ -1072,15 +1022,12 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 	// Process intents concurrently.
 
 	for _, intent := range intents {
-
 		go func(intent *nephoranv1.NetworkIntent) {
-
 			semaphore <- struct{}{} // Acquire semaphore
 
 			defer func() { <-semaphore }() // Release semaphore
 
 			opResult := &PackageOperationResult{
-
 				Intent: intent,
 
 				Success: true,
@@ -1105,7 +1052,6 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 				opResult.Result = pkg
 
 				opResult.PackageRef = &porch.PackageReference{
-
 					Repository: pkg.Spec.Repository,
 
 					PackageName: pkg.Spec.PackageName,
@@ -1116,15 +1062,12 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 			}
 
 			resultChan <- opResult
-
 		}(intent)
-
 	}
 
 	// Collect results.
 
 	for range len(intents) {
-
 		select {
 
 		case opResult := <-resultChan:
@@ -1132,17 +1075,13 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 			result.Results = append(result.Results, opResult)
 
 			if opResult.Success {
-
 				result.SuccessfulOperations++
-
 			} else {
 
 				result.FailedOperations++
 
 				if !opts.ContinueOnError {
-
 					result.OverallSuccess = false
-
 				}
 
 			}
@@ -1156,15 +1095,12 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 			break
 
 		}
-
 	}
 
 	result.Duration = time.Since(startTime)
 
 	if result.FailedOperations > 0 && !opts.ContinueOnError {
-
 		result.OverallSuccess = false
-
 	}
 
 	m.logger.Info("Batch PackageRevision creation completed",
@@ -1178,33 +1114,25 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 		"duration", result.Duration)
 
 	return result, nil
-
 }
 
 // RenderTemplate renders a template with the given parameters.
 
 func (m *packageRevisionManager) RenderTemplate(ctx context.Context, template *templates.BlueprintTemplate, params map[string]interface{}) ([]*porch.KRMResource, error) {
-
 	return m.templateEngine.RenderTemplate(ctx, template.Name, params)
-
 }
 
 // ValidateConfiguration validates a PackageRevision configuration.
 
 func (m *packageRevisionManager) ValidateConfiguration(ctx context.Context, ref *porch.PackageReference) (*ValidationResult, error) {
-
 	// Get the PackageRevision.
 
 	pkg, err := m.porchClient.GetPackageRevision(ctx, ref.PackageName, ref.Revision)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get PackageRevision for validation: %w", err)
-
 	}
 
 	result := &ValidationResult{
-
 		Valid: true,
 	}
 
@@ -1219,7 +1147,6 @@ func (m *packageRevisionManager) ValidateConfiguration(ctx context.Context, ref 
 			result.Valid = false
 
 			result.Errors = append(result.Errors, &ValidationError{
-
 				Code: "YANG_VALIDATION_FAILED",
 
 				Path: "/",
@@ -1240,9 +1167,7 @@ func (m *packageRevisionManager) ValidateConfiguration(ctx context.Context, ref 
 				result.Valid = false
 
 				for _, yangErr := range yangResult.Errors {
-
 					result.Errors = append(result.Errors, &ValidationError{
-
 						Code: yangErr.Code,
 
 						Path: "/",
@@ -1253,7 +1178,6 @@ func (m *packageRevisionManager) ValidateConfiguration(ctx context.Context, ref 
 
 						Source: "yang",
 					})
-
 				}
 
 			}
@@ -1263,23 +1187,18 @@ func (m *packageRevisionManager) ValidateConfiguration(ctx context.Context, ref 
 	}
 
 	return result, nil
-
 }
 
 // DetectConfigurationDrift detects configuration drift for a PackageRevision.
 
 func (m *packageRevisionManager) DetectConfigurationDrift(ctx context.Context, ref *porch.PackageReference) (*DriftDetectionResult, error) {
-
 	if m.driftDetector != nil {
-
 		return m.driftDetector.DetectDrift(ctx, ref)
-
 	}
 
 	// Return no drift if detector is not available.
 
 	return &DriftDetectionResult{
-
 		HasDrift: false,
 
 		DetectionTime: time.Now(),
@@ -1288,17 +1207,13 @@ func (m *packageRevisionManager) DetectConfigurationDrift(ctx context.Context, r
 
 		AutoCorrectible: false,
 	}, nil
-
 }
 
 // CorrectConfigurationDrift corrects detected configuration drift.
 
 func (m *packageRevisionManager) CorrectConfigurationDrift(ctx context.Context, ref *porch.PackageReference, driftResult *DriftDetectionResult) error {
-
 	if !driftResult.HasDrift || !driftResult.AutoCorrectible {
-
 		return nil
-
 	}
 
 	// Implementation would apply the drift correction plan.
@@ -1314,19 +1229,16 @@ func (m *packageRevisionManager) CorrectConfigurationDrift(ctx context.Context, 
 	// In a real implementation, this would apply the corrections.
 
 	return nil
-
 }
 
 // GetAvailableTemplates gets available templates for a target component.
 
 func (m *packageRevisionManager) GetAvailableTemplates(ctx context.Context, targetComponent nephoranv1.ORANComponent) ([]*templates.BlueprintTemplate, error) {
-
 	// For now, return a mock template.
 
 	// In a real implementation, this would query the template repository.
 
 	mockTemplate := &templates.BlueprintTemplate{
-
 		Name: fmt.Sprintf("%s-template", targetComponent),
 
 		Version: "v1.0.0",
@@ -1335,23 +1247,17 @@ func (m *packageRevisionManager) GetAvailableTemplates(ctx context.Context, targ
 	}
 
 	return []*templates.BlueprintTemplate{mockTemplate}, nil
-
 }
 
 // GetLifecycleStatus gets the current lifecycle status of a PackageRevision.
 
 func (m *packageRevisionManager) GetLifecycleStatus(ctx context.Context, ref *porch.PackageReference) (*LifecycleStatus, error) {
-
 	pkg, err := m.porchClient.GetPackageRevision(ctx, ref.PackageName, ref.Revision)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get PackageRevision: %w", err)
-
 	}
 
 	status := &LifecycleStatus{
-
 		CurrentStage: pkg.Spec.Lifecycle,
 
 		StageStartTime: time.Now(), // In real implementation, this would be tracked
@@ -1365,14 +1271,12 @@ func (m *packageRevisionManager) GetLifecycleStatus(ctx context.Context, ref *po
 	case porch.PackageRevisionLifecycleDraft:
 
 		status.NextPossibleStages = []porch.PackageRevisionLifecycle{
-
 			porch.PackageRevisionLifecycleProposed,
 		}
 
 	case porch.PackageRevisionLifecycleProposed:
 
 		status.NextPossibleStages = []porch.PackageRevisionLifecycle{
-
 			porch.PackageRevisionLifecyclePublished,
 
 			porch.PackageRevisionLifecycleDraft,
@@ -1381,24 +1285,20 @@ func (m *packageRevisionManager) GetLifecycleStatus(ctx context.Context, ref *po
 	case porch.PackageRevisionLifecyclePublished:
 
 		status.NextPossibleStages = []porch.PackageRevisionLifecycle{
-
 			porch.PackageRevisionLifecycleDeletable,
 		}
 
 	}
 
 	return status, nil
-
 }
 
 // GetPackageMetrics gets metrics for a specific package.
 
 func (m *packageRevisionManager) GetPackageMetrics(ctx context.Context, ref *porch.PackageReference) (*PackageMetrics, error) {
-
 	// In a real implementation, this would aggregate metrics from various sources.
 
 	return &PackageMetrics{
-
 		PackageRef: ref,
 
 		TotalTransitions: 0,
@@ -1421,13 +1321,11 @@ func (m *packageRevisionManager) GetPackageMetrics(ctx context.Context, ref *por
 
 		LastActivity: time.Now(),
 	}, nil
-
 }
 
 // GetManagerHealth gets the health status of the manager.
 
 func (m *packageRevisionManager) GetManagerHealth(ctx context.Context) (*ManagerHealth, error) {
-
 	m.transitionMutex.RLock()
 
 	activeTransitions := len(m.activeTransitions)
@@ -1439,31 +1337,19 @@ func (m *packageRevisionManager) GetManagerHealth(ctx context.Context) (*Manager
 	// Check component health.
 
 	if m.porchClient != nil {
-
 		if _, err := m.porchClient.Health(ctx); err != nil {
-
 			componentHealth["porch-client"] = "unhealthy"
-
 		} else {
-
 			componentHealth["porch-client"] = "healthy"
-
 		}
-
 	}
 
 	if m.templateEngine != nil {
-
 		if _, err := m.templateEngine.GetEngineHealth(ctx); err != nil {
-
 			componentHealth["template-engine"] = "unhealthy"
-
 		} else {
-
 			componentHealth["template-engine"] = "healthy"
-
 		}
-
 	}
 
 	// Determine overall status.
@@ -1471,7 +1357,6 @@ func (m *packageRevisionManager) GetManagerHealth(ctx context.Context) (*Manager
 	status := "healthy"
 
 	for _, health := range componentHealth {
-
 		if health == "unhealthy" {
 
 			status = "degraded"
@@ -1479,11 +1364,9 @@ func (m *packageRevisionManager) GetManagerHealth(ctx context.Context) (*Manager
 			break
 
 		}
-
 	}
 
 	return &ManagerHealth{
-
 		Status: status,
 
 		ActiveTransitions: activeTransitions,
@@ -1496,13 +1379,11 @@ func (m *packageRevisionManager) GetManagerHealth(ctx context.Context) (*Manager
 
 		Metrics: m.metrics,
 	}, nil
-
 }
 
 // performLifecycleTransition performs the actual lifecycle transition.
 
 func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context, ref *porch.PackageReference, targetStage porch.PackageRevisionLifecycle, opts *TransitionOptions) (*TransitionResult, error) {
-
 	m.logger.Info("Performing lifecycle transition",
 
 		"package", ref.GetPackageKey(),
@@ -1510,9 +1391,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 		"targetStage", targetStage)
 
 	if opts == nil {
-
 		opts = &TransitionOptions{}
-
 	}
 
 	startTime := time.Now()
@@ -1522,7 +1401,6 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 	// Track active transition.
 
 	activeTransition := &ActiveTransition{
-
 		ID: transitionID,
 
 		PackageRef: ref,
@@ -1549,17 +1427,14 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 	m.transitionMutex.Unlock()
 
 	defer func() {
-
 		m.transitionMutex.Lock()
 
 		delete(m.activeTransitions, transitionID)
 
 		m.transitionMutex.Unlock()
-
 	}()
 
 	result := &TransitionResult{
-
 		PreviousStage: "", // Will be set after getting current package
 
 		NewStage: targetStage,
@@ -1574,7 +1449,6 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 	// Get current package state.
 
 	pkg, err := m.porchClient.GetPackageRevision(ctx, ref.PackageName, ref.Revision)
-
 	if err != nil {
 
 		result.Success = false
@@ -1606,9 +1480,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 			result.Duration = time.Since(startTime)
 
 			if !opts.ForceTransition {
-
 				return result, fmt.Errorf("validation failed for transition to %s", targetStage)
-
 			}
 
 			result.Warnings = append(result.Warnings, "Validation failed but transition forced")
@@ -1628,7 +1500,6 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 	if !opts.SkipApproval && m.config.EnableApprovalWorkflow {
 
 		approvalResult, err := m.handleApprovalWorkflow(ctx, ref, targetStage, opts.ApprovalPolicy)
-
 		if err != nil {
 
 			result.Success = false
@@ -1636,9 +1507,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 			result.Duration = time.Since(startTime)
 
 			if !opts.ForceTransition {
-
 				return result, fmt.Errorf("approval workflow failed: %w", err)
-
 			}
 
 			result.Warnings = append(result.Warnings, "Approval failed but transition forced")
@@ -1658,7 +1527,6 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 	if !opts.DryRun {
 
 		lifecycleOpts := &porch.TransitionOptions{
-
 			SkipValidation: opts.SkipValidation,
 
 			CreateRollbackPoint: opts.CreateRollbackPoint,
@@ -1713,9 +1581,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 		}
 
 		if lifecycleResult.RollbackPoint != nil {
-
 			result.RollbackPoint = lifecycleResult.RollbackPoint
-
 		}
 
 		result.Warnings = append(result.Warnings, lifecycleResult.Warnings...)
@@ -1757,37 +1623,27 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 		"duration", result.Duration)
 
 	return result, nil
-
 }
 
 // Helper methods.
 
 func (m *packageRevisionManager) validateNetworkIntent(intent *nephoranv1.NetworkIntent) error {
-
 	if intent == nil {
-
 		return fmt.Errorf("NetworkIntent cannot be nil")
-
 	}
 
 	if intent.Spec.Intent == "" {
-
 		return fmt.Errorf("NetworkIntent spec.intent cannot be empty")
-
 	}
 
 	if len(intent.Spec.TargetComponents) == 0 {
-
 		return fmt.Errorf("NetworkIntent must specify at least one target component")
-
 	}
 
 	return nil
-
 }
 
 func (m *packageRevisionManager) extractParametersFromIntent(intent *nephoranv1.NetworkIntent) (map[string]interface{}, error) {
-
 	params := make(map[string]interface{})
 
 	// Extract basic parameters.
@@ -1805,31 +1661,23 @@ func (m *packageRevisionManager) extractParametersFromIntent(intent *nephoranv1.
 	// Extract resource constraints if specified.
 
 	if intent.Spec.ResourceConstraints != nil {
-
 		params["resourceConstraints"] = intent.Spec.ResourceConstraints
-
 	}
 
 	// Extract processed parameters if available.
 
 	if intent.Spec.ProcessedParameters != nil {
-
 		if intent.Spec.ProcessedParameters.NetworkFunction != "" {
-
 			params["networkFunction"] = intent.Spec.ProcessedParameters.NetworkFunction
-
 		}
 
 		// Add other processed parameters as needed.
-
 	}
 
 	return params, nil
-
 }
 
 func (m *packageRevisionManager) selectTemplateForIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, params map[string]interface{}) (*templates.BlueprintTemplate, error) {
-
 	// Get the primary target component.
 
 	primaryComponent := intent.Spec.TargetComponents[0]
@@ -1837,17 +1685,12 @@ func (m *packageRevisionManager) selectTemplateForIntent(ctx context.Context, in
 	// Get available templates for the component.
 
 	availableTemplates, err := m.GetAvailableTemplates(ctx, m.convertToORANComponent(primaryComponent))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get available templates for component %s: %w", primaryComponent, err)
-
 	}
 
 	if len(availableTemplates) == 0 {
-
 		return nil, fmt.Errorf("no templates available for component %s", primaryComponent)
-
 	}
 
 	// For now, select the first available template.
@@ -1865,7 +1708,6 @@ func (m *packageRevisionManager) selectTemplateForIntent(ctx context.Context, in
 		"component", primaryComponent)
 
 	return selectedTemplate, nil
-
 }
 
 // convertToORANComponent converts a NetworkTargetComponent to an ORANComponent.
@@ -1887,15 +1729,12 @@ func (m *packageRevisionManager) convertToORANComponent(component nephoranv1.Net
 }
 
 func (m *packageRevisionManager) generatePackageName(intent *nephoranv1.NetworkIntent) string {
-
 	// Generate a unique package name based on intent.
 
 	return fmt.Sprintf("%s-%s", intent.Name, string(intent.Spec.IntentType))
-
 }
 
 func (m *packageRevisionManager) generateLabelsForIntent(intent *nephoranv1.NetworkIntent) map[string]string {
-
 	labels := make(map[string]string)
 
 	labels[porch.LabelComponent] = "network-function"
@@ -1907,17 +1746,13 @@ func (m *packageRevisionManager) generateLabelsForIntent(intent *nephoranv1.Netw
 	labels["nephoran.com/intent-namespace"] = intent.Namespace
 
 	if len(intent.Spec.TargetComponents) > 0 {
-
 		labels[porch.LabelTargetComponent] = string(intent.Spec.TargetComponents[0])
-
 	}
 
 	return labels
-
 }
 
 func (m *packageRevisionManager) generateAnnotationsForIntent(intent *nephoranv1.NetworkIntent) map[string]string {
-
 	annotations := make(map[string]string)
 
 	annotations[porch.AnnotationManagedBy] = "nephoran-intent-operator"
@@ -1929,21 +1764,17 @@ func (m *packageRevisionManager) generateAnnotationsForIntent(intent *nephoranv1
 	annotations["nephoran.com/intent-uid"] = string(intent.UID)
 
 	return annotations
-
 }
 
 func (m *packageRevisionManager) templateSupportsComponent(template *templates.BlueprintTemplate, targetComponent nephoranv1.ORANComponent) bool {
-
 	// For now, assume all templates support all components.
 
 	// In a real implementation, this would check template metadata or capabilities.
 
 	return true
-
 }
 
 func (m *packageRevisionManager) updateTransitionProgress(transitionID, step string, progress int) {
-
 	m.transitionMutex.Lock()
 
 	defer m.transitionMutex.Unlock()
@@ -1959,23 +1790,18 @@ func (m *packageRevisionManager) updateTransitionProgress(transitionID, step str
 		transition.Status = "in_progress"
 
 		if progress >= 100 {
-
 			transition.Status = "completed"
-
 		}
 
 	}
-
 }
 
 func (m *packageRevisionManager) handleApprovalWorkflow(ctx context.Context, ref *porch.PackageReference, targetStage porch.PackageRevisionLifecycle, policy *ApprovalPolicy) (*ApprovalResult, error) {
-
 	// Implementation would integrate with approval engine.
 
 	// For now, return a successful approval.
 
 	return &ApprovalResult{
-
 		WorkflowID: fmt.Sprintf("approval-%d", time.Now().UnixNano()),
 
 		Stage: string(targetStage),
@@ -1990,17 +1816,14 @@ func (m *packageRevisionManager) handleApprovalWorkflow(ctx context.Context, ref
 
 		ReceivedApprovals: 1,
 	}, nil
-
 }
 
 func (m *packageRevisionManager) sendTransitionNotifications(ctx context.Context, ref *porch.PackageReference, result *TransitionResult, targets []string) []*NotificationResult {
-
 	notifications := make([]*NotificationResult, 0, len(targets))
 
 	for _, target := range targets {
 
 		notification := &NotificationResult{
-
 			Target: target,
 
 			Success: true,
@@ -2015,13 +1838,11 @@ func (m *packageRevisionManager) sendTransitionNotifications(ctx context.Context
 	}
 
 	return notifications
-
 }
 
 // Background workers.
 
 func (m *packageRevisionManager) driftDetectionWorker() {
-
 	defer m.wg.Done()
 
 	ticker := time.NewTicker(m.config.DriftDetectionInterval)
@@ -2029,7 +1850,6 @@ func (m *packageRevisionManager) driftDetectionWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.shutdown:
@@ -2039,19 +1859,14 @@ func (m *packageRevisionManager) driftDetectionWorker() {
 		case <-ticker.C:
 
 			if m.config.EnableDriftDetection {
-
 				m.performDriftDetection()
-
 			}
 
 		}
-
 	}
-
 }
 
 func (m *packageRevisionManager) metricsCollectionWorker() {
-
 	defer m.wg.Done()
 
 	ticker := time.NewTicker(m.config.MetricsInterval)
@@ -2059,7 +1874,6 @@ func (m *packageRevisionManager) metricsCollectionWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.shutdown:
@@ -2069,27 +1883,20 @@ func (m *packageRevisionManager) metricsCollectionWorker() {
 		case <-ticker.C:
 
 			if m.config.EnableMetrics {
-
 				m.collectMetrics()
-
 			}
 
 		}
-
 	}
-
 }
 
 func (m *packageRevisionManager) performDriftDetection() {
-
 	// Implementation would perform drift detection across all managed packages.
 
 	m.logger.V(1).Info("Performing drift detection across managed packages")
-
 }
 
 func (m *packageRevisionManager) collectMetrics() {
-
 	// Update active transitions metric.
 
 	m.transitionMutex.RLock()
@@ -2099,13 +1906,11 @@ func (m *packageRevisionManager) collectMetrics() {
 	m.transitionMutex.RUnlock()
 
 	m.metrics.ActiveTransitions.Set(float64(activeCount))
-
 }
 
 // Close gracefully shuts down the manager.
 
 func (m *packageRevisionManager) Close() error {
-
 	m.logger.Info("Shutting down PackageRevision manager")
 
 	close(m.shutdown)
@@ -2113,29 +1918,22 @@ func (m *packageRevisionManager) Close() error {
 	m.wg.Wait()
 
 	if m.approvalEngine != nil {
-
 		m.approvalEngine.Close()
-
 	}
 
 	if m.driftDetector != nil {
-
 		m.driftDetector.Close()
-
 	}
 
 	m.logger.Info("PackageRevision manager shutdown complete")
 
 	return nil
-
 }
 
 // Utility functions.
 
 func getDefaultManagerConfig() *ManagerConfig {
-
 	return &ManagerConfig{
-
 		DefaultRepository: "default",
 
 		DefaultTimeout: 30 * time.Minute,
@@ -2172,70 +1970,58 @@ func getDefaultManagerConfig() *ManagerConfig {
 
 		EnableNotifications: true,
 	}
-
 }
 
 func initManagerMetrics() *ManagerMetrics {
-
 	return &ManagerMetrics{
-
 		TotalPackagesManaged: prometheus.NewCounter(prometheus.CounterOpts{
-
 			Name: "packagerevision_manager_packages_total",
 
 			Help: "Total number of packages managed",
 		}),
 
 		TransitionsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "packagerevision_manager_transitions_total",
 
 			Help: "Total number of lifecycle transitions",
 		}, []string{"stage", "status"}),
 
 		TransitionDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "packagerevision_manager_transition_duration_seconds",
 
 			Help: "Duration of lifecycle transitions",
 		}, []string{"stage"}),
 
 		ValidationResults: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "packagerevision_manager_validation_results_total",
 
 			Help: "Total number of validation results",
 		}, []string{"operation", "result"}),
 
 		ApprovalLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "packagerevision_manager_approval_latency_seconds",
 
 			Help: "Latency of approval workflows",
 		}),
 
 		DriftDetections: prometheus.NewCounter(prometheus.CounterOpts{
-
 			Name: "packagerevision_manager_drift_detections_total",
 
 			Help: "Total number of drift detections",
 		}),
 
 		ActiveTransitions: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "packagerevision_manager_active_transitions",
 
 			Help: "Number of active transitions",
 		}),
 
 		QueueSize: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "packagerevision_manager_queue_size",
 
 			Help: "Size of operation queue",
 		}),
 	}
-
 }
 
 // Placeholder interfaces that would be implemented in separate files.
@@ -2259,17 +2045,13 @@ type DriftDetector interface {
 // Placeholder implementations.
 
 func NewApprovalEngine(config *ManagerConfig) (ApprovalEngine, error) {
-
 	return &mockApprovalEngine{}, nil
-
 }
 
 // NewDriftDetector performs newdriftdetector operation.
 
 func NewDriftDetector(client porch.PorchClient, config *ManagerConfig) (DriftDetector, error) {
-
 	return &mockDriftDetector{}, nil
-
 }
 
 type mockApprovalEngine struct{}
@@ -2277,9 +2059,7 @@ type mockApprovalEngine struct{}
 // ExecuteApprovalWorkflow performs executeapprovalworkflow operation.
 
 func (e *mockApprovalEngine) ExecuteApprovalWorkflow(ctx context.Context, ref *porch.PackageReference, stage porch.PackageRevisionLifecycle, policy *ApprovalPolicy) (*ApprovalResult, error) {
-
 	return &ApprovalResult{
-
 		WorkflowID: fmt.Sprintf("workflow-%d", time.Now().UnixNano()),
 
 		Stage: string(stage),
@@ -2290,7 +2070,6 @@ func (e *mockApprovalEngine) ExecuteApprovalWorkflow(ctx context.Context, ref *p
 
 		ReceivedApprovals: 1,
 	}, nil
-
 }
 
 // Close performs close operation.
@@ -2302,9 +2081,7 @@ type mockDriftDetector struct{}
 // DetectDrift performs detectdrift operation.
 
 func (d *mockDriftDetector) DetectDrift(ctx context.Context, ref *porch.PackageReference) (*DriftDetectionResult, error) {
-
 	return &DriftDetectionResult{
-
 		HasDrift: false,
 
 		DetectionTime: time.Now(),
@@ -2313,7 +2090,6 @@ func (d *mockDriftDetector) DetectDrift(ctx context.Context, ref *porch.PackageR
 
 		AutoCorrectible: true,
 	}, nil
-
 }
 
 // Close performs close operation.

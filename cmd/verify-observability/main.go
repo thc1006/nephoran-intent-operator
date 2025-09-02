@@ -13,11 +13,9 @@ import (
 )
 
 func main() {
-
 	// Create a test logger.
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-
 		Level: slog.LevelDebug,
 	}))
 
@@ -69,7 +67,6 @@ func main() {
 		wg.Add(1)
 
 		go func(id int) {
-
 			defer wg.Done()
 
 			// This will trigger semaphore acquisition/release with logging.
@@ -77,7 +74,6 @@ func main() {
 			// Note: actual push will fail without a real repo, but that's ok.
 
 			files := map[string]string{
-
 				fmt.Sprintf("test%d.txt", id): fmt.Sprintf("content %d", id),
 			}
 
@@ -86,15 +82,10 @@ func main() {
 			_, err := client.CommitAndPush(files, fmt.Sprintf("Test commit %d", id))
 
 			if err != nil {
-
 				logger.Info("Operation completed with expected error", "id", id, "error", err)
-
 			} else {
-
 				logger.Info("Operation completed successfully", "id", id)
-
 			}
-
 		}(i)
 
 		// Small delay between launches to see semaphore behavior.
@@ -114,13 +105,9 @@ func main() {
 	mfs, err := registry.Gather()
 
 	if err != nil {
-
 		logger.Error("Error gathering metrics", "error", err)
-
 	} else {
-
 		for _, mf := range mfs {
-
 			if mf.GetName() == "nephoran_git_push_in_flight" {
 
 				logger.Info("??Git push in-flight metric registered")
@@ -128,9 +115,7 @@ func main() {
 				logger.Info("Current metric value", "value", mf.GetMetric()[0].GetGauge().GetValue())
 
 			}
-
 		}
-
 	}
 
 	logger.Info("")
@@ -148,5 +133,4 @@ func main() {
 	logger.Info("??Prometheus metrics integration")
 
 	logger.Info("??Semaphore-based concurrency control")
-
 }

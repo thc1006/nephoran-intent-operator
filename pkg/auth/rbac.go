@@ -241,7 +241,6 @@ var (
 	// System Administrator - full access.
 
 	SystemAdminRole = &Role{
-
 		ID: "system-admin",
 
 		Name: "System Administrator",
@@ -249,7 +248,6 @@ var (
 		Description: "Full system access with all privileges",
 
 		Permissions: []string{
-
 			"system:*",
 
 			"intent:*",
@@ -275,7 +273,6 @@ var (
 	// Intent Operator - network intent management.
 
 	IntentOperatorRole = &Role{
-
 		ID: "intent-operator",
 
 		Name: "Intent Operator",
@@ -283,7 +280,6 @@ var (
 		Description: "Manage network intents and deployments",
 
 		Permissions: []string{
-
 			"intent:create",
 
 			"intent:read",
@@ -309,7 +305,6 @@ var (
 	// E2 Interface Manager - E2 interface operations.
 
 	E2ManagerRole = &Role{
-
 		ID: "e2-manager",
 
 		Name: "E2 Interface Manager",
@@ -317,7 +312,6 @@ var (
 		Description: "Manage E2 interface connections and service models",
 
 		Permissions: []string{
-
 			"e2:create",
 
 			"e2:read",
@@ -341,7 +335,6 @@ var (
 	// Read-Only User - view access only.
 
 	ReadOnlyRole = &Role{
-
 		ID: "read-only",
 
 		Name: "Read Only User",
@@ -349,7 +342,6 @@ var (
 		Description: "Read-only access to system resources",
 
 		Permissions: []string{
-
 			"intent:read",
 
 			"e2:read",
@@ -367,7 +359,6 @@ var (
 	// Nephoran Permissions.
 
 	NephoranPermissions = []*Permission{
-
 		// System permissions.
 
 		{ID: "system:admin", Name: "System Administration", Resource: "system", Action: "*"},
@@ -441,11 +432,8 @@ var (
 // NewRBACManager creates a new RBAC manager.
 
 func NewRBACManager(config *RBACManagerConfig, logger *slog.Logger) *RBACManager {
-
 	if config == nil {
-
 		config = &RBACManagerConfig{
-
 			CacheTTL: 15 * time.Minute,
 
 			EnableHierarchy: true,
@@ -458,11 +446,9 @@ func NewRBACManager(config *RBACManagerConfig, logger *slog.Logger) *RBACManager
 
 			EnableAuditLogging: true,
 		}
-
 	}
 
 	manager := &RBACManager{
-
 		roles: make(map[string]*Role),
 
 		permissions: make(map[string]*Permission),
@@ -472,7 +458,6 @@ func NewRBACManager(config *RBACManagerConfig, logger *slog.Logger) *RBACManager
 		userRoles: make(map[string][]string),
 
 		cache: &RBACCache{
-
 			userPermissions: make(map[string][]string),
 
 			roleHierarchy: make(map[string][]string),
@@ -488,13 +473,11 @@ func NewRBACManager(config *RBACManagerConfig, logger *slog.Logger) *RBACManager
 	manager.initializeDefaults()
 
 	return manager
-
 }
 
 // InitializeDefaults sets up default roles and permissions.
 
 func (r *RBACManager) initializeDefaults() {
-
 	// Add default permissions.
 
 	for _, perm := range NephoranPermissions {
@@ -514,17 +497,13 @@ func (r *RBACManager) initializeDefaults() {
 	defaultRoles := []*Role{SystemAdminRole, IntentOperatorRole, E2ManagerRole, ReadOnlyRole}
 
 	for _, role := range defaultRoles {
-
 		r.roles[role.ID] = role
-
 	}
-
 }
 
 // GrantRoleToUser assigns a role to a user.
 
 func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string) error {
-
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
@@ -532,9 +511,7 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 	// Verify role exists.
 
 	if _, exists := r.roles[roleID]; !exists {
-
 		return fmt.Errorf("role %s does not exist", roleID)
-
 	}
 
 	// Add role to user.
@@ -542,13 +519,9 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 	userRoles := r.userRoles[userID]
 
 	for _, existingRole := range userRoles {
-
 		if existingRole == roleID {
-
 			return nil // Already has role
-
 		}
-
 	}
 
 	r.userRoles[userID] = append(userRoles, roleID)
@@ -562,13 +535,11 @@ func (r *RBACManager) GrantRoleToUser(ctx context.Context, userID, roleID string
 		"role_id", roleID)
 
 	return nil
-
 }
 
 // RevokeRoleFromUser removes a role from a user.
 
 func (r *RBACManager) RevokeRoleFromUser(ctx context.Context, userID, roleID string) error {
-
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
@@ -576,7 +547,6 @@ func (r *RBACManager) RevokeRoleFromUser(ctx context.Context, userID, roleID str
 	userRoles := r.userRoles[userID]
 
 	for i, role := range userRoles {
-
 		if role == roleID {
 
 			// Remove role.
@@ -594,17 +564,14 @@ func (r *RBACManager) RevokeRoleFromUser(ctx context.Context, userID, roleID str
 			return nil
 
 		}
-
 	}
 
 	return fmt.Errorf("user %s does not have role %s", userID, roleID)
-
 }
 
 // GetUserRoles returns all roles for a user.
 
 func (r *RBACManager) GetUserRoles(ctx context.Context, userID string) []string {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -616,13 +583,11 @@ func (r *RBACManager) GetUserRoles(ctx context.Context, userID string) []string 
 	copy(result, roles)
 
 	return result
-
 }
 
 // GetUserPermissions returns all permissions for a user (with role hierarchy).
 
 func (r *RBACManager) GetUserPermissions(ctx context.Context, userID string) []string {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -658,33 +623,25 @@ func (r *RBACManager) GetUserPermissions(ctx context.Context, userID string) []s
 	r.cache.mutex.Unlock()
 
 	return permissions
-
 }
 
 // CheckPermission checks if a user has a specific permission.
 
 func (r *RBACManager) CheckPermission(ctx context.Context, userID, permission string) bool {
-
 	userPermissions := r.GetUserPermissions(ctx, userID)
 
 	for _, perm := range userPermissions {
-
 		if r.matchesPermission(perm, permission) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // CheckAccess evaluates an access request against RBAC policies.
 
 func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *AccessDecision {
-
 	startTime := time.Now()
 
 	r.mutex.RLock()
@@ -692,7 +649,6 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 	defer r.mutex.RUnlock()
 
 	decision := &AccessDecision{
-
 		EvaluatedAt: startTime,
 
 		Metadata: make(map[string]interface{}),
@@ -711,7 +667,6 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 	hasPermission := false
 
 	for _, perm := range userPermissions {
-
 		if r.matchesPermission(perm, requiredPermission) {
 
 			hasPermission = true
@@ -719,7 +674,6 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 			break
 
 		}
-
 	}
 
 	if !hasPermission {
@@ -749,7 +703,6 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 	// Audit logging.
 
 	if decision.Allowed {
-
 		r.logger.Info("Access granted",
 
 			"user_id", request.UserID,
@@ -759,9 +712,7 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 			"action", request.Action,
 
 			"reason", decision.Reason)
-
 	} else {
-
 		r.logger.Warn("Access denied",
 
 			"user_id", request.UserID,
@@ -771,43 +722,32 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 			"action", request.Action,
 
 			"reason", decision.Reason)
-
 	}
 
 	return decision
-
 }
 
 // CreateRole creates a new role.
 
 func (r *RBACManager) CreateRole(ctx context.Context, role *Role) error {
-
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
 
 	if role.ID == "" {
-
 		return fmt.Errorf("role ID cannot be empty")
-
 	}
 
 	if _, exists := r.roles[role.ID]; exists {
-
 		return fmt.Errorf("role %s already exists", role.ID)
-
 	}
 
 	// Validate permissions exist.
 
 	for _, permID := range role.Permissions {
-
 		if _, exists := r.permissions[permID]; !exists {
-
 			return fmt.Errorf("permission %s does not exist", permID)
-
 		}
-
 	}
 
 	now := time.Now()
@@ -827,33 +767,25 @@ func (r *RBACManager) CreateRole(ctx context.Context, role *Role) error {
 		"role_name", role.Name)
 
 	return nil
-
 }
 
 // UpdateRole updates an existing role.
 
 func (r *RBACManager) UpdateRole(ctx context.Context, role *Role) error {
-
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
 
 	if _, exists := r.roles[role.ID]; !exists {
-
 		return fmt.Errorf("role %s does not exist", role.ID)
-
 	}
 
 	// Validate permissions exist.
 
 	for _, permID := range role.Permissions {
-
 		if _, exists := r.permissions[permID]; !exists {
-
 			return fmt.Errorf("permission %s does not exist", permID)
-
 		}
-
 	}
 
 	role.UpdatedAt = time.Now()
@@ -869,29 +801,23 @@ func (r *RBACManager) UpdateRole(ctx context.Context, role *Role) error {
 		"role_name", role.Name)
 
 	return nil
-
 }
 
 // DeleteRole deletes a role.
 
 func (r *RBACManager) DeleteRole(ctx context.Context, roleID string) error {
-
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
 
 	if _, exists := r.roles[roleID]; !exists {
-
 		return fmt.Errorf("role %s does not exist", roleID)
-
 	}
 
 	// Remove role from all users.
 
 	for userID, userRoles := range r.userRoles {
-
 		for i, role := range userRoles {
-
 			if role == roleID {
 
 				r.userRoles[userID] = append(userRoles[:i], userRoles[i+1:]...)
@@ -899,9 +825,7 @@ func (r *RBACManager) DeleteRole(ctx context.Context, roleID string) error {
 				break
 
 			}
-
 		}
-
 	}
 
 	delete(r.roles, roleID)
@@ -911,13 +835,11 @@ func (r *RBACManager) DeleteRole(ctx context.Context, roleID string) error {
 	r.logger.Info("Role deleted", "role_id", roleID)
 
 	return nil
-
 }
 
 // ListRoles returns all roles.
 
 func (r *RBACManager) ListRoles(ctx context.Context) []*Role {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -925,27 +847,21 @@ func (r *RBACManager) ListRoles(ctx context.Context) []*Role {
 	roles := make([]*Role, 0, len(r.roles))
 
 	for _, role := range r.roles {
-
 		roles = append(roles, role)
-
 	}
 
 	// Sort by name.
 
 	sort.Slice(roles, func(i, j int) bool {
-
 		return roles[i].Name < roles[j].Name
-
 	})
 
 	return roles
-
 }
 
 // GetRole returns a specific role.
 
 func (r *RBACManager) GetRole(ctx context.Context, roleID string) (*Role, error) {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -953,33 +869,25 @@ func (r *RBACManager) GetRole(ctx context.Context, roleID string) (*Role, error)
 	role, exists := r.roles[roleID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("role %s does not exist", roleID)
-
 	}
 
 	return role, nil
-
 }
 
 // CreatePermission creates a new permission.
 
 func (r *RBACManager) CreatePermission(ctx context.Context, perm *Permission) error {
-
 	r.mutex.Lock()
 
 	defer r.mutex.Unlock()
 
 	if perm.ID == "" {
-
 		return fmt.Errorf("permission ID cannot be empty")
-
 	}
 
 	if _, exists := r.permissions[perm.ID]; exists {
-
 		return fmt.Errorf("permission %s already exists", perm.ID)
-
 	}
 
 	now := time.Now()
@@ -999,13 +907,11 @@ func (r *RBACManager) CreatePermission(ctx context.Context, perm *Permission) er
 		"permission_name", perm.Name)
 
 	return nil
-
 }
 
 // ListPermissions returns all permissions.
 
 func (r *RBACManager) ListPermissions(ctx context.Context) []*Permission {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -1013,33 +919,25 @@ func (r *RBACManager) ListPermissions(ctx context.Context) []*Permission {
 	permissions := make([]*Permission, 0, len(r.permissions))
 
 	for _, perm := range r.permissions {
-
 		permissions = append(permissions, perm)
-
 	}
 
 	// Sort by resource and action.
 
 	sort.Slice(permissions, func(i, j int) bool {
-
 		if permissions[i].Resource == permissions[j].Resource {
-
 			return permissions[i].Action < permissions[j].Action
-
 		}
 
 		return permissions[i].Resource < permissions[j].Resource
-
 	})
 
 	return permissions
-
 }
 
 // AssignRolesFromClaims assigns roles based on JWT claims and provider groups.
 
 func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *providers.UserInfo) error {
-
 	userID := userInfo.Subject
 
 	// Clear existing roles for fresh assignment.
@@ -1055,9 +953,7 @@ func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *provi
 	roleMappings := r.getRoleMappings(userInfo)
 
 	for _, roleID := range roleMappings {
-
 		if err := r.GrantRoleToUser(ctx, userID, roleID); err != nil {
-
 			r.logger.Warn("Failed to grant role from claims",
 
 				"user_id", userID,
@@ -1065,9 +961,7 @@ func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *provi
 				"role_id", roleID,
 
 				"error", err)
-
 		}
-
 	}
 
 	r.logger.Info("Roles assigned from claims",
@@ -1079,13 +973,11 @@ func (r *RBACManager) AssignRolesFromClaims(ctx context.Context, userInfo *provi
 		"roles", roleMappings)
 
 	return nil
-
 }
 
 // Private helper methods.
 
 func (r *RBACManager) calculateUserPermissions(userID string) []string {
-
 	var allPermissions []string
 
 	permissionSet := make(map[string]bool)
@@ -1095,11 +987,8 @@ func (r *RBACManager) calculateUserPermissions(userID string) []string {
 	userRoles := r.userRoles[userID]
 
 	for _, roleID := range userRoles {
-
 		if role, exists := r.roles[roleID]; exists {
-
 			for _, permID := range role.Permissions {
-
 				if !permissionSet[permID] {
 
 					allPermissions = append(allPermissions, permID)
@@ -1107,27 +996,20 @@ func (r *RBACManager) calculateUserPermissions(userID string) []string {
 					permissionSet[permID] = true
 
 				}
-
 			}
-
 		}
-
 	}
 
 	sort.Strings(allPermissions)
 
 	return allPermissions
-
 }
 
 func (r *RBACManager) matchesPermission(granted, required string) bool {
-
 	// Handle wildcard permissions.
 
 	if granted == "*" || granted == required {
-
 		return true
-
 	}
 
 	// Handle resource-level wildcards (e.g., "intent:*" matches "intent:read").
@@ -1139,19 +1021,15 @@ func (r *RBACManager) matchesPermission(granted, required string) bool {
 		requiredParts := strings.SplitN(required, ":", 2)
 
 		if len(requiredParts) == 2 && requiredParts[0] == grantedResource {
-
 			return true
-
 		}
 
 	}
 
 	return false
-
 }
 
 func (r *RBACManager) evaluatePolicies(ctx context.Context, request *AccessRequest, decision *AccessDecision) *AccessDecision {
-
 	// For now, return allow if user has permission.
 
 	// In future, implement complex policy evaluation.
@@ -1161,11 +1039,9 @@ func (r *RBACManager) evaluatePolicies(ctx context.Context, request *AccessReque
 	decision.Reason = "Permission granted by RBAC"
 
 	return decision
-
 }
 
 func (r *RBACManager) getRoleMappings(userInfo *providers.UserInfo) []string {
-
 	var roles []string
 
 	// Provider-specific role mappings.
@@ -1189,23 +1065,18 @@ func (r *RBACManager) getRoleMappings(userInfo *providers.UserInfo) []string {
 	// Default to read-only if no specific mapping.
 
 	if len(roles) == 0 {
-
 		roles = append(roles, "read-only")
-
 	}
 
 	return roles
-
 }
 
 func (r *RBACManager) mapGitHubRoles(userInfo *providers.UserInfo) []string {
-
 	var roles []string
 
 	// Check if user is in admin organizations.
 
 	for _, org := range userInfo.Organizations {
-
 		if strings.Contains(strings.ToLower(org.Name), "admin") {
 
 			roles = append(roles, "system-admin")
@@ -1213,57 +1084,41 @@ func (r *RBACManager) mapGitHubRoles(userInfo *providers.UserInfo) []string {
 			break
 
 		}
-
 	}
 
 	// Check for team-based roles.
 
 	for _, group := range userInfo.Groups {
-
 		if strings.Contains(group, "/admin") || strings.Contains(group, "/owners") {
-
 			roles = append(roles, "intent-operator")
-
 		} else if strings.Contains(group, "/developers") {
-
 			roles = append(roles, "e2-manager")
-
 		}
-
 	}
 
 	return roles
-
 }
 
 func (r *RBACManager) mapGoogleRoles(userInfo *providers.UserInfo) []string {
-
 	var roles []string
 
 	// Check hosted domain for admin access.
 
 	if hostedDomain, exists := userInfo.Attributes["hosted_domain"]; exists {
-
 		if hostedDomain == "nephoran.io" || hostedDomain == "admin.nephoran.io" {
-
 			roles = append(roles, "intent-operator")
-
 		}
-
 	}
 
 	return roles
-
 }
 
 func (r *RBACManager) mapAzureADRoles(userInfo *providers.UserInfo) []string {
-
 	var roles []string
 
 	// Map Azure AD roles to Nephoran roles.
 
 	for _, role := range userInfo.Roles {
-
 		switch strings.ToLower(role) {
 
 		case "global administrator", "user administrator":
@@ -1279,41 +1134,30 @@ func (r *RBACManager) mapAzureADRoles(userInfo *providers.UserInfo) []string {
 			roles = append(roles, "read-only")
 
 		}
-
 	}
 
 	// Check groups.
 
 	for _, group := range userInfo.Groups {
-
 		if strings.Contains(strings.ToLower(group), "admin") {
-
 			roles = append(roles, "intent-operator")
-
 		} else if strings.Contains(strings.ToLower(group), "operator") {
-
 			roles = append(roles, "e2-manager")
-
 		}
-
 	}
 
 	return roles
-
 }
 
 func (r *RBACManager) invalidateUserCache(userID string) {
-
 	r.cache.mutex.Lock()
 
 	defer r.cache.mutex.Unlock()
 
 	delete(r.cache.userPermissions, userID)
-
 }
 
 func (r *RBACManager) invalidateAllCache() {
-
 	r.cache.mutex.Lock()
 
 	defer r.cache.mutex.Unlock()
@@ -1323,19 +1167,16 @@ func (r *RBACManager) invalidateAllCache() {
 	r.cache.roleHierarchy = make(map[string][]string)
 
 	r.cache.lastUpdated = time.Time{}
-
 }
 
 // GetRBACStatus returns current RBAC status and statistics.
 
 func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"roles_count": len(r.roles),
 
 		"permissions_count": len(r.permissions),
@@ -1350,5 +1191,4 @@ func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} 
 
 		"last_cache_update": r.cache.lastUpdated,
 	}
-
 }

@@ -115,7 +115,6 @@ type CRLConfig struct {
 	CheckPeriod time.Duration `json:"check_period"`
 
 	Distribution map[string]string `json:"distribution"` // issuer -> CRL URL
-
 }
 
 // CertRotationConfig holds certificate rotation configuration.
@@ -253,15 +252,11 @@ type CertRotationManager struct {
 // NewMTLSManager creates a new mTLS manager.
 
 func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLSManager, error) {
-
 	if config == nil {
-
 		return nil, errors.New("mTLS config is required")
-
 	}
 
 	m := &MTLSManager{
-
 		config: config,
 
 		logger: logger,
@@ -274,9 +269,7 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 	// Initialize TLS configuration.
 
 	if err := m.initializeTLSConfig(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize TLS config: %w", err)
-
 	}
 
 	// Initialize OCSP if enabled.
@@ -284,16 +277,13 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 	if config.OCSPConfig != nil && config.OCSPConfig.Enabled {
 
 		m.ocspCache = &OCSPCache{
-
 			responses: make(map[string]*ocsp.Response),
 
 			expiry: make(map[string]time.Time),
 		}
 
 		if config.OCSPConfig.Stapling {
-
 			go m.refreshOCSPStapling()
-
 		}
 
 	}
@@ -303,7 +293,6 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 	if config.CRLConfig != nil && config.CRLConfig.Enabled {
 
 		m.crlCache = &CRLCache{
-
 			crls: make(map[string]*pkix.CertificateList),
 
 			expiry: make(map[string]time.Time),
@@ -316,13 +305,9 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 	// Initialize certificate pinning.
 
 	if config.CertPinning != nil && config.CertPinning.Enabled {
-
 		if err := m.initializeCertPinning(); err != nil {
-
 			return nil, fmt.Errorf("failed to initialize cert pinning: %w", err)
-
 		}
-
 	}
 
 	// Initialize certificate rotation.
@@ -330,7 +315,6 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 	if config.AutoRotation != nil && config.AutoRotation.Enabled {
 
 		m.rotationManager = &CertRotationManager{
-
 			config: config.AutoRotation,
 
 			logger: logger,
@@ -343,45 +327,33 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 	// Initialize multi-tenant configurations.
 
 	if config.MultiTenant != nil && config.MultiTenant.Enabled {
-
 		if err := m.initializeMultiTenant(); err != nil {
-
 			return nil, fmt.Errorf("failed to initialize multi-tenant: %w", err)
-
 		}
-
 	}
 
 	// Start certificate watcher.
 
 	if config.AutoRotation != nil && config.AutoRotation.Enabled {
-
 		m.startCertificateWatcher()
-
 	}
 
 	return m, nil
-
 }
 
 // initializeTLSConfig initializes the main TLS configuration.
 
 func (m *MTLSManager) initializeTLSConfig() error {
-
 	// Load server certificate.
 
 	cert, err := tls.LoadX509KeyPair(m.config.CertFile, m.config.KeyFile)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load server certificate: %w", err)
-
 	}
 
 	// Create TLS config.
 
 	m.tlsConfig = &tls.Config{
-
 		Certificates: []tls.Certificate{cert},
 
 		MinVersion: m.config.MinTLSVersion,
@@ -396,23 +368,17 @@ func (m *MTLSManager) initializeTLSConfig() error {
 	// Set TLS 1.3 as minimum if not specified.
 
 	if m.tlsConfig.MinVersion == 0 {
-
 		m.tlsConfig.MinVersion = tls.VersionTLS13
-
 	}
 
 	// Configure cipher suites for TLS 1.2.
 
 	if len(m.config.CipherSuites) > 0 {
-
 		m.tlsConfig.CipherSuites = m.config.CipherSuites
-
 	} else {
-
 		// Use secure cipher suites only.
 
 		m.tlsConfig.CipherSuites = []uint16{
-
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -425,15 +391,12 @@ func (m *MTLSManager) initializeTLSConfig() error {
 
 			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 		}
-
 	}
 
 	// Load CA certificates for client verification.
 
 	if err := m.loadCACertificates(); err != nil {
-
 		return fmt.Errorf("failed to load CA certificates: %w", err)
-
 	}
 
 	// Configure client authentication.
@@ -459,27 +422,21 @@ func (m *MTLSManager) initializeTLSConfig() error {
 	// Configure GetCertificate for SNI support.
 
 	if m.config.MultiTenant != nil && m.config.MultiTenant.SNIRouting {
-
 		m.tlsConfig.GetCertificate = m.getCertificateForSNI
-
 	}
 
 	// Configure OCSP stapling.
 
 	if m.config.OCSPConfig != nil && m.config.OCSPConfig.Stapling {
-
 		m.tlsConfig.GetCertificate = m.getCertificateWithOCSP
-
 	}
 
 	return nil
-
 }
 
 // loadCACertificates loads CA certificates for client verification.
 
 func (m *MTLSManager) loadCACertificates() error {
-
 	m.clientCertPool = x509.NewCertPool()
 
 	m.certPool = x509.NewCertPool()
@@ -489,17 +446,12 @@ func (m *MTLSManager) loadCACertificates() error {
 	if m.config.CAFile != "" {
 
 		caCert, err := os.ReadFile(m.config.CAFile)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to read CA file: %w", err)
-
 		}
 
 		if !m.certPool.AppendCertsFromPEM(caCert) {
-
 			return errors.New("failed to parse CA certificate")
-
 		}
 
 		m.clientCertPool.AppendCertsFromPEM(caCert)
@@ -511,55 +463,40 @@ func (m *MTLSManager) loadCACertificates() error {
 	for _, caFile := range m.config.ClientCAFiles {
 
 		caCert, err := os.ReadFile(caFile)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to read client CA file %s: %w", caFile, err)
-
 		}
 
 		if !m.clientCertPool.AppendCertsFromPEM(caCert) {
-
 			return fmt.Errorf("failed to parse client CA certificate from %s", caFile)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // verifyPeerCertificate performs custom certificate verification.
 
 func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-
 	if len(rawCerts) == 0 {
-
 		return errors.New("no certificates provided")
-
 	}
 
 	// Parse the peer certificate.
 
 	cert, err := x509.ParseCertificate(rawCerts[0])
-
 	if err != nil {
-
 		return fmt.Errorf("failed to parse certificate: %w", err)
-
 	}
 
 	// Check certificate pinning if enabled.
 
 	if m.config.CertPinning != nil && m.config.CertPinning.Enabled {
-
 		if err := m.verifyCertificatePin(cert); err != nil {
 
 			if !m.config.CertPinning.ReportOnly {
-
 				return err
-
 			}
 
 			m.logger.Warn("certificate pinning failed (report only)",
@@ -569,19 +506,15 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 				slog.String("error", err.Error()))
 
 		}
-
 	}
 
 	// Check OCSP if enabled.
 
 	if m.config.OCSPConfig != nil && m.config.OCSPConfig.Enabled {
-
 		if err := m.checkOCSP(cert, verifiedChains); err != nil {
 
 			if !m.config.OCSPConfig.FailOpen {
-
 				return fmt.Errorf("OCSP check failed: %w", err)
-
 			}
 
 			m.logger.Warn("OCSP check failed (fail open)",
@@ -591,19 +524,15 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 				slog.String("error", err.Error()))
 
 		}
-
 	}
 
 	// Check CRL if enabled.
 
 	if m.config.CRLConfig != nil && m.config.CRLConfig.Enabled {
-
 		if err := m.checkCRL(cert); err != nil {
 
 			if !m.config.CRLConfig.FailOpen {
-
 				return fmt.Errorf("CRL check failed: %w", err)
-
 			}
 
 			m.logger.Warn("CRL check failed (fail open)",
@@ -613,15 +542,12 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 				slog.String("error", err.Error()))
 
 		}
-
 	}
 
 	// Additional custom checks.
 
 	if err := m.performCustomChecks(cert); err != nil {
-
 		return err
-
 	}
 
 	m.logger.Debug("certificate verification successful",
@@ -631,33 +557,27 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 		slog.String("issuer", cert.Issuer.String()))
 
 	return nil
-
 }
 
 // checkOCSP checks certificate revocation status via OCSP.
 
 func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509.Certificate) error {
-
 	// Check cache first.
 
 	m.ocspCache.mu.RLock()
 
 	if resp, ok := m.ocspCache.responses[cert.SerialNumber.String()]; ok {
-
 		if expiry, ok := m.ocspCache.expiry[cert.SerialNumber.String()]; ok && time.Now().Before(expiry) {
 
 			m.ocspCache.mu.RUnlock()
 
 			if resp.Status == ocsp.Good {
-
 				return nil
-
 			}
 
 			return fmt.Errorf("certificate revoked: OCSP status %d", resp.Status)
 
 		}
-
 	}
 
 	m.ocspCache.mu.RUnlock()
@@ -665,9 +585,7 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	// Get issuer certificate.
 
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) < 2 {
-
 		return errors.New("cannot determine issuer for OCSP check")
-
 	}
 
 	issuer := verifiedChains[0][1]
@@ -677,25 +595,18 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	ocspURL := m.config.OCSPConfig.ResponderURL
 
 	if ocspURL == "" && len(cert.OCSPServer) > 0 {
-
 		ocspURL = cert.OCSPServer[0]
-
 	}
 
 	if ocspURL == "" {
-
 		return errors.New("no OCSP responder URL available")
-
 	}
 
 	// Create OCSP request.
 
 	ocspReq, err := ocsp.CreateRequest(cert, issuer, nil)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create OCSP request: %w", err)
-
 	}
 
 	// Send OCSP request.
@@ -705,11 +616,8 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	defer cancel()
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", ocspURL, strings.NewReader(string(ocspReq)))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create HTTP request: %w", err)
-
 	}
 
 	httpReq.Header.Set("Content-Type", "application/ocsp-request")
@@ -717,31 +625,22 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	client := &http.Client{Timeout: m.config.OCSPConfig.Timeout}
 
 	httpResp, err := client.Do(httpReq)
-
 	if err != nil {
-
 		return fmt.Errorf("OCSP request failed: %w", err)
-
 	}
 
 	defer httpResp.Body.Close()
 
 	ocspRespBytes, err := io.ReadAll(httpResp.Body)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read OCSP response: %w", err)
-
 	}
 
 	// Parse OCSP response.
 
 	ocspResp, err := ocsp.ParseResponse(ocspRespBytes, issuer)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to parse OCSP response: %w", err)
-
 	}
 
 	// Cache the response.
@@ -771,21 +670,17 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 		return fmt.Errorf("unknown OCSP status: %d", ocspResp.Status)
 
 	}
-
 }
 
 // checkCRL checks certificate revocation status via CRL.
 
 func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
-
 	// Get CRL distribution points.
 
 	crlURLs := m.getCRLDistributionPoints(cert)
 
 	if len(crlURLs) == 0 {
-
 		return errors.New("no CRL distribution points found")
-
 	}
 
 	for _, crlURL := range crlURLs {
@@ -795,7 +690,6 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		m.crlCache.mu.RLock()
 
 		if crl, ok := m.crlCache.crls[crlURL]; ok {
-
 			if expiry, ok := m.crlCache.expiry[crlURL]; ok && time.Now().Before(expiry) {
 
 				m.crlCache.mu.RUnlock()
@@ -803,19 +697,14 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 				// Check if certificate is revoked.
 
 				for _, revokedCert := range crl.TBSCertList.RevokedCertificates {
-
 					if cert.SerialNumber.Cmp(revokedCert.SerialNumber) == 0 {
-
 						return fmt.Errorf("certificate revoked at %v", revokedCert.RevocationTime)
-
 					}
-
 				}
 
 				return nil
 
 			}
-
 		}
 
 		m.crlCache.mu.RUnlock()
@@ -823,7 +712,6 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		// Fetch CRL.
 
 		crl, err := m.fetchCRL(crlURL)
-
 		if err != nil {
 
 			m.logger.Warn("failed to fetch CRL",
@@ -849,13 +737,9 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		// Check if certificate is revoked.
 
 		for _, revokedCert := range crl.TBSCertList.RevokedCertificates {
-
 			if cert.SerialNumber.Cmp(revokedCert.SerialNumber) == 0 {
-
 				return fmt.Errorf("certificate revoked at %v", revokedCert.RevocationTime)
-
 			}
-
 		}
 
 		// Certificate not in CRL, it's valid.
@@ -865,13 +749,11 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 	}
 
 	return errors.New("failed to check any CRL")
-
 }
 
 // getCRLDistributionPoints extracts CRL distribution points from certificate.
 
 func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string {
-
 	var urls []string
 
 	// Check configured distribution points first.
@@ -879,9 +761,7 @@ func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string 
 	if m.config.CRLConfig != nil {
 
 		if url, ok := m.config.CRLConfig.Distribution[cert.Issuer.String()]; ok {
-
 			urls = append(urls, url)
-
 		}
 
 		urls = append(urls, m.config.CRLConfig.URLs...)
@@ -891,7 +771,6 @@ func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string 
 	// Extract from certificate extensions.
 
 	for _, ext := range cert.Extensions {
-
 		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 31}) { // CRL Distribution Points OID
 
 			// Parse the extension value to extract URLs.
@@ -899,59 +778,44 @@ func (m *MTLSManager) getCRLDistributionPoints(cert *x509.Certificate) []string 
 			// This is simplified; real implementation would properly parse ASN.1.
 
 			urls = append(urls, cert.CRLDistributionPoints...)
-
 		}
-
 	}
 
 	return urls
-
 }
 
 // fetchCRL fetches a CRL from the given URL.
 
 func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	defer resp.Body.Close()
 
 	crlBytes, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	return x509.ParseCRL(crlBytes)
-
 }
 
 // verifyCertificatePin verifies certificate against configured pins.
 
 func (m *MTLSManager) verifyCertificatePin(cert *x509.Certificate) error {
-
 	// Calculate certificate fingerprint.
 
 	fingerprint := calculateFingerprint(cert.Raw)
@@ -959,59 +823,45 @@ func (m *MTLSManager) verifyCertificatePin(cert *x509.Certificate) error {
 	// Check if this certificate is pinned.
 
 	for hostname, pin := range m.config.CertPinning.Pins {
-
 		if matchesHostname(cert, hostname) {
 
 			if pin != fingerprint {
-
 				return fmt.Errorf("certificate pin mismatch for %s", hostname)
-
 			}
 
 			return nil
 
 		}
-
 	}
 
 	// If enforce for all is enabled, reject unpinned certificates.
 
 	if m.config.CertPinning.EnforceForAll {
-
 		return errors.New("certificate not in pinning list")
-
 	}
 
 	return nil
-
 }
 
 // performCustomChecks performs additional custom certificate checks.
 
 func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
-
 	// Check certificate validity period.
 
 	now := time.Now()
 
 	if now.Before(cert.NotBefore) {
-
 		return fmt.Errorf("certificate not yet valid: %v", cert.NotBefore)
-
 	}
 
 	if now.After(cert.NotAfter) {
-
 		return fmt.Errorf("certificate expired: %v", cert.NotAfter)
-
 	}
 
 	// Check key usage.
 
 	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
-
 		return errors.New("certificate lacks digital signature key usage")
-
 	}
 
 	// Check extended key usage for client authentication.
@@ -1019,7 +869,6 @@ func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
 	hasClientAuth := false
 
 	for _, usage := range cert.ExtKeyUsage {
-
 		if usage == x509.ExtKeyUsageClientAuth {
 
 			hasClientAuth = true
@@ -1027,99 +876,74 @@ func (m *MTLSManager) performCustomChecks(cert *x509.Certificate) error {
 			break
 
 		}
-
 	}
 
 	if !hasClientAuth && m.config.RequireClientCert {
-
 		return errors.New("certificate lacks client authentication extended key usage")
-
 	}
 
 	// Check SNI if required.
 
 	if m.config.SNIRequired && len(cert.DNSNames) == 0 {
-
 		return errors.New("certificate lacks DNS SAN entries for SNI")
-
 	}
 
 	return nil
-
 }
 
 // GetTLSConfig returns the TLS configuration.
 
 func (m *MTLSManager) GetTLSConfig() *tls.Config {
-
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
 
 	return m.tlsConfig.Clone()
-
 }
 
 // GetTenantTLSConfig returns TLS configuration for a specific tenant.
 
 func (m *MTLSManager) GetTenantTLSConfig(tenantID string) (*tls.Config, error) {
-
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
 
 	if config, ok := m.tenantConfigs[tenantID]; ok {
-
 		return config.Clone(), nil
-
 	}
 
 	if m.config.MultiTenant != nil && m.config.MultiTenant.DefaultTenant != "" {
-
 		if config, ok := m.tenantConfigs[m.config.MultiTenant.DefaultTenant]; ok {
-
 			return config.Clone(), nil
-
 		}
-
 	}
 
 	return nil, fmt.Errorf("no TLS config for tenant: %s", tenantID)
-
 }
 
 // Helper functions.
 
 func calculateFingerprint(data []byte) string {
-
 	// Calculate SHA256 fingerprint.
 
 	// Implementation would use crypto/sha256.
 
 	return ""
-
 }
 
 func matchesHostname(cert *x509.Certificate, hostname string) bool {
-
 	// Check if certificate matches hostname.
 
 	for _, name := range cert.DNSNames {
-
 		if name == hostname || matchesWildcard(name, hostname) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func matchesWildcard(pattern, hostname string) bool {
-
 	// Simple wildcard matching.
 
 	if strings.HasPrefix(pattern, "*.") {
@@ -1131,69 +955,51 @@ func matchesWildcard(pattern, hostname string) bool {
 	}
 
 	return false
-
 }
 
 // Additional helper methods for certificate management...
 
 func (m *MTLSManager) initializeCertPinning() error {
-
 	// Initialize certificate pinning.
 
 	return nil
-
 }
 
 func (m *MTLSManager) initializeMultiTenant() error {
-
 	// Initialize multi-tenant configurations.
 
 	return nil
-
 }
 
 func (m *MTLSManager) getCertificateForSNI(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-
 	// Get certificate based on SNI.
 
 	return nil, nil
-
 }
 
 func (m *MTLSManager) getCertificateWithOCSP(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-
 	// Get certificate with OCSP stapling.
 
 	return nil, nil
-
 }
 
 func (m *MTLSManager) refreshOCSPStapling() {
-
 	// Refresh OCSP stapling responses.
-
 }
 
 func (m *MTLSManager) refreshCRLs() {
-
 	// Refresh CRLs periodically.
-
 }
 
 func (m *MTLSManager) startCertificateWatcher() {
-
 	// Start watching certificate files for changes.
-
 }
 
 // Start begins the certificate rotation process.
 
 func (crm *CertRotationManager) Start() {
-
 	if crm.config == nil || !crm.config.Enabled {
-
 		return
-
 	}
 
 	// Create a ticker for certificate rotation.
@@ -1203,31 +1009,23 @@ func (crm *CertRotationManager) Start() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
-
 		case <-ticker.C:
 
 			ctx := context.Background()
 
 			if err := crm.rotateCertificate(ctx); err != nil {
-
 				crm.logger.Error("certificate rotation failed",
 
 					slog.String("error", err.Error()))
-
 			}
-
 		}
-
 	}
-
 }
 
 // rotateCertificate performs the actual certificate rotation.
 
 func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
-
 	// Certificate rotation implementation.
 
 	crm.logger.Info("performing certificate rotation")
@@ -1243,5 +1041,4 @@ func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
 	// 4. Clean up old certificates.
 
 	return nil
-
 }

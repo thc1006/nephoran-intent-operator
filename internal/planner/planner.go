@@ -27,26 +27,20 @@ type Intent struct {
 	Source string `json:"source,omitempty"` // "user", "planner", or "test"
 
 	CorrelationID string `json:"correlation_id,omitempty"` // optional trace id
-
 }
 
 // httpClient is a reusable HTTP client with timeout.
 
 var httpClient = &http.Client{
-
 	Timeout: 30 * time.Second,
 }
 
 // PostIntent sends a scaling intent to the specified URL endpoint.
 
 func PostIntent(url string, in Intent) error {
-
 	b, err := json.Marshal(in)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal intent: %w", err)
-
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -54,31 +48,22 @@ func PostIntent(url string, in Intent) error {
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(req)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-
 		return fmt.Errorf("post intent status=%d", resp.StatusCode)
-
 	}
 
 	return nil
-
 }

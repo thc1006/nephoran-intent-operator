@@ -1118,8 +1118,8 @@ func (p *SecurityRegressionPipeline) generatePipelineReport(ctx context.Context)
 	// Save pipeline report
 	reportData, _ := json.MarshalIndent(p.executionResults, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/pipeline-report-%s.json", p.executionResults.ExecutionID)
-	os.MkdirAll("test-results/security", 0755)
-	os.WriteFile(reportFile, reportData, 0644)
+	os.MkdirAll("test-results/security", 0o755)
+	os.WriteFile(reportFile, reportData, 0o644)
 
 	return p.executionResults
 }

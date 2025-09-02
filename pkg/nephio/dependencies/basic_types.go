@@ -34,22 +34,26 @@ type UsageData struct {
 type GraphNode struct {
 	PackageRef *PackageReference `json:"packageRef"`
 }
-type GraphMetrics struct{}
-type DependencyGraph struct {
-	Nodes []GraphNode `json:"nodes"`
-	Edges []GraphEdge `json:"edges"`
-}
-type CostTrend string
-type HealthGrade string
-type OptimizationStrategy string
-type HealthTrend string
-type PackageRegistryConfig struct{}
-type UpdateStrategy string
-type UpdateType string
-type GraphEdge struct{}
-type RolloutStatus string
-type UpdateStep struct{}
-type DependencyUpdate struct{}
+type (
+	GraphMetrics    struct{}
+	DependencyGraph struct {
+		Nodes []GraphNode `json:"nodes"`
+		Edges []GraphEdge `json:"edges"`
+	}
+)
+type (
+	CostTrend             string
+	HealthGrade           string
+	OptimizationStrategy  string
+	HealthTrend           string
+	PackageRegistryConfig struct{}
+	UpdateStrategy        string
+	UpdateType            string
+	GraphEdge             struct{}
+	RolloutStatus         string
+	UpdateStep            struct{}
+	DependencyUpdate      struct{}
+)
 
 // TimeRange represents a time range for analysis
 type TimeRange struct {
@@ -86,11 +90,13 @@ type LicensePolicy struct {
 type CriticalPath []*GraphNode
 
 // Additional missing types needed for compilation
-type DependencyCycle []*GraphNode
-type GraphPattern struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
+type (
+	DependencyCycle []*GraphNode
+	GraphPattern    struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	}
+)
 
 type DependencyNode struct {
 	Name string `json:"name"`
@@ -850,9 +856,11 @@ type DefaultValidationCache struct{}
 func (c *DefaultValidationCache) Get(ctx context.Context, key string) (*ValidationResult, error) {
 	return nil, nil
 }
+
 func (c *DefaultValidationCache) Set(ctx context.Context, key string, result *ValidationResult) error {
 	return nil
 }
+
 func (c *DefaultValidationCache) Close() error {
 	return nil
 }
@@ -862,9 +870,11 @@ type DefaultScanResultCache struct{}
 func (c *DefaultScanResultCache) Get(ctx context.Context, key string) (*SecurityScanResult, error) {
 	return nil, nil
 }
+
 func (c *DefaultScanResultCache) Set(ctx context.Context, key string, result *SecurityScanResult) error {
 	return nil
 }
+
 func (c *DefaultScanResultCache) Close() error {
 	return nil
 }
@@ -875,9 +885,11 @@ type VulnerabilityDB struct{}
 func (db *VulnerabilityDB) ScanPackage(packageName, version string) ([]Vulnerability, error) {
 	return nil, nil
 }
+
 func (db *VulnerabilityDB) Update(ctx context.Context) error {
 	return nil
 }
+
 func (db *VulnerabilityDB) Close() error {
 	return nil
 }
@@ -887,6 +899,7 @@ type LicenseDB struct{}
 func (db *LicenseDB) GetLicenseInfo(packageName, version string) (*LicenseInfo, error) {
 	return nil, nil
 }
+
 func (db *LicenseDB) Close() error {
 	return nil
 }

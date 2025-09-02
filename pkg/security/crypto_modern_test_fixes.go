@@ -12,15 +12,15 @@ func (c *CryptoModern) DeriveKey(password, salt []byte, method string, keySize i
 	if len(password) == 0 {
 		return nil, fmt.Errorf("password cannot be empty")
 	}
-	
+
 	if len(salt) == 0 {
 		return nil, fmt.Errorf("salt cannot be empty")
 	}
-	
+
 	if keySize <= 0 {
 		return nil, fmt.Errorf("invalid key size: %d", keySize)
 	}
-	
+
 	switch method {
 	case "pbkdf2":
 		return c.DeriveKeyPBKDF2(password, salt, keySize), nil
@@ -66,7 +66,7 @@ func (c *CryptoModern) Encrypt(data []byte, key []byte, algorithm string) ([]byt
 	}
 }
 
-// Decrypt with signature expected by tests  
+// Decrypt with signature expected by tests
 func (c *CryptoModern) Decrypt(data []byte, key []byte, algorithm string) ([]byte, error) {
 	// The data parameter contains raw ciphertext from the Encrypt function
 	// We need to recreate the EncryptedData structure to use the actual decryption methods
@@ -76,14 +76,14 @@ func (c *CryptoModern) Decrypt(data []byte, key []byte, algorithm string) ([]byt
 		if len(data) < 12 { // AES-GCM nonce is 12 bytes
 			return nil, fmt.Errorf("invalid encrypted data length")
 		}
-		
+
 		// Create EncryptedData structure with nonce and ciphertext
 		encData := &EncryptedData{
-			Nonce:      data[:12],          // First 12 bytes are nonce
-			Ciphertext: data[12:],          // Rest is ciphertext
+			Nonce:      data[:12], // First 12 bytes are nonce
+			Ciphertext: data[12:], // Rest is ciphertext
 			Algorithm:  "AES-GCM",
 		}
-		
+
 		decrypted, err := c.DecryptAESGCM(encData, key)
 		if err != nil {
 			return nil, err
@@ -93,20 +93,20 @@ func (c *CryptoModern) Decrypt(data []byte, key []byte, algorithm string) ([]byt
 			return []byte{}, nil
 		}
 		return decrypted, nil
-		
+
 	case "ChaCha20-Poly1305", "chacha20-poly1305":
 		// Parse the ciphertext to extract nonce and ciphertext
 		if len(data) < 12 { // ChaCha20Poly1305 nonce is 12 bytes
 			return nil, fmt.Errorf("invalid encrypted data length")
 		}
-		
+
 		// Create EncryptedData structure with nonce and ciphertext
 		encData := &EncryptedData{
-			Nonce:      data[:12],          // First 12 bytes are nonce
-			Ciphertext: data[12:],          // Rest is ciphertext
+			Nonce:      data[:12], // First 12 bytes are nonce
+			Ciphertext: data[12:], // Rest is ciphertext
 			Algorithm:  "ChaCha20-Poly1305",
 		}
-		
+
 		decrypted, err := c.DecryptChaCha20Poly1305(encData, key)
 		if err != nil {
 			return nil, err
@@ -116,7 +116,7 @@ func (c *CryptoModern) Decrypt(data []byte, key []byte, algorithm string) ([]byt
 			return []byte{}, nil
 		}
 		return decrypted, nil
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported decryption algorithm: %s", algorithm)
 	}

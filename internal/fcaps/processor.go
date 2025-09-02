@@ -129,9 +129,7 @@ type ScalingDecision struct {
 // NewProcessor creates a new FCAPS processor.
 
 func NewProcessor(target, namespace string) *Processor {
-
 	return &Processor{
-
 		currentReplicas: 1, // Start with 1 replica
 
 		maxReplicas: 10,
@@ -142,13 +140,11 @@ func NewProcessor(target, namespace string) *Processor {
 
 		namespace: namespace,
 	}
-
 }
 
 // ProcessEvent processes a FCAPS event and returns scaling decision.
 
 func (p *Processor) ProcessEvent(event FCAPSEvent) ScalingDecision {
-
 	header := event.Event.CommonEventHeader
 
 	log.Printf("Processing event: %s (domain: %s, source: %s)",
@@ -176,17 +172,13 @@ func (p *Processor) ProcessEvent(event FCAPSEvent) ScalingDecision {
 		return ScalingDecision{ShouldScale: false}
 
 	}
-
 }
 
 // processFaultEvent handles fault events and determines scaling needs.
 
 func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
-
 	if event.Event.FaultFields == nil {
-
 		return ScalingDecision{ShouldScale: false}
-
 	}
 
 	faultFields := event.Event.FaultFields
@@ -202,9 +194,7 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 		newReplicas := p.currentReplicas + 2
 
 		if newReplicas > p.maxReplicas {
-
 			newReplicas = p.maxReplicas
-
 		}
 
 		if newReplicas > p.currentReplicas {
@@ -214,7 +204,6 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 				faultFields.SpecificProblem, faultFields.AlarmCondition)
 
 			return ScalingDecision{
-
 				ShouldScale: true,
 
 				NewReplicas: newReplicas,
@@ -229,17 +218,13 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 	}
 
 	return ScalingDecision{ShouldScale: false}
-
 }
 
 // processPerformanceEvent handles performance measurement events.
 
 func (p *Processor) processPerformanceEvent(event FCAPSEvent) ScalingDecision {
-
 	if event.Event.MeasurementsForVfScalingFields == nil {
-
 		return ScalingDecision{ShouldScale: false}
-
 	}
 
 	fields := event.Event.MeasurementsForVfScalingFields
@@ -247,71 +232,55 @@ func (p *Processor) processPerformanceEvent(event FCAPSEvent) ScalingDecision {
 	additionalFields := fields.AdditionalFields
 
 	if additionalFields == nil {
-
 		return ScalingDecision{ShouldScale: false}
-
 	}
 
 	// Check PRB utilization threshold (> 0.8).
 
 	if prbUtil, exists := additionalFields["kpm.prb_utilization"]; exists {
-
 		if utilization, ok := prbUtil.(float64); ok {
 
 			log.Printf("PRB utilization: %.2f", utilization)
 
 			if utilization > 0.8 {
-
 				return p.createScaleUpDecision("PRB utilization exceeded threshold (%.2f > 0.8)", utilization)
-
 			}
 
 		}
-
 	}
 
 	// Check p95 latency threshold (> 100ms).
 
 	if p95Latency, exists := additionalFields["kpm.p95_latency_ms"]; exists {
-
 		if latency, ok := p95Latency.(float64); ok {
 
 			log.Printf("P95 latency: %.2f ms", latency)
 
 			if latency > 100.0 {
-
 				return p.createScaleUpDecision("P95 latency exceeded threshold (%.2f ms > 100 ms)", latency)
-
 			}
 
 		}
-
 	}
 
 	return ScalingDecision{ShouldScale: false}
-
 }
 
 // processHeartbeatEvent handles heartbeat events (no scaling action needed).
 
 func (p *Processor) processHeartbeatEvent(event FCAPSEvent) ScalingDecision {
-
 	log.Printf("Heartbeat received from %s", event.Event.CommonEventHeader.SourceName)
 
 	return ScalingDecision{ShouldScale: false}
-
 }
 
 // createScaleUpDecision creates a scale-up decision by 1 replica.
 
 func (p *Processor) createScaleUpDecision(reasonFormat string, value float64) ScalingDecision {
-
 	newReplicas := p.currentReplicas + 1
 
 	if newReplicas > p.maxReplicas {
-
 		newReplicas = p.maxReplicas
-
 	}
 
 	if newReplicas > p.currentReplicas {
@@ -319,7 +288,6 @@ func (p *Processor) createScaleUpDecision(reasonFormat string, value float64) Sc
 		reason := fmt.Sprintf(reasonFormat, value)
 
 		return ScalingDecision{
-
 			ShouldScale: true,
 
 			NewReplicas: newReplicas,
@@ -332,21 +300,16 @@ func (p *Processor) createScaleUpDecision(reasonFormat string, value float64) Sc
 	}
 
 	return ScalingDecision{ShouldScale: false}
-
 }
 
 // GenerateIntent creates a scaling intent from a scaling decision.
 
 func (p *Processor) GenerateIntent(decision ScalingDecision) (*ingest.Intent, error) {
-
 	if !decision.ShouldScale {
-
 		return nil, fmt.Errorf("no scaling needed")
-
 	}
 
 	intent := &ingest.Intent{
-
 		IntentType: "scaling",
 
 		Target: p.target,
@@ -369,21 +332,17 @@ func (p *Processor) GenerateIntent(decision ScalingDecision) (*ingest.Intent, er
 	log.Printf("Updated current replicas to %d", p.currentReplicas)
 
 	return intent, nil
-
 }
 
 // GetCurrentReplicas returns the current replica count.
 
 func (p *Processor) GetCurrentReplicas() int {
-
 	return p.currentReplicas
-
 }
 
 // SetCurrentReplicas sets the current replica count (for initialization).
 
 func (p *Processor) SetCurrentReplicas(replicas int) {
-
 	if replicas >= p.minReplicas && replicas <= p.maxReplicas {
 
 		p.currentReplicas = replicas
@@ -391,5 +350,4 @@ func (p *Processor) SetCurrentReplicas(replicas int) {
 		log.Printf("Set current replicas to %d", replicas)
 
 	}
-
 }

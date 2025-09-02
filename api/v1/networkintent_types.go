@@ -38,7 +38,6 @@ import (
 // NetworkIntentSpec defines the desired state of NetworkIntent.
 
 type NetworkIntentSpec struct {
-
 	// Intent is the natural language intent from the user describing the desired network configuration.
 
 	//
@@ -167,7 +166,6 @@ type NetworkIntentSpec struct {
 // ProcessingResult contains the results of intent processing.
 
 type ProcessingResult struct {
-
 	// NetworkFunctionType contains the detected network function type.
 
 	NetworkFunctionType string `json:"networkFunctionType,omitempty"`
@@ -336,7 +334,6 @@ const (
 // NetworkIntentStatus defines the observed state of NetworkIntent.
 
 type NetworkIntentStatus struct {
-
 	// ObservedGeneration reflects the generation of the most recently observed NetworkIntent.
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -454,7 +451,5 @@ type NetworkIntentList struct {
 }
 
 func init() {
-
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})
-
 }

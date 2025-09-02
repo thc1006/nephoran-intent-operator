@@ -93,7 +93,6 @@ type LLMResponse struct {
 // move the current state of the cluster closer to the desired state.
 
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	log := log.FromContext(ctx)
 
 	// Fetch the NetworkIntent instance.
@@ -101,7 +100,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	networkIntent := &nephoranv1.NetworkIntent{}
 
 	err := r.Get(ctx, req.NamespacedName, networkIntent)
-
 	if err != nil {
 
 		if errors.IsNotFound(err) {
@@ -137,17 +135,13 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Validate the intent field.
 
 	if networkIntent.Spec.Intent == "" {
-
 		return r.updateStatus(ctx, networkIntent, "Error", "Intent field cannot be empty", networkIntent.Generation)
-
 	}
 
 	// Initial validation passed.
 
 	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation); err != nil {
-
 		return ctrl.Result{}, err
-
 	}
 
 	// If LLM intent processing is enabled, send to LLM processor.
@@ -159,12 +153,10 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Prepare the request.
 
 		llmReq := LLMRequest{
-
 			Intent: networkIntent.Spec.Intent,
 		}
 
 		jsonData, err := json.Marshal(llmReq)
-
 		if err != nil {
 
 			log.Error(err, "Failed to marshal LLM request")
@@ -176,7 +168,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Create HTTP client with timeout.
 
 		client := &http.Client{
-
 			Timeout: 15 * time.Second,
 		}
 
@@ -185,15 +176,12 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		llmURL := r.LLMProcessorURL
 
 		if llmURL == "" {
-
 			llmURL = "http://llm-processor:8080/process"
-
 		}
 
 		// Create the request.
 
 		httpReq, err := http.NewRequestWithContext(ctx, "POST", llmURL, bytes.NewBuffer(jsonData))
-
 		if err != nil {
 
 			log.Error(err, "Failed to create HTTP request")
@@ -207,7 +195,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Send the request.
 
 		resp, err := client.Do(httpReq)
-
 		if err != nil {
 
 			log.Error(err, "Failed to send request to LLM processor")
@@ -217,13 +204,9 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		defer func() {
-
 			if err := resp.Body.Close(); err != nil {
-
 				log.Error(err, "Failed to close response body")
-
 			}
-
 		}()
 
 		// Parse the response.
@@ -261,13 +244,11 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log.Info("NetworkIntent reconciled successfully", "name", networkIntent.Name)
 
 	return ctrl.Result{}, nil
-
 }
 
 // updateStatus updates the status of the NetworkIntent.
 
 func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
-
 	log := log.FromContext(ctx)
 
 	// Update the status fields.
@@ -291,31 +272,24 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	// Check if LLM intent is enabled via environment variable.
 
 	if envVal := os.Getenv("ENABLE_LLM_INTENT"); envVal == "true" {
-
 		r.EnableLLMIntent = true
-
 	}
 
 	// Get LLM processor URL from environment if set.
 
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
-
 		r.LLMProcessorURL = url
-
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(r)
-
 }

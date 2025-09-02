@@ -53,11 +53,9 @@ type AuditEvent struct {
 // NewAuditLogger creates a new audit logger.
 
 func NewAuditLogger(logFilePath string, minLevel interfaces.AuditLevel) (*AuditLogger, error) {
-
 	logger := log.Log.WithName("audit-logger")
 
 	al := &AuditLogger{
-
 		logger: logger,
 
 		enabled: true,
@@ -70,11 +68,8 @@ func NewAuditLogger(logFilePath string, minLevel interfaces.AuditLevel) (*AuditL
 	if logFilePath != "" {
 
 		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to open audit log file: %w", err)
-
 		}
 
 		al.logFile = file
@@ -82,15 +77,12 @@ func NewAuditLogger(logFilePath string, minLevel interfaces.AuditLevel) (*AuditL
 	}
 
 	return al, nil
-
 }
 
 // LogSecretAccess logs when secrets are accessed.
 
 func (al *AuditLogger) LogSecretAccess(secretType, source, userID, sessionID string, success bool, err error) {
-
 	event := &AuditEvent{
-
 		Timestamp: time.Now().UTC(),
 
 		Level: interfaces.AuditLevelInfo,
@@ -104,7 +96,6 @@ func (al *AuditLogger) LogSecretAccess(secretType, source, userID, sessionID str
 		SessionID: sessionID,
 
 		Data: map[string]interface{}{
-
 			"secret_type": secretType,
 
 			"source": source,
@@ -122,15 +113,12 @@ func (al *AuditLogger) LogSecretAccess(secretType, source, userID, sessionID str
 	}
 
 	al.log(event)
-
 }
 
 // LogAuthenticationAttempt logs authentication attempts.
 
 func (al *AuditLogger) LogAuthenticationAttempt(provider, userID, ipAddress, userAgent string, success bool, err error) {
-
 	event := &AuditEvent{
-
 		Timestamp: time.Now().UTC(),
 
 		Level: interfaces.AuditLevelInfo,
@@ -146,7 +134,6 @@ func (al *AuditLogger) LogAuthenticationAttempt(provider, userID, ipAddress, use
 		UserAgent: userAgent,
 
 		Data: map[string]interface{}{
-
 			"provider": provider,
 		},
 
@@ -162,15 +149,12 @@ func (al *AuditLogger) LogAuthenticationAttempt(provider, userID, ipAddress, use
 	}
 
 	al.log(event)
-
 }
 
 // LogSecretRotation logs secret rotation events.
 
 func (al *AuditLogger) LogSecretRotation(secretName, rotationType, userID string, success bool, err error) {
-
 	event := &AuditEvent{
-
 		Timestamp: time.Now().UTC(),
 
 		Level: interfaces.AuditLevelInfo,
@@ -182,7 +166,6 @@ func (al *AuditLogger) LogSecretRotation(secretName, rotationType, userID string
 		UserID: userID,
 
 		Data: map[string]interface{}{
-
 			"secret_name": secretName,
 
 			"rotation_type": rotationType,
@@ -200,15 +183,12 @@ func (al *AuditLogger) LogSecretRotation(secretName, rotationType, userID string
 	}
 
 	al.log(event)
-
 }
 
 // LogAPIKeyValidation logs API key validation events.
 
 func (al *AuditLogger) LogAPIKeyValidation(keyType, provider string, success bool, err error) {
-
 	event := &AuditEvent{
-
 		Timestamp: time.Now().UTC(),
 
 		Level: interfaces.AuditLevelInfo,
@@ -218,7 +198,6 @@ func (al *AuditLogger) LogAPIKeyValidation(keyType, provider string, success boo
 		Component: "secret_loader",
 
 		Data: map[string]interface{}{
-
 			"key_type": keyType,
 
 			"provider": provider,
@@ -236,15 +215,12 @@ func (al *AuditLogger) LogAPIKeyValidation(keyType, provider string, success boo
 	}
 
 	al.log(event)
-
 }
 
 // LogUnauthorizedAccess logs unauthorized access attempts.
 
 func (al *AuditLogger) LogUnauthorizedAccess(resource, userID, ipAddress, userAgent, reason string) {
-
 	event := &AuditEvent{
-
 		Timestamp: time.Now().UTC(),
 
 		Level: interfaces.AuditLevelWarn,
@@ -260,7 +236,6 @@ func (al *AuditLogger) LogUnauthorizedAccess(resource, userID, ipAddress, userAg
 		UserAgent: userAgent,
 
 		Data: map[string]interface{}{
-
 			"resource": resource,
 
 			"reason": reason,
@@ -270,15 +245,12 @@ func (al *AuditLogger) LogUnauthorizedAccess(resource, userID, ipAddress, userAg
 	}
 
 	al.log(event)
-
 }
 
 // LogSecurityViolation logs security violations.
 
 func (al *AuditLogger) LogSecurityViolation(violationType, description, userID, ipAddress string, severity interfaces.AuditLevel) {
-
 	event := &AuditEvent{
-
 		Timestamp: time.Now().UTC(),
 
 		Level: severity,
@@ -292,7 +264,6 @@ func (al *AuditLogger) LogSecurityViolation(violationType, description, userID, 
 		IPAddress: ipAddress,
 
 		Data: map[string]interface{}{
-
 			"violation_type": violationType,
 
 			"description": description,
@@ -302,17 +273,13 @@ func (al *AuditLogger) LogSecurityViolation(violationType, description, userID, 
 	}
 
 	al.log(event)
-
 }
 
 // log writes the audit event to the configured outputs.
 
 func (al *AuditLogger) log(event *AuditEvent) {
-
 	if !al.enabled || event.Level < al.minLevel {
-
 		return
-
 	}
 
 	// Log to structured logger.
@@ -328,17 +295,13 @@ func (al *AuditLogger) log(event *AuditEvent) {
 	case interfaces.AuditLevelError:
 
 		logFunc = func(msg string, keysAndValues ...interface{}) {
-
 			al.logger.Error(nil, msg, keysAndValues...)
-
 		}
 
 	case interfaces.AuditLevelCritical:
 
 		logFunc = func(msg string, keysAndValues ...interface{}) {
-
 			al.logger.Error(nil, msg, keysAndValues...)
-
 		}
 
 	}
@@ -365,7 +328,6 @@ func (al *AuditLogger) log(event *AuditEvent) {
 	if al.logFile != nil {
 
 		jsonData, err := json.Marshal(event)
-
 		if err != nil {
 
 			al.logger.Error(err, "Failed to marshal audit event to JSON")
@@ -375,59 +337,43 @@ func (al *AuditLogger) log(event *AuditEvent) {
 		}
 
 		_, err = al.logFile.WriteString(string(jsonData) + "\n")
-
 		if err != nil {
-
 			al.logger.Error(err, "Failed to write audit event to file")
-
 		}
 
 	}
-
 }
 
 // Close closes the audit logger and any open files.
 
 func (al *AuditLogger) Close() error {
-
 	if al.logFile != nil {
-
 		return al.logFile.Close()
-
 	}
 
 	return nil
-
 }
 
 // SetEnabled enables or disables audit logging.
 
 func (al *AuditLogger) SetEnabled(enabled bool) {
-
 	al.enabled = enabled
-
 }
 
 // IsEnabled returns whether audit logging is enabled.
 
 func (al *AuditLogger) IsEnabled() bool {
-
 	return al.enabled
-
 }
 
 // getResultString converts boolean success to string.
 
 func getResultString(success bool) string {
-
 	if success {
-
 		return "success"
-
 	}
 
 	return "failure"
-
 }
 
 // GlobalAuditLogger provides global access to audit logging functionality.
@@ -437,37 +383,27 @@ var GlobalAuditLogger *AuditLogger
 // InitGlobalAuditLogger initializes the global audit logger.
 
 func InitGlobalAuditLogger(logFilePath string, minLevel interfaces.AuditLevel) error {
-
 	var err error
 
 	GlobalAuditLogger, err = NewAuditLogger(logFilePath, minLevel)
 
 	return err
-
 }
 
 // AuditSecretAccess is a convenience function for logging secret access.
 
 func AuditSecretAccess(secretType, source, userID, sessionID string, success bool, err error) {
-
 	if GlobalAuditLogger != nil {
-
 		GlobalAuditLogger.LogSecretAccess(secretType, source, userID, sessionID, success, err)
-
 	}
-
 }
 
 // AuditAuthenticationAttempt is a convenience function for logging auth attempts.
 
 func AuditAuthenticationAttempt(provider, userID, ipAddress, userAgent string, success bool, err error) {
-
 	if GlobalAuditLogger != nil {
-
 		GlobalAuditLogger.LogAuthenticationAttempt(provider, userID, ipAddress, userAgent, success, err)
-
 	}
-
 }
 
 // Ensure AuditLogger implements interfaces.AuditLogger.

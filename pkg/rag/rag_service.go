@@ -78,7 +78,6 @@ type CacheConfig struct {
 // RAGConfig holds configuration for the RAG service.
 
 type RAGConfig struct {
-
 	// Search configuration.
 
 	DefaultSearchLimit int `json:"default_search_limit"`
@@ -203,11 +202,8 @@ type RAGResponse struct {
 // NewRAGService creates a new RAG service instance.
 
 func NewRAGService(weaviateClient WeaviateClient, llmClient shared.ClientInterface, config *RAGConfig) *RAGService {
-
 	if config == nil {
-
 		config = getDefaultRAGConfig()
-
 	}
 
 	logger := slog.Default().With("component", "rag-service")
@@ -215,7 +211,6 @@ func NewRAGService(weaviateClient WeaviateClient, llmClient shared.ClientInterfa
 	// Initialize cache.
 
 	cache := newRAGCache(&CacheConfig{
-
 		EnableCache: config.EnableCaching,
 
 		TTL: config.CacheTTL,
@@ -226,7 +221,6 @@ func NewRAGService(weaviateClient WeaviateClient, llmClient shared.ClientInterfa
 	})
 
 	service := &RAGService{
-
 		weaviateClient: weaviateClient,
 
 		llmClient: llmClient,
@@ -245,21 +239,16 @@ func NewRAGService(weaviateClient WeaviateClient, llmClient shared.ClientInterfa
 	// Start cache cleanup goroutine.
 
 	if config.EnableCaching {
-
 		go service.startCacheCleanup()
-
 	}
 
 	return service
-
 }
 
 // getDefaultRAGConfig returns default configuration for RAG service.
 
 func getDefaultRAGConfig() *RAGConfig {
-
 	return &RAGConfig{
-
 		DefaultSearchLimit: 10,
 
 		MaxSearchLimit: 50,
@@ -292,13 +281,11 @@ func getDefaultRAGConfig() *RAGConfig {
 
 		TechnologyFilter: []string{"5G", "4G", "O-RAN", "vRAN"},
 	}
-
 }
 
 // ProcessQuery processes a RAG query and returns an enhanced response.
 
 func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
-
 	startTime := time.Now()
 
 	// Update error builder operation.
@@ -320,35 +307,25 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Validate request with standardized errors.
 
 	if request == nil {
-
 		return nil, eb.RequiredFieldError(ctx, "request")
-
 	}
 
 	if request.Query == "" {
-
 		return nil, eb.RequiredFieldError(ctx, "query")
-
 	}
 
 	// Set defaults.
 
 	if request.MaxResults == 0 {
-
 		request.MaxResults = rs.config.DefaultSearchLimit
-
 	}
 
 	if request.MaxResults > rs.config.MaxSearchLimit {
-
 		request.MaxResults = rs.config.MaxSearchLimit
-
 	}
 
 	if request.MinConfidence == 0 {
-
 		request.MinConfidence = rs.config.MinConfidenceScore
-
 	}
 
 	rs.logger.Info("Processing RAG query",
@@ -363,9 +340,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Update metrics.
 
 	rs.updateMetrics(func(m *ServiceRAGMetrics) {
-
 		m.TotalQueries++
-
 	})
 
 	// Check cache first if enabled.
@@ -381,11 +356,9 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 			cachedResponse.UsedCache = true
 
 			rs.updateMetrics(func(m *ServiceRAGMetrics) {
-
 				m.SuccessfulQueries++
 
 				m.CacheHitRate = float64(rs.cache.metrics.Hits) / float64(rs.cache.metrics.Hits+rs.cache.metrics.Misses)
-
 			})
 
 			return cachedResponse, nil
@@ -401,7 +374,6 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	retrievalStart := time.Now()
 
 	searchQuery := &SearchQuery{
-
 		Query: request.Query,
 
 		Limit: request.MaxResults,
@@ -420,13 +392,10 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	}
 
 	searchResponse, err := rs.weaviateClient.Search(ctx, searchQuery)
-
 	if err != nil {
 
 		rs.updateMetrics(func(m *ServiceRAGMetrics) {
-
 			m.FailedQueries++
-
 		})
 
 		// Check if context was cancelled during search.
@@ -454,11 +423,8 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	sharedResults := make([]*shared.SearchResult, len(searchResponse.Results))
 
 	for i, result := range searchResponse.Results {
-
 		sharedResults[i] = &shared.SearchResult{
-
 			Document: &shared.TelecomDocument{
-
 				ID: result.Document.ID,
 
 				Content: result.Document.Content,
@@ -468,7 +434,6 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 			Score: result.Score,
 		}
-
 	}
 
 	context, contextMetadata := rs.prepareContext(sharedResults, request)
@@ -480,13 +445,10 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	llmPrompt := rs.buildLLMPrompt(request.Query, context, request.IntentType)
 
 	llmResponse, err := rs.llmClient.ProcessIntent(ctx, llmPrompt)
-
 	if err != nil {
 
 		rs.updateMetrics(func(m *ServiceRAGMetrics) {
-
 			m.FailedQueries++
-
 		})
 
 		// Check if context was cancelled during LLM processing.
@@ -517,7 +479,6 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Create RAG response.
 
 	ragResponse := &RAGResponse{
-
 		Answer: enhancedResponse,
 
 		SourceDocuments: sharedResults,
@@ -539,7 +500,6 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		ProcessedAt: time.Now(),
 
 		Metadata: map[string]interface{}{
-
 			"context_length": len(context),
 
 			"documents_used": len(searchResponse.Results),
@@ -563,7 +523,6 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Update success metrics.
 
 	rs.updateMetrics(func(m *ServiceRAGMetrics) {
-
 		m.SuccessfulQueries++
 
 		m.AverageLatency = (m.AverageLatency*time.Duration(m.SuccessfulQueries-1) + ragResponse.ProcessingTime) / time.Duration(m.SuccessfulQueries)
@@ -575,7 +534,6 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		m.CacheHitRate = float64(rs.cache.metrics.Hits) / float64(rs.cache.metrics.Hits+rs.cache.metrics.Misses)
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	rs.logger.Info("RAG query processed successfully",
@@ -590,27 +548,22 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	)
 
 	return ragResponse, nil
-
 }
 
 // buildSearchFilters constructs search filters based on the request and configuration.
 
 func (rs *RAGService) buildSearchFilters(request *RAGRequest) map[string]interface{} {
-
 	filters := make(map[string]interface{})
 
 	// Add user-provided filters.
 
 	for k, v := range request.SearchFilters {
-
 		filters[k] = v
-
 	}
 
 	// Add intent-type specific filters.
 
 	if request.IntentType != "" {
-
 		switch strings.ToLower(request.IntentType) {
 
 		case "configuration":
@@ -630,29 +583,24 @@ func (rs *RAGService) buildSearchFilters(request *RAGRequest) map[string]interfa
 			filters["category"] = "Monitoring"
 
 		}
-
 	}
 
 	// Add technology filters if configured.
 
 	if len(rs.config.TechnologyFilter) > 0 {
-
 		// This would be implemented as an OR filter in a full implementation.
 
 		// For now, we'll just add a comment indicating the intention.
 
 		// filters["technology"] = rs.config.TechnologyFilter.
-
 	}
 
 	return filters
-
 }
 
 // prepareContext creates a context string from retrieved documents.
 
 func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RAGRequest) (string, map[string]interface{}) {
-
 	var contextParts []string
 
 	var totalTokens int
@@ -660,7 +608,6 @@ func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RA
 	documentsUsed := 0
 
 	metadata := map[string]interface{}{
-
 		"documents_considered": len(results),
 
 		"context_truncated": false,
@@ -669,9 +616,7 @@ func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RA
 	for i, result := range results {
 
 		if result.Document == nil {
-
 			continue
-
 		}
 
 		// Estimate token count (rough approximation: 1 token ≈ 4 characters).
@@ -709,19 +654,15 @@ func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RA
 	// Add user context if provided.
 
 	if request.Context != "" {
-
 		context = request.Context + "\n\n" + context
-
 	}
 
 	return context, metadata
-
 }
 
 // formatDocumentForContext formats a document for inclusion in the LLM context.
 
 func (rs *RAGService) formatDocumentForContext(result *shared.SearchResult, index int) string {
-
 	doc := result.Document
 
 	var parts []string
@@ -731,39 +672,27 @@ func (rs *RAGService) formatDocumentForContext(result *shared.SearchResult, inde
 	parts = append(parts, fmt.Sprintf("Document %d:", index))
 
 	if doc.Title != "" {
-
 		parts = append(parts, fmt.Sprintf("Title: %s", doc.Title))
-
 	}
 
 	if doc.Source != "" {
-
 		parts = append(parts, fmt.Sprintf("Source: %s", doc.Source))
-
 	}
 
 	if doc.Category != "" {
-
 		parts = append(parts, fmt.Sprintf("Category: %s", doc.Category))
-
 	}
 
 	if doc.Version != "" {
-
 		parts = append(parts, fmt.Sprintf("Version: %s", doc.Version))
-
 	}
 
 	if len(doc.Technology) > 0 {
-
 		parts = append(parts, fmt.Sprintf("Technologies: %s", strings.Join(doc.Technology, ", ")))
-
 	}
 
 	if len(doc.NetworkFunction) > 0 {
-
 		parts = append(parts, fmt.Sprintf("Network Functions: %s", strings.Join(doc.NetworkFunction, ", ")))
-
 	}
 
 	parts = append(parts, fmt.Sprintf("Relevance Score: %.3f", result.Score))
@@ -773,13 +702,11 @@ func (rs *RAGService) formatDocumentForContext(result *shared.SearchResult, inde
 	parts = append(parts, doc.Content)
 
 	return strings.Join(parts, "\n")
-
 }
 
 // buildLLMPrompt constructs the prompt for the LLM.
 
 func (rs *RAGService) buildLLMPrompt(query, context, intentType string) string {
-
 	var promptParts []string
 
 	// System prompt.
@@ -807,7 +734,6 @@ Guidelines:
 	// Intent-specific instructions.
 
 	if intentType != "" {
-
 		switch strings.ToLower(intentType) {
 
 		case "configuration":
@@ -827,7 +753,6 @@ Guidelines:
 			promptParts = append(promptParts, "\nFocus on monitoring approaches, key metrics, and alerting strategies.")
 
 		}
-
 	}
 
 	// Context section.
@@ -851,13 +776,11 @@ Guidelines:
 	promptParts = append(promptParts, "\n\nPlease provide a comprehensive answer based on the documentation above. Include specific references to standards or specifications when applicable.")
 
 	return strings.Join(promptParts, "\n")
-
 }
 
 // enhanceResponse post-processes the LLM response to add source references and formatting.
 
 func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*shared.SearchResult, request *RAGRequest) string {
-
 	response := llmResponse
 
 	// Add source references if requested.
@@ -867,49 +790,37 @@ func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*sha
 		var references []string
 
 		for i, result := range sourceDocuments {
-
 			if result.Document != nil && i < 5 { // Limit to top 5 references
 
 				ref := fmt.Sprintf("[%d] %s", i+1, result.Document.Source)
 
 				if result.Document.Title != "" {
-
 					ref += fmt.Sprintf(" - %s", result.Document.Title)
-
 				}
 
 				if result.Document.Version != "" {
-
 					ref += fmt.Sprintf(" (%s)", result.Document.Version)
-
 				}
 
 				references = append(references, ref)
 
 			}
-
 		}
 
 		if len(references) > 0 {
-
 			response += "\n\n**Sources:**\n" + strings.Join(references, "\n")
-
 		}
 
 	}
 
 	return response
-
 }
 
 // calculateConfidence calculates an overall confidence score for the response.
 
 func (rs *RAGService) calculateConfidence(results []*shared.SearchResult) float32 {
-
 	if len(results) == 0 {
-
 		return 0.0
-
 	}
 
 	var totalScore float32
@@ -933,39 +844,31 @@ func (rs *RAGService) calculateConfidence(results []*shared.SearchResult) float3
 	// Normalize to 0-1 range and apply some adjustments.
 
 	if confidence > 1.0 {
-
 		confidence = 1.0
-
 	}
 
 	// Reduce confidence if we have few results.
 
 	if len(results) < 3 {
-
 		confidence *= 0.8
-
 	}
 
 	return confidence
-
 }
 
 // updateMetrics safely updates the metrics.
 
 func (rs *RAGService) updateMetrics(updater func(*ServiceRAGMetrics)) {
-
 	rs.metrics.mutex.Lock()
 
 	defer rs.metrics.mutex.Unlock()
 
 	updater(rs.metrics)
-
 }
 
 // GetMetrics returns the current metrics.
 
 func (rs *RAGService) GetMetrics() *ServiceRAGMetrics {
-
 	rs.metrics.mutex.RLock()
 
 	defer rs.metrics.mutex.RUnlock()
@@ -973,7 +876,6 @@ func (rs *RAGService) GetMetrics() *ServiceRAGMetrics {
 	// Return a copy with field-by-field copying to avoid mutex copying.
 
 	metrics := &ServiceRAGMetrics{
-
 		TotalQueries: rs.metrics.TotalQueries,
 
 		SuccessfulQueries: rs.metrics.SuccessfulQueries,
@@ -992,13 +894,11 @@ func (rs *RAGService) GetMetrics() *ServiceRAGMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetHealth returns the health status of the RAG service.
 
 func (rs *RAGService) GetHealth() map[string]interface{} {
-
 	weaviateHealth := rs.weaviateClient.GetHealthStatus()
 
 	// Determine overall health status.
@@ -1066,19 +966,16 @@ func (rs *RAGService) GetHealth() map[string]interface{} {
 		if errorRate > 0.5 { // More than 50% error rate
 
 			status = "unhealthy"
-
 		}
 
 	}
 
 	return map[string]interface{}{
-
 		"status": status,
 
 		"issues": issues,
 
 		"weaviate": map[string]interface{}{
-
 			"healthy": weaviateHealth.IsHealthy,
 
 			"last_check": weaviateHealth.LastCheck,
@@ -1087,7 +984,6 @@ func (rs *RAGService) GetHealth() map[string]interface{} {
 		},
 
 		"cache": map[string]interface{}{
-
 			"status": cacheHealth,
 
 			"metrics": rs.cache.GetMetrics(),
@@ -1097,13 +993,11 @@ func (rs *RAGService) GetHealth() map[string]interface{} {
 
 		"timestamp": time.Now(),
 	}
-
 }
 
 // generateCacheKey generates a cache key for a RAG request.
 
 func (rs *RAGService) generateCacheKey(request *RAGRequest) string {
-
 	// Create a deterministic key based on request parameters.
 
 	data := struct {
@@ -1121,7 +1015,6 @@ func (rs *RAGService) generateCacheKey(request *RAGRequest) string {
 
 		EnableRerank bool `json:"enable_rerank"`
 	}{
-
 		Query: request.Query,
 
 		IntentType: request.IntentType,
@@ -1142,54 +1035,41 @@ func (rs *RAGService) generateCacheKey(request *RAGRequest) string {
 	hash := sha256.Sum256(jsonData)
 
 	return hex.EncodeToString(hash[:])
-
 }
 
 // startCacheCleanup starts the cache cleanup goroutine.
 
 func (rs *RAGService) startCacheCleanup() {
-
 	ticker := time.NewTicker(rs.cache.config.CleanupInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
-
 		case <-ticker.C:
 
 			rs.cache.Cleanup()
-
 		}
-
 	}
-
 }
 
 // newRAGCache creates a new RAG cache.
 
 func newRAGCache(config *CacheConfig) *ServiceRAGCache {
-
 	return &ServiceRAGCache{
-
 		data: make(map[string]*CachedResponse),
 
 		config: config,
 
 		metrics: &CacheMetrics{},
 	}
-
 }
 
 // Get retrieves a cached response.
 
 func (c *ServiceRAGCache) Get(key string) *RAGResponse {
-
 	if !c.config.EnableCache {
-
 		return nil
-
 	}
 
 	c.mutex.RLock()
@@ -1229,17 +1109,13 @@ func (c *ServiceRAGCache) Get(key string) *RAGResponse {
 	c.updateMetrics(func(m *CacheMetrics) { m.Hits++ })
 
 	return cached.Response
-
 }
 
 // Set stores a response in the cache.
 
 func (c *ServiceRAGCache) Set(key string, response *RAGResponse) {
-
 	if !c.config.EnableCache {
-
 		return
-
 	}
 
 	c.mutex.Lock()
@@ -1249,13 +1125,10 @@ func (c *ServiceRAGCache) Set(key string, response *RAGResponse) {
 	// Check if we need to evict items.
 
 	if len(c.data) >= c.config.MaxSize {
-
 		c.evictLRU()
-
 	}
 
 	c.data[key] = &CachedResponse{
-
 		Response: response,
 
 		CreatedAt: time.Now(),
@@ -1266,13 +1139,11 @@ func (c *ServiceRAGCache) Set(key string, response *RAGResponse) {
 	}
 
 	c.updateMetrics(func(m *CacheMetrics) { m.TotalItems++ })
-
 }
 
 // remove removes an item from cache.
 
 func (c *ServiceRAGCache) remove(key string) {
-
 	c.mutex.Lock()
 
 	defer c.mutex.Unlock()
@@ -1282,25 +1153,19 @@ func (c *ServiceRAGCache) remove(key string) {
 		delete(c.data, key)
 
 		c.updateMetrics(func(m *CacheMetrics) {
-
 			m.TotalItems--
 
 			m.Evictions++
-
 		})
 
 	}
-
 }
 
 // evictLRU evicts the least recently used item.
 
 func (c *ServiceRAGCache) evictLRU() {
-
 	if len(c.data) == 0 {
-
 		return
-
 	}
 
 	var oldestKey string
@@ -1308,7 +1173,6 @@ func (c *ServiceRAGCache) evictLRU() {
 	var oldestTime time.Time = time.Now()
 
 	for key, cached := range c.data {
-
 		if cached.LastAccess.Before(oldestTime) {
 
 			oldestTime = cached.LastAccess
@@ -1316,7 +1180,6 @@ func (c *ServiceRAGCache) evictLRU() {
 			oldestKey = key
 
 		}
-
 	}
 
 	if oldestKey != "" {
@@ -1324,25 +1187,19 @@ func (c *ServiceRAGCache) evictLRU() {
 		delete(c.data, oldestKey)
 
 		c.updateMetrics(func(m *CacheMetrics) {
-
 			m.TotalItems--
 
 			m.Evictions++
-
 		})
 
 	}
-
 }
 
 // Cleanup removes expired entries.
 
 func (c *ServiceRAGCache) Cleanup() {
-
 	if !c.config.EnableCache {
-
 		return
-
 	}
 
 	c.mutex.Lock()
@@ -1354,13 +1211,9 @@ func (c *ServiceRAGCache) Cleanup() {
 	expiredKeys := make([]string, 0)
 
 	for key, cached := range c.data {
-
 		if now.Sub(cached.CreatedAt) > c.config.TTL {
-
 			expiredKeys = append(expiredKeys, key)
-
 		}
-
 	}
 
 	for _, key := range expiredKeys {
@@ -1368,21 +1221,17 @@ func (c *ServiceRAGCache) Cleanup() {
 		delete(c.data, key)
 
 		c.updateMetrics(func(m *CacheMetrics) {
-
 			m.TotalItems--
 
 			m.Evictions++
-
 		})
 
 	}
-
 }
 
 // GetMetrics returns cache metrics.
 
 func (c *ServiceRAGCache) GetMetrics() *CacheMetrics {
-
 	c.metrics.mutex.RLock()
 
 	defer c.metrics.mutex.RUnlock()
@@ -1390,7 +1239,6 @@ func (c *ServiceRAGCache) GetMetrics() *CacheMetrics {
 	// Field-by-field copying to avoid mutex copying.
 
 	metrics := &CacheMetrics{
-
 		Hits: c.metrics.Hits,
 
 		Misses: c.metrics.Misses,
@@ -1415,19 +1263,16 @@ func (c *ServiceRAGCache) GetMetrics() *CacheMetrics {
 	}
 
 	return metrics
-
 }
 
 // updateMetrics safely updates cache metrics.
 
 func (c *ServiceRAGCache) updateMetrics(updater func(*CacheMetrics)) {
-
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
 
 	updater(c.metrics)
-
 }
 
 // GenerateEmbedding generates embedding for a single text (for performance tests)

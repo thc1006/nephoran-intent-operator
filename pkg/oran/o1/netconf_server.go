@@ -123,7 +123,6 @@ type NetconfDatastore struct {
 	mutex sync.RWMutex
 
 	locks map[string]string // datastore -> session-id
-
 }
 
 // NetconfNotificationSubscription represents a NETCONF notification subscription.
@@ -233,11 +232,8 @@ type NetconfGetConfig struct {
 // NewNetconfServer creates a new NETCONF server instance.
 
 func NewNetconfServer(config *NetconfServerConfig) *NetconfServer {
-
 	if config == nil {
-
 		config = &NetconfServerConfig{
-
 			Host: "0.0.0.0",
 
 			Port: 830,
@@ -260,11 +256,9 @@ func NewNetconfServer(config *NetconfServerConfig) *NetconfServer {
 
 			EnableValidation: true,
 		}
-
 	}
 
 	server := &NetconfServer{
-
 		config: config,
 
 		sessions: make(map[string]*NetconfSession),
@@ -281,15 +275,12 @@ func NewNetconfServer(config *NetconfServerConfig) *NetconfServer {
 	server.initializeCapabilities()
 
 	return server
-
 }
 
 // initializeCapabilities sets up NETCONF server capabilities.
 
 func (ns *NetconfServer) initializeCapabilities() {
-
 	ns.capabilities = []string{
-
 		"urn:ietf:params:netconf:base:1.0",
 
 		"urn:ietf:params:netconf:base:1.1",
@@ -304,37 +295,29 @@ func (ns *NetconfServer) initializeCapabilities() {
 	}
 
 	if ns.config.EnableCandidate {
-
 		ns.capabilities = append(ns.capabilities,
 
 			"urn:ietf:params:netconf:capability:candidate:1.0")
-
 	}
 
 	if ns.config.EnableStartup {
-
 		ns.capabilities = append(ns.capabilities,
 
 			"urn:ietf:params:netconf:capability:startup:1.0")
-
 	}
 
 	if ns.config.EnableNotifications {
-
 		ns.capabilities = append(ns.capabilities,
 
 			"urn:ietf:params:netconf:capability:notification:1.0",
 
 			"urn:ietf:params:netconf:capability:interleave:1.0")
-
 	}
 
 	if ns.config.EnableXPath {
-
 		ns.capabilities = append(ns.capabilities,
 
 			"urn:ietf:params:netconf:capability:xpath:1.0")
-
 	}
 
 	// Add O-RAN specific capabilities.
@@ -356,21 +339,17 @@ func (ns *NetconfServer) initializeCapabilities() {
 		"urn:o-ran:file-management:1.0",
 
 		"urn:o-ran:troubleshooting:1.0")
-
 }
 
 // Start starts the NETCONF server on configured ports.
 
 func (ns *NetconfServer) Start(ctx context.Context) error {
-
 	ns.mutex.Lock()
 
 	defer ns.mutex.Unlock()
 
 	if ns.running {
-
 		return fmt.Errorf("server already running")
-
 	}
 
 	logger := log.FromContext(ctx)
@@ -380,21 +359,15 @@ func (ns *NetconfServer) Start(ctx context.Context) error {
 	// Start SSH NETCONF subsystem listener.
 
 	if err := ns.startSSHListener(ctx); err != nil {
-
 		return fmt.Errorf("failed to start SSH listener: %w", err)
-
 	}
 
 	// Start TLS listener if configured.
 
 	if ns.config.TLSConfig != nil {
-
 		if err := ns.startTLSListener(ctx); err != nil {
-
 			logger.Error(err, "failed to start TLS listener, continuing with SSH only")
-
 		}
-
 	}
 
 	ns.running = true
@@ -406,28 +379,22 @@ func (ns *NetconfServer) Start(ctx context.Context) error {
 	logger.Info("NETCONF server started successfully")
 
 	return nil
-
 }
 
 // startSSHListener starts the SSH NETCONF subsystem listener.
 
 func (ns *NetconfServer) startSSHListener(ctx context.Context) error {
-
 	// Configure SSH server.
 
 	sshConfig := &ssh.ServerConfig{
-
 		ServerVersion: "SSH-2.0-NETCONF_SERVER",
 	}
 
 	// Load host key (in production, load from file).
 
 	hostKey, err := generateHostKey()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to generate host key: %w", err)
-
 	}
 
 	sshConfig.AddHostKey(hostKey)
@@ -435,17 +402,13 @@ func (ns *NetconfServer) startSSHListener(ctx context.Context) error {
 	// Configure authentication (basic password auth for demo).
 
 	sshConfig.PasswordCallback = func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-
 		// In production, implement proper authentication.
 
 		if c.User() == "admin" && string(pass) == "admin" {
-
 			return nil, nil
-
 		}
 
 		return nil, fmt.Errorf("authentication failed")
-
 	}
 
 	// Start listening.
@@ -453,11 +416,8 @@ func (ns *NetconfServer) startSSHListener(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", ns.config.Host, ns.config.SSHPort)
 
 	listener, err := net.Listen("tcp", address)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to listen on %s: %w", address, err)
-
 	}
 
 	ns.listener = listener
@@ -469,21 +429,16 @@ func (ns *NetconfServer) startSSHListener(ctx context.Context) error {
 	go ns.acceptSSHConnections(ctx)
 
 	return nil
-
 }
 
 // startTLSListener starts the TLS NETCONF listener.
 
 func (ns *NetconfServer) startTLSListener(ctx context.Context) error {
-
 	address := fmt.Sprintf("%s:%d", ns.config.Host, ns.config.TLSPort)
 
 	listener, err := tls.Listen("tcp", address, ns.config.TLSConfig)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to listen on TLS %s: %w", address, err)
-
 	}
 
 	// Start accepting TLS connections.
@@ -491,13 +446,11 @@ func (ns *NetconfServer) startTLSListener(ctx context.Context) error {
 	go ns.acceptTLSConnections(ctx, listener)
 
 	return nil
-
 }
 
 // acceptSSHConnections accepts and handles SSH connections.
 
 func (ns *NetconfServer) acceptSSHConnections(ctx context.Context) {
-
 	logger := log.FromContext(ctx)
 
 	for {
@@ -517,7 +470,6 @@ func (ns *NetconfServer) acceptSSHConnections(ctx context.Context) {
 		}
 
 		conn, err := ns.listener.Accept()
-
 		if err != nil {
 
 			logger.Error(err, "failed to accept SSH connection")
@@ -529,13 +481,11 @@ func (ns *NetconfServer) acceptSSHConnections(ctx context.Context) {
 		go ns.handleSSHConnection(ctx, conn)
 
 	}
-
 }
 
 // acceptTLSConnections accepts and handles TLS connections.
 
 func (ns *NetconfServer) acceptTLSConnections(ctx context.Context, listener net.Listener) {
-
 	logger := log.FromContext(ctx)
 
 	for {
@@ -555,7 +505,6 @@ func (ns *NetconfServer) acceptTLSConnections(ctx context.Context, listener net.
 		}
 
 		conn, err := listener.Accept()
-
 		if err != nil {
 
 			logger.Error(err, "failed to accept TLS connection")
@@ -567,19 +516,16 @@ func (ns *NetconfServer) acceptTLSConnections(ctx context.Context, listener net.
 		go ns.handleTLSConnection(ctx, conn)
 
 	}
-
 }
 
 // handleSSHConnection handles an SSH connection with NETCONF subsystem.
 
 func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn) {
-
 	logger := log.FromContext(ctx)
 
 	// SSH handshake.
 
 	sshConn, chans, reqs, err := ssh.NewServerConn(conn, ns.sshConfig)
-
 	if err != nil {
 
 		logger.Error(err, "SSH handshake failed")
@@ -609,7 +555,6 @@ func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn)
 		}
 
 		channel, requests, err := newChannel.Accept()
-
 		if err != nil {
 
 			logger.Error(err, "failed to accept SSH channel")
@@ -621,13 +566,11 @@ func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn)
 		go ns.handleSSHChannel(ctx, channel, requests, sshConn.User())
 
 	}
-
 }
 
 // handleSSHChannel handles an SSH channel for NETCONF subsystem.
 
 func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Channel, requests <-chan *ssh.Request, username string) {
-
 	defer channel.Close()
 
 	logger := log.FromContext(ctx)
@@ -645,7 +588,6 @@ func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Chann
 			sessionID := generateSessionID()
 
 			session := &NetconfSession{
-
 				ID: sessionID,
 
 				sshChannel: channel,
@@ -692,13 +634,11 @@ func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Chann
 		req.Reply(false, nil)
 
 	}
-
 }
 
 // handleTLSConnection handles a TLS connection for NETCONF.
 
 func (ns *NetconfServer) handleTLSConnection(ctx context.Context, conn net.Conn) {
-
 	logger := log.FromContext(ctx)
 
 	defer conn.Close()
@@ -708,7 +648,6 @@ func (ns *NetconfServer) handleTLSConnection(ctx context.Context, conn net.Conn)
 	sessionID := generateSessionID()
 
 	session := &NetconfSession{
-
 		ID: sessionID,
 
 		conn: conn,
@@ -747,13 +686,11 @@ func (ns *NetconfServer) handleTLSConnection(ctx context.Context, conn net.Conn)
 	delete(ns.sessions, sessionID)
 
 	ns.sessionsMux.Unlock()
-
 }
 
 // handleNetconfSession handles the NETCONF protocol for a session.
 
 func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *NetconfSession) {
-
 	logger := log.FromContext(ctx)
 
 	defer session.cancel()
@@ -829,9 +766,7 @@ func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *Netc
 		// Set read timeout (only for net.Conn).
 
 		if session.conn != nil {
-
 			session.conn.SetReadDeadline(time.Now().Add(ns.config.SessionTimeout))
-
 		}
 
 		var rpc NetconfRPCRequest
@@ -859,15 +794,12 @@ func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *Netc
 		go ns.handleRPC(ctx, session, &rpc)
 
 	}
-
 }
 
 // sendHello sends NETCONF hello message to client.
 
 func (ns *NetconfServer) sendHello(session *NetconfSession) error {
-
 	hello := HelloMessage{
-
 		Namespace: "urn:ietf:params:xml:ns:netconf:base:1.0",
 
 		Capabilities: session.capabilities,
@@ -878,11 +810,8 @@ func (ns *NetconfServer) sendHello(session *NetconfSession) error {
 	// Encode and send with NETCONF 1.1 framing.
 
 	xmlData, err := xml.Marshal(hello)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal hello: %w", err)
-
 	}
 
 	message := fmt.Sprintf("%s]]>]]>", string(xmlData))
@@ -890,29 +819,21 @@ func (ns *NetconfServer) sendHello(session *NetconfSession) error {
 	// Write to appropriate connection type.
 
 	if session.conn != nil {
-
 		_, err = session.conn.Write([]byte(message))
-
 	} else if session.sshChannel != nil {
-
 		_, err = session.sshChannel.Write([]byte(message))
-
 	}
 
 	return err
-
 }
 
 // receiveHello receives and processes client hello message.
 
 func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
-
 	// Read hello with timeout.
 
 	if session.conn != nil {
-
 		session.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-
 	}
 
 	buffer := make([]byte, 4096)
@@ -922,23 +843,15 @@ func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
 	var err error
 
 	if session.conn != nil {
-
 		n, err = session.conn.Read(buffer)
-
 	} else if session.sshChannel != nil {
-
 		n, err = session.sshChannel.Read(buffer)
-
 	} else {
-
 		return fmt.Errorf("no valid connection for reading hello")
-
 	}
 
 	if err != nil {
-
 		return fmt.Errorf("failed to read client hello: %w", err)
-
 	}
 
 	helloXML := string(buffer[:n])
@@ -948,9 +861,7 @@ func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
 	var clientHello HelloMessage
 
 	if err := xml.Unmarshal([]byte(helloXML), &clientHello); err != nil {
-
 		return fmt.Errorf("failed to parse client hello: %w", err)
-
 	}
 
 	// Negotiate capabilities.
@@ -958,45 +869,34 @@ func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
 	session.capabilities = ns.negotiateCapabilities(session.capabilities, clientHello.Capabilities)
 
 	return nil
-
 }
 
 // negotiateCapabilities negotiates capabilities between server and client.
 
 func (ns *NetconfServer) negotiateCapabilities(server, client []string) []string {
-
 	clientCaps := make(map[string]bool)
 
 	for _, cap := range client {
-
 		clientCaps[cap] = true
-
 	}
 
 	var negotiated []string
 
 	for _, serverCap := range server {
-
 		if clientCaps[serverCap] {
-
 			negotiated = append(negotiated, serverCap)
-
 		}
-
 	}
 
 	return negotiated
-
 }
 
 // handleRPC handles a NETCONF RPC request.
 
 func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest) {
-
 	logger := log.FromContext(ctx)
 
 	response := &NetconfRPCResponse{
-
 		MessageID: rpc.MessageID,
 
 		Namespace: "urn:ietf:params:xml:ns:netconf:base:1.0",
@@ -1065,7 +965,6 @@ func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession,
 	default:
 
 		response.Error = &NetconfRPCError{
-
 			Type: "application",
 
 			Tag: "operation-not-supported",
@@ -1080,137 +979,106 @@ func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession,
 	// Send response.
 
 	ns.sendResponse(session, response)
-
 }
 
 // NETCONF RPC operation handlers.
 
 func (ns *NetconfServer) handleGet(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Basic get operation - returns operational data.
 
 	response.Data = map[string]interface{}{
-
 		"message": "Get operation not fully implemented",
 	}
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleGetConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Get configuration data.
 
 	response.Data = map[string]interface{}{
-
 		"message": "Get-config operation not fully implemented",
 	}
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleEditConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Edit configuration.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleCopyConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Copy configuration between datastores.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleDeleteConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Delete configuration.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleLock(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Lock datastore.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleUnlock(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Unlock datastore.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleCloseSession(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Close session.
 
 	response.OK = &struct{}{}
 
 	session.cancel() // Close the session
-
 }
 
 func (ns *NetconfServer) handleKillSession(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Kill another session.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleValidate(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Validate configuration.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleCommit(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Commit candidate configuration to running.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleDiscardChanges(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Discard candidate configuration changes.
 
 	response.OK = &struct{}{}
-
 }
 
 func (ns *NetconfServer) handleCreateSubscription(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
-
 	// Create notification subscription.
 
 	response.OK = &struct{}{}
-
 }
 
 // sendResponse sends a NETCONF RPC response.
 
 func (ns *NetconfServer) sendResponse(session *NetconfSession, response *NetconfRPCResponse) {
-
 	session.mutex.Lock()
 
 	defer session.mutex.Unlock()
 
 	xmlData, err := xml.Marshal(response)
-
 	if err != nil {
 
 		log.Log.Error(err, "failed to marshal response")
@@ -1224,21 +1092,15 @@ func (ns *NetconfServer) sendResponse(session *NetconfSession, response *Netconf
 	// Write to appropriate connection type.
 
 	if session.conn != nil {
-
 		session.conn.Write([]byte(message))
-
 	} else if session.sshChannel != nil {
-
 		session.sshChannel.Write([]byte(message))
-
 	}
-
 }
 
 // parseOperation extracts the operation name from RPC content.
 
 func (ns *NetconfServer) parseOperation(operation string) string {
-
 	// Simple operation parsing - extract first XML element name.
 
 	if idx := strings.Index(operation, "<"); idx != -1 {
@@ -1246,27 +1108,21 @@ func (ns *NetconfServer) parseOperation(operation string) string {
 		remaining := operation[idx+1:]
 
 		if endIdx := strings.Index(remaining, " "); endIdx != -1 {
-
 			return remaining[:endIdx]
-
 		}
 
 		if endIdx := strings.Index(remaining, ">"); endIdx != -1 {
-
 			return remaining[:endIdx]
-
 		}
 
 	}
 
 	return "unknown"
-
 }
 
 // sessionManager manages session lifecycle and cleanup.
 
 func (ns *NetconfServer) sessionManager(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
@@ -1274,7 +1130,6 @@ func (ns *NetconfServer) sessionManager(ctx context.Context) {
 	logger := log.FromContext(ctx)
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1292,15 +1147,12 @@ func (ns *NetconfServer) sessionManager(ctx context.Context) {
 			ns.cleanupExpiredSessions(logger)
 
 		}
-
 	}
-
 }
 
 // cleanupExpiredSessions removes expired sessions.
 
 func (ns *NetconfServer) cleanupExpiredSessions(logger logr.Logger) {
-
 	ns.sessionsMux.Lock()
 
 	defer ns.sessionsMux.Unlock()
@@ -1308,7 +1160,6 @@ func (ns *NetconfServer) cleanupExpiredSessions(logger logr.Logger) {
 	now := time.Now()
 
 	for sessionID, session := range ns.sessions {
-
 		if now.Sub(session.lastActivity) > ns.config.SessionTimeout {
 
 			logger.Info("cleaning up expired session", "sessionID", sessionID)
@@ -1318,23 +1169,18 @@ func (ns *NetconfServer) cleanupExpiredSessions(logger logr.Logger) {
 			delete(ns.sessions, sessionID)
 
 		}
-
 	}
-
 }
 
 // Stop stops the NETCONF server.
 
 func (ns *NetconfServer) Stop(ctx context.Context) error {
-
 	ns.mutex.Lock()
 
 	defer ns.mutex.Unlock()
 
 	if !ns.running {
-
 		return nil
-
 	}
 
 	logger := log.FromContext(ctx)
@@ -1348,9 +1194,7 @@ func (ns *NetconfServer) Stop(ctx context.Context) error {
 	ns.sessionsMux.Lock()
 
 	for _, session := range ns.sessions {
-
 		session.cancel()
-
 	}
 
 	ns.sessionsMux.Unlock()
@@ -1358,9 +1202,7 @@ func (ns *NetconfServer) Stop(ctx context.Context) error {
 	// Close listeners.
 
 	if ns.listener != nil {
-
 		ns.listener.Close()
-
 	}
 
 	ns.running = false
@@ -1368,7 +1210,6 @@ func (ns *NetconfServer) Stop(ctx context.Context) error {
 	logger.Info("NETCONF server stopped")
 
 	return nil
-
 }
 
 // Helper functions are defined in other files to avoid duplication.
@@ -1376,7 +1217,6 @@ func (ns *NetconfServer) Stop(ctx context.Context) error {
 // GetSessions returns active session information.
 
 func (ns *NetconfServer) GetSessions() map[string]interface{} {
-
 	ns.sessionsMux.RLock()
 
 	defer ns.sessionsMux.RUnlock()
@@ -1384,9 +1224,7 @@ func (ns *NetconfServer) GetSessions() map[string]interface{} {
 	sessions := make(map[string]interface{})
 
 	for id, session := range ns.sessions {
-
 		sessions[id] = map[string]interface{}{
-
 			"id": session.ID,
 
 			"authenticated": session.authenticated,
@@ -1399,11 +1237,9 @@ func (ns *NetconfServer) GetSessions() map[string]interface{} {
 
 			"subscriptions": len(session.subscriptions),
 		}
-
 	}
 
 	return sessions
-
 }
 
 // Utility functions.
@@ -1411,15 +1247,12 @@ func (ns *NetconfServer) GetSessions() map[string]interface{} {
 // generateSessionID generates a unique session ID.
 
 func generateSessionID() string {
-
 	return fmt.Sprintf("session-%d", time.Now().UnixNano())
-
 }
 
 // generateHostKey generates a host key for SSH server.
 
 func generateHostKey() (ssh.Signer, error) {
-
 	// In production, load from file or generate proper key.
 
 	privateKey := `-----BEGIN OPENSSH PRIVATE KEY-----
@@ -1431,15 +1264,12 @@ NhAAAAAwEAAQAAAQEAyQy...
 -----END OPENSSH PRIVATE KEY-----`
 
 	return ssh.ParsePrivateKey([]byte(privateKey))
-
 }
 
 // NewNetconfDatastore creates a new NETCONF datastore.
 
 func NewNetconfDatastore() *NetconfDatastore {
-
 	return &NetconfDatastore{
-
 		running: make(map[string]interface{}),
 
 		candidate: make(map[string]interface{}),
@@ -1448,5 +1278,4 @@ func NewNetconfDatastore() *NetconfDatastore {
 
 		locks: make(map[string]string),
 	}
-
 }

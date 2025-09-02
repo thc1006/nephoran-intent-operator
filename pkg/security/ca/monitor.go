@@ -35,7 +35,6 @@ type CAMonitor struct {
 // CAMetrics holds Prometheus metrics for CA operations.
 
 type CAMetrics struct {
-
 	// Certificate metrics.
 
 	CertificatesIssued *prometheus.CounterVec
@@ -268,9 +267,7 @@ func (h *BackendHealthCheck) Critical() bool { return true }
 // Check performs check operation.
 
 func (h *BackendHealthCheck) Check(ctx context.Context) error {
-
 	return h.backend.HealthCheck(ctx)
-
 }
 
 // CertificateExpiryCheck checks for expiring certificates.
@@ -292,35 +289,26 @@ func (h *CertificateExpiryCheck) Critical() bool { return false }
 // Check performs check operation.
 
 func (h *CertificateExpiryCheck) Check(ctx context.Context) error {
-
 	threshold := time.Now().Add(h.threshold)
 
 	expiring, err := h.pool.GetExpiringCertificates(threshold)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	if len(expiring) > 0 {
-
 		return fmt.Errorf("found %d certificates expiring within %v", len(expiring), h.threshold)
-
 	}
 
 	return nil
-
 }
 
 // NewCAMonitor creates a new CA monitor.
 
 func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*CAMonitor, error) {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	monitor := &CAMonitor{
-
 		config: config,
 
 		logger: logger,
@@ -341,11 +329,9 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 	if config.AlertingEnabled {
 
 		alertConfig := &AlertConfig{
-
 			Enabled: true,
 
 			Thresholds: &AlertThresholds{
-
 				CertificateExpiryDays: config.ExpirationWarningDays,
 
 				BackendErrorRate: 0.05, // 5%
@@ -364,7 +350,6 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 		}
 
 		alertManager, err := NewAlertManager(alertConfig, logger)
-
 		if err != nil {
 
 			cancel()
@@ -378,13 +363,11 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 	}
 
 	return monitor, nil
-
 }
 
 // Start starts the CA monitor.
 
 func (m *CAMonitor) Start(ctx context.Context) {
-
 	m.logger.Info("starting CA monitor")
 
 	// Start health check loop.
@@ -398,31 +381,25 @@ func (m *CAMonitor) Start(ctx context.Context) {
 	// Start alert processing loop.
 
 	if m.alerts != nil {
-
 		go m.alerts.Start(ctx)
-
 	}
 
 	<-ctx.Done()
 
 	m.logger.Info("CA monitor stopped")
-
 }
 
 // Stop stops the CA monitor.
 
 func (m *CAMonitor) Stop() {
-
 	m.logger.Info("stopping CA monitor")
 
 	m.cancel()
-
 }
 
 // AddHealthCheck adds a health check.
 
 func (m *CAMonitor) AddHealthCheck(check HealthCheck) {
-
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -434,13 +411,11 @@ func (m *CAMonitor) AddHealthCheck(check HealthCheck) {
 		"name", check.Name(),
 
 		"critical", check.Critical())
-
 }
 
 // RemoveHealthCheck removes a health check.
 
 func (m *CAMonitor) RemoveHealthCheck(name string) {
-
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -448,31 +423,25 @@ func (m *CAMonitor) RemoveHealthCheck(name string) {
 	delete(m.checks, name)
 
 	m.logger.Info("health check removed", "name", name)
-
 }
 
 // RecordCertificateIssued records a certificate issuance.
 
 func (m *CAMonitor) RecordCertificateIssued(backend, tenantID string, duration time.Duration) {
-
 	m.metrics.CertificatesIssued.WithLabelValues(backend, tenantID).Inc()
 
 	m.metrics.CertificateLifetime.WithLabelValues(backend, tenantID).Observe(duration.Hours())
-
 }
 
 // RecordCertificateRevoked records a certificate revocation.
 
 func (m *CAMonitor) RecordCertificateRevoked(backend, tenantID, reason string) {
-
 	m.metrics.CertificatesRevoked.WithLabelValues(backend, tenantID, reason).Inc()
-
 }
 
 // RecordBackendOperation records a backend operation.
 
 func (m *CAMonitor) RecordBackendOperation(backend, operation string, success bool, duration time.Duration) {
-
 	status := "success"
 
 	if !success {
@@ -486,29 +455,23 @@ func (m *CAMonitor) RecordBackendOperation(backend, operation string, success bo
 	m.metrics.BackendOperations.WithLabelValues(backend, operation, status).Inc()
 
 	m.metrics.BackendLatency.WithLabelValues(backend, operation).Observe(duration.Seconds())
-
 }
 
 // RecordDistributionJob records a distribution job.
 
 func (m *CAMonitor) RecordDistributionJob(status, targetType string, duration time.Duration) {
-
 	m.metrics.DistributionJobs.WithLabelValues(status, targetType).Inc()
 
 	m.metrics.DistributionLatency.WithLabelValues(targetType).Observe(duration.Seconds())
 
 	if status == "failed" {
-
 		m.metrics.DistributionErrors.WithLabelValues(targetType, "distribution_failed").Inc()
-
 	}
-
 }
 
 // RecordPolicyValidation records a policy validation.
 
 func (m *CAMonitor) RecordPolicyValidation(template string, valid bool, violationCount int) {
-
 	status := "passed"
 
 	if !valid {
@@ -520,45 +483,36 @@ func (m *CAMonitor) RecordPolicyValidation(template string, valid bool, violatio
 	}
 
 	m.metrics.PolicyValidations.WithLabelValues(template, status).Inc()
-
 }
 
 // UpdateBackendHealth updates backend health status.
 
 func (m *CAMonitor) UpdateBackendHealth(backend string, healthy bool) {
-
 	value := float64(0)
 
 	if healthy {
-
 		value = 1
-
 	}
 
 	m.metrics.BackendHealth.WithLabelValues(backend).Set(value)
-
 }
 
 // UpdatePoolMetrics updates certificate pool metrics.
 
 func (m *CAMonitor) UpdatePoolMetrics(poolSize int, hitRate float64) {
-
 	m.metrics.CertificatePoolSize.WithLabelValues("active").Set(float64(poolSize))
 
 	m.metrics.PoolCacheHitRate.WithLabelValues("memory").Set(hitRate)
-
 }
 
 // GetHealthStatus returns overall health status.
 
 func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
-
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
 
 	status := map[string]interface{}{
-
 		"healthy": true,
 
 		"checks": make(map[string]interface{}),
@@ -575,7 +529,6 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 		err := check.Check(m.ctx)
 
 		checkStatus := map[string]interface{}{
-
 			"healthy": err == nil,
 
 			"critical": check.Critical(),
@@ -586,9 +539,7 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 			checkStatus["error"] = err.Error()
 
 			if check.Critical() {
-
 				status["healthy"] = false
-
 			}
 
 		}
@@ -600,25 +551,20 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 	// Add alert count.
 
 	if m.alerts != nil {
-
 		status["alert_count"] = len(m.alerts.GetActiveAlerts())
-
 	}
 
 	return status
-
 }
 
 // Helper methods.
 
 func (m *CAMonitor) runHealthChecks() {
-
 	ticker := time.NewTicker(m.config.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -630,21 +576,16 @@ func (m *CAMonitor) runHealthChecks() {
 			m.performHealthChecks()
 
 		}
-
 	}
-
 }
 
 func (m *CAMonitor) performHealthChecks() {
-
 	m.mu.RLock()
 
 	checks := make(map[string]HealthCheck)
 
 	for name, check := range m.checks {
-
 		checks[name] = check
-
 	}
 
 	m.mu.RUnlock()
@@ -672,40 +613,32 @@ func (m *CAMonitor) performHealthChecks() {
 			// Trigger alert if enabled.
 
 			if m.alerts != nil {
-
 				m.alerts.TriggerAlert("health_check_failed", map[string]string{
-
 					"check": name,
 
 					"error": err.Error(),
 
 					"critical": fmt.Sprintf("%v", check.Critical()),
 				})
-
 			}
 
 		} else {
-
 			m.logger.Debug("health check passed",
 
 				"check", name,
 
 				"duration", duration)
-
 		}
 
 	}
-
 }
 
 func (m *CAMonitor) runMetricsCollection() {
-
 	ticker := time.NewTicker(30 * time.Second) // Collect metrics every 30 seconds
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-m.ctx.Done():
@@ -717,13 +650,10 @@ func (m *CAMonitor) runMetricsCollection() {
 			m.collectSystemMetrics()
 
 		}
-
 	}
-
 }
 
 func (m *CAMonitor) collectSystemMetrics() {
-
 	// Collect system resource usage.
 
 	// This would typically use runtime metrics, cgroup stats, etc.
@@ -735,19 +665,15 @@ func (m *CAMonitor) collectSystemMetrics() {
 	m.metrics.ResourceUsage.WithLabelValues("cpu").Set(0.25) // 25% CPU
 
 	m.metrics.ResourceUsage.WithLabelValues("memory").Set(0.40) // 40% Memory
-
 }
 
 // Initialize Prometheus metrics.
 
 func initializeMetrics() *CAMetrics {
-
 	return &CAMetrics{
-
 		CertificatesIssued: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_certificates_issued_total",
 
 				Help: "Total number of certificates issued",
@@ -759,7 +685,6 @@ func initializeMetrics() *CAMetrics {
 		CertificatesRevoked: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_certificates_revoked_total",
 
 				Help: "Total number of certificates revoked",
@@ -771,7 +696,6 @@ func initializeMetrics() *CAMetrics {
 		CertificatesExpired: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_certificates_expired_total",
 
 				Help: "Total number of certificates expired",
@@ -783,7 +707,6 @@ func initializeMetrics() *CAMetrics {
 		CertificateLifetime: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "ca_certificate_lifetime_hours",
 
 				Help: "Certificate lifetime in hours",
@@ -798,7 +721,6 @@ func initializeMetrics() *CAMetrics {
 		BackendHealth: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "ca_backend_healthy",
 
 				Help: "Backend health status (1=healthy, 0=unhealthy)",
@@ -810,7 +732,6 @@ func initializeMetrics() *CAMetrics {
 		BackendOperations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_backend_operations_total",
 
 				Help: "Total number of backend operations",
@@ -822,7 +743,6 @@ func initializeMetrics() *CAMetrics {
 		BackendLatency: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "ca_backend_operation_duration_seconds",
 
 				Help: "Backend operation duration in seconds",
@@ -834,7 +754,6 @@ func initializeMetrics() *CAMetrics {
 		BackendErrors: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_backend_errors_total",
 
 				Help: "Total number of backend errors",
@@ -846,7 +765,6 @@ func initializeMetrics() *CAMetrics {
 		CertificatePoolSize: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "ca_certificate_pool_size",
 
 				Help: "Current certificate pool size",
@@ -858,7 +776,6 @@ func initializeMetrics() *CAMetrics {
 		PoolOperations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_pool_operations_total",
 
 				Help: "Total number of certificate pool operations",
@@ -870,7 +787,6 @@ func initializeMetrics() *CAMetrics {
 		PoolCacheHitRate: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "ca_pool_cache_hit_rate",
 
 				Help: "Certificate pool cache hit rate",
@@ -882,7 +798,6 @@ func initializeMetrics() *CAMetrics {
 		DistributionJobs: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_distribution_jobs_total",
 
 				Help: "Total number of certificate distribution jobs",
@@ -894,7 +809,6 @@ func initializeMetrics() *CAMetrics {
 		DistributionLatency: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "ca_distribution_duration_seconds",
 
 				Help: "Certificate distribution duration in seconds",
@@ -906,7 +820,6 @@ func initializeMetrics() *CAMetrics {
 		DistributionErrors: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_distribution_errors_total",
 
 				Help: "Total number of distribution errors",
@@ -918,7 +831,6 @@ func initializeMetrics() *CAMetrics {
 		PolicyValidations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_policy_validations_total",
 
 				Help: "Total number of policy validations",
@@ -930,7 +842,6 @@ func initializeMetrics() *CAMetrics {
 		PolicyViolations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_policy_violations_total",
 
 				Help: "Total number of policy violations",
@@ -942,7 +853,6 @@ func initializeMetrics() *CAMetrics {
 		ApprovalRequests: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "ca_approval_requests_total",
 
 				Help: "Total number of approval requests",
@@ -954,7 +864,6 @@ func initializeMetrics() *CAMetrics {
 		ActiveSessions: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "ca_active_sessions",
 
 				Help: "Number of active CA sessions",
@@ -966,7 +875,6 @@ func initializeMetrics() *CAMetrics {
 		ResourceUsage: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "ca_resource_usage_ratio",
 
 				Help: "Resource usage ratio (0-1)",
@@ -978,7 +886,6 @@ func initializeMetrics() *CAMetrics {
 		ErrorRate: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "ca_error_rate",
 
 				Help: "Error rate (0-1)",
@@ -987,7 +894,6 @@ func initializeMetrics() *CAMetrics {
 			[]string{"component", "error_type"},
 		),
 	}
-
 }
 
 // AlertManager methods.
@@ -995,9 +901,7 @@ func initializeMetrics() *CAMetrics {
 // NewAlertManager creates a new alert manager.
 
 func NewAlertManager(config *AlertConfig, logger *logging.StructuredLogger) (*AlertManager, error) {
-
 	am := &AlertManager{
-
 		config: config,
 
 		logger: logger,
@@ -1010,19 +914,15 @@ func NewAlertManager(config *AlertConfig, logger *logging.StructuredLogger) (*Al
 	// Load alert rules.
 
 	for _, rule := range config.Rules {
-
 		am.rules[rule.Name] = rule
-
 	}
 
 	return am, nil
-
 }
 
 // Start starts the alert manager.
 
 func (am *AlertManager) Start(ctx context.Context) {
-
 	am.logger.Info("starting alert manager")
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1030,7 +930,6 @@ func (am *AlertManager) Start(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1042,15 +941,12 @@ func (am *AlertManager) Start(ctx context.Context) {
 			am.processAlerts()
 
 		}
-
 	}
-
 }
 
 // TriggerAlert triggers an alert.
 
 func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) {
-
 	am.mu.Lock()
 
 	defer am.mu.Unlock()
@@ -1070,17 +966,12 @@ func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) 
 	// Check if alert already exists and is in cooldown.
 
 	if existing, exists := am.activeAlerts[alertID]; exists {
-
 		if time.Since(existing.UpdatedAt) < am.config.Cooldown {
-
 			return // Still in cooldown
-
 		}
-
 	}
 
 	alert := &Alert{
-
 		ID: alertID,
 
 		Rule: rule,
@@ -1111,13 +1002,11 @@ func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) 
 	// Send notifications.
 
 	go am.sendNotifications(alert)
-
 }
 
 // GetActiveAlerts returns all active alerts.
 
 func (am *AlertManager) GetActiveAlerts() []*Alert {
-
 	am.mu.RLock()
 
 	defer am.mu.RUnlock()
@@ -1125,19 +1014,15 @@ func (am *AlertManager) GetActiveAlerts() []*Alert {
 	alerts := make([]*Alert, 0, len(am.activeAlerts))
 
 	for _, alert := range am.activeAlerts {
-
 		alerts = append(alerts, alert)
-
 	}
 
 	return alerts
-
 }
 
 // Helper methods for AlertManager.
 
 func (am *AlertManager) processAlerts() {
-
 	am.mu.Lock()
 
 	defer am.mu.Unlock()
@@ -1145,21 +1030,14 @@ func (am *AlertManager) processAlerts() {
 	// Clean up old alerts.
 
 	for id, alert := range am.activeAlerts {
-
 		if alert.Status == AlertStatusResolved && time.Since(alert.UpdatedAt) > 24*time.Hour {
-
 			delete(am.activeAlerts, id)
-
 		}
-
 	}
-
 }
 
 func (am *AlertManager) sendNotifications(alert *Alert) {
-
 	for _, channel := range am.config.NotificationChannels {
-
 		switch channel.Type {
 
 		case "webhook":
@@ -1175,13 +1053,10 @@ func (am *AlertManager) sendNotifications(alert *Alert) {
 			am.sendSlackNotification(channel, alert)
 
 		}
-
 	}
-
 }
 
 func (am *AlertManager) sendWebhookNotification(channel NotificationChannel, alert *Alert) {
-
 	am.logger.Debug("sending webhook notification",
 
 		"channel", channel.Name,
@@ -1189,11 +1064,9 @@ func (am *AlertManager) sendWebhookNotification(channel NotificationChannel, ale
 		"alert", alert.ID)
 
 	// Implementation would send HTTP POST to webhook URL.
-
 }
 
 func (am *AlertManager) sendEmailNotification(channel NotificationChannel, alert *Alert) {
-
 	am.logger.Debug("sending email notification",
 
 		"channel", channel.Name,
@@ -1201,11 +1074,9 @@ func (am *AlertManager) sendEmailNotification(channel NotificationChannel, alert
 		"alert", alert.ID)
 
 	// Implementation would send email via SMTP.
-
 }
 
 func (am *AlertManager) sendSlackNotification(channel NotificationChannel, alert *Alert) {
-
 	am.logger.Debug("sending Slack notification",
 
 		"channel", channel.Name,
@@ -1213,11 +1084,8 @@ func (am *AlertManager) sendSlackNotification(channel NotificationChannel, alert
 		"alert", alert.ID)
 
 	// Implementation would send message to Slack webhook.
-
 }
 
 func (am *AlertManager) generateAlertID(rule *AlertRule, labels map[string]string) string {
-
 	return fmt.Sprintf("%s-%x", rule.Name, time.Now().Unix())
-
 }

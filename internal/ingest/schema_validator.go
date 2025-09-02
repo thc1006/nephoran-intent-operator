@@ -18,40 +18,30 @@ type IntentSchemaValidator struct {
 // NewIntentSchemaValidator creates a new schema validator.
 
 func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error) {
-
 	// Default to the standard schema location.
 
 	if schemaPath == "" {
-
 		schemaPath = filepath.Join("docs", "contracts", "intent.schema.json")
-
 	}
 
 	// Load and parse the schema.
 
 	schemaData, err := os.ReadFile(schemaPath)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read schema file: %w", err)
-
 	}
 
 	var schema map[string]interface{}
 
 	if err := json.Unmarshal(schemaData, &schema); err != nil {
-
 		return nil, fmt.Errorf("failed to parse schema: %w", err)
-
 	}
 
 	return &IntentSchemaValidator{
-
 		schemaPath: schemaPath,
 
 		schema: schema,
 	}, nil
-
 }
 
 // ValidateIntent validates an intent against the JSON schema.
@@ -59,15 +49,12 @@ func NewIntentSchemaValidator(schemaPath string) (*IntentSchemaValidator, error)
 // This is a simplified validation that checks the main requirements.
 
 func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) error {
-
 	// Get schema properties.
 
 	properties, ok := v.schema["properties"].(map[string]interface{})
 
 	if !ok {
-
 		return fmt.Errorf("invalid schema format: missing properties")
-
 	}
 
 	// Get required fields.
@@ -75,9 +62,7 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 	requiredFields, ok := v.schema["required"].([]interface{})
 
 	if !ok {
-
 		return fmt.Errorf("invalid schema format: missing required fields")
-
 	}
 
 	// Check required fields.
@@ -87,15 +72,11 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 		fieldName, ok := field.(string)
 
 		if !ok {
-
 			continue
-
 		}
 
 		if _, exists := intent[fieldName]; !exists {
-
 			return fmt.Errorf("missing required field: %s", fieldName)
-
 		}
 
 	}
@@ -107,13 +88,9 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 		// Check if field is allowed (additionalProperties: false).
 
 		if additionalProps, ok := v.schema["additionalProperties"].(bool); ok && !additionalProps {
-
 			if _, exists := properties[fieldName]; !exists {
-
 				return fmt.Errorf("additional property not allowed: %s", fieldName)
-
 			}
-
 		}
 
 		// Get field schema.
@@ -121,37 +98,29 @@ func (v *IntentSchemaValidator) ValidateIntent(intent map[string]interface{}) er
 		fieldSchema, ok := properties[fieldName].(map[string]interface{})
 
 		if !ok {
-
 			continue // Field not in schema, skip if additional properties allowed
-
 		}
 
 		// Validate field based on its schema.
 
 		if err := v.validateField(fieldName, value, fieldSchema); err != nil {
-
 			return err
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // validateField validates a single field against its schema.
 
 func (v *IntentSchemaValidator) validateField(fieldName string, value interface{}, fieldSchema map[string]interface{}) error {
-
 	// Check const value.
 
 	if constValue, ok := fieldSchema["const"]; ok {
 
 		if value != constValue {
-
 			return fmt.Errorf("field %s must be '%v', got '%v'", fieldName, constValue, value)
-
 		}
 
 		return nil
@@ -161,7 +130,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 	// Check type.
 
 	if fieldType, ok := fieldSchema["type"].(string); ok {
-
 		switch fieldType {
 
 		case "string":
@@ -169,33 +137,23 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			strVal, ok := value.(string)
 
 			if !ok {
-
 				return fmt.Errorf("field %s must be a string, got %T", fieldName, value)
-
 			}
 
 			// Check minLength.
 
 			if minLen, ok := fieldSchema["minLength"].(float64); ok {
-
 				if len(strVal) < int(minLen) {
-
 					return fmt.Errorf("field %s must have minimum length %d, got %d", fieldName, int(minLen), len(strVal))
-
 				}
-
 			}
 
 			// Check maxLength.
 
 			if maxLen, ok := fieldSchema["maxLength"].(float64); ok {
-
 				if len(strVal) > int(maxLen) {
-
 					return fmt.Errorf("field %s must have maximum length %d, got %d", fieldName, int(maxLen), len(strVal))
-
 				}
-
 			}
 
 			// Check enum values.
@@ -205,7 +163,6 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 				valid := false
 
 				for _, enumVal := range enum {
-
 					if strVal == enumVal {
 
 						valid = true
@@ -213,13 +170,10 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 						break
 
 					}
-
 				}
 
 				if !valid {
-
 					return fmt.Errorf("field %s must be one of %v, got '%s'", fieldName, enum, strVal)
-
 				}
 
 			}
@@ -231,27 +185,19 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			numVal, ok := value.(float64)
 
 			if !ok {
-
 				// Try to handle actual int from Go code.
 
 				if intVal, ok := value.(int); ok {
-
 					numVal = float64(intVal)
-
 				} else {
-
 					return fmt.Errorf("field %s must be an integer, got %T", fieldName, value)
-
 				}
-
 			}
 
 			// Check if it's actually an integer.
 
 			if numVal != float64(int(numVal)) {
-
 				return fmt.Errorf("field %s must be an integer, got %v", fieldName, numVal)
-
 			}
 
 			intVal := int(numVal)
@@ -259,25 +205,17 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			// Check minimum.
 
 			if minVal, ok := fieldSchema["minimum"].(float64); ok {
-
 				if intVal < int(minVal) {
-
 					return fmt.Errorf("field %s must be at least %d, got %d", fieldName, int(minVal), intVal)
-
 				}
-
 			}
 
 			// Check maximum.
 
 			if maxVal, ok := fieldSchema["maximum"].(float64); ok {
-
 				if intVal > int(maxVal) {
-
 					return fmt.Errorf("field %s must be at most %d, got %d", fieldName, int(maxVal), intVal)
-
 				}
-
 			}
 
 		case "object":
@@ -287,9 +225,7 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			objVal, ok := value.(map[string]interface{})
 
 			if !ok {
-
 				return fmt.Errorf("field %s must be an object, got %T", fieldName, value)
-
 			}
 
 			// Get nested properties schema
@@ -297,9 +233,7 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			nestedProperties, ok := fieldSchema["properties"].(map[string]interface{})
 
 			if !ok {
-
 				return nil // No properties defined, accept any object
-
 			}
 
 			// Get required fields for nested object
@@ -313,15 +247,11 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 				reqFieldName, ok := reqField.(string)
 
 				if !ok {
-
 					continue
-
 				}
 
 				if _, exists := objVal[reqFieldName]; !exists {
-
 					return fmt.Errorf("field %s missing required nested field: %s", fieldName, reqFieldName)
-
 				}
 
 			}
@@ -333,13 +263,9 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 				// Check if field is allowed (additionalProperties: false)
 
 				if additionalProps, ok := fieldSchema["additionalProperties"].(bool); ok && !additionalProps {
-
 					if _, exists := nestedProperties[nestedFieldName]; !exists {
-
 						return fmt.Errorf("field %s additional property not allowed: %s", fieldName, nestedFieldName)
-
 					}
-
 				}
 
 				// Get nested field schema
@@ -347,27 +273,21 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 				nestedFieldSchema, ok := nestedProperties[nestedFieldName].(map[string]interface{})
 
 				if !ok {
-
 					continue // Field not in schema, skip if additional properties allowed
-
 				}
 
 				// Recursively validate nested field
 
 				if err := v.validateField(fieldName+"."+nestedFieldName, nestedValue, nestedFieldSchema); err != nil {
-
 					return err
-
 				}
 
 			}
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // Validate validates an intent against the JSON schema (alias for ValidateIntent).
@@ -423,17 +343,12 @@ func (v *IntentSchemaValidator) UpdateSchema() error {
 // This is a convenience function that creates a validator and validates in one step.
 
 func ValidateIntentWithSchema(intent map[string]interface{}, schemaPath string) error {
-
 	validator, err := NewIntentSchemaValidator(schemaPath)
-
 	if err != nil {
-
 		// If schema file doesn't exist, fall back to basic validation.
 
 		return ValidateIntent(intent)
-
 	}
 
 	return validator.ValidateIntent(intent)
-
 }

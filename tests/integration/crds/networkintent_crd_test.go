@@ -26,8 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/k3s"
@@ -162,7 +160,7 @@ func (suite *CRDIntegrationTestSuite) createTestNamespace() {
 func (suite *CRDIntegrationTestSuite) installCRDs() {
 	// Get the CRD directory path
 	crdDir := filepath.Join("..", "..", "..", "config", "crd", "bases")
-	
+
 	// Check if CRD files exist
 	files, err := filepath.Glob(filepath.Join(crdDir, "*.yaml"))
 	if err != nil || len(files) == 0 {

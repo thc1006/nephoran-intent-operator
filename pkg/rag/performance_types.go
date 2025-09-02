@@ -68,31 +68,25 @@ type WeaviateConfig struct {
 // NewWeaviateClient creates a new Weaviate client.
 
 func NewWeaviateClient(config *WeaviateConfig) (WeaviateClient, error) {
-
 	return &WeaviateClient{
-
 		host: config.Host,
 
 		scheme: config.Scheme,
 
 		config: config,
 	}, nil
-
 }
 
 // Search performs a search operation (stub for performance benchmarks).
 
 func (wc *WeaviateClient) Search(ctx context.Context, query *shared.SearchQuery) (*shared.SearchResponse, error) {
-
 	return &shared.SearchResponse{
-
 		Results: []*shared.SearchResult{},
 
 		Total: 0,
 
 		Took: 0,
 	}, nil
-
 }
 
 // OptimizedRAGPipeline represents an optimized RAG pipeline.
@@ -110,9 +104,7 @@ type OptimizedRAGPipeline struct {
 // NewOptimizedRAGPipeline creates a new optimized RAG pipeline.
 
 func NewOptimizedRAGPipeline(client WeaviateClient, batchClient *OptimizedBatchSearchClient, pool *OptimizedConnectionPool, config *RAGPipelineConfig) *OptimizedRAGPipeline {
-
 	return &OptimizedRAGPipeline{
-
 		client: client,
 
 		batchClient: batchClient,
@@ -121,20 +113,16 @@ func NewOptimizedRAGPipeline(client WeaviateClient, batchClient *OptimizedBatchS
 
 		config: config,
 	}
-
 }
 
 // ProcessQuery processes a RAG query.
 
 func (o *OptimizedRAGPipeline) ProcessQuery(ctx context.Context, req *RAGRequest) (*RAGResponse, error) {
-
 	return &RAGResponse{
-
 		Answer: "",
 
 		SourceDocuments: []*SearchResult{},
 	}, nil
-
 }
 
 // OptimizedBatchSearchClient represents a batch search client.
@@ -148,22 +136,17 @@ type OptimizedBatchSearchClient struct {
 // NewOptimizedBatchSearchClient creates a new batch search client.
 
 func NewOptimizedBatchSearchClient(client WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
-
 	return &OptimizedBatchSearchClient{
-
 		client: client,
 
 		config: config,
 	}
-
 }
 
 // BatchSearch performs a batch search operation.
 
 func (o *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, req *BatchSearchRequest) ([]*SearchResult, error) {
-
 	return []*SearchResult{}, nil
-
 }
 
 // GRPCWeaviateClient represents a gRPC Weaviate client.
@@ -177,29 +160,23 @@ type GRPCWeaviateClient struct {
 // NewGRPCWeaviateClient creates a new gRPC Weaviate client.
 
 func NewGRPCWeaviateClient(config *WeaviateConfig) *GRPCWeaviateClient {
-
 	return &GRPCWeaviateClient{
-
 		enabled: true,
 
 		config: config,
 	}
-
 }
 
 // Search performs a search operation via gRPC.
 
 func (g *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*shared.SearchResponse, error) {
-
 	return &shared.SearchResponse{
-
 		Results: []*shared.SearchResult{},
 
 		Total: 0,
 
 		Took: 0,
 	}, nil
-
 }
 
 // OptimizedConnectionPool represents a connection pool.
@@ -215,16 +192,13 @@ type OptimizedConnectionPool struct {
 // NewOptimizedConnectionPool creates a new connection pool.
 
 func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnectionPool, error) {
-
 	return &OptimizedConnectionPool{
-
 		maxConnections: config.MaxConnections,
 
 		minConnections: config.MinConnections,
 
 		maxIdleTime: config.MaxIdleTime,
 	}, nil
-
 }
 
 // ConnectionPoolConfig holds connection pool configuration.
@@ -278,12 +252,9 @@ type RAGPipeline struct {
 // NewRAGPipeline creates a new RAG pipeline.
 
 func NewRAGPipeline(config *RAGPipelineConfig) *RAGPipeline {
-
 	return &RAGPipeline{
-
 		config: config,
 	}
-
 }
 
 // DocumentLoader represents a document loader.
@@ -295,20 +266,15 @@ type DocumentLoader struct {
 // NewDocumentLoader creates a new document loader.
 
 func NewDocumentLoader(config map[string]interface{}) *DocumentLoader {
-
 	return &DocumentLoader{
-
 		config: config,
 	}
-
 }
 
 // GetMetrics returns metrics for the document loader.
 
 func (d *DocumentLoader) GetMetrics() map[string]interface{} {
-
 	return make(map[string]interface{})
-
 }
 
 // LoadedDocument represents a loaded document.
@@ -330,12 +296,9 @@ type ChunkingService struct {
 // NewChunkingService creates a new chunking service.
 
 func NewChunkingService(config map[string]interface{}) *ChunkingService {
-
 	return &ChunkingService{
-
 		config: config,
 	}
-
 }
 
 // EmbeddingService represents an embedding service.
@@ -347,12 +310,9 @@ type EmbeddingService struct {
 // NewEmbeddingService creates a new embedding service.
 
 func NewEmbeddingService(config map[string]interface{}) *EmbeddingService {
-
 	return &EmbeddingService{
-
 		config: config,
 	}
-
 }
 
 // RedisCache represents a Redis cache.
@@ -364,12 +324,9 @@ type RedisCache struct {
 // NewRedisCache creates a new Redis cache.
 
 func NewRedisCache(config map[string]interface{}) *RedisCache {
-
 	return &RedisCache{
-
 		config: config,
 	}
-
 }
 
 // EnhancedRetrievalService represents an enhanced retrieval service.
@@ -381,10 +338,7 @@ type EnhancedRetrievalService struct {
 // NewEnhancedRetrievalService creates a new enhanced retrieval service.
 
 func NewEnhancedRetrievalService(config map[string]interface{}) *EnhancedRetrievalService {
-
 	return &EnhancedRetrievalService{
-
 		config: config,
 	}
-
 }

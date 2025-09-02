@@ -146,7 +146,7 @@ func TestGenerateKptfile(t *testing.T) {
 
 	patchPackage := NewPatchPackage(intent, tempDir)
 	packageDir := filepath.Join(tempDir, "test-service-scaling-patch")
-	require.NoError(t, os.MkdirAll(packageDir, 0755))
+	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 
 	err := patchPackage.generateKptfile(packageDir)
 	assert.NoError(t, err)
@@ -185,7 +185,7 @@ func TestGeneratePatchFile(t *testing.T) {
 
 	patchPackage := NewPatchPackage(intent, tempDir)
 	packageDir := filepath.Join(tempDir, "backend-api-scaling-patch")
-	require.NoError(t, os.MkdirAll(packageDir, 0755))
+	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 
 	err := patchPackage.generatePatchFile(packageDir)
 	assert.NoError(t, err)
@@ -235,7 +235,7 @@ func TestGenerateReadme(t *testing.T) {
 
 	patchPackage := NewPatchPackage(intent, tempDir)
 	packageDir := filepath.Join(tempDir, "frontend-scaling-patch")
-	require.NoError(t, os.MkdirAll(packageDir, 0755))
+	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 
 	err := patchPackage.generateReadme(packageDir)
 	assert.NoError(t, err)
@@ -317,7 +317,7 @@ func TestFileIOErrorHandling(t *testing.T) {
 		// Try to create package in a file (not directory)
 		tempDir := t.TempDir()
 		filePath := filepath.Join(tempDir, "notadir")
-		require.NoError(t, os.WriteFile(filePath, []byte("test"), 0644))
+		require.NoError(t, os.WriteFile(filePath, []byte("test"), 0o644))
 
 		patchPackage := NewPatchPackage(intent, filePath)
 		err := patchPackage.Generate()
@@ -344,7 +344,7 @@ func TestHelperFunctions(t *testing.T) {
 	t.Run("os.ReadFile reads content", func(t *testing.T) {
 		filePath := filepath.Join(tempDir, "read-test.txt")
 		expectedContent := []byte("read this content")
-		require.NoError(t, os.WriteFile(filePath, expectedContent, 0644))
+		require.NoError(t, os.WriteFile(filePath, expectedContent, 0o644))
 
 		content, err := os.ReadFile(filePath)
 		assert.NoError(t, err)

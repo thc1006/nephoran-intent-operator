@@ -926,6 +926,7 @@ func (e *EventStore) RecordEvent(event WorkflowEvent)                           
 func NewStateManager(config *OrchestrationConfig, logger logr.Logger) *StateManager {
 	return &StateManager{}
 }
+
 func NewTransactionManager(config *OrchestrationConfig, logger logr.Logger) *TransactionManager {
 	return &TransactionManager{}
 }
@@ -939,6 +940,7 @@ func (n *NephioClient) Disconnect()    {}
 func NewORANAdaptor(config *OrchestrationConfig, logger logr.Logger) *ORANAdaptor {
 	return &ORANAdaptor{}
 }
+
 func NewPipelineManager(config *OrchestrationConfig, logger logr.Logger) *PipelineManager {
 	return &PipelineManager{}
 }
@@ -951,6 +953,7 @@ func (m *MetricsCollector) RecordGauge(name string, value float64) {}
 func NewTraceManager(config *OrchestrationConfig, logger logr.Logger) *TraceManager {
 	return &TraceManager{}
 }
+
 func NewAuditLogger(config *OrchestrationConfig, logger logr.Logger) *AuditLogger {
 	return &AuditLogger{}
 }

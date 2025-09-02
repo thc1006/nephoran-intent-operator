@@ -739,4 +739,3 @@ type SLAChaosTestSuite struct {
 	totalFailures     atomic.Int64
 	recoveryEvents    atomic.Int64
 }
-

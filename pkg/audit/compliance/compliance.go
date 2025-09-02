@@ -16,21 +16,18 @@ import (
 
 var (
 	complianceReportsGenerated = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "compliance_reports_generated_total",
 
 		Help: "Total number of compliance reports generated",
 	}, []string{"standard", "type"})
 
 	complianceViolationsDetected = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "compliance_violations_detected_total",
 
 		Help: "Total number of compliance violations detected",
 	}, []string{"standard", "severity"})
 
 	complianceReportDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "compliance_report_generation_duration_seconds",
 
 		Help: "Duration of compliance report generation",
@@ -246,13 +243,11 @@ type ComplianceAttestation struct {
 // NewComplianceLogger creates a new compliance logger.
 
 func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger {
-
 	config := DefaultComplianceConfig()
 
 	config.Standards = standards
 
 	cl := &ComplianceLogger{
-
 		logger: log.Log.WithName("compliance-logger"),
 
 		standards: standards,
@@ -263,7 +258,6 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 	// Initialize trackers for each standard.
 
 	for _, standard := range standards {
-
 		switch standard {
 
 		case types.ComplianceSOC2:
@@ -279,17 +273,14 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 			cl.pciDSSTracker = NewPCIDSSTracker()
 
 		}
-
 	}
 
 	return cl
-
 }
 
 // ProcessEvent processes an audit event for compliance tracking.
 
 func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
-
 	cl.mutex.Lock()
 
 	defer cl.mutex.Unlock()
@@ -297,55 +288,43 @@ func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 	// Process event with each enabled compliance tracker.
 
 	for _, standard := range cl.standards {
-
 		switch standard {
 
 		case types.ComplianceSOC2:
 
 			if cl.soc2Tracker != nil {
-
 				cl.soc2Tracker.ProcessEvent(event)
-
 			}
 
 		case types.ComplianceISO27001:
 
 			if cl.iso27001Tracker != nil {
-
 				cl.iso27001Tracker.ProcessEvent(event)
-
 			}
 
 		case types.CompliancePCIDSS:
 
 			if cl.pciDSSTracker != nil {
-
 				cl.pciDSSTracker.ProcessEvent(event)
-
 			}
 
 		}
-
 	}
 
 	// Check for violations.
 
 	cl.checkComplianceViolations(event)
-
 }
 
 // GenerateReport generates a compliance report for a specific standard.
 
 func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.ComplianceStandard, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
-
 	start := time.Now()
 
 	defer func() {
-
 		duration := time.Since(start)
 
 		complianceReportDuration.WithLabelValues(string(standard)).Observe(duration.Seconds())
-
 	}()
 
 	cl.mutex.RLock()
@@ -353,7 +332,6 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 	defer cl.mutex.RUnlock()
 
 	report := &ComplianceReport{
-
 		ReportID: fmt.Sprintf("%s-%s-%d", standard, reportType, time.Now().Unix()),
 
 		Standard: standard,
@@ -363,7 +341,6 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 		GenerationTime: time.Now().UTC(),
 
 		ReportPeriod: ReportPeriod{
-
 			StartTime: startTime,
 
 			EndTime: endTime,
@@ -379,25 +356,19 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 	case types.ComplianceSOC2:
 
 		if cl.soc2Tracker != nil {
-
 			return cl.generateSOC2Report(report, reportType, startTime, endTime)
-
 		}
 
 	case types.ComplianceISO27001:
 
 		if cl.iso27001Tracker != nil {
-
 			return cl.generateISO27001Report(report, reportType, startTime, endTime)
-
 		}
 
 	case types.CompliancePCIDSS:
 
 		if cl.pciDSSTracker != nil {
-
 			return cl.generatePCIDSSReport(report, reportType, startTime, endTime)
-
 		}
 
 	}
@@ -405,13 +376,11 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 	complianceReportsGenerated.WithLabelValues(string(standard), reportType).Inc()
 
 	return report, nil
-
 }
 
 // GetComplianceStatus returns current compliance status.
 
 func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
-
 	cl.mutex.RLock()
 
 	defer cl.mutex.RUnlock()
@@ -419,45 +388,35 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 	status := make(map[string]interface{})
 
 	for _, standard := range cl.standards {
-
 		switch standard {
 
 		case types.ComplianceSOC2:
 
 			if cl.soc2Tracker != nil {
-
 				status["soc2"] = cl.soc2Tracker.GetStatus()
-
 			}
 
 		case types.ComplianceISO27001:
 
 			if cl.iso27001Tracker != nil {
-
 				status["iso27001"] = cl.iso27001Tracker.GetStatus()
-
 			}
 
 		case types.CompliancePCIDSS:
 
 			if cl.pciDSSTracker != nil {
-
 				status["pci_dss"] = cl.pciDSSTracker.GetStatus()
-
 			}
 
 		}
-
 	}
 
 	return status
-
 }
 
 // checkComplianceViolations checks for compliance violations in an audit event.
 
 func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
-
 	// Check for common violation patterns.
 
 	violations := make([]ComplianceViolation, 0)
@@ -465,11 +424,9 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 	// Check authentication failures.
 
 	if event.EventType == types.EventTypeAuthenticationFailed {
-
 		for _, standard := range cl.standards {
 
 			violation := ComplianceViolation{
-
 				ViolationID: fmt.Sprintf("%s-auth-fail-%d", standard, time.Now().Unix()),
 
 				ControlID: cl.getAuthenticationControlID(standard),
@@ -488,9 +445,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 			}
 
 			if event.UserContext != nil {
-
 				violation.UserID = event.UserContext.UserID
-
 			}
 
 			violations = append(violations, violation)
@@ -498,17 +453,14 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 			complianceViolationsDetected.WithLabelValues(string(standard), "medium").Inc()
 
 		}
-
 	}
 
 	// Check unauthorized access.
 
 	if event.EventType == types.EventTypeAuthorizationFailed {
-
 		for _, standard := range cl.standards {
 
 			violation := ComplianceViolation{
-
 				ViolationID: fmt.Sprintf("%s-authz-fail-%d", standard, time.Now().Unix()),
 
 				ControlID: cl.getAuthorizationControlID(standard),
@@ -527,9 +479,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 			}
 
 			if event.UserContext != nil {
-
 				violation.UserID = event.UserContext.UserID
-
 			}
 
 			violations = append(violations, violation)
@@ -537,17 +487,14 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 			complianceViolationsDetected.WithLabelValues(string(standard), "high").Inc()
 
 		}
-
 	}
 
 	// Check data access without proper authorization.
 
 	if event.EventType == types.EventTypeDataAccess && event.Result != types.ResultSuccess {
-
 		for _, standard := range cl.standards {
 
 			violation := ComplianceViolation{
-
 				ViolationID: fmt.Sprintf("%s-data-access-%d", standard, time.Now().Unix()),
 
 				ControlID: cl.getDataAccessControlID(standard),
@@ -570,30 +517,23 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 			complianceViolationsDetected.WithLabelValues(string(standard), "high").Inc()
 
 		}
-
 	}
 
 	// Store violations for reporting.
 
 	if len(violations) > 0 {
-
 		cl.storeViolations(violations)
-
 	}
-
 }
 
 // Helper methods for generating specific compliance reports.
 
 func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ string, _, _ time.Time) (*ComplianceReport, error) {
-
 	// SOC 2 Trust Services Categories: Security, Availability, Processing Integrity, Confidentiality, Privacy.
 	// TODO: Use reportType, startTime, endTime for time-specific and type-specific reporting
 
 	controls := []ControlAssessment{
-
 		{
-
 			ControlID: "CC6.1",
 
 			ControlName: "Logical Access Controls",
@@ -610,7 +550,6 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ strin
 		},
 
 		{
-
 			ControlID: "CC6.2",
 
 			ControlName: "Access Authorization",
@@ -627,7 +566,6 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ strin
 		},
 
 		{
-
 			ControlID: "CC6.7",
 
 			ControlName: "Data Transmission",
@@ -649,13 +587,9 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ strin
 	compliantControls := 0
 
 	for _, control := range controls {
-
 		if control.Status == "compliant" {
-
 			compliantControls++
-
 		}
-
 	}
 
 	complianceScore := float64(compliantControls) / float64(len(controls)) * 100
@@ -663,7 +597,6 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ strin
 	report.Controls = controls
 
 	report.Summary = ComplianceSummary{
-
 		TotalControls: len(controls),
 
 		ControlsCompliant: compliantControls,
@@ -676,18 +609,14 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, _ strin
 	}
 
 	return report, nil
-
 }
 
 func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, _ string, _, _ time.Time) (*ComplianceReport, error) {
-
 	// ISO 27001 Annex A controls.
 	// TODO: Use reportType, startTime, endTime for time-specific and type-specific reporting
 
 	controls := []ControlAssessment{
-
 		{
-
 			ControlID: "A.9.2.1",
 
 			ControlName: "User Registration and De-registration",
@@ -704,7 +633,6 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, _ s
 		},
 
 		{
-
 			ControlID: "A.9.2.2",
 
 			ControlName: "User Access Provisioning",
@@ -721,7 +649,6 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, _ s
 		},
 
 		{
-
 			ControlID: "A.12.4.1",
 
 			ControlName: "Event Logging",
@@ -741,18 +668,14 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, _ s
 	report.Controls = controls
 
 	return report, nil
-
 }
 
 func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, _ string, _, _ time.Time) (*ComplianceReport, error) {
-
 	// PCI DSS Requirements.
 	// TODO: Use reportType, startTime, endTime for time-specific and type-specific reporting
 
 	controls := []ControlAssessment{
-
 		{
-
 			ControlID: "8.1.1",
 
 			ControlName: "Unique User IDs",
@@ -769,7 +692,6 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, _ str
 		},
 
 		{
-
 			ControlID: "7.1.1",
 
 			ControlName: "Access Control Systems",
@@ -786,7 +708,6 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, _ str
 		},
 
 		{
-
 			ControlID: "10.2.1",
 
 			ControlName: "Audit Trail Implementation",
@@ -806,13 +727,11 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, _ str
 	report.Controls = controls
 
 	return report, nil
-
 }
 
 // Helper methods.
 
 func (cl *ComplianceLogger) getAuthenticationControlID(standard types.ComplianceStandard) string {
-
 	switch standard {
 
 	case types.ComplianceSOC2:
@@ -832,11 +751,9 @@ func (cl *ComplianceLogger) getAuthenticationControlID(standard types.Compliance
 		return "unknown"
 
 	}
-
 }
 
 func (cl *ComplianceLogger) getAuthorizationControlID(standard types.ComplianceStandard) string {
-
 	switch standard {
 
 	case types.ComplianceSOC2:
@@ -856,11 +773,9 @@ func (cl *ComplianceLogger) getAuthorizationControlID(standard types.ComplianceS
 		return "unknown"
 
 	}
-
 }
 
 func (cl *ComplianceLogger) getDataAccessControlID(standard types.ComplianceStandard) string {
-
 	switch standard {
 
 	case types.ComplianceSOC2:
@@ -880,37 +795,26 @@ func (cl *ComplianceLogger) getDataAccessControlID(standard types.ComplianceStan
 		return "unknown"
 
 	}
-
 }
 
 func (cl *ComplianceLogger) calculateRiskLevel(complianceScore float64) string {
-
 	if complianceScore >= 95 {
-
 		return "low"
-
 	} else if complianceScore >= 85 {
-
 		return "medium"
-
 	} else if complianceScore >= 70 {
-
 		return "high"
-
 	}
 
 	return "critical"
-
 }
 
 func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
-
 	// In a real implementation, this would store violations in a database.
 
 	// or send them to a compliance management system.
 
 	for _, violation := range violations {
-
 		cl.logger.Info("Compliance violation detected",
 
 			"violation_id", violation.ViolationID,
@@ -922,23 +826,18 @@ func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
 			"event_id", violation.EventID,
 
 			"user_id", violation.UserID)
-
 	}
-
 }
 
 // DefaultComplianceConfig returns a default compliance configuration.
 
 func DefaultComplianceConfig() *ComplianceConfig {
-
 	return &ComplianceConfig{
-
 		Standards: []types.ComplianceStandard{},
 
 		ReportingInterval: 24 * time.Hour,
 
 		RetentionPeriods: map[string]time.Duration{
-
 			"soc2": 7 * 365 * 24 * time.Hour, // 7 years
 
 			"iso27001": 3 * 365 * 24 * time.Hour, // 3 years
@@ -948,7 +847,6 @@ func DefaultComplianceConfig() *ComplianceConfig {
 		},
 
 		ViolationThresholds: map[string]int{
-
 			"authentication_failures": 5,
 
 			"authorization_failures": 3,
@@ -960,5 +858,4 @@ func DefaultComplianceConfig() *ComplianceConfig {
 
 		ReportOutputFormats: []string{"json", "pdf", "csv"},
 	}
-
 }

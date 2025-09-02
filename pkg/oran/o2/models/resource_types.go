@@ -138,7 +138,6 @@ type ResourceCapability struct {
 	Constraints []*CapabilityConstraint `json:"constraints,omitempty"`
 
 	SupportLevel string `json:"supportLevel,omitempty"` // MANDATORY, OPTIONAL, CONDITIONAL
-
 }
 
 // ResourceFeature represents a feature supported by a resource type.
@@ -162,7 +161,6 @@ type ResourceFeature struct {
 // ResourceLimits defines limits and constraints for resources of this type.
 
 type ResourceLimits struct {
-
 	// Quantity limits.
 
 	MinInstances *int `json:"minInstances,omitempty"`
@@ -215,7 +213,6 @@ type NetworkLimits struct {
 // PerformanceProfile defines expected performance characteristics.
 
 type PerformanceProfile struct {
-
 	// Compute performance.
 
 	CPUPerformance *PerformanceMetric `json:"cpuPerformance,omitempty"`
@@ -293,7 +290,6 @@ type CompatibilityRule struct {
 	Description string `json:"description,omitempty"`
 
 	Severity string `json:"severity,omitempty"` // ERROR, WARNING, INFO
-
 }
 
 // TypeRequirement defines requirements for deploying resources of this type.
@@ -497,7 +493,6 @@ type ResourceRelationship struct {
 // ResourceLocation represents the location of a resource.
 
 type ResourceLocation struct {
-
 	// Geographic location.
 
 	Country string `json:"country,omitempty"`
@@ -542,7 +537,6 @@ type ResourceLocation struct {
 // ResourcePlacement represents placement constraints and preferences.
 
 type ResourcePlacement struct {
-
 	// Affinity rules.
 
 	NodeAffinity *NodeAffinity `json:"nodeAffinity,omitempty"`
@@ -620,7 +614,6 @@ type AntiAffinityConstraint struct {
 	Values []string `json:"values,omitempty"`
 
 	Scope string `json:"scope"` // NODE, RACK, ZONE, REGION
-
 }
 
 // PlacementConstraint defines a placement constraint.

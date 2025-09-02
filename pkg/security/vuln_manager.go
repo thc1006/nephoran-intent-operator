@@ -67,7 +67,6 @@ type AlertConfig struct {
 	CVSSThreshold float64 `json:"cvss_threshold"` // CVSS score to trigger alert
 
 	TimeToRemediate time.Duration `json:"time_to_remediate"` // SLA for remediation
-
 }
 
 // Integrations holds external service integrations.
@@ -188,7 +187,6 @@ type Product struct {
 	Versions []string `json:"versions"`
 
 	VersionType string `json:"version_type"` // exact, range, regex
-
 }
 
 // Dependency represents a software dependency.
@@ -322,21 +320,16 @@ type VulnMetrics struct {
 // NewVulnerabilityManager creates a new vulnerability manager.
 
 func NewVulnerabilityManager(config *VulnManagerConfig) (*VulnerabilityManager, error) {
-
 	if config == nil {
-
 		config = getDefaultVulnConfig()
-
 	}
 
 	vm := &VulnerabilityManager{
-
 		config: config,
 
 		logger: slog.Default().With("component", "vuln-manager"),
 
 		database: &VulnDatabase{
-
 			CVEs: make(map[string]*CVERecord),
 
 			Dependencies: make(map[string]*Dependency),
@@ -347,7 +340,6 @@ func NewVulnerabilityManager(config *VulnManagerConfig) (*VulnerabilityManager, 
 		},
 
 		metrics: &VulnMetrics{
-
 			VulnsByType: make(map[string]int64),
 		},
 	}
@@ -355,7 +347,6 @@ func NewVulnerabilityManager(config *VulnManagerConfig) (*VulnerabilityManager, 
 	// Initialize security scanner.
 
 	scannerConfig := SecurityScannerConfig{
-
 		MaxConcurrency: 5,
 
 		ScanTimeout: 30 * time.Second,
@@ -386,21 +377,16 @@ func NewVulnerabilityManager(config *VulnManagerConfig) (*VulnerabilityManager, 
 	// Start background scanning if enabled.
 
 	if config.ScanInterval > 0 {
-
 		go vm.startPeriodicScanning()
-
 	}
 
 	return vm, nil
-
 }
 
 // getDefaultVulnConfig returns default vulnerability manager configuration.
 
 func getDefaultVulnConfig() *VulnManagerConfig {
-
 	return &VulnManagerConfig{
-
 		EnableCVEScanning: true,
 
 		EnableDependencyCheck: true,
@@ -418,7 +404,6 @@ func getDefaultVulnConfig() *VulnManagerConfig {
 		MaxCVSSForAuto: 6.0,
 
 		AlertThresholds: &AlertConfig{
-
 			CriticalThreshold: 1,
 
 			HighThreshold: 5,
@@ -428,19 +413,16 @@ func getDefaultVulnConfig() *VulnManagerConfig {
 			TimeToRemediate: 48 * time.Hour,
 		},
 	}
-
 }
 
 // RunComprehensiveScan performs a comprehensive vulnerability scan.
 
 func (vm *VulnerabilityManager) RunComprehensiveScan(ctx context.Context) (*VulnScanResults, error) {
-
 	vm.logger.Info("Starting comprehensive vulnerability scan")
 
 	startTime := time.Now()
 
 	results := &VulnScanResults{
-
 		ScanID: fmt.Sprintf("vuln_scan_%d", time.Now().Unix()),
 
 		StartTime: startTime,
@@ -459,11 +441,9 @@ func (vm *VulnerabilityManager) RunComprehensiveScan(ctx context.Context) (*Vuln
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			vm.scanCVEs(ctx, results)
-
 		}()
 
 	}
@@ -475,11 +455,9 @@ func (vm *VulnerabilityManager) RunComprehensiveScan(ctx context.Context) (*Vuln
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			vm.scanDependencies(ctx, results)
-
 		}()
 
 	}
@@ -491,11 +469,9 @@ func (vm *VulnerabilityManager) RunComprehensiveScan(ctx context.Context) (*Vuln
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			vm.scanImages(ctx, results)
-
 		}()
 
 	}
@@ -507,11 +483,9 @@ func (vm *VulnerabilityManager) RunComprehensiveScan(ctx context.Context) (*Vuln
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			vm.scanCode(ctx, results)
-
 		}()
 
 	}
@@ -543,13 +517,11 @@ func (vm *VulnerabilityManager) RunComprehensiveScan(ctx context.Context) (*Vuln
 		"remediation_suggestions", len(results.Remediation))
 
 	return results, nil
-
 }
 
 // scanCVEs scans for known CVEs.
 
 func (vm *VulnerabilityManager) scanCVEs(ctx context.Context, results *VulnScanResults) {
-
 	vm.logger.Info("Scanning for CVEs")
 
 	// Get system information.
@@ -565,7 +537,6 @@ func (vm *VulnerabilityManager) scanCVEs(ctx context.Context, results *VulnScanR
 		for _, vuln := range vulns {
 
 			finding := &VulnFinding{
-
 				ID: vuln.ID,
 
 				Type: "CVE",
@@ -596,13 +567,11 @@ func (vm *VulnerabilityManager) scanCVEs(ctx context.Context, results *VulnScanR
 		}
 
 	}
-
 }
 
 // scanDependencies scans project dependencies for vulnerabilities.
 
 func (vm *VulnerabilityManager) scanDependencies(ctx context.Context, results *VulnScanResults) {
-
 	vm.logger.Info("Scanning dependencies")
 
 	// Scan Go modules.
@@ -616,13 +585,11 @@ func (vm *VulnerabilityManager) scanDependencies(ctx context.Context, results *V
 	// Scan Python dependencies.
 
 	vm.scanPythonDependencies(ctx, results)
-
 }
 
 // scanImages scans container images for vulnerabilities.
 
 func (vm *VulnerabilityManager) scanImages(ctx context.Context, results *VulnScanResults) {
-
 	vm.logger.Info("Scanning container images")
 
 	images := vm.getContainerImages()
@@ -634,7 +601,6 @@ func (vm *VulnerabilityManager) scanImages(ctx context.Context, results *VulnSca
 		for _, vuln := range vulns {
 
 			finding := &VulnFinding{
-
 				ID: vuln,
 
 				Type: "Container",
@@ -655,13 +621,11 @@ func (vm *VulnerabilityManager) scanImages(ctx context.Context, results *VulnSca
 		}
 
 	}
-
 }
 
 // scanCode performs static code analysis for security issues.
 
 func (vm *VulnerabilityManager) scanCode(ctx context.Context, results *VulnScanResults) {
-
 	vm.logger.Info("Performing static code analysis")
 
 	codeIssues := vm.performStaticAnalysis()
@@ -669,7 +633,6 @@ func (vm *VulnerabilityManager) scanCode(ctx context.Context, results *VulnScanR
 	for _, issue := range codeIssues {
 
 		finding := &VulnFinding{
-
 			ID: issue.ID,
 
 			Type: "Code",
@@ -694,7 +657,6 @@ func (vm *VulnerabilityManager) scanCode(ctx context.Context, results *VulnScanR
 		results.mutex.Unlock()
 
 	}
-
 }
 
 // VulnScanResults holds vulnerability scan results.
@@ -778,11 +740,9 @@ type SystemComponent struct {
 // Helper methods.
 
 func (vm *VulnerabilityManager) getSystemComponents() []*SystemComponent {
-
 	// In a real implementation, this would detect installed software.
 
 	return []*SystemComponent{
-
 		{Name: "kubernetes", Version: "v1.28.0", Type: "runtime"},
 
 		{Name: "go", Version: "1.21.0", Type: "runtime"},
@@ -791,11 +751,9 @@ func (vm *VulnerabilityManager) getSystemComponents() []*SystemComponent {
 
 		{Name: "nginx", Version: "1.25.0", Type: "service"},
 	}
-
 }
 
 func (vm *VulnerabilityManager) checkComponentVulnerabilities(component *SystemComponent) []*CVERecord {
-
 	vm.database.mutex.RLock()
 
 	defer vm.database.mutex.RUnlock()
@@ -803,49 +761,33 @@ func (vm *VulnerabilityManager) checkComponentVulnerabilities(component *SystemC
 	var vulnerabilities []*CVERecord
 
 	for _, cve := range vm.database.CVEs {
-
 		if vm.componentAffected(component, cve) {
-
 			vulnerabilities = append(vulnerabilities, cve)
-
 		}
-
 	}
 
 	return vulnerabilities
-
 }
 
 func (vm *VulnerabilityManager) componentAffected(component *SystemComponent, cve *CVERecord) bool {
-
 	for _, product := range cve.AffectedProducts {
-
 		if strings.EqualFold(product.Product, component.Name) {
-
 			return vm.versionAffected(component.Version, product.Versions, product.VersionType)
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (vm *VulnerabilityManager) versionAffected(version string, affectedVersions []string, versionType string) bool {
-
 	switch versionType {
 
 	case "exact":
 
 		for _, affected := range affectedVersions {
-
 			if version == affected {
-
 				return true
-
 			}
-
 		}
 
 	case "range":
@@ -857,47 +799,33 @@ func (vm *VulnerabilityManager) versionAffected(version string, affectedVersions
 	case "regex":
 
 		for _, pattern := range affectedVersions {
-
 			if matched, _ := regexp.MatchString(pattern, version); matched {
-
 				return true
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 func (vm *VulnerabilityManager) versionInRange(version string, ranges []string) bool {
-
 	// Simplified version range checking using semver.
 
 	for _, rangeStr := range ranges {
-
 		if vm.checkSemverRange(version, rangeStr) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (vm *VulnerabilityManager) checkSemverRange(version, rangeStr string) bool {
-
 	// Basic semver range checking.
 
 	if !strings.HasPrefix(version, "v") {
-
 		version = "v" + version
-
 	}
 
 	// Handle different range formats.
@@ -913,15 +841,11 @@ func (vm *VulnerabilityManager) checkSemverRange(version, rangeStr string) bool 
 			maxVersion := strings.TrimPrefix(strings.TrimSpace(parts[1]), "<")
 
 			if !strings.HasPrefix(minVersion, "v") {
-
 				minVersion = "v" + minVersion
-
 			}
 
 			if !strings.HasPrefix(maxVersion, "v") {
-
 				maxVersion = "v" + maxVersion
-
 			}
 
 			return semver.Compare(version, minVersion) >= 0 && semver.Compare(version, maxVersion) < 0
@@ -931,35 +855,26 @@ func (vm *VulnerabilityManager) checkSemverRange(version, rangeStr string) bool 
 	}
 
 	return false
-
 }
 
 func (vm *VulnerabilityManager) scanGoModules(ctx context.Context, results *VulnScanResults) {
-
 	// Scan go.mod file for vulnerable dependencies.
 
 	// This would parse go.mod and check against vulnerability databases.
-
 }
 
 func (vm *VulnerabilityManager) scanNodeDependencies(ctx context.Context, results *VulnScanResults) {
-
 	// Scan package.json/package-lock.json for vulnerable dependencies.
-
 }
 
 func (vm *VulnerabilityManager) scanPythonDependencies(ctx context.Context, results *VulnScanResults) {
-
 	// Scan requirements.txt/Pipfile for vulnerable dependencies.
-
 }
 
 func (vm *VulnerabilityManager) getContainerImages() []string {
-
 	// Get list of container images used by the system.
 
 	return []string{
-
 		"nephoran/llm-processor:latest",
 
 		"nephoran/rag-api:latest",
@@ -970,27 +885,21 @@ func (vm *VulnerabilityManager) getContainerImages() []string {
 
 		"postgres:15",
 	}
-
 }
 
 func (vm *VulnerabilityManager) scanContainerImage(ctx context.Context, image string) []string {
-
 	// Scan container image for vulnerabilities using tools like Trivy, Clair, etc.
 
 	// Return list of CVE IDs found.
 
 	return []string{} // Placeholder
-
 }
 
 func (vm *VulnerabilityManager) performStaticAnalysis() []*CodeIssue {
-
 	// Perform static code analysis using tools like gosec, bandit, etc.
 
 	issues := []*CodeIssue{
-
 		{
-
 			ID: "HARDCODED_SECRET_001",
 
 			Type: "hardcoded_secret",
@@ -1010,11 +919,9 @@ func (vm *VulnerabilityManager) performStaticAnalysis() []*CodeIssue {
 	}
 
 	return issues
-
 }
 
 func (vm *VulnerabilityManager) processResults(ctx context.Context, results *VulnScanResults) {
-
 	// Generate remediation suggestions.
 
 	for _, finding := range results.Findings {
@@ -1028,17 +935,13 @@ func (vm *VulnerabilityManager) processResults(ctx context.Context, results *Vul
 	// Sort findings by severity and CVSS.
 
 	sort.Slice(results.Findings, func(i, j int) bool {
-
 		return vm.getSeverityWeight(results.Findings[i].Severity) >
 
 			vm.getSeverityWeight(results.Findings[j].Severity)
-
 	})
-
 }
 
 func (vm *VulnerabilityManager) generateRemediationSuggestions(finding *VulnFinding) []*RemediationSuggestion {
-
 	suggestions := []*RemediationSuggestion{}
 
 	switch finding.Type {
@@ -1050,7 +953,6 @@ func (vm *VulnerabilityManager) generateRemediationSuggestions(finding *VulnFind
 			rem := vm.database.CVEs[finding.ID].Remediation
 
 			suggestion := &RemediationSuggestion{
-
 				VulnID: finding.ID,
 
 				Type: rem.Type,
@@ -1075,7 +977,6 @@ func (vm *VulnerabilityManager) generateRemediationSuggestions(finding *VulnFind
 	case "Container":
 
 		suggestion := &RemediationSuggestion{
-
 			VulnID: finding.ID,
 
 			Type: "update",
@@ -1098,7 +999,6 @@ func (vm *VulnerabilityManager) generateRemediationSuggestions(finding *VulnFind
 	case "Code":
 
 		suggestion := &RemediationSuggestion{
-
 			VulnID: finding.ID,
 
 			Type: "code_fix",
@@ -1121,13 +1021,10 @@ func (vm *VulnerabilityManager) generateRemediationSuggestions(finding *VulnFind
 	}
 
 	return suggestions
-
 }
 
 func (vm *VulnerabilityManager) getSeverityWeight(severity string) int {
-
 	weights := map[string]int{
-
 		"Critical": 4,
 
 		"High": 3,
@@ -1138,33 +1035,22 @@ func (vm *VulnerabilityManager) getSeverityWeight(severity string) int {
 	}
 
 	return weights[severity]
-
 }
 
 func (vm *VulnerabilityManager) getRiskLevel(cvss float64) string {
-
 	if cvss >= 9.0 {
-
 		return "Critical"
-
 	} else if cvss >= 7.0 {
-
 		return "High"
-
 	} else if cvss >= 4.0 {
-
 		return "Medium"
-
 	}
 
 	return "Low"
-
 }
 
 func (vm *VulnerabilityManager) getCodeIssuePriority(severity string) string {
-
 	priorityMap := map[string]string{
-
 		"Critical": "Critical",
 
 		"High": "High",
@@ -1175,11 +1061,9 @@ func (vm *VulnerabilityManager) getCodeIssuePriority(severity string) string {
 	}
 
 	return priorityMap[severity]
-
 }
 
 func (vm *VulnerabilityManager) updateMetrics(results *VulnScanResults) {
-
 	vm.metrics.mutex.Lock()
 
 	defer vm.metrics.mutex.Unlock()
@@ -1229,15 +1113,11 @@ func (vm *VulnerabilityManager) updateMetrics(results *VulnScanResults) {
 		vm.metrics.VulnsByType[finding.Type]++
 
 	}
-
 }
 
 func (vm *VulnerabilityManager) checkAlerts(ctx context.Context, results *VulnScanResults) {
-
 	if vm.config.AlertThresholds == nil {
-
 		return
-
 	}
 
 	criticalCount := 0
@@ -1261,9 +1141,7 @@ func (vm *VulnerabilityManager) checkAlerts(ctx context.Context, results *VulnSc
 		}
 
 		if finding.CVSS > maxCVSS {
-
 			maxCVSS = finding.CVSS
-
 		}
 
 	}
@@ -1297,91 +1175,67 @@ func (vm *VulnerabilityManager) checkAlerts(ctx context.Context, results *VulnSc
 	}
 
 	if shouldAlert {
-
 		vm.sendAlert(ctx, alertMessage, results)
-
 	}
-
 }
 
 func (vm *VulnerabilityManager) sendAlert(ctx context.Context, message string, results *VulnScanResults) {
-
 	vm.logger.Warn("Sending security alert", "message", message)
 
 	if vm.config.IntegrationSettings == nil {
-
 		return
-
 	}
 
 	// Send Slack alert.
 
 	if vm.config.IntegrationSettings.Slack != nil {
-
 		vm.sendSlackAlert(ctx, message, results)
-
 	}
 
 	// Send email alert.
 
 	if vm.config.IntegrationSettings.Email != nil {
-
 		vm.sendEmailAlert(ctx, message, results)
-
 	}
 
 	// Send webhook alert.
 
 	if vm.config.IntegrationSettings.Webhook != nil {
-
 		vm.sendWebhookAlert(ctx, message, results)
-
 	}
 
 	// Create Jira ticket.
 
 	if vm.config.IntegrationSettings.Jira != nil {
-
 		vm.createJiraTicket(ctx, message, results)
-
 	}
-
 }
 
 func (vm *VulnerabilityManager) sendSlackAlert(ctx context.Context, message string, results *VulnScanResults) {
-
 	// Implementation would send Slack notification.
 
 	vm.logger.Info("Slack alert sent", "webhook", vm.config.IntegrationSettings.Slack.WebhookURL)
-
 }
 
 func (vm *VulnerabilityManager) sendEmailAlert(ctx context.Context, message string, results *VulnScanResults) {
-
 	// Implementation would send email notification.
 
 	vm.logger.Info("Email alert sent")
-
 }
 
 func (vm *VulnerabilityManager) sendWebhookAlert(ctx context.Context, message string, results *VulnScanResults) {
-
 	// Implementation would send webhook notification.
 
 	vm.logger.Info("Webhook alert sent", "url", vm.config.IntegrationSettings.Webhook.URL)
-
 }
 
 func (vm *VulnerabilityManager) createJiraTicket(ctx context.Context, message string, results *VulnScanResults) {
-
 	// Implementation would create Jira ticket.
 
 	vm.logger.Info("Jira ticket created", "project", vm.config.IntegrationSettings.Jira.ProjectKey)
-
 }
 
 func (vm *VulnerabilityManager) startPeriodicScanning() {
-
 	ticker := time.NewTicker(vm.config.ScanInterval)
 
 	defer ticker.Stop()
@@ -1391,27 +1245,22 @@ func (vm *VulnerabilityManager) startPeriodicScanning() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 
 		if _, err := vm.RunComprehensiveScan(ctx); err != nil {
-
 			vm.logger.Error("Periodic scan failed", "error", err)
-
 		}
 
 		cancel()
 
 	}
-
 }
 
 // GetMetrics returns current vulnerability metrics.
 
 func (vm *VulnerabilityManager) GetMetrics() *VulnMetrics {
-
 	vm.metrics.mutex.RLock()
 
 	defer vm.metrics.mutex.RUnlock()
 
 	return &VulnMetrics{
-
 		TotalVulnerabilities: vm.metrics.TotalVulnerabilities,
 
 		CriticalVulnerabilities: vm.metrics.CriticalVulnerabilities,
@@ -1432,25 +1281,21 @@ func (vm *VulnerabilityManager) GetMetrics() *VulnMetrics {
 
 		ScanDuration: vm.metrics.ScanDuration,
 	}
-
 }
 
 // GetVulnerabilityDatabase returns the vulnerability database.
 
 func (vm *VulnerabilityManager) GetVulnerabilityDatabase() *VulnDatabase {
-
 	vm.database.mutex.RLock()
 
 	defer vm.database.mutex.RUnlock()
 
 	return vm.database
-
 }
 
 // UpdateCVEDatabase updates the CVE database from external sources.
 
 func (vm *VulnerabilityManager) UpdateCVEDatabase(ctx context.Context) error {
-
 	vm.logger.Info("Updating CVE database")
 
 	// In a real implementation, this would fetch from NVD, CVE databases, etc.
@@ -1458,9 +1303,7 @@ func (vm *VulnerabilityManager) UpdateCVEDatabase(ctx context.Context) error {
 	// For now, add some sample CVEs.
 
 	sampleCVEs := []*CVERecord{
-
 		{
-
 			ID: "CVE-2023-12345",
 
 			Summary: "Remote code execution in example service",
@@ -1474,9 +1317,7 @@ func (vm *VulnerabilityManager) UpdateCVEDatabase(ctx context.Context) error {
 			PublishedDate: time.Now().Add(-30 * 24 * time.Hour),
 
 			AffectedProducts: []Product{
-
 				{
-
 					Vendor: "example",
 
 					Product: "service",
@@ -1492,9 +1333,7 @@ func (vm *VulnerabilityManager) UpdateCVEDatabase(ctx context.Context) error {
 	vm.database.mutex.Lock()
 
 	for _, cve := range sampleCVEs {
-
 		vm.database.CVEs[cve.ID] = cve
-
 	}
 
 	vm.database.LastUpdated = time.Now()
@@ -1504,40 +1343,33 @@ func (vm *VulnerabilityManager) UpdateCVEDatabase(ctx context.Context) error {
 	vm.logger.Info("CVE database updated", "cves", len(sampleCVEs))
 
 	return nil
-
 }
 
 // NewRemediationEngine creates a new remediation engine.
 
 func NewRemediationEngine(config *VulnManagerConfig) *RemediationEngine {
-
 	return &RemediationEngine{
-
 		config: config,
 
 		logger: slog.Default().With("component", "remediation-engine"),
 
 		actions: make(map[string]RemediationAction),
 	}
-
 }
 
 // RegisterAction registers a remediation action.
 
 func (re *RemediationEngine) RegisterAction(name string, action RemediationAction) {
-
 	re.mutex.Lock()
 
 	defer re.mutex.Unlock()
 
 	re.actions[name] = action
-
 }
 
 // GetAvailableActions returns available remediation actions.
 
 func (re *RemediationEngine) GetAvailableActions() []string {
-
 	re.mutex.RLock()
 
 	defer re.mutex.RUnlock()
@@ -1545,11 +1377,8 @@ func (re *RemediationEngine) GetAvailableActions() []string {
 	actions := make([]string, 0, len(re.actions))
 
 	for name := range re.actions {
-
 		actions = append(actions, name)
-
 	}
 
 	return actions
-
 }

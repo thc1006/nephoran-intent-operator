@@ -18,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+
 	// "github.com/spiffe/go-spiffe/v2/svid/jwtsvid" // Removed unused import
 	// "github.com/spiffe/go-spiffe/v2/svid/x509svid" // Removed unused import
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
@@ -444,7 +445,6 @@ func (zta *ZeroTrustAuthenticator) validateJWT(tokenString string, authCtx *Auth
 		}
 		return zta.config.JWTSigningKey, nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to parse JWT: %w", err)
 	}

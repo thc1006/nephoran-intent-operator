@@ -325,7 +325,6 @@ type VersionSolver struct {
 // NewVersionSolver performs newversionsolver operation.
 
 func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
-
 	// Convert SATSolverConfig to SATSolverConfigImpl
 	var satConfig *SATSolverConfigImpl
 	if config.SATSolverConfig != nil {
@@ -342,30 +341,24 @@ func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
 	}
 
 	return &VersionSolver{
-
 		satSolver: NewSATSolver(satConfig),
 
 		config: config,
 
 		logger: log.Log.WithName("version-solver"),
 	}
-
 }
 
 // Solve performs solve operation.
 
 func (vs *VersionSolver) Solve(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error) {
-
 	return vs.satSolver.Solve(ctx, requirements)
-
 }
 
 // Close performs close operation.
 
 func (vs *VersionSolver) Close() {
-
 	vs.satSolver.Close()
-
 }
 
 // Conflict Resolver supporting types.
@@ -381,22 +374,17 @@ type DependencyConflictResolver struct {
 // NewDependencyConflictResolver performs newdependencyconflictresolver operation.
 
 func NewDependencyConflictResolver(config *ConflictResolverConfig) *DependencyConflictResolver {
-
 	return &DependencyConflictResolver{
-
 		config: config,
 
 		logger: log.Log.WithName("conflict-resolver"),
 	}
-
 }
 
 // Close performs close operation.
 
 func (dcr *DependencyConflictResolver) Close() {
-
 	// Cleanup if needed.
-
 }
 
 // Graph Builder supporting types.
@@ -412,24 +400,19 @@ type DependencyGraphBuilder struct {
 // NewDependencyGraphBuilder performs newdependencygraphbuilder operation.
 
 func NewDependencyGraphBuilder(config *GraphBuilderConfig) *DependencyGraphBuilder {
-
 	return &DependencyGraphBuilder{
-
 		config: config,
 
 		logger: log.Log.WithName("graph-builder"),
 	}
-
 }
 
 // BuildGraph performs buildgraph operation.
 
 func (dgb *DependencyGraphBuilder) BuildGraph(ctx context.Context, graph *DependencyGraph) error {
-
 	// Implementation would build the graph.
 
 	return nil
-
 }
 
 // Health Checker supporting types.
@@ -445,14 +428,11 @@ type DependencyHealthChecker struct {
 // NewDependencyHealthChecker performs newdependencyhealthchecker operation.
 
 func NewDependencyHealthChecker(config *HealthCheckerConfig) *DependencyHealthChecker {
-
 	return &DependencyHealthChecker{
-
 		config: config,
 
 		logger: log.Log.WithName("health-checker"),
 	}
-
 }
 
 // Cache supporting types.
@@ -490,31 +470,25 @@ type VersionCache interface {
 // NewResolutionCache performs newresolutioncache operation.
 
 func NewResolutionCache(config *CacheConfig) ResolutionCache {
-
 	// Implementation would create actual cache.
 
 	return &resolutionCacheImpl{config: config}
-
 }
 
 // NewGraphCache performs newgraphcache operation.
 
 func NewGraphCache(config *CacheConfig) GraphCache {
-
 	// Implementation would create actual cache.
 
 	return &graphCacheImpl{config: config}
-
 }
 
 // NewVersionCache performs newversioncache operation.
 
 func NewVersionCache(config *CacheConfig) VersionCache {
-
 	// Implementation would create actual cache.
 
 	return &versionCacheImpl{config: config}
-
 }
 
 type resolutionCacheImpl struct {
@@ -528,51 +502,41 @@ type resolutionCacheImpl struct {
 // Get performs get operation.
 
 func (rc *resolutionCacheImpl) Get(ctx context.Context, key string) (*ResolutionResult, error) {
-
 	rc.mu.RLock()
 
 	defer rc.mu.RUnlock()
 
 	if result, ok := rc.cache[key]; ok {
-
 		return result, nil
-
 	}
 
 	return nil, fmt.Errorf("cache miss")
-
 }
 
 // Set performs set operation.
 
 func (rc *resolutionCacheImpl) Set(ctx context.Context, key string, result *ResolutionResult) error {
-
 	rc.mu.Lock()
 
 	defer rc.mu.Unlock()
 
 	if rc.cache == nil {
-
 		rc.cache = make(map[string]*ResolutionResult)
-
 	}
 
 	rc.cache[key] = result
 
 	return nil
-
 }
 
 // Close performs close operation.
 
 func (rc *resolutionCacheImpl) Close() {
-
 	rc.mu.Lock()
 
 	defer rc.mu.Unlock()
 
 	rc.cache = nil
-
 }
 
 type graphCacheImpl struct {
@@ -586,51 +550,41 @@ type graphCacheImpl struct {
 // Get performs get operation.
 
 func (gc *graphCacheImpl) Get(ctx context.Context, key string) (*DependencyGraph, error) {
-
 	gc.mu.RLock()
 
 	defer gc.mu.RUnlock()
 
 	if graph, ok := gc.cache[key]; ok {
-
 		return graph, nil
-
 	}
 
 	return nil, fmt.Errorf("cache miss")
-
 }
 
 // Set performs set operation.
 
 func (gc *graphCacheImpl) Set(ctx context.Context, key string, graph *DependencyGraph) error {
-
 	gc.mu.Lock()
 
 	defer gc.mu.Unlock()
 
 	if gc.cache == nil {
-
 		gc.cache = make(map[string]*DependencyGraph)
-
 	}
 
 	gc.cache[key] = graph
 
 	return nil
-
 }
 
 // Close performs close operation.
 
 func (gc *graphCacheImpl) Close() {
-
 	gc.mu.Lock()
 
 	defer gc.mu.Unlock()
 
 	gc.cache = nil
-
 }
 
 type versionCacheImpl struct {
@@ -644,51 +598,41 @@ type versionCacheImpl struct {
 // Get performs get operation.
 
 func (vc *versionCacheImpl) Get(ctx context.Context, key string) ([]string, error) {
-
 	vc.mu.RLock()
 
 	defer vc.mu.RUnlock()
 
 	if versions, ok := vc.cache[key]; ok {
-
 		return versions, nil
-
 	}
 
 	return nil, fmt.Errorf("cache miss")
-
 }
 
 // Set performs set operation.
 
 func (vc *versionCacheImpl) Set(ctx context.Context, key string, versions []string) error {
-
 	vc.mu.Lock()
 
 	defer vc.mu.Unlock()
 
 	if vc.cache == nil {
-
 		vc.cache = make(map[string][]string)
-
 	}
 
 	vc.cache[key] = versions
 
 	return nil
-
 }
 
 // Close performs close operation.
 
 func (vc *versionCacheImpl) Close() {
-
 	vc.mu.Lock()
 
 	defer vc.mu.Unlock()
 
 	vc.cache = nil
-
 }
 
 // Resolver Pool supporting types.
@@ -722,9 +666,7 @@ type resolutionTask struct {
 // NewResolverPool performs newresolverpool operation.
 
 func NewResolverPool(workers, queueSize int) *ResolverPool {
-
 	pool := &ResolverPool{
-
 		workers: workers,
 
 		queueSize: queueSize,
@@ -745,15 +687,12 @@ func NewResolverPool(workers, queueSize int) *ResolverPool {
 	}
 
 	return pool
-
 }
 
 func (rp *ResolverPool) worker() {
-
 	defer rp.wg.Done()
 
 	for {
-
 		select {
 
 		case <-rp.queue:
@@ -767,21 +706,17 @@ func (rp *ResolverPool) worker() {
 			return
 
 		}
-
 	}
-
 }
 
 // Close performs close operation.
 
 func (rp *ResolverPool) Close() {
-
 	close(rp.shutdown)
 
 	rp.wg.Wait()
 
 	close(rp.queue)
-
 }
 
 // Dependency Provider interface.
@@ -1399,14 +1334,11 @@ type PolicyRule struct {
 // NewDependencyPolicyEngine performs newdependencypolicyengine operation.
 
 func NewDependencyPolicyEngine() *DependencyPolicyEngine {
-
 	return &DependencyPolicyEngine{
-
 		policies: []DependencyPolicy{},
 
 		logger: log.Log.WithName("policy-engine"),
 	}
-
 }
 
 // ContextMetricsCollector represents a contextmetricscollector.
@@ -1420,12 +1352,9 @@ type ContextMetricsCollector struct {
 // NewContextMetricsCollector performs newcontextmetricscollector operation.
 
 func NewContextMetricsCollector() *ContextMetricsCollector {
-
 	return &ContextMetricsCollector{
-
 		metrics: make(map[string]interface{}),
 	}
-
 }
 
 // GraphVisualizer represents a graphvisualizer.
@@ -1437,12 +1366,9 @@ type GraphVisualizer struct {
 // NewGraphVisualizer performs newgraphvisualizer operation.
 
 func NewGraphVisualizer() *GraphVisualizer {
-
 	return &GraphVisualizer{
-
 		logger: log.Log.WithName("graph-visualizer"),
 	}
-
 }
 
 // GraphMetricsCollector represents a graphmetricscollector.
@@ -1456,12 +1382,9 @@ type GraphMetricsCollector struct {
 // NewGraphMetricsCollector performs newgraphmetricscollector operation.
 
 func NewGraphMetricsCollector() *GraphMetricsCollector {
-
 	return &GraphMetricsCollector{
-
 		metrics: make(map[string]interface{}),
 	}
-
 }
 
 // GraphAnalysisCache represents a graphanalysiscache.
@@ -1475,36 +1398,29 @@ type GraphAnalysisCache struct {
 // NewGraphAnalysisCache performs newgraphanalysiscache operation.
 
 func NewGraphAnalysisCache() *GraphAnalysisCache {
-
 	return &GraphAnalysisCache{
-
 		cache: make(map[string]*GraphAnalysisResult),
 	}
-
 }
 
 // Get performs get operation.
 
 func (gac *GraphAnalysisCache) Get(graphID string) *GraphAnalysisResult {
-
 	gac.mu.RLock()
 
 	defer gac.mu.RUnlock()
 
 	return gac.cache[graphID]
-
 }
 
 // Set performs set operation.
 
 func (gac *GraphAnalysisCache) Set(graphID string, result *GraphAnalysisResult) {
-
 	gac.mu.Lock()
 
 	defer gac.mu.Unlock()
 
 	gac.cache[graphID] = result
-
 }
 
 // Enums.

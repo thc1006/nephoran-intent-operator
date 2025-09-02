@@ -588,9 +588,7 @@ type AttestationManager interface {
 // NewComplianceReporter creates a new compliance reporter.
 
 func NewComplianceReporter(config ComplianceConfig, logger *logrus.Logger) *ComplianceReporter {
-
 	return &ComplianceReporter{
-
 		config: config,
 
 		requirements: make(map[string]*ComplianceRequirement),
@@ -601,21 +599,17 @@ func NewComplianceReporter(config ComplianceConfig, logger *logrus.Logger) *Comp
 
 		stopCh: make(chan struct{}),
 	}
-
 }
 
 // Start starts the compliance reporter.
 
 func (cr *ComplianceReporter) Start(ctx context.Context) error {
-
 	cr.logger.Info("Starting Compliance Reporter")
 
 	// Initialize compliance requirements.
 
 	if err := cr.initializeRequirements(); err != nil {
-
 		return fmt.Errorf("failed to initialize requirements: %w", err)
-
 	}
 
 	// Start compliance monitoring loop.
@@ -631,23 +625,19 @@ func (cr *ComplianceReporter) Start(ctx context.Context) error {
 	go cr.scheduledReportingLoop(ctx)
 
 	return nil
-
 }
 
 // Stop stops the compliance reporter.
 
 func (cr *ComplianceReporter) Stop() {
-
 	cr.logger.Info("Stopping Compliance Reporter")
 
 	close(cr.stopCh)
-
 }
 
 // RecordAuditEvent records an audit event.
 
 func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
-
 	cr.mu.Lock()
 
 	defer cr.mu.Unlock()
@@ -655,17 +645,13 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 	// Generate ID if not provided.
 
 	if event.ID == "" {
-
 		event.ID = fmt.Sprintf("audit-%d", time.Now().UnixNano())
-
 	}
 
 	// Set timestamp if not provided.
 
 	if event.Timestamp.IsZero() {
-
 		event.Timestamp = time.Now()
-
 	}
 
 	// Add to audit trail.
@@ -683,13 +669,9 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 		filtered := make([]AuditEvent, 0, 100)
 
 		for _, e := range cr.auditTrail {
-
 			if e.Timestamp.After(cutoff) {
-
 				filtered = append(filtered, e)
-
 			}
-
 		}
 
 		cr.auditTrail = filtered
@@ -697,7 +679,6 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 	}
 
 	cr.logger.WithFields(logrus.Fields{
-
 		"event_id": event.ID,
 
 		"user": event.User,
@@ -708,13 +689,11 @@ func (cr *ComplianceReporter) RecordAuditEvent(event AuditEvent) error {
 	}).Debug("Recorded audit event")
 
 	return nil
-
 }
 
 // CollectEvidence collects and stores evidence for compliance.
 
 func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evidence) error {
-
 	cr.mu.Lock()
 
 	defer cr.mu.Unlock()
@@ -722,25 +701,19 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 	requirement, exists := cr.requirements[requirementID]
 
 	if !exists {
-
 		return fmt.Errorf("requirement %s not found", requirementID)
-
 	}
 
 	// Generate ID if not provided.
 
 	if evidence.ID == "" {
-
 		evidence.ID = fmt.Sprintf("evidence-%d", time.Now().UnixNano())
-
 	}
 
 	// Set timestamp if not provided.
 
 	if evidence.Timestamp.IsZero() {
-
 		evidence.Timestamp = time.Now()
-
 	}
 
 	// Generate hash for integrity.
@@ -758,13 +731,9 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 	// Store evidence.
 
 	if cr.evidenceStore != nil {
-
 		if err := cr.evidenceStore.Store(evidence); err != nil {
-
 			return fmt.Errorf("failed to store evidence: %w", err)
-
 		}
-
 	}
 
 	// Add to requirement.
@@ -772,7 +741,6 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 	requirement.Evidence = append(requirement.Evidence, evidence)
 
 	cr.logger.WithFields(logrus.Fields{
-
 		"requirement_id": requirementID,
 
 		"evidence_id": evidence.ID,
@@ -781,13 +749,11 @@ func (cr *ComplianceReporter) CollectEvidence(requirementID string, evidence Evi
 	}).Debug("Collected evidence")
 
 	return nil
-
 }
 
 // AssessCompliance assesses compliance for a specific requirement.
 
 func (cr *ComplianceReporter) AssessCompliance(requirementID string) (*ComplianceRequirement, error) {
-
 	cr.mu.Lock()
 
 	defer cr.mu.Unlock()
@@ -795,9 +761,7 @@ func (cr *ComplianceReporter) AssessCompliance(requirementID string) (*Complianc
 	requirement, exists := cr.requirements[requirementID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("requirement %s not found", requirementID)
-
 	}
 
 	// Perform compliance assessment.
@@ -813,20 +777,17 @@ func (cr *ComplianceReporter) AssessCompliance(requirementID string) (*Complianc
 	requirement.NextAssessment = cr.calculateNextAssessment(requirement)
 
 	cr.logger.WithFields(logrus.Fields{
-
 		"requirement_id": requirementID,
 
 		"status": status,
 	}).Info("Assessed compliance")
 
 	return requirement, nil
-
 }
 
 // GenerateComplianceReport generates a comprehensive compliance report.
 
 func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFramework, period Period) (*ComplianceReport, error) {
-
 	cr.mu.RLock()
 
 	defer cr.mu.RUnlock()
@@ -836,23 +797,16 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 	frameworkRequirements := make([]ComplianceRequirement, 0, 20)
 
 	for _, req := range cr.requirements {
-
 		if req.Framework == framework {
-
 			frameworkRequirements = append(frameworkRequirements, *req)
-
 		}
-
 	}
 
 	if len(frameworkRequirements) == 0 {
-
 		return nil, fmt.Errorf("no requirements found for framework %s", framework)
-
 	}
 
 	report := &ComplianceReport{
-
 		ID: fmt.Sprintf("compliance-report-%s-%d", framework, time.Now().Unix()),
 
 		GeneratedAt: time.Now(),
@@ -887,19 +841,14 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 		attestation, err := cr.attestationMgr.Create(*report)
 
 		if err != nil {
-
 			cr.logger.WithError(err).Warn("Failed to create attestation")
-
 		} else {
-
 			report.Attestation = attestation
-
 		}
 
 	}
 
 	cr.logger.WithFields(logrus.Fields{
-
 		"framework": framework,
 
 		"overall_status": report.OverallStatus,
@@ -910,13 +859,11 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 	}).Info("Generated compliance report")
 
 	return report, nil
-
 }
 
 // GetComplianceStatus returns the current compliance status.
 
 func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]ComplianceStatus {
-
 	cr.mu.RLock()
 
 	defer cr.mu.RUnlock()
@@ -928,13 +875,9 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 		frameworkRequirements := make([]*ComplianceRequirement, 0)
 
 		for _, req := range cr.requirements {
-
 			if req.Framework == framework {
-
 				frameworkRequirements = append(frameworkRequirements, req)
-
 			}
-
 		}
 
 		if len(frameworkRequirements) == 0 {
@@ -954,7 +897,6 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 		partiallyCompliant := 0
 
 		for _, req := range frameworkRequirements {
-
 			switch req.Status {
 
 			case StatusCompliant:
@@ -970,37 +912,26 @@ func (cr *ComplianceReporter) GetComplianceStatus() map[ComplianceFramework]Comp
 				partiallyCompliant++
 
 			}
-
 		}
 
 		if nonCompliant > 0 {
-
 			status[framework] = StatusNonCompliant
-
 		} else if partiallyCompliant > 0 {
-
 			status[framework] = StatusPartiallyCompliant
-
 		} else if compliant > 0 {
-
 			status[framework] = StatusCompliant
-
 		} else {
-
 			status[framework] = StatusNotAssessed
-
 		}
 
 	}
 
 	return status
-
 }
 
 // initializeRequirements initializes compliance requirements.
 
 func (cr *ComplianceReporter) initializeRequirements() error {
-
 	// Initialize requirements based on configured frameworks.
 
 	for _, framework := range cr.config.Frameworks {
@@ -1008,9 +939,7 @@ func (cr *ComplianceReporter) initializeRequirements() error {
 		requirements := cr.getRequirementsForFramework(framework)
 
 		for _, req := range requirements {
-
 			cr.requirements[req.ID] = &req
-
 		}
 
 	}
@@ -1018,13 +947,11 @@ func (cr *ComplianceReporter) initializeRequirements() error {
 	cr.logger.WithField("count", len(cr.requirements)).Info("Initialized compliance requirements")
 
 	return nil
-
 }
 
 // getRequirementsForFramework returns requirements for a specific framework.
 
 func (cr *ComplianceReporter) getRequirementsForFramework(framework ComplianceFramework) []ComplianceRequirement {
-
 	switch framework {
 
 	case SOX:
@@ -1064,17 +991,13 @@ func (cr *ComplianceReporter) getRequirementsForFramework(framework ComplianceFr
 		return []ComplianceRequirement{}
 
 	}
-
 }
 
 // getSOXRequirements returns SOX compliance requirements.
 
 func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "sox-302",
 
 			Framework: SOX,
@@ -1101,7 +1024,6 @@ func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 		},
 
 		{
-
 			ID: "sox-404",
 
 			Framework: SOX,
@@ -1127,17 +1049,13 @@ func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getPCIDSSRequirements returns PCI DSS compliance requirements.
 
 func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "pci-dss-1",
 
 			Framework: PCIDSS,
@@ -1164,7 +1082,6 @@ func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 		},
 
 		{
-
 			ID: "pci-dss-2",
 
 			Framework: PCIDSS,
@@ -1190,17 +1107,13 @@ func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getISO27001Requirements returns ISO 27001 compliance requirements.
 
 func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "iso-27001-a5",
 
 			Framework: ISO27001,
@@ -1227,7 +1140,6 @@ func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement 
 		},
 
 		{
-
 			ID: "iso-27001-a6",
 
 			Framework: ISO27001,
@@ -1253,17 +1165,13 @@ func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement 
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getHIPAARequirements returns HIPAA compliance requirements.
 
 func (cr *ComplianceReporter) getHIPAARequirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "hipaa-164.308",
 
 			Framework: HIPAA,
@@ -1289,17 +1197,13 @@ func (cr *ComplianceReporter) getHIPAARequirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getGDPRRequirements returns GDPR compliance requirements.
 
 func (cr *ComplianceReporter) getGDPRRequirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "gdpr-art-25",
 
 			Framework: GDPR,
@@ -1325,17 +1229,13 @@ func (cr *ComplianceReporter) getGDPRRequirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getNISTRequirements returns NIST compliance requirements.
 
 func (cr *ComplianceReporter) getNISTRequirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "nist-ac-1",
 
 			Framework: NIST,
@@ -1361,17 +1261,13 @@ func (cr *ComplianceReporter) getNISTRequirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getFedRAMPRequirements returns FedRAMP compliance requirements.
 
 func (cr *ComplianceReporter) getFedRAMPRequirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "fedramp-ac-2",
 
 			Framework: FedRAMP,
@@ -1397,17 +1293,13 @@ func (cr *ComplianceReporter) getFedRAMPRequirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // getSOC2Requirements returns SOC 2 compliance requirements.
 
 func (cr *ComplianceReporter) getSOC2Requirements() []ComplianceRequirement {
-
 	return []ComplianceRequirement{
-
 		{
-
 			ID: "soc2-cc1",
 
 			Framework: SOC2,
@@ -1433,21 +1325,17 @@ func (cr *ComplianceReporter) getSOC2Requirements() []ComplianceRequirement {
 			Metadata: make(map[string]interface{}),
 		},
 	}
-
 }
 
 // performComplianceAssessment performs compliance assessment for a requirement.
 
 func (cr *ComplianceReporter) performComplianceAssessment(requirement *ComplianceRequirement) ComplianceStatus {
-
 	// Simplified assessment logic.
 
 	// In practice, this would involve complex rule evaluation.
 
 	if len(requirement.Evidence) == 0 {
-
 		return StatusNotAssessed
-
 	}
 
 	// Check if controls are effective.
@@ -1457,43 +1345,29 @@ func (cr *ComplianceReporter) performComplianceAssessment(requirement *Complianc
 	totalControls := len(requirement.Controls)
 
 	for _, control := range requirement.Controls {
-
 		if control.Status == "active" && control.Effectiveness == "effective" {
-
 			effectiveControls++
-
 		}
-
 	}
 
 	if totalControls == 0 {
-
 		return StatusPartiallyCompliant
-
 	}
 
 	effectivenessRatio := float64(effectiveControls) / float64(totalControls)
 
 	if effectivenessRatio >= 1.0 {
-
 		return StatusCompliant
-
 	} else if effectivenessRatio >= 0.5 {
-
 		return StatusPartiallyCompliant
-
 	} else {
-
 		return StatusNonCompliant
-
 	}
-
 }
 
 // calculateNextAssessment calculates the next assessment date.
 
 func (cr *ComplianceReporter) calculateNextAssessment(requirement *ComplianceRequirement) time.Time {
-
 	switch requirement.Severity {
 
 	case "critical":
@@ -1517,17 +1391,13 @@ func (cr *ComplianceReporter) calculateNextAssessment(requirement *ComplianceReq
 		return time.Now().AddDate(1, 0, 0) // Default to annually
 
 	}
-
 }
 
 // calculateOverallCompliance calculates overall compliance status and score.
 
 func (cr *ComplianceReporter) calculateOverallCompliance(requirements []ComplianceRequirement) (ComplianceStatus, float64) {
-
 	if len(requirements) == 0 {
-
 		return StatusNotAssessed, 0.0
-
 	}
 
 	compliant := 0
@@ -1539,7 +1409,6 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 	notAssessed := 0
 
 	for _, req := range requirements {
-
 		switch req.Status {
 
 		case StatusCompliant:
@@ -1559,7 +1428,6 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 			notAssessed++
 
 		}
-
 	}
 
 	// Calculate score (weighted).
@@ -1571,33 +1439,22 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 	var status ComplianceStatus
 
 	if nonCompliant > 0 {
-
 		status = StatusNonCompliant
-
 	} else if partiallyCompliant > 0 {
-
 		status = StatusPartiallyCompliant
-
 	} else if compliant > 0 {
-
 		status = StatusCompliant
-
 	} else {
-
 		status = StatusNotAssessed
-
 	}
 
 	return status, score
-
 }
 
 // generateComplianceSummary generates compliance summary.
 
 func (cr *ComplianceReporter) generateComplianceSummary(requirements []ComplianceRequirement) ComplianceSummary {
-
 	summary := ComplianceSummary{
-
 		TotalRequirements: len(requirements),
 
 		ComplianceByCategory: make(map[string]ComplianceMetrics),
@@ -1610,7 +1467,6 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 	// Count by status.
 
 	for _, req := range requirements {
-
 		switch req.Status {
 
 		case StatusCompliant:
@@ -1626,7 +1482,6 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 			summary.ExemptRequirements++
 
 		}
-
 	}
 
 	// Group by category.
@@ -1636,9 +1491,7 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 	for _, req := range requirements {
 
 		if _, exists := categoryMap[req.Category]; !exists {
-
 			categoryMap[req.Category] = make([]ComplianceRequirement, 0, 10)
-
 		}
 
 		categoryMap[req.Category] = append(categoryMap[req.Category], req)
@@ -1652,17 +1505,12 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 		compliant := 0
 
 		for _, req := range categoryReqs {
-
 			if req.Status == StatusCompliant {
-
 				compliant++
-
 			}
-
 		}
 
 		summary.ComplianceByCategory[category] = ComplianceMetrics{
-
 			Total: len(categoryReqs),
 
 			Compliant: compliant,
@@ -1675,7 +1523,6 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 	// Generate risk assessment.
 
 	summary.RiskAssessment = RiskAssessment{
-
 		OverallRisk: "medium",
 
 		RiskFactors: make([]RiskFactor, 0, 5),
@@ -1690,21 +1537,17 @@ func (cr *ComplianceReporter) generateComplianceSummary(requirements []Complianc
 	}
 
 	return summary
-
 }
 
 // generateComplianceRecommendations generates compliance recommendations.
 
 func (cr *ComplianceReporter) generateComplianceRecommendations(requirements []ComplianceRequirement) []ComplianceRecommendation {
-
 	recommendations := make([]ComplianceRecommendation, 0, 10)
 
 	for _, req := range requirements {
-
 		if req.Status == StatusNonCompliant || req.Status == StatusPartiallyCompliant {
 
 			recommendation := ComplianceRecommendation{
-
 				ID: fmt.Sprintf("rec-%s", req.ID),
 
 				Priority: req.Severity,
@@ -1727,51 +1570,39 @@ func (cr *ComplianceReporter) generateComplianceRecommendations(requirements []C
 			recommendations = append(recommendations, recommendation)
 
 		}
-
 	}
 
 	return recommendations
-
 }
 
 // getAuditTrailForPeriod returns audit trail events for a specific period.
 
 func (cr *ComplianceReporter) getAuditTrailForPeriod(period Period) []AuditEvent {
-
 	filtered := make([]AuditEvent, 0)
 
 	for _, event := range cr.auditTrail {
-
 		if event.Timestamp.After(period.StartTime) && event.Timestamp.Before(period.EndTime) {
-
 			filtered = append(filtered, event)
-
 		}
-
 	}
 
 	// Sort by timestamp.
 
 	sort.Slice(filtered, func(i, j int) bool {
-
 		return filtered[i].Timestamp.Before(filtered[j].Timestamp)
-
 	})
 
 	return filtered
-
 }
 
 // monitoringLoop continuously monitors compliance.
 
 func (cr *ComplianceReporter) monitoringLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Hour) // Check every hour
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1787,15 +1618,12 @@ func (cr *ComplianceReporter) monitoringLoop(ctx context.Context) {
 			cr.performContinuousMonitoring(ctx)
 
 		}
-
 	}
-
 }
 
 // performContinuousMonitoring performs continuous compliance monitoring.
 
 func (cr *ComplianceReporter) performContinuousMonitoring(ctx context.Context) {
-
 	cr.mu.RLock()
 
 	defer cr.mu.RUnlock()
@@ -1803,37 +1631,25 @@ func (cr *ComplianceReporter) performContinuousMonitoring(ctx context.Context) {
 	// Check for requirements that need assessment.
 
 	for _, req := range cr.requirements {
-
 		if time.Now().After(req.NextAssessment) {
-
 			go func(requirementID string) {
-
 				_, err := cr.AssessCompliance(requirementID)
-
 				if err != nil {
-
 					cr.logger.WithError(err).WithField("requirement", requirementID).Error("Failed to assess compliance")
-
 				}
-
 			}(req.ID)
-
 		}
-
 	}
-
 }
 
 // dataRetentionLoop enforces data retention policies.
 
 func (cr *ComplianceReporter) dataRetentionLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(24 * time.Hour) // Check daily
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1849,15 +1665,12 @@ func (cr *ComplianceReporter) dataRetentionLoop(ctx context.Context) {
 			cr.enforceDataRetention(ctx)
 
 		}
-
 	}
-
 }
 
 // enforceDataRetention enforces data retention policies.
 
 func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
-
 	cr.mu.Lock()
 
 	defer cr.mu.Unlock()
@@ -1871,13 +1684,9 @@ func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
 		filtered := make([]AuditEvent, 0, 100)
 
 		for _, event := range cr.auditTrail {
-
 			if event.Timestamp.After(cutoff) {
-
 				filtered = append(filtered, event)
-
 			}
-
 		}
 
 		purged := len(cr.auditTrail) - len(filtered)
@@ -1885,19 +1694,15 @@ func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
 		cr.auditTrail = filtered
 
 		if purged > 0 {
-
 			cr.logger.WithField("purged_count", purged).Info("Purged old audit events")
-
 		}
 
 	}
-
 }
 
 // scheduledReportingLoop handles scheduled compliance reporting.
 
 func (cr *ComplianceReporter) scheduledReportingLoop(ctx context.Context) {
-
 	// Check every hour for scheduled reports.
 
 	ticker := time.NewTicker(1 * time.Hour)
@@ -1905,7 +1710,6 @@ func (cr *ComplianceReporter) scheduledReportingLoop(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1921,73 +1725,56 @@ func (cr *ComplianceReporter) scheduledReportingLoop(ctx context.Context) {
 			cr.checkScheduledReports(ctx)
 
 		}
-
 	}
-
 }
 
 // checkScheduledReports checks for and generates scheduled reports.
 
 func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
-
 	now := time.Now()
 
 	// Check for daily reports.
 
 	if cr.config.ReportSchedule.Daily && now.Hour() == 0 {
-
 		cr.generateScheduledReports(ctx, "daily")
-
 	}
 
 	// Check for weekly reports.
 
 	if cr.config.ReportSchedule.Weekly && now.Weekday() == time.Monday && now.Hour() == 0 {
-
 		cr.generateScheduledReports(ctx, "weekly")
-
 	}
 
 	// Check for monthly reports.
 
 	if cr.config.ReportSchedule.Monthly && now.Day() == 1 && now.Hour() == 0 {
-
 		cr.generateScheduledReports(ctx, "monthly")
-
 	}
 
 	// Check for quarterly reports.
 
 	if cr.config.ReportSchedule.Quarterly && isFirstDayOfQuarter(now) && now.Hour() == 0 {
-
 		cr.generateScheduledReports(ctx, "quarterly")
-
 	}
 
 	// Check for annual reports.
 
 	if cr.config.ReportSchedule.Annual && now.Month() == time.January && now.Day() == 1 && now.Hour() == 0 {
-
 		cr.generateScheduledReports(ctx, "annual")
-
 	}
-
 }
 
 // generateScheduledReports generates scheduled reports for all frameworks.
 
 func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, schedule string) {
-
 	for _, framework := range cr.config.Frameworks {
 
 		period := cr.getPeriodForSchedule(schedule)
 
 		report, err := cr.GenerateComplianceReport(framework, period)
-
 		if err != nil {
 
 			cr.logger.WithError(err).WithFields(logrus.Fields{
-
 				"framework": framework,
 
 				"schedule": schedule,
@@ -1998,7 +1785,6 @@ func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, sche
 		}
 
 		cr.logger.WithFields(logrus.Fields{
-
 			"framework": framework,
 
 			"schedule": schedule,
@@ -2009,13 +1795,11 @@ func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, sche
 		}).Info("Generated scheduled compliance report")
 
 	}
-
 }
 
 // getPeriodForSchedule returns the appropriate period for a schedule.
 
 func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
-
 	now := time.Now()
 
 	switch schedule {
@@ -2023,7 +1807,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	case "daily":
 
 		return Period{
-
 			StartTime: now.AddDate(0, 0, -1),
 
 			EndTime: now,
@@ -2034,7 +1817,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	case "weekly":
 
 		return Period{
-
 			StartTime: now.AddDate(0, 0, -7),
 
 			EndTime: now,
@@ -2045,7 +1827,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	case "monthly":
 
 		return Period{
-
 			StartTime: now.AddDate(0, -1, 0),
 
 			EndTime: now,
@@ -2056,7 +1837,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	case "quarterly":
 
 		return Period{
-
 			StartTime: now.AddDate(0, -3, 0),
 
 			EndTime: now,
@@ -2067,7 +1847,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	case "annual":
 
 		return Period{
-
 			StartTime: now.AddDate(-1, 0, 0),
 
 			EndTime: now,
@@ -2078,7 +1857,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	default:
 
 		return Period{
-
 			StartTime: now.AddDate(0, 0, -1),
 
 			EndTime: now,
@@ -2087,17 +1865,14 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 		}
 
 	}
-
 }
 
 // isFirstDayOfQuarter checks if the given date is the first day of a quarter.
 
 func isFirstDayOfQuarter(t time.Time) bool {
-
 	month := t.Month()
 
 	day := t.Day()
 
 	return day == 1 && (month == time.January || month == time.April || month == time.July || month == time.October)
-
 }

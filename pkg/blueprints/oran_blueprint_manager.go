@@ -1558,25 +1558,20 @@ type BlueprintMetrics struct {
 // NewBlueprintMetrics creates new blueprint metrics.
 
 func NewBlueprintMetrics() *BlueprintMetrics {
-
 	return &BlueprintMetrics{
-
 		BlueprintGenerations: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_generations_total",
 
 			Help: "Total number of blueprint generations",
 		}),
 
 		BlueprintErrors: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_blueprint_errors_total",
 
 			Help: "Total number of blueprint generation errors",
 		}),
 
 		BlueprintDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "nephoran_blueprint_duration_seconds",
 
 			Help: "Duration of blueprint generation operations",
@@ -1585,21 +1580,18 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 		}),
 
 		TemplateCacheHits: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_template_cache_hits_total",
 
 			Help: "Total number of template cache hits",
 		}),
 
 		TemplateCacheMisses: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_template_cache_misses_total",
 
 			Help: "Total number of template cache misses",
 		}),
 
 		ValidationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "nephoran_blueprint_validation_duration_seconds",
 
 			Help: "Duration of blueprint validation operations",
@@ -1608,7 +1600,6 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 		}),
 
 		RenderingDuration: promauto.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "nephoran_blueprint_rendering_duration_seconds",
 
 			Help: "Duration of blueprint rendering operations",
@@ -1617,13 +1608,11 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 		}),
 
 		ORANCompliantBlueprints: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "nephoran_oran_compliant_blueprints_total",
 
 			Help: "Total number of O-RAN compliant blueprints generated",
 		}),
 	}
-
 }
 
 // BlueprintConfig contains configuration for the blueprint manager.
@@ -1647,7 +1636,6 @@ type BlueprintConfig struct {
 // NewORANBlueprintManager creates a new O-RAN blueprint manager.
 
 func NewORANBlueprintManager(
-
 	client client.Client,
 
 	porchClient porch.PorchClient,
@@ -1655,13 +1643,9 @@ func NewORANBlueprintManager(
 	config *BlueprintConfig,
 
 	logger *zap.Logger,
-
 ) (*ORANBlueprintManager, error) {
-
 	if config == nil {
-
 		config = &BlueprintConfig{
-
 			PorchEndpoint: "http://porch-server.porch-system.svc.cluster.local:9080",
 
 			TemplateRepository: "https://github.com/nephio-project/catalog.git",
@@ -1676,19 +1660,15 @@ func NewORANBlueprintManager(
 
 			DefaultNamespace: "default",
 		}
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &ORANBlueprintManager{
-
 		client: client,
 
 		porchClient: porchClient,
@@ -1731,15 +1711,12 @@ func NewORANBlueprintManager(
 		zap.Int("max_concurrent_ops", config.MaxConcurrentOps))
 
 	return manager, nil
-
 }
 
 // NewORANBlueprintCatalog creates a new O-RAN blueprint catalog.
 
 func NewORANBlueprintCatalog(config *BlueprintConfig, logger *zap.Logger) (*ORANBlueprintCatalog, error) {
-
 	catalog := &ORANBlueprintCatalog{
-
 		NearRTRIC: make(map[string]*BlueprintTemplate),
 
 		NonRTRIC: make(map[string]*BlueprintTemplate),
@@ -1764,13 +1741,11 @@ func NewORANBlueprintCatalog(config *BlueprintConfig, logger *zap.Logger) (*ORAN
 	logger.Info("O-RAN blueprint catalog initialized")
 
 	return catalog, nil
-
 }
 
 // NewFiveGCoreCatalog creates a new 5G Core catalog.
 
 func NewFiveGCoreCatalog(config *BlueprintConfig, logger *zap.Logger) (*FiveGCoreCatalog, error) {
-
 	catalog := &FiveGCoreCatalog{}
 
 	// Initialize with default templates (would typically load from repository).
@@ -1780,17 +1755,14 @@ func NewFiveGCoreCatalog(config *BlueprintConfig, logger *zap.Logger) (*FiveGCor
 	logger.Info("5G Core catalog initialized")
 
 	return catalog, nil
-
 }
 
 // loadDefaultTemplates loads default O-RAN templates.
 
 func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
-
 	// Add a basic Near-RT RIC template.
 
 	catalog.NearRTRIC["default"] = &BlueprintTemplate{
-
 		ID: "near-rt-ric-default",
 
 		Name: "Default Near-RT RIC",
@@ -1810,20 +1782,16 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 		Interfaces: []string{InterfaceA1, InterfaceE2, InterfaceO1},
 
 		KRMResources: []KRMResourceTemplate{
-
 			{
-
 				APIVersion: "apps/v1",
 
 				Kind: "Deployment",
 
 				Metadata: map[string]interface{}{
-
 					"name": "near-rt-ric",
 				},
 
 				Spec: map[string]interface{}{
-
 					"replicas": 1,
 				},
 			},
@@ -1835,7 +1803,6 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 	// Add a basic xApp template.
 
 	catalog.xApps["default"] = &BlueprintTemplate{
-
 		ID: "xapp-default",
 
 		Name: "Default xApp",
@@ -1855,20 +1822,16 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 		Interfaces: []string{InterfaceE2},
 
 		KRMResources: []KRMResourceTemplate{
-
 			{
-
 				APIVersion: "apps/v1",
 
 				Kind: "Deployment",
 
 				Metadata: map[string]interface{}{
-
 					"name": "xapp",
 				},
 
 				Spec: map[string]interface{}{
-
 					"replicas": 1,
 				},
 			},
@@ -1876,19 +1839,15 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 		CreatedAt: time.Now(),
 	}
-
 }
 
 // loadDefaultTemplates loads default 5G Core templates.
 
 func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
-
 	// Initialize with basic AMF template.
 
 	catalog.AMF = &AmfBlueprintTemplate{
-
 		BlueprintTemplate: &BlueprintTemplate{
-
 			ID: "amf-default",
 
 			Name: "Default AMF",
@@ -1908,20 +1867,16 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 			Interfaces: []string{InterfaceO1, InterfaceO2},
 
 			KRMResources: []KRMResourceTemplate{
-
 				{
-
 					APIVersion: "apps/v1",
 
 					Kind: "Deployment",
 
 					Metadata: map[string]interface{}{
-
 						"name": "amf",
 					},
 
 					Spec: map[string]interface{}{
-
 						"replicas": 2,
 					},
 				},
@@ -1931,7 +1886,6 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 		},
 
 		SessionManagement: &SessionManagementConfig{
-
 			MaxSessions: 10000,
 
 			SessionTimeout: 3600,
@@ -1945,9 +1899,7 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 	// Initialize other network functions with minimal templates.
 
 	catalog.SMF = &SmfBlueprintTemplate{
-
 		BlueprintTemplate: &BlueprintTemplate{
-
 			ID: "smf-default",
 
 			Name: "Default SMF",
@@ -1971,9 +1923,7 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 	}
 
 	catalog.UPF = &UpfBlueprintTemplate{
-
 		BlueprintTemplate: &BlueprintTemplate{
-
 			ID: "upf-default",
 
 			Name: "Default UPF",
@@ -1995,53 +1945,39 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 			CreatedAt: time.Now(),
 		},
 	}
-
 }
 
 // initializeComponents initializes all component managers.
 
 func (obm *ORANBlueprintManager) initializeComponents() error {
-
 	var err error
 
 	// Initialize O-RAN catalog.
 
 	obm.oranCatalog, err = NewORANBlueprintCatalog(obm.config, obm.logger.Named("oran-catalog"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize O-RAN catalog: %w", err)
-
 	}
 
 	// Initialize 5G Core catalog.
 
 	obm.fiveGCatalog, err = NewFiveGCoreCatalog(obm.config, obm.logger.Named("5g-catalog"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize 5G Core catalog: %w", err)
-
 	}
 
 	// Initialize rendering engine.
 
 	obm.renderEngine, err = NewBlueprintRenderingEngine(obm.config, obm.logger.Named("renderer"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize rendering engine: %w", err)
-
 	}
 
 	// Initialize network function config generator.
 
 	obm.configGen, err = NewNetworkFunctionConfigGenerator(obm.config, obm.logger.Named("config-gen"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize config generator: %w", err)
-
 	}
 
 	// Initialize O-RAN validator if enabled.
@@ -2049,11 +1985,8 @@ func (obm *ORANBlueprintManager) initializeComponents() error {
 	if obm.config.EnableORANCompliance {
 
 		obm.validator, err = NewORANValidator(obm.config, obm.logger.Named("validator"))
-
 		if err != nil {
-
 			return fmt.Errorf("failed to initialize O-RAN validator: %w", err)
-
 		}
 
 	}
@@ -2061,21 +1994,16 @@ func (obm *ORANBlueprintManager) initializeComponents() error {
 	// Initialize template engine.
 
 	obm.templateEngine, err = NewTemplateEngine(obm.config, obm.logger.Named("template-engine"))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize template engine: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // startWorkers starts background worker goroutines.
 
 func (obm *ORANBlueprintManager) startWorkers() {
-
 	// Start blueprint processing workers.
 
 	for range obm.config.MaxConcurrentOps {
@@ -2085,23 +2013,19 @@ func (obm *ORANBlueprintManager) startWorkers() {
 		go obm.blueprintWorker()
 
 	}
-
 }
 
 // CreateORANBlueprint creates an O-RAN compliant blueprint from NetworkIntent.
 
 func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent *v1.NetworkIntent) (*porch.PackageRevision, error) {
-
 	startTime := time.Now()
 
 	obm.metrics.BlueprintGenerations.Inc()
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		obm.metrics.BlueprintDuration.Observe(duration.Seconds())
-
 	}()
 
 	obm.logger.Info("Creating O-RAN blueprint",
@@ -2115,7 +2039,6 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 	// Step 1: Select appropriate blueprint templates.
 
 	templates, err := obm.selectBlueprintTemplates(ctx, intent)
-
 	if err != nil {
 
 		obm.metrics.BlueprintErrors.Inc()
@@ -2127,14 +2050,12 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 	// Step 2: Render blueprint with NetworkIntent parameters.
 
 	renderedBlueprint, err := obm.renderEngine.RenderORANBlueprint(ctx, &BlueprintRequest{
-
 		Intent: intent,
 
 		Templates: templates,
 
 		Metadata: obm.buildBlueprintMetadata(intent),
 	})
-
 	if err != nil {
 
 		obm.metrics.BlueprintErrors.Inc()
@@ -2146,7 +2067,6 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 	// Step 3: Generate network function configurations.
 
 	nfConfigs, err := obm.configGen.GenerateConfigurations(ctx, intent, templates)
-
 	if err != nil {
 
 		obm.metrics.BlueprintErrors.Inc()
@@ -2158,7 +2078,6 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 	// Step 4: Validate O-RAN compliance if enabled.
 
 	if obm.validator != nil {
-
 		if err := obm.validator.ValidateORANCompliance(ctx, renderedBlueprint, nfConfigs); err != nil {
 
 			obm.metrics.BlueprintErrors.Inc()
@@ -2166,13 +2085,11 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 			return nil, fmt.Errorf("O-RAN compliance validation failed: %w", err)
 
 		}
-
 	}
 
 	// Step 5: Create PackageRevision through Porch.
 
 	packageRevision, err := obm.createPackageRevision(ctx, intent, renderedBlueprint, nfConfigs)
-
 	if err != nil {
 
 		obm.metrics.BlueprintErrors.Inc()
@@ -2182,9 +2099,7 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 	}
 
 	if renderedBlueprint.ORANCompliant {
-
 		obm.metrics.ORANCompliantBlueprints.Inc()
-
 	}
 
 	obm.logger.Info("O-RAN blueprint created successfully",
@@ -2198,17 +2113,14 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 		zap.Duration("duration", time.Since(startTime)))
 
 	return packageRevision, nil
-
 }
 
 // blueprintWorker processes blueprint operations from the queue.
 
 func (obm *ORANBlueprintManager) blueprintWorker() {
-
 	defer obm.workerpool.Done()
 
 	for {
-
 		select {
 
 		case <-obm.ctx.Done():
@@ -2220,21 +2132,16 @@ func (obm *ORANBlueprintManager) blueprintWorker() {
 		case operation := <-obm.operationQueue:
 
 			if operation != nil {
-
 				obm.processOperation(operation)
-
 			}
 
 		}
-
 	}
-
 }
 
 // processOperation processes a single blueprint operation.
 
 func (obm *ORANBlueprintManager) processOperation(operation *BlueprintOperation) {
-
 	obm.logger.Info("Processing blueprint operation",
 
 		zap.String("operation_id", operation.ID),
@@ -2296,17 +2203,14 @@ func (obm *ORANBlueprintManager) processOperation(operation *BlueprintOperation)
 			zap.Duration("duration", completedTime.Sub(startTime)))
 
 	}
-
 }
 
 // processRenderOperation processes a render operation.
 
 func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOperation) error {
-
 	// Create a blueprint request.
 
 	request := &BlueprintRequest{
-
 		Intent: operation.Intent,
 
 		Templates: operation.Templates,
@@ -2319,59 +2223,44 @@ func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOper
 	// Render the blueprint.
 
 	rendered, err := obm.renderEngine.RenderORANBlueprint(obm.ctx, request)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	// Store the result.
 
 	if operation.Result == nil {
-
 		operation.Result = &OperationResult{}
-
 	}
 
 	operation.Result.RenderedBlueprint = rendered
 
 	return nil
-
 }
 
 // processValidateOperation processes a validate operation.
 
 func (obm *ORANBlueprintManager) processValidateOperation(operation *BlueprintOperation) error {
-
 	if operation.Result == nil || operation.Result.RenderedBlueprint == nil {
-
 		return fmt.Errorf("no rendered blueprint to validate")
-
 	}
 
 	// Generate network function configs.
 
 	nfConfigs, err := obm.configGen.GenerateConfigurations(obm.ctx, operation.Intent, operation.Templates)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	// Validate O-RAN compliance.
 
 	if obm.validator != nil {
-
 		err = obm.validator.ValidateORANCompliance(obm.ctx, operation.Result.RenderedBlueprint, nfConfigs)
-
 	}
 
 	// Create validation result.
 
 	validationResult := &ValidationResult{
-
 		Valid: err == nil,
 
 		Duration: time.Since(*operation.StartedAt),
@@ -2380,9 +2269,7 @@ func (obm *ORANBlueprintManager) processValidateOperation(operation *BlueprintOp
 	}
 
 	if err != nil {
-
 		validationResult.Errors = []string{err.Error()}
-
 	}
 
 	operation.Result.ValidationResult = validationResult
@@ -2390,23 +2277,18 @@ func (obm *ORANBlueprintManager) processValidateOperation(operation *BlueprintOp
 	operation.Result.NfConfigs = nfConfigs
 
 	return nil
-
 }
 
 // processDeployOperation processes a deploy operation.
 
 func (obm *ORANBlueprintManager) processDeployOperation(operation *BlueprintOperation) error {
-
 	if operation.Result == nil || operation.Result.RenderedBlueprint == nil {
-
 		return fmt.Errorf("no rendered blueprint to deploy")
-
 	}
 
 	// Create deployment result.
 
 	deploymentResult := &DeploymentResult{
-
 		Success: true,
 
 		ResourcesCreated: []string{},
@@ -2428,13 +2310,11 @@ func (obm *ORANBlueprintManager) processDeployOperation(operation *BlueprintOper
 	operation.Result.DeploymentResult = deploymentResult
 
 	return nil
-
 }
 
 // selectBlueprintTemplates selects appropriate templates for the intent.
 
 func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, intent *v1.NetworkIntent) ([]*BlueprintTemplate, error) {
-
 	obm.logger.Debug("Selecting blueprint templates",
 
 		zap.String("intent_name", intent.Name),
@@ -2446,41 +2326,31 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 	// Select templates based on target components.
 
 	for _, component := range intent.Spec.TargetComponents {
-
 		switch component {
 
 		case v1.NetworkTargetComponentAMF:
 
 			if obm.fiveGCatalog.AMF != nil {
-
 				templates = append(templates, obm.fiveGCatalog.AMF.BlueprintTemplate)
-
 			}
 
 		case v1.NetworkTargetComponentSMF:
 
 			if obm.fiveGCatalog.SMF != nil {
-
 				templates = append(templates, obm.fiveGCatalog.SMF.BlueprintTemplate)
-
 			}
 
 		case v1.NetworkTargetComponentUPF:
 
 			if obm.fiveGCatalog.UPF != nil {
-
 				templates = append(templates, obm.fiveGCatalog.UPF.BlueprintTemplate)
-
 			}
 
 		}
-
 	}
 
 	if len(templates) == 0 {
-
 		return nil, fmt.Errorf("no templates found for target components: %v", intent.Spec.TargetComponents)
-
 	}
 
 	obm.logger.Info("Selected blueprint templates",
@@ -2490,15 +2360,12 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 		zap.Int("template_count", len(templates)))
 
 	return templates, nil
-
 }
 
 // buildBlueprintMetadata builds metadata for the blueprint.
 
 func (obm *ORANBlueprintManager) buildBlueprintMetadata(intent *v1.NetworkIntent) *BlueprintMetadata {
-
 	return &BlueprintMetadata{
-
 		Name: fmt.Sprintf("blueprint-%s", intent.Name),
 
 		Version: "1.0.0",
@@ -2519,13 +2386,11 @@ func (obm *ORANBlueprintManager) buildBlueprintMetadata(intent *v1.NetworkIntent
 
 		GeneratedBy: "nephoran-intent-operator",
 	}
-
 }
 
 // createPackageRevision creates a Porch package revision.
 
 func (obm *ORANBlueprintManager) createPackageRevision(
-
 	ctx context.Context,
 
 	intent *v1.NetworkIntent,
@@ -2533,9 +2398,7 @@ func (obm *ORANBlueprintManager) createPackageRevision(
 	blueprint *RenderedBlueprint,
 
 	nfConfigs []NetworkFunctionConfig,
-
 ) (*porch.PackageRevision, error) {
-
 	obm.logger.Info("Creating package revision",
 
 		zap.String("intent_name", intent.Name),
@@ -2547,15 +2410,12 @@ func (obm *ORANBlueprintManager) createPackageRevision(
 	// This would be the actual implementation that calls Porch.
 
 	packageRevision := &porch.PackageRevision{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-v1", intent.Name),
 
 			Namespace: intent.Namespace,
 
 			Labels: map[string]string{
-
 				"nephoran.com/intent": intent.Name,
 
 				"nephoran.com/blueprint": blueprint.Name,
@@ -2570,5 +2430,4 @@ func (obm *ORANBlueprintManager) createPackageRevision(
 		zap.String("namespace", packageRevision.ObjectMeta.Namespace))
 
 	return packageRevision, nil
-
 }

@@ -182,7 +182,6 @@ func TestStreamingDocumentProcessor_Backpressure(t *testing.T) {
 
 	ctx := context.Background()
 	result, err := processor.ProcessDocumentStream(ctx, doc)
-
 	if err != nil {
 		t.Fatalf("ProcessDocumentStream() error = %v", err)
 	}
@@ -308,7 +307,6 @@ func TestStreamingDocumentProcessor_ErrorHandling(t *testing.T) {
 
 	ctx := context.Background()
 	result, err := processor.ProcessDocumentStream(ctx, doc)
-
 	// Should succeed due to retries
 	if err != nil {
 		t.Fatalf("ProcessDocumentStream() error = %v", err)
@@ -430,7 +428,6 @@ func TestStreamingDocumentProcessor_StreamingBehavior(t *testing.T) {
 
 	ctx := context.Background()
 	result, err := processor.ProcessDocumentStream(ctx, doc)
-
 	if err != nil {
 		t.Fatalf("ProcessDocumentStream() error = %v", err)
 	}

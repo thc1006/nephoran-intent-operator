@@ -64,11 +64,9 @@ type TestShard struct {
 }
 
 func main() {
-
 	var runner TestRunner
 
 	rootCmd := &cobra.Command{
-
 		Use: "test-runner",
 
 		Short: "Parallel test runner with intelligent sharding",
@@ -88,9 +86,7 @@ Features:
 - Test result aggregation`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			return runner.Run()
-
 		},
 	}
 
@@ -117,35 +113,24 @@ Features:
 	// Environment variable overrides.
 
 	if envIndex := os.Getenv("SHARD_INDEX"); envIndex != "" {
-
 		if i, err := strconv.Atoi(envIndex); err == nil {
-
 			runner.ShardIndex = i
-
 		}
-
 	}
 
 	if envTotal := os.Getenv("TOTAL_SHARDS"); envTotal != "" {
-
 		if t, err := strconv.Atoi(envTotal); err == nil {
-
 			runner.TotalShards = t
-
 		}
-
 	}
 
 	if envPattern := os.Getenv("TEST_PATTERN"); envPattern != "" {
-
 		runner.Pattern = envPattern
-
 	}
 
 	// Apply timeout scaling from environment.
 
 	if envTimeoutScale := os.Getenv("GO_TEST_TIMEOUT_SCALE"); envTimeoutScale != "" {
-
 		if scale, err := strconv.ParseFloat(envTimeoutScale, 64); err == nil && scale > 0 {
 
 			scaledTimeout := time.Duration(float64(runner.Timeout) * scale)
@@ -155,31 +140,23 @@ Features:
 			runner.Timeout = scaledTimeout
 
 		}
-
 	}
 
 	if err := rootCmd.Execute(); err != nil {
-
 		log.Fatal(err)
-
 	}
-
 }
 
 // Run executes the test runner.
 
 func (r *TestRunner) Run() error {
-
 	log.Printf("Starting test runner (shard %d/%d)", r.ShardIndex+1, r.TotalShards)
 
 	// Discover test packages.
 
 	packages, err := r.discoverPackages()
-
 	if err != nil {
-
 		return fmt.Errorf("discovering packages: %w", err)
-
 	}
 
 	if len(packages) == 0 {
@@ -207,27 +184,20 @@ func (r *TestRunner) Run() error {
 	// Create output directory.
 
 	if err := os.MkdirAll(r.OutputDir, 0o750); err != nil {
-
 		return fmt.Errorf("creating output directory: %w", err)
-
 	}
 
 	// Run tests in parallel.
 
 	results, err := r.runTests(shard.Packages)
-
 	if err != nil {
-
 		return fmt.Errorf("running tests: %w", err)
-
 	}
 
 	// Generate reports.
 
 	if err := r.generateReports(results); err != nil {
-
 		return fmt.Errorf("generating reports: %w", err)
-
 	}
 
 	// Check for failures.
@@ -235,13 +205,9 @@ func (r *TestRunner) Run() error {
 	failedCount := 0
 
 	for _, result := range results {
-
 		if !result.Success {
-
 			failedCount++
-
 		}
-
 	}
 
 	if failedCount > 0 {
@@ -255,13 +221,11 @@ func (r *TestRunner) Run() error {
 	log.Printf("✅ All %d test packages passed", len(results))
 
 	return nil
-
 }
 
 // discoverPackages finds all test packages matching the pattern.
 
 func (r *TestRunner) discoverPackages() ([]string, error) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 	defer cancel()
@@ -269,11 +233,8 @@ func (r *TestRunner) discoverPackages() ([]string, error) {
 	cmd := exec.CommandContext(ctx, "go", "list", r.Pattern)
 
 	output, err := cmd.Output()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("listing packages: %w", err)
-
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
@@ -287,27 +248,21 @@ func (r *TestRunner) discoverPackages() ([]string, error) {
 		line = strings.TrimSpace(line)
 
 		if line != "" {
-
 			// Check if package has test files.
 
 			if r.hasTestFiles(line) {
-
 				packages = append(packages, line)
-
 			}
-
 		}
 
 	}
 
 	return packages, nil
-
 }
 
 // hasTestFiles checks if a package contains test files.
 
 func (r *TestRunner) hasTestFiles(pkg string) bool {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
@@ -315,23 +270,17 @@ func (r *TestRunner) hasTestFiles(pkg string) bool {
 	cmd := exec.CommandContext(ctx, "go", "list", "-f", "{{.TestGoFiles}} {{.XTestGoFiles}}", pkg)
 
 	output, err := cmd.Output()
-
 	if err != nil {
-
 		return false
-
 	}
 
 	return strings.TrimSpace(string(output)) != "[] []"
-
 }
 
 // createShard assigns packages to the current shard using round-robin distribution.
 
 func (r *TestRunner) createShard(packages []string) TestShard {
-
 	shard := TestShard{
-
 		Index: r.ShardIndex,
 
 		Packages: make([]string, 0),
@@ -344,23 +293,17 @@ func (r *TestRunner) createShard(packages []string) TestShard {
 	// Distribute packages using weighted round-robin.
 
 	for i, pkg := range packages {
-
 		if r.shouldAssignToShard(i, packageWeights[pkg]) {
-
 			shard.Packages = append(shard.Packages, pkg)
-
 		}
-
 	}
 
 	return shard
-
 }
 
 // calculatePackageWeights estimates relative execution time for packages.
 
 func (r *TestRunner) calculatePackageWeights(packages []string) map[string]int {
-
 	weights := make(map[string]int)
 
 	for _, pkg := range packages {
@@ -370,21 +313,13 @@ func (r *TestRunner) calculatePackageWeights(packages []string) map[string]int {
 		// Adjust weight based on package characteristics.
 
 		if strings.Contains(pkg, "integration") || strings.Contains(pkg, "e2e") {
-
 			weight = 3 // Integration tests are typically slower
-
 		} else if strings.Contains(pkg, "performance") || strings.Contains(pkg, "benchmark") {
-
 			weight = 5 // Performance tests are slowest
-
 		} else if strings.Contains(pkg, "controller") || strings.Contains(pkg, "manager") {
-
 			weight = 2 // Controller tests often involve more setup
-
 		} else if strings.Contains(pkg, "security") {
-
 			weight = 2 // Security tests may involve crypto operations
-
 		}
 
 		weights[pkg] = weight
@@ -392,13 +327,11 @@ func (r *TestRunner) calculatePackageWeights(packages []string) map[string]int {
 	}
 
 	return weights
-
 }
 
 // getPackageTimeout calculates appropriate timeout for a specific package.
 
 func (r *TestRunner) getPackageTimeout(pkg string) time.Duration {
-
 	baseTimeout := r.Timeout
 
 	// Apply package-specific timeout scaling for Windows optimization.
@@ -406,43 +339,31 @@ func (r *TestRunner) getPackageTimeout(pkg string) time.Duration {
 	multiplier := 1.0
 
 	if strings.Contains(pkg, "integration") || strings.Contains(pkg, "e2e") {
-
 		multiplier = 1.5 // Integration tests need more time
-
 	} else if strings.Contains(pkg, "performance") || strings.Contains(pkg, "benchmark") {
-
 		multiplier = 2.0 // Performance tests are slowest
-
 	} else if strings.Contains(pkg, "security") {
-
 		multiplier = 1.2 // Security tests with crypto operations
-
 	} else if strings.Contains(pkg, "controller") || strings.Contains(pkg, "manager") {
-
 		multiplier = 1.3 // Controller tests with more setup
-
 	}
 
 	return time.Duration(float64(baseTimeout) * multiplier)
-
 }
 
 // shouldAssignToShard determines if a package should be assigned to this shard.
 
 func (r *TestRunner) shouldAssignToShard(index, weight int) bool {
-
 	// Use weighted distribution to balance shard load.
 
 	adjustedIndex := index * weight
 
 	return adjustedIndex%r.TotalShards == r.ShardIndex
-
 }
 
 // runTests executes tests for assigned packages in parallel.
 
 func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
-
 	results := make([]TestResult, len(packages))
 
 	var wg sync.WaitGroup
@@ -458,7 +379,6 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 		wg.Add(1)
 
 		go func(index int, packageName string) {
-
 			defer wg.Done()
 
 			// Acquire semaphore.
@@ -476,9 +396,7 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 			status := "✅"
 
 			if !result.Success {
-
 				status = "❌"
-
 			}
 
 			log.Printf("%s %s (%v)", status, packageName, result.Duration.Round(time.Millisecond))
@@ -486,11 +404,8 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 			// Fail fast if enabled.
 
 			if r.FailFast && !result.Success {
-
 				cancel()
-
 			}
-
 		}(i, pkg)
 
 	}
@@ -504,34 +419,25 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 	filteredResults := make([]TestResult, 0, len(results))
 
 	for _, result := range results {
-
 		if result.Package != "" {
-
 			filteredResults = append(filteredResults, result)
-
 		}
-
 	}
 
 	return filteredResults, nil
-
 }
 
 // runSingleTest executes tests for a single package.
 
 func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
-
 	result := TestResult{
-
 		Package: pkg,
 	}
 
 	start := time.Now()
 
 	defer func() {
-
 		result.Duration = time.Since(start)
-
 	}()
 
 	// Create package-specific timeout context.
@@ -567,9 +473,7 @@ func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
 		result.Error = err
 
 		if success || err == context.Canceled {
-
 			break // Success or cancelled
-
 		}
 
 		lastErr = err
@@ -577,25 +481,19 @@ func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
 	}
 
 	if !result.Success && lastErr != nil {
-
 		result.Error = fmt.Errorf("failed after %d attempts: %w", r.MaxRetries+1, lastErr)
-
 	}
 
 	return result
-
 }
 
 // executeTest runs the actual go test command.
 
 func (r *TestRunner) executeTest(ctx context.Context, pkg string) (bool, string, string, error) {
-
 	args := []string{"test"}
 
 	if r.Verbose {
-
 		args = append(args, "-v")
-
 	}
 
 	args = append(args, "-count=1") // Disable test caching
@@ -627,9 +525,7 @@ func (r *TestRunner) executeTest(ctx context.Context, pkg string) (bool, string,
 	outputStr := string(output)
 
 	if ctx.Err() == context.Canceled {
-
 		return false, outputStr, "", context.Canceled
-
 	}
 
 	success := err == nil
@@ -643,65 +539,48 @@ func (r *TestRunner) executeTest(ctx context.Context, pkg string) (bool, string,
 		coverFile := filepath.Join(r.OutputDir, strings.ReplaceAll(pkg, "/", "_")+".coverage")
 
 		if _, err := os.Stat(coverFile); err == nil {
-
 			coverage = coverFile
-
 		}
 
 	}
 
 	return success, outputStr, coverage, err
-
 }
 
 // generateReports creates test and coverage reports.
 
 func (r *TestRunner) generateReports(results []TestResult) error {
-
 	// Generate JUnit XML report.
 
 	if err := r.generateJUnitReport(results); err != nil {
-
 		log.Printf("Warning: failed to generate JUnit report: %v", err)
-
 	}
 
 	// Generate coverage report.
 
 	if r.Coverage {
-
 		if err := r.generateCoverageReport(results); err != nil {
-
 			log.Printf("Warning: failed to generate coverage report: %v", err)
-
 		}
-
 	}
 
 	// Generate timing report.
 
 	if err := r.generateTimingReport(results); err != nil {
-
 		log.Printf("Warning: failed to generate timing report: %v", err)
-
 	}
 
 	return nil
-
 }
 
 // generateJUnitReport creates a JUnit XML report.
 
 func (r *TestRunner) generateJUnitReport(results []TestResult) error {
-
 	reportFile := filepath.Join(r.OutputDir, fmt.Sprintf("junit-shard-%d.xml", r.ShardIndex))
 
 	file, err := os.Create(reportFile)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	defer func() { _ = file.Close() }()
@@ -719,11 +598,9 @@ func (r *TestRunner) generateJUnitReport(results []TestResult) error {
 			result.Package, result.Package, result.Duration.Seconds())
 
 		if !result.Success {
-
 			fmt.Fprintf(file, `<failure message="Test failed">%s</failure>`,
 
 				strings.ReplaceAll(result.Output, "&", "&amp;"))
-
 		}
 
 		fmt.Fprintf(file, `</testcase>`)
@@ -733,31 +610,23 @@ func (r *TestRunner) generateJUnitReport(results []TestResult) error {
 	fmt.Fprintf(file, `</testsuite>`)
 
 	return nil
-
 }
 
 // generateCoverageReport combines coverage files and generates reports.
 
 func (r *TestRunner) generateCoverageReport(results []TestResult) error {
-
 	// Preallocate slice with expected capacity for performance.
 
 	coverageFiles := make([]string, 0, len(results))
 
 	for _, result := range results {
-
 		if result.Coverage != "" {
-
 			coverageFiles = append(coverageFiles, result.Coverage)
-
 		}
-
 	}
 
 	if len(coverageFiles) == 0 {
-
 		return nil
-
 	}
 
 	// Combine coverage files.
@@ -765,11 +634,8 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 	combinedFile := filepath.Join(r.OutputDir, fmt.Sprintf("coverage-shard-%d.out", r.ShardIndex))
 
 	file, err := os.Create(combinedFile)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	defer func() { _ = file.Close() }()
@@ -779,11 +645,8 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 	for _, coverFile := range coverageFiles {
 
 		content, err := os.ReadFile(coverFile)
-
 		if err != nil {
-
 			continue
-
 		}
 
 		lines := strings.Split(string(content), "\n")
@@ -791,11 +654,8 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 		for _, line := range lines[1:] { // Skip mode line
 
 			if strings.TrimSpace(line) != "" {
-
 				fmt.Fprintln(file, line)
-
 			}
-
 		}
 
 	}
@@ -807,27 +667,20 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 	cmd := exec.Command("go", "tool", "cover", "-html="+combinedFile, "-o", htmlFile)
 
 	if err := cmd.Run(); err != nil {
-
 		log.Printf("Warning: failed to generate HTML coverage report: %v", err)
-
 	}
 
 	return nil
-
 }
 
 // generateTimingReport creates a report of test execution times.
 
 func (r *TestRunner) generateTimingReport(results []TestResult) error {
-
 	reportFile := filepath.Join(r.OutputDir, fmt.Sprintf("timing-shard-%d.txt", r.ShardIndex))
 
 	file, err := os.Create(reportFile)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	defer func() { _ = file.Close() }()
@@ -843,17 +696,11 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 	copy(sortedResults, results)
 
 	for i := 0; i < len(sortedResults)-1; i++ {
-
 		for j := i + 1; j < len(sortedResults); j++ {
-
 			if sortedResults[i].Duration < sortedResults[j].Duration {
-
 				sortedResults[i], sortedResults[j] = sortedResults[j], sortedResults[i]
-
 			}
-
 		}
-
 	}
 
 	for _, result := range sortedResults {
@@ -861,9 +708,7 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 		status := "PASS"
 
 		if !result.Success {
-
 			status = "FAIL"
-
 		}
 
 		fmt.Fprintf(file, "%-6s %8s %s\n", status, result.Duration.Round(time.Millisecond), result.Package)
@@ -873,39 +718,28 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 	fmt.Fprintf(file, "\nTotal: %v\n", r.totalDuration(results).Round(time.Millisecond))
 
 	return nil
-
 }
 
 // Helper functions.
 
 func (r *TestRunner) countFailures(results []TestResult) int {
-
 	count := 0
 
 	for _, result := range results {
-
 		if !result.Success {
-
 			count++
-
 		}
-
 	}
 
 	return count
-
 }
 
 func (r *TestRunner) totalDuration(results []TestResult) time.Duration {
-
 	var total time.Duration
 
 	for _, result := range results {
-
 		total += result.Duration
-
 	}
 
 	return total
-
 }

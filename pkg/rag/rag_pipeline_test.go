@@ -56,7 +56,7 @@ func TestDocumentLoader(t *testing.T) {
 
 	// Create a test PDF file (mock)
 	testPDFPath := filepath.Join(testDir, "test_spec.pdf")
-	err := os.WriteFile(testPDFPath, []byte("mock PDF content"), 0644)
+	err := os.WriteFile(testPDFPath, []byte("mock PDF content"), 0o644)
 	require.NoError(t, err)
 
 	t.Run("NewDocumentLoader", func(t *testing.T) {

@@ -12,7 +12,7 @@ func TestNewValidator(t *testing.T) {
 	// Create a temporary schema file for testing
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
-	err := os.MkdirAll(schemaDir, 0755)
+	err := os.MkdirAll(schemaDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create temp schema dir: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestNewValidator(t *testing.T) {
 		}
 	}`
 
-	err = os.WriteFile(schemaPath, []byte(schema), 0644)
+	err = os.WriteFile(schemaPath, []byte(schema), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write temp schema file: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestNewValidator(t *testing.T) {
 
 func createInvalidSchemaFile(t *testing.T, dir string) string {
 	invalidSchemaPath := filepath.Join(dir, "invalid.json")
-	err := os.WriteFile(invalidSchemaPath, []byte(`{invalid json`), 0644)
+	err := os.WriteFile(invalidSchemaPath, []byte(`{invalid json`), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write invalid schema file: %v", err)
 	}
@@ -596,7 +596,7 @@ func TestValidateBytes_EdgeCases(t *testing.T) {
 func createTestValidator(t *testing.T) *Validator {
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
-	err := os.MkdirAll(schemaDir, 0755)
+	err := os.MkdirAll(schemaDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create temp schema dir: %v", err)
 	}
@@ -640,7 +640,7 @@ func createTestValidator(t *testing.T) *Validator {
 		}
 	}`
 
-	err = os.WriteFile(schemaPath, []byte(schema), 0644)
+	err = os.WriteFile(schemaPath, []byte(schema), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write temp schema file: %v", err)
 	}
@@ -717,13 +717,13 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 
 				// Create file with valid content first
 				content := `{"$schema": "https://json-schema.org/draft/2020-12/schema"}`
-				err := os.WriteFile(schemaFile, []byte(content), 0644)
+				err := os.WriteFile(schemaFile, []byte(content), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create schema file: %v", err)
 				}
 
 				// Remove read permissions (simulation - actual effect depends on OS)
-				err = os.Chmod(schemaFile, 0000)
+				err = os.Chmod(schemaFile, 0o000)
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
@@ -737,7 +737,7 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				dirPath := filepath.Join(tempDir, "schema.json")
-				err := os.Mkdir(dirPath, 0755)
+				err := os.Mkdir(dirPath, 0o755)
 				if err != nil {
 					t.Fatalf("Failed to create directory: %v", err)
 				}
@@ -753,7 +753,7 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 
 				// Write binary data that's not valid JSON
 				corruptData := []byte{0xFF, 0xFE, 0xFD, 0xFC, 0xFB}
-				err := os.WriteFile(schemaFile, corruptData, 0644)
+				err := os.WriteFile(schemaFile, corruptData, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create corrupt file: %v", err)
 				}
@@ -767,7 +767,7 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				schemaFile := filepath.Join(tempDir, "empty.json")
-				err := os.WriteFile(schemaFile, []byte{}, 0644)
+				err := os.WriteFile(schemaFile, []byte{}, 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create empty file: %v", err)
 				}
@@ -783,7 +783,7 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 
 				// Valid JSON but invalid schema
 				invalidSchema := `{"not": "a valid schema structure"}`
-				err := os.WriteFile(schemaFile, []byte(invalidSchema), 0644)
+				err := os.WriteFile(schemaFile, []byte(invalidSchema), 0o644)
 				if err != nil {
 					t.Fatalf("Failed to create invalid schema file: %v", err)
 				}
@@ -801,7 +801,7 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
-				os.Chmod(schemaPath, 0644)
+				os.Chmod(schemaPath, 0o644)
 			}()
 
 			validator, err := NewValidator(schemaPath)

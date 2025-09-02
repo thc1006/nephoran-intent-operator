@@ -51,40 +51,30 @@ type NetworkFunctionConfigGenerator struct {
 // NewNetworkFunctionConfigGenerator creates a new network function config generator.
 
 func NewNetworkFunctionConfigGenerator(config *BlueprintConfig, logger *zap.Logger) (*NetworkFunctionConfigGenerator, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config is required")
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	return &NetworkFunctionConfigGenerator{
-
 		config: config,
 
 		logger: logger,
 	}, nil
-
 }
 
 // GenerateConfigurations generates network function configurations from intent and templates.
 
 func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
-
 	ctx context.Context,
 
 	intent *v1.NetworkIntent,
 
 	templates []*BlueprintTemplate,
-
 ) ([]NetworkFunctionConfig, error) {
-
 	nfcg.logger.Info("Generating network function configurations",
 
 		zap.String("intent_name", intent.Name),
@@ -94,11 +84,9 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 	configs := make([]NetworkFunctionConfig, 0, len(templates)) // Preallocate with capacity
 
 	for _, template := range templates {
-
 		if template.NetworkConfig != nil {
 
 			config := NetworkFunctionConfig{
-
 				Interfaces: template.NetworkConfig.Interfaces,
 
 				ServiceBindings: template.NetworkConfig.ServiceBindings,
@@ -109,7 +97,6 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 			configs = append(configs, config)
 
 		}
-
 	}
 
 	nfcg.logger.Info("Generated network function configurations",
@@ -119,7 +106,6 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 		zap.Int("config_count", len(configs)))
 
 	return configs, nil
-
 }
 
 // ORANValidator validates O-RAN compliance.
@@ -133,40 +119,30 @@ type ORANValidator struct {
 // NewORANValidator creates a new O-RAN validator.
 
 func NewORANValidator(config *BlueprintConfig, logger *zap.Logger) (*ORANValidator, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config is required")
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	return &ORANValidator{
-
 		config: config,
 
 		logger: logger,
 	}, nil
-
 }
 
 // ValidateORANCompliance validates O-RAN compliance for rendered blueprint and network function configs.
 
 func (ov *ORANValidator) ValidateORANCompliance(
-
 	ctx context.Context,
 
 	blueprint *RenderedBlueprint,
 
 	nfConfigs []NetworkFunctionConfig,
-
 ) error {
-
 	ov.logger.Info("Validating O-RAN compliance",
 
 		zap.String("blueprint_name", blueprint.Name),
@@ -176,9 +152,7 @@ func (ov *ORANValidator) ValidateORANCompliance(
 	// Basic O-RAN compliance validation.
 
 	if !blueprint.ORANCompliant {
-
 		return fmt.Errorf("blueprint is not marked as O-RAN compliant")
-
 	}
 
 	// Validate required O-RAN interfaces.
@@ -186,25 +160,17 @@ func (ov *ORANValidator) ValidateORANCompliance(
 	requiredInterfaces := []string{"a1", "o1", "o2", "e2"}
 
 	for _, iface := range requiredInterfaces {
-
 		if !ov.hasInterface(blueprint, iface) {
-
 			ov.logger.Warn("Missing O-RAN interface", zap.String("interface", iface))
-
 		}
-
 	}
 
 	// Validate network function configurations.
 
 	for _, nfConfig := range nfConfigs {
-
 		if err := ov.validateNetworkFunctionConfig(nfConfig); err != nil {
-
 			return fmt.Errorf("network function validation failed: %w", err)
-
 		}
-
 	}
 
 	ov.logger.Info("O-RAN compliance validation completed successfully",
@@ -212,69 +178,50 @@ func (ov *ORANValidator) ValidateORANCompliance(
 		zap.String("blueprint_name", blueprint.Name))
 
 	return nil
-
 }
 
 // hasInterface checks if blueprint has a specific interface.
 
 func (ov *ORANValidator) hasInterface(blueprint *RenderedBlueprint, interfaceType string) bool {
-
 	if blueprint.Metadata == nil {
-
 		return false
-
 	}
 
 	for _, iface := range blueprint.Metadata.InterfaceTypes {
-
 		if iface == interfaceType {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // validateNetworkFunctionConfig validates a network function configuration.
 
 func (ov *ORANValidator) validateNetworkFunctionConfig(nfConfig NetworkFunctionConfig) error {
-
 	// Validate interfaces are present.
 
 	if len(nfConfig.Interfaces) == 0 {
-
 		return fmt.Errorf("network function must have at least one interface")
-
 	}
 
 	// Validate service bindings.
 
 	if len(nfConfig.ServiceBindings) == 0 {
-
 		return fmt.Errorf("network function must have at least one service binding")
-
 	}
 
 	// Validate resource requirements.
 
 	if nfConfig.ResourceRequirements.CPU == "" {
-
 		return fmt.Errorf("CPU resource requirement is required")
-
 	}
 
 	if nfConfig.ResourceRequirements.Memory == "" {
-
 		return fmt.Errorf("memory resource requirement is required")
-
 	}
 
 	return nil
-
 }
 
 // TemplateEngine processes blueprint templates.
@@ -288,40 +235,30 @@ type TemplateEngine struct {
 // NewTemplateEngine creates a new template engine.
 
 func NewTemplateEngine(config *BlueprintConfig, logger *zap.Logger) (*TemplateEngine, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config is required")
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	return &TemplateEngine{
-
 		config: config,
 
 		logger: logger,
 	}, nil
-
 }
 
 // ProcessTemplate processes a blueprint template.
 
 func (te *TemplateEngine) ProcessTemplate(
-
 	ctx context.Context,
 
 	template *BlueprintTemplate,
 
 	parameters map[string]interface{},
-
 ) (*ProcessedTemplate, error) {
-
 	te.logger.Info("Processing template",
 
 		zap.String("template_name", template.Name),
@@ -331,7 +268,6 @@ func (te *TemplateEngine) ProcessTemplate(
 	// Create processed template.
 
 	processed := &ProcessedTemplate{
-
 		ID: template.ID,
 
 		Name: template.Name,
@@ -348,11 +284,9 @@ func (te *TemplateEngine) ProcessTemplate(
 	// Process template components.
 
 	for _, krmTemplate := range template.KRMResources {
-
 		// Simple template processing - in real implementation this would use template engines.
 
 		processed.GeneratedFiles[krmTemplate.Kind+".yaml"] = "# Generated from template: " + template.Name
-
 	}
 
 	te.logger.Info("Template processing completed",
@@ -362,7 +296,6 @@ func (te *TemplateEngine) ProcessTemplate(
 		zap.Int("generated_files", len(processed.GeneratedFiles)))
 
 	return processed, nil
-
 }
 
 // ProcessedTemplate represents a processed blueprint template.

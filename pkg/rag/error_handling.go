@@ -34,7 +34,6 @@ type ErrorHandler struct {
 // ErrorHandlingConfig configures error handling behavior.
 
 type ErrorHandlingConfig struct {
-
 	// Circuit breaker settings.
 
 	EnableCircuitBreaker bool `json:"enable_circuit_breaker"`
@@ -91,7 +90,6 @@ type ErrorHandlingConfig struct {
 // ErrorMetrics tracks error statistics.
 
 type ErrorMetrics struct {
-
 	// Error counters by component and type.
 
 	ErrorsByComponent *prometheus.CounterVec
@@ -175,7 +173,6 @@ const (
 // String performs string operation.
 
 func (s CircuitBreakerState) String() string {
-
 	switch s {
 
 	case CircuitBreakerClosed:
@@ -195,7 +192,6 @@ func (s CircuitBreakerState) String() string {
 		return "unknown"
 
 	}
-
 }
 
 // RetryPolicy defines retry behavior for different error types.
@@ -387,29 +383,21 @@ const (
 // Error implements the error interface.
 
 func (e *RAGError) Error() string {
-
 	if e.Cause != nil {
-
 		return fmt.Sprintf("[%s] %s in %s.%s: %v", e.Code, e.Message, e.Component, e.Operation, e.Cause)
-
 	}
 
 	return fmt.Sprintf("[%s] %s in %s.%s", e.Code, e.Message, e.Component, e.Operation)
-
 }
 
 // NewErrorHandler creates a new error handler.
 
 func NewErrorHandler(config *ErrorHandlingConfig) *ErrorHandler {
-
 	if config == nil {
-
 		config = getDefaultErrorHandlingConfig()
-
 	}
 
 	eh := &ErrorHandler{
-
 		config: config,
 
 		logger: slog.Default().With("component", "error-handler"),
@@ -428,7 +416,6 @@ func NewErrorHandler(config *ErrorHandlingConfig) *ErrorHandler {
 	components := []string{"weaviate", "redis", "embedding", "llm", "document-loader"}
 
 	for _, component := range components {
-
 		eh.circuitBreakers[component] = newComponentCircuitBreaker(
 
 			component,
@@ -439,7 +426,6 @@ func NewErrorHandler(config *ErrorHandlingConfig) *ErrorHandler {
 
 			config.CircuitBreakerRecoveryTime,
 		)
-
 	}
 
 	// Initialize retry policies.
@@ -449,23 +435,17 @@ func NewErrorHandler(config *ErrorHandlingConfig) *ErrorHandler {
 	// Start background recovery monitoring.
 
 	if config.EnableAutoRecovery {
-
 		go eh.startRecoveryMonitoring()
-
 	}
 
 	return eh
-
 }
 
 // HandleError processes an error and applies appropriate handling.
 
 func (eh *ErrorHandler) HandleError(ctx context.Context, err error, component, operation string) error {
-
 	if err == nil {
-
 		return nil
-
 	}
 
 	// Create RAG error with context.
@@ -479,7 +459,6 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, err error, component, o
 	// Check circuit breaker.
 
 	if eh.config.EnableCircuitBreaker {
-
 		if cb := eh.circuitBreakers[component]; cb != nil {
 
 			cb.recordFailure()
@@ -487,7 +466,6 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, err error, component, o
 			eh.updateCircuitBreakerMetrics(cb)
 
 		}
-
 	}
 
 	// Apply error sampling if enabled.
@@ -507,35 +485,25 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, err error, component, o
 	eh.logError(ragError)
 
 	return ragError
-
 }
 
 // ExecuteWithErrorHandling executes a function with comprehensive error handling.
 
 func (eh *ErrorHandler) ExecuteWithErrorHandling(
-
 	ctx context.Context,
 
 	component, operation string,
 
 	fn func(context.Context) error,
-
 ) error {
-
 	// Check circuit breaker.
 
 	if eh.config.EnableCircuitBreaker {
-
 		if cb := eh.circuitBreakers[component]; cb != nil {
-
 			if !cb.allowRequest() {
-
 				return eh.createCircuitBreakerError(component, operation)
-
 			}
-
 		}
-
 	}
 
 	// Apply timeout if configured.
@@ -555,25 +523,19 @@ func (eh *ErrorHandler) ExecuteWithErrorHandling(
 	// Execute with retry if enabled.
 
 	if eh.config.EnableRetry {
-
 		return eh.executeWithRetry(ctx, component, operation, fn)
-
 	}
 
 	// Execute once.
 
 	err := fn(ctx)
-
 	if err != nil {
-
 		return eh.HandleError(ctx, err, component, operation)
-
 	}
 
 	// Record success.
 
 	if eh.config.EnableCircuitBreaker {
-
 		if cb := eh.circuitBreakers[component]; cb != nil {
 
 			cb.recordSuccess()
@@ -581,31 +543,24 @@ func (eh *ErrorHandler) ExecuteWithErrorHandling(
 			eh.updateCircuitBreakerMetrics(cb)
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // executeWithRetry executes a function with retry logic.
 
 func (eh *ErrorHandler) executeWithRetry(
-
 	ctx context.Context,
 
 	component, operation string,
 
 	fn func(context.Context) error,
-
 ) error {
-
 	policy := eh.getRetryPolicy(component)
 
 	if policy == nil {
-
 		policy = eh.getDefaultRetryPolicy()
-
 	}
 
 	var lastErr error
@@ -635,13 +590,10 @@ func (eh *ErrorHandler) executeWithRetry(
 			// Success - record metrics and return.
 
 			if attempt > 0 {
-
 				eh.metrics.RetrySuccesses.WithLabelValues(component, operation).Inc()
-
 			}
 
 			if eh.config.EnableCircuitBreaker {
-
 				if cb := eh.circuitBreakers[component]; cb != nil {
 
 					cb.recordSuccess()
@@ -649,7 +601,6 @@ func (eh *ErrorHandler) executeWithRetry(
 					eh.updateCircuitBreakerMetrics(cb)
 
 				}
-
 			}
 
 			return nil
@@ -665,17 +616,13 @@ func (eh *ErrorHandler) executeWithRetry(
 		ragError := eh.createRAGError(err, component, operation)
 
 		if !eh.isRetryable(ragError, policy) {
-
 			break
-
 		}
 
 		// Don't retry on last attempt.
 
 		if attempt == policy.MaxRetries {
-
 			break
-
 		}
 
 		// Wait before retry.
@@ -712,9 +659,7 @@ func (eh *ErrorHandler) executeWithRetry(
 		delay = time.Duration(float64(delay) * policy.BackoffFactor)
 
 		if delay > policy.MaxDelay {
-
 			delay = policy.MaxDelay
-
 		}
 
 		// Add jitter if enabled.
@@ -734,7 +679,6 @@ func (eh *ErrorHandler) executeWithRetry(
 	eh.metrics.RetryFailures.WithLabelValues(component, operation).Inc()
 
 	if eh.config.EnableCircuitBreaker {
-
 		if cb := eh.circuitBreakers[component]; cb != nil {
 
 			cb.recordFailure()
@@ -742,19 +686,15 @@ func (eh *ErrorHandler) executeWithRetry(
 			eh.updateCircuitBreakerMetrics(cb)
 
 		}
-
 	}
 
 	return eh.HandleError(ctx, lastErr, component, operation)
-
 }
 
 // createRAGError creates a standardized RAG error.
 
 func (eh *ErrorHandler) createRAGError(err error, component, operation string) *RAGError {
-
 	ragError := &RAGError{
-
 		Code: eh.getErrorCode(err),
 
 		Message: err.Error(),
@@ -777,9 +717,7 @@ func (eh *ErrorHandler) createRAGError(err error, component, operation string) *
 	// Add stack trace if enabled.
 
 	if eh.config.ErrorStackTrace {
-
 		ragError.StackTrace = eh.getStackTrace()
-
 	}
 
 	// Add runtime context.
@@ -789,17 +727,13 @@ func (eh *ErrorHandler) createRAGError(err error, component, operation string) *
 	ragError.Context["memory_stats"] = eh.getMemoryStats()
 
 	return ragError
-
 }
 
 // getErrorCode maps an error to a standardized error code.
 
 func (eh *ErrorHandler) getErrorCode(err error) ErrorCode {
-
 	if code, exists := eh.errorCodes[err]; exists {
-
 		return code
-
 	}
 
 	// Pattern matching for common error types.
@@ -831,15 +765,12 @@ func (eh *ErrorHandler) getErrorCode(err error) ErrorCode {
 		return ErrorCodeInternalError
 
 	}
-
 }
 
 // Circuit breaker methods.
 
 func newComponentCircuitBreaker(component string, threshold int, timeout, recoveryTime time.Duration) *ComponentCircuitBreaker {
-
 	return &ComponentCircuitBreaker{
-
 		component: component,
 
 		threshold: threshold,
@@ -850,11 +781,9 @@ func newComponentCircuitBreaker(component string, threshold int, timeout, recove
 
 		state: CircuitBreakerClosed,
 	}
-
 }
 
 func (cb *ComponentCircuitBreaker) allowRequest() bool {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
@@ -890,11 +819,9 @@ func (cb *ComponentCircuitBreaker) allowRequest() bool {
 		return false
 
 	}
-
 }
 
 func (cb *ComponentCircuitBreaker) recordSuccess() {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
@@ -914,11 +841,9 @@ func (cb *ComponentCircuitBreaker) recordSuccess() {
 		}
 
 	}
-
 }
 
 func (cb *ComponentCircuitBreaker) recordFailure() {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
@@ -940,53 +865,39 @@ func (cb *ComponentCircuitBreaker) recordFailure() {
 		cb.lastStateChange = time.Now()
 
 	}
-
 }
 
 // Recovery and monitoring.
 
 func (eh *ErrorHandler) startRecoveryMonitoring() {
-
 	ticker := time.NewTicker(eh.config.RecoveryInterval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		eh.checkAndRecoverComponents()
-
 	}
-
 }
 
 func (eh *ErrorHandler) checkAndRecoverComponents() {
-
 	eh.mutex.RLock()
 
 	circuitBreakers := make(map[string]*ComponentCircuitBreaker)
 
 	for name, cb := range eh.circuitBreakers {
-
 		circuitBreakers[name] = cb
-
 	}
 
 	eh.mutex.RUnlock()
 
 	for component, cb := range circuitBreakers {
-
 		if cb.state == CircuitBreakerOpen {
-
 			eh.attemptComponentRecovery(component, cb)
-
 		}
-
 	}
-
 }
 
 func (eh *ErrorHandler) attemptComponentRecovery(component string, cb *ComponentCircuitBreaker) {
-
 	eh.logger.Info("Attempting component recovery", "component", component)
 
 	start := time.Now()
@@ -1020,49 +931,36 @@ func (eh *ErrorHandler) attemptComponentRecovery(component string, cb *Component
 		eh.logger.Warn("Component recovery failed", "component", component, "duration", duration)
 
 	}
-
 }
 
 func (eh *ErrorHandler) performHealthCheck(component string) bool {
-
 	// This would perform actual health checks based on component type.
 
 	// For now, return true as a placeholder.
 
 	return true
-
 }
 
 // Utility methods.
 
 func (eh *ErrorHandler) getTimeout(component string) time.Duration {
-
 	if timeout, exists := eh.config.ComponentTimeouts[component]; exists {
-
 		return timeout
-
 	}
 
 	return eh.config.DefaultTimeout
-
 }
 
 func (eh *ErrorHandler) getRetryPolicy(component string) *RetryPolicy {
-
 	if policy, exists := eh.retryPolicies[component]; exists {
-
 		return policy
-
 	}
 
 	return nil
-
 }
 
 func (eh *ErrorHandler) getDefaultRetryPolicy() *RetryPolicy {
-
 	return &RetryPolicy{
-
 		MaxRetries: eh.config.DefaultMaxRetries,
 
 		InitialDelay: eh.config.DefaultRetryDelay,
@@ -1074,7 +972,6 @@ func (eh *ErrorHandler) getDefaultRetryPolicy() *RetryPolicy {
 		Jitter: true,
 
 		RetryableErrors: []ErrorCode{
-
 			ErrorCodeConnectionTimeout,
 
 			ErrorCodeConnectionLost,
@@ -1086,33 +983,23 @@ func (eh *ErrorHandler) getDefaultRetryPolicy() *RetryPolicy {
 			ErrorCodeResourceExhausted,
 		},
 	}
-
 }
 
 func (eh *ErrorHandler) isRetryable(ragError *RAGError, policy *RetryPolicy) bool {
-
 	if !ragError.Retryable {
-
 		return false
-
 	}
 
 	for _, code := range policy.RetryableErrors {
-
 		if ragError.Code == code {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (eh *ErrorHandler) isErrorRetryable(err error) bool {
-
 	// Determine if error is retryable based on type.
 
 	switch {
@@ -1142,11 +1029,9 @@ func (eh *ErrorHandler) isErrorRetryable(err error) bool {
 		return false
 
 	}
-
 }
 
 func (eh *ErrorHandler) getErrorSeverity(err error) ErrorSeverity {
-
 	switch {
 
 	case isSystemError(err):
@@ -1170,49 +1055,38 @@ func (eh *ErrorHandler) getErrorSeverity(err error) ErrorSeverity {
 		return SeverityMedium
 
 	}
-
 }
 
 func (eh *ErrorHandler) shouldSampleError() bool {
-
 	return eh.random() < eh.config.ErrorSampleRate
-
 }
 
 func (eh *ErrorHandler) random() float64 {
-
 	// Simple random number generator.
 
 	return float64(time.Now().UnixNano()%1000) / 1000.0
-
 }
 
 func (eh *ErrorHandler) getStackTrace() string {
-
 	buf := make([]byte, 4096)
 
 	n := runtime.Stack(buf, false)
 
 	return string(buf[:n])
-
 }
 
 func (eh *ErrorHandler) getGoroutineID() int64 {
-
 	// Simplified goroutine ID extraction.
 
 	return int64(runtime.NumGoroutine())
-
 }
 
 func (eh *ErrorHandler) getMemoryStats() map[string]interface{} {
-
 	var m runtime.MemStats
 
 	runtime.ReadMemStats(&m)
 
 	return map[string]interface{}{
-
 		"heap_alloc": m.HeapAlloc,
 
 		"heap_sys": m.HeapSys,
@@ -1225,31 +1099,24 @@ func (eh *ErrorHandler) getMemoryStats() map[string]interface{} {
 
 		"goroutines": runtime.NumGoroutine(),
 	}
-
 }
 
 // Error type checking functions.
 
 func isTimeoutError(err error) bool {
-
 	return err == context.DeadlineExceeded
-
 }
 
 func isContextCancelled(err error) bool {
-
 	return err == context.Canceled
-
 }
 
 func isConnectionError(err error) bool {
-
 	// Check for common connection error patterns.
 
 	errStr := err.Error()
 
 	connectionPatterns := []string{
-
 		"connection refused",
 
 		"connection timeout",
@@ -1262,25 +1129,18 @@ func isConnectionError(err error) bool {
 	}
 
 	for _, pattern := range connectionPatterns {
-
 		if errorContains(errStr, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func isResourceError(err error) bool {
-
 	errStr := err.Error()
 
 	resourcePatterns := []string{
-
 		"out of memory",
 
 		"resource exhausted",
@@ -1293,25 +1153,18 @@ func isResourceError(err error) bool {
 	}
 
 	for _, pattern := range resourcePatterns {
-
 		if errorContains(errStr, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func isValidationError(err error) bool {
-
 	errStr := err.Error()
 
 	validationPatterns := []string{
-
 		"validation failed",
 
 		"invalid input",
@@ -1322,25 +1175,18 @@ func isValidationError(err error) bool {
 	}
 
 	for _, pattern := range validationPatterns {
-
 		if errorContains(errStr, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func isConfigurationError(err error) bool {
-
 	errStr := err.Error()
 
 	configPatterns := []string{
-
 		"configuration error",
 
 		"missing configuration",
@@ -1349,25 +1195,18 @@ func isConfigurationError(err error) bool {
 	}
 
 	for _, pattern := range configPatterns {
-
 		if errorContains(errStr, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func isSystemError(err error) bool {
-
 	errStr := err.Error()
 
 	systemPatterns := []string{
-
 		"system failure",
 
 		"internal error",
@@ -1378,39 +1217,29 @@ func isSystemError(err error) bool {
 	}
 
 	for _, pattern := range systemPatterns {
-
 		if errorContains(errStr, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func errorContains(str, substr string) bool {
-
 	return len(str) >= len(substr) &&
 
 		(len(substr) == 0 || str[0:len(substr)] == substr ||
 
 			(len(str) > len(substr) && errorContains(str[1:], substr)))
-
 }
 
 // Metrics initialization.
 
 func newErrorMetrics() *ErrorMetrics {
-
 	return &ErrorMetrics{
-
 		ErrorsByComponent: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_errors_by_component_total",
 
 				Help: "Total errors by component",
@@ -1422,7 +1251,6 @@ func newErrorMetrics() *ErrorMetrics {
 		ErrorsByType: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_errors_by_type_total",
 
 				Help: "Total errors by type",
@@ -1434,7 +1262,6 @@ func newErrorMetrics() *ErrorMetrics {
 		ErrorsByCode: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_errors_by_code_total",
 
 				Help: "Total errors by error code",
@@ -1446,7 +1273,6 @@ func newErrorMetrics() *ErrorMetrics {
 		CircuitBreakerState: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephoran_circuit_breaker_state",
 
 				Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
@@ -1458,7 +1284,6 @@ func newErrorMetrics() *ErrorMetrics {
 		CircuitBreakerTrips: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_circuit_breaker_trips_total",
 
 				Help: "Total circuit breaker trips",
@@ -1470,7 +1295,6 @@ func newErrorMetrics() *ErrorMetrics {
 		RetryAttempts: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_retry_attempts_total",
 
 				Help: "Total retry attempts",
@@ -1482,7 +1306,6 @@ func newErrorMetrics() *ErrorMetrics {
 		RetrySuccesses: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_retry_successes_total",
 
 				Help: "Total successful retries",
@@ -1494,7 +1317,6 @@ func newErrorMetrics() *ErrorMetrics {
 		RetryFailures: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_retry_failures_total",
 
 				Help: "Total failed retries",
@@ -1506,7 +1328,6 @@ func newErrorMetrics() *ErrorMetrics {
 		ComponentRecoveries: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_component_recoveries_total",
 
 				Help: "Total component recovery attempts",
@@ -1518,7 +1339,6 @@ func newErrorMetrics() *ErrorMetrics {
 		RecoveryLatency: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephoran_recovery_latency_seconds",
 
 				Help: "Component recovery latency in seconds",
@@ -1532,7 +1352,6 @@ func newErrorMetrics() *ErrorMetrics {
 		ErrorRate: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephoran_error_rate",
 
 				Help: "Error rate by component",
@@ -1543,37 +1362,28 @@ func newErrorMetrics() *ErrorMetrics {
 
 		ErrorRateWindow: 5 * time.Minute,
 	}
-
 }
 
 func (eh *ErrorHandler) recordErrorMetrics(ragError *RAGError) {
-
 	eh.metrics.ErrorsByComponent.WithLabelValues(ragError.Component, ragError.Operation).Inc()
 
 	eh.metrics.ErrorsByType.WithLabelValues(string(ragError.Code), string(ragError.Severity)).Inc()
 
 	eh.metrics.ErrorsByCode.WithLabelValues(string(ragError.Code), ragError.Component).Inc()
-
 }
 
 func (eh *ErrorHandler) updateCircuitBreakerMetrics(cb *ComponentCircuitBreaker) {
-
 	stateValue := float64(cb.state)
 
 	eh.metrics.CircuitBreakerState.WithLabelValues(cb.component).Set(stateValue)
 
 	if cb.state == CircuitBreakerOpen {
-
 		eh.metrics.CircuitBreakerTrips.WithLabelValues(cb.component).Inc()
-
 	}
-
 }
 
 func (eh *ErrorHandler) logError(ragError *RAGError) {
-
 	attrs := []interface{}{
-
 		"error_code", ragError.Code,
 
 		"component", ragError.Component,
@@ -1590,9 +1400,7 @@ func (eh *ErrorHandler) logError(ragError *RAGError) {
 		attrs = append(attrs, "context", ragError.Context)
 
 		if ragError.StackTrace != "" {
-
 			attrs = append(attrs, "stack_trace", ragError.StackTrace)
-
 		}
 
 	}
@@ -1620,13 +1428,10 @@ func (eh *ErrorHandler) logError(ragError *RAGError) {
 		eh.logger.Info(ragError.Message, attrs...)
 
 	}
-
 }
 
 func (eh *ErrorHandler) createCircuitBreakerError(component, operation string) error {
-
 	return &RAGError{
-
 		Code: ErrorCodeDependencyFailure,
 
 		Message: fmt.Sprintf("Circuit breaker open for component %s", component),
@@ -1643,15 +1448,12 @@ func (eh *ErrorHandler) createCircuitBreakerError(component, operation string) e
 
 		Severity: SeverityHigh,
 	}
-
 }
 
 func (eh *ErrorHandler) initializeRetryPolicies() {
-
 	// Weaviate retry policy.
 
 	eh.retryPolicies["weaviate"] = &RetryPolicy{
-
 		MaxRetries: 3,
 
 		InitialDelay: 1 * time.Second,
@@ -1663,7 +1465,6 @@ func (eh *ErrorHandler) initializeRetryPolicies() {
 		Jitter: true,
 
 		RetryableErrors: []ErrorCode{
-
 			ErrorCodeConnectionTimeout,
 
 			ErrorCodeConnectionLost,
@@ -1675,7 +1476,6 @@ func (eh *ErrorHandler) initializeRetryPolicies() {
 	// Redis retry policy.
 
 	eh.retryPolicies["redis"] = &RetryPolicy{
-
 		MaxRetries: 2,
 
 		InitialDelay: 500 * time.Millisecond,
@@ -1687,7 +1487,6 @@ func (eh *ErrorHandler) initializeRetryPolicies() {
 		Jitter: true,
 
 		RetryableErrors: []ErrorCode{
-
 			ErrorCodeConnectionTimeout,
 
 			ErrorCodeConnectionLost,
@@ -1699,7 +1498,6 @@ func (eh *ErrorHandler) initializeRetryPolicies() {
 	// Embedding service retry policy.
 
 	eh.retryPolicies["embedding"] = &RetryPolicy{
-
 		MaxRetries: 3,
 
 		InitialDelay: 2 * time.Second,
@@ -1711,7 +1509,6 @@ func (eh *ErrorHandler) initializeRetryPolicies() {
 		Jitter: true,
 
 		RetryableErrors: []ErrorCode{
-
 			ErrorCodeEmbeddingTimeout,
 
 			ErrorCodeEmbeddingQuota,
@@ -1719,13 +1516,10 @@ func (eh *ErrorHandler) initializeRetryPolicies() {
 			ErrorCodeResourceExhausted,
 		},
 	}
-
 }
 
 func getDefaultErrorHandlingConfig() *ErrorHandlingConfig {
-
 	return &ErrorHandlingConfig{
-
 		EnableCircuitBreaker: true,
 
 		CircuitBreakerThreshold: 5,
@@ -1747,7 +1541,6 @@ func getDefaultErrorHandlingConfig() *ErrorHandlingConfig {
 		DefaultTimeout: 30 * time.Second,
 
 		ComponentTimeouts: map[string]time.Duration{
-
 			"weaviate": 30 * time.Second,
 
 			"redis": 5 * time.Second,
@@ -1775,5 +1568,4 @@ func getDefaultErrorHandlingConfig() *ErrorHandlingConfig {
 
 		HealthCheckInterval: 30 * time.Second,
 	}
-
 }

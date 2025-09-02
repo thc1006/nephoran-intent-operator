@@ -200,7 +200,7 @@ func setupBenchmarkEnvironment(b *testing.B, test PerformanceTest) (string, func
 
 	// Create subdirectories
 	for _, subdir := range []string{"processed", "failed", "status"} {
-		if err := os.MkdirAll(filepath.Join(tempDir, subdir), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(tempDir, subdir), 0o755); err != nil {
 			b.Fatalf("Failed to create subdirectory %s: %v", subdir, err)
 		}
 	}
@@ -223,7 +223,7 @@ func generateBenchmarkFiles(b *testing.B, dir string, count, size int) []string 
 		// Generate realistic intent JSON content
 		content := generateIntentContent(size)
 
-		if err := os.WriteFile(filePath, content, 0644); err != nil {
+		if err := os.WriteFile(filePath, content, 0o644); err != nil {
 			b.Fatalf("Failed to create test file %s: %v", filePath, err)
 		}
 
@@ -336,8 +336,8 @@ func processFileForBenchmark(watcher *Watcher, filePath string) error {
 
 // calculateBenchmarkResults computes comprehensive performance metrics
 func calculateBenchmarkResults(completed int64, duration time.Duration, latencies []time.Duration,
-	m1, m2 *runtime.MemStats) BenchmarkResults {
-
+	m1, m2 *runtime.MemStats,
+) BenchmarkResults {
 	throughput := float64(completed) / duration.Seconds()
 
 	// Calculate latency percentiles

@@ -226,7 +226,7 @@ func TestCriticalFixes_Integration(t *testing.T) {
 
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
-	require.NoError(t, os.MkdirAll(handoffDir, 0755))
+	require.NoError(t, os.MkdirAll(handoffDir, 0o755))
 
 	t.Run("end_to_end_fix_validation", func(t *testing.T) {
 		// Create cross-platform mock (Fix 2)

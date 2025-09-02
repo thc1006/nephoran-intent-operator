@@ -25,7 +25,7 @@ func TestDebounceRaceCondition(t *testing.T) {
 	testFile := filepath.Join(tempDir, "intent-test.json")
 
 	// Create the test file
-	err := os.WriteFile(testFile, []byte(`{"correlation_id":"test-123"}`), 0644)
+	err := os.WriteFile(testFile, []byte(`{"correlation_id":"test-123"}`), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestDebounceMultipleFiles(t *testing.T) {
 	}
 
 	for _, file := range files {
-		err := os.WriteFile(file, []byte(`{"correlation_id":"test-123"}`), 0644)
+		err := os.WriteFile(file, []byte(`{"correlation_id":"test-123"}`), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create test file %s: %v", file, err)
 		}

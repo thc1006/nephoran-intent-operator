@@ -735,7 +735,8 @@ func (rs *RelevanceScorerImpl) calculateIntentScore(request *RelevanceRequest) f
 // generateExplanation generates a human-readable explanation of the scoring
 func (rs *RelevanceScorerImpl) generateExplanation(scores struct {
 	semantic, authority, recency, domain, intent float32
-}, request *RelevanceRequest) string {
+}, request *RelevanceRequest,
+) string {
 	var explanations []string
 
 	if scores.semantic > 0.7 {

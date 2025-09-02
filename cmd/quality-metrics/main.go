@@ -136,7 +136,6 @@ type Recommendation struct {
 }
 
 func main() {
-
 	fmt.Println("🚀 Nephoran Quality Metrics Analysis")
 
 	fmt.Println("====================================")
@@ -144,7 +143,6 @@ func main() {
 	// Initialize report.
 
 	report := &QualityMetricsReport{
-
 		ProjectPath: ".",
 
 		Timestamp: time.Now(),
@@ -155,9 +153,7 @@ func main() {
 	// Analyze code quality.
 
 	if err := report.analyzeCodeQuality(); err != nil {
-
 		log.Fatalf("Code quality analysis failed: %v", err)
-
 	}
 
 	// Generate quality summary.
@@ -173,17 +169,14 @@ func main() {
 	report.generateReports()
 
 	fmt.Println("✅ Quality metrics analysis completed!")
-
 }
 
 func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
-
 	fmt.Println("📊 Analyzing code quality metrics...")
 
 	// Analyze code metrics.
 
 	qmr.CodeMetrics = CodeMetrics{
-
 		LinesOfCode: 50000,
 
 		LinesOfComments: 8000,
@@ -204,7 +197,6 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 	// Analyze test metrics.
 
 	qmr.TestMetrics = TestMetrics{
-
 		TotalTests: 450,
 
 		PassingTests: 430,
@@ -223,7 +215,6 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 	// Analyze security metrics.
 
 	qmr.SecurityMetrics = SecurityMetrics{
-
 		Vulnerabilities: 3,
 
 		HighSeverity: 0,
@@ -240,13 +231,11 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 	// Analyze technical debt.
 
 	qmr.TechnicalDebt = TechnicalDebtReport{
-
 		EstimatedHours: 24.5,
 
 		DebtRatio: 5.2,
 
 		IssuesByType: map[string]int{
-
 			"complexity": 15,
 
 			"duplication": 8,
@@ -257,7 +246,6 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 		},
 
 		IssuesByPackage: map[string]int{
-
 			"pkg/handlers": 10,
 
 			"pkg/services": 8,
@@ -266,7 +254,6 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 		},
 
 		IssuesBySeverity: map[string]int{
-
 			"critical": 3,
 
 			"major": 12,
@@ -276,11 +263,9 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 	}
 
 	return nil
-
 }
 
 func (qmr *QualityMetricsReport) generateQualitySummary() {
-
 	fmt.Println("🔍 Generating quality summary...")
 
 	// Calculate overall score based on multiple factors.
@@ -298,15 +283,11 @@ func (qmr *QualityMetricsReport) generateQualitySummary() {
 	status := "PASS"
 
 	if overallScore < 90 {
-
 		grade = "B"
-
 	}
 
 	if overallScore < 80 {
-
 		grade = "C"
-
 	}
 
 	if overallScore < 70 {
@@ -326,7 +307,6 @@ func (qmr *QualityMetricsReport) generateQualitySummary() {
 	}
 
 	qmr.Summary = QualitySummary{
-
 		OverallScore: overallScore,
 
 		Grade: grade,
@@ -341,17 +321,13 @@ func (qmr *QualityMetricsReport) generateQualitySummary() {
 
 		InfoIssues: 23,
 	}
-
 }
 
 func (qmr *QualityMetricsReport) generateRecommendations() {
-
 	fmt.Println("💡 Generating recommendations...")
 
 	qmr.Recommendations = []Recommendation{
-
 		{
-
 			Type: "Testing",
 
 			Severity: "medium",
@@ -364,7 +340,6 @@ func (qmr *QualityMetricsReport) generateRecommendations() {
 		},
 
 		{
-
 			Type: "Security",
 
 			Severity: "high",
@@ -377,7 +352,6 @@ func (qmr *QualityMetricsReport) generateRecommendations() {
 		},
 
 		{
-
 			Type: "Technical Debt",
 
 			Severity: "medium",
@@ -389,11 +363,9 @@ func (qmr *QualityMetricsReport) generateRecommendations() {
 			Priority: 3,
 		},
 	}
-
 }
 
 func (qmr *QualityMetricsReport) generateReports() {
-
 	fmt.Println("📄 Generating quality reports...")
 
 	// Generate JSON report.
@@ -407,17 +379,14 @@ func (qmr *QualityMetricsReport) generateReports() {
 	// Generate HTML report.
 
 	qmr.generateHTMLReport()
-
 }
 
 func (qmr *QualityMetricsReport) generateJSONReport() {
-
 	filename := fmt.Sprintf("quality-metrics-report-%s.json",
 
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Error creating JSON report: %v", err)
@@ -441,17 +410,14 @@ func (qmr *QualityMetricsReport) generateJSONReport() {
 	}
 
 	fmt.Printf("📄 JSON report generated: %s\n", filename)
-
 }
 
 func (qmr *QualityMetricsReport) generateMarkdownReport() {
-
 	filename := fmt.Sprintf("quality-metrics-report-%s.md",
 
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Error creating markdown report: %v", err)
@@ -467,107 +433,73 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 	var mdWriteErr error
 
 	if _, err := fmt.Fprintf(file, "# Code Quality Metrics Report\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Timestamp:** %s\n\n", qmr.Timestamp.Format("2006-01-02 15:04:05")); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Overall Score:** %.2f (%s)\n\n", qmr.Summary.OverallScore, qmr.Summary.Grade); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Status:** %s\n\n", qmr.Summary.Status); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "## Summary\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Total Issues:** %d\n", qmr.Summary.TotalIssues); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Critical Issues:** %d\n", qmr.Summary.CriticalIssues); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Warning Issues:** %d\n", qmr.Summary.WarningIssues); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Info Issues:** %d\n", qmr.Summary.InfoIssues); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "\n## Code Metrics\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Lines of Code:** %d\n", qmr.CodeMetrics.LinesOfCode); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Code Coverage:** %.2f%%\n", qmr.CodeMetrics.CodeCoverage); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "- **Maintainability:** %.2f\n", qmr.CodeMetrics.Maintainability); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "\n## Recommendations\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	for _, rec := range qmr.Recommendations {
 
 		if _, err := fmt.Fprintf(file, "### %s (%s)\n", rec.Type, cases.Title(language.English).String(rec.Severity)); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "%s\n\n", rec.Description); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "**Action:** %s\n\n", rec.Action); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 	}
@@ -583,17 +515,14 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 	}
 
 	fmt.Printf("📄 Markdown report generated: %s\n", filename)
-
 }
 
 func (qmr *QualityMetricsReport) generateHTMLReport() {
-
 	filename := fmt.Sprintf("quality-metrics-report-%s.html",
 
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Error creating HTML report: %v", err)
@@ -687,5 +616,4 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 	}
 
 	fmt.Printf("📄 HTML report generated: %s\n", filename)
-
 }

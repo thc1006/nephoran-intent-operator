@@ -17,7 +17,6 @@ import (
 // EnhancedSetupHTTPServer shows the improved server setup using the enhanced OAuth2Manager.
 
 func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}, logger *slog.Logger) *http.Server {
-
 	router := mux.NewRouter()
 
 	// Apply middlewares in the correct order (same as before):.
@@ -29,7 +28,6 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 	// Create enhanced OAuth2Manager configuration from LLMProcessorConfig.
 
 	enhancedConfig := &EnhancedOAuth2ManagerConfig{
-
 		// OAuth2 configuration.
 
 		Enabled: cfg.AuthEnabled,
@@ -73,7 +71,6 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 	// Create enhanced OAuth2Manager.
 
 	enhancedOAuth2Manager, err := NewEnhancedOAuth2Manager(enhancedConfig, logger)
-
 	if err != nil {
 
 		logger.Error("Failed to create EnhancedOAuth2Manager", slog.String("error", err.Error()))
@@ -125,7 +122,6 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 	}
 
 	return &http.Server{
-
 		Addr: ":" + cfg.Port,
 
 		Handler: router,
@@ -136,13 +132,11 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 		IdleTimeout: 2 * time.Minute,
 	}
-
 }
 
 // Migration example showing how to transition from the current implementation.
 
 func MigrationExample() {
-
 	// BEFORE (current main.go approach):.
 
 	//
@@ -202,7 +196,6 @@ func MigrationExample() {
 	// // Configure all routes in one centralized call.
 
 	// enhancedManager.ConfigureAllRoutes(router, publicHandlers, protectedHandlers).
-
 }
 
 // Benefits of the enhanced approach:.

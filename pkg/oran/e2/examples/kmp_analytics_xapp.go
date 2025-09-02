@@ -107,11 +107,9 @@ type AnalysisResult struct {
 // NewKMPAnalyticsXApp creates a new KMP analytics xApp.
 
 func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
-
 	// Configure xApp.
 
 	config := &e2.XAppConfig{
-
 		XAppName: "kmp-analytics-xapp",
 
 		XAppVersion: "1.0.0",
@@ -125,14 +123,12 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 		ServiceModels: []string{"KPM"},
 
 		Environment: map[string]string{
-
 			"LOG_LEVEL": "INFO",
 
 			"ANALYSIS_MODE": "real-time",
 		},
 
 		ResourceLimits: &e2.XAppResourceLimits{
-
 			MaxMemoryMB: 512,
 
 			MaxCPUCores: 1.0,
@@ -143,7 +139,6 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 		},
 
 		HealthCheck: &e2.XAppHealthConfig{
-
 			Enabled: true,
 
 			CheckInterval: 30 * time.Second,
@@ -161,17 +156,13 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 	// Create SDK.
 
 	sdk, err := e2.NewXAppSDK(config, e2Manager)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create xApp SDK: %w", err)
-
 	}
 
 	// Create analytics engine.
 
 	analytics := &KMPAnalytics{
-
 		measurements: make(map[string]*MeasurementHistory),
 
 		alerts: make([]PerformanceAlert, 0),
@@ -180,13 +171,11 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 	}
 
 	xapp := &KMPAnalyticsXApp{
-
 		sdk: sdk,
 
 		analytics: analytics,
 
 		alertThresholds: map[string]float64{
-
 			"DRB.UEThpDl": 100.0, // Mbps threshold
 
 			"DRB.UEThpUl": 50.0, // Mbps threshold
@@ -205,27 +194,22 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 	sdk.RegisterIndicationHandler("default", xapp.handleKMPIndication)
 
 	return xapp, nil
-
 }
 
 // Start starts the xApp.
 
 func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
-
 	log.Printf("Starting KMP Analytics xApp")
 
 	// Start the SDK.
 
 	if err := x.sdk.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start xApp SDK: %w", err)
-
 	}
 
 	// Create KMP subscription for key performance metrics.
 
 	subscriptionReq := &e2.E2SubscriptionRequest{
-
 		SubscriptionID: "kmp-analytics-001",
 
 		NodeID: x.sdk.GetConfig().E2NodeID,
@@ -235,15 +219,11 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 		RanFunctionID: 1, // KMP service model
 
 		EventTriggers: []e2.E2EventTrigger{
-
 			{
-
 				TriggerType: "periodic",
 
 				Conditions: map[string]interface{}{
-
 					"measurement_types": []string{
-
 						"DRB.UEThpDl", // Downlink UE throughput
 
 						"DRB.UEThpUl", // Uplink UE throughput
@@ -274,15 +254,12 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 		},
 
 		Actions: []e2.E2Action{
-
 			{
-
 				ActionID: 1,
 
 				ActionType: "report",
 
 				ActionDefinition: map[string]interface{}{
-
 					"format": "json",
 
 					"compression": false,
@@ -296,11 +273,8 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 	// Subscribe to KMP measurements.
 
 	subscription, err := x.sdk.Subscribe(ctx, subscriptionReq)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create KMP subscription: %w", err)
-
 	}
 
 	log.Printf("Created KMP subscription: %s", subscription.SubscriptionID)
@@ -310,23 +284,19 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 	go x.analyticsLoop(ctx)
 
 	return nil
-
 }
 
 // Stop stops the xApp.
 
 func (x *KMPAnalyticsXApp) Stop(ctx context.Context) error {
-
 	log.Printf("Stopping KMP Analytics xApp")
 
 	return x.sdk.Stop(ctx)
-
 }
 
 // handleKMPIndication processes incoming KMP indications.
 
 func (x *KMPAnalyticsXApp) handleKMPIndication(ctx context.Context, indication *e2.RICIndication) error {
-
 	// Parse the indication message.
 
 	var kmpData map[string]interface{}
@@ -358,33 +328,25 @@ func (x *KMPAnalyticsXApp) handleKMPIndication(ctx context.Context, indication *
 	timestamp, _ := time.Parse(time.RFC3339, timestampStr)
 
 	if timestamp.IsZero() {
-
 		timestamp = time.Now()
-
 	}
 
 	// Process each measurement.
 
 	for metricName, value := range measurements {
-
 		if metricValue, ok := value.(float64); ok {
-
 			x.processMeasurement(metricName, metricValue, cellID, timestamp)
-
 		}
-
 	}
 
 	log.Printf("Processed KMP indication: %d measurements from cell %s", len(measurements), cellID)
 
 	return nil
-
 }
 
 // processMeasurement processes a single measurement value.
 
 func (x *KMPAnalyticsXApp) processMeasurement(metricName string, value float64, cellID string, timestamp time.Time) {
-
 	// Get or create measurement history.
 
 	history, exists := x.analytics.measurements[metricName]
@@ -392,7 +354,6 @@ func (x *KMPAnalyticsXApp) processMeasurement(metricName string, value float64, 
 	if !exists {
 
 		history = &MeasurementHistory{
-
 			MetricName: metricName,
 
 			Values: make([]MeasurementValue, 0),
@@ -407,7 +368,6 @@ func (x *KMPAnalyticsXApp) processMeasurement(metricName string, value float64, 
 	// Add new measurement.
 
 	measurement := MeasurementValue{
-
 		Value: value,
 
 		Timestamp: timestamp,
@@ -422,9 +382,7 @@ func (x *KMPAnalyticsXApp) processMeasurement(metricName string, value float64, 
 	// Keep only last 1000 measurements to prevent memory growth.
 
 	if len(history.Values) > 1000 {
-
 		history.Values = history.Values[1:]
-
 	}
 
 	// Update statistics.
@@ -434,17 +392,13 @@ func (x *KMPAnalyticsXApp) processMeasurement(metricName string, value float64, 
 	// Check for alerts.
 
 	x.checkAlerts(metricName, value, cellID, timestamp)
-
 }
 
 // updateStatistics calculates statistical measures for measurement history.
 
 func (x *KMPAnalyticsXApp) updateStatistics(history *MeasurementHistory) {
-
 	if len(history.Values) == 0 {
-
 		return
-
 	}
 
 	var sum, minVal, maxVal float64
@@ -458,15 +412,11 @@ func (x *KMPAnalyticsXApp) updateStatistics(history *MeasurementHistory) {
 		sum += measurement.Value
 
 		if measurement.Value < minVal {
-
 			minVal = measurement.Value
-
 		}
 
 		if measurement.Value > maxVal {
-
 			maxVal = measurement.Value
-
 		}
 
 	}
@@ -492,13 +442,10 @@ func (x *KMPAnalyticsXApp) updateStatistics(history *MeasurementHistory) {
 	stdDev := 0.0
 
 	if variance > 0 {
-
 		stdDev = variance // Simplified - would use math.Sqrt in real implementation
-
 	}
 
 	history.Statistics = MeasurementStatistics{
-
 		Mean: mean,
 
 		Min: minVal,
@@ -509,19 +456,15 @@ func (x *KMPAnalyticsXApp) updateStatistics(history *MeasurementHistory) {
 
 		Count: int(count),
 	}
-
 }
 
 // checkAlerts checks if measurement values exceed thresholds.
 
 func (x *KMPAnalyticsXApp) checkAlerts(metricName string, value float64, cellID string, timestamp time.Time) {
-
 	threshold, exists := x.alertThresholds[metricName]
 
 	if !exists {
-
 		return
-
 	}
 
 	var severity string
@@ -555,9 +498,7 @@ func (x *KMPAnalyticsXApp) checkAlerts(metricName string, value float64, cellID 
 			severity = "WARNING"
 
 			if value > 0.95 {
-
 				severity = "CRITICAL"
-
 			}
 
 		}
@@ -573,9 +514,7 @@ func (x *KMPAnalyticsXApp) checkAlerts(metricName string, value float64, cellID 
 			severity = "WARNING"
 
 			if value > threshold*2 {
-
 				severity = "CRITICAL"
-
 			}
 
 		}
@@ -585,7 +524,6 @@ func (x *KMPAnalyticsXApp) checkAlerts(metricName string, value float64, cellID 
 	if triggered {
 
 		alert := PerformanceAlert{
-
 			AlertID: fmt.Sprintf("alert-%s-%s-%d", metricName, cellID, timestamp.Unix()),
 
 			MetricName: metricName,
@@ -610,25 +548,20 @@ func (x *KMPAnalyticsXApp) checkAlerts(metricName string, value float64, cellID 
 		// Keep only last 100 alerts.
 
 		if len(x.analytics.alerts) > 100 {
-
 			x.analytics.alerts = x.analytics.alerts[1:]
-
 		}
 
 	}
-
 }
 
 // analyticsLoop runs continuous analytics processing.
 
 func (x *KMPAnalyticsXApp) analyticsLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -640,15 +573,12 @@ func (x *KMPAnalyticsXApp) analyticsLoop(ctx context.Context) {
 			x.performAnalysis()
 
 		}
-
 	}
-
 }
 
 // performAnalysis runs analytical algorithms on collected data.
 
 func (x *KMPAnalyticsXApp) performAnalysis() {
-
 	log.Printf("Performing analytics on %d metrics", len(x.analytics.measurements))
 
 	// Example: Trend analysis.
@@ -658,7 +588,6 @@ func (x *KMPAnalyticsXApp) performAnalysis() {
 	if len(trendResults) > 0 {
 
 		analysisResult := AnalysisResult{
-
 			AnalysisID: fmt.Sprintf("trend-analysis-%d", time.Now().Unix()),
 
 			AnalysisType: "trend_analysis",
@@ -683,7 +612,6 @@ func (x *KMPAnalyticsXApp) performAnalysis() {
 	if len(correlationResults) > 0 {
 
 		analysisResult := AnalysisResult{
-
 			AnalysisID: fmt.Sprintf("correlation-analysis-%d", time.Now().Unix()),
 
 			AnalysisType: "correlation_analysis",
@@ -704,25 +632,19 @@ func (x *KMPAnalyticsXApp) performAnalysis() {
 	// Keep only last 50 analysis results.
 
 	if len(x.analytics.analysisResults) > 50 {
-
 		x.analytics.analysisResults = x.analytics.analysisResults[1:]
-
 	}
-
 }
 
 // analyzeTrends analyzes measurement trends.
 
 func (x *KMPAnalyticsXApp) analyzeTrends() map[string]interface{} {
-
 	results := make(map[string]interface{})
 
 	for metricName, history := range x.analytics.measurements {
 
 		if len(history.Values) < 10 {
-
 			continue // Need at least 10 data points
-
 		}
 
 		// Simple trend analysis - check if recent values are increasing/decreasing.
@@ -732,37 +654,24 @@ func (x *KMPAnalyticsXApp) analyzeTrends() map[string]interface{} {
 		var increasing, decreasing int
 
 		for i := 1; i < len(recentValues); i++ {
-
 			if recentValues[i].Value > recentValues[i-1].Value {
-
 				increasing++
-
 			} else if recentValues[i].Value < recentValues[i-1].Value {
-
 				decreasing++
-
 			}
-
 		}
 
 		var trend string
 
 		if increasing > decreasing*2 {
-
 			trend = "increasing"
-
 		} else if decreasing > increasing*2 {
-
 			trend = "decreasing"
-
 		} else {
-
 			trend = "stable"
-
 		}
 
 		results[metricName] = map[string]interface{}{
-
 			"trend": trend,
 
 			"confidence": float64(abs(increasing-decreasing)) / float64(len(recentValues)-1),
@@ -775,13 +684,11 @@ func (x *KMPAnalyticsXApp) analyzeTrends() map[string]interface{} {
 	}
 
 	return results
-
 }
 
 // analyzeCorrelations analyzes correlations between different metrics.
 
 func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
-
 	results := make(map[string]interface{})
 
 	// Example: Check correlation between throughput and PRB utilization.
@@ -795,7 +702,6 @@ func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
 		correlation := x.calculateCorrelation(throughputDL.Values, prbUsedDL.Values)
 
 		results["throughput_prb_correlation"] = map[string]interface{}{
-
 			"correlation_coefficient": correlation,
 
 			"interpretation": x.interpretCorrelation(correlation),
@@ -806,21 +712,17 @@ func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
 	}
 
 	return results
-
 }
 
 // calculateCorrelation calculates correlation coefficient between two measurement series.
 
 func (x *KMPAnalyticsXApp) calculateCorrelation(values1, values2 []MeasurementValue) float64 {
-
 	// Simplified correlation calculation.
 
 	// In a real implementation, this would use proper statistical correlation algorithms.
 
 	if len(values1) != len(values2) || len(values1) < 2 {
-
 		return 0.0
-
 	}
 
 	// Use the minimum length and align by timestamp.
@@ -828,9 +730,7 @@ func (x *KMPAnalyticsXApp) calculateCorrelation(values1, values2 []MeasurementVa
 	minLen := len(values1)
 
 	if len(values2) < minLen {
-
 		minLen = len(values2)
-
 	}
 
 	// For simplicity, just use the last minLen values.
@@ -864,9 +764,7 @@ func (x *KMPAnalyticsXApp) calculateCorrelation(values1, values2 []MeasurementVa
 	}
 
 	if denominator1 == 0 || denominator2 == 0 {
-
 		return 0.0
-
 	}
 
 	// Simplified square root approximation.
@@ -874,37 +772,26 @@ func (x *KMPAnalyticsXApp) calculateCorrelation(values1, values2 []MeasurementVa
 	correlation := numerator / (denominator1 * denominator2)
 
 	return correlation
-
 }
 
 // interpretCorrelation provides interpretation of correlation values.
 
 func (x *KMPAnalyticsXApp) interpretCorrelation(correlation float64) string {
-
 	absCorr := correlation
 
 	if absCorr < 0 {
-
 		absCorr = -absCorr
-
 	}
 
 	if absCorr > 0.8 {
-
 		return "strong correlation"
-
 	} else if absCorr > 0.5 {
-
 		return "moderate correlation"
-
 	} else if absCorr > 0.3 {
-
 		return "weak correlation"
-
 	}
 
 	return "no significant correlation"
-
 }
 
 // Helper functions.
@@ -912,41 +799,30 @@ func (x *KMPAnalyticsXApp) interpretCorrelation(correlation float64) string {
 // Note: Helper functions have been moved to pkg/config/env_helpers.go.
 
 func abs(x int) int {
-
 	if x < 0 {
-
 		return -x
-
 	}
 
 	return x
-
 }
 
 func calculateAverage(values []MeasurementValue) float64 {
-
 	if len(values) == 0 {
-
 		return 0.0
-
 	}
 
 	var sum float64
 
 	for _, value := range values {
-
 		sum += value.Value
-
 	}
 
 	return sum / float64(len(values))
-
 }
 
 // Main function to run the xApp.
 
 func main() {
-
 	// Create context for graceful shutdown.
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -962,19 +838,14 @@ func main() {
 	// Create and start the xApp.
 
 	xapp, err := NewKMPAnalyticsXApp()
-
 	if err != nil {
-
 		log.Fatalf("Failed to create KMP Analytics xApp: %v", err)
-
 	}
 
 	// Start the xApp.
 
 	if err := xapp.Start(ctx); err != nil {
-
 		log.Fatalf("Failed to start KMP Analytics xApp: %v", err)
-
 	}
 
 	// Wait for shutdown signal.
@@ -986,11 +857,8 @@ func main() {
 	// Stop the xApp.
 
 	if err := xapp.Stop(ctx); err != nil {
-
 		log.Printf("Error stopping xApp: %v", err)
-
 	}
 
 	log.Println("KMP Analytics xApp stopped")
-
 }

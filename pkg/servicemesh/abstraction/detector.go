@@ -27,22 +27,18 @@ type ServiceMeshDetector struct {
 // NewServiceMeshDetector creates a new service mesh detector.
 
 func NewServiceMeshDetector(kubeClient kubernetes.Interface, config *rest.Config) *ServiceMeshDetector {
-
 	return &ServiceMeshDetector{
-
 		kubeClient: kubeClient,
 
 		config: config,
 
 		logger: log.Log.WithName("service-mesh-detector"),
 	}
-
 }
 
 // DetectServiceMesh detects the installed service mesh provider.
 
 func (d *ServiceMeshDetector) DetectServiceMesh(ctx context.Context) (ServiceMeshProvider, error) {
-
 	// Check for Istio.
 
 	if provider, err := d.detectIstio(ctx); err == nil && provider != ProviderNone {
@@ -76,165 +72,115 @@ func (d *ServiceMeshDetector) DetectServiceMesh(ctx context.Context) (ServiceMes
 	d.logger.Info("No service mesh provider detected")
 
 	return ProviderNone, nil
-
 }
 
 // detectIstio checks for Istio installation.
 
 func (d *ServiceMeshDetector) detectIstio(ctx context.Context) (ServiceMeshProvider, error) {
-
 	// Check for istio-system namespace.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return ProviderNone, fmt.Errorf("failed to list namespaces: %w", err)
-
 	}
 
 	for _, ns := range namespaces.Items {
-
 		if ns.Name == "istio-system" {
 
 			// Check for istiod deployment.
 
 			deployments, err := d.kubeClient.AppsV1().Deployments("istio-system").List(ctx, metav1.ListOptions{})
-
 			if err != nil {
-
 				return ProviderNone, fmt.Errorf("failed to list deployments: %w", err)
-
 			}
 
 			for _, deploy := range deployments.Items {
-
 				if strings.HasPrefix(deploy.Name, "istiod") {
-
 					// Check if deployment is ready.
 
 					if deploy.Status.ReadyReplicas > 0 {
-
 						return ProviderIstio, nil
-
 					}
-
 				}
-
 			}
 
 		}
-
 	}
 
 	return ProviderNone, nil
-
 }
 
 // detectLinkerd checks for Linkerd installation.
 
 func (d *ServiceMeshDetector) detectLinkerd(ctx context.Context) (ServiceMeshProvider, error) {
-
 	// Check for linkerd namespace.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return ProviderNone, fmt.Errorf("failed to list namespaces: %w", err)
-
 	}
 
 	for _, ns := range namespaces.Items {
-
 		if ns.Name == "linkerd" {
 
 			// Check for linkerd-controller deployment.
 
 			deployments, err := d.kubeClient.AppsV1().Deployments("linkerd").List(ctx, metav1.ListOptions{})
-
 			if err != nil {
-
 				return ProviderNone, fmt.Errorf("failed to list deployments: %w", err)
-
 			}
 
 			for _, deploy := range deployments.Items {
-
 				if deploy.Name == "linkerd-controller" || deploy.Name == "linkerd-destination" {
-
 					if deploy.Status.ReadyReplicas > 0 {
-
 						return ProviderLinkerd, nil
-
 					}
-
 				}
-
 			}
 
 		}
-
 	}
 
 	return ProviderNone, nil
-
 }
 
 // detectConsul checks for Consul installation.
 
 func (d *ServiceMeshDetector) detectConsul(ctx context.Context) (ServiceMeshProvider, error) {
-
 	// Check for consul namespace.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return ProviderNone, fmt.Errorf("failed to list namespaces: %w", err)
-
 	}
 
 	for _, ns := range namespaces.Items {
-
 		if ns.Name == "consul" {
 
 			// Check for consul-server statefulset.
 
 			statefulsets, err := d.kubeClient.AppsV1().StatefulSets("consul").List(ctx, metav1.ListOptions{})
-
 			if err != nil {
-
 				return ProviderNone, fmt.Errorf("failed to list statefulsets: %w", err)
-
 			}
 
 			for _, sts := range statefulsets.Items {
-
 				if strings.Contains(sts.Name, "consul-server") {
-
 					if sts.Status.ReadyReplicas > 0 {
-
 						return ProviderConsul, nil
-
 					}
-
 				}
-
 			}
 
 		}
-
 	}
 
 	return ProviderNone, nil
-
 }
 
 // GetServiceMeshVersion gets the version of the detected service mesh.
 
 func (d *ServiceMeshDetector) GetServiceMeshVersion(ctx context.Context, provider ServiceMeshProvider) (string, error) {
-
 	switch provider {
 
 	case ProviderIstio:
@@ -254,24 +200,18 @@ func (d *ServiceMeshDetector) GetServiceMeshVersion(ctx context.Context, provide
 		return "", fmt.Errorf("unsupported provider: %s", provider)
 
 	}
-
 }
 
 // getIstioVersion gets the Istio version.
 
 func (d *ServiceMeshDetector) getIstioVersion(ctx context.Context) (string, error) {
-
 	// Check istiod deployment for version label.
 
 	deployments, err := d.kubeClient.AppsV1().Deployments("istio-system").List(ctx, metav1.ListOptions{
-
 		LabelSelector: "app=istiod",
 	})
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to get istiod deployment: %w", err)
-
 	}
 
 	if len(deployments.Items) > 0 {
@@ -279,50 +219,38 @@ func (d *ServiceMeshDetector) getIstioVersion(ctx context.Context) (string, erro
 		deploy := deployments.Items[0]
 
 		if version, ok := deploy.Labels["version"]; ok {
-
 			return version, nil
-
 		}
 
 		// Check container image tag.
 
 		for _, container := range deploy.Spec.Template.Spec.Containers {
-
 			if container.Name == "discovery" {
 
 				parts := strings.Split(container.Image, ":")
 
 				if len(parts) > 1 {
-
 					return parts[1], nil
-
 				}
 
 			}
-
 		}
 
 	}
 
 	return "unknown", nil
-
 }
 
 // getLinkerdVersion gets the Linkerd version.
 
 func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, error) {
-
 	// Check linkerd-controller deployment for version annotation.
 
 	deployments, err := d.kubeClient.AppsV1().Deployments("linkerd").List(ctx, metav1.ListOptions{
-
 		LabelSelector: "linkerd.io/control-plane-component=controller",
 	})
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to get linkerd deployment: %w", err)
-
 	}
 
 	if len(deployments.Items) > 0 {
@@ -330,9 +258,7 @@ func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, er
 		deploy := deployments.Items[0]
 
 		if version, ok := deploy.Annotations["linkerd.io/control-plane-version"]; ok {
-
 			return version, nil
-
 		}
 
 		// Check container image tag.
@@ -342,9 +268,7 @@ func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, er
 			parts := strings.Split(container.Image, ":")
 
 			if len(parts) > 1 {
-
 				return parts[1], nil
-
 			}
 
 		}
@@ -352,51 +276,37 @@ func (d *ServiceMeshDetector) getLinkerdVersion(ctx context.Context) (string, er
 	}
 
 	return "unknown", nil
-
 }
 
 // getConsulVersion gets the Consul version.
 
 func (d *ServiceMeshDetector) getConsulVersion(ctx context.Context) (string, error) {
-
 	// Check consul-server statefulset for version.
 
 	statefulsets, err := d.kubeClient.AppsV1().StatefulSets("consul").List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to get consul statefulset: %w", err)
-
 	}
 
 	for _, sts := range statefulsets.Items {
-
 		if strings.Contains(sts.Name, "consul-server") {
-
 			// Check container image tag.
 
 			for _, container := range sts.Spec.Template.Spec.Containers {
-
 				if container.Name == "consul" {
 
 					parts := strings.Split(container.Image, ":")
 
 					if len(parts) > 1 {
-
 						return parts[1], nil
-
 					}
 
 				}
-
 			}
-
 		}
-
 	}
 
 	return "unknown", nil
-
 }
 
 // DetectorResult contains service mesh detection results.
@@ -456,26 +366,18 @@ type ComponentStatus struct {
 // GetDetectionResult gets comprehensive detection results.
 
 func (d *ServiceMeshDetector) GetDetectionResult(ctx context.Context) (*DetectorResult, error) {
-
 	provider, err := d.DetectServiceMesh(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to detect service mesh: %w", err)
-
 	}
 
 	if provider == ProviderNone {
-
 		return &DetectorResult{
-
 			Provider: ProviderNone,
 		}, nil
-
 	}
 
 	version, err := d.GetServiceMeshVersion(ctx, provider)
-
 	if err != nil {
 
 		d.logger.Error(err, "Failed to get service mesh version")
@@ -485,7 +387,6 @@ func (d *ServiceMeshDetector) GetDetectionResult(ctx context.Context) (*Detector
 	}
 
 	result := &DetectorResult{
-
 		Provider: provider,
 
 		Version: version,
@@ -528,30 +429,24 @@ func (d *ServiceMeshDetector) GetDetectionResult(ctx context.Context) (*Detector
 	}
 
 	return result, nil
-
 }
 
 // enrichIstioInfo adds Istio-specific information.
 
 func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *DetectorResult) {
-
 	// Count proxies.
 
 	pods, err := d.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{
-
 		LabelSelector: "security.istio.io/tlsMode=istio",
 	})
 
 	if err == nil {
-
 		result.DataPlane.ProxyCount = len(pods.Items)
-
 	}
 
 	// Get injection namespaces.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
-
 		LabelSelector: "istio-injection=enabled",
 	})
 
@@ -566,7 +461,6 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 	// Check control plane components.
 
 	result.ControlPlane.Components = []ComponentStatus{
-
 		{Name: "istiod", Namespace: "istio-system", Type: "deployment"},
 
 		{Name: "istio-ingressgateway", Namespace: "istio-system", Type: "deployment"},
@@ -581,19 +475,15 @@ func (d *ServiceMeshDetector) enrichIstioInfo(ctx context.Context, result *Detec
 		deploy, err := d.kubeClient.AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 
 		if err == nil && deploy.Status.ReadyReplicas > 0 {
-
 			component.Ready = true
-
 		}
 
 	}
-
 }
 
 // enrichLinkerdInfo adds Linkerd-specific information.
 
 func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *DetectorResult) {
-
 	// Count proxies.
 
 	pods, err := d.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
@@ -603,9 +493,7 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 		proxyCount := 0
 
 		for _, pod := range pods.Items {
-
 			for _, container := range pod.Spec.Containers {
-
 				if container.Name == "linkerd-proxy" {
 
 					proxyCount++
@@ -613,9 +501,7 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 					break
 
 				}
-
 			}
-
 		}
 
 		result.DataPlane.ProxyCount = proxyCount
@@ -625,7 +511,6 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 	// Get injection namespaces.
 
 	namespaces, err := d.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
-
 		LabelSelector: "linkerd.io/inject=enabled",
 	})
 
@@ -640,7 +525,6 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 	// Check control plane components.
 
 	result.ControlPlane.Components = []ComponentStatus{
-
 		{Name: "linkerd-controller", Namespace: "linkerd", Type: "deployment"},
 
 		{Name: "linkerd-destination", Namespace: "linkerd", Type: "deployment"},
@@ -657,19 +541,15 @@ func (d *ServiceMeshDetector) enrichLinkerdInfo(ctx context.Context, result *Det
 		deploy, err := d.kubeClient.AppsV1().Deployments(component.Namespace).Get(ctx, component.Name, metav1.GetOptions{})
 
 		if err == nil && deploy.Status.ReadyReplicas > 0 {
-
 			component.Ready = true
-
 		}
 
 	}
-
 }
 
 // enrichConsulInfo adds Consul-specific information.
 
 func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *DetectorResult) {
-
 	// Count connect proxies.
 
 	pods, err := d.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
@@ -679,13 +559,9 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 		proxyCount := 0
 
 		for _, pod := range pods.Items {
-
 			if _, ok := pod.Annotations["consul.hashicorp.com/connect-inject"]; ok {
-
 				proxyCount++
-
 			}
-
 		}
 
 		result.DataPlane.ProxyCount = proxyCount
@@ -695,7 +571,6 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 	// Check control plane components.
 
 	result.ControlPlane.Components = []ComponentStatus{
-
 		{Name: "consul-server", Namespace: "consul", Type: "statefulset"},
 
 		{Name: "consul-connect-injector", Namespace: "consul", Type: "deployment"},
@@ -706,9 +581,7 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 	sts, err := d.kubeClient.AppsV1().StatefulSets("consul").Get(ctx, "consul-server", metav1.GetOptions{})
 
 	if err == nil && sts.Status.ReadyReplicas > 0 {
-
 		result.ControlPlane.Components[0].Ready = true
-
 	}
 
 	// Check deployment.
@@ -716,9 +589,6 @@ func (d *ServiceMeshDetector) enrichConsulInfo(ctx context.Context, result *Dete
 	deploy, err := d.kubeClient.AppsV1().Deployments("consul").Get(ctx, "consul-connect-injector", metav1.GetOptions{})
 
 	if err == nil && deploy.Status.ReadyReplicas > 0 {
-
 		result.ControlPlane.Components[1].Ready = true
-
 	}
-
 }

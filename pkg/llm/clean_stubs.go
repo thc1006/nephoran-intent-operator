@@ -33,9 +33,7 @@ import (
 // NewContextBuilderWithPool performs newcontextbuilderwithpool operation.
 
 func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
-
 	config := &ContextBuilderConfig{
-
 		DefaultMaxDocs: 5,
 
 		MaxContextLength: 8192,
@@ -51,7 +49,6 @@ func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 		QueryExpansionEnabled: true,
 
 		TelecomKeywords: []string{
-
 			"5G", "4G", "LTE", "NR", "gNB", "eNB", "AMF", "SMF", "UPF", "AUSF",
 
 			"O-RAN", "RAN", "Core", "Transport", "3GPP", "ETSI", "ITU",
@@ -67,7 +64,6 @@ func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 	// Use the ContextBuilder from interface_consolidated.go with proper initialization.
 
 	cb := &ContextBuilder{
-
 		weaviatePool: pool,
 
 		config: config,
@@ -80,31 +76,25 @@ func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 	// Log configuration attempt for debugging.
 
 	if slog.Default() != nil {
-
 		slog.Default().With("component", "context-builder").Info("Created ContextBuilder stub",
 
 			"config_provided", config != nil,
 
 			"pool_provided", pool != nil)
-
 	}
 
 	return cb
-
 }
 
 // BuildContext retrieves and builds context from the RAG system using semantic search.
 
 func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
-
 	startTime := time.Now()
 
 	// Update metrics.
 
 	cb.updateMetrics(func(m *ContextBuilderMetrics) {
-
 		m.TotalQueries++
-
 	})
 
 	// Validate inputs.
@@ -112,9 +102,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	if intent == "" {
 
 		cb.updateMetrics(func(m *ContextBuilderMetrics) {
-
 			m.FailedQueries++
-
 		})
 
 		return nil, fmt.Errorf("intent cannot be empty")
@@ -122,9 +110,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	}
 
 	if maxDocs <= 0 {
-
 		maxDocs = cb.config.DefaultMaxDocs
-
 	}
 
 	// Check if we have a connection pool.
@@ -132,15 +118,11 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	if cb.weaviatePool == nil {
 
 		if cb.logger != nil {
-
 			cb.logger.Warn("No Weaviate connection pool available, returning empty context")
-
 		}
 
 		cb.updateMetrics(func(m *ContextBuilderMetrics) {
-
 			m.FailedQueries++
-
 		})
 
 		return []map[string]any{}, nil
@@ -152,9 +134,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	enhancedQuery := intent
 
 	if cb.config.QueryExpansionEnabled {
-
 		enhancedQuery = cb.expandQuery(intent)
-
 	}
 
 	// Perform semantic search using the connection pool.
@@ -170,17 +150,13 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	// Simulate search operation with mock results.
 
 	if cb.config != nil && cb.config.EnableHybridSearch {
-
 		// Simulate hybrid search results.
 
 		searchResults = cb.generateMockHybridSearchResults(enhancedQuery, maxDocs)
-
 	} else {
-
 		// Simulate vector search results.
 
 		searchResults = cb.generateMockVectorSearchResults(enhancedQuery, maxDocs)
-
 	}
 
 	// Stub implementation completed above - no GraphQL calls needed.
@@ -204,9 +180,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	for _, result := range searchResults {
 
 		if result == nil || result.Document == nil {
-
 			continue
-
 		}
 
 		doc := result.Document
@@ -216,14 +190,12 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		if totalContentLength+len(doc.Content) > cb.config.MaxContextLength {
 
 			if cb.logger != nil {
-
 				cb.logger.Debug("Context length limit reached, truncating results",
 
 					"current_length", totalContentLength,
 
 					"max_length", cb.config.MaxContextLength,
 				)
-
 			}
 
 			break
@@ -233,7 +205,6 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		// Build context document.
 
 		contextDoc := map[string]any{
-
 			"id": doc.ID,
 
 			"title": doc.Title,
@@ -260,35 +231,25 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		// Add array fields if they exist.
 
 		if len(doc.Keywords) > 0 {
-
 			contextDoc["keywords"] = doc.Keywords
-
 		}
 
 		if len(doc.NetworkFunction) > 0 {
-
 			contextDoc["network_function"] = doc.NetworkFunction
-
 		}
 
 		if len(doc.Technology) > 0 {
-
 			contextDoc["technology"] = doc.Technology
-
 		}
 
 		if len(doc.UseCase) > 0 {
-
 			contextDoc["use_case"] = doc.UseCase
-
 		}
 
 		// Add metadata if available.
 
 		if doc.Metadata != nil && len(doc.Metadata) > 0 {
-
 			contextDoc["metadata"] = doc.Metadata
-
 		}
 
 		contextDocs = append(contextDocs, contextDoc)
@@ -302,15 +263,12 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	duration := time.Since(startTime)
 
 	cb.updateMetrics(func(m *ContextBuilderMetrics) {
-
 		m.SuccessfulQueries++
 
 		m.TotalLatency += duration
 
 		if m.TotalQueries > 0 {
-
 			m.AverageQueryDuration = time.Duration(int64(m.TotalLatency) / m.TotalQueries)
-
 		}
 
 		if m.SuccessfulQueries > 0 {
@@ -322,11 +280,9 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 			m.AverageDocumentsFound = (currentAvg*int(m.SuccessfulQueries-1) + newCount) / int(m.SuccessfulQueries)
 
 		}
-
 	})
 
 	if cb.logger != nil {
-
 		cb.logger.Info("Context building completed",
 
 			"intent", intent,
@@ -339,17 +295,14 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 
 			"duration", duration,
 		)
-
 	}
 
 	return contextDocs, nil
-
 }
 
 // expandQuery enhances the query with telecom-specific context.
 
 func (cb *ContextBuilder) expandQuery(query string) string {
-
 	// Convert to lowercase for matching.
 
 	lowerQuery := strings.ToLower(query)
@@ -359,27 +312,19 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 	var relevantKeywords []string
 
 	for _, keyword := range cb.config.TelecomKeywords {
-
 		if !strings.Contains(lowerQuery, strings.ToLower(keyword)) {
-
 			// Add related keywords based on context.
 
 			if cb.isRelatedKeyword(lowerQuery, keyword) {
-
 				relevantKeywords = append(relevantKeywords, keyword)
-
 			}
-
 		}
-
 	}
 
 	// Limit the number of additional keywords to avoid query bloat.
 
 	if len(relevantKeywords) > 3 {
-
 		relevantKeywords = relevantKeywords[:3]
-
 	}
 
 	// Enhance the query if relevant keywords were found.
@@ -389,7 +334,6 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 		enhanced := fmt.Sprintf("%s %s", query, strings.Join(relevantKeywords, " "))
 
 		if cb.logger != nil {
-
 			cb.logger.Debug("Enhanced query with telecom keywords",
 
 				"original", query,
@@ -398,7 +342,6 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 
 				"added_keywords", relevantKeywords,
 			)
-
 		}
 
 		return enhanced
@@ -406,17 +349,14 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 	}
 
 	return query
-
 }
 
 // isRelatedKeyword determines if a keyword is contextually related to the query.
 
 func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
-
 	// Define keyword relationships for telecom domain.
 
 	relations := map[string][]string{
-
 		"deploy": {"orchestration", "5G", "Core", "RAN"},
 
 		"create": {"deployment", "network", "function"},
@@ -439,37 +379,26 @@ func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
 	lowerKeyword := strings.ToLower(keyword)
 
 	for queryTerm, relatedTerms := range relations {
-
 		if strings.Contains(query, queryTerm) {
-
 			for _, related := range relatedTerms {
-
 				if strings.Contains(lowerKeyword, strings.ToLower(related)) {
-
 					return true
-
 				}
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 // updateMetrics safely updates metrics with a function.
 
 func (cb *ContextBuilder) updateMetrics(updateFunc func(*ContextBuilderMetrics)) {
-
 	cb.mutex.Lock()
 
 	defer cb.mutex.Unlock()
 
 	updateFunc(cb.metrics)
-
 }
 
 // Note: GetMetrics is implemented in interface_consolidated.go
@@ -477,37 +406,28 @@ func (cb *ContextBuilder) updateMetrics(updateFunc func(*ContextBuilderMetrics))
 // getSuccessRate calculates the success rate percentage.
 
 func (cb *ContextBuilder) getSuccessRate() float64 {
-
 	if cb.metrics.TotalQueries == 0 {
-
 		return 0.0
-
 	}
 
 	return float64(cb.metrics.SuccessfulQueries) / float64(cb.metrics.TotalQueries) * 100.0
-
 }
 
 // getCacheHitRate calculates the cache hit rate percentage.
 
 func (cb *ContextBuilder) getCacheHitRate() float64 {
-
 	totalCacheOps := cb.metrics.CacheHits + cb.metrics.CacheMisses
 
 	if totalCacheOps == 0 {
-
 		return 0.0
-
 	}
 
 	return float64(cb.metrics.CacheHits) / float64(totalCacheOps) * 100.0
-
 }
 
 // parseSearchResult converts a GraphQL result item to a SearchResult.
 
 func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
-
 	doc := &shared.TelecomDocument{}
 
 	result := &shared.SearchResult{Document: doc}
@@ -515,45 +435,31 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 	// Parse document fields.
 
 	if val, ok := item["content"].(string); ok {
-
 		doc.Content = val
-
 	}
 
 	if val, ok := item["title"].(string); ok {
-
 		doc.Title = val
-
 	}
 
 	if val, ok := item["source"].(string); ok {
-
 		doc.Source = val
-
 	}
 
 	if val, ok := item["category"].(string); ok {
-
 		doc.Category = val
-
 	}
 
 	if val, ok := item["version"].(string); ok {
-
 		doc.Version = val
-
 	}
 
 	if val, ok := item["confidence"].(float64); ok {
-
 		doc.Confidence = val
-
 	}
 
 	if val, ok := item["documentType"].(string); ok {
-
 		doc.DocumentType = val
-
 	}
 
 	// Parse array fields.
@@ -563,13 +469,9 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		keywords := make([]string, 0, len(val))
 
 		for _, keyword := range val {
-
 			if keywordStr, ok := keyword.(string); ok {
-
 				keywords = append(keywords, keywordStr)
-
 			}
-
 		}
 
 		doc.Keywords = keywords
@@ -581,13 +483,9 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		networkFunctions := make([]string, 0, len(val))
 
 		for _, nf := range val {
-
 			if nfStr, ok := nf.(string); ok {
-
 				networkFunctions = append(networkFunctions, nfStr)
-
 			}
-
 		}
 
 		doc.NetworkFunction = networkFunctions
@@ -599,13 +497,9 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		technologies := make([]string, 0, len(val))
 
 		for _, tech := range val {
-
 			if techStr, ok := tech.(string); ok {
-
 				technologies = append(technologies, techStr)
-
 			}
-
 		}
 
 		doc.Technology = technologies
@@ -613,9 +507,7 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 	}
 
 	if val, ok := item["useCase"].(string); ok {
-
 		doc.UseCase = val
-
 	} else if val, ok := item["useCase"].([]interface{}); ok {
 
 		// Handle array case by joining with commas
@@ -623,19 +515,13 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		useCases := make([]string, 0, len(val))
 
 		for _, uc := range val {
-
 			if ucStr, ok := uc.(string); ok {
-
 				useCases = append(useCases, ucStr)
-
 			}
-
 		}
 
 		if len(useCases) > 0 {
-
 			doc.UseCase = strings.Join(useCases, ", ")
-
 		}
 
 	}
@@ -645,21 +531,15 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 	if additional, ok := item["_additional"].(map[string]interface{}); ok {
 
 		if id, ok := additional["id"].(string); ok {
-
 			doc.ID = id
-
 		}
 
 		if score, ok := additional["score"].(float64); ok {
-
 			result.Score = float32(score)
-
 		}
 
 		if distance, ok := additional["distance"].(float64); ok {
-
 			result.Distance = float32(distance)
-
 		}
 
 	}
@@ -667,13 +547,10 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 	// Set default confidence if not provided.
 
 	if doc.Confidence == 0 {
-
 		doc.Confidence = 0.5 // Default confidence
-
 	}
 
 	return result
-
 }
 
 // Note: RelevanceScorer is implemented in relevance_scorer.go
@@ -685,48 +562,36 @@ type RAGAwarePromptBuilderStub struct{}
 // NewRAGAwarePromptBuilderStub performs newragawarepromptbuilderstub operation.
 
 func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
-
 	return &RAGAwarePromptBuilderStub{}
-
 }
 
 // GetMetrics performs getmetrics operation.
 
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
-
 	return map[string]interface{}{
-
 		"prompt_builder_enabled": false,
 
 		"status": "not_implemented",
 	}
-
 }
 
 // generateMockHybridSearchResults generates mock search results for hybrid search.
 
 func (cb *ContextBuilder) generateMockHybridSearchResults(query string, maxDocs int) []*shared.SearchResult {
-
 	return cb.generateMockResults(query, maxDocs, "hybrid")
-
 }
 
 // generateMockVectorSearchResults generates mock search results for vector search.
 
 func (cb *ContextBuilder) generateMockVectorSearchResults(query string, maxDocs int) []*shared.SearchResult {
-
 	return cb.generateMockResults(query, maxDocs, "vector")
-
 }
 
 // generateMockResults generates mock search results based on telecom keywords.
 
 func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchType string) []*shared.SearchResult {
-
 	if maxDocs <= 0 {
-
 		maxDocs = 3
-
 	}
 
 	queryLower := strings.ToLower(query)
@@ -746,9 +611,7 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 
 		confidence float32
 	}{
-
 		{
-
 			title: "5G Core Network Function Deployment",
 
 			content: "Guidelines for deploying 5G Core network functions including AMF, SMF, and UPF components using cloud-native architectures.",
@@ -761,7 +624,6 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 		},
 
 		{
-
 			title: "Network Slicing Configuration",
 
 			content: "Configuration procedures for network slicing in 5G networks, including QoS parameters and orchestration workflows.",
@@ -774,7 +636,6 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 		},
 
 		{
-
 			title: "O-RAN Interface Specifications",
 
 			content: "Technical specifications for O-RAN interfaces including A1, E2, and O1 interface implementations.",
@@ -796,9 +657,7 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 		if score > 0.1 { // Minimum relevance threshold
 
 			result := &shared.SearchResult{
-
 				Document: &shared.TelecomDocument{
-
 					ID: fmt.Sprintf("mock_doc_%d", i),
 
 					Title: doc.title,
@@ -825,21 +684,17 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 		}
 
 		if len(results) >= maxDocs {
-
 			break
-
 		}
 
 	}
 
 	return results
-
 }
 
 // calculateMockRelevanceScore calculates a simple relevance score for mock results.
 
 func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []string, content string) float32 {
-
 	score := float32(0.0)
 
 	queryWords := strings.Fields(query)
@@ -851,15 +706,12 @@ func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []s
 		keywordLower := strings.ToLower(keyword)
 
 		for _, queryWord := range queryWords {
-
 			if strings.Contains(keywordLower, strings.ToLower(queryWord)) ||
 
 				strings.Contains(strings.ToLower(queryWord), keywordLower) {
 
 				score += 0.3
-
 			}
-
 		}
 
 	}
@@ -869,25 +721,18 @@ func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []s
 	contentLower := strings.ToLower(content)
 
 	for _, queryWord := range queryWords {
-
 		if strings.Contains(contentLower, strings.ToLower(queryWord)) {
-
 			score += 0.2
-
 		}
-
 	}
 
 	// Normalize score to 0-1 range.
 
 	if score > 1.0 {
-
 		score = 1.0
-
 	}
 
 	return score
-
 }
 
 // StreamingProcessor type alias for compatibility - defined in interface_consolidated.go

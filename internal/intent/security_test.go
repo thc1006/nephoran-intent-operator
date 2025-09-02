@@ -11,7 +11,7 @@ import (
 func TestSecuritySchemaValidationHardening(t *testing.T) {
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -24,7 +24,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 		}`
 
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(invalidSchema), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(invalidSchema), 0o644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -51,7 +51,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 		malformedSchema := `{this is not valid json}`
 
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(malformedSchema), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(malformedSchema), 0o644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -97,7 +97,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 		}`
 
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -168,7 +168,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 		}`
 
 		schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-		if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+		if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 			t.Fatalf("Failed to write schema file: %v", err)
 		}
 
@@ -207,7 +207,7 @@ func TestSecuritySchemaValidationHardening(t *testing.T) {
 func TestSecurityValidationBypass(t *testing.T) {
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		t.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -225,7 +225,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		t.Fatalf("Failed to write schema file: %v", err)
 	}
 
@@ -304,7 +304,7 @@ func TestSecurityValidationBypass(t *testing.T) {
 func BenchmarkSecurityValidation(b *testing.B) {
 	tempDir := b.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
-	if err := os.MkdirAll(contractsDir, 0755); err != nil {
+	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
 		b.Fatalf("Failed to create contracts directory: %v", err)
 	}
 
@@ -318,7 +318,7 @@ func BenchmarkSecurityValidation(b *testing.B) {
 	}`
 
 	schemaPath := filepath.Join(contractsDir, "intent.schema.json")
-	if err := os.WriteFile(schemaPath, []byte(validSchema), 0644); err != nil {
+	if err := os.WriteFile(schemaPath, []byte(validSchema), 0o644); err != nil {
 		b.Fatalf("Failed to write schema file: %v", err)
 	}
 

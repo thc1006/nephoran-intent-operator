@@ -47,7 +47,6 @@ type SecurityConfig struct {
 }
 
 func main() {
-
 	var (
 		intentPath string
 
@@ -79,7 +78,6 @@ func main() {
 	// Initialize structured logging.
 
 	logger, err := initializeLogger(verbosity)
-
 	if err != nil {
 
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
@@ -115,15 +113,12 @@ func main() {
 	}
 
 	if outputDir == "" {
-
 		outputDir = "./examples/packages/scaling"
-
 	}
 
 	// Initialize security configuration.
 
 	secConfig := SecurityConfig{
-
 		EnableCompliance: complianceMode,
 
 		EnableAuditLogging: true,
@@ -133,7 +128,6 @@ func main() {
 		MaxExecutionTime: 5 * time.Minute,
 
 		AllowedOutputPaths: []string{
-
 			"./examples",
 
 			"./packages",
@@ -162,13 +156,11 @@ func main() {
 		return
 
 	}
-
 }
 
 // runSecure executes the main logic with comprehensive security controls.
 
 func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, config SecurityConfig, logger logr.Logger) error {
-
 	logger.Info("Starting secure patch generation workflow",
 
 		"intent_path", intentPath,
@@ -180,11 +172,8 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 	// 1. Initialize security components.
 
 	owaspValidator, err := security.NewOWASPValidator()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize OWASP validator: %w", err)
-
 	}
 
 	// 2. Perform comprehensive security validation of intent file.
@@ -192,11 +181,8 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 	logger.V(1).Info("Performing security validation of intent file")
 
 	validationResult, err := owaspValidator.ValidateIntentFile(intentPath)
-
 	if err != nil {
-
 		return fmt.Errorf("intent file validation error: %w", err)
-
 	}
 
 	if !validationResult.IsValid {
@@ -210,7 +196,6 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 		// Log detailed violations.
 
 		for _, violation := range validationResult.Violations {
-
 			logger.Error(fmt.Errorf("security violation"), "Security violation detected",
 
 				"field", violation.Field,
@@ -222,7 +207,6 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 				"message", violation.Message,
 
 				"owasp_rule", violation.OWASPRule)
-
 		}
 
 		return fmt.Errorf("intent file has %d security violations (threat level: %s)",
@@ -236,11 +220,8 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 	// 3. Load and validate intent using existing patchgen logic.
 
 	intent, err := patchgen.LoadIntent(intentPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load intent: %w", err)
-
 	}
 
 	logger.Info("Intent loaded successfully",
@@ -258,19 +239,13 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 		logger.V(1).Info("Performing O-RAN WG11 compliance assessment")
 
 		complianceChecker, err := security.NewORANComplianceChecker()
-
 		if err != nil {
-
 			return fmt.Errorf("failed to initialize compliance checker: %w", err)
-
 		}
 
 		complianceReport, err := complianceChecker.AssessCompliance(intent)
-
 		if err != nil {
-
 			return fmt.Errorf("compliance assessment failed: %w", err)
-
 		}
 
 		logger.Info("O-RAN WG11 compliance assessment completed",
@@ -300,21 +275,15 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 	logger.V(1).Info("Initializing secure patch generator")
 
 	secureGenerator, err := security.NewSecurePatchGenerator(intent, outputDir, logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create secure patch generator: %w", err)
-
 	}
 
 	logger.Info("Generating secure patch package")
 
 	securePatch, err := secureGenerator.GenerateSecure()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to generate secure patch: %w", err)
-
 	}
 
 	packagePath := securePatch.GetPackagePath()
@@ -380,21 +349,16 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 	fmt.Printf("============================================\n\n")
 
 	return nil
-
 }
 
 // applyPatchSecurely applies the patch using secure command execution.
 
 func applyPatchSecurely(ctx context.Context, packagePath string, logger logr.Logger) error {
-
 	logger.V(1).Info("Initializing secure command executor")
 
 	secureExecutor, err := security.NewSecureCommandExecutor()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create secure command executor: %w", err)
-
 	}
 
 	logger.Info("Executing porch-direct with security controls", "package_path", packagePath)
@@ -402,23 +366,16 @@ func applyPatchSecurely(ctx context.Context, packagePath string, logger logr.Log
 	// Execute porch-direct with comprehensive security controls.
 
 	result, err := secureExecutor.ExecuteSecure(ctx, "porch-direct", []string{"--package", packagePath}, ".")
-
 	if err != nil {
-
 		return fmt.Errorf("secure command execution setup failed: %w", err)
-
 	}
 
 	if result.Error != nil {
-
 		return fmt.Errorf("porch-direct execution failed: %w", result.Error)
-
 	}
 
 	if result.ExitCode != 0 {
-
 		return fmt.Errorf("porch-direct failed with exit code %d", result.ExitCode)
-
 	}
 
 	// Log security execution details.
@@ -438,13 +395,11 @@ func applyPatchSecurely(ctx context.Context, packagePath string, logger logr.Log
 		"execution_duration", result.Duration)
 
 	return nil
-
 }
 
 // initializeLogger sets up structured logging with appropriate verbosity.
 
 func initializeLogger(verbosity int) (logr.Logger, error) {
-
 	var zapConfig zap.Config
 
 	switch verbosity {
@@ -480,7 +435,6 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 	// Add security-relevant fields.
 
 	zapConfig.InitialFields = map[string]interface{}{
-
 		"service": "secure-porch-patch",
 
 		"version": Version,
@@ -491,13 +445,9 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 	}
 
 	zapLogger, err := zapConfig.Build()
-
 	if err != nil {
-
 		return logr.Logger{}, fmt.Errorf("failed to build zap logger: %w", err)
-
 	}
 
 	return zapr.NewLogger(zapLogger), nil
-
 }

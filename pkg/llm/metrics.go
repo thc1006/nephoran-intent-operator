@@ -12,7 +12,6 @@ import (
 // MetricsCollector provides unified metrics collection for all LLM components.
 
 type MetricsCollector struct {
-
 	// Client metrics.
 
 	clientMetrics *ClientMetrics
@@ -67,9 +66,7 @@ type GlobalMetrics struct {
 // NewMetricsCollector creates a new unified metrics collector.
 
 func NewMetricsCollector() *MetricsCollector {
-
 	return &MetricsCollector{
-
 		clientMetrics: &ClientMetrics{},
 
 		processingMetrics: &ProcessingMetrics{},
@@ -81,19 +78,16 @@ func NewMetricsCollector() *MetricsCollector {
 		circuitBreakerMetrics: make(map[string]*CircuitMetrics),
 
 		globalMetrics: &GlobalMetrics{
-
 			StartTime: time.Now(),
 
 			LastResetTime: time.Now(),
 		},
 	}
-
 }
 
 // RecordLLMRequest records an LLM request.
 
 func (mc *MetricsCollector) RecordLLMRequest(model, status string, latency time.Duration, tokens int) {
-
 	mc.mutex.Lock()
 
 	defer mc.mutex.Unlock()
@@ -105,9 +99,7 @@ func (mc *MetricsCollector) RecordLLMRequest(model, status string, latency time.
 	mc.globalMetrics.TotalRequests++
 
 	if status == "error" {
-
 		mc.globalMetrics.TotalErrors++
-
 	}
 
 	// Update average response time.
@@ -119,9 +111,7 @@ func (mc *MetricsCollector) RecordLLMRequest(model, status string, latency time.
 	// Update error rate.
 
 	if mc.globalMetrics.TotalRequests > 0 {
-
 		mc.globalMetrics.ErrorRate = float64(mc.globalMetrics.TotalErrors) / float64(mc.globalMetrics.TotalRequests)
-
 	}
 
 	mc.globalMetrics.mutex.Unlock()
@@ -133,43 +123,31 @@ func (mc *MetricsCollector) RecordLLMRequest(model, status string, latency time.
 	mc.clientMetrics.RequestsTotal++
 
 	if status == "success" {
-
 		mc.clientMetrics.RequestsSuccess++
-
 	} else {
-
 		mc.clientMetrics.RequestsFailure++
-
 	}
 
 	mc.clientMetrics.TotalLatency += latency
 
 	mc.clientMetrics.mutex.Unlock()
-
 }
 
 // RecordCacheOperation records a cache operation.
 
 func (mc *MetricsCollector) RecordCacheOperation(operation string, hit bool) {
-
 	mc.cacheMetrics.mutex.Lock()
 
 	defer mc.cacheMetrics.mutex.Unlock()
 
 	switch operation {
-
 	case "get":
 
 		if hit {
-
 			mc.cacheMetrics.L1Hits++ // Simplified - assuming L1 for now
-
 		} else {
-
 			mc.cacheMetrics.Misses++
-
 		}
-
 	}
 
 	// Update hit rate.
@@ -177,17 +155,13 @@ func (mc *MetricsCollector) RecordCacheOperation(operation string, hit bool) {
 	total := mc.cacheMetrics.L1Hits + mc.cacheMetrics.L2Hits + mc.cacheMetrics.Misses
 
 	if total > 0 {
-
 		mc.cacheMetrics.HitRate = float64(mc.cacheMetrics.L1Hits+mc.cacheMetrics.L2Hits) / float64(total)
-
 	}
-
 }
 
 // RecordCircuitBreakerEvent records circuit breaker events.
 
 func (mc *MetricsCollector) RecordCircuitBreakerEvent(name, event string) {
-
 	mc.mutex.Lock()
 
 	defer mc.mutex.Unlock()
@@ -197,7 +171,6 @@ func (mc *MetricsCollector) RecordCircuitBreakerEvent(name, event string) {
 	if !exists {
 
 		metrics = &CircuitMetrics{
-
 			CurrentState: "closed",
 
 			LastStateChange: time.Now(),
@@ -246,19 +219,15 @@ func (mc *MetricsCollector) RecordCircuitBreakerEvent(name, event string) {
 	// Update failure rate.
 
 	if metrics.TotalRequests > 0 {
-
 		metrics.FailureRate = float64(metrics.FailedRequests) / float64(metrics.TotalRequests)
-
 	}
 
 	metrics.LastUpdated = time.Now()
-
 }
 
 // GetGlobalMetrics returns global system metrics.
 
 func (mc *MetricsCollector) GetGlobalMetrics() *GlobalMetrics {
-
 	mc.globalMetrics.mutex.RLock()
 
 	defer mc.globalMetrics.mutex.RUnlock()
@@ -272,15 +241,12 @@ func (mc *MetricsCollector) GetGlobalMetrics() *GlobalMetrics {
 	// Calculate requests per second.
 
 	if uptime.Seconds() > 0 {
-
 		mc.globalMetrics.RequestsPerSecond = float64(mc.globalMetrics.TotalRequests) / uptime.Seconds()
-
 	}
 
 	// Create new metrics struct to avoid copying mutex.
 
 	metrics := &GlobalMetrics{
-
 		StartTime: mc.globalMetrics.StartTime,
 
 		TotalRequests: mc.globalMetrics.TotalRequests,
@@ -299,13 +265,11 @@ func (mc *MetricsCollector) GetGlobalMetrics() *GlobalMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetClientMetrics returns client metrics.
 
 func (mc *MetricsCollector) GetClientMetrics() *ClientMetrics {
-
 	mc.clientMetrics.mutex.RLock()
 
 	defer mc.clientMetrics.mutex.RUnlock()
@@ -313,7 +277,6 @@ func (mc *MetricsCollector) GetClientMetrics() *ClientMetrics {
 	// Create new metrics struct to avoid copying mutex - using proper fields.
 
 	metrics := &ClientMetrics{
-
 		RequestsTotal: mc.clientMetrics.RequestsTotal,
 
 		RequestsSuccess: mc.clientMetrics.RequestsSuccess,
@@ -324,13 +287,11 @@ func (mc *MetricsCollector) GetClientMetrics() *ClientMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetProcessingMetrics returns processing metrics.
 
 func (mc *MetricsCollector) GetProcessingMetrics() *ProcessingMetrics {
-
 	mc.processingMetrics.mutex.RLock()
 
 	defer mc.processingMetrics.mutex.RUnlock()
@@ -344,13 +305,11 @@ func (mc *MetricsCollector) GetProcessingMetrics() *ProcessingMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetCacheMetrics returns cache metrics.
 
 func (mc *MetricsCollector) GetCacheMetrics() *CacheMetrics {
-
 	mc.cacheMetrics.mutex.RLock()
 
 	defer mc.cacheMetrics.mutex.RUnlock()
@@ -358,7 +317,6 @@ func (mc *MetricsCollector) GetCacheMetrics() *CacheMetrics {
 	// Create new metrics struct to avoid copying mutex.
 
 	metrics := &CacheMetrics{
-
 		L1Hits: mc.cacheMetrics.L1Hits,
 
 		L2Hits: mc.cacheMetrics.L2Hits,
@@ -379,13 +337,11 @@ func (mc *MetricsCollector) GetCacheMetrics() *CacheMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetWorkerPoolMetrics returns worker pool metrics.
 
 func (mc *MetricsCollector) GetWorkerPoolMetrics() *WorkerPoolMetrics {
-
 	mc.workerPoolMetrics.mutex.RLock()
 
 	defer mc.workerPoolMetrics.mutex.RUnlock()
@@ -399,13 +355,11 @@ func (mc *MetricsCollector) GetWorkerPoolMetrics() *WorkerPoolMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetCircuitBreakerMetrics returns circuit breaker metrics for a specific circuit.
 
 func (mc *MetricsCollector) GetCircuitBreakerMetrics(name string) *CircuitMetrics {
-
 	mc.mutex.RLock()
 
 	defer mc.mutex.RUnlock()
@@ -429,13 +383,11 @@ func (mc *MetricsCollector) GetCircuitBreakerMetrics(name string) *CircuitMetric
 	}
 
 	return nil
-
 }
 
 // GetAllCircuitBreakerMetrics returns all circuit breaker metrics.
 
 func (mc *MetricsCollector) GetAllCircuitBreakerMetrics() map[string]*CircuitMetrics {
-
 	mc.mutex.RLock()
 
 	defer mc.mutex.RUnlock()
@@ -461,15 +413,12 @@ func (mc *MetricsCollector) GetAllCircuitBreakerMetrics() map[string]*CircuitMet
 	}
 
 	return result
-
 }
 
 // GetComprehensiveMetrics returns all metrics in a single structure.
 
 func (mc *MetricsCollector) GetComprehensiveMetrics() map[string]interface{} {
-
 	return map[string]interface{}{
-
 		"global": mc.GetGlobalMetrics(),
 
 		"client": mc.GetClientMetrics(),
@@ -484,13 +433,11 @@ func (mc *MetricsCollector) GetComprehensiveMetrics() map[string]interface{} {
 
 		"timestamp": time.Now().UTC(),
 	}
-
 }
 
 // Reset resets all metrics.
 
 func (mc *MetricsCollector) Reset() {
-
 	mc.mutex.Lock()
 
 	defer mc.mutex.Unlock()
@@ -548,39 +495,31 @@ func (mc *MetricsCollector) Reset() {
 	// Reset circuit breaker metrics.
 
 	mc.circuitBreakerMetrics = make(map[string]*CircuitMetrics)
-
 }
 
 // StartMetricsCollection starts background metrics collection.
 
 func (mc *MetricsCollector) StartMetricsCollection() {
-
 	go mc.metricsCollectionLoop()
-
 }
 
 // metricsCollectionLoop runs the metrics collection background process.
 
 func (mc *MetricsCollector) metricsCollectionLoop() {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		// Update calculated metrics.
 
 		mc.updateCalculatedMetrics()
-
 	}
-
 }
 
 // updateCalculatedMetrics updates metrics that require calculation.
 
 func (mc *MetricsCollector) updateCalculatedMetrics() {
-
 	// Update global metrics calculations.
 
 	globalMetrics := mc.GetGlobalMetrics()
@@ -602,13 +541,11 @@ func (mc *MetricsCollector) updateCalculatedMetrics() {
 	_ = cacheMetrics
 
 	_ = workerMetrics
-
 }
 
 // GetHealthStatus returns overall system health status.
 
 func (mc *MetricsCollector) GetHealthStatus() map[string]interface{} {
-
 	globalMetrics := mc.GetGlobalMetrics()
 
 	// Determine health status based on error rate and response time.
@@ -636,13 +573,10 @@ func (mc *MetricsCollector) GetHealthStatus() map[string]interface{} {
 	status := "healthy"
 
 	if !healthy {
-
 		status = "unhealthy"
-
 	}
 
 	return map[string]interface{}{
-
 		"status": status,
 
 		"healthy": healthy,
@@ -659,13 +593,11 @@ func (mc *MetricsCollector) GetHealthStatus() map[string]interface{} {
 
 		"last_check": time.Now().UTC(),
 	}
-
 }
 
 // ExportPrometheusMetrics exports metrics in Prometheus format (placeholder).
 
 func (mc *MetricsCollector) ExportPrometheusMetrics() string {
-
 	// This is a simplified implementation.
 
 	// In production, you'd use the official Prometheus Go client.
@@ -758,5 +690,4 @@ llm_cache_misses_total %d
 	)
 
 	return prometheus
-
 }

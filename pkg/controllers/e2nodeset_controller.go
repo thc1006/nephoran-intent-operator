@@ -189,11 +189,9 @@ type E2NodeSetReconciler struct {
 // RegisterMetrics registers Prometheus metrics.
 
 func (r *E2NodeSetReconciler) RegisterMetrics() {
-
 	r.nodesTotal = *prometheus.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "e2nodeset_nodes_total",
 
 			Help: "Total number of E2 nodes in E2NodeSet",
@@ -205,7 +203,6 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 	r.nodesReady = *prometheus.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "e2nodeset_nodes_ready",
 
 			Help: "Number of ready E2 nodes in E2NodeSet",
@@ -217,7 +214,6 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 	r.reconcilesTotal = *prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "e2nodeset_reconciles_total",
 
 			Help: "Total number of E2NodeSet reconciliations",
@@ -229,7 +225,6 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 	r.reconcileErrors = *prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "e2nodeset_reconcile_errors_total",
 
 			Help: "Total number of E2NodeSet reconciliation errors",
@@ -241,7 +236,6 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 	r.heartbeatsTotal = *prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "e2nodeset_heartbeats_total",
 
 			Help: "Total number of E2 node heartbeats",
@@ -262,7 +256,6 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 
 		&r.heartbeatsTotal,
 	)
-
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
@@ -278,7 +271,6 @@ func (r *E2NodeSetReconciler) RegisterMetrics() {
 // Reconcile performs reconcile operation.
 
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	startTime := time.Now()
@@ -286,11 +278,9 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	result := "success"
 
 	defer func() {
-
 		r.reconcilesTotal.WithLabelValues(req.Namespace, req.Name, result).Inc()
 
 		logger.Info("Reconciliation completed", "duration", time.Since(startTime), "result", result)
-
 	}()
 
 	// Fetch the E2NodeSet instance.
@@ -332,9 +322,7 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Handle deletion.
 
 	if e2nodeSet.DeletionTimestamp != nil {
-
 		return r.handleDeletion(ctx, &e2nodeSet)
-
 	}
 
 	// Add finalizer if not present.
@@ -444,19 +432,15 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	go r.simulateHeartbeats(ctx, &e2nodeSet)
 
 	return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
-
 }
 
 // SetupWithManager performs setupwithmanager operation.
 
 func (r *E2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	// Register metrics if not already registered.
 
 	if r.Recorder == nil {
-
 		r.Recorder = mgr.GetEventRecorderFor("e2nodeset-controller")
-
 	}
 
 	// Setup controller to watch E2NodeSet resources and ConfigMaps.
@@ -465,23 +449,18 @@ func (r *E2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&nephoranv1.E2NodeSet{}).
 		Owns(&corev1.ConfigMap{}).
 		Complete(r)
-
 }
 
 // reconcileE2Nodes manages E2 nodes by creating/deleting ConfigMaps.
 
 func (r *E2NodeSetReconciler) reconcileE2Nodes(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) error {
-
 	logger := log.FromContext(ctx)
 
 	// Get current ConfigMaps representing E2 nodes.
 
 	currentConfigMaps, err := r.getCurrentE2NodeConfigMaps(ctx, e2nodeSet)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get current E2 node ConfigMaps: %w", err)
-
 	}
 
 	currentReplicas := int32(len(currentConfigMaps))
@@ -495,29 +474,23 @@ func (r *E2NodeSetReconciler) reconcileE2Nodes(ctx context.Context, e2nodeSet *n
 		"desired", desiredReplicas)
 
 	if currentReplicas < desiredReplicas {
-
 		// Scale up - create new E2 node ConfigMaps.
 
 		return r.scaleUpE2Nodes(ctx, e2nodeSet, currentConfigMaps, desiredReplicas)
-
 	} else if currentReplicas > desiredReplicas {
-
 		// Scale down - delete excess E2 node ConfigMaps.
 
 		return r.scaleDownE2Nodes(ctx, e2nodeSet, currentConfigMaps, desiredReplicas)
-
 	}
 
 	// Check if any nodes need updates.
 
 	return r.updateE2Nodes(ctx, e2nodeSet, currentConfigMaps)
-
 }
 
 // getCurrentE2NodeConfigMaps returns ConfigMaps representing E2 nodes for this E2NodeSet.
 
 func (r *E2NodeSetReconciler) getCurrentE2NodeConfigMaps(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) ([]*corev1.ConfigMap, error) {
-
 	// Create label selector for E2 node ConfigMaps.
 
 	selector := labels.NewSelector()
@@ -525,11 +498,8 @@ func (r *E2NodeSetReconciler) getCurrentE2NodeConfigMaps(ctx context.Context, e2
 	// Add requirement for e2nodeset label.
 
 	req, err := labels.NewRequirement(E2NodeSetLabelKey, selection.Equals, []string{e2nodeSet.Name})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create label requirement: %w", err)
-
 	}
 
 	selector = selector.Add(*req)
@@ -537,11 +507,8 @@ func (r *E2NodeSetReconciler) getCurrentE2NodeConfigMaps(ctx context.Context, e2
 	// Add requirement for app label.
 
 	appReq, err := labels.NewRequirement(E2NodeAppLabelKey, selection.Equals, []string{E2NodeAppLabelValue})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create app label requirement: %w", err)
-
 	}
 
 	selector = selector.Add(*appReq)
@@ -551,16 +518,13 @@ func (r *E2NodeSetReconciler) getCurrentE2NodeConfigMaps(ctx context.Context, e2
 	var configMapList corev1.ConfigMapList
 
 	listOpts := &client.ListOptions{
-
 		Namespace: e2nodeSet.Namespace,
 
 		LabelSelector: selector,
 	}
 
 	if err := r.List(ctx, &configMapList, listOpts); err != nil {
-
 		return nil, fmt.Errorf("failed to list E2 node ConfigMaps: %w", err)
-
 	}
 
 	// Convert to slice of pointers and sort by node index.
@@ -568,25 +532,20 @@ func (r *E2NodeSetReconciler) getCurrentE2NodeConfigMaps(ctx context.Context, e2
 	configMaps := make([]*corev1.ConfigMap, len(configMapList.Items))
 
 	for i := range configMapList.Items {
-
 		configMaps[i] = &configMapList.Items[i]
-
 	}
 
 	// Sort ConfigMaps by node index for consistent ordering.
 
 	sort.Slice(configMaps, func(i, j int) bool {
-
 		indexI := r.getNodeIndexFromConfigMap(configMaps[i])
 
 		indexJ := r.getNodeIndexFromConfigMap(configMaps[j])
 
 		return indexI < indexJ
-
 	})
 
 	return configMaps, nil
-
 }
 
 // scaleUpE2Nodes creates new E2 node ConfigMaps.
@@ -594,9 +553,7 @@ func (r *E2NodeSetReconciler) getCurrentE2NodeConfigMaps(ctx context.Context, e2
 func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet,
 
 	currentConfigMaps []*corev1.ConfigMap, desiredReplicas int32,
-
 ) error {
-
 	logger := log.FromContext(ctx)
 
 	// Find next available index.
@@ -620,19 +577,14 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 		// Find next unused index.
 
 		for usedIndices[nextIndex] {
-
 			nextIndex++
-
 		}
 
 		configMap, err := r.createE2NodeConfigMap(ctx, e2nodeSet, nextIndex)
-
 		if err != nil {
-
 			// Error handling is done inside createE2NodeConfigMap.
 
 			return fmt.Errorf("failed to create E2 node ConfigMap at index %d: %w", nextIndex, err)
-
 		}
 
 		logger.Info("Created E2 node ConfigMap",
@@ -658,7 +610,6 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 	}
 
 	return nil
-
 }
 
 // scaleDownE2Nodes deletes excess E2 node ConfigMaps.
@@ -666,21 +617,17 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet,
 
 	currentConfigMaps []*corev1.ConfigMap, desiredReplicas int32,
-
 ) error {
-
 	logger := log.FromContext(ctx)
 
 	// Sort ConfigMaps by index (highest first for deletion).
 
 	sort.Slice(currentConfigMaps, func(i, j int) bool {
-
 		indexI := r.getNodeIndexFromConfigMap(currentConfigMaps[i])
 
 		indexJ := r.getNodeIndexFromConfigMap(currentConfigMaps[j])
 
 		return indexI > indexJ
-
 	})
 
 	// Delete excess ConfigMaps.
@@ -698,7 +645,6 @@ func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *n
 			"nodeId", nodeID)
 
 		if err := r.Delete(ctx, configMap); err != nil {
-
 			if !errors.IsNotFound(err) {
 
 				// Get retry count for deletion operations.
@@ -722,7 +668,6 @@ func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *n
 				return fmt.Errorf("failed to delete E2 node ConfigMap %s: %w", configMap.Name, err)
 
 			}
-
 		}
 
 		// Record event for node deletion.
@@ -734,7 +679,6 @@ func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *n
 	}
 
 	return nil
-
 }
 
 // updateE2Nodes checks if existing ConfigMaps need updates.
@@ -742,13 +686,10 @@ func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *n
 func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet,
 
 	currentConfigMaps []*corev1.ConfigMap,
-
 ) error {
-
 	logger := log.FromContext(ctx)
 
 	for _, configMap := range currentConfigMaps {
-
 		// Check if ConfigMap needs update based on E2NodeSet template.
 
 		if r.configMapNeedsUpdate(configMap, e2nodeSet) {
@@ -770,9 +711,7 @@ func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *neph
 			// Preserve existing status if available.
 
 			if statusData, exists := configMap.Data[E2NodeStatusKey]; exists {
-
 				updatedConfigMap.Data[E2NodeStatusKey] = statusData
-
 			}
 
 			// Check retry count before attempting update.
@@ -780,9 +719,7 @@ func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *neph
 			retryCount := getE2NodeSetRetryCount(e2nodeSet, "configmap-operations")
 
 			if retryCount >= DefaultMaxRetries {
-
 				return fmt.Errorf("max retries (%d) exceeded for ConfigMap update", DefaultMaxRetries)
-
 			}
 
 			if err := r.Update(ctx, updatedConfigMap); err != nil {
@@ -816,11 +753,9 @@ func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *neph
 				"Updated E2 node %s configuration", configMap.Name)
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // Helper functions.
@@ -828,21 +763,16 @@ func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *neph
 // generateNodeID generates a unique node ID for an E2 node.
 
 func (r *E2NodeSetReconciler) generateNodeID(e2nodeSet *nephoranv1.E2NodeSet, index int32) string {
-
 	return fmt.Sprintf("%s-%s-node-%d", e2nodeSet.Namespace, e2nodeSet.Name, index)
-
 }
 
 // createE2NodeConfigMap creates a new ConfigMap representing an E2 node with retry logic.
 
 func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, index int32) (*corev1.ConfigMap, error) {
-
 	configMap := r.buildE2NodeConfigMap(e2nodeSet, index)
 
 	if err := controllerutil.SetControllerReference(e2nodeSet, configMap, r.Scheme); err != nil {
-
 		return nil, fmt.Errorf("failed to set controller reference: %w", err)
-
 	}
 
 	// Check retry count before attempting create.
@@ -850,9 +780,7 @@ func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeS
 	retryCount := getE2NodeSetRetryCount(e2nodeSet, "configmap-operations")
 
 	if retryCount >= DefaultMaxRetries {
-
 		return nil, fmt.Errorf("max retries (%d) exceeded for ConfigMap creation", DefaultMaxRetries)
-
 	}
 
 	if err := r.Create(ctx, configMap); err != nil {
@@ -880,7 +808,6 @@ func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeS
 	r.Client.Update(ctx, e2nodeSet)
 
 	return configMap, nil
-
 }
 
 // Exponential backoff helper functions.
@@ -894,17 +821,12 @@ func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeS
 // maxDelay: maximum delay duration (defaults to MaxBackoffDelay if zero).
 
 func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Duration) time.Duration {
-
 	if baseDelay <= 0 {
-
 		baseDelay = BaseBackoffDelay
-
 	}
 
 	if maxDelay <= 0 {
-
 		maxDelay = MaxBackoffDelay
-
 	}
 
 	// Calculate exponential backoff: baseDelay * multiplier^retryCount.
@@ -916,9 +838,7 @@ func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Durati
 	// Cap at max delay.
 
 	if backoffDuration > maxDelay {
-
 		backoffDuration = maxDelay
-
 	}
 
 	// Add jitter to prevent thundering herd.
@@ -932,19 +852,14 @@ func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Durati
 	// Ensure final delay is positive and doesn't exceed max.
 
 	if finalDelay < 0 {
-
 		finalDelay = baseDelay
-
 	}
 
 	if finalDelay > maxDelay {
-
 		finalDelay = maxDelay
-
 	}
 
 	return finalDelay
-
 }
 
 // E2NodeSet-specific retry count management functions
@@ -986,9 +901,7 @@ func clearE2NodeSetRetryCount(e2nodeSet *nephoranv1.E2NodeSet, operation string)
 // setReadyCondition sets the Ready condition with proper reason and message.
 
 func (r *E2NodeSetReconciler) setReadyCondition(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, status metav1.ConditionStatus, reason, message string) error {
-
 	condition := nephoranv1.E2NodeSetCondition{
-
 		Type: "Ready",
 
 		Status: status,
@@ -1007,13 +920,11 @@ func (r *E2NodeSetReconciler) setReadyCondition(ctx context.Context, e2nodeSet *
 	// Update the status.
 
 	return r.Status().Update(ctx, e2nodeSet)
-
 }
 
 // buildE2NodeConfigMap builds a ConfigMap for an E2 node.
 
 func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeSet, index int32) *corev1.ConfigMap {
-
 	nodeID := r.generateNodeID(e2nodeSet, index)
 
 	configMapName := r.generateConfigMapName(e2nodeSet, index)
@@ -1023,7 +934,6 @@ func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeS
 	// Build configuration data.
 
 	config := E2NodeConfigData{
-
 		NodeID: nodeID,
 
 		E2InterfaceVersion: r.getE2InterfaceVersion(e2nodeSet),
@@ -1044,7 +954,6 @@ func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeS
 	now := time.Now().UTC()
 
 	status := E2NodeStatusData{
-
 		NodeID: nodeID,
 
 		State: string(nephoranv1.E2NodeLifecycleStatePending),
@@ -1063,15 +972,12 @@ func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeS
 	statusJSON, _ := json.Marshal(status)
 
 	configMap := &corev1.ConfigMap{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: configMapName,
 
 			Namespace: e2nodeSet.Namespace,
 
 			Labels: map[string]string{
-
 				E2NodeSetLabelKey: e2nodeSet.Name,
 
 				E2NodeAppLabelKey: E2NodeAppLabelValue,
@@ -1082,7 +988,6 @@ func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeS
 			},
 
 			Annotations: map[string]string{
-
 				"nephoran.com/e2-interface-version": config.E2InterfaceVersion,
 
 				"nephoran.com/ric-endpoint": ricEndpoint,
@@ -1092,7 +997,6 @@ func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeS
 		},
 
 		Data: map[string]string{
-
 			E2NodeConfigKey: string(configJSON),
 
 			E2NodeStatusKey: string(statusJSON),
@@ -1100,13 +1004,11 @@ func (r *E2NodeSetReconciler) buildE2NodeConfigMap(e2nodeSet *nephoranv1.E2NodeS
 	}
 
 	return configMap
-
 }
 
 // buildRANFunctions creates RAN function configurations.
 
 func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet) []RANFunctionConfig {
-
 	// Use template RAN functions if provided, otherwise use defaults.
 
 	if len(e2nodeSet.Spec.Template.Spec.SupportedRANFunctions) > 0 {
@@ -1114,9 +1016,7 @@ func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet)
 		functions := make([]RANFunctionConfig, len(e2nodeSet.Spec.Template.Spec.SupportedRANFunctions))
 
 		for i, ranFunc := range e2nodeSet.Spec.Template.Spec.SupportedRANFunctions {
-
 			functions[i] = RANFunctionConfig{
-
 				FunctionID: ranFunc.FunctionID,
 
 				Revision: ranFunc.Revision,
@@ -1125,7 +1025,6 @@ func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet)
 
 				OID: ranFunc.OID,
 			}
-
 		}
 
 		return functions
@@ -1135,9 +1034,7 @@ func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet)
 	// Default RAN functions if none specified in template.
 
 	return []RANFunctionConfig{
-
 		{
-
 			FunctionID: 1,
 
 			Revision: 1,
@@ -1148,7 +1045,6 @@ func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet)
 		},
 
 		{
-
 			FunctionID: 2,
 
 			Revision: 1,
@@ -1159,7 +1055,6 @@ func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet)
 		},
 
 		{
-
 			FunctionID: 3,
 
 			Revision: 1,
@@ -1169,17 +1064,13 @@ func (r *E2NodeSetReconciler) buildRANFunctions(e2nodeSet *nephoranv1.E2NodeSet)
 			OID: "1.3.6.1.4.1.53148.1.1.2.4",
 		},
 	}
-
 }
 
 // buildSimulationConfig creates simulation configuration.
 
 func (r *E2NodeSetReconciler) buildSimulationConfig(e2nodeSet *nephoranv1.E2NodeSet) SimulationConfigData {
-
 	if e2nodeSet.Spec.SimulationConfig != nil {
-
 		return SimulationConfigData{
-
 			UECount: e2nodeSet.Spec.SimulationConfig.UECount,
 
 			TrafficGeneration: e2nodeSet.Spec.SimulationConfig.TrafficGeneration,
@@ -1188,13 +1079,11 @@ func (r *E2NodeSetReconciler) buildSimulationConfig(e2nodeSet *nephoranv1.E2Node
 
 			TrafficProfile: string(e2nodeSet.Spec.SimulationConfig.TrafficProfile),
 		}
-
 	}
 
 	// Default simulation config.
 
 	return SimulationConfigData{
-
 		UECount: 100,
 
 		TrafficGeneration: false,
@@ -1203,27 +1092,21 @@ func (r *E2NodeSetReconciler) buildSimulationConfig(e2nodeSet *nephoranv1.E2Node
 
 		TrafficProfile: string(nephoranv1.TrafficProfileLow),
 	}
-
 }
 
 // getE2InterfaceVersion returns E2 interface version from template or default.
 
 func (r *E2NodeSetReconciler) getE2InterfaceVersion(e2nodeSet *nephoranv1.E2NodeSet) string {
-
 	if e2nodeSet.Spec.Template.Spec.E2InterfaceVersion != "" {
-
 		return e2nodeSet.Spec.Template.Spec.E2InterfaceVersion
-
 	}
 
 	return DefaultE2InterfaceVersion
-
 }
 
 // getRICEndpoint returns the Near-RT RIC endpoint for E2 connections.
 
 func (r *E2NodeSetReconciler) getRICEndpoint(e2nodeSet *nephoranv1.E2NodeSet) string {
-
 	// Priority order:.
 
 	// 1. Use ricConfiguration.ricEndpoint if provided.
@@ -1235,41 +1118,30 @@ func (r *E2NodeSetReconciler) getRICEndpoint(e2nodeSet *nephoranv1.E2NodeSet) st
 	// 4. Use default endpoint.
 
 	if e2nodeSet.Spec.RICConfiguration != nil && e2nodeSet.Spec.RICConfiguration.RICEndpoint != "" {
-
 		return e2nodeSet.Spec.RICConfiguration.RICEndpoint
-
 	}
 
 	if e2nodeSet.Spec.RicEndpoint != "" {
-
 		return e2nodeSet.Spec.RicEndpoint
-
 	}
 
 	if endpoint, ok := e2nodeSet.Annotations["nephoran.com/near-rt-ric-endpoint"]; ok {
-
 		return endpoint
-
 	}
 
 	return "http://near-rt-ric:38080" // Default Near-RT RIC endpoint
-
 }
 
 // generateConfigMapName generates a name for the E2 node ConfigMap.
 
 func (r *E2NodeSetReconciler) generateConfigMapName(e2nodeSet *nephoranv1.E2NodeSet, index int32) string {
-
 	return fmt.Sprintf("%s-e2node-%d", e2nodeSet.Name, index)
-
 }
 
 // getNodeIndexFromConfigMap extracts the node index from ConfigMap labels.
 
 func (r *E2NodeSetReconciler) getNodeIndexFromConfigMap(configMap *corev1.ConfigMap) int32 {
-
 	if indexStr, ok := configMap.Labels[E2NodeIndexLabelKey]; ok {
-
 		if index, err := strconv.Atoi(indexStr); err == nil {
 			// Security fix (G109/G115): Validate int to int32 conversion bounds
 			if index < 0 || index > math.MaxInt32 {
@@ -1281,61 +1153,46 @@ func (r *E2NodeSetReconciler) getNodeIndexFromConfigMap(configMap *corev1.Config
 			return int32(index)
 
 		}
-
 	}
 
 	return 0
-
 }
 
 // getNodeIDFromConfigMap extracts the node ID from ConfigMap labels.
 
 func (r *E2NodeSetReconciler) getNodeIDFromConfigMap(configMap *corev1.ConfigMap) string {
-
 	if nodeID, ok := configMap.Labels[E2NodeIDLabelKey]; ok {
-
 		return nodeID
-
 	}
 
 	return ""
-
 }
 
 // configMapNeedsUpdate checks if ConfigMap needs to be updated.
 
 func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, e2nodeSet *nephoranv1.E2NodeSet) bool {
-
 	// Parse existing config.
 
 	configDataStr, ok := configMap.Data[E2NodeConfigKey]
 
 	if !ok {
-
 		return true // Missing config data
-
 	}
 
 	var existingConfig E2NodeConfigData
 
 	if err := json.Unmarshal([]byte(configDataStr), &existingConfig); err != nil {
-
 		return true // Invalid config data
-
 	}
 
 	// Check if key fields have changed.
 
 	if existingConfig.E2InterfaceVersion != r.getE2InterfaceVersion(e2nodeSet) {
-
 		return true
-
 	}
 
 	if existingConfig.RICEndpoint != r.getRICEndpoint(e2nodeSet) {
-
 		return true
-
 	}
 
 	// Check if RAN functions have changed.
@@ -1343,13 +1200,10 @@ func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, 
 	expectedRANFunctions := r.buildRANFunctions(e2nodeSet)
 
 	if len(existingConfig.RANFunctions) != len(expectedRANFunctions) {
-
 		return true
-
 	}
 
 	for i, expected := range expectedRANFunctions {
-
 		if i >= len(existingConfig.RANFunctions) ||
 
 			existingConfig.RANFunctions[i].FunctionID != expected.FunctionID ||
@@ -1357,9 +1211,7 @@ func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, 
 			existingConfig.RANFunctions[i].Revision != expected.Revision {
 
 			return true
-
 		}
-
 	}
 
 	// Check simulation config changes.
@@ -1373,27 +1225,22 @@ func (r *E2NodeSetReconciler) configMapNeedsUpdate(configMap *corev1.ConfigMap, 
 		existingConfig.SimulationConfig.TrafficProfile != expectedSimConfig.TrafficProfile {
 
 		return true
-
 	}
 
 	return false
-
 }
 
 // updateMetrics updates Prometheus metrics for the E2NodeSet.
 
 func (r *E2NodeSetReconciler) updateMetrics(e2nodeSet *nephoranv1.E2NodeSet) {
-
 	r.nodesTotal.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.CurrentReplicas))
 
 	r.nodesReady.WithLabelValues(e2nodeSet.Namespace, e2nodeSet.Name).Set(float64(e2nodeSet.Status.ReadyReplicas))
-
 }
 
 // simulateHeartbeats simulates heartbeat messages for connected E2 nodes.
 
 func (r *E2NodeSetReconciler) simulateHeartbeats(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) {
-
 	logger := log.FromContext(ctx)
 
 	ticker := time.NewTicker(DefaultHeartbeatInterval)
@@ -1401,7 +1248,6 @@ func (r *E2NodeSetReconciler) simulateHeartbeats(ctx context.Context, e2nodeSet 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1413,7 +1259,6 @@ func (r *E2NodeSetReconciler) simulateHeartbeats(ctx context.Context, e2nodeSet 
 			// Get current E2 node ConfigMaps.
 
 			configMaps, err := r.getCurrentE2NodeConfigMaps(ctx, e2nodeSet)
-
 			if err != nil {
 
 				logger.Error(err, "Failed to get ConfigMaps for heartbeat simulation")
@@ -1425,49 +1270,36 @@ func (r *E2NodeSetReconciler) simulateHeartbeats(ctx context.Context, e2nodeSet 
 			// Update status for each node.
 
 			for _, configMap := range configMaps {
-
 				if err := r.updateNodeHeartbeat(ctx, configMap); err != nil {
-
 					logger.Error(err, "Failed to update node heartbeat", "configMap", configMap.Name)
-
 				}
-
 			}
 
 			// Update E2NodeSet status.
 
 			if err := r.updateE2NodeSetStatus(ctx, e2nodeSet); err != nil {
-
 				logger.Error(err, "Failed to update E2NodeSet status")
-
 			}
 
 		}
-
 	}
-
 }
 
 // updateNodeHeartbeat updates heartbeat information for a single E2 node.
 
 func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap *corev1.ConfigMap) error {
-
 	// Parse existing status.
 
 	statusDataStr, ok := configMap.Data[E2NodeStatusKey]
 
 	if !ok {
-
 		return fmt.Errorf("missing status data in ConfigMap %s", configMap.Name)
-
 	}
 
 	var status E2NodeStatusData
 
 	if err := json.Unmarshal([]byte(statusDataStr), &status); err != nil {
-
 		return fmt.Errorf("failed to unmarshal status data: %w", err)
-
 	}
 
 	// Update heartbeat information.
@@ -1483,9 +1315,7 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 	// Simulate state transitions.
 
 	if status.State == string(nephoranv1.E2NodeLifecycleStatePending) {
-
 		status.State = string(nephoranv1.E2NodeLifecycleStateInitializing)
-
 	} else if status.State == string(nephoranv1.E2NodeLifecycleStateInitializing) {
 
 		status.State = string(nephoranv1.E2NodeLifecycleStateConnected)
@@ -1497,11 +1327,8 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 	// Update ConfigMap with new status.
 
 	statusJSON, err := json.Marshal(status)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal status data: %w", err)
-
 	}
 
 	updatedConfigMap := configMap.DeepCopy()
@@ -1509,13 +1336,11 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 	updatedConfigMap.Data[E2NodeStatusKey] = string(statusJSON)
 
 	if err := r.Update(ctx, updatedConfigMap); err != nil {
-
 		// For heartbeat updates, we'll log the error but continue operation.
 
 		// since heartbeat failures shouldn't block the main reconciliation.
 
 		return fmt.Errorf("failed to update ConfigMap heartbeat: %w", err)
-
 	}
 
 	// Update heartbeat metrics.
@@ -1527,39 +1352,30 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 		namespaceName := strings.Split(nodeID, "-")
 
 		if len(namespaceName) >= 2 {
-
 			r.heartbeatsTotal.WithLabelValues(namespaceName[0], namespaceName[1], nodeID).Inc()
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // updateE2NodeSetStatus updates the E2NodeSet status based on current ConfigMaps.
 
 func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) error {
-
 	// Fetch current E2NodeSet to avoid conflicts.
 
 	var currentE2NodeSet nephoranv1.E2NodeSet
 
 	if err := r.Get(ctx, types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}, &currentE2NodeSet); err != nil {
-
 		return fmt.Errorf("failed to fetch current E2NodeSet: %w", err)
-
 	}
 
 	// Get current ConfigMaps.
 
 	configMaps, err := r.getCurrentE2NodeConfigMaps(ctx, &currentE2NodeSet)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get current ConfigMaps: %w", err)
-
 	}
 
 	// Count replicas by state.
@@ -1578,23 +1394,18 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 		statusDataStr, ok := configMap.Data[E2NodeStatusKey]
 
 		if !ok {
-
 			continue
-
 		}
 
 		var statusData E2NodeStatusData
 
 		if err := json.Unmarshal([]byte(statusDataStr), &statusData); err != nil {
-
 			continue
-
 		}
 
 		// Convert to E2NodeStatus.
 
 		nodeStatus := nephoranv1.E2NodeStatus{
-
 			NodeID: statusData.NodeID,
 
 			State: nephoranv1.E2NodeLifecycleState(statusData.State),
@@ -1605,15 +1416,11 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 		}
 
 		if statusData.LastHeartbeat != nil {
-
 			nodeStatus.LastHeartbeat = &metav1.Time{Time: *statusData.LastHeartbeat}
-
 		}
 
 		if statusData.ConnectedSince != nil {
-
 			nodeStatus.ConnectedSince = &metav1.Time{Time: *statusData.ConnectedSince}
-
 		}
 
 		e2NodeStatuses = append(e2NodeStatuses, nodeStatus)
@@ -1627,9 +1434,7 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 			availableReplicas++
 
 		} else if statusData.State == string(nephoranv1.E2NodeLifecycleStateInitializing) {
-
 			availableReplicas++
-
 		}
 
 	}
@@ -1659,19 +1464,16 @@ func (r *E2NodeSetReconciler) updateE2NodeSetStatus(ctx context.Context, e2nodeS
 	// Update status.
 
 	return r.Status().Update(ctx, &currentE2NodeSet)
-
 }
 
 // updateE2NodeSetConditions updates the E2NodeSet conditions.
 
 func (r *E2NodeSetReconciler) updateE2NodeSetConditions(e2nodeSet *nephoranv1.E2NodeSet, readyReplicas, currentReplicas int32) {
-
 	now := metav1.Now()
 
 	// Available condition.
 
 	availableCondition := nephoranv1.E2NodeSetCondition{
-
 		Type: nephoranv1.E2NodeSetConditionAvailable,
 
 		LastTransitionTime: now,
@@ -1698,7 +1500,6 @@ func (r *E2NodeSetReconciler) updateE2NodeSetConditions(e2nodeSet *nephoranv1.E2
 	// Progressing condition.
 
 	progressingCondition := nephoranv1.E2NodeSetCondition{
-
 		Type: nephoranv1.E2NodeSetConditionProgressing,
 
 		LastTransitionTime: now,
@@ -1735,29 +1536,22 @@ func (r *E2NodeSetReconciler) updateE2NodeSetConditions(e2nodeSet *nephoranv1.E2
 	r.setE2NodeSetCondition(e2nodeSet, availableCondition)
 
 	r.setE2NodeSetCondition(e2nodeSet, progressingCondition)
-
 }
 
 // setE2NodeSetCondition sets a condition in the E2NodeSet status.
 
 func (r *E2NodeSetReconciler) setE2NodeSetCondition(e2nodeSet *nephoranv1.E2NodeSet, condition nephoranv1.E2NodeSetCondition) {
-
 	// Find existing condition.
 
 	for i, existingCondition := range e2nodeSet.Status.Conditions {
-
 		if existingCondition.Type == condition.Type {
 
 			// Update existing condition if status changed.
 
 			if existingCondition.Status != condition.Status {
-
 				condition.LastTransitionTime = metav1.Now()
-
 			} else {
-
 				condition.LastTransitionTime = existingCondition.LastTransitionTime
-
 			}
 
 			e2nodeSet.Status.Conditions[i] = condition
@@ -1765,19 +1559,16 @@ func (r *E2NodeSetReconciler) setE2NodeSetCondition(e2nodeSet *nephoranv1.E2Node
 			return
 
 		}
-
 	}
 
 	// Add new condition.
 
 	e2nodeSet.Status.Conditions = append(e2nodeSet.Status.Conditions, condition)
-
 }
 
 // handleDeletion handles the deletion of an E2NodeSet and cleanup of all associated ConfigMaps with exponential backoff.
 
 func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Handling E2NodeSet deletion", "name", e2nodeSet.Name, "namespace", e2nodeSet.Namespace)
@@ -1791,13 +1582,10 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 	// Get all ConfigMaps that belong to this E2NodeSet.
 
 	currentConfigMaps, err := r.getCurrentE2NodeConfigMaps(ctx, e2nodeSet)
-
 	if err != nil {
-
 		logger.Error(err, "Failed to get current E2 node ConfigMaps during deletion")
 
 		// Continue with cleanup attempt even if we can't list ConfigMaps.
-
 	}
 
 	// Delete all ConfigMaps belonging to this E2NodeSet.
@@ -1813,7 +1601,6 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 			"configMap", configMap.Name, "nodeID", nodeID)
 
 		if err := r.Delete(ctx, configMap); err != nil {
-
 			if !errors.IsNotFound(err) {
 
 				logger.Error(err, "Failed to delete E2 node ConfigMap during deletion",
@@ -1823,13 +1610,10 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 				cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to delete ConfigMap %s: %w", configMap.Name, err))
 
 			}
-
 		} else {
-
 			logger.Info("Successfully deleted E2 node ConfigMap during deletion",
 
 				"configMap", configMap.Name, "nodeID", nodeID)
-
 		}
 
 	}
@@ -1859,9 +1643,7 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 			controllerutil.RemoveFinalizer(e2nodeSet, E2NodeSetFinalizer)
 
 			if err := r.Update(ctx, e2nodeSet); err != nil {
-
 				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer after cleanup failure: %w", err)
-
 			}
 
 			r.Recorder.Eventf(e2nodeSet, corev1.EventTypeWarning, "CleanupFailedMaxRetries",
@@ -1909,9 +1691,7 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 	controllerutil.RemoveFinalizer(e2nodeSet, E2NodeSetFinalizer)
 
 	if err := r.Update(ctx, e2nodeSet); err != nil {
-
 		return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
-
 	}
 
 	logger.Info("Successfully completed E2NodeSet deletion cleanup",
@@ -1925,5 +1705,4 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 		"Successfully deleted E2NodeSet and %d E2 nodes", len(currentConfigMaps))
 
 	return ctrl.Result{}, nil
-
 }

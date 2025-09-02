@@ -272,15 +272,11 @@ type PolicyMetrics struct {
 // NewPolicyEngine creates a new policy engine.
 
 func NewPolicyEngine(config *PolicyEngineConfig, logger *logging.StructuredLogger) (*PolicyEngine, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("policy config is required")
-
 	}
 
 	engine := &PolicyEngine{
-
 		config: config,
 
 		logger: logger,
@@ -295,9 +291,7 @@ func NewPolicyEngine(config *PolicyEngineConfig, logger *logging.StructuredLogge
 	// Initialize rules.
 
 	for _, rule := range config.Rules {
-
 		engine.rules[rule.Name] = rule
-
 	}
 
 	// Initialize certificate pinning.
@@ -305,7 +299,6 @@ func NewPolicyEngine(config *PolicyEngineConfig, logger *logging.StructuredLogge
 	if config.CertificatePinning {
 
 		engine.pinningStore = &CertificatePinningStore{
-
 			pins: make(map[string]*CertificatePin),
 
 			dynamicPins: make(map[string]*DynamicPin),
@@ -324,9 +317,7 @@ func NewPolicyEngine(config *PolicyEngineConfig, logger *logging.StructuredLogge
 	// Initialize O-RAN validator.
 
 	if config.ORANCompliance != nil && config.ORANCompliance.Enabled {
-
 		engine.oranValidator = &ORANPolicyValidator{
-
 			config: config.ORANCompliance,
 
 			componentRules: make(map[string]*ComponentRule),
@@ -337,39 +328,31 @@ func NewPolicyEngine(config *PolicyEngineConfig, logger *logging.StructuredLogge
 
 			logger: logger,
 		}
-
 	}
 
 	// Register custom validators.
 
 	for _, validatorName := range config.CustomValidators {
-
 		if err := engine.registerCustomValidator(validatorName); err != nil {
-
 			logger.Warn("failed to register custom validator",
 
 				"validator", validatorName,
 
 				"error", err)
-
 		}
-
 	}
 
 	return engine, nil
-
 }
 
 // ValidateCertificate validates a certificate against policies.
 
 func (pe *PolicyEngine) ValidateCertificate(ctx context.Context, cert *x509.Certificate) *PolicyValidationResult {
-
 	start := time.Now()
 
 	pe.metrics.TotalValidations.Add(1)
 
 	result := &PolicyValidationResult{
-
 		Valid: true,
 
 		Violations: []PolicyViolation{},
@@ -379,7 +362,6 @@ func (pe *PolicyEngine) ValidateCertificate(ctx context.Context, cert *x509.Cert
 		Score: 100.0,
 
 		Details: &PolicyValidationDetails{
-
 			Categories: make(map[string]int),
 
 			Recommendations: []string{},
@@ -389,41 +371,31 @@ func (pe *PolicyEngine) ValidateCertificate(ctx context.Context, cert *x509.Cert
 	// Check algorithm strength.
 
 	if pe.config.AlgorithmStrengthCheck {
-
 		pe.validateAlgorithmStrength(cert, result)
-
 	}
 
 	// Check certificate pinning.
 
 	if pe.config.CertificatePinning {
-
 		pe.validateCertificatePinning(cert, result)
-
 	}
 
 	// Apply general policy rules.
 
 	for _, rule := range pe.rules {
-
 		pe.applyPolicyRule(cert, &rule, result)
-
 	}
 
 	// Check extended validation requirements.
 
 	if pe.config.RequireExtendedValidation {
-
 		pe.validateExtendedValidation(cert, result)
-
 	}
 
 	// O-RAN compliance validation.
 
 	if pe.oranValidator != nil {
-
 		pe.validateORANCompliance(ctx, cert, result)
-
 	}
 
 	// Apply custom validators.
@@ -433,16 +405,11 @@ func (pe *PolicyEngine) ValidateCertificate(ctx context.Context, cert *x509.Cert
 		customResult, err := validator.Validate(ctx, cert, nil)
 
 		if err != nil {
-
 			result.Warnings = append(result.Warnings, PolicyWarning{
-
 				Description: fmt.Sprintf("custom validator %s failed: %v", validator.Name(), err),
 			})
-
 		} else {
-
 			pe.mergeValidationResults(result, customResult)
-
 		}
 
 	}
@@ -476,23 +443,19 @@ func (pe *PolicyEngine) ValidateCertificate(ctx context.Context, cert *x509.Cert
 		"duration", duration)
 
 	return result
-
 }
 
 // ValidateServiceCertificate validates a certificate for a specific service.
 
 func (pe *PolicyEngine) ValidateServiceCertificate(ctx context.Context, cert *x509.Certificate, serviceName, namespace string) *PolicyValidationResult {
-
 	// Get service-specific policy.
 
 	servicePolicy := pe.getServicePolicy(serviceName, namespace)
 
 	if servicePolicy == nil {
-
 		// Use default validation.
 
 		return pe.ValidateCertificate(ctx, cert)
-
 	}
 
 	result := pe.ValidateCertificate(ctx, cert)
@@ -508,32 +471,24 @@ func (pe *PolicyEngine) ValidateServiceCertificate(ctx context.Context, cert *x5
 		customResult, err := validator.Validate(ctx, cert, servicePolicy)
 
 		if err != nil {
-
 			result.Warnings = append(result.Warnings, PolicyWarning{
-
 				Description: fmt.Sprintf("service validator %s failed: %v", validator.Name(), err),
 			})
-
 		} else {
-
 			pe.mergeValidationResults(result, customResult)
-
 		}
 
 	}
 
 	return result
-
 }
 
 // Algorithm strength validation.
 
 func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	// Check signature algorithm.
 
 	weakAlgorithms := map[x509.SignatureAlgorithm]bool{
-
 		x509.MD2WithRSA: true,
 
 		x509.MD5WithRSA: true,
@@ -548,7 +503,6 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 	if weakAlgorithms[cert.SignatureAlgorithm] {
 
 		violation := PolicyViolation{
-
 			Severity: RuleSeverityCritical,
 
 			Field: "signature_algorithm",
@@ -579,7 +533,6 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 		if keySize < pe.config.MinimumRSAKeySize {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityError,
 
 				Field: "rsa_key_size",
@@ -612,7 +565,6 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 		allowed := false
 
 		for _, allowedCurve := range pe.config.AllowedECCurves {
-
 			if curveName == allowedCurve {
 
 				allowed = true
@@ -620,13 +572,11 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 				break
 
 			}
-
 		}
 
 		if !allowed {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityError,
 
 				Field: "ec_curve",
@@ -649,17 +599,13 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 		}
 
 	}
-
 }
 
 // Certificate pinning validation.
 
 func (pe *PolicyEngine) validateCertificatePinning(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	if pe.pinningStore == nil {
-
 		return
-
 	}
 
 	// Calculate certificate fingerprint.
@@ -673,11 +619,9 @@ func (pe *PolicyEngine) validateCertificatePinning(cert *x509.Certificate, resul
 	pin := pe.pinningStore.GetPin(cert.Subject.CommonName)
 
 	if pin != nil {
-
 		if pin.Fingerprint != fingerprint && pin.PublicKeyHash != publicKeyHash {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityCritical,
 
 				Field: "certificate_pin",
@@ -706,35 +650,28 @@ func (pe *PolicyEngine) validateCertificatePinning(cert *x509.Certificate, resul
 				"certificate matches pinned value")
 
 		}
-
 	}
 
 	// Check dynamic pins.
 
 	pe.checkDynamicPins(cert, result)
-
 }
 
 func (pe *PolicyEngine) calculateFingerprint(cert *x509.Certificate) string {
-
 	hash := sha256.Sum256(cert.Raw)
 
 	return hex.EncodeToString(hash[:])
-
 }
 
 func (pe *PolicyEngine) calculatePublicKeyHash(cert *x509.Certificate) string {
-
 	publicKeyDER, _ := x509.MarshalPKIXPublicKey(cert.PublicKey)
 
 	hash := sha256.Sum256(publicKeyDER)
 
 	return hex.EncodeToString(hash[:])
-
 }
 
 func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	pe.pinningStore.mu.RLock()
 
 	defer pe.pinningStore.mu.RUnlock()
@@ -752,7 +689,6 @@ func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyV
 			found := false
 
 			for _, pin := range dynamicPin.CurrentPins {
-
 				if pin == fingerprint {
 
 					found = true
@@ -760,13 +696,11 @@ func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyV
 					break
 
 				}
-
 			}
 
 			if !found {
 
 				warning := PolicyWarning{
-
 					Field: "dynamic_pin",
 
 					Value: fingerprint,
@@ -785,17 +719,14 @@ func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyV
 		}
 
 	}
-
 }
 
 // Extended validation.
 
 func (pe *PolicyEngine) validateExtendedValidation(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	// Check for EV OID in certificate policies.
 
 	evOIDs := []string{
-
 		"2.23.140.1.1", // CA/Browser Forum EV OID
 
 		"1.3.6.1.4.1.34697.1.1", // Example vendor EV OID
@@ -805,17 +736,14 @@ func (pe *PolicyEngine) validateExtendedValidation(cert *x509.Certificate, resul
 	hasEV := false
 
 	for _, ext := range cert.Extensions {
-
 		// Certificate Policies extension OID: 2.5.29.32.
 
 		if ext.Id.Equal([]int{2, 5, 29, 32}) {
-
 			// Parse certificate policies.
 
 			// This is simplified - real implementation would parse ASN.1.
 
 			for _, oid := range evOIDs {
-
 				if strings.Contains(string(ext.Value), oid) {
 
 					hasEV = true
@@ -823,17 +751,13 @@ func (pe *PolicyEngine) validateExtendedValidation(cert *x509.Certificate, resul
 					break
 
 				}
-
 			}
-
 		}
-
 	}
 
 	if !hasEV {
 
 		violation := PolicyViolation{
-
 			Severity: RuleSeverityError,
 
 			Field: "extended_validation",
@@ -858,15 +782,12 @@ func (pe *PolicyEngine) validateExtendedValidation(cert *x509.Certificate, resul
 	pe.validateEVOrganization(cert, result)
 
 	pe.validateEVJurisdiction(cert, result)
-
 }
 
 func (pe *PolicyEngine) validateEVOrganization(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	if cert.Subject.Organization == nil || len(cert.Subject.Organization) == 0 {
 
 		warning := PolicyWarning{
-
 			Field: "organization",
 
 			Value: "not present",
@@ -881,27 +802,21 @@ func (pe *PolicyEngine) validateEVOrganization(cert *x509.Certificate, result *P
 		result.Score -= 5.0
 
 	}
-
 }
 
 func (pe *PolicyEngine) validateEVJurisdiction(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	// Check for jurisdiction extensions.
 
 	// OID: 1.3.6.1.4.1.311.60.2.1.3 (jurisdictionCountry).
 
 	// This is simplified - real implementation would check specific OIDs.
-
 }
 
 // O-RAN compliance validation.
 
 func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.Certificate, result *PolicyValidationResult) {
-
 	if pe.oranValidator == nil {
-
 		return
-
 	}
 
 	// Check required extensions.
@@ -911,7 +826,6 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 		hasExtension := false
 
 		for _, ext := range cert.Extensions {
-
 			if ext.Id.String() == requiredOID {
 
 				hasExtension = true
@@ -919,13 +833,11 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 				break
 
 			}
-
 		}
 
 		if !hasExtension {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityError,
 
 				Field: "oran_extension",
@@ -952,9 +864,7 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 	// Validate naming convention.
 
 	if pe.oranValidator.namingValidator != nil {
-
 		pe.validateORANNaming(cert, result)
-
 	}
 
 	// Check security level.
@@ -966,7 +876,6 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 		if securityLevel < pe.oranValidator.config.MinimumSecurityLevel {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityError,
 
 				Field: "security_level",
@@ -993,11 +902,9 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 	// Check forbidden algorithms.
 
 	for _, forbidden := range pe.oranValidator.config.ForbiddenAlgorithms {
-
 		if cert.SignatureAlgorithm.String() == forbidden {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityCritical,
 
 				Field: "signature_algorithm",
@@ -1018,21 +925,16 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 			pe.metrics.ORANViolations.Add(1)
 
 		}
-
 	}
 
 	// Check HSM protection requirement.
 
 	if pe.oranValidator.config.RequireHSMProtection {
-
 		pe.validateHSMProtection(cert, result)
-
 	}
-
 }
 
 func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	validator := pe.oranValidator.namingValidator
 
 	for _, rule := range validator.rules {
@@ -1048,17 +950,13 @@ func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *Polic
 		case "O":
 
 			if len(cert.Subject.Organization) > 0 {
-
 				value = cert.Subject.Organization[0]
-
 			}
 
 		case "OU":
 
 			if len(cert.Subject.OrganizationalUnit) > 0 {
-
 				value = cert.Subject.OrganizationalUnit[0]
-
 			}
 
 		}
@@ -1074,11 +972,9 @@ func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *Polic
 		}
 
 		if !pattern.MatchString(value) {
-
 			if rule.Required {
 
 				violation := PolicyViolation{
-
 					Severity: RuleSeverityError,
 
 					Field: rule.Field,
@@ -1099,7 +995,6 @@ func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *Polic
 			} else {
 
 				warning := PolicyWarning{
-
 					Field: rule.Field,
 
 					Value: value,
@@ -1114,15 +1009,12 @@ func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *Polic
 				result.Score -= 2.0
 
 			}
-
 		}
 
 	}
-
 }
 
 func (pe *PolicyEngine) validateHSMProtection(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	// Check for HSM protection indicators.
 
 	// This might be in custom extensions or key usage.
@@ -1132,7 +1024,6 @@ func (pe *PolicyEngine) validateHSMProtection(cert *x509.Certificate, result *Po
 	hasHSMIndicator := false
 
 	for _, ext := range cert.Extensions {
-
 		// Check for HSM protection OID (vendor-specific).
 
 		if ext.Id.String() == "1.3.6.1.4.1.41482.3.1" { // Example HSM OID
@@ -1142,13 +1033,11 @@ func (pe *PolicyEngine) validateHSMProtection(cert *x509.Certificate, result *Po
 			break
 
 		}
-
 	}
 
 	if !hasHSMIndicator {
 
 		violation := PolicyViolation{
-
 			Severity: RuleSeverityError,
 
 			Field: "hsm_protection",
@@ -1167,13 +1056,11 @@ func (pe *PolicyEngine) validateHSMProtection(cert *x509.Certificate, result *Po
 		result.Score -= 20.0
 
 	}
-
 }
 
 // Service policy application.
 
 func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *ServicePolicy, result *PolicyValidationResult) {
-
 	// Check pinned certificates.
 
 	if len(policy.PinnedCertificates) > 0 {
@@ -1183,7 +1070,6 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 		found := false
 
 		for _, pinned := range policy.PinnedCertificates {
-
 			if pinned == fingerprint {
 
 				found = true
@@ -1191,13 +1077,11 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 				break
 
 			}
-
 		}
 
 		if !found {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityCritical,
 
 				Field: "service_pin",
@@ -1222,13 +1106,10 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 	// Check key usage.
 
 	if len(policy.RequiredKeyUsage) > 0 {
-
 		for _, required := range policy.RequiredKeyUsage {
-
 			if cert.KeyUsage&required == 0 {
 
 				violation := PolicyViolation{
-
 					Severity: RuleSeverityError,
 
 					Field: "key_usage",
@@ -1247,17 +1128,13 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 				result.Score -= 10.0
 
 			}
-
 		}
-
 	}
 
 	// Check DNS names.
 
 	if len(policy.AllowedDNSNames) > 0 {
-
 		pe.validateAllowedDNSNames(cert, policy, result)
-
 	}
 
 	// Check validity period.
@@ -1267,21 +1144,16 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 	// Apply custom rules.
 
 	for _, rule := range policy.CustomRules {
-
 		pe.applyPolicyRule(cert, &rule, result)
-
 	}
-
 }
 
 func (pe *PolicyEngine) validateAllowedDNSNames(cert *x509.Certificate, policy *ServicePolicy, result *PolicyValidationResult) {
-
 	for _, dnsName := range cert.DNSNames {
 
 		allowed := false
 
 		for _, allowedPattern := range policy.AllowedDNSNames {
-
 			if matched, _ := regexp.MatchString(allowedPattern, dnsName); matched {
 
 				allowed = true
@@ -1289,13 +1161,11 @@ func (pe *PolicyEngine) validateAllowedDNSNames(cert *x509.Certificate, policy *
 				break
 
 			}
-
 		}
 
 		if !allowed {
 
 			violation := PolicyViolation{
-
 				Severity: RuleSeverityError,
 
 				Field: "dns_name",
@@ -1316,17 +1186,14 @@ func (pe *PolicyEngine) validateAllowedDNSNames(cert *x509.Certificate, policy *
 		}
 
 	}
-
 }
 
 func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *ServicePolicy, result *PolicyValidationResult) {
-
 	validityDays := int(cert.NotAfter.Sub(cert.NotBefore).Hours() / 24)
 
 	if policy.MinimumValidityDays > 0 && validityDays < policy.MinimumValidityDays {
 
 		violation := PolicyViolation{
-
 			Severity: RuleSeverityWarning,
 
 			Field: "validity_period",
@@ -1347,7 +1214,6 @@ func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *S
 	if policy.MaximumValidityDays > 0 && validityDays > policy.MaximumValidityDays {
 
 		violation := PolicyViolation{
-
 			Severity: RuleSeverityError,
 
 			Field: "validity_period",
@@ -1366,23 +1232,19 @@ func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *S
 		result.Score -= 10.0
 
 	}
-
 }
 
 // Helper methods.
 
 func (pe *PolicyEngine) applyPolicyRule(cert *x509.Certificate, rule *PolicyRule, result *PolicyValidationResult) {
-
 	// Apply rule based on type.
 
 	// This is simplified - real implementation would have comprehensive rule evaluation.
 
 	result.Details.RulesEvaluated++
-
 }
 
 func (pe *PolicyEngine) getServicePolicy(serviceName, namespace string) *ServicePolicy {
-
 	pe.mu.RLock()
 
 	defer pe.mu.RUnlock()
@@ -1390,17 +1252,13 @@ func (pe *PolicyEngine) getServicePolicy(serviceName, namespace string) *Service
 	key := fmt.Sprintf("%s/%s", namespace, serviceName)
 
 	return pe.config.ServicePolicies[key]
-
 }
 
 func (pe *PolicyEngine) loadServicePins() {
-
 	for _, policy := range pe.config.ServicePolicies {
-
 		for _, pinHash := range policy.PinnedCertificates {
 
 			pin := &CertificatePin{
-
 				ServiceName: policy.ServiceName,
 
 				Fingerprint: pinHash,
@@ -1411,21 +1269,15 @@ func (pe *PolicyEngine) loadServicePins() {
 			pe.pinningStore.pins[policy.ServiceName] = pin
 
 		}
-
 	}
-
 }
 
 func (pe *PolicyEngine) createNamingValidator() *NamingConventionValidator {
-
 	return &NamingConventionValidator{
-
 		patterns: make(map[string]*regexp.Regexp),
 
 		rules: []NamingRule{
-
 			{
-
 				Field: "CN",
 
 				Pattern: `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`,
@@ -1436,7 +1288,6 @@ func (pe *PolicyEngine) createNamingValidator() *NamingConventionValidator {
 			},
 
 			{
-
 				Field: "O",
 
 				Pattern: `^O-RAN-.*$`,
@@ -1447,13 +1298,10 @@ func (pe *PolicyEngine) createNamingValidator() *NamingConventionValidator {
 			},
 		},
 	}
-
 }
 
 func (pe *PolicyEngine) createSecurityAnalyzer() *SecurityLevelAnalyzer {
-
 	analyzer := &SecurityLevelAnalyzer{
-
 		criteria: make(map[int][]SecurityCriterion),
 
 		weights: make(map[string]float64),
@@ -1462,21 +1310,15 @@ func (pe *PolicyEngine) createSecurityAnalyzer() *SecurityLevelAnalyzer {
 	// Define security level criteria.
 
 	analyzer.criteria[1] = []SecurityCriterion{
-
 		{
-
 			Name: "key_size",
 
 			Check: func(cert *x509.Certificate) bool {
-
 				if rsaKey, ok := cert.PublicKey.(*rsa.PublicKey); ok {
-
 					return rsaKey.N.BitLen() >= 2048
-
 				}
 
 				return true
-
 			},
 
 			Weight: 1.0,
@@ -1485,13 +1327,10 @@ func (pe *PolicyEngine) createSecurityAnalyzer() *SecurityLevelAnalyzer {
 		},
 
 		{
-
 			Name: "signature_algorithm",
 
 			Check: func(cert *x509.Certificate) bool {
-
 				return cert.SignatureAlgorithm >= x509.SHA256WithRSA
-
 			},
 
 			Weight: 1.0,
@@ -1501,13 +1340,11 @@ func (pe *PolicyEngine) createSecurityAnalyzer() *SecurityLevelAnalyzer {
 	}
 
 	return analyzer
-
 }
 
 // AnalyzeSecurityLevel performs analyzesecuritylevel operation.
 
 func (sa *SecurityLevelAnalyzer) AnalyzeSecurityLevel(cert *x509.Certificate) int {
-
 	maxLevel := 0
 
 	for level, criteria := range sa.criteria {
@@ -1515,7 +1352,6 @@ func (sa *SecurityLevelAnalyzer) AnalyzeSecurityLevel(cert *x509.Certificate) in
 		passed := true
 
 		for _, criterion := range criteria {
-
 			if criterion.Required && !criterion.Check(cert) {
 
 				passed = false
@@ -1523,55 +1359,43 @@ func (sa *SecurityLevelAnalyzer) AnalyzeSecurityLevel(cert *x509.Certificate) in
 				break
 
 			}
-
 		}
 
 		if passed && level > maxLevel {
-
 			maxLevel = level
-
 		}
 
 	}
 
 	return maxLevel
-
 }
 
 func (pe *PolicyEngine) registerCustomValidator(name string) error {
-
 	// This would load and register custom validators.
 
 	// Simplified implementation.
 
 	return fmt.Errorf("custom validator registration not implemented: %s", name)
-
 }
 
 func (pe *PolicyEngine) mergeValidationResults(target, source *PolicyValidationResult) {
-
 	target.Violations = append(target.Violations, source.Violations...)
 
 	target.Warnings = append(target.Warnings, source.Warnings...)
 
 	if !source.Valid {
-
 		target.Valid = false
-
 	}
 
 	// Merge scores (weighted average).
 
 	target.Score = (target.Score + source.Score) / 2
-
 }
 
 func (pe *PolicyEngine) calculateScore(result *PolicyValidationResult) float64 {
-
 	score := 100.0
 
 	for _, violation := range result.Violations {
-
 		switch violation.Severity {
 
 		case RuleSeverityCritical:
@@ -1587,27 +1411,20 @@ func (pe *PolicyEngine) calculateScore(result *PolicyValidationResult) float64 {
 			score -= 5.0
 
 		}
-
 	}
 
 	for range result.Warnings {
-
 		score -= 2.0
-
 	}
 
 	if score < 0 {
-
 		score = 0
-
 	}
 
 	return score
-
 }
 
 func (pe *PolicyEngine) enforcePolicy(cert *x509.Certificate, result *PolicyValidationResult) {
-
 	pe.metrics.EnforcementActions.Add(1)
 
 	switch pe.config.EnforcementMode {
@@ -1643,7 +1460,6 @@ func (pe *PolicyEngine) enforcePolicy(cert *x509.Certificate, result *PolicyVali
 			"violations", len(result.Violations))
 
 	}
-
 }
 
 // CertificatePinningStore methods.
@@ -1651,19 +1467,16 @@ func (pe *PolicyEngine) enforcePolicy(cert *x509.Certificate, result *PolicyVali
 // GetPin performs getpin operation.
 
 func (ps *CertificatePinningStore) GetPin(serviceName string) *CertificatePin {
-
 	ps.mu.RLock()
 
 	defer ps.mu.RUnlock()
 
 	return ps.pins[serviceName]
-
 }
 
 // AddPin performs addpin operation.
 
 func (ps *CertificatePinningStore) AddPin(pin *CertificatePin) {
-
 	ps.mu.Lock()
 
 	defer ps.mu.Unlock()
@@ -1679,43 +1492,35 @@ func (ps *CertificatePinningStore) AddPin(pin *CertificatePin) {
 		// Keep only last 3 backup pins.
 
 		if len(ps.backupPins[pin.ServiceName]) > 3 {
-
 			ps.backupPins[pin.ServiceName] = ps.backupPins[pin.ServiceName][1:]
-
 		}
 
 	}
-
 }
 
 // RemovePin performs removepin operation.
 
 func (ps *CertificatePinningStore) RemovePin(serviceName string) {
-
 	ps.mu.Lock()
 
 	defer ps.mu.Unlock()
 
 	delete(ps.pins, serviceName)
-
 }
 
 // GetBackupPins performs getbackuppins operation.
 
 func (ps *CertificatePinningStore) GetBackupPins(serviceName string) []*CertificatePin {
-
 	ps.mu.RLock()
 
 	defer ps.mu.RUnlock()
 
 	return ps.backupPins[serviceName]
-
 }
 
 // AddPolicyRule adds a new policy rule.
 
 func (pe *PolicyEngine) AddPolicyRule(rule PolicyRule) {
-
 	pe.mu.Lock()
 
 	defer pe.mu.Unlock()
@@ -1723,13 +1528,11 @@ func (pe *PolicyEngine) AddPolicyRule(rule PolicyRule) {
 	pe.rules[rule.Name] = rule
 
 	pe.logger.Info("policy rule added", "rule", rule.Name)
-
 }
 
 // RemovePolicyRule removes a policy rule.
 
 func (pe *PolicyEngine) RemovePolicyRule(name string) {
-
 	pe.mu.Lock()
 
 	defer pe.mu.Unlock()
@@ -1737,15 +1540,12 @@ func (pe *PolicyEngine) RemovePolicyRule(name string) {
 	delete(pe.rules, name)
 
 	pe.logger.Info("policy rule removed", "rule", name)
-
 }
 
 // GetMetrics returns policy enforcement metrics.
 
 func (pe *PolicyEngine) GetMetrics() map[string]uint64 {
-
 	return map[string]uint64{
-
 		"total_validations": pe.metrics.TotalValidations.Load(),
 
 		"policy_violations": pe.metrics.PolicyViolations.Load(),
@@ -1762,5 +1562,4 @@ func (pe *PolicyEngine) GetMetrics() map[string]uint64 {
 
 		"enforcement_actions": pe.metrics.EnforcementActions.Load(),
 	}
-
 }

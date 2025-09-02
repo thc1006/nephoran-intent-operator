@@ -146,17 +146,14 @@ type PackageStatusUpdate struct {
 // setupPackageRoutes sets up package management API routes.
 
 func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
-
 	packages := router.PathPrefix("/packages").Subrouter()
 
 	// Apply package-specific middleware.
 
 	if s.authMiddleware != nil {
-
 		// Most package operations require at least read permissions.
 
 		packages.Use(s.authMiddleware.RequirePermissionMiddleware(auth.PermissionReadIntent))
-
 	}
 
 	// Package CRUD operations.
@@ -232,13 +229,11 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 	packages.HandleFunc("/bulk/validate", s.bulkValidatePackages).Methods("POST")
 
 	packages.HandleFunc("/bulk/deploy", s.bulkDeployPackages).Methods("POST")
-
 }
 
 // listPackages handles GET /api/v1/packages.
 
 func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request) {
-
 	_ = r.Context() // Context available for future use
 
 	pagination := s.parsePaginationParams(r)
@@ -248,9 +243,7 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
-
 		repository = "default"
-
 	}
 
 	// Check cache first.
@@ -298,15 +291,11 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	endIndex := startIndex + pagination.PageSize
 
 	if endIndex > totalItems {
-
 		endIndex = totalItems
-
 	}
 
 	if startIndex > totalItems {
-
 		startIndex = totalItems
-
 	}
 
 	paginatedItems := packages[startIndex:endIndex]
@@ -314,7 +303,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	// Build response with metadata.
 
 	meta := &Meta{
-
 		Page: pagination.Page,
 
 		PageSize: pagination.PageSize,
@@ -329,7 +317,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	baseURL := fmt.Sprintf("/api/v1/packages?repository=%s&page_size=%d", repository, pagination.PageSize)
 
 	links := &Links{
-
 		Self: fmt.Sprintf("%s&page=%d", baseURL, pagination.Page),
 	}
 
@@ -350,7 +337,6 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	}
 
 	result := map[string]interface{}{
-
 		"items": paginatedItems,
 
 		"meta": meta,
@@ -361,19 +347,15 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 	// Cache the result.
 
 	if s.cache != nil {
-
 		s.cache.Set(cacheKey, result)
-
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, result)
-
 }
 
 // getPackage handles GET /api/v1/packages/{name}.
 
 func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	vars := mux.Vars(r)
@@ -383,17 +365,13 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
-
 		repository = "default"
-
 	}
 
 	revision := r.URL.Query().Get("revision")
 
 	if revision == "" {
-
 		revision = "latest"
-
 	}
 
 	// Check cache first.
@@ -429,7 +407,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
-
 		Repository: repository,
 
 		PackageName: name,
@@ -440,7 +417,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	// Get lifecycle status.
 
 	lifecycleStatus, err := s.packageManager.GetLifecycleStatus(ctx, packageRef)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to get lifecycle status", "package", name, "repository", repository)
@@ -456,7 +432,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	// Get package metrics.
 
 	metrics, err := s.packageManager.GetPackageMetrics(ctx, packageRef)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to get package metrics", "package", name, "repository", repository)
@@ -470,7 +445,6 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	// Build comprehensive response.
 
 	response := PackageResponse{
-
 		LifecycleStatus: lifecycleStatus,
 
 		Metrics: metrics,
@@ -483,19 +457,15 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	// Cache the result.
 
 	if s.cache != nil {
-
 		s.cache.Set(cacheKey, response)
-
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, response)
-
 }
 
 // proposePackage handles POST /api/v1/packages/{name}/propose.
 
 func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	// Check permissions for package transitions.
@@ -517,30 +487,23 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
-
 		repository = "default"
-
 	}
 
 	revision := r.URL.Query().Get("revision")
 
 	if revision == "" {
-
 		revision = "latest"
-
 	}
 
 	var req TransitionRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
 		// If no body provided, use defaults.
 
 		req = TransitionRequest{
-
 			TargetStage: string(porch.PackageRevisionLifecycleProposed),
 		}
-
 	}
 
 	if s.packageManager == nil {
@@ -556,7 +519,6 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
-
 		Repository: repository,
 
 		PackageName: name,
@@ -567,7 +529,6 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	// Create transition options.
 
 	opts := &packagerevision.TransitionOptions{
-
 		SkipValidation: req.SkipValidation,
 
 		SkipApproval: req.SkipApproval,
@@ -588,15 +549,12 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	}
 
 	if req.Metadata != nil {
-
 		opts.Metadata = req.Metadata
-
 	}
 
 	// Perform the transition.
 
 	result, err := s.packageManager.TransitionToProposed(ctx, packageRef, opts)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to propose package", "package", name, "repository", repository)
@@ -622,7 +580,6 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	// Broadcast package status update.
 
 	s.broadcastPackageUpdate(&PackageStatusUpdate{
-
 		PackageName: name,
 
 		Repository: repository,
@@ -643,13 +600,11 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	})
 
 	s.writeJSONResponse(w, http.StatusOK, result)
-
 }
 
 // approvePackage handles POST /api/v1/packages/{name}/approve.
 
 func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	// Check admin permissions for package approval.
@@ -671,30 +626,23 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
-
 		repository = "default"
-
 	}
 
 	revision := r.URL.Query().Get("revision")
 
 	if revision == "" {
-
 		revision = "latest"
-
 	}
 
 	var req TransitionRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
 		// If no body provided, use defaults.
 
 		req = TransitionRequest{
-
 			TargetStage: string(porch.PackageRevisionLifecyclePublished),
 		}
-
 	}
 
 	if s.packageManager == nil {
@@ -710,7 +658,6 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
-
 		Repository: repository,
 
 		PackageName: name,
@@ -721,7 +668,6 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	// Create transition options.
 
 	opts := &packagerevision.TransitionOptions{
-
 		SkipValidation: req.SkipValidation,
 
 		SkipApproval: req.SkipApproval,
@@ -742,15 +688,12 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	}
 
 	if req.Metadata != nil {
-
 		opts.Metadata = req.Metadata
-
 	}
 
 	// Perform the transition to published.
 
 	result, err := s.packageManager.TransitionToPublished(ctx, packageRef, opts)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to approve package", "package", name, "repository", repository)
@@ -776,7 +719,6 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	// Broadcast package status update.
 
 	s.broadcastPackageUpdate(&PackageStatusUpdate{
-
 		PackageName: name,
 
 		Repository: repository,
@@ -797,13 +739,11 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	})
 
 	s.writeJSONResponse(w, http.StatusOK, result)
-
 }
 
 // validatePackage handles POST /api/v1/packages/{name}/validate.
 
 func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	vars := mux.Vars(r)
@@ -813,17 +753,13 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
-
 		repository = "default"
-
 	}
 
 	revision := r.URL.Query().Get("revision")
 
 	if revision == "" {
-
 		revision = "latest"
-
 	}
 
 	if s.packageManager == nil {
@@ -839,7 +775,6 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	// Create package reference.
 
 	packageRef := &porch.PackageReference{
-
 		Repository: repository,
 
 		PackageName: name,
@@ -850,7 +785,6 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	// Perform validation.
 
 	result, err := s.packageManager.ValidateConfiguration(ctx, packageRef)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to validate package", "package", name, "repository", repository)
@@ -878,7 +812,6 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	}
 
 	s.broadcastPackageUpdate(&PackageStatusUpdate{
-
 		PackageName: name,
 
 		Repository: repository,
@@ -893,13 +826,11 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	})
 
 	s.writeJSONResponse(w, http.StatusOK, result)
-
 }
 
 // getPackageDeploymentStatus handles GET /api/v1/packages/{name}/deployment-status.
 
 func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	vars := mux.Vars(r)
@@ -909,9 +840,7 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 	repository := r.URL.Query().Get("repository")
 
 	if repository == "" {
-
 		repository = "default"
-
 	}
 
 	// Check cache first.
@@ -947,7 +876,6 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 	// Get multi-cluster status.
 
 	status, err := s.clusterManager.GetMultiClusterStatus(ctx, name)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to get package deployment status", "package", name, "repository", repository)
@@ -963,7 +891,6 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 	// Convert to API response format.
 
 	deploymentStatus := map[string]interface{}{
-
 		"package_name": status.PackageName,
 
 		"overall_status": status.OverallStatus,
@@ -976,29 +903,22 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 	// Cache the result.
 
 	if s.cache != nil {
-
 		s.cache.SetWithTTL(cacheKey, deploymentStatus, 1*time.Minute) // Shorter cache for deployment status
-
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, deploymentStatus)
-
 }
 
 // Helper functions.
 
 func (s *NephoranAPIServer) getDeploymentTargetInfo(ctx context.Context, packageRef *porch.PackageReference) []DeploymentTargetInfo {
-
 	if s.clusterManager == nil {
-
 		return []DeploymentTargetInfo{}
-
 	}
 
 	// Get multi-cluster status.
 
 	status, err := s.clusterManager.GetMultiClusterStatus(ctx, packageRef.PackageName)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to get deployment target info", "package", packageRef.PackageName)
@@ -1010,9 +930,7 @@ func (s *NephoranAPIServer) getDeploymentTargetInfo(ctx context.Context, package
 	targets := make([]DeploymentTargetInfo, 0, len(status.ClusterStatuses))
 
 	for clusterName, clusterStatus := range status.ClusterStatuses {
-
 		targets = append(targets, DeploymentTargetInfo{
-
 			ClusterName: clusterName,
 
 			Status: clusterStatus.Status,
@@ -1025,21 +943,17 @@ func (s *NephoranAPIServer) getDeploymentTargetInfo(ctx context.Context, package
 
 			ErrorMessage: clusterStatus.ErrorMessage,
 		})
-
 	}
 
 	return targets
-
 }
 
 func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) {
-
 	// Broadcast to WebSocket connections.
 
 	s.connectionsMutex.RLock()
 
 	for _, conn := range s.wsConnections {
-
 		select {
 
 		case conn.Send <- s.mustMarshal(update):
@@ -1049,7 +963,6 @@ func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) 
 			close(conn.Send)
 
 		}
-
 	}
 
 	s.connectionsMutex.RUnlock()
@@ -1059,7 +972,6 @@ func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) 
 	s.connectionsMutex.RLock()
 
 	for _, conn := range s.sseConnections {
-
 		if conn.Flusher != nil {
 
 			fmt.Fprintf(conn.Writer, "data: %s\n\n", s.mustMarshalString(update))
@@ -1067,19 +979,15 @@ func (s *NephoranAPIServer) broadcastPackageUpdate(update *PackageStatusUpdate) 
 			conn.Flusher.Flush()
 
 		}
-
 	}
 
 	s.connectionsMutex.RUnlock()
-
 }
 
 // mustMarshal marshals an object to JSON bytes, panicking on error.
 
 func (s *NephoranAPIServer) mustMarshal(v interface{}) []byte {
-
 	data, err := json.Marshal(v)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to marshal object")
@@ -1089,15 +997,12 @@ func (s *NephoranAPIServer) mustMarshal(v interface{}) []byte {
 	}
 
 	return data
-
 }
 
 // mustMarshalString marshals an object to JSON string, returning empty object on error.
 
 func (s *NephoranAPIServer) mustMarshalString(v interface{}) string {
-
 	data, err := json.Marshal(v)
-
 	if err != nil {
 
 		s.logger.Error(err, "Failed to marshal object to string")
@@ -1107,7 +1012,6 @@ func (s *NephoranAPIServer) mustMarshalString(v interface{}) string {
 	}
 
 	return string(data)
-
 }
 
 // Additional package operation handlers - stub implementations for compilation.
@@ -1115,7 +1019,6 @@ func (s *NephoranAPIServer) mustMarshalString(v interface{}) string {
 // createPackage handles POST /api/v1/packages.
 
 func (s *NephoranAPIServer) createPackage(w http.ResponseWriter, r *http.Request) {
-
 	var req PackageRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1129,63 +1032,51 @@ func (s *NephoranAPIServer) createPackage(w http.ResponseWriter, r *http.Request
 	// TODO: Implement actual package creation.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package creation not yet implemented")
-
 }
 
 // updatePackage handles PUT /api/v1/packages/{name}.
 
 func (s *NephoranAPIServer) updatePackage(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package update.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package update not yet implemented")
-
 }
 
 // deletePackage handles DELETE /api/v1/packages/{name}.
 
 func (s *NephoranAPIServer) deletePackage(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package deletion.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package deletion not yet implemented")
-
 }
 
 // listPackageRevisions handles GET /api/v1/packages/{name}/revisions.
 
 func (s *NephoranAPIServer) listPackageRevisions(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package revision listing.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"revisions": []interface{}{}})
-
 }
 
 // getPackageRevision handles GET /api/v1/packages/{name}/revisions/{revision}.
 
 func (s *NephoranAPIServer) getPackageRevision(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package revision retrieval.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package revision retrieval not yet implemented")
-
 }
 
 // publishPackage handles POST /api/v1/packages/{name}/publish.
 
 func (s *NephoranAPIServer) publishPackage(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package publishing.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package publishing not yet implemented")
-
 }
 
 // rejectPackage handles POST /api/v1/packages/{name}/reject.
 
 func (s *NephoranAPIServer) rejectPackage(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1199,53 +1090,43 @@ func (s *NephoranAPIServer) rejectPackage(w http.ResponseWriter, r *http.Request
 	// TODO: Implement actual package rejection.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package rejection not yet implemented")
-
 }
 
 // rollbackPackage handles POST /api/v1/packages/{name}/rollback.
 
 func (s *NephoranAPIServer) rollbackPackage(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package rollback.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package rollback not yet implemented")
-
 }
 
 // testPackage handles POST /api/v1/packages/{name}/test.
 
 func (s *NephoranAPIServer) testPackage(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package testing.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package testing not yet implemented")
-
 }
 
 // lintPackage handles POST /api/v1/packages/{name}/lint.
 
 func (s *NephoranAPIServer) lintPackage(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package linting.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package linting not yet implemented")
-
 }
 
 // getPackageResources handles GET /api/v1/packages/{name}/resources.
 
 func (s *NephoranAPIServer) getPackageResources(w http.ResponseWriter, r *http.Request) {
-
 	// TODO: Implement actual package resource retrieval.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"resources": []interface{}{}})
-
 }
 
 // updatePackageResources handles PUT /api/v1/packages/{name}/resources.
 
 func (s *NephoranAPIServer) updatePackageResources(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1259,13 +1140,11 @@ func (s *NephoranAPIServer) updatePackageResources(w http.ResponseWriter, r *htt
 	// TODO: Implement actual package resource update.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package resource update not yet implemented")
-
 }
 
 // getPackageDiff handles GET /api/v1/packages/{name}/diff.
 
 func (s *NephoranAPIServer) getPackageDiff(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1279,13 +1158,11 @@ func (s *NephoranAPIServer) getPackageDiff(w http.ResponseWriter, r *http.Reques
 	// TODO: Implement actual package diff.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"diff": ""})
-
 }
 
 // getPackageHistory handles GET /api/v1/packages/{name}/history.
 
 func (s *NephoranAPIServer) getPackageHistory(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1299,13 +1176,11 @@ func (s *NephoranAPIServer) getPackageHistory(w http.ResponseWriter, r *http.Req
 	// TODO: Implement actual package history.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"history": []interface{}{}})
-
 }
 
 // deployPackage handles POST /api/v1/packages/{name}/deploy.
 
 func (s *NephoranAPIServer) deployPackage(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1319,13 +1194,11 @@ func (s *NephoranAPIServer) deployPackage(w http.ResponseWriter, r *http.Request
 	// TODO: Implement actual package deployment.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package deployment not yet implemented")
-
 }
 
 // getPackageTargetClusters handles GET /api/v1/packages/{name}/target-clusters.
 
 func (s *NephoranAPIServer) getPackageTargetClusters(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1339,13 +1212,11 @@ func (s *NephoranAPIServer) getPackageTargetClusters(w http.ResponseWriter, r *h
 	// TODO: Implement actual target cluster retrieval.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"clusters": []interface{}{}})
-
 }
 
 // listPackageTemplates handles GET /api/v1/packages/templates.
 
 func (s *NephoranAPIServer) listPackageTemplates(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1353,13 +1224,11 @@ func (s *NephoranAPIServer) listPackageTemplates(w http.ResponseWriter, r *http.
 	// TODO: Implement actual template listing.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"templates": []interface{}{}})
-
 }
 
 // getPackageTemplate handles GET /api/v1/packages/templates/{template}.
 
 func (s *NephoranAPIServer) getPackageTemplate(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1373,13 +1242,11 @@ func (s *NephoranAPIServer) getPackageTemplate(w http.ResponseWriter, r *http.Re
 	// TODO: Implement actual template retrieval.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package template retrieval not yet implemented")
-
 }
 
 // listBlueprints handles GET /api/v1/packages/blueprints.
 
 func (s *NephoranAPIServer) listBlueprints(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1387,13 +1254,11 @@ func (s *NephoranAPIServer) listBlueprints(w http.ResponseWriter, r *http.Reques
 	// TODO: Implement actual blueprint listing.
 
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"blueprints": []interface{}{}})
-
 }
 
 // getBlueprint handles GET /api/v1/packages/blueprints/{blueprint}.
 
 func (s *NephoranAPIServer) getBlueprint(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1407,13 +1272,11 @@ func (s *NephoranAPIServer) getBlueprint(w http.ResponseWriter, r *http.Request)
 	// TODO: Implement actual blueprint retrieval.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Blueprint retrieval not yet implemented")
-
 }
 
 // bulkTransitionPackages handles POST /api/v1/packages/bulk/transition.
 
 func (s *NephoranAPIServer) bulkTransitionPackages(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1421,13 +1284,11 @@ func (s *NephoranAPIServer) bulkTransitionPackages(w http.ResponseWriter, r *htt
 	// TODO: Implement actual bulk transition.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package transition not yet implemented")
-
 }
 
 // bulkValidatePackages handles POST /api/v1/packages/bulk/validate.
 
 func (s *NephoranAPIServer) bulkValidatePackages(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1435,13 +1296,11 @@ func (s *NephoranAPIServer) bulkValidatePackages(w http.ResponseWriter, r *http.
 	// TODO: Implement actual bulk validation.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package validation not yet implemented")
-
 }
 
 // bulkDeployPackages handles POST /api/v1/packages/bulk/deploy.
 
 func (s *NephoranAPIServer) bulkDeployPackages(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	_ = ctx // Use ctx to avoid unused warning
@@ -1449,5 +1308,4 @@ func (s *NephoranAPIServer) bulkDeployPackages(w http.ResponseWriter, r *http.Re
 	// TODO: Implement actual bulk deployment.
 
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package deployment not yet implemented")
-
 }

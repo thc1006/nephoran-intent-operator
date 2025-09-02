@@ -206,8 +206,38 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 		return nil, fmt.Errorf("unknown security profile: %s", profile)
 	}
 
-	// Create compliance configuration
-	config := *baseConfig
+	// Create compliance configuration without copying mutex
+	config := &ORANTLSCompliance{
+		// Copy all fields except the mutex to avoid lock copying violation
+		InterfaceType:          interfaceType, // Will be set below, but initialize here
+		SecurityProfile:        baseConfig.SecurityProfile,
+		ComplianceLevel:        baseConfig.ComplianceLevel,
+		MinTLSVersion:          baseConfig.MinTLSVersion,
+		MaxTLSVersion:          baseConfig.MaxTLSVersion,
+		CipherSuites:           make([]uint16, len(baseConfig.CipherSuites)),
+		CurvePreferences:       make([]tls.CurveID, len(baseConfig.CurvePreferences)),
+		RequireEKU:             baseConfig.RequireEKU,
+		RequiredEKUs:           make([]x509.ExtKeyUsage, len(baseConfig.RequiredEKUs)),
+		RequireStrongKeys:      baseConfig.RequireStrongKeys,
+		MinRSAKeySize:          baseConfig.MinRSAKeySize,
+		MinECDSAKeySize:        baseConfig.MinECDSAKeySize,
+		OCSPStaplingRequired:   baseConfig.OCSPStaplingRequired,
+		OCSPMustStaple:         baseConfig.OCSPMustStaple,
+		OCSPSoftFail:           baseConfig.OCSPSoftFail,
+		OCSPResponseMaxAge:     baseConfig.OCSPResponseMaxAge,
+		SessionTicketsDisabled: baseConfig.SessionTicketsDisabled,
+		SessionCacheSize:       baseConfig.SessionCacheSize,
+		SessionTimeout:         baseConfig.SessionTimeout,
+		RenegotiationPolicy:    baseConfig.RenegotiationPolicy,
+		PerIPRateLimit:         make(map[string]*rate.Limiter),
+		// Note: mu is not copied to avoid lock copying violation
+	}
+
+	// Copy slices safely
+	copy(config.CipherSuites, baseConfig.CipherSuites)
+	copy(config.CurvePreferences, baseConfig.CurvePreferences)
+	copy(config.RequiredEKUs, baseConfig.RequiredEKUs)
+
 	config.InterfaceType = interfaceType
 
 	// Apply interface-specific requirements
@@ -238,7 +268,7 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 	config.PostHandshakeHook = config.defaultPostHandshakeHook
 	config.CertificateVerifier = config.defaultCertificateVerifier
 
-	return &config, nil
+	return config, nil
 }
 
 // BuildTLSConfig creates a tls.Config from O-RAN compliance settings

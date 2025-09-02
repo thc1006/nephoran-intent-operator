@@ -51,7 +51,6 @@ import (
 // human-in-the-loop processes, audit trails, and integration with external systems.
 
 type WorkflowEngine interface {
-
 	// Workflow lifecycle management.
 
 	CreateWorkflow(ctx context.Context, spec *WorkflowSpec) (*Workflow, error)
@@ -158,7 +157,6 @@ type WorkflowEngine interface {
 // workflowEngine implements comprehensive workflow management.
 
 type workflowEngine struct {
-
 	// Core dependencies.
 
 	client *Client
@@ -788,21 +786,15 @@ const (
 // NewWorkflowEngine creates a new workflow engine instance.
 
 func NewWorkflowEngine(client *Client, config *WorkflowEngineConfig) (WorkflowEngine, error) {
-
 	if client == nil {
-
 		return nil, fmt.Errorf("client cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = getDefaultWorkflowEngineConfig()
-
 	}
 
 	we := &workflowEngine{
-
 		client: client,
 
 		logger: log.Log.WithName("workflow-engine"),
@@ -867,27 +859,21 @@ func NewWorkflowEngine(client *Client, config *WorkflowEngineConfig) (WorkflowEn
 	go we.metricsCollectionWorker()
 
 	return we, nil
-
 }
 
 // CreateWorkflow creates a new workflow definition.
 
 func (we *workflowEngine) CreateWorkflow(ctx context.Context, spec *WorkflowSpec) (*Workflow, error) {
-
 	we.logger.Info("Creating workflow", "name", spec.Name)
 
 	// Validate workflow specification.
 
 	if err := we.validateWorkflowSpec(spec); err != nil {
-
 		return nil, fmt.Errorf("workflow validation failed: %w", err)
-
 	}
 
 	workflow := &Workflow{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: spec.Name,
 
 			Namespace: spec.Namespace,
@@ -896,7 +882,6 @@ func (we *workflowEngine) CreateWorkflow(ctx context.Context, spec *WorkflowSpec
 		Spec: *spec,
 
 		Status: WorkflowStatus{
-
 			Phase: WorkflowPhasePending,
 		},
 	}
@@ -904,15 +889,12 @@ func (we *workflowEngine) CreateWorkflow(ctx context.Context, spec *WorkflowSpec
 	// Register with workflow registry.
 
 	if err := we.workflowRegistry.RegisterWorkflow(ctx, workflow); err != nil {
-
 		return nil, fmt.Errorf("failed to register workflow: %w", err)
-
 	}
 
 	// Create workflow using Porch client.
 
 	createdWorkflow, err := we.client.CreateWorkflow(ctx, workflow)
-
 	if err != nil {
 
 		// Cleanup registry on failure.
@@ -926,9 +908,7 @@ func (we *workflowEngine) CreateWorkflow(ctx context.Context, spec *WorkflowSpec
 	// Update metrics.
 
 	if we.metrics != nil {
-
 		we.metrics.workflowsTotal.WithLabelValues("created").Inc()
-
 	}
 
 	// Audit log.
@@ -938,23 +918,18 @@ func (we *workflowEngine) CreateWorkflow(ctx context.Context, spec *WorkflowSpec
 	we.logger.Info("Workflow created successfully", "workflowID", createdWorkflow.Name)
 
 	return createdWorkflow, nil
-
 }
 
 // StartWorkflow starts workflow execution.
 
 func (we *workflowEngine) StartWorkflow(ctx context.Context, workflowID string, input *WorkflowInput) (*WorkflowExecution, error) {
-
 	we.logger.Info("Starting workflow execution", "workflowID", workflowID, "package", input.PackageRef.GetPackageKey())
 
 	// Get workflow definition.
 
 	workflow, err := we.client.GetWorkflow(ctx, workflowID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get workflow: %w", err)
-
 	}
 
 	// Acquire execution lock.
@@ -970,7 +945,6 @@ func (we *workflowEngine) StartWorkflow(ctx context.Context, workflowID string, 
 	// Create workflow execution.
 
 	execution := &WorkflowExecution{
-
 		ID: executionID,
 
 		WorkflowID: workflowID,
@@ -999,15 +973,12 @@ func (we *workflowEngine) StartWorkflow(ctx context.Context, workflowID string, 
 	// Store execution state.
 
 	if err := we.stateManager.SaveExecution(ctx, execution); err != nil {
-
 		return nil, fmt.Errorf("failed to save execution state: %w", err)
-
 	}
 
 	// Start execution engine.
 
 	go func() {
-
 		ctx := context.Background()
 
 		if err := we.executionEngine.ExecuteWorkflow(ctx, execution, workflow); err != nil {
@@ -1021,7 +992,6 @@ func (we *workflowEngine) StartWorkflow(ctx context.Context, workflowID string, 
 			we.stateManager.SaveExecution(ctx, execution)
 
 		}
-
 	}()
 
 	// Update metrics.
@@ -1041,29 +1011,22 @@ func (we *workflowEngine) StartWorkflow(ctx context.Context, workflowID string, 
 	we.logger.Info("Workflow execution started", "executionID", executionID, "workflowID", workflowID)
 
 	return execution, nil
-
 }
 
 // AbortWorkflow aborts a running workflow execution.
 
 func (we *workflowEngine) AbortWorkflow(ctx context.Context, executionID, reason string) error {
-
 	we.logger.Info("Aborting workflow", "executionID", executionID, "reason", reason)
 
 	// Get workflow execution.
 
 	execution, err := we.stateManager.GetExecution(ctx, executionID)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get workflow execution: %w", err)
-
 	}
 
 	if execution.Status == WorkflowExecutionStatusCompleted || execution.Status == WorkflowExecutionStatusFailed {
-
 		return fmt.Errorf("cannot abort workflow in status %s", execution.Status)
-
 	}
 
 	// Update execution status.
@@ -1077,9 +1040,7 @@ func (we *workflowEngine) AbortWorkflow(ctx context.Context, executionID, reason
 	// Save execution state.
 
 	if err := we.stateManager.SaveExecution(ctx, execution); err != nil {
-
 		return fmt.Errorf("failed to save workflow execution: %w", err)
-
 	}
 
 	// Audit log.
@@ -1089,29 +1050,23 @@ func (we *workflowEngine) AbortWorkflow(ctx context.Context, executionID, reason
 	we.logger.Info("Workflow execution aborted", "executionID", executionID)
 
 	return nil
-
 }
 
 // SubmitApproval submits an approval decision.
 
 func (we *workflowEngine) SubmitApproval(ctx context.Context, approvalID string, decision ApprovalDecision, comment string) (*ApprovalResult, error) {
-
 	we.logger.Info("Submitting approval", "approvalID", approvalID, "decision", decision)
 
 	// Get pending approval.
 
 	approval, err := we.approvalManager.GetPendingApproval(ctx, approvalID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get pending approval: %w", err)
-
 	}
 
 	// Create approval result.
 
 	result := &ApprovalResult{
-
 		ID: fmt.Sprintf("approval-result-%d", time.Now().UnixNano()),
 
 		ApprovalID: approvalID,
@@ -1132,25 +1087,19 @@ func (we *workflowEngine) SubmitApproval(ctx context.Context, approvalID string,
 	// Process approval.
 
 	if err := we.approvalManager.ProcessApproval(ctx, approval, result); err != nil {
-
 		return nil, fmt.Errorf("failed to process approval: %w", err)
-
 	}
 
 	// Update workflow execution if approval is complete.
 
 	if approval.Status == ApprovalStatusApproved || approval.Status == ApprovalStatusRejected {
-
 		we.notifyWorkflowExecution(ctx, approval.WorkflowExecutionID, result)
-
 	}
 
 	// Update metrics.
 
 	if we.metrics != nil {
-
 		we.metrics.approvalsTotal.WithLabelValues(string(decision)).Inc()
-
 	}
 
 	// Audit log.
@@ -1160,21 +1109,16 @@ func (we *workflowEngine) SubmitApproval(ctx context.Context, approvalID string,
 	we.logger.Info("Approval submitted successfully", "approvalID", approvalID, "result", result.ID)
 
 	return result, nil
-
 }
 
 // EvaluateApprovalPolicies evaluates applicable approval policies.
 
 func (we *workflowEngine) EvaluateApprovalPolicies(ctx context.Context, packageRef *PackageReference, stage PackageRevisionLifecycle) (*PolicyEvaluationResult, error) {
-
 	we.logger.V(1).Info("Evaluating approval policies", "package", packageRef.GetPackageKey(), "stage", stage)
 
 	result, err := we.policyEngine.EvaluatePolicies(ctx, packageRef, stage)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("policy evaluation failed: %w", err)
-
 	}
 
 	// Update metrics.
@@ -1196,21 +1140,16 @@ func (we *workflowEngine) EvaluateApprovalPolicies(ctx context.Context, packageR
 		"requiredApprovals", len(result.RequiredApprovals))
 
 	return result, nil
-
 }
 
 // CreateManualTask creates a manual task.
 
 func (we *workflowEngine) CreateManualTask(ctx context.Context, task *ManualTask) (*ManualTaskExecution, error) {
-
 	we.logger.Info("Creating manual task", "taskName", task.Name, "type", task.Type)
 
 	execution, err := we.taskManager.CreateTaskExecution(ctx, task)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create task execution: %w", err)
-
 	}
 
 	// Notify assignees.
@@ -1234,7 +1173,6 @@ func (we *workflowEngine) CreateManualTask(ctx context.Context, task *ManualTask
 	we.logger.Info("Manual task created successfully", "taskExecutionID", execution.ID)
 
 	return execution, nil
-
 }
 
 // Background workers.
@@ -1242,7 +1180,6 @@ func (we *workflowEngine) CreateManualTask(ctx context.Context, task *ManualTask
 // triggerEvaluationWorker evaluates workflow triggers.
 
 func (we *workflowEngine) triggerEvaluationWorker() {
-
 	defer we.wg.Done()
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -1250,7 +1187,6 @@ func (we *workflowEngine) triggerEvaluationWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-we.shutdown:
@@ -1262,15 +1198,12 @@ func (we *workflowEngine) triggerEvaluationWorker() {
 			we.evaluatePendingTriggers()
 
 		}
-
 	}
-
 }
 
 // executionMonitorWorker monitors workflow executions.
 
 func (we *workflowEngine) executionMonitorWorker() {
-
 	defer we.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1278,7 +1211,6 @@ func (we *workflowEngine) executionMonitorWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-we.shutdown:
@@ -1290,15 +1222,12 @@ func (we *workflowEngine) executionMonitorWorker() {
 			we.monitorActiveExecutions()
 
 		}
-
 	}
-
 }
 
 // approvalTimeoutWorker handles approval timeouts.
 
 func (we *workflowEngine) approvalTimeoutWorker() {
-
 	defer we.wg.Done()
 
 	ticker := time.NewTicker(1 * time.Minute)
@@ -1306,7 +1235,6 @@ func (we *workflowEngine) approvalTimeoutWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-we.shutdown:
@@ -1318,15 +1246,12 @@ func (we *workflowEngine) approvalTimeoutWorker() {
 			we.handleApprovalTimeouts()
 
 		}
-
 	}
-
 }
 
 // taskEscalationWorker handles task escalations.
 
 func (we *workflowEngine) taskEscalationWorker() {
-
 	defer we.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Minute)
@@ -1334,7 +1259,6 @@ func (we *workflowEngine) taskEscalationWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-we.shutdown:
@@ -1346,15 +1270,12 @@ func (we *workflowEngine) taskEscalationWorker() {
 			we.handleTaskEscalations()
 
 		}
-
 	}
-
 }
 
 // metricsCollectionWorker collects workflow metrics.
 
 func (we *workflowEngine) metricsCollectionWorker() {
-
 	defer we.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1362,7 +1283,6 @@ func (we *workflowEngine) metricsCollectionWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-we.shutdown:
@@ -1374,15 +1294,12 @@ func (we *workflowEngine) metricsCollectionWorker() {
 			we.collectMetrics()
 
 		}
-
 	}
-
 }
 
 // Close gracefully shuts down the workflow engine.
 
 func (we *workflowEngine) Close() error {
-
 	we.logger.Info("Shutting down workflow engine")
 
 	close(we.shutdown)
@@ -1392,39 +1309,28 @@ func (we *workflowEngine) Close() error {
 	// Close components.
 
 	if we.workflowRegistry != nil {
-
 		we.workflowRegistry.Close()
-
 	}
 
 	if we.executionEngine != nil {
-
 		we.executionEngine.Close()
-
 	}
 
 	if we.stateManager != nil {
-
 		we.stateManager.Close()
-
 	}
 
 	if we.approvalManager != nil {
-
 		we.approvalManager.Close()
-
 	}
 
 	if we.taskManager != nil {
-
 		we.taskManager.Close()
-
 	}
 
 	we.logger.Info("Workflow engine shutdown complete")
 
 	return nil
-
 }
 
 // Missing interface method implementations.
@@ -1432,47 +1338,35 @@ func (we *workflowEngine) Close() error {
 // UpdateWorkflow updates an existing workflow.
 
 func (we *workflowEngine) UpdateWorkflow(ctx context.Context, workflow *Workflow) (*Workflow, error) {
-
 	return we.client.UpdateWorkflow(ctx, workflow)
-
 }
 
 // DeleteWorkflow deletes a workflow.
 
 func (we *workflowEngine) DeleteWorkflow(ctx context.Context, workflowID string) error {
-
 	return we.client.DeleteWorkflow(ctx, workflowID)
-
 }
 
 // GetWorkflow gets a workflow by ID.
 
 func (we *workflowEngine) GetWorkflow(ctx context.Context, workflowID string) (*Workflow, error) {
-
 	return we.client.GetWorkflow(ctx, workflowID)
-
 }
 
 // ListWorkflows lists workflows with options.
 
 func (we *workflowEngine) ListWorkflows(ctx context.Context, opts *WorkflowListOptions) (*WorkflowList, error) {
-
 	listOpts := &ListOptions{}
 
 	return we.client.ListWorkflows(ctx, listOpts)
-
 }
 
 // ResumeWorkflow resumes a paused workflow.
 
 func (we *workflowEngine) ResumeWorkflow(ctx context.Context, executionID string) (*WorkflowExecution, error) {
-
 	execution, err := we.stateManager.GetExecution(ctx, executionID)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	execution.Status = WorkflowExecutionStatusRunning
@@ -1480,241 +1374,181 @@ func (we *workflowEngine) ResumeWorkflow(ctx context.Context, executionID string
 	we.stateManager.SaveExecution(ctx, execution)
 
 	return execution, nil
-
 }
 
 // PauseWorkflow pauses a running workflow.
 
 func (we *workflowEngine) PauseWorkflow(ctx context.Context, executionID string) error {
-
 	execution, err := we.stateManager.GetExecution(ctx, executionID)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	execution.Status = WorkflowExecutionStatusPaused
 
 	return we.stateManager.SaveExecution(ctx, execution)
-
 }
 
 // GetWorkflowExecution gets a workflow execution by ID.
 
 func (we *workflowEngine) GetWorkflowExecution(ctx context.Context, executionID string) (*WorkflowExecution, error) {
-
 	return we.stateManager.GetExecution(ctx, executionID)
-
 }
 
 // GetPendingApprovals gets pending approvals for an approver.
 
 func (we *workflowEngine) GetPendingApprovals(ctx context.Context, approver string) ([]*PendingApproval, error) {
-
 	return []*PendingApproval{}, nil
-
 }
 
 // GetApprovalHistory gets approval history for a package.
 
 func (we *workflowEngine) GetApprovalHistory(ctx context.Context, packageRef *PackageReference) (*ApprovalHistory, error) {
-
 	return &ApprovalHistory{}, nil
-
 }
 
 // DelegateApproval delegates approval to another approver.
 
 func (we *workflowEngine) DelegateApproval(ctx context.Context, approvalID, fromApprover, toApprover, reason string) error {
-
 	return nil
-
 }
 
 // RegisterApprovalPolicy registers an approval policy.
 
 func (we *workflowEngine) RegisterApprovalPolicy(ctx context.Context, policy *ApprovalPolicy) error {
-
 	return nil
-
 }
 
 // UnregisterApprovalPolicy unregisters an approval policy.
 
 func (we *workflowEngine) UnregisterApprovalPolicy(ctx context.Context, policyID string) error {
-
 	return nil
-
 }
 
 // GetApprovalPolicies gets all approval policies.
 
 func (we *workflowEngine) GetApprovalPolicies(ctx context.Context) ([]*ApprovalPolicy, error) {
-
 	return []*ApprovalPolicy{}, nil
-
 }
 
 // DefineWorkflowStage defines a workflow stage.
 
 func (we *workflowEngine) DefineWorkflowStage(ctx context.Context, workflowID string, stage *WorkflowStageDefinition) error {
-
 	return nil
-
 }
 
 // ExecuteStage executes a workflow stage.
 
 func (we *workflowEngine) ExecuteStage(ctx context.Context, executionID, stageID string) (*StageExecutionResult, error) {
-
 	return &StageExecutionResult{StageID: stageID}, nil
-
 }
 
 // SkipStage skips a workflow stage.
 
 func (we *workflowEngine) SkipStage(ctx context.Context, executionID, stageID, reason string) error {
-
 	return nil
-
 }
 
 // RetryStage retries a failed workflow stage.
 
 func (we *workflowEngine) RetryStage(ctx context.Context, executionID, stageID string) (*StageExecutionResult, error) {
-
 	return &StageExecutionResult{StageID: stageID}, nil
-
 }
 
 // RegisterWorkflowTrigger registers a workflow trigger.
 
 func (we *workflowEngine) RegisterWorkflowTrigger(ctx context.Context, trigger *WorkflowTrigger) error {
-
 	return nil
-
 }
 
 // UnregisterWorkflowTrigger unregisters a workflow trigger.
 
 func (we *workflowEngine) UnregisterWorkflowTrigger(ctx context.Context, triggerID string) error {
-
 	return nil
-
 }
 
 // EvaluateTriggers evaluates workflow triggers for an event.
 
 func (we *workflowEngine) EvaluateTriggers(ctx context.Context, event *PackageEvent) ([]*TriggeredWorkflow, error) {
-
 	return []*TriggeredWorkflow{}, nil
-
 }
 
 // CompleteManualTask completes a manual task.
 
 func (we *workflowEngine) CompleteManualTask(ctx context.Context, taskID string, result *TaskResult) error {
-
 	return nil
-
 }
 
 // EscalateTask escalates a manual task.
 
 func (we *workflowEngine) EscalateTask(ctx context.Context, taskID string, escalation *TaskEscalation) error {
-
 	return nil
-
 }
 
 // GetManualTasks gets manual tasks for an assignee.
 
 func (we *workflowEngine) GetManualTasks(ctx context.Context, assignee string, status TaskStatus) ([]*ManualTaskExecution, error) {
-
 	return []*ManualTaskExecution{}, nil
-
 }
 
 // RegisterExternalIntegration registers external integration.
 
 func (we *workflowEngine) RegisterExternalIntegration(ctx context.Context, integration *ExternalIntegration) error {
-
 	return nil
-
 }
 
 // UnregisterExternalIntegration unregisters external integration.
 
 func (we *workflowEngine) UnregisterExternalIntegration(ctx context.Context, integrationID string) error {
-
 	return nil
-
 }
 
 // TriggerExternalAction triggers external action.
 
 func (we *workflowEngine) TriggerExternalAction(ctx context.Context, integrationID string, action *ExternalAction) (*ExternalActionResult, error) {
-
 	return &ExternalActionResult{}, nil
-
 }
 
 // GetWorkflowAuditLog gets workflow audit log.
 
 func (we *workflowEngine) GetWorkflowAuditLog(ctx context.Context, packageRef *PackageReference, opts *AuditLogOptions) (*WorkflowAuditLog, error) {
-
 	return &WorkflowAuditLog{}, nil
-
 }
 
 // GenerateComplianceReport generates compliance report.
 
 func (we *workflowEngine) GenerateComplianceReport(ctx context.Context, opts *ComplianceReportOptions) (*ComplianceReport, error) {
-
 	return &ComplianceReport{}, nil
-
 }
 
 // ExportAuditData exports audit data.
 
 func (we *workflowEngine) ExportAuditData(ctx context.Context, opts *AuditExportOptions) (*AuditExport, error) {
-
 	return &AuditExport{}, nil
-
 }
 
 // GetWorkflowMetrics gets workflow engine metrics.
 
 func (we *workflowEngine) GetWorkflowMetrics(ctx context.Context) (*WorkflowEngineMetrics, error) {
-
 	return we.metrics, nil
-
 }
 
 // GetWorkflowStatistics gets workflow statistics.
 
 func (we *workflowEngine) GetWorkflowStatistics(ctx context.Context, timeRange *TimeRange) (*WorkflowStatistics, error) {
-
 	return &WorkflowStatistics{TimeRange: timeRange}, nil
-
 }
 
 // GetEngineHealth gets workflow engine health.
 
 func (we *workflowEngine) GetEngineHealth(ctx context.Context) (*WorkflowEngineHealth, error) {
-
 	return &WorkflowEngineHealth{Status: "healthy"}, nil
-
 }
 
 // CleanupCompletedWorkflows cleans up old completed workflows.
 
 func (we *workflowEngine) CleanupCompletedWorkflows(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
-
 	return &CleanupResult{}, nil
-
 }
 
 // Helper methods and supporting functionality.
@@ -1722,37 +1556,28 @@ func (we *workflowEngine) CleanupCompletedWorkflows(ctx context.Context, olderTh
 // validateWorkflowSpec validates workflow specification.
 
 func (we *workflowEngine) validateWorkflowSpec(spec *WorkflowSpec) error {
-
 	if spec.Name == "" {
-
 		return fmt.Errorf("workflow name is required")
-
 	}
 
 	if len(spec.Stages) == 0 {
-
 		return fmt.Errorf("workflow must have at least one stage")
-
 	}
 
 	// Additional validation logic would go here.
 
 	return nil
-
 }
 
 // getExecutionLock gets or creates an execution lock.
 
 func (we *workflowEngine) getExecutionLock(executionID string) *sync.Mutex {
-
 	we.lockMutex.Lock()
 
 	defer we.lockMutex.Unlock()
 
 	if lock, exists := we.executionLocks[executionID]; exists {
-
 		return lock
-
 	}
 
 	lock := &sync.Mutex{}
@@ -1760,75 +1585,56 @@ func (we *workflowEngine) getExecutionLock(executionID string) *sync.Mutex {
 	we.executionLocks[executionID] = lock
 
 	return lock
-
 }
 
 // notifyWorkflowExecution notifies workflow execution of approval completion.
 
 func (we *workflowEngine) notifyWorkflowExecution(ctx context.Context, executionID string, result *ApprovalResult) {
-
 	// Implementation would notify execution engine.
 
 	we.logger.V(1).Info("Notifying workflow execution", "executionID", executionID, "approvalResult", result.ID)
-
 }
 
 // notifyTaskAssignees notifies task assignees.
 
 func (we *workflowEngine) notifyTaskAssignees(ctx context.Context, execution *ManualTaskExecution) {
-
 	// Implementation would send notifications to assignees.
 
 	we.logger.V(1).Info("Notifying task assignees", "taskExecutionID", execution.ID)
-
 }
 
 // Background worker implementations.
 
 func (we *workflowEngine) evaluatePendingTriggers() {
-
 	// Implementation would evaluate pending triggers.
-
 }
 
 func (we *workflowEngine) monitorActiveExecutions() {
-
 	// Implementation would monitor active executions for timeouts and issues.
-
 }
 
 func (we *workflowEngine) handleApprovalTimeouts() {
-
 	// Implementation would handle approval timeouts and escalations.
-
 }
 
 func (we *workflowEngine) handleTaskEscalations() {
-
 	// Implementation would handle task escalations.
-
 }
 
 func (we *workflowEngine) collectMetrics() {
-
 	if we.metrics == nil {
-
 		return
-
 	}
 
 	// Collect current system metrics.
 
 	// Implementation would gather metrics from various components.
-
 }
 
 // Configuration and metrics.
 
 func getDefaultWorkflowEngineConfig() *WorkflowEngineConfig {
-
 	return &WorkflowEngineConfig{
-
 		MaxConcurrentExecutions: 100,
 
 		DefaultApprovalTimeout: 24 * time.Hour,
@@ -1839,17 +1645,13 @@ func getDefaultWorkflowEngineConfig() *WorkflowEngineConfig {
 
 		EnableMetrics: true,
 	}
-
 }
 
 func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
-
 	return &WorkflowEngineMetrics{
-
 		workflowsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_workflows_total",
 
 				Help: "Total number of workflows",
@@ -1861,7 +1663,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		executionsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_workflow_executions_total",
 
 				Help: "Total number of workflow executions",
@@ -1873,7 +1674,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		activeExecutions: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_workflow_active_executions",
 
 				Help: "Number of active workflow executions",
@@ -1883,7 +1683,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		approvalsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_workflow_approvals_total",
 
 				Help: "Total number of workflow approvals",
@@ -1895,7 +1694,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		manualTasksTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_workflow_manual_tasks_total",
 
 				Help: "Total number of manual tasks",
@@ -1907,7 +1705,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		activeManualTasks: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_workflow_active_manual_tasks",
 
 				Help: "Number of active manual tasks",
@@ -1917,7 +1714,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		policyEvaluationsTotal: prometheus.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_workflow_policy_evaluations_total",
 
 				Help: "Total number of policy evaluations",
@@ -1927,7 +1723,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		applicablePolicies: prometheus.NewHistogram(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_workflow_applicable_policies",
 
 				Help: "Number of applicable policies per evaluation",
@@ -1936,7 +1731,6 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 			},
 		),
 	}
-
 }
 
 // Supporting types and placeholder implementations.
@@ -2147,17 +1941,13 @@ type WorkflowRegistry struct{}
 // NewWorkflowRegistry performs newworkflowregistry operation.
 
 func NewWorkflowRegistry(config *WorkflowRegistryConfig) *WorkflowRegistry {
-
 	return &WorkflowRegistry{}
-
 }
 
 // RegisterWorkflow performs registerworkflow operation.
 
 func (wr *WorkflowRegistry) RegisterWorkflow(ctx context.Context, workflow *Workflow) error {
-
 	return nil
-
 }
 
 // UnregisterWorkflow performs unregisterworkflow operation.
@@ -2175,17 +1965,13 @@ type WorkflowExecutionEngine struct{}
 // NewExecutionEngine performs newexecutionengine operation.
 
 func NewExecutionEngine(config *ExecutionEngineConfig) *WorkflowExecutionEngine {
-
 	return &WorkflowExecutionEngine{}
-
 }
 
 // ExecuteWorkflow performs executeworkflow operation.
 
 func (ee *WorkflowExecutionEngine) ExecuteWorkflow(ctx context.Context, execution *WorkflowExecution, workflow *Workflow) error {
-
 	return nil
-
 }
 
 // Close performs close operation.
@@ -2199,25 +1985,19 @@ type WorkflowStateManager struct{}
 // NewWorkflowStateManager performs newworkflowstatemanager operation.
 
 func NewWorkflowStateManager(config *WorkflowStateManagerConfig) *WorkflowStateManager {
-
 	return &WorkflowStateManager{}
-
 }
 
 // SaveExecution performs saveexecution operation.
 
 func (wsm *WorkflowStateManager) SaveExecution(ctx context.Context, execution *WorkflowExecution) error {
-
 	return nil
-
 }
 
 // GetExecution performs getexecution operation.
 
 func (wsm *WorkflowStateManager) GetExecution(ctx context.Context, executionID string) (*WorkflowExecution, error) {
-
 	return &WorkflowExecution{ID: executionID}, nil
-
 }
 
 // Close performs close operation.
@@ -2235,17 +2015,13 @@ func NewApprovalManager(config *ApprovalManagerConfig) *ApprovalManager { return
 // GetPendingApproval performs getpendingapproval operation.
 
 func (am *ApprovalManager) GetPendingApproval(ctx context.Context, approvalID string) (*PendingApproval, error) {
-
 	return &PendingApproval{ID: approvalID}, nil
-
 }
 
 // ProcessApproval performs processapproval operation.
 
 func (am *ApprovalManager) ProcessApproval(ctx context.Context, approval *PendingApproval, result *ApprovalResult) error {
-
 	return nil
-
 }
 
 // Close performs close operation.
@@ -2263,9 +2039,7 @@ func NewPolicyEngine(config *PolicyEngineConfig) *PolicyEngine { return &PolicyE
 // EvaluatePolicies performs evaluatepolicies operation.
 
 func (pe *PolicyEngine) EvaluatePolicies(ctx context.Context, packageRef *PackageReference, stage PackageRevisionLifecycle) (*PolicyEvaluationResult, error) {
-
 	return &PolicyEvaluationResult{PackageRef: packageRef, Stage: stage, EvaluationTime: time.Now()}, nil
-
 }
 
 // Close performs close operation.
@@ -2279,9 +2053,7 @@ type DelegationService struct{}
 // NewDelegationService performs newdelegationservice operation.
 
 func NewDelegationService(config *DelegationServiceConfig) *DelegationService {
-
 	return &DelegationService{}
-
 }
 
 // Close performs close operation.
@@ -2295,17 +2067,13 @@ type ManualTaskManager struct{}
 // NewManualTaskManager performs newmanualtaskmanager operation.
 
 func NewManualTaskManager(config *ManualTaskManagerConfig) *ManualTaskManager {
-
 	return &ManualTaskManager{}
-
 }
 
 // CreateTaskExecution performs createtaskexecution operation.
 
 func (mtm *ManualTaskManager) CreateTaskExecution(ctx context.Context, task *ManualTask) (*ManualTaskExecution, error) {
-
 	return &ManualTaskExecution{
-
 		ID: fmt.Sprintf("task-exec-%d", time.Now().UnixNano()),
 
 		TaskID: task.ID,
@@ -2314,7 +2082,6 @@ func (mtm *ManualTaskManager) CreateTaskExecution(ctx context.Context, task *Man
 
 		StartTime: time.Now(),
 	}, nil
-
 }
 
 // Close performs close operation.
@@ -2328,9 +2095,7 @@ type EscalationEngine struct{}
 // NewEscalationEngine performs newescalationengine operation.
 
 func NewEscalationEngine(config *EscalationEngineConfig) *EscalationEngine {
-
 	return &EscalationEngine{}
-
 }
 
 // Close performs close operation.
@@ -2344,9 +2109,7 @@ type WorkflowAuditLogger struct{}
 // NewWorkflowAuditLogger performs newworkflowauditlogger operation.
 
 func NewWorkflowAuditLogger(config *WorkflowAuditLoggerConfig) *WorkflowAuditLogger {
-
 	return &WorkflowAuditLogger{}
-
 }
 
 // LogWorkflowCreated performs logworkflowcreated operation.
@@ -2356,25 +2119,21 @@ func (wal *WorkflowAuditLogger) LogWorkflowCreated(ctx context.Context, workflow
 // LogWorkflowStarted performs logworkflowstarted operation.
 
 func (wal *WorkflowAuditLogger) LogWorkflowStarted(ctx context.Context, execution *WorkflowExecution) {
-
 }
 
 // LogApprovalSubmitted performs logapprovalsubmitted operation.
 
 func (wal *WorkflowAuditLogger) LogApprovalSubmitted(ctx context.Context, approval *PendingApproval, result *ApprovalResult) {
-
 }
 
 // LogManualTaskCreated performs logmanualtaskcreated operation.
 
 func (wal *WorkflowAuditLogger) LogManualTaskCreated(ctx context.Context, execution *ManualTaskExecution) {
-
 }
 
 // LogWorkflowAborted performs logworkflowaborted operation.
 
 func (wal *WorkflowAuditLogger) LogWorkflowAborted(ctx context.Context, execution *WorkflowExecution, reason string) {
-
 }
 
 // Close performs close operation.
@@ -2388,9 +2147,7 @@ type ComplianceEngine struct{}
 // NewComplianceEngine performs newcomplianceengine operation.
 
 func NewComplianceEngine(config *ComplianceEngineConfig) *ComplianceEngine {
-
 	return &ComplianceEngine{}
-
 }
 
 // Close performs close operation.
@@ -2404,9 +2161,7 @@ type TriggerEvaluator struct{}
 // NewTriggerEvaluator performs newtriggerevaluator operation.
 
 func NewTriggerEvaluator(config *TriggerEvaluatorConfig) *TriggerEvaluator {
-
 	return &TriggerEvaluator{}
-
 }
 
 // Close performs close operation.
@@ -2420,9 +2175,7 @@ type ExecutionMonitor struct{}
 // NewExecutionMonitor performs newexecutionmonitor operation.
 
 func NewExecutionMonitor(config *ExecutionMonitorConfig) *ExecutionMonitor {
-
 	return &ExecutionMonitor{}
-
 }
 
 // Close performs close operation.

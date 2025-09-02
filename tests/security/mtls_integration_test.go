@@ -763,7 +763,6 @@ func (s *mTLSIntegrationTestSuite) isServiceReady(serviceName string) bool {
 		Name:      serviceName,
 		Namespace: s.namespace,
 	}, &deployment)
-
 	if err != nil {
 		return false
 	}

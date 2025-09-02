@@ -74,7 +74,6 @@ type ContextualConfig struct {
 // EnhancedHealthChecker manages enhanced multi-tiered health checks.
 
 type EnhancedHealthChecker struct {
-
 	// Core configuration.
 
 	serviceName string
@@ -185,15 +184,11 @@ type EnhancedHealthMetrics struct {
 // NewEnhancedHealthChecker creates a new enhanced health checker.
 
 func NewEnhancedHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *EnhancedHealthChecker {
-
 	if logger == nil {
-
 		logger = slog.Default()
-
 	}
 
 	ehc := &EnhancedHealthChecker{
-
 		serviceName: serviceName,
 
 		serviceVersion: serviceVersion,
@@ -238,17 +233,13 @@ func NewEnhancedHealthChecker(serviceName, serviceVersion string, logger *slog.L
 	ehc.startWorkerPool()
 
 	return ehc
-
 }
 
 // initializeEnhancedHealthMetrics initializes Prometheus metrics.
 
 func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
-
 	metrics := &EnhancedHealthMetrics{
-
 		CheckDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "enhanced_health_check_duration_seconds",
 
 			Help: "Duration of enhanced health checks",
@@ -258,42 +249,36 @@ func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
 		}, []string{"check_name", "tier", "context"}),
 
 		CheckSuccess: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "enhanced_health_check_success_total",
 
 			Help: "Total number of successful health checks",
 		}, []string{"check_name", "tier"}),
 
 		CheckFailures: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "enhanced_health_check_failures_total",
 
 			Help: "Total number of failed health checks",
 		}, []string{"check_name", "tier", "failure_type"}),
 
 		HealthScore: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "enhanced_health_score",
 
 			Help: "Weighted health score by tier and component",
 		}, []string{"tier", "component"}),
 
 		StateTransitions: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "enhanced_health_state_transitions_total",
 
 			Help: "Total number of health state transitions",
 		}, []string{"check_name", "from_state", "to_state"}),
 
 		CacheHitRate: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "enhanced_health_cache_hit_rate",
 
 			Help: "Cache hit rate for health checks",
 		}),
 
 		ParallelExecution: prometheus.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "enhanced_health_parallel_execution_seconds",
 
 			Help: "Total time for parallel health check execution",
@@ -303,7 +288,6 @@ func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
 		}),
 
 		WeightedScores: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "enhanced_health_weighted_scores",
 
 			Help: "Individual weighted health scores",
@@ -332,29 +316,21 @@ func initializeEnhancedHealthMetrics() *EnhancedHealthMetrics {
 	)
 
 	return metrics
-
 }
 
 // RegisterEnhancedCheck registers an enhanced health check.
 
 func (ehc *EnhancedHealthChecker) RegisterEnhancedCheck(config *CheckConfig, checkFunc EnhancedCheckFunc) error {
-
 	if config == nil {
-
 		return fmt.Errorf("check config cannot be nil")
-
 	}
 
 	if checkFunc == nil {
-
 		return fmt.Errorf("check function cannot be nil")
-
 	}
 
 	if config.Name == "" {
-
 		return fmt.Errorf("check name cannot be empty")
-
 	}
 
 	ehc.mu.Lock()
@@ -368,7 +344,6 @@ func (ehc *EnhancedHealthChecker) RegisterEnhancedCheck(config *CheckConfig, che
 	// Initialize result.
 
 	ehc.checkResults[config.Name] = &EnhancedCheck{
-
 		Name: config.Name,
 
 		Status: health.StatusUnknown,
@@ -399,13 +374,11 @@ func (ehc *EnhancedHealthChecker) RegisterEnhancedCheck(config *CheckConfig, che
 		"service", ehc.serviceName)
 
 	return nil
-
 }
 
 // SetContext updates the current operational context.
 
 func (ehc *EnhancedHealthChecker) SetContext(context HealthContext) {
-
 	ehc.contextMu.Lock()
 
 	defer ehc.contextMu.Unlock()
@@ -421,25 +394,21 @@ func (ehc *EnhancedHealthChecker) SetContext(context HealthContext) {
 		"to", context.String(),
 
 		"service", ehc.serviceName)
-
 }
 
 // getCurrentContext returns the current operational context.
 
 func (ehc *EnhancedHealthChecker) getCurrentContext() HealthContext {
-
 	ehc.contextMu.RLock()
 
 	defer ehc.contextMu.RUnlock()
 
 	return ehc.currentContext
-
 }
 
 // CheckEnhanced performs all enhanced health checks with parallel execution.
 
 func (ehc *EnhancedHealthChecker) CheckEnhanced(ctx context.Context) *EnhancedHealthResponse {
-
 	start := time.Now()
 
 	// Create execution context with timeout.
@@ -449,7 +418,6 @@ func (ehc *EnhancedHealthChecker) CheckEnhanced(ctx context.Context) *EnhancedHe
 	defer cancel()
 
 	response := &EnhancedHealthResponse{
-
 		Service: ehc.serviceName,
 
 		Version: ehc.serviceVersion,
@@ -467,7 +435,6 @@ func (ehc *EnhancedHealthChecker) CheckEnhanced(ctx context.Context) *EnhancedHe
 		OverallStatus: health.StatusUnknown,
 
 		ExecutionMetrics: ExecutionMetrics{
-
 			StartTime: start,
 		},
 	}
@@ -481,7 +448,6 @@ func (ehc *EnhancedHealthChecker) CheckEnhanced(ctx context.Context) *EnhancedHe
 	checkFuncs := make(map[string]EnhancedCheckFunc)
 
 	for name, config := range ehc.checks {
-
 		if ehc.shouldExecuteCheck(config, response.Context) {
 
 			checksToExecute[name] = config
@@ -489,7 +455,6 @@ func (ehc *EnhancedHealthChecker) CheckEnhanced(ctx context.Context) *EnhancedHe
 			checkFuncs[name] = ehc.checkFuncs[name]
 
 		}
-
 	}
 
 	ehc.mu.RUnlock()
@@ -535,35 +500,27 @@ func (ehc *EnhancedHealthChecker) CheckEnhanced(ctx context.Context) *EnhancedHe
 		"status", response.OverallStatus)
 
 	return response
-
 }
 
 // shouldExecuteCheck determines if a check should be executed in the current context.
 
 func (ehc *EnhancedHealthChecker) shouldExecuteCheck(config *CheckConfig, context HealthContext) bool {
-
 	if !config.Enabled {
-
 		return false
-
 	}
 
 	// Check contextual settings.
 
 	if contextualConfig, exists := config.ContextualSettings[context]; exists {
-
 		return contextualConfig.Enabled
-
 	}
 
 	return true
-
 }
 
 // executeChecksParallel executes health checks in parallel using the worker pool.
 
 func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, checks map[string]*CheckConfig, checkFuncs map[string]EnhancedCheckFunc, healthContext HealthContext) map[string]*EnhancedCheck {
-
 	results := make(map[string]*EnhancedCheck)
 
 	resultsMu := sync.Mutex{}
@@ -581,7 +538,6 @@ func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, che
 		// Check cache first if enabled.
 
 		if ehc.cacheEnabled {
-
 			if cached := ehc.getCachedResult(name); cached != nil {
 
 				ehc.metrics.CacheHitRate.Inc()
@@ -595,11 +551,9 @@ func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, che
 				continue
 
 			}
-
 		}
 
 		task := HealthTask{
-
 			Name: name,
 
 			Config: config,
@@ -628,7 +582,6 @@ func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, che
 	expectedResults := len(checks)
 
 	for range expectedResults {
-
 		select {
 
 		case result := <-resultCh:
@@ -644,9 +597,7 @@ func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, che
 				// Cache result if enabled.
 
 				if ehc.cacheEnabled {
-
 					ehc.cacheResult(result.Name, result)
-
 				}
 
 			}
@@ -656,29 +607,22 @@ func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, che
 			return results
 
 		}
-
 	}
 
 	return results
-
 }
 
 // isRunning checks if the worker pool is running (thread-safe).
 
 func (ehc *EnhancedHealthChecker) isRunning() bool {
-
 	return atomic.LoadInt32(&ehc.running) == 1
-
 }
 
 // startWorkerPool starts the worker pool for parallel health check execution.
 
 func (ehc *EnhancedHealthChecker) startWorkerPool() {
-
 	if !atomic.CompareAndSwapInt32(&ehc.running, 0, 1) {
-
 		return // Already running
-
 	}
 
 	for i := range ehc.workerCount {
@@ -694,17 +638,14 @@ func (ehc *EnhancedHealthChecker) startWorkerPool() {
 		"workers", ehc.workerCount,
 
 		"service", ehc.serviceName)
-
 }
 
 // healthCheckWorker processes health check tasks.
 
 func (ehc *EnhancedHealthChecker) healthCheckWorker(workerID int) {
-
 	defer ehc.workerWg.Done()
 
 	for {
-
 		select {
 
 		case <-ehc.shutdown:
@@ -726,15 +667,12 @@ func (ehc *EnhancedHealthChecker) healthCheckWorker(workerID int) {
 			}
 
 		}
-
 	}
-
 }
 
 // executeHealthCheckTask executes a single health check task.
 
 func (ehc *EnhancedHealthChecker) executeHealthCheckTask(task HealthTask) *EnhancedCheck {
-
 	start := time.Now()
 
 	// Create timeout context.
@@ -748,13 +686,9 @@ func (ehc *EnhancedHealthChecker) executeHealthCheckTask(task HealthTask) *Enhan
 	var result *EnhancedCheck
 
 	func() {
-
 		defer func() {
-
 			if r := recover(); r != nil {
-
 				result = &EnhancedCheck{
-
 					Name: task.Name,
 
 					Status: health.StatusUnhealthy,
@@ -771,19 +705,14 @@ func (ehc *EnhancedHealthChecker) executeHealthCheckTask(task HealthTask) *Enhan
 
 					Context: task.Context,
 				}
-
 			}
-
 		}()
 
 		result = task.CheckFunc(ctx, task.Context)
-
 	}()
 
 	if result == nil {
-
 		result = &EnhancedCheck{
-
 			Name: task.Name,
 
 			Status: health.StatusUnknown,
@@ -800,7 +729,6 @@ func (ehc *EnhancedHealthChecker) executeHealthCheckTask(task HealthTask) *Enhan
 
 			Context: task.Context,
 		}
-
 	}
 
 	// Ensure required fields are set.
@@ -830,13 +758,11 @@ func (ehc *EnhancedHealthChecker) executeHealthCheckTask(task HealthTask) *Enhan
 	ehc.recordCheckMetrics(result)
 
 	return result
-
 }
 
 // processCheckResults processes all check results and builds response.
 
 func (ehc *EnhancedHealthChecker) processCheckResults(results map[string]*EnhancedCheck, response *EnhancedHealthResponse) {
-
 	tierSummaries := make(map[HealthTier]TierSummary)
 
 	totalWeightedScore := 0.0
@@ -896,9 +822,7 @@ func (ehc *EnhancedHealthChecker) processCheckResults(results map[string]*Enhanc
 	for tier, summary := range tierSummaries {
 
 		if summary.TotalWeight > 0 {
-
 			summary.AverageScore = summary.WeightedScore / summary.TotalWeight
-
 		}
 
 		tierSummaries[tier] = summary
@@ -910,9 +834,7 @@ func (ehc *EnhancedHealthChecker) processCheckResults(results map[string]*Enhanc
 	// Calculate overall weighted score.
 
 	if totalWeight > 0 {
-
 		response.WeightedScore = totalWeightedScore / totalWeight
-
 	}
 
 	// Determine overall status.
@@ -932,13 +854,11 @@ func (ehc *EnhancedHealthChecker) processCheckResults(results map[string]*Enhanc
 	}
 
 	ehc.mu.Unlock()
-
 }
 
 // calculateHealthScore calculates a numerical health score for a check result.
 
 func (ehc *EnhancedHealthChecker) calculateHealthScore(check *EnhancedCheck) float64 {
-
 	baseScore := 0.0
 
 	switch check.Status {
@@ -966,13 +886,9 @@ func (ehc *EnhancedHealthChecker) calculateHealthScore(check *EnhancedCheck) flo
 	latencyPenalty := 0.0
 
 	if check.Duration > 5*time.Second {
-
 		latencyPenalty = 0.3
-
 	} else if check.Duration > time.Second {
-
 		latencyPenalty = 0.1
-
 	}
 
 	// Apply consecutive failure penalty.
@@ -980,27 +896,21 @@ func (ehc *EnhancedHealthChecker) calculateHealthScore(check *EnhancedCheck) flo
 	consecutiveFailurePenalty := float64(check.ConsecutiveFails) * 0.1
 
 	if consecutiveFailurePenalty > 0.5 {
-
 		consecutiveFailurePenalty = 0.5
-
 	}
 
 	finalScore := baseScore - latencyPenalty - consecutiveFailurePenalty
 
 	if finalScore < 0 {
-
 		finalScore = 0
-
 	}
 
 	return finalScore
-
 }
 
 // updateStateTracking updates state tracking information for a check.
 
 func (ehc *EnhancedHealthChecker) updateStateTracking(result *EnhancedCheck) {
-
 	ehc.mu.RLock()
 
 	previousResult, exists := ehc.checkResults[result.Name]
@@ -1012,7 +922,6 @@ func (ehc *EnhancedHealthChecker) updateStateTracking(result *EnhancedCheck) {
 		// Record state transition.
 
 		transition := StateTransition{
-
 			From: previousResult.Status,
 
 			To: result.Status,
@@ -1034,19 +943,14 @@ func (ehc *EnhancedHealthChecker) updateStateTracking(result *EnhancedCheck) {
 		).Inc()
 
 	} else if exists {
-
 		result.StateTransitions = previousResult.StateTransitions
-
 	}
 
 	// Update consecutive failures.
 
 	if exists {
-
 		if result.Status != health.StatusHealthy {
-
 			result.ConsecutiveFails = previousResult.ConsecutiveFails + 1
-
 		} else {
 
 			result.ConsecutiveFails = 0
@@ -1054,15 +958,12 @@ func (ehc *EnhancedHealthChecker) updateStateTracking(result *EnhancedCheck) {
 			result.LastHealthy = time.Now()
 
 		}
-
 	}
-
 }
 
 // updateCheckHistory updates the historical data for a check.
 
 func (ehc *EnhancedHealthChecker) updateCheckHistory(name string, result *EnhancedCheck) {
-
 	history := ehc.checkHistory[name]
 
 	history = append(history, *result)
@@ -1070,19 +971,15 @@ func (ehc *EnhancedHealthChecker) updateCheckHistory(name string, result *Enhanc
 	// Keep only last 100 entries.
 
 	if len(history) > 100 {
-
 		history = history[len(history)-100:]
-
 	}
 
 	ehc.checkHistory[name] = history
-
 }
 
 // recordCheckMetrics records metrics for a check result.
 
 func (ehc *EnhancedHealthChecker) recordCheckMetrics(result *EnhancedCheck) {
-
 	labels := []string{result.Name, result.Tier.String(), result.Context.String()}
 
 	// Record duration.
@@ -1092,25 +989,17 @@ func (ehc *EnhancedHealthChecker) recordCheckMetrics(result *EnhancedCheck) {
 	// Record success/failure.
 
 	if result.Status == health.StatusHealthy {
-
 		ehc.metrics.CheckSuccess.WithLabelValues(result.Name, result.Tier.String()).Inc()
-
 	} else {
 
 		failureType := "unknown"
 
 		if result.Error != "" {
-
 			failureType = "error"
-
 		} else if result.Status == health.StatusDegraded {
-
 			failureType = "degraded"
-
 		} else if result.Status == health.StatusUnhealthy {
-
 			failureType = "unhealthy"
-
 		}
 
 		ehc.metrics.CheckFailures.WithLabelValues(result.Name, result.Tier.String(), failureType).Inc()
@@ -1120,53 +1009,37 @@ func (ehc *EnhancedHealthChecker) recordCheckMetrics(result *EnhancedCheck) {
 	// Record weighted score.
 
 	ehc.metrics.WeightedScores.WithLabelValues(result.Name, result.Tier.String()).Set(result.Score)
-
 }
 
 // determineOverallStatus determines the overall system health status.
 
 func (ehc *EnhancedHealthChecker) determineOverallStatus(tierSummaries map[HealthTier]TierSummary, weightedScore float64) health.Status {
-
 	// Critical tier checks override everything.
 
 	if systemSummary, exists := tierSummaries[TierSystem]; exists {
-
 		if systemSummary.UnhealthyChecks > 0 {
-
 			return health.StatusUnhealthy
-
 		}
-
 	}
 
 	// Use weighted score for overall determination.
 
 	if weightedScore >= 0.95 {
-
 		return health.StatusHealthy
-
 	} else if weightedScore >= 0.7 {
-
 		return health.StatusDegraded
-
 	} else if weightedScore > 0 {
-
 		return health.StatusUnhealthy
-
 	}
 
 	return health.StatusUnknown
-
 }
 
 // getCachedResult retrieves a cached result if valid.
 
 func (ehc *EnhancedHealthChecker) getCachedResult(name string) *CachedResult {
-
 	if !ehc.cacheEnabled {
-
 		return nil
-
 	}
 
 	ehc.cacheMu.RLock()
@@ -1176,29 +1049,21 @@ func (ehc *EnhancedHealthChecker) getCachedResult(name string) *CachedResult {
 	cached, exists := ehc.cachedResults[name]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	if time.Since(cached.Timestamp) > ehc.cacheExpiry {
-
 		return nil
-
 	}
 
 	return cached
-
 }
 
 // cacheResult caches a health check result.
 
 func (ehc *EnhancedHealthChecker) cacheResult(name string, result *EnhancedCheck) {
-
 	if !ehc.cacheEnabled {
-
 		return
-
 	}
 
 	ehc.cacheMu.Lock()
@@ -1206,22 +1071,17 @@ func (ehc *EnhancedHealthChecker) cacheResult(name string, result *EnhancedCheck
 	defer ehc.cacheMu.Unlock()
 
 	ehc.cachedResults[name] = &CachedResult{
-
 		Result: result,
 
 		Timestamp: time.Now(),
 	}
-
 }
 
 // Stop gracefully shuts down the enhanced health checker.
 
 func (ehc *EnhancedHealthChecker) Stop() {
-
 	if !atomic.CompareAndSwapInt32(&ehc.running, 1, 0) {
-
 		return // Already stopped
-
 	}
 
 	ehc.logger.Info("Stopping enhanced health checker", "service", ehc.serviceName)
@@ -1231,41 +1091,31 @@ func (ehc *EnhancedHealthChecker) Stop() {
 	ehc.workerWg.Wait()
 
 	ehc.logger.Info("Enhanced health checker stopped", "service", ehc.serviceName)
-
 }
 
 // GetOverallHealth returns the current overall health status.
 
 func (ehc *EnhancedHealthChecker) GetOverallHealth() health.Status {
-
 	if status := ehc.overallHealth.Load(); status != nil {
-
 		return status.(health.Status)
-
 	}
 
 	return health.StatusUnknown
-
 }
 
 // GetHealthScore returns the current overall health score.
 
 func (ehc *EnhancedHealthChecker) GetHealthScore() float64 {
-
 	if score := ehc.healthScore.Load(); score != nil {
-
 		return score.(float64)
-
 	}
 
 	return 0.0
-
 }
 
 // GetCheckHistory returns the historical data for a specific check.
 
 func (ehc *EnhancedHealthChecker) GetCheckHistory(checkName string, limit int) []EnhancedCheck {
-
 	ehc.mu.RLock()
 
 	defer ehc.mu.RUnlock()
@@ -1273,17 +1123,12 @@ func (ehc *EnhancedHealthChecker) GetCheckHistory(checkName string, limit int) [
 	history, exists := ehc.checkHistory[checkName]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	if limit > 0 && len(history) > limit {
-
 		return history[len(history)-limit:]
-
 	}
 
 	return history
-
 }

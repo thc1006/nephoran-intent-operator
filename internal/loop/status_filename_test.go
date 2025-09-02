@@ -64,7 +64,7 @@ func TestStatusFilenameGeneration(t *testing.T) {
 			// Create the intent file
 			intentPath := filepath.Join(tempDir, tc.intentFile)
 			intentContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
-			err = os.WriteFile(intentPath, []byte(intentContent), 0644)
+			err = os.WriteFile(intentPath, []byte(intentContent), 0o644)
 			require.NoError(t, err)
 
 			// Process the file
@@ -144,7 +144,7 @@ func TestStatusFilenameConsistency(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		// Write/update the intent file
 		content := fmt.Sprintf(`{"version": %d}`, i+1)
-		err := os.WriteFile(intentPath, []byte(content), 0644)
+		err := os.WriteFile(intentPath, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		// Wait for processing

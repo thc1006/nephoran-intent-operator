@@ -879,8 +879,8 @@ func (m *ContinuousSecurityMonitor) generateMonitoringReport() *MonitoringData {
 	// Save report to file
 	reportData, _ := json.MarshalIndent(m.monitoringData, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/continuous-monitoring-report-%d.json", time.Now().Unix())
-	os.MkdirAll("test-results/security", 0755)
-	os.WriteFile(reportFile, reportData, 0644)
+	os.MkdirAll("test-results/security", 0o755)
+	os.WriteFile(reportFile, reportData, 0o644)
 
 	return m.monitoringData
 }

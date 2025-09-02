@@ -680,9 +680,11 @@ func getDefaultEnhancedCacheConfig() *EnhancedCacheConfig {
 func NewGPUModelCacheWithConfig(config GPUCacheConfig) (*GPUModelCache, error) {
 	return &GPUModelCache{deviceCaches: make(map[int]*DeviceModelCache)}, nil
 }
+
 func NewMemoryModelCache(config MemoryCacheConfig) (*MemoryModelCache, error) {
 	return &MemoryModelCache{}, nil
 }
+
 func NewDiskModelCache(config DiskCacheConfig) (*DiskModelCache, error) {
 	return &DiskModelCache{}, nil
 }
@@ -702,6 +704,7 @@ func NewCacheProfiler() *CacheProfiler { return &CacheProfiler{} }
 func (gmc *GPUModelCache) GetModel(modelName string, deviceID int) (*CachedGPUModel, bool) {
 	return nil, false
 }
+
 func (gmc *GPUModelCache) LoadModel(ctx context.Context, modelName string, modelData interface{}, deviceID int) error {
 	return nil
 }
@@ -718,8 +721,10 @@ func (dmc *DiskModelCache) Close()                                       {}
 
 func (emc *EnhancedModelCache) promoteToGPU(ctx context.Context, modelName string, modelData interface{}, deviceID int) {
 }
+
 func (emc *EnhancedModelCache) loadAndPromoteModel(ctx context.Context, modelName, modelPath string, deviceID int) {
 }
+
 func (emc *EnhancedModelCache) wrapMemoryModel(modelData interface{}) *CachedGPUModel {
 	return &CachedGPUModel{}
 }
@@ -737,9 +742,11 @@ func (emc *EnhancedModelCache) performCleanup()             {}
 func (mup *ModelUsagePredictor) PredictUsage(duration time.Duration) ([]*ModelPrediction, error) {
 	return nil, nil
 }
+
 func (smp *SmartModelPreloader) HasSufficientResources(modelName string, deviceID int) bool {
 	return true
 }
+
 func (co *CacheOptimizer) GenerateRecommendations(analysis *CacheAnalysis) ([]*OptimizationRecommendation, error) {
 	return nil, nil
 }
@@ -750,47 +757,55 @@ func (mpm *ModelPlacementManager) FindOptimalDevice(modelName string, preferredD
 }
 
 // Supporting type definitions
-type MemoryModelCache struct{}
-type DiskModelCache struct{}
-type ModelAccessTracker struct{}
-type UsagePatternAnalyzer struct{}
-type ModelLoadScheduler struct{}
-type CacheOptimizer struct{}
-type IntelligentEvictionManager struct{}
-type CacheProfiler struct{}
-type ModelPlacementManager struct{}
-type GPUMemoryAllocator struct{}
-type GPUMemoryDefragmenter struct{}
-type ModelQuantizer struct{}
-type ModelCompressor struct{}
-type ResourceMonitor struct{}
-type PriorityPreloadQueue struct{}
-type PreloadScheduler struct{}
-type TimeSeriesPredictor struct{}
-type PatternPredictor struct{}
-type ContextAwarePredictor struct{}
+type (
+	MemoryModelCache           struct{}
+	DiskModelCache             struct{}
+	ModelAccessTracker         struct{}
+	UsagePatternAnalyzer       struct{}
+	ModelLoadScheduler         struct{}
+	CacheOptimizer             struct{}
+	IntelligentEvictionManager struct{}
+	CacheProfiler              struct{}
+	ModelPlacementManager      struct{}
+	GPUMemoryAllocator         struct{}
+	GPUMemoryDefragmenter      struct{}
+	ModelQuantizer             struct{}
+	ModelCompressor            struct{}
+	ResourceMonitor            struct{}
+	PriorityPreloadQueue       struct{}
+	PreloadScheduler           struct{}
+	TimeSeriesPredictor        struct{}
+	PatternPredictor           struct{}
+	ContextAwarePredictor      struct{}
+)
 
-type GPUCacheConfig struct{}
-type MemoryCacheConfig struct{}
-type DiskCacheConfig struct{}
-type PreloaderConfig struct{}
-type CachingPolicies struct{}
+type (
+	GPUCacheConfig    struct{}
+	MemoryCacheConfig struct{}
+	DiskCacheConfig   struct{}
+	PreloaderConfig   struct{}
+	CachingPolicies   struct{}
+)
 
-type ModelType int
-type ModelPrecision int
-type QuantizationType int
-type GPUMemoryPtr uintptr
-type CUDAStream int
+type (
+	ModelType        int
+	ModelPrecision   int
+	QuantizationType int
+	GPUMemoryPtr     uintptr
+	CUDAStream       int
+)
 
-type ModelAccessRecord struct{}
-type UsagePattern struct{}
-type PreloadStrategy interface{}
-type ModelPrediction struct {
-	ModelName  string
-	DeviceID   int
-	Confidence float64
-	Priority   float64
-}
+type (
+	ModelAccessRecord struct{}
+	UsagePattern      struct{}
+	PreloadStrategy   interface{}
+	ModelPrediction   struct {
+		ModelName  string
+		DeviceID   int
+		Confidence float64
+		Priority   float64
+	}
+)
 type CacheAnalysis struct{}
 
 const (

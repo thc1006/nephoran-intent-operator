@@ -190,7 +190,6 @@ type TestResult struct {
 	Passed bool `json:"passed"` // For compatibility with performance_benchmarks.go
 
 	Score float64 `json:"score"` // For compatibility with performance_benchmarks.go
-
 }
 
 // PerformanceTestResult extends TestResult with performance metrics.
@@ -256,9 +255,7 @@ type ResilienceTestResult struct {
 // NewIntegrationValidator creates a new integration validator.
 
 func NewIntegrationValidator() *IntegrationValidator {
-
 	validator := &IntegrationValidator{
-
 		logger: slog.Default().With("component", "integration-validator"),
 
 		testSuite: createDefaultTestSuite(),
@@ -267,50 +264,37 @@ func NewIntegrationValidator() *IntegrationValidator {
 	}
 
 	return validator
-
 }
 
 // ValidateCompleteIntegration validates the complete RAG pipeline integration.
 
 func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context, pipeline *RAGPipeline) (*ValidationResults, error) {
-
 	iv.logger.Info("Starting complete RAG pipeline integration validation")
 
 	iv.results = &ValidationResults{
-
 		StartTime: time.Now(),
 	}
 
 	// Run all validation tests.
 
 	if err := iv.runComponentTests(ctx, pipeline); err != nil {
-
 		iv.logger.Error("Component tests failed", "error", err)
-
 	}
 
 	if err := iv.runIntegrationTests(ctx, pipeline); err != nil {
-
 		iv.logger.Error("Integration tests failed", "error", err)
-
 	}
 
 	if err := iv.runPerformanceTests(ctx, pipeline); err != nil {
-
 		iv.logger.Error("Performance tests failed", "error", err)
-
 	}
 
 	if err := iv.runScalabilityTests(ctx, pipeline); err != nil {
-
 		iv.logger.Error("Scalability tests failed", "error", err)
-
 	}
 
 	if err := iv.runResilienceTests(ctx, pipeline); err != nil {
-
 		iv.logger.Error("Resilience tests failed", "error", err)
-
 	}
 
 	// Finalize results.
@@ -337,13 +321,11 @@ func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context,
 	)
 
 	return iv.results, nil
-
 }
 
 // runComponentTests runs all component validation tests.
 
 func (iv *IntegrationValidator) runComponentTests(ctx context.Context, pipeline *RAGPipeline) error {
-
 	iv.logger.Info("Running component tests", "count", len(iv.testSuite.ComponentTests))
 
 	for _, test := range iv.testSuite.ComponentTests {
@@ -357,15 +339,12 @@ func (iv *IntegrationValidator) runComponentTests(ctx context.Context, pipeline 
 	}
 
 	return nil
-
 }
 
 // runSingleComponentTest runs a single component test.
 
 func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test ComponentTest, pipeline *RAGPipeline) TestResult {
-
 	result := TestResult{
-
 		TestID: test.ID,
 
 		TestName: test.Name,
@@ -376,9 +355,7 @@ func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test
 	startTime := time.Now()
 
 	defer func() {
-
 		result.Duration = time.Since(startTime)
-
 	}()
 
 	// Create test context with timeout.
@@ -398,9 +375,7 @@ func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test
 		result.ErrorMsg = testErr.Error()
 
 		if test.Critical {
-
 			result.Details = "CRITICAL: Component failure may cause system instability"
-
 		}
 
 	} else {
@@ -412,13 +387,11 @@ func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test
 	}
 
 	return result
-
 }
 
 // executeComponentTest executes a specific component test.
 
 func (iv *IntegrationValidator) executeComponentTest(ctx context.Context, test ComponentTest, pipeline *RAGPipeline) error {
-
 	switch test.ID {
 
 	case "document_loader_test":
@@ -448,25 +421,19 @@ func (iv *IntegrationValidator) executeComponentTest(ctx context.Context, test C
 	default:
 
 		if test.TestFunc != nil {
-
 			return test.TestFunc()
-
 		}
 
 		return fmt.Errorf("unknown test: %s", test.ID)
 
 	}
-
 }
 
 // Component test implementations.
 
 func (iv *IntegrationValidator) testDocumentLoader(ctx context.Context, loader *DocumentLoader) error {
-
 	if loader == nil {
-
 		return fmt.Errorf("document loader is nil")
-
 	}
 
 	// Test basic functionality.
@@ -474,73 +441,54 @@ func (iv *IntegrationValidator) testDocumentLoader(ctx context.Context, loader *
 	metrics := loader.GetMetrics()
 
 	if metrics == nil {
-
 		return fmt.Errorf("document loader metrics unavailable")
-
 	}
 
 	// Test configuration validation.
 
 	if loader.config == nil {
-
 		return fmt.Errorf("document loader configuration missing")
-
 	}
 
 	iv.logger.Debug("Document loader test passed")
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) testChunkingService(ctx context.Context, chunker *ChunkingService) error {
-
 	if chunker == nil {
-
 		return fmt.Errorf("chunking service is nil")
-
 	}
 
 	// Test with sample document.
 
 	sampleDoc := &LoadedDocument{
-
 		ID: "test_doc",
 
 		Content: "This is a test document for chunking validation. It contains multiple sentences to test the chunking logic.",
 
 		Metadata: &DocumentMetadata{
-
 			Source: "test",
 		},
 	}
 
 	chunks, err := chunker.ChunkDocument(ctx, sampleDoc)
-
 	if err != nil {
-
 		return fmt.Errorf("chunking failed: %w", err)
-
 	}
 
 	if len(chunks) == 0 {
-
 		return fmt.Errorf("no chunks generated")
-
 	}
 
 	iv.logger.Debug("Chunking service test passed", "chunks_generated", len(chunks))
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) testEmbeddingService(ctx context.Context, embedder *EmbeddingService) error {
-
 	if embedder == nil {
-
 		return fmt.Errorf("embedding service is nil")
-
 	}
 
 	// Test with sample texts.
@@ -548,7 +496,6 @@ func (iv *IntegrationValidator) testEmbeddingService(ctx context.Context, embedd
 	sampleTexts := []string{"test embedding generation", "validation text"}
 
 	request := &EmbeddingRequest{
-
 		Texts: sampleTexts,
 
 		UseCache: false, // Disable cache for testing
@@ -557,43 +504,30 @@ func (iv *IntegrationValidator) testEmbeddingService(ctx context.Context, embedd
 	}
 
 	response, err := embedder.GenerateEmbeddings(ctx, request)
-
 	if err != nil {
-
 		return fmt.Errorf("embedding generation failed: %w", err)
-
 	}
 
 	if len(response.Embeddings) != len(sampleTexts) {
-
 		return fmt.Errorf("embedding count mismatch: expected %d, got %d", len(sampleTexts), len(response.Embeddings))
-
 	}
 
 	// Validate embedding dimensions.
 
 	for i, embedding := range response.Embeddings {
-
 		if len(embedding) == 0 {
-
 			return fmt.Errorf("empty embedding at index %d", i)
-
 		}
-
 	}
 
 	iv.logger.Debug("Embedding service test passed", "embeddings_generated", len(response.Embeddings))
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) testWeaviateClient(ctx context.Context, client WeaviateClient) error {
-
 	if client == nil {
-
 		return fmt.Errorf("Weaviate client is nil")
-
 	}
 
 	// Test health status.
@@ -601,19 +535,15 @@ func (iv *IntegrationValidator) testWeaviateClient(ctx context.Context, client W
 	health := client.GetHealthStatus()
 
 	if !health.IsHealthy {
-
 		return fmt.Errorf("Weaviate client unhealthy: %s", health.Details)
-
 	}
 
 	iv.logger.Debug("Weaviate client test passed")
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) testRedisCache(ctx context.Context, cache *RedisCache) error {
-
 	if cache == nil {
 
 		iv.logger.Debug("Redis cache is nil (optional component)")
@@ -629,44 +559,34 @@ func (iv *IntegrationValidator) testRedisCache(ctx context.Context, cache *Redis
 	iv.logger.Debug("Redis cache test passed")
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) testRetrievalService(ctx context.Context, retrieval *EnhancedRetrievalService) error {
-
 	if retrieval == nil {
-
 		return fmt.Errorf("retrieval service is nil")
-
 	}
 
 	// Test search functionality.
 
 	searchRequest := &EnhancedSearchRequest{
-
 		Query: "test query for validation",
 
 		Limit: 5,
 	}
 
 	_, err := retrieval.SearchEnhanced(ctx, searchRequest)
-
 	if err != nil {
-
 		return fmt.Errorf("search failed: %w", err)
-
 	}
 
 	iv.logger.Debug("Retrieval service test passed")
 
 	return nil
-
 }
 
 // runIntegrationTests runs integration tests between components.
 
 func (iv *IntegrationValidator) runIntegrationTests(ctx context.Context, pipeline *RAGPipeline) error {
-
 	iv.logger.Info("Running integration tests", "count", len(iv.testSuite.IntegrationTests))
 
 	for _, test := range iv.testSuite.IntegrationTests {
@@ -680,15 +600,12 @@ func (iv *IntegrationValidator) runIntegrationTests(ctx context.Context, pipelin
 	}
 
 	return nil
-
 }
 
 // runSingleIntegrationTest runs a single integration test.
 
 func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, test IntegrationTest, pipeline *RAGPipeline) TestResult {
-
 	result := TestResult{
-
 		TestID: test.ID,
 
 		TestName: test.Name,
@@ -699,9 +616,7 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 	startTime := time.Now()
 
 	defer func() {
-
 		result.Duration = time.Since(startTime)
-
 	}()
 
 	testCtx, cancel := context.WithTimeout(ctx, test.Timeout)
@@ -723,9 +638,7 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 			result.ErrorMsg = err.Error()
 
 		} else {
-
 			result.Status = "PASS"
-
 		}
 
 	case "embedding_cache_integration":
@@ -739,9 +652,7 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 			result.ErrorMsg = err.Error()
 
 		} else {
-
 			result.Status = "PASS"
-
 		}
 
 	default:
@@ -757,9 +668,7 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 				result.ErrorMsg = err.Error()
 
 			} else {
-
 				result.Status = "PASS"
-
 			}
 
 		} else {
@@ -773,13 +682,11 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 	}
 
 	return result
-
 }
 
 // Integration test implementations.
 
 func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Context, pipeline *RAGPipeline) error {
-
 	// Create a test document content.
 
 	// testDoc := "Sample 3GPP specification content for testing the complete pipeline processing.".
@@ -791,11 +698,9 @@ func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Conte
 	iv.logger.Debug("End-to-end document processing test passed")
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) testEmbeddingCacheIntegration(ctx context.Context, pipeline *RAGPipeline) error {
-
 	// Test embedding generation with caching enabled.
 
 	// Implementation would test cache hit/miss scenarios.
@@ -803,45 +708,37 @@ func (iv *IntegrationValidator) testEmbeddingCacheIntegration(ctx context.Contex
 	iv.logger.Debug("Embedding cache integration test passed")
 
 	return nil
-
 }
 
 // Performance, scalability, and resilience test implementations would follow similar patterns.
 
 func (iv *IntegrationValidator) runPerformanceTests(ctx context.Context, pipeline *RAGPipeline) error {
-
 	iv.logger.Info("Running performance tests", "count", len(iv.testSuite.PerformanceTests))
 
 	// Implementation would measure latency, throughput, memory usage, etc.
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) runScalabilityTests(ctx context.Context, pipeline *RAGPipeline) error {
-
 	iv.logger.Info("Running scalability tests", "count", len(iv.testSuite.ScalabilityTests))
 
 	// Implementation would test system behavior under increasing load.
 
 	return nil
-
 }
 
 func (iv *IntegrationValidator) runResilienceTests(ctx context.Context, pipeline *RAGPipeline) error {
-
 	iv.logger.Info("Running resilience tests", "count", len(iv.testSuite.ResilienceTests))
 
 	// Implementation would test error handling, recovery, failover scenarios.
 
 	return nil
-
 }
 
 // Helper methods.
 
 func (iv *IntegrationValidator) updateTestCounts(result TestResult) {
-
 	iv.results.TotalTests++
 
 	switch result.Status {
@@ -855,9 +752,7 @@ func (iv *IntegrationValidator) updateTestCounts(result TestResult) {
 		iv.results.FailedTests++
 
 		if result.Critical {
-
 			iv.results.CriticalFailures++
-
 		}
 
 	case "SKIP":
@@ -865,23 +760,15 @@ func (iv *IntegrationValidator) updateTestCounts(result TestResult) {
 		iv.results.SkippedTests++
 
 	}
-
 }
 
 func (iv *IntegrationValidator) calculateOverallStatus() {
-
 	if iv.results.CriticalFailures > 0 {
-
 		iv.results.OverallStatus = "FAIL"
-
 	} else if iv.results.FailedTests > 0 {
-
 		iv.results.OverallStatus = "WARNING"
-
 	} else {
-
 		iv.results.OverallStatus = "PASS"
-
 	}
 
 	// Generate summary.
@@ -898,45 +785,32 @@ func (iv *IntegrationValidator) calculateOverallStatus() {
 
 		iv.results.SkippedTests,
 	)
-
 }
 
 func (iv *IntegrationValidator) generateRecommendations() {
-
 	var recommendations []string
 
 	if iv.results.CriticalFailures > 0 {
-
 		recommendations = append(recommendations, "CRITICAL: Address critical component failures before deployment")
-
 	}
 
 	if iv.results.FailedTests > iv.results.PassedTests/2 {
-
 		recommendations = append(recommendations, "High failure rate detected - comprehensive system review recommended")
-
 	}
 
 	if len(recommendations) == 0 {
-
 		recommendations = append(recommendations, "System validation successful - ready for deployment")
-
 	}
 
 	iv.results.Recommendations = recommendations
-
 }
 
 // createDefaultTestSuite creates the default validation test suite.
 
 func createDefaultTestSuite() *ValidationTestSuite {
-
 	return &ValidationTestSuite{
-
 		ComponentTests: []ComponentTest{
-
 			{
-
 				ID: "document_loader_test",
 
 				Name: "Document Loader Validation",
@@ -951,7 +825,6 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 
 			{
-
 				ID: "chunking_service_test",
 
 				Name: "Chunking Service Validation",
@@ -966,7 +839,6 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 
 			{
-
 				ID: "embedding_service_test",
 
 				Name: "Embedding Service Validation",
@@ -981,7 +853,6 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 
 			{
-
 				ID: "weaviate_client_test",
 
 				Name: "Weaviate Client Validation",
@@ -996,7 +867,6 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 
 			{
-
 				ID: "redis_cache_test",
 
 				Name: "Redis Cache Validation",
@@ -1011,7 +881,6 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 
 			{
-
 				ID: "retrieval_service_test",
 
 				Name: "Retrieval Service Validation",
@@ -1027,9 +896,7 @@ func createDefaultTestSuite() *ValidationTestSuite {
 		},
 
 		IntegrationTests: []IntegrationTest{
-
 			{
-
 				ID: "end_to_end_document_processing",
 
 				Name: "End-to-End Document Processing",
@@ -1044,7 +911,6 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 
 			{
-
 				ID: "embedding_cache_integration",
 
 				Name: "Embedding Cache Integration",
@@ -1060,9 +926,7 @@ func createDefaultTestSuite() *ValidationTestSuite {
 		},
 
 		PerformanceTests: []PerformanceTest{
-
 			{
-
 				ID: "query_latency_test",
 
 				Name: "Query Latency Performance",
@@ -1083,9 +947,7 @@ func createDefaultTestSuite() *ValidationTestSuite {
 		},
 
 		ScalabilityTests: []ScalabilityTest{
-
 			{
-
 				ID: "concurrent_users_test",
 
 				Name: "Concurrent Users Scalability",
@@ -1104,9 +966,7 @@ func createDefaultTestSuite() *ValidationTestSuite {
 		},
 
 		ResilienceTests: []ResilienceTest{
-
 			{
-
 				ID: "provider_failover_test",
 
 				Name: "Embedding Provider Failover",
@@ -1121,5 +981,4 @@ func createDefaultTestSuite() *ValidationTestSuite {
 			},
 		},
 	}
-
 }

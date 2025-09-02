@@ -42,11 +42,9 @@ type DocumentChunk struct {
 }
 
 func main() {
-
 	// Test DocumentChunk type.
 
 	chunk := &DocumentChunk{
-
 		ID: "test_chunk_1",
 
 		DocumentID: "test_doc",
@@ -83,7 +81,6 @@ func main() {
 	// Test SearchQuery type.
 
 	query := &shared.SearchQuery{
-
 		Query: "test query",
 
 		Limit: 10,
@@ -114,5 +111,4 @@ func main() {
 	fmt.Printf("SearchQuery works: Query=%s\n", query.Query)
 
 	fmt.Println("??All types are working correctly!")
-
 }

@@ -112,36 +112,27 @@ type OptimizationRecommendationEngine struct {
 // NewOptimizationRecommendationEngine creates a new recommendation engine (stub).
 
 func NewOptimizationRecommendationEngine(
-
 	analysisEngine *PerformanceAnalysisEngine,
 
 	config *RecommendationConfig,
 
 	logger logr.Logger,
-
 ) *OptimizationRecommendationEngine {
-
 	return &OptimizationRecommendationEngine{
-
 		logger: logger.WithName("recommendation-engine-stub"),
 	}
-
 }
 
 // GenerateRecommendations generates optimization recommendations (stub).
 
 func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
-
 	ctx context.Context,
 
 	analysisResult *PerformanceAnalysisResult,
-
 ) ([]*OptimizationRecommendation, error) {
-
 	// Return empty list for now.
 
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizationRecommendation represents a recommendation (minimal stub).
@@ -193,9 +184,7 @@ type RecommendationConfig struct {
 // GetDefaultRecommendationConfig returns default configuration.
 
 func GetDefaultRecommendationConfig() *RecommendationConfig {
-
 	return &RecommendationConfig{
-
 		PerformanceWeight: 0.4,
 
 		CostWeight: 0.3,
@@ -224,7 +213,6 @@ func GetDefaultRecommendationConfig() *RecommendationConfig {
 
 		LatencyCriticalityWeight: 0.4,
 	}
-
 }
 
 // RecommendationStrategy represents a recommendation strategy (stub).

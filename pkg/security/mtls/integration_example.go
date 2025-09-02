@@ -53,17 +53,13 @@ type IntegrationConfig struct {
 // NewIntegrationManager creates a comprehensive mTLS integration manager.
 
 func NewIntegrationManager(config *IntegrationConfig) (*IntegrationManager, error) {
-
 	if config.Logger == nil {
-
 		config.Logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-integration", "1.0.0", "production"))
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &IntegrationManager{
-
 		config: config.Config,
 
 		logger: config.Logger,
@@ -88,45 +84,35 @@ func NewIntegrationManager(config *IntegrationConfig) (*IntegrationManager, erro
 	config.Logger.Info("mTLS integration manager initialized successfully")
 
 	return manager, nil
-
 }
 
 // initializeComponents initializes all mTLS components.
 
 func (m *IntegrationManager) initializeComponents() error {
-
 	// Initialize Identity Manager.
 
 	if err := m.initializeIdentityManager(); err != nil {
-
 		return fmt.Errorf("failed to initialize identity manager: %w", err)
-
 	}
 
 	// Initialize Monitor.
 
 	if err := m.initializeMonitor(); err != nil {
-
 		return fmt.Errorf("failed to initialize monitor: %w", err)
-
 	}
 
 	// Initialize Service Clients and Servers.
 
 	if err := m.initializeServices(); err != nil {
-
 		return fmt.Errorf("failed to initialize services: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // initializeIdentityManager initializes the identity manager.
 
 func (m *IntegrationManager) initializeIdentityManager() error {
-
 	if !m.config.MTLSConfig.Enabled {
 
 		m.logger.Info("mTLS not enabled, skipping identity manager initialization")
@@ -136,7 +122,6 @@ func (m *IntegrationManager) initializeIdentityManager() error {
 	}
 
 	identityConfig := &IdentityManagerConfig{
-
 		CAManager: m.caManager,
 
 		BaseDir: m.config.MTLSConfig.CertificateBaseDir,
@@ -161,29 +146,22 @@ func (m *IntegrationManager) initializeIdentityManager() error {
 	var err error
 
 	m.identityManager, err = NewIdentityManager(identityConfig, m.logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create identity manager: %w", err)
-
 	}
 
 	// Create service identities.
 
 	if err := m.createServiceIdentities(); err != nil {
-
 		return fmt.Errorf("failed to create service identities: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // initializeMonitor initializes the mTLS monitor.
 
 func (m *IntegrationManager) initializeMonitor() error {
-
 	m.monitor = NewMTLSMonitor(m.logger)
 
 	// Track certificates if identity manager is available.
@@ -195,7 +173,6 @@ func (m *IntegrationManager) initializeMonitor() error {
 		for _, identity := range identities {
 
 			cert, err := loadCertificateFromPath(identity.CertPath)
-
 			if err != nil {
 
 				m.logger.Warn("failed to load certificate for monitoring",
@@ -211,7 +188,6 @@ func (m *IntegrationManager) initializeMonitor() error {
 			}
 
 			if cert != nil {
-
 				m.monitor.TrackCertificate(
 
 					identity.ServiceName,
@@ -222,7 +198,6 @@ func (m *IntegrationManager) initializeMonitor() error {
 
 					cert,
 				)
-
 			}
 
 		}
@@ -230,13 +205,11 @@ func (m *IntegrationManager) initializeMonitor() error {
 	}
 
 	return nil
-
 }
 
 // initializeServices initializes mTLS-enabled services.
 
 func (m *IntegrationManager) initializeServices() error {
-
 	if !m.config.MTLSConfig.Enabled {
 
 		m.logger.Info("mTLS not enabled, skipping service initialization")
@@ -248,39 +221,30 @@ func (m *IntegrationManager) initializeServices() error {
 	// Initialize LLM service client and server.
 
 	if err := m.initializeLLMService(); err != nil {
-
 		return fmt.Errorf("failed to initialize LLM service: %w", err)
-
 	}
 
 	// Initialize RAG service client and server.
 
 	if err := m.initializeRAGService(); err != nil {
-
 		return fmt.Errorf("failed to initialize RAG service: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // initializeLLMService initializes the LLM service with mTLS.
 
 func (m *IntegrationManager) initializeLLMService() error {
-
 	llmConfig := m.config.MTLSConfig.LLMProcessor
 
 	if llmConfig == nil || !llmConfig.Enabled {
-
 		return nil
-
 	}
 
 	// Create LLM client.
 
 	clientConfig := &ClientConfig{
-
 		ServiceName: llmConfig.ServiceName,
 
 		TenantID: m.config.MTLSConfig.TenantID,
@@ -321,17 +285,13 @@ func (m *IntegrationManager) initializeLLMService() error {
 	var err error
 
 	m.llmClient, err = NewClient(clientConfig, m.logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create LLM client: %w", err)
-
 	}
 
 	// Create LLM server.
 
 	serverConfig := &ServerConfig{
-
 		ServiceName: llmConfig.ServiceName,
 
 		TenantID: m.config.MTLSConfig.TenantID,
@@ -382,47 +342,35 @@ func (m *IntegrationManager) initializeLLMService() error {
 	}
 
 	m.llmServer, err = NewServer(serverConfig, m.logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create LLM server: %w", err)
-
 	}
 
 	// Start server in background.
 
 	go func() {
-
 		if err := m.llmServer.Start(m.ctx); err != nil {
-
 			m.logger.Error("LLM server failed", "error", err)
-
 		}
-
 	}()
 
 	m.logger.Info("LLM service initialized with mTLS")
 
 	return nil
-
 }
 
 // initializeRAGService initializes the RAG service with mTLS.
 
 func (m *IntegrationManager) initializeRAGService() error {
-
 	ragConfig := m.config.MTLSConfig.RAGService
 
 	if ragConfig == nil || !ragConfig.Enabled {
-
 		return nil
-
 	}
 
 	// Create RAG client.
 
 	clientConfig := &ClientConfig{
-
 		ServiceName: ragConfig.ServiceName,
 
 		TenantID: m.config.MTLSConfig.TenantID,
@@ -463,17 +411,13 @@ func (m *IntegrationManager) initializeRAGService() error {
 	var err error
 
 	m.ragClient, err = NewClient(clientConfig, m.logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create RAG client: %w", err)
-
 	}
 
 	// Create RAG server.
 
 	serverConfig := &ServerConfig{
-
 		ServiceName: ragConfig.ServiceName,
 
 		TenantID: m.config.MTLSConfig.TenantID,
@@ -524,39 +468,28 @@ func (m *IntegrationManager) initializeRAGService() error {
 	}
 
 	m.ragServer, err = NewServer(serverConfig, m.logger)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create RAG server: %w", err)
-
 	}
 
 	// Start server in background.
 
 	go func() {
-
 		if err := m.ragServer.Start(m.ctx); err != nil {
-
 			m.logger.Error("RAG server failed", "error", err)
-
 		}
-
 	}()
 
 	m.logger.Info("RAG service initialized with mTLS")
 
 	return nil
-
 }
 
 // createServiceIdentities creates service identities for all enabled services.
 
 func (m *IntegrationManager) createServiceIdentities() error {
-
 	if m.identityManager == nil {
-
 		return nil
-
 	}
 
 	// Create identities for all enabled services.
@@ -566,7 +499,6 @@ func (m *IntegrationManager) createServiceIdentities() error {
 
 		role ServiceRole
 	}{
-
 		{m.config.MTLSConfig.Controller, RoleController},
 
 		{m.config.MTLSConfig.LLMProcessor, RoleLLMService},
@@ -585,7 +517,6 @@ func (m *IntegrationManager) createServiceIdentities() error {
 	}
 
 	for _, service := range services {
-
 		if service.config != nil && service.config.Enabled {
 
 			_, err := m.identityManager.CreateServiceIdentity(
@@ -598,7 +529,6 @@ func (m *IntegrationManager) createServiceIdentities() error {
 			)
 
 			if err != nil {
-
 				m.logger.Warn("failed to create service identity",
 
 					"service_name", service.config.ServiceName,
@@ -606,121 +536,89 @@ func (m *IntegrationManager) createServiceIdentities() error {
 					"role", service.role,
 
 					"error", err)
-
 			} else {
-
 				m.logger.Info("service identity created",
 
 					"service_name", service.config.ServiceName,
 
 					"role", service.role)
-
 			}
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetLLMClient returns the mTLS-enabled LLM client.
 
 func (m *IntegrationManager) GetLLMClient() *Client {
-
 	return m.llmClient
-
 }
 
 // GetRAGClient returns the mTLS-enabled RAG client.
 
 func (m *IntegrationManager) GetRAGClient() *Client {
-
 	return m.ragClient
-
 }
 
 // GetIdentityManager returns the identity manager.
 
 func (m *IntegrationManager) GetIdentityManager() *IdentityManager {
-
 	return m.identityManager
-
 }
 
 // GetMonitor returns the mTLS monitor.
 
 func (m *IntegrationManager) GetMonitor() *MTLSMonitor {
-
 	return m.monitor
-
 }
 
 // GetMetrics returns comprehensive mTLS metrics.
 
 func (m *IntegrationManager) GetMetrics() ([]*Metric, error) {
-
 	if m.monitor == nil {
-
 		return nil, fmt.Errorf("monitor not initialized")
-
 	}
 
 	return m.monitor.GetMetrics()
-
 }
 
 // GetConnectionStats returns connection statistics.
 
 func (m *IntegrationManager) GetConnectionStats() *ConnectionStats {
-
 	if m.monitor == nil {
-
 		return &ConnectionStats{}
-
 	}
 
 	return m.monitor.GetConnectionStats()
-
 }
 
 // GetCertificateStats returns certificate statistics.
 
 func (m *IntegrationManager) GetCertificateStats() *CertificateStats {
-
 	if m.monitor == nil {
-
 		return &CertificateStats{}
-
 	}
 
 	return m.monitor.GetCertificateStats()
-
 }
 
 // GetIdentityStats returns identity statistics.
 
 func (m *IntegrationManager) GetIdentityStats() *IdentityStats {
-
 	if m.identityManager == nil {
-
 		return &IdentityStats{}
-
 	}
 
 	return m.identityManager.GetStats()
-
 }
 
 // RotateAllCertificates rotates certificates for all services.
 
 func (m *IntegrationManager) RotateAllCertificates(ctx context.Context) error {
-
 	if m.identityManager == nil {
-
 		return fmt.Errorf("identity manager not initialized")
-
 	}
 
 	identities := m.identityManager.ListServiceIdentities()
@@ -737,7 +635,6 @@ func (m *IntegrationManager) RotateAllCertificates(ctx context.Context) error {
 		)
 
 		if err != nil {
-
 			m.logger.Error("failed to rotate certificate",
 
 				"service_name", identity.ServiceName,
@@ -745,27 +642,22 @@ func (m *IntegrationManager) RotateAllCertificates(ctx context.Context) error {
 				"role", identity.Role,
 
 				"error", err)
-
 		} else {
-
 			m.logger.Info("certificate rotated successfully",
 
 				"service_name", identity.ServiceName,
 
 				"role", identity.Role)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // Close gracefully shuts down the integration manager.
 
 func (m *IntegrationManager) Close() error {
-
 	m.logger.Info("shutting down mTLS integration manager")
 
 	// Stop services.
@@ -775,57 +667,41 @@ func (m *IntegrationManager) Close() error {
 	// Close clients.
 
 	if m.llmClient != nil {
-
 		m.llmClient.Close()
-
 	}
 
 	if m.ragClient != nil {
-
 		m.ragClient.Close()
-
 	}
 
 	// Close servers.
 
 	if m.llmServer != nil {
-
 		m.llmServer.Shutdown(context.Background())
-
 	}
 
 	if m.ragServer != nil {
-
 		m.ragServer.Shutdown(context.Background())
-
 	}
 
 	// Close managers.
 
 	if m.identityManager != nil {
-
 		m.identityManager.Close()
-
 	}
 
 	if m.monitor != nil {
-
 		m.monitor.Close()
-
 	}
 
 	return nil
-
 }
 
 // ValidateConfiguration validates the mTLS configuration.
 
 func (m *IntegrationManager) ValidateConfiguration() error {
-
 	if m.config.MTLSConfig == nil {
-
 		return fmt.Errorf("mTLS configuration is required")
-
 	}
 
 	if m.config.MTLSConfig.Enabled {
@@ -833,47 +709,34 @@ func (m *IntegrationManager) ValidateConfiguration() error {
 		// Validate required fields when mTLS is enabled.
 
 		if m.config.MTLSConfig.TenantID == "" {
-
 			return fmt.Errorf("tenant ID is required when mTLS is enabled")
-
 		}
 
 		if m.config.MTLSConfig.CertificateBaseDir == "" {
-
 			return fmt.Errorf("certificate base directory is required when mTLS is enabled")
-
 		}
 
 		if m.config.MTLSConfig.AutoProvision && m.caManager == nil {
-
 			return fmt.Errorf("CA manager is required when auto-provisioning is enabled")
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // loadCertificateFromPath loads an X.509 certificate from a PEM file.
 
 func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
-
 	if certPath == "" {
-
 		return nil, fmt.Errorf("certificate path is empty")
-
 	}
 
 	// Load certificate data from file.
 
 	certData, err := loadCertificateFile(certPath)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to load certificate file: %w", err)
-
 	}
 
 	// Decode PEM block.
@@ -881,39 +744,29 @@ func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
 	block, _ := pem.Decode(certData)
 
 	if block == nil || block.Type != "CERTIFICATE" {
-
 		return nil, fmt.Errorf("failed to decode PEM certificate block")
-
 	}
 
 	// Parse X.509 certificate.
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to parse X.509 certificate: %w", err)
-
 	}
 
 	return cert, nil
-
 }
 
 // ExampleUsage demonstrates how to use the integration manager.
 
 func ExampleUsage() {
-
 	// This is an example of how to integrate mTLS into your application.
 
 	// 1. Load configuration.
 
 	appConfig, err := config.LoadFromEnv()
-
 	if err != nil {
-
 		panic(fmt.Sprintf("Failed to load config: %v", err))
-
 	}
 
 	// 2. Create logger.
@@ -929,7 +782,6 @@ func ExampleUsage() {
 	// 4. Create integration manager.
 
 	integrationConfig := &IntegrationConfig{
-
 		Config: appConfig,
 
 		Logger: logger,
@@ -938,11 +790,8 @@ func ExampleUsage() {
 	}
 
 	manager, err := NewIntegrationManager(integrationConfig)
-
 	if err != nil {
-
 		panic(fmt.Sprintf("Failed to create integration manager: %v", err))
-
 	}
 
 	defer manager.Close()
@@ -952,41 +801,33 @@ func ExampleUsage() {
 	llmClient := manager.GetLLMClient()
 
 	if llmClient != nil {
-
 		// Use the LLM client for secure communications.
 
 		logger.Info("LLM client ready for secure communications")
-
 	}
 
 	ragClient := manager.GetRAGClient()
 
 	if ragClient != nil {
-
 		// Use the RAG client for secure communications.
 
 		logger.Info("RAG client ready for secure communications")
-
 	}
 
 	// 6. Monitor mTLS health.
 
 	go func() {
-
 		ticker := time.NewTicker(1 * time.Minute)
 
 		defer ticker.Stop()
 
 		for {
-
 			select {
-
 			case <-ticker.C:
 
 				// Get and log metrics.
 
 				metrics, err := manager.GetMetrics()
-
 				if err != nil {
 
 					logger.Error("Failed to get mTLS metrics", "error", err)
@@ -1002,15 +843,11 @@ func ExampleUsage() {
 					"connection_stats", manager.GetConnectionStats(),
 
 					"certificate_stats", manager.GetCertificateStats())
-
 			}
-
 		}
-
 	}()
 
 	// Your application logic here...
 
 	logger.Info("Application running with comprehensive mTLS security")
-
 }

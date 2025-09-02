@@ -27,7 +27,6 @@ import (
 // O2AdaptorInterface defines the complete O2 IMS interface following O-RAN.WG6.O2ims-Interface-v01.01.
 
 type O2AdaptorInterface interface {
-
 	// Infrastructure Management Services (O-RAN.WG6.O2ims-Interface-v01.01).
 
 	// Resource Pool Management.
@@ -120,7 +119,6 @@ type O2AdaptorInterface interface {
 // O2Adaptor implements the complete O2 IMS interface.
 
 type O2Adaptor struct {
-
 	// Core clients and configuration.
 
 	kubeClient client.Client
@@ -171,7 +169,6 @@ type O2Adaptor struct {
 // O2Config holds comprehensive O2 interface configuration.
 
 type O2Config struct {
-
 	// Basic configuration.
 
 	Namespace string `yaml:"namespace"`
@@ -352,11 +349,8 @@ type RetryConfig struct {
 // NewO2Adaptor creates a new O2 adaptor with comprehensive IMS capabilities.
 
 func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, config *O2Config) (*O2Adaptor, error) {
-
 	if config == nil {
-
 		config = DefaultO2Config()
-
 	}
 
 	// Initialize core services.
@@ -374,19 +368,14 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 	// Initialize cloud providers.
 
 	providerManager, err := initializeProviders(config.Providers, kubeClient, clientset)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize cloud providers: %w", err)
-
 	}
 
 	// Set up circuit breaker configuration.
 
 	if config.CircuitBreakerConfig == nil {
-
 		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
-
 			FailureThreshold: 5,
 
 			FailureRate: 0.5,
@@ -411,15 +400,12 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 
 			HealthCheckTimeout: 10 * time.Second,
 		}
-
 	}
 
 	// Set up retry configuration.
 
 	if config.RetryConfig == nil {
-
 		config.RetryConfig = &RetryConfig{
-
 			MaxRetries: 3,
 
 			InitialDelay: 1 * time.Second,
@@ -431,7 +417,6 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 			Jitter: true,
 
 			RetryableErrors: []string{
-
 				"connection refused",
 
 				"timeout",
@@ -441,7 +426,6 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 				"service unavailable",
 			},
 		}
-
 	}
 
 	// Create circuit breaker.
@@ -453,7 +437,6 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 	monitoringCtx, monitoringCancel := context.WithCancel(context.Background())
 
 	adaptor := &O2Adaptor{
-
 		kubeClient: kubeClient,
 
 		clientset: clientset,
@@ -498,15 +481,12 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 	}
 
 	return adaptor, nil
-
 }
 
 // DefaultO2Config returns default O2 configuration.
 
 func DefaultO2Config() *O2Config {
-
 	return &O2Config{
-
 		Namespace: "o-ran-o2",
 
 		ServiceAccount: "o2-adaptor",
@@ -514,22 +494,18 @@ func DefaultO2Config() *O2Config {
 		DefaultProvider: "kubernetes",
 
 		Providers: map[string]*ProviderConfig{
-
 			"kubernetes": {
-
 				Type: "kubernetes",
 
 				Enabled: true,
 
 				Config: map[string]string{
-
 					"in_cluster": "true",
 				},
 			},
 		},
 
 		IMSConfiguration: &IMSConfig{
-
 			SystemName: "Nephoran O2 IMS",
 
 			SystemDescription: "O-RAN O2 Infrastructure Management Services",
@@ -546,7 +522,6 @@ func DefaultO2Config() *O2Config {
 		},
 
 		APIServerConfig: &APIServerConfig{
-
 			Enabled: true,
 
 			Port: 8082,
@@ -564,7 +539,6 @@ func DefaultO2Config() *O2Config {
 		},
 
 		MonitoringConfig: &MonitoringConfig{
-
 			EnableMetrics: true,
 
 			EnableTracing: true,
@@ -577,40 +551,33 @@ func DefaultO2Config() *O2Config {
 		},
 
 		AuthConfig: &AuthConfig{
-
 			AuthMode: "token",
 
 			RBACEnabled: true,
 
 			TokenValidation: &TokenConfig{
-
 				Enabled: true,
 
 				TokenExpiry: 24 * time.Hour,
 			},
 		},
 	}
-
 }
 
 // initializeProviders initializes and validates cloud providers.
 
 func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient client.Client, clientset kubernetes.Interface) (map[string]providers.CloudProvider, error) {
-
 	providerManager := make(map[string]providers.CloudProvider)
 
 	for name, config := range providerConfigs {
 
 		if !config.Enabled {
-
 			continue
-
 		}
 
 		// Convert ProviderConfig to ProviderConfiguration.
 
 		providerConfig := &providers.ProviderConfiguration{
-
 			Name: name,
 
 			Type: config.Type,
@@ -651,9 +618,7 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 		}
 
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize provider %s: %w", name, err)
-
 		}
 
 		providerManager[name] = provider
@@ -661,13 +626,10 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 	}
 
 	if len(providerManager) == 0 {
-
 		return nil, fmt.Errorf("no enabled cloud providers configured")
-
 	}
 
 	return providerManager, nil
-
 }
 
 // Health and lifecycle management.
@@ -675,7 +637,6 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 // Shutdown gracefully shuts down the O2 adaptor.
 
 func (a *O2Adaptor) Shutdown(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("shutting down O2 adaptor")
@@ -687,35 +648,26 @@ func (a *O2Adaptor) Shutdown(ctx context.Context) error {
 	// Close circuit breaker.
 
 	if a.circuitBreaker != nil {
-
 		// Circuit breaker cleanup would be implemented here.
-
 	}
 
 	// Close provider connections.
 
 	for name, provider := range a.providers {
-
 		if err := provider.Close(); err != nil {
-
 			logger.Error(err, "failed to close provider", "provider", name)
-
 		}
-
 	}
 
 	logger.Info("O2 adaptor shutdown completed")
 
 	return nil
-
 }
 
 // GetSystemInfo returns O2 IMS system information.
 
 func (a *O2Adaptor) GetSystemInfo(ctx context.Context) (*models.SystemInfo, error) {
-
 	return &models.SystemInfo{
-
 		Name: a.config.IMSConfiguration.SystemName,
 
 		Description: a.config.IMSConfiguration.SystemDescription,
@@ -730,15 +682,12 @@ func (a *O2Adaptor) GetSystemInfo(ctx context.Context) (*models.SystemInfo, erro
 
 		Timestamp: time.Now(),
 	}, nil
-
 }
 
 // Private helper methods.
 
 func (a *O2Adaptor) getSupportedResourceTypes() []string {
-
 	return []string{
-
 		"compute",
 
 		"storage",
@@ -759,13 +708,10 @@ func (a *O2Adaptor) getSupportedResourceTypes() []string {
 
 		"persistent_volume_claim",
 	}
-
 }
 
 func (a *O2Adaptor) getSystemExtensions() map[string]interface{} {
-
 	return map[string]interface{}{
-
 		"multi_cloud": true,
 
 		"kubernetes_native": true,
@@ -782,13 +728,11 @@ func (a *O2Adaptor) getSystemExtensions() map[string]interface{} {
 
 		"provider_count": len(a.providers),
 	}
-
 }
 
 // Background monitoring services.
 
 func (a *O2Adaptor) startResourceMonitoring() {
-
 	logger := log.FromContext(a.monitoringCtx)
 
 	logger.Info("starting resource monitoring service")
@@ -798,7 +742,6 @@ func (a *O2Adaptor) startResourceMonitoring() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-a.monitoringCtx.Done():
@@ -812,13 +755,10 @@ func (a *O2Adaptor) startResourceMonitoring() {
 			a.collectResourceMetrics()
 
 		}
-
 	}
-
 }
 
 func (a *O2Adaptor) startHealthMonitoring() {
-
 	logger := log.FromContext(a.monitoringCtx)
 
 	logger.Info("starting health monitoring service")
@@ -828,7 +768,6 @@ func (a *O2Adaptor) startHealthMonitoring() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-a.monitoringCtx.Done():
@@ -842,13 +781,10 @@ func (a *O2Adaptor) startHealthMonitoring() {
 			a.performHealthChecks()
 
 		}
-
 	}
-
 }
 
 func (a *O2Adaptor) collectResourceMetrics() {
-
 	logger := log.FromContext(a.monitoringCtx)
 
 	// Collect metrics from all providers.
@@ -856,7 +792,6 @@ func (a *O2Adaptor) collectResourceMetrics() {
 	for name, provider := range a.providers {
 
 		metrics, err := provider.GetMetrics(a.monitoringCtx)
-
 		if err != nil {
 
 			logger.Error(err, "failed to collect metrics from provider", "provider", name)
@@ -892,25 +827,19 @@ func (a *O2Adaptor) collectResourceMetrics() {
 		"deployments", deploymentCount,
 
 		"subscriptions", subscriptionCount)
-
 }
 
 func (a *O2Adaptor) performHealthChecks() {
-
 	logger := log.FromContext(a.monitoringCtx)
 
 	// Check provider health.
 
 	for name, provider := range a.providers {
-
 		if err := provider.HealthCheck(a.monitoringCtx); err != nil {
-
 			logger.Error(err, "provider health check failed", "provider", name)
 
 			// Could trigger alerts or automatic remediation here.
-
 		}
-
 	}
 
 	// Check circuit breaker status.
@@ -920,11 +849,8 @@ func (a *O2Adaptor) performHealthChecks() {
 		stats := a.circuitBreaker.GetStats()
 
 		if failureRate, ok := stats["failure_rate"].(float64); ok && failureRate > 0.5 {
-
 			logger.Info("high failure rate detected in circuit breaker", "failure_rate", failureRate)
-
 		}
 
 	}
-
 }

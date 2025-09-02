@@ -268,7 +268,6 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				"application/json",
 				bytes.NewBuffer(jsonPayload),
 			)
-
 			if err != nil {
 				if urlErr, ok := err.(*url.Error); ok && urlErr.Timeout() {
 					By("Request timed out as expected")

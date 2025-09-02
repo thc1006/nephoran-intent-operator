@@ -142,7 +142,6 @@ type EnhancedCostLimits struct {
 	MonthlyLimit float64 `json:"monthly_limit"`
 
 	AlertThreshold float64 `json:"alert_threshold"` // Percentage of limit
-
 }
 
 // CostAlert represents a cost alert.
@@ -164,15 +163,11 @@ type EnhancedCostAlert struct {
 // NewMultiProviderEmbeddingService creates a new multi-provider embedding service.
 
 func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEmbeddingService, error) {
-
 	if config == nil {
-
 		config = getDefaultEmbeddingConfig()
-
 	}
 
 	service := &MultiProviderEmbeddingService{
-
 		config: config,
 
 		logger: slog.Default().With("component", "multi-provider-embedding"),
@@ -185,9 +180,7 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	// Initialize providers.
 
 	if err := service.initializeProviders(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize providers: %w", err)
-
 	}
 
 	// Initialize load balancer.
@@ -197,7 +190,6 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	// Initialize cost manager.
 
 	service.costManager = NewEnhancedCostManager(EnhancedCostLimits{
-
 		DailyLimit: config.DailyCostLimit,
 
 		MonthlyLimit: config.MonthlyCostLimit,
@@ -214,11 +206,8 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	var err error
 
 	service.cacheManager, err = NewEmbeddingCacheManager(config)
-
 	if err != nil {
-
 		service.logger.Warn("Failed to initialize cache manager", "error", err)
-
 	}
 
 	// Initialize health monitor.
@@ -230,9 +219,7 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	adaptedProviders := make(map[string]EmbeddingProvider)
 
 	for name, provider := range service.providers {
-
 		adaptedProviders[name] = &ProviderHealthAdapter{provider: provider}
-
 	}
 
 	go service.healthMonitor.StartMonitoring(adaptedProviders)
@@ -247,13 +234,11 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	)
 
 	return service, nil
-
 }
 
 // GenerateEmbeddings generates embeddings using the best available provider.
 
 func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
-
 	startTime := time.Now()
 
 	mps.logger.Debug("Generating embeddings",
@@ -268,15 +253,12 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 	// Validate request.
 
 	if err := mps.validateRequest(request); err != nil {
-
 		return nil, fmt.Errorf("invalid request: %w", err)
-
 	}
 
 	// Check cache first if enabled.
 
 	if request.UseCache && mps.cacheManager != nil {
-
 		if cachedResponse := mps.checkCache(request); cachedResponse != nil {
 
 			cachedResponse.ProcessingTime = time.Since(startTime)
@@ -286,7 +268,6 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 			return cachedResponse, nil
 
 		}
-
 	}
 
 	// Check cost limits.
@@ -296,9 +277,7 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 		estimatedCost := mps.estimateTotalCost(request.Texts)
 
 		if !mps.costManager.CanAfford(estimatedCost) {
-
 			return nil, fmt.Errorf("request would exceed cost limits: estimated cost $%.4f", estimatedCost)
-
 		}
 
 	}
@@ -306,11 +285,8 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 	// Select best provider.
 
 	provider, err := mps.selectProvider(request)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to select provider: %w", err)
-
 	}
 
 	// Preprocess and deduplicate texts.
@@ -320,15 +296,12 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 	// Generate embeddings for deduplicated texts.
 
 	response, err := mps.generateWithProvider(ctx, provider, deduplicatedRequest)
-
 	if err != nil {
 
 		// Try fallback providers if enabled.
 
 		if mps.config.FallbackEnabled {
-
 			response, err = mps.generateWithFallback(ctx, provider, deduplicatedRequest)
-
 		}
 
 		if err != nil {
@@ -352,7 +325,6 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 		qualityScore := mps.qualityManager.AssessQuality(response.Embeddings[0], provider.GetName(), provider.GetModelInfo().Name)
 
 		if qualityScore < mps.config.MinQualityScore {
-
 			mps.logger.Warn("Low quality embeddings detected",
 
 				"provider", provider.GetName(),
@@ -361,7 +333,6 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 
 				"threshold", mps.config.MinQualityScore,
 			)
-
 		}
 
 	}
@@ -369,17 +340,13 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 	// Cache the response.
 
 	if request.UseCache && mps.cacheManager != nil {
-
 		mps.cacheResponse(request, response)
-
 	}
 
 	// Update cost tracking.
 
 	if mps.config.EnableCostTracking {
-
 		mps.costManager.RecordSpending(response.TokenUsage.EstimatedCost)
-
 	}
 
 	// Update metrics.
@@ -400,25 +367,20 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 	)
 
 	return response, nil
-
 }
 
 // initializeProviders initializes all configured providers.
 
 func (mps *MultiProviderEmbeddingService) initializeProviders() error {
-
 	for _, providerConfig := range mps.config.Providers {
 
 		if !providerConfig.Enabled {
-
 			continue
-
 		}
 
 		// Convert ProviderConfig to EnhancedProviderConfig.
 
 		enhancedConfig := EnhancedProviderConfig{
-
 			Name: providerConfig.Name,
 
 			Type: providerConfig.Name, // Use Name as Type for backward compatibility
@@ -443,7 +405,6 @@ func (mps *MultiProviderEmbeddingService) initializeProviders() error {
 		}
 
 		provider, err := mps.createProvider(enhancedConfig)
-
 		if err != nil {
 
 			mps.logger.Error("Failed to create provider", "name", providerConfig.Name, "error", err)
@@ -459,19 +420,15 @@ func (mps *MultiProviderEmbeddingService) initializeProviders() error {
 	}
 
 	if len(mps.providers) == 0 {
-
 		return fmt.Errorf("no providers successfully initialized")
-
 	}
 
 	return nil
-
 }
 
 // createProvider creates a specific provider instance.
 
 func (mps *MultiProviderEmbeddingService) createProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
-
 	switch config.Type {
 
 	case "openai":
@@ -495,19 +452,15 @@ func (mps *MultiProviderEmbeddingService) createProvider(config EnhancedProvider
 		return nil, fmt.Errorf("unsupported provider type: %s", config.Type)
 
 	}
-
 }
 
 // selectProvider selects the best provider for the request.
 
 func (mps *MultiProviderEmbeddingService) selectProvider(request *EmbeddingRequest) (EnhancedEmbeddingProvider, error) {
-
 	availableProviders := mps.getHealthyProviders()
 
 	if len(availableProviders) == 0 {
-
 		return nil, fmt.Errorf("no healthy providers available")
-
 	}
 
 	// Use load balancer to select provider.
@@ -517,33 +470,26 @@ func (mps *MultiProviderEmbeddingService) selectProvider(request *EmbeddingReque
 	provider, exists := mps.providers[providerName]
 
 	if !exists {
-
 		return nil, fmt.Errorf("selected provider %s not found", providerName)
-
 	}
 
 	return provider, nil
-
 }
 
 // generateWithProvider generates embeddings using a specific provider.
 
 func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Context, provider EnhancedEmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
-
 	// Preprocess texts if telecom preprocessing is enabled.
 
 	processedTexts := request.Texts
 
 	if mps.config.TelecomPreprocessing {
-
 		processedTexts = mps.preprocessTelecomTexts(request.Texts)
-
 	}
 
 	// Create new request with processed texts.
 
 	processedRequest := &EmbeddingRequest{
-
 		Texts: processedTexts,
 
 		Metadata: request.Metadata,
@@ -560,11 +506,8 @@ func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Conte
 	// Generate embeddings.
 
 	response, err := provider.GenerateEmbeddings(ctx, processedRequest.Texts)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("provider %s failed: %w", provider.GetName(), err)
-
 	}
 
 	// Enhance response metadata.
@@ -574,37 +517,29 @@ func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Conte
 	response.ModelUsed = provider.GetModelInfo().Name
 
 	return response, nil
-
 }
 
 // generateWithFallback tries fallback providers if the primary fails.
 
 func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Context, failedProvider EnhancedEmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
-
 	fallbackOrder := mps.config.FallbackOrder
 
 	if len(fallbackOrder) == 0 {
-
 		// Use all healthy providers except the failed one.
 
 		fallbackOrder = mps.getHealthyProviders()
-
 	}
 
 	for _, providerName := range fallbackOrder {
 
 		if providerName == failedProvider.GetName() {
-
 			continue // Skip the failed provider
-
 		}
 
 		provider, exists := mps.providers[providerName]
 
 		if !exists || !provider.IsHealthy() {
-
 			continue
-
 		}
 
 		mps.logger.Info("Trying fallback provider", "provider", providerName)
@@ -612,9 +547,7 @@ func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Conte
 		response, err := mps.generateWithProvider(ctx, provider, request)
 
 		if err == nil {
-
 			return response, nil
-
 		}
 
 		mps.logger.Warn("Fallback provider failed", "provider", providerName, "error", err)
@@ -622,13 +555,11 @@ func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Conte
 	}
 
 	return nil, fmt.Errorf("all fallback providers failed")
-
 }
 
 // preprocessTelecomTexts applies telecom-specific preprocessing.
 
 func (mps *MultiProviderEmbeddingService) preprocessTelecomTexts(texts []string) []string {
-
 	var processedTexts []string
 
 	for _, text := range texts {
@@ -640,13 +571,11 @@ func (mps *MultiProviderEmbeddingService) preprocessTelecomTexts(texts []string)
 	}
 
 	return processedTexts
-
 }
 
 // preprocessSingleText preprocesses a single text for telecom content.
 
 func (mps *MultiProviderEmbeddingService) preprocessSingleText(text string) string {
-
 	// Normalize telecom acronyms.
 
 	text = mps.expandTelecomAcronyms(text)
@@ -654,29 +583,22 @@ func (mps *MultiProviderEmbeddingService) preprocessSingleText(text string) stri
 	// Preserve technical terms.
 
 	if mps.config.PreserveTechnicalTerms {
-
 		text = mps.preserveTechnicalTerms(text)
-
 	}
 
 	// Apply technical term weighting.
 
 	if mps.config.TechnicalTermWeighting > 1.0 {
-
 		text = mps.applyTechnicalTermWeighting(text)
-
 	}
 
 	return text
-
 }
 
 // expandTelecomAcronyms expands common telecom acronyms.
 
 func (mps *MultiProviderEmbeddingService) expandTelecomAcronyms(text string) string {
-
 	acronymMap := map[string]string{
-
 		"5G": "Fifth Generation 5G",
 
 		"4G": "Fourth Generation 4G",
@@ -705,23 +627,18 @@ func (mps *MultiProviderEmbeddingService) expandTelecomAcronyms(text string) str
 	}
 
 	for acronym, expansion := range acronymMap {
-
 		text = strings.ReplaceAll(text, acronym, expansion)
-
 	}
 
 	return text
-
 }
 
 // preserveTechnicalTerms ensures technical terms are properly formatted.
 
 func (mps *MultiProviderEmbeddingService) preserveTechnicalTerms(text string) string {
-
 	// Add special markers around technical terms to preserve them.
 
 	technicalTerms := []string{
-
 		"MHz", "GHz", "dBm", "EIRP", "SINR", "RSRP", "RSRQ",
 
 		"MAC", "RLC", "PDCP", "RRC", "PHY",
@@ -732,25 +649,20 @@ func (mps *MultiProviderEmbeddingService) preserveTechnicalTerms(text string) st
 	}
 
 	for _, term := range technicalTerms {
-
 		text = strings.ReplaceAll(text, term, fmt.Sprintf("[TECH]%s[/TECH]", term))
-
 	}
 
 	return text
-
 }
 
 // applyTechnicalTermWeighting boosts technical terms for better embedding.
 
 func (mps *MultiProviderEmbeddingService) applyTechnicalTermWeighting(text string) string {
-
 	// This would typically involve duplicating technical terms based on weighting.
 
 	weight := int(mps.config.TechnicalTermWeighting)
 
 	technicalTerms := []string{
-
 		"specification", "protocol", "interface", "procedure",
 
 		"frequency", "bandwidth", "power", "antenna",
@@ -759,7 +671,6 @@ func (mps *MultiProviderEmbeddingService) applyTechnicalTermWeighting(text strin
 	}
 
 	for _, term := range technicalTerms {
-
 		if strings.Contains(strings.ToLower(text), term) {
 
 			// Duplicate the term to increase its weight.
@@ -769,21 +680,16 @@ func (mps *MultiProviderEmbeddingService) applyTechnicalTermWeighting(text strin
 			text = strings.ReplaceAll(strings.ToLower(text), term, replacement)
 
 		}
-
 	}
 
 	return text
-
 }
 
 // checkCache checks for cached embeddings.
 
 func (mps *MultiProviderEmbeddingService) checkCache(request *EmbeddingRequest) *EmbeddingResponse {
-
 	if mps.cacheManager == nil {
-
 		return nil
-
 	}
 
 	var embeddings [][]float32
@@ -815,9 +721,7 @@ func (mps *MultiProviderEmbeddingService) checkCache(request *EmbeddingRequest) 
 	}
 
 	if len(embeddings) == len(request.Texts) {
-
 		return &EmbeddingResponse{
-
 			Embeddings: embeddings,
 
 			CacheHits: cacheHits,
@@ -826,25 +730,19 @@ func (mps *MultiProviderEmbeddingService) checkCache(request *EmbeddingRequest) 
 
 			RequestID: request.RequestID,
 		}
-
 	}
 
 	return nil
-
 }
 
 // cacheResponse caches the embedding response.
 
 func (mps *MultiProviderEmbeddingService) cacheResponse(request *EmbeddingRequest, response *EmbeddingResponse) {
-
 	if mps.cacheManager == nil {
-
 		return
-
 	}
 
 	for i, text := range request.Texts {
-
 		if i < len(response.Embeddings) {
 
 			cacheKey := mps.generateCacheKey(text)
@@ -852,27 +750,22 @@ func (mps *MultiProviderEmbeddingService) cacheResponse(request *EmbeddingReques
 			mps.cacheManager.Set(cacheKey, response.Embeddings[i], mps.config.CacheTTL)
 
 		}
-
 	}
-
 }
 
 // generateCacheKey generates a cache key for text using fast FNV hash.
 
 func (mps *MultiProviderEmbeddingService) generateCacheKey(text string) string {
-
 	h := fnv.New64a()
 
 	h.Write([]byte(text))
 
 	return fmt.Sprintf("emb:%016x", h.Sum64())
-
 }
 
 // preprocessAndDeduplicate preprocesses texts and removes duplicates for efficient API usage.
 
 func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *EmbeddingRequest) (*EmbeddingRequest, map[int]int) {
-
 	processed := make([]string, 0, len(request.Texts))
 
 	dedupeMap := make(map[string]int)
@@ -933,7 +826,6 @@ func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *Embe
 	// Create new request with deduplicated texts.
 
 	deduplicatedRequest := &EmbeddingRequest{
-
 		Texts: processed,
 
 		UseCache: request.UseCache,
@@ -950,19 +842,15 @@ func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *Embe
 	}
 
 	return deduplicatedRequest, indexMapping
-
 }
 
 // expandResponse expands the deduplicated response back to the original text count.
 
 func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResponse, indexMapping map[int]int, originalCount int) *EmbeddingResponse {
-
 	if len(indexMapping) == originalCount && len(response.Embeddings) == originalCount {
-
 		// No deduplication was applied.
 
 		return response
-
 	}
 
 	// Create expanded embeddings array.
@@ -974,9 +862,7 @@ func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResp
 		deduplicatedIdx := indexMapping[originalIdx]
 
 		if deduplicatedIdx < len(response.Embeddings) {
-
 			expandedEmbeddings[originalIdx] = response.Embeddings[deduplicatedIdx]
-
 		}
 
 	}
@@ -984,7 +870,6 @@ func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResp
 	// Update response with expanded embeddings.
 
 	expandedResponse := &EmbeddingResponse{
-
 		Embeddings: expandedEmbeddings,
 
 		Model: response.Model,
@@ -1014,65 +899,49 @@ func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResp
 	)
 
 	return expandedResponse
-
 }
 
 // estimateTotalCost estimates the total cost for the request.
 
 func (mps *MultiProviderEmbeddingService) estimateTotalCost(texts []string) float64 {
-
 	if len(mps.providers) == 0 {
-
 		return 0
-
 	}
 
 	// Use the first available provider for cost estimation.
 
 	for _, provider := range mps.providers {
-
 		return provider.EstimateCost(texts)
-
 	}
 
 	return 0
-
 }
 
 // validateRequest validates the embedding request.
 
 func (mps *MultiProviderEmbeddingService) validateRequest(request *EmbeddingRequest) error {
-
 	if len(request.Texts) == 0 {
-
 		return fmt.Errorf("no texts provided")
-
 	}
 
 	for i, text := range request.Texts {
 
 		if len(text) < mps.config.MinTextLength {
-
 			return fmt.Errorf("text %d too short: %d characters (minimum %d)", i, len(text), mps.config.MinTextLength)
-
 		}
 
 		if len(text) > mps.config.MaxTextLength {
-
 			return fmt.Errorf("text %d too long: %d characters (maximum %d)", i, len(text), mps.config.MaxTextLength)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // getProviderNames returns list of provider names.
 
 func (mps *MultiProviderEmbeddingService) getProviderNames() []string {
-
 	mps.mutex.RLock()
 
 	defer mps.mutex.RUnlock()
@@ -1080,19 +949,15 @@ func (mps *MultiProviderEmbeddingService) getProviderNames() []string {
 	var names []string
 
 	for name := range mps.providers {
-
 		names = append(names, name)
-
 	}
 
 	return names
-
 }
 
 // getHealthyProviders returns list of healthy provider names.
 
 func (mps *MultiProviderEmbeddingService) getHealthyProviders() []string {
-
 	mps.mutex.RLock()
 
 	defer mps.mutex.RUnlock()
@@ -1100,23 +965,17 @@ func (mps *MultiProviderEmbeddingService) getHealthyProviders() []string {
 	var healthy []string
 
 	for name, provider := range mps.providers {
-
 		if provider.IsHealthy() {
-
 			healthy = append(healthy, name)
-
 		}
-
 	}
 
 	return healthy
-
 }
 
 // updateMetrics updates service metrics.
 
 func (mps *MultiProviderEmbeddingService) updateMetrics(response *EmbeddingResponse, fromCache bool) {
-
 	mps.metrics.mutex.Lock()
 
 	defer mps.metrics.mutex.Unlock()
@@ -1138,34 +997,26 @@ func (mps *MultiProviderEmbeddingService) updateMetrics(response *EmbeddingRespo
 		// Update average latency.
 
 		if mps.metrics.SuccessfulRequests > 0 {
-
 			mps.metrics.AverageLatency = time.Duration(
 
 				(int64(mps.metrics.AverageLatency)*mps.metrics.SuccessfulRequests + int64(response.ProcessingTime)) /
 
 					(mps.metrics.SuccessfulRequests + 1),
 			)
-
 		}
 
 		// Update cache stats.
 
 		if fromCache {
-
 			mps.metrics.CacheStats.CacheHits++
-
 		} else {
-
 			mps.metrics.CacheStats.CacheMisses++
-
 		}
 
 		mps.metrics.CacheStats.TotalLookups++
 
 		if mps.metrics.CacheStats.TotalLookups > 0 {
-
 			mps.metrics.CacheStats.HitRate = float64(mps.metrics.CacheStats.CacheHits) / float64(mps.metrics.CacheStats.TotalLookups)
-
 		}
 
 		// Update model stats.
@@ -1185,17 +1036,13 @@ func (mps *MultiProviderEmbeddingService) updateMetrics(response *EmbeddingRespo
 		}
 
 	} else {
-
 		mps.metrics.FailedRequests++
-
 	}
-
 }
 
 // GetMetrics returns current service metrics.
 
 func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
-
 	mps.metrics.mutex.RLock()
 
 	defer mps.metrics.mutex.RUnlock()
@@ -1203,7 +1050,6 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 	// Return a copy without the mutex.
 
 	metrics := &EmbeddingMetrics{
-
 		TotalRequests: mps.metrics.TotalRequests,
 
 		SuccessfulRequests: mps.metrics.SuccessfulRequests,
@@ -1229,7 +1075,6 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 
 			HitRate float64 `json:"hit_rate"`
 		}{
-
 			TotalLookups: mps.metrics.CacheStats.TotalLookups,
 
 			CacheHits: mps.metrics.CacheStats.CacheHits,
@@ -1246,7 +1091,6 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 
 			AverageWaitTime time.Duration `json:"average_wait_time"`
 		}{
-
 			RateLimitHits: mps.metrics.RateLimitingStats.RateLimitHits,
 
 			TotalWaitTime: mps.metrics.RateLimitingStats.TotalWaitTime,
@@ -1260,25 +1104,19 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetCostSummary returns cost tracking summary.
 
 func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
-
 	if mps.costManager == nil {
-
 		return nil
-
 	}
 
 	enhancedSummary := mps.costManager.GetSummary()
 
 	if enhancedSummary == nil {
-
 		return nil
-
 	}
 
 	// Convert EnhancedCostSummary to CostSummary.
@@ -1286,9 +1124,7 @@ func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
 	alerts := make([]CostAlert, len(enhancedSummary.Alerts))
 
 	for i, alert := range enhancedSummary.Alerts {
-
 		alerts[i] = CostAlert{
-
 			Type: alert.Level,
 
 			Message: alert.Message,
@@ -1299,11 +1135,9 @@ func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
 
 			Timestamp: alert.Timestamp,
 		}
-
 	}
 
 	return &CostSummary{
-
 		DailySpending: enhancedSummary.DailySpending,
 
 		MonthlySpending: enhancedSummary.MonthlySpending,
@@ -1314,39 +1148,28 @@ func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
 
 		Alerts: alerts,
 	}
-
 }
 
 // GetProviderStatus returns status of all providers.
 
 func (mps *MultiProviderEmbeddingService) GetProviderStatus() map[string]*HealthStatus {
-
 	if mps.healthMonitor == nil {
-
 		return nil
-
 	}
 
 	return mps.healthMonitor.GetStatus()
-
 }
 
 // Close shuts down the service.
 
 func (mps *MultiProviderEmbeddingService) Close() error {
-
 	if mps.healthMonitor != nil {
-
 		mps.healthMonitor.Stop()
-
 	}
 
 	if mps.cacheManager != nil {
-
 		return mps.cacheManager.Close()
-
 	}
 
 	return nil
-
 }

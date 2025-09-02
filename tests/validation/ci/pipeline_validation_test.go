@@ -36,8 +36,8 @@ type GitHubWorkflow struct {
 	Name string `yaml:"name"`
 	On   struct {
 		Push struct {
-			Branches     []string `yaml:"branches,omitempty"`
-			PathsIgnore  []string `yaml:"paths-ignore,omitempty"`
+			Branches    []string `yaml:"branches,omitempty"`
+			PathsIgnore []string `yaml:"paths-ignore,omitempty"`
 		} `yaml:"push,omitempty"`
 		PullRequest struct {
 			Branches []string `yaml:"branches,omitempty"`
@@ -84,10 +84,10 @@ type Makefile struct {
 // CIPipelineValidationTestSuite provides comprehensive CI/CD pipeline validation
 type CIPipelineValidationTestSuite struct {
 	suite.Suite
-	workflowDir     string
-	workflows       map[string]*GitHubWorkflow
-	makefile        *Makefile
-	projectRoot     string
+	workflowDir string
+	workflows   map[string]*GitHubWorkflow
+	makefile    *Makefile
+	projectRoot string
 }
 
 // SetupSuite initializes the CI pipeline validation test environment
@@ -127,7 +127,7 @@ func (suite *CIPipelineValidationTestSuite) loadGitHubWorkflows() {
 			suite.T().Logf("Warning: Failed to load workflow from %s: %v", file, err)
 			continue
 		}
-		
+
 		filename := filepath.Base(file)
 		suite.workflows[filename] = workflow
 	}
@@ -152,7 +152,7 @@ func (suite *CIPipelineValidationTestSuite) loadWorkflowFromFile(filename string
 // loadMakefile loads the Makefile for validation
 func (suite *CIPipelineValidationTestSuite) loadMakefile() {
 	makefilePath := filepath.Join(suite.projectRoot, "Makefile")
-	
+
 	data, err := os.ReadFile(makefilePath)
 	if err != nil {
 		suite.T().Logf("Warning: Could not read Makefile: %v", err)
@@ -169,7 +169,7 @@ func (suite *CIPipelineValidationTestSuite) loadMakefile() {
 func (suite *CIPipelineValidationTestSuite) extractMakeTargets(content string) []string {
 	var targets []string
 	lines := strings.Split(content, "\n")
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.Contains(line, ":") && !strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "@") {
@@ -182,14 +182,14 @@ func (suite *CIPipelineValidationTestSuite) extractMakeTargets(content string) [
 			}
 		}
 	}
-	
+
 	return targets
 }
 
 // TestCIPipeline_WorkflowFilesExist tests that essential workflow files exist
 func (suite *CIPipelineValidationTestSuite) TestCIPipeline_WorkflowFilesExist() {
 	requiredWorkflows := []string{"ci.yml", "ci.yaml"}
-	
+
 	hasMainWorkflow := false
 	for _, required := range requiredWorkflows {
 		if _, exists := suite.workflows[required]; exists {
@@ -197,7 +197,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_WorkflowFilesExist() 
 			break
 		}
 	}
-	
+
 	suite.True(hasMainWorkflow, "Should have a main CI workflow (ci.yml or ci.yaml)")
 	suite.Greater(len(suite.workflows), 0, "Should have at least one workflow")
 }
@@ -213,16 +213,16 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_WorkflowStructure() {
 			// Basic structure validation
 			assert.NotEmpty(t, workflow.Name, "Workflow should have a name")
 			assert.NotEmpty(t, workflow.Jobs, "Workflow should have at least one job")
-			
+
 			// Validate trigger configuration
 			hasValidTrigger := workflow.On.Push.Branches != nil ||
 				workflow.On.PullRequest.Branches != nil ||
 				workflow.On.WorkflowDispatch != nil
 			assert.True(t, hasValidTrigger, "Workflow should have valid triggers")
-			
+
 			// Validate concurrency configuration
 			if workflow.Concurrency.Group != "" {
-				assert.NotEmpty(t, workflow.Concurrency.Group, 
+				assert.NotEmpty(t, workflow.Concurrency.Group,
 					"Concurrency group should not be empty if specified")
 			}
 		})
@@ -237,20 +237,20 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_UbuntuOnlyCompliance(
 				// Check runs-on configuration
 				switch runsOn := job.RunsOn.(type) {
 				case string:
-					assert.Contains(t, runsOn, "ubuntu", 
+					assert.Contains(t, runsOn, "ubuntu",
 						"Job %s should run on Ubuntu (found: %s)", jobName, runsOn)
-					assert.NotContains(t, runsOn, "windows", 
+					assert.NotContains(t, runsOn, "windows",
 						"Job %s should not run on Windows", jobName)
-					assert.NotContains(t, runsOn, "macos", 
+					assert.NotContains(t, runsOn, "macos",
 						"Job %s should not run on macOS", jobName)
 				case []interface{}:
 					for _, os := range runsOn {
 						osStr := fmt.Sprintf("%v", os)
-						assert.Contains(t, osStr, "ubuntu", 
+						assert.Contains(t, osStr, "ubuntu",
 							"Job %s should only run on Ubuntu (found: %s)", jobName, osStr)
 					}
 				}
-				
+
 				// Check strategy matrix for cross-platform elements
 				if job.Strategy != nil && job.Strategy.Matrix != nil {
 					if osMatrix, exists := job.Strategy.Matrix["os"]; exists {
@@ -258,11 +258,11 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_UbuntuOnlyCompliance(
 						case []interface{}:
 							for _, os := range osList {
 								osStr := fmt.Sprintf("%v", os)
-								assert.Contains(t, osStr, "ubuntu", 
+								assert.Contains(t, osStr, "ubuntu",
 									"Matrix OS should only include Ubuntu variants: %s", osStr)
-								assert.NotContains(t, osStr, "windows", 
+								assert.NotContains(t, osStr, "windows",
 									"Matrix OS should not include Windows: %s", osStr)
-								assert.NotContains(t, osStr, "macos", 
+								assert.NotContains(t, osStr, "macos",
 									"Matrix OS should not include macOS: %s", osStr)
 							}
 						}
@@ -276,14 +276,14 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_UbuntuOnlyCompliance(
 // TestCIPipeline_EssentialJobs tests that essential CI jobs are present
 func (suite *CIPipelineValidationTestSuite) TestCIPipeline_EssentialJobs() {
 	essentialJobs := []string{"test", "build", "lint", "security"}
-	
+
 	for filename, workflow := range suite.workflows {
 		suite.T().Run(fmt.Sprintf("EssentialJobs_%s", filename), func(t *testing.T) {
 			jobNames := make([]string, 0, len(workflow.Jobs))
 			for jobName := range workflow.Jobs {
 				jobNames = append(jobNames, strings.ToLower(jobName))
 			}
-			
+
 			for _, essential := range essentialJobs {
 				hasJob := false
 				for _, jobName := range jobNames {
@@ -292,13 +292,13 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_EssentialJobs() {
 						break
 					}
 				}
-				
+
 				if !hasJob {
 					t.Logf("Warning: Essential job type '%s' not found in workflow %s. "+
 						"Available jobs: %v", essential, filename, jobNames)
 				}
 			}
-			
+
 			// At least should have test or build job
 			hasTestOrBuild := false
 			for _, jobName := range jobNames {
@@ -307,7 +307,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_EssentialJobs() {
 					break
 				}
 			}
-			assert.True(t, hasTestOrBuild, 
+			assert.True(t, hasTestOrBuild,
 				"Workflow should have at least a test or build job")
 		})
 	}
@@ -318,34 +318,34 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_SecurityScanning() {
 	for filename, workflow := range suite.workflows {
 		suite.T().Run(fmt.Sprintf("Security_%s", filename), func(t *testing.T) {
 			hasSecurityJob := false
-			
+
 			for jobName, job := range workflow.Jobs {
 				// Check if job is security-related
 				if strings.Contains(strings.ToLower(jobName), "security") ||
-				   strings.Contains(strings.ToLower(jobName), "scan") {
+					strings.Contains(strings.ToLower(jobName), "scan") {
 					hasSecurityJob = true
-					
+
 					// Validate security steps
 					hasGosec := false
 					hasVulnCheck := false
-					
+
 					for _, step := range job.Steps {
 						stepContent := strings.ToLower(step.Run + step.Uses + step.Name)
 						if strings.Contains(stepContent, "gosec") {
 							hasGosec = true
 						}
 						if strings.Contains(stepContent, "govulncheck") ||
-						   strings.Contains(stepContent, "vulnerability") {
+							strings.Contains(stepContent, "vulnerability") {
 							hasVulnCheck = true
 						}
 					}
-					
+
 					if hasGosec || hasVulnCheck {
 						t.Logf("Security scanning found in job %s", jobName)
 					}
 				}
 			}
-			
+
 			if !hasSecurityJob {
 				t.Logf("Info: No dedicated security job found in workflow %s", filename)
 			}
@@ -358,15 +358,15 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_TestIntegration() {
 	for filename, workflow := range suite.workflows {
 		suite.T().Run(fmt.Sprintf("TestIntegration_%s", filename), func(t *testing.T) {
 			hasTestJob := false
-			
+
 			for jobName, job := range workflow.Jobs {
 				if strings.Contains(strings.ToLower(jobName), "test") {
 					hasTestJob = true
-					
+
 					// Check for Go testing steps
 					hasGoTest := false
 					hasCoverage := false
-					
+
 					for _, step := range job.Steps {
 						stepContent := strings.ToLower(step.Run + step.Uses)
 						if strings.Contains(stepContent, "go test") {
@@ -376,16 +376,16 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_TestIntegration() {
 							hasCoverage = true
 						}
 					}
-					
-					assert.True(t, hasGoTest, 
+
+					assert.True(t, hasGoTest,
 						"Test job %s should include Go testing", jobName)
-					
+
 					if hasCoverage {
 						t.Logf("Coverage reporting found in test job %s", jobName)
 					}
 				}
 			}
-			
+
 			if !hasTestJob {
 				t.Logf("Warning: No test job found in workflow %s", filename)
 			}
@@ -401,7 +401,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_MakefileIntegration()
 
 	// Test that essential make targets exist
 	essentialTargets := []string{"test", "build", "lint", "clean"}
-	
+
 	for _, target := range essentialTargets {
 		hasTarget := false
 		for _, makeTarget := range suite.makefile.Targets {
@@ -410,7 +410,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_MakefileIntegration()
 				break
 			}
 		}
-		
+
 		if !hasTarget {
 			suite.T().Logf("Warning: Essential make target '%s' not found", target)
 		}
@@ -420,7 +420,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_MakefileIntegration()
 	for filename, workflow := range suite.workflows {
 		suite.T().Run(fmt.Sprintf("MakeIntegration_%s", filename), func(t *testing.T) {
 			makeReferences := 0
-			
+
 			for _, job := range workflow.Jobs {
 				for _, step := range job.Steps {
 					if strings.Contains(step.Run, "make ") {
@@ -428,9 +428,9 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_MakefileIntegration()
 					}
 				}
 			}
-			
+
 			if makeReferences > 0 {
-				t.Logf("Found %d make command references in workflow %s", 
+				t.Logf("Found %d make command references in workflow %s",
 					makeReferences, filename)
 			}
 		})
@@ -444,31 +444,31 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_PerformanceOptimizati
 			// Check for concurrency configuration
 			hasConcurrency := workflow.Concurrency.Group != ""
 			if hasConcurrency {
-				assert.True(t, workflow.Concurrency.CancelInProgress, 
+				assert.True(t, workflow.Concurrency.CancelInProgress,
 					"Concurrency should use cancel-in-progress for performance")
 			}
-			
+
 			// Check for caching strategies
 			for jobName, job := range workflow.Jobs {
 				hasCaching := false
-				
+
 				for _, step := range job.Steps {
 					if strings.Contains(step.Uses, "cache") ||
-					   strings.Contains(strings.ToLower(step.Name), "cache") {
+						strings.Contains(strings.ToLower(step.Name), "cache") {
 						hasCaching = true
 						break
 					}
 				}
-				
+
 				if hasCaching {
 					t.Logf("Caching found in job %s", jobName)
 				}
 			}
-			
+
 			// Check for parallel execution
 			hasParallelJobs := len(workflow.Jobs) > 1
 			if hasParallelJobs {
-				t.Logf("Workflow %s has %d jobs for parallel execution", 
+				t.Logf("Workflow %s has %d jobs for parallel execution",
 					filename, len(workflow.Jobs))
 			}
 		})
@@ -481,19 +481,19 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_ArtifactManagement() 
 		suite.T().Run(fmt.Sprintf("Artifacts_%s", filename), func(t *testing.T) {
 			hasArtifactUpload := false
 			hasTestResults := false
-			
+
 			for _, job := range workflow.Jobs {
 				for _, step := range job.Steps {
 					if strings.Contains(step.Uses, "upload-artifact") {
 						hasArtifactUpload = true
 					}
 					if strings.Contains(strings.ToLower(step.Name), "test") &&
-					   strings.Contains(strings.ToLower(step.Name), "result") {
+						strings.Contains(strings.ToLower(step.Name), "result") {
 						hasTestResults = true
 					}
 				}
 			}
-			
+
 			if hasArtifactUpload {
 				t.Logf("Artifact upload found in workflow %s", filename)
 			}
@@ -513,20 +513,20 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_EnvironmentVariables(
 				if len(job.Env) > 0 {
 					t.Logf("Job %s has %d environment variables", jobName, len(job.Env))
 				}
-				
+
 				// Check step-level environment variables
 				for i, step := range job.Steps {
 					if len(step.Env) > 0 {
-						t.Logf("Job %s step %d has %d environment variables", 
+						t.Logf("Job %s step %d has %d environment variables",
 							jobName, i, len(step.Env))
 					}
-					
+
 					// Check for secrets usage (should use GitHub secrets)
 					for key, value := range step.Env {
 						if strings.Contains(strings.ToUpper(key), "TOKEN") ||
-						   strings.Contains(strings.ToUpper(key), "SECRET") ||
-						   strings.Contains(strings.ToUpper(key), "KEY") {
-							assert.Contains(t, value, "${{", 
+							strings.Contains(strings.ToUpper(key), "SECRET") ||
+							strings.Contains(strings.ToUpper(key), "KEY") {
+							assert.Contains(t, value, "${{",
 								"Secret environment variable %s should use GitHub secrets syntax", key)
 						}
 					}
@@ -539,7 +539,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_EnvironmentVariables(
 // TestCIPipeline_BranchProtection tests branch protection alignment
 func (suite *CIPipelineValidationTestSuite) TestCIPipeline_BranchProtection() {
 	protectedBranches := []string{"main", "integrate/mvp"}
-	
+
 	for filename, workflow := range suite.workflows {
 		suite.T().Run(fmt.Sprintf("BranchProtection_%s", filename), func(t *testing.T) {
 			// Check push triggers
@@ -550,7 +550,7 @@ func (suite *CIPipelineValidationTestSuite) TestCIPipeline_BranchProtection() {
 					}
 				}
 			}
-			
+
 			// Check PR triggers
 			if len(workflow.On.PullRequest.Branches) > 0 {
 				for _, branch := range workflow.On.PullRequest.Branches {
@@ -582,29 +582,29 @@ func TestCIPipelineValidationTestSuite(t *testing.T) {
 func TestCIPipeline_BasicWorkflowSyntax(t *testing.T) {
 	// Test basic workflow syntax validation
 	workflowDir := filepath.Join("..", "..", "..", ".github", "workflows")
-	
+
 	if _, err := os.Stat(workflowDir); os.IsNotExist(err) {
 		t.Skip("GitHub workflows directory not found")
 	}
-	
+
 	files, err := filepath.Glob(filepath.Join(workflowDir, "*.yml"))
 	require.NoError(t, err)
-	
+
 	yamlFiles, err := filepath.Glob(filepath.Join(workflowDir, "*.yaml"))
 	if err == nil {
 		files = append(files, yamlFiles...)
 	}
-	
+
 	assert.Greater(t, len(files), 0, "Should have at least one workflow file")
-	
+
 	for _, file := range files {
 		data, err := os.ReadFile(file)
 		assert.NoError(t, err, "Should be able to read workflow file: %s", file)
-		
+
 		var workflow map[string]interface{}
 		err = yaml.Unmarshal(data, &workflow)
 		assert.NoError(t, err, "Workflow should be valid YAML: %s", file)
-		
+
 		// Basic structure checks
 		assert.Contains(t, workflow, "name", "Workflow should have a name: %s", file)
 		assert.Contains(t, workflow, "jobs", "Workflow should have jobs: %s", file)
@@ -614,33 +614,33 @@ func TestCIPipeline_BasicWorkflowSyntax(t *testing.T) {
 func TestCIPipeline_MakefileTargets(t *testing.T) {
 	// Test that Makefile has essential targets for CI
 	makefilePath := filepath.Join("..", "..", "..", "Makefile")
-	
+
 	data, err := os.ReadFile(makefilePath)
 	if err != nil {
 		t.Skipf("Could not read Makefile: %v", err)
 	}
-	
+
 	content := string(data)
-	
+
 	// Essential targets for CI
 	essentialTargets := []string{"test", "build", "lint", "clean"}
-	
+
 	for _, target := range essentialTargets {
-		assert.Contains(t, content, target+":", 
+		assert.Contains(t, content, target+":",
 			"Makefile should have %s target", target)
 	}
-	
+
 	// Test-specific targets
 	testTargets := []string{"test-unit", "test-integration", "test-e2e"}
 	hasTestTarget := false
-	
+
 	for _, target := range testTargets {
 		if strings.Contains(content, target+":") {
 			hasTestTarget = true
 			break
 		}
 	}
-	
-	assert.True(t, hasTestTarget, 
+
+	assert.True(t, hasTestTarget,
 		"Makefile should have at least one specific test target")
 }

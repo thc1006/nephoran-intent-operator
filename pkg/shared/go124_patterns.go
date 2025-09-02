@@ -19,15 +19,15 @@ var (
 
 // RequestOptions provides optional configuration for requests
 type RequestOptions struct {
-	Timeout     time.Duration          `json:"timeout,omitempty"`
-	RetryPolicy *RetryPolicy           `json:"retry_policy,omitempty"`
-	RateLimiter RateLimiterConfig      `json:"rate_limiter,omitempty"`
-	Headers     map[string]string      `json:"headers,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Timeout     time.Duration            `json:"timeout,omitempty"`
+	RetryPolicy *RetryPolicy             `json:"retry_policy,omitempty"`
+	RateLimiter GenericRateLimiterConfig `json:"rate_limiter,omitempty"`
+	Headers     map[string]string        `json:"headers,omitempty"`
+	Metadata    map[string]interface{}   `json:"metadata,omitempty"`
 }
 
-// RateLimiterConfig configures rate limiting
-type RateLimiterConfig struct {
+// GenericRateLimiterConfig configures rate limiting for generic use cases
+type GenericRateLimiterConfig struct {
 	RequestsPerSecond float64       `json:"requests_per_second"`
 	BurstSize         int           `json:"burst_size"`
 	Timeout           time.Duration `json:"timeout"`
@@ -55,7 +55,7 @@ func WithHeaders(headers map[string]string) RequestOption {
 	}
 }
 
-func WithRateLimiter(config RateLimiterConfig) RequestOption {
+func WithRateLimiter(config GenericRateLimiterConfig) RequestOption {
 	return func(opts *RequestOptions) {
 		opts.RateLimiter = config
 	}
@@ -206,7 +206,7 @@ var (
 		},
 	}
 
-	DefaultRateLimiter = RateLimiterConfig{
+	DefaultRateLimiter = GenericRateLimiterConfig{
 		RequestsPerSecond: 10.0,
 		BurstSize:         5,
 		Timeout:           5 * time.Second,

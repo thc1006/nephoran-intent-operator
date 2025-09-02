@@ -336,7 +336,6 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 	conn, err := tls.DialWithDialer(&net.Dialer{
 		Timeout: a.config.Timeout,
 	}, "tcp", endpoint, config)
-
 	if err != nil {
 		a.report.CertFindings = append(a.report.CertFindings, CertificateFinding{
 			Subject:         "Unknown",

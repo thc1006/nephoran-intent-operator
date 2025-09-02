@@ -59,7 +59,6 @@ import (
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator.
 
 type NephoranAPIServer struct {
-
 	// Core dependencies.
 
 	intentReconciler *controllers.NetworkIntentReconciler
@@ -120,7 +119,6 @@ type NephoranAPIServer struct {
 // ServerConfig holds API server configuration.
 
 type ServerConfig struct {
-
 	// Server settings.
 
 	Address string `json:"address"`
@@ -341,7 +339,6 @@ type FilterParams struct {
 // NewNephoranAPIServer creates a new API server instance.
 
 func NewNephoranAPIServer(
-
 	intentReconciler *controllers.NetworkIntentReconciler,
 
 	packageManager packagerevision.PackageRevisionManager,
@@ -353,13 +350,9 @@ func NewNephoranAPIServer(
 	kubeClient kubernetes.Interface,
 
 	config *ServerConfig,
-
 ) (*NephoranAPIServer, error) {
-
 	if config == nil {
-
 		config = getDefaultServerConfig()
-
 	}
 
 	logger := log.Log.WithName("nephoran-api-server")
@@ -390,9 +383,7 @@ func NewNephoranAPIServer(
 	var cache *Cache
 
 	if config.EnableCaching {
-
 		cache = NewCache(config.CacheSize, config.CacheTTL)
-
 	}
 
 	// Initialize rate limiter if enabled.
@@ -400,13 +391,10 @@ func NewNephoranAPIServer(
 	var rateLimiter *RateLimiter
 
 	if config.EnableRateLimit {
-
 		rateLimiter = NewRateLimiter(config.RequestsPerMin, config.BurstSize, config.RateLimitWindow)
-
 	}
 
 	server := &NephoranAPIServer{
-
 		intentReconciler: intentReconciler,
 
 		packageManager: packageManager,
@@ -434,11 +422,8 @@ func NewNephoranAPIServer(
 		shutdown: make(chan struct{}),
 
 		upgrader: websocket.Upgrader{
-
 			CheckOrigin: func(r *http.Request) bool {
-
 				return true // Configure based on CORS settings
-
 			},
 
 			ReadBufferSize: 1024,
@@ -450,9 +435,7 @@ func NewNephoranAPIServer(
 	// Initialize authentication middleware.
 
 	if err := server.initializeAuth(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize authentication: %w", err)
-
 	}
 
 	// Setup router and routes.
@@ -462,7 +445,6 @@ func NewNephoranAPIServer(
 	// Create HTTP server.
 
 	server.server = &http.Server{
-
 		Addr: fmt.Sprintf("%s:%d", config.Address, config.Port),
 
 		Handler: server.router,
@@ -493,19 +475,14 @@ func NewNephoranAPIServer(
 		"caching_enabled", config.EnableCaching)
 
 	return server, nil
-
 }
 
 // initializeAuth sets up authentication and authorization middleware.
 
 func (s *NephoranAPIServer) initializeAuth() error {
-
 	authConfig, err := auth.LoadAuthConfig(context.Background(), s.config.AuthConfigFile)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load auth config: %w", err)
-
 	}
 
 	if !authConfig.Enabled {
@@ -527,7 +504,6 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	// Create RBACManagerConfig from RBACConfig.
 
 	rbacManagerConfig := &auth.RBACManagerConfig{
-
 		CacheTTL: 15 * time.Minute,
 
 		EnableHierarchy: true,
@@ -548,26 +524,20 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	// Note: NewJWTManager requires config, tokenStore, blacklist, logger.
 
 	jwtManager, err := auth.NewJWTManager(context.Background(), &auth.JWTConfig{
-
 		Issuer: "nephoran",
 
 		DefaultTTL: 24 * time.Hour,
 
 		RefreshTTL: 7 * 24 * time.Hour,
 	}, nil, nil, nil)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create JWT manager: %w", err)
-
 	}
 
 	// Initialize auth middleware.
 
 	middlewareConfig := &auth.MiddlewareConfig{
-
 		SkipAuth: []string{
-
 			"/health", "/metrics", "/openapi", "/docs",
 
 			"/auth/login", "/auth/callback", "/auth/providers",
@@ -589,13 +559,11 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	s.logger.Info("Authentication initialized successfully")
 
 	return nil
-
 }
 
 // setupRouter configures the HTTP router with all endpoints.
 
 func (s *NephoranAPIServer) setupRouter() {
-
 	s.router = mux.NewRouter().StrictSlash(true)
 
 	// Apply middleware.
@@ -605,9 +573,7 @@ func (s *NephoranAPIServer) setupRouter() {
 	s.router.Use(s.metricsMiddleware)
 
 	if s.rateLimiter != nil {
-
 		s.router.Use(s.rateLimitMiddleware)
-
 	}
 
 	if s.authMiddleware != nil {
@@ -651,7 +617,6 @@ func (s *NephoranAPIServer) setupRouter() {
 	if s.config.EnableCORS {
 
 		c := cors.New(cors.Options{
-
 			AllowedOrigins: s.config.AllowedOrigins,
 
 			AllowedMethods: s.config.AllowedMethods,
@@ -664,37 +629,27 @@ func (s *NephoranAPIServer) setupRouter() {
 		s.router = c.Handler(s.router).(*mux.Router)
 
 	}
-
 }
 
 // Start starts the API server.
 
 func (s *NephoranAPIServer) Start(ctx context.Context) error {
-
 	s.logger.Info("Starting Nephoran API Server", "address", s.server.Addr)
 
 	// Start server.
 
 	go func() {
-
 		var err error
 
 		if s.config.TLSEnabled {
-
 			err = s.server.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile)
-
 		} else {
-
 			err = s.server.ListenAndServe()
-
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-
 			s.logger.Error(err, "API server failed to start")
-
 		}
-
 	}()
 
 	// Wait for shutdown signal.
@@ -702,13 +657,11 @@ func (s *NephoranAPIServer) Start(ctx context.Context) error {
 	<-ctx.Done()
 
 	return s.Shutdown()
-
 }
 
 // Shutdown gracefully shuts down the API server.
 
 func (s *NephoranAPIServer) Shutdown() error {
-
 	s.logger.Info("Shutting down Nephoran API Server")
 
 	// Signal background workers to stop.
@@ -726,11 +679,9 @@ func (s *NephoranAPIServer) Shutdown() error {
 	for id, conn := range s.wsConnections {
 
 		if err := conn.Connection.Close(); err != nil {
-
 			s.logger.Error(err, "Failed to close WebSocket connection",
 
 				"connection_id", id)
-
 		}
 
 		delete(s.wsConnections, id)
@@ -756,19 +707,16 @@ func (s *NephoranAPIServer) Shutdown() error {
 	s.logger.Info("Nephoran API Server shutdown complete")
 
 	return nil
-
 }
 
 // Middleware functions.
 
 func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
-
 	// handlers.LoggingHandler expects io.Writer, but we have logr.Logger.
 
 	// Use a simple logging wrapper instead.
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		start := time.Now()
 
 		next.ServeHTTP(w, r)
@@ -780,15 +728,11 @@ func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
 			"path", r.URL.Path,
 
 			"duration", time.Since(start))
-
 	})
-
 }
 
 func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		start := time.Now()
 
 		// Wrap response writer to capture status code.
@@ -814,15 +758,12 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 
 			r.URL.Path,
 		).Observe(duration.Seconds())
-
 	})
-
 }
 
 // Background workers.
 
 func (s *NephoranAPIServer) startBackgroundWorkers() {
-
 	// Connection cleanup worker.
 
 	s.wg.Add(1)
@@ -834,11 +775,9 @@ func (s *NephoranAPIServer) startBackgroundWorkers() {
 	s.wg.Add(1)
 
 	go s.metricsWorker()
-
 }
 
 func (s *NephoranAPIServer) connectionCleanupWorker() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -846,7 +785,6 @@ func (s *NephoranAPIServer) connectionCleanupWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.shutdown:
@@ -858,13 +796,10 @@ func (s *NephoranAPIServer) connectionCleanupWorker() {
 			s.cleanupStaleConnections()
 
 		}
-
 	}
-
 }
 
 func (s *NephoranAPIServer) metricsWorker() {
-
 	defer s.wg.Done()
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -872,7 +807,6 @@ func (s *NephoranAPIServer) metricsWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-s.shutdown:
@@ -884,13 +818,10 @@ func (s *NephoranAPIServer) metricsWorker() {
 			s.updateConnectionMetrics()
 
 		}
-
 	}
-
 }
 
 func (s *NephoranAPIServer) cleanupStaleConnections() {
-
 	threshold := time.Now().Add(-s.config.WSTimeout)
 
 	s.connectionsMutex.Lock()
@@ -900,7 +831,6 @@ func (s *NephoranAPIServer) cleanupStaleConnections() {
 	// Cleanup WebSocket connections.
 
 	for id, conn := range s.wsConnections {
-
 		if conn.LastSeen.Before(threshold) {
 
 			conn.Connection.Close()
@@ -908,25 +838,18 @@ func (s *NephoranAPIServer) cleanupStaleConnections() {
 			delete(s.wsConnections, id)
 
 		}
-
 	}
 
 	// Cleanup SSE connections.
 
 	for id, conn := range s.sseConnections {
-
 		if conn.LastSeen.Before(threshold) {
-
 			delete(s.sseConnections, id)
-
 		}
-
 	}
-
 }
 
 func (s *NephoranAPIServer) updateConnectionMetrics() {
-
 	s.connectionsMutex.RLock()
 
 	wsCount := len(s.wsConnections)
@@ -938,15 +861,12 @@ func (s *NephoranAPIServer) updateConnectionMetrics() {
 	s.metrics.WSConnectionsActive.Set(float64(wsCount))
 
 	s.metrics.SSEConnectionsActive.Set(float64(sseCount))
-
 }
 
 // Utility functions.
 
 func (s *NephoranAPIServer) writeJSONResponse(w http.ResponseWriter, status int, data interface{}) {
-
 	response := &APIResponse{
-
 		Success: status >= 200 && status < 300,
 
 		Data: data,
@@ -959,17 +879,13 @@ func (s *NephoranAPIServer) writeJSONResponse(w http.ResponseWriter, status int,
 	w.WriteHeader(status)
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 func (s *NephoranAPIServer) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
-
 	response := &APIResponse{
-
 		Success: false,
 
 		Error: &APIError{
-
 			Code: code,
 
 			Message: message,
@@ -983,13 +899,10 @@ func (s *NephoranAPIServer) writeErrorResponse(w http.ResponseWriter, status int
 	w.WriteHeader(status)
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 func (s *NephoranAPIServer) parsePaginationParams(r *http.Request) PaginationParams {
-
 	params := PaginationParams{
-
 		Page: 1,
 
 		PageSize: s.config.DefaultPageSize,
@@ -1000,9 +913,7 @@ func (s *NephoranAPIServer) parsePaginationParams(r *http.Request) PaginationPar
 	}
 
 	if page := r.URL.Query().Get("page"); page != "" {
-
 		fmt.Sscanf(page, "%d", &params.Page)
-
 	}
 
 	if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
@@ -1010,94 +921,68 @@ func (s *NephoranAPIServer) parsePaginationParams(r *http.Request) PaginationPar
 		fmt.Sscanf(pageSize, "%d", &params.PageSize)
 
 		if params.PageSize > s.config.MaxPageSize {
-
 			params.PageSize = s.config.MaxPageSize
-
 		}
 
 	}
 
 	if sort := r.URL.Query().Get("sort"); sort != "" {
-
 		params.Sort = sort
-
 	}
 
 	if order := r.URL.Query().Get("order"); order != "" {
-
 		params.Order = order
-
 	}
 
 	return params
-
 }
 
 func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
-
 	params := FilterParams{
-
 		Labels: make(map[string]string),
 	}
 
 	if status := r.URL.Query().Get("status"); status != "" {
-
 		params.Status = status
-
 	}
 
 	if intentType := r.URL.Query().Get("type"); intentType != "" {
-
 		params.Type = intentType
-
 	}
 
 	if priority := r.URL.Query().Get("priority"); priority != "" {
-
 		params.Priority = priority
-
 	}
 
 	if component := r.URL.Query().Get("component"); component != "" {
-
 		params.Component = component
-
 	}
 
 	if cluster := r.URL.Query().Get("cluster"); cluster != "" {
-
 		params.Cluster = cluster
-
 	}
 
 	// Parse label filters (format: label.key=value).
 
 	for key, values := range r.URL.Query() {
-
 		if strings.HasPrefix(key, "label.") {
 
 			labelKey := strings.TrimPrefix(key, "label.")
 
 			if len(values) > 0 {
-
 				params.Labels[labelKey] = values[0]
-
 			}
 
 		}
-
 	}
 
 	return params
-
 }
 
 // Default configuration.
 
 func getDefaultServerConfig() *ServerConfig {
-
 	return &ServerConfig{
-
 		Address: "0.0.0.0",
 
 		Port: 8080,
@@ -1156,19 +1041,15 @@ func getDefaultServerConfig() *ServerConfig {
 
 		AuthConfigFile: config.GetEnvOrDefault("AUTH_CONFIG_FILE", ""),
 	}
-
 }
 
 // Initialize server metrics.
 
 func initServerMetrics() *ServerMetrics {
-
 	return &ServerMetrics{
-
 		RequestsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_api_requests_total",
 
 				Help: "Total number of API requests",
@@ -1180,7 +1061,6 @@ func initServerMetrics() *ServerMetrics {
 		RequestDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephoran_api_request_duration_seconds",
 
 				Help: "Duration of API requests",
@@ -1192,7 +1072,6 @@ func initServerMetrics() *ServerMetrics {
 		WSConnectionsActive: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephoran_api_websocket_connections_active",
 
 				Help: "Number of active WebSocket connections",
@@ -1202,7 +1081,6 @@ func initServerMetrics() *ServerMetrics {
 		SSEConnectionsActive: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephoran_api_sse_connections_active",
 
 				Help: "Number of active SSE connections",
@@ -1212,7 +1090,6 @@ func initServerMetrics() *ServerMetrics {
 		CacheHits: prometheus.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_api_cache_hits_total",
 
 				Help: "Total number of cache hits",
@@ -1222,7 +1099,6 @@ func initServerMetrics() *ServerMetrics {
 		CacheMisses: prometheus.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_api_cache_misses_total",
 
 				Help: "Total number of cache misses",
@@ -1232,14 +1108,12 @@ func initServerMetrics() *ServerMetrics {
 		RateLimitExceeded: prometheus.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "nephoran_api_rate_limit_exceeded_total",
 
 				Help: "Total number of rate limit exceeded errors",
 			},
 		),
 	}
-
 }
 
 // responseWrapper captures response status code for metrics.
@@ -1253,17 +1127,14 @@ type responseWrapper struct {
 // WriteHeader performs writeheader operation.
 
 func (rw *responseWrapper) WriteHeader(code int) {
-
 	rw.statusCode = code
 
 	rw.ResponseWriter.WriteHeader(code)
-
 }
 
 // getClientIP extracts client IP from request.
 
 func getClientIP(r *http.Request) string {
-
 	xff := r.Header.Get("X-Forwarded-For")
 
 	if xff != "" {
@@ -1277,11 +1148,8 @@ func getClientIP(r *http.Request) string {
 	xri := r.Header.Get("X-Real-IP")
 
 	if xri != "" {
-
 		return xri
-
 	}
 
 	return r.RemoteAddr
-
 }

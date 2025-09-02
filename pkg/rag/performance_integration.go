@@ -14,7 +14,6 @@ import (
 // PerformanceIntegration provides a unified interface for all performance optimizations.
 
 type PerformanceIntegration struct {
-
 	// Core services.
 
 	optimizedRAG *OptimizedRAGService
@@ -51,7 +50,6 @@ type PerformanceIntegration struct {
 // PerformanceConfig aggregates all performance-related configurations.
 
 type PerformanceConfig struct {
-
 	// Service configurations.
 
 	OptimizedRAGConfig *OptimizedRAGConfig `json:"optimized_rag_config"`
@@ -270,11 +268,8 @@ type CompliancePoint struct {
 // NewPerformanceIntegration creates a comprehensive performance-optimized RAG system.
 
 func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.ClientInterface) (*PerformanceIntegration, error) {
-
 	if config == nil {
-
 		config = getDefaultPerformanceConfig()
-
 	}
 
 	logger := slog.Default().With("component", "performance-integration")
@@ -284,9 +279,7 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	weaviatePool := NewWeaviateConnectionPool(config.WeaviatePoolConfig)
 
 	if err := weaviatePool.Start(); err != nil {
-
 		return nil, fmt.Errorf("failed to start Weaviate pool: %w", err)
-
 	}
 
 	// Initialize memory cache.
@@ -296,7 +289,6 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	// Initialize Redis cache.
 
 	redisCache, err := NewRedisCache(config.RedisCacheConfig)
-
 	if err != nil {
 
 		logger.Warn("Redis cache initialization failed, using memory-only caching", "error", err)
@@ -320,15 +312,11 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	// Initialize optimized RAG service.
 
 	optimizedRAG, err := NewOptimizedRAGService(weaviatePool, llmClient, config.OptimizedRAGConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create optimized RAG service: %w", err)
-
 	}
 
 	integration := &PerformanceIntegration{
-
 		optimizedRAG: optimizedRAG,
 
 		weaviatePool: weaviatePool,
@@ -359,9 +347,7 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	ragHealthChecker := &RAGServiceHealthChecker{}
 
 	if ragHealthChecker != nil {
-
 		monitor.RegisterHealthChecker(ragHealthChecker)
-
 	}
 
 	if redisCache != nil {
@@ -375,9 +361,7 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	// Start background optimization if enabled.
 
 	if config.EnableAutoOptimization {
-
 		go integration.startAutoOptimization()
-
 	}
 
 	// Start metrics collection.
@@ -396,13 +380,11 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	)
 
 	return integration, nil
-
 }
 
 // ProcessQuery provides the main interface for processing queries with full optimization.
 
 func (pi *PerformanceIntegration) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
-
 	startTime := time.Now()
 
 	// Add performance monitoring context.
@@ -426,13 +408,10 @@ func (pi *PerformanceIntegration) ProcessQuery(ctx context.Context, request *RAG
 	// Post-process response for quality enhancement.
 
 	if response != nil && err == nil {
-
 		response = pi.postprocessResponse(response, request)
-
 	}
 
 	return response, err
-
 }
 
 // Performance analysis and reporting.
@@ -440,9 +419,7 @@ func (pi *PerformanceIntegration) ProcessQuery(ctx context.Context, request *RAG
 // GeneratePerformanceReport performs generateperformancereport operation.
 
 func (pi *PerformanceIntegration) GeneratePerformanceReport() *PerformanceReport {
-
 	report := &PerformanceReport{
-
 		GeneratedAt: time.Now(),
 
 		SystemUptime: time.Since(pi.startTime),
@@ -471,15 +448,12 @@ func (pi *PerformanceIntegration) GeneratePerformanceReport() *PerformanceReport
 	report.SLACompliance = pi.checkSLACompliance(report)
 
 	return report
-
 }
 
 func (pi *PerformanceIntegration) collectQueryPerformanceMetrics() *QueryPerformanceMetrics {
-
 	ragMetrics := pi.optimizedRAG.GetOptimizedMetrics()
 
 	return &QueryPerformanceMetrics{
-
 		TotalQueries: ragMetrics.TotalQueries,
 
 		AverageLatency: ragMetrics.AverageLatency,
@@ -494,11 +468,9 @@ func (pi *PerformanceIntegration) collectQueryPerformanceMetrics() *QueryPerform
 
 		QualityScore: ragMetrics.AverageResponseQuality,
 	}
-
 }
 
 func (pi *PerformanceIntegration) collectCachePerformanceMetrics() *CachePerformanceMetrics {
-
 	memStats := pi.memoryCache.GetStats()
 
 	var redisHitRate float64 = 0
@@ -508,9 +480,7 @@ func (pi *PerformanceIntegration) collectCachePerformanceMetrics() *CachePerform
 		redisStats := pi.redisCache.GetMetrics()
 
 		if redisStats.TotalRequests > 0 {
-
 			redisHitRate = float64(redisStats.Hits) / float64(redisStats.TotalRequests)
-
 		}
 
 	}
@@ -520,7 +490,6 @@ func (pi *PerformanceIntegration) collectCachePerformanceMetrics() *CachePerform
 	overallHitRate := (memHitRate + redisHitRate) / 2
 
 	return &CachePerformanceMetrics{
-
 		MemoryCacheHitRate: memHitRate,
 
 		RedisCacheHitRate: redisHitRate,
@@ -533,23 +502,18 @@ func (pi *PerformanceIntegration) collectCachePerformanceMetrics() *CachePerform
 
 		CacheLatency: memStats.AverageGetTime,
 	}
-
 }
 
 func (pi *PerformanceIntegration) collectConnectionPerformanceMetrics() *ConnectionPerformanceMetrics {
-
 	poolMetrics := pi.weaviatePool.GetMetrics()
 
 	utilization := float64(0)
 
 	if poolMetrics.TotalConnections > 0 {
-
 		utilization = float64(poolMetrics.ActiveConnections) / float64(poolMetrics.TotalConnections)
-
 	}
 
 	return &ConnectionPerformanceMetrics{
-
 		PoolUtilization: utilization,
 
 		AvgConnectionTime: poolMetrics.AverageLatency,
@@ -560,11 +524,9 @@ func (pi *PerformanceIntegration) collectConnectionPerformanceMetrics() *Connect
 
 		HealthyConnections: int(poolMetrics.ActiveConnections),
 	}
-
 }
 
 func (pi *PerformanceIntegration) collectErrorAnalysisMetrics() *ErrorAnalysisMetrics {
-
 	ragMetrics := pi.optimizedRAG.GetOptimizedMetrics()
 
 	totalRequests := ragMetrics.TotalQueries
@@ -572,13 +534,10 @@ func (pi *PerformanceIntegration) collectErrorAnalysisMetrics() *ErrorAnalysisMe
 	errorRate := float64(0)
 
 	if totalRequests > 0 {
-
 		errorRate = float64(ragMetrics.FailedQueries) / float64(totalRequests)
-
 	}
 
 	return &ErrorAnalysisMetrics{
-
 		TotalErrors: ragMetrics.FailedQueries,
 
 		ErrorRate: errorRate,
@@ -591,15 +550,12 @@ func (pi *PerformanceIntegration) collectErrorAnalysisMetrics() *ErrorAnalysisMe
 
 		RecoveryEvents: ragMetrics.RecoveryEvents,
 	}
-
 }
 
 func (pi *PerformanceIntegration) collectResourceUtilizationMetrics() *ResourceUtilizationMetrics {
-
 	// This would collect actual system metrics.
 
 	return &ResourceUtilizationMetrics{
-
 		CPUUsage: 50.0, // Placeholder
 
 		MemoryUsage: 60.0, // Placeholder
@@ -613,27 +569,21 @@ func (pi *PerformanceIntegration) collectResourceUtilizationMetrics() *ResourceU
 		HeapSize: 1024 * 1024 * 128, // Placeholder
 
 	}
-
 }
 
 // Performance optimization methods.
 
 func (pi *PerformanceIntegration) startAutoOptimization() {
-
 	ticker := time.NewTicker(pi.config.OptimizationInterval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		pi.performAutoOptimization()
-
 	}
-
 }
 
 func (pi *PerformanceIntegration) performAutoOptimization() {
-
 	pi.logger.Info("Starting automatic performance optimization")
 
 	report := pi.GeneratePerformanceReport()
@@ -651,89 +601,69 @@ func (pi *PerformanceIntegration) performAutoOptimization() {
 	pi.optimizeErrorHandling(report.ErrorAnalysis)
 
 	pi.logger.Info("Automatic performance optimization completed")
-
 }
 
 func (pi *PerformanceIntegration) optimizeCacheSettings(cacheMetrics *CachePerformanceMetrics) {
-
 	// Optimize memory cache size.
 
 	if cacheMetrics.MemoryCacheHitRate < 0.5 {
-
 		pi.logger.Info("Memory cache hit rate low, considering size increase",
 
 			"current_hit_rate", cacheMetrics.MemoryCacheHitRate)
 
 		// Logic to adjust cache sizes.
-
 	}
 
 	// Optimize TTL settings.
 
 	if cacheMetrics.EvictionRate > 0.3 {
-
 		pi.logger.Info("High eviction rate detected, considering TTL adjustment",
 
 			"eviction_rate", cacheMetrics.EvictionRate)
 
 		// Logic to adjust TTL settings.
-
 	}
-
 }
 
 func (pi *PerformanceIntegration) optimizeConnectionPool(connMetrics *ConnectionPerformanceMetrics) {
-
 	// Adjust pool size based on utilization.
 
 	if connMetrics.PoolUtilization > 0.8 {
-
 		pi.logger.Info("High pool utilization, considering pool expansion",
 
 			"utilization", connMetrics.PoolUtilization)
 
 		// Logic to expand connection pool.
-
 	} else if connMetrics.PoolUtilization < 0.3 {
-
 		pi.logger.Info("Low pool utilization, considering pool reduction",
 
 			"utilization", connMetrics.PoolUtilization)
 
 		// Logic to reduce connection pool.
-
 	}
-
 }
 
 func (pi *PerformanceIntegration) optimizeErrorHandling(errorMetrics *ErrorAnalysisMetrics) {
-
 	// Adjust circuit breaker thresholds.
 
 	if errorMetrics.ErrorRate > 0.1 {
-
 		pi.logger.Warn("High error rate detected, tightening circuit breaker",
 
 			"error_rate", errorMetrics.ErrorRate)
 
 		// Logic to adjust circuit breaker settings.
-
 	}
-
 }
 
 // Recommendation generation.
 
 func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *PerformanceReport) []PerformanceRecommendation {
-
 	var recommendations []PerformanceRecommendation
 
 	// Cache performance recommendations.
 
 	if report.CachePerformance.OverallHitRate < 0.6 {
-
 		recommendations = append(recommendations, PerformanceRecommendation{
-
 			Category: "caching",
 
 			Priority: "high",
@@ -747,7 +677,6 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			Effort: "low",
 
 			Actions: []string{
-
 				"Increase memory cache size",
 
 				"Optimize cache TTL settings",
@@ -756,21 +685,17 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			},
 
 			Metadata: map[string]interface{}{
-
 				"current_hit_rate": report.CachePerformance.OverallHitRate,
 
 				"target_hit_rate": 0.8,
 			},
 		})
-
 	}
 
 	// Query performance recommendations.
 
 	if report.QueryPerformance.P95Latency > time.Duration(pi.config.PerformanceTargets.MaxQueryLatencyMs)*time.Millisecond {
-
 		recommendations = append(recommendations, PerformanceRecommendation{
-
 			Category: "query_performance",
 
 			Priority: "high",
@@ -784,7 +709,6 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			Effort: "medium",
 
 			Actions: []string{
-
 				"Enable query optimization",
 
 				"Increase connection pool size",
@@ -793,21 +717,17 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			},
 
 			Metadata: map[string]interface{}{
-
 				"current_p95_latency": report.QueryPerformance.P95Latency.Milliseconds(),
 
 				"target_latency": pi.config.PerformanceTargets.MaxQueryLatencyMs,
 			},
 		})
-
 	}
 
 	// Connection pool recommendations.
 
 	if report.ConnectionPerformance.PoolUtilization > 0.9 {
-
 		recommendations = append(recommendations, PerformanceRecommendation{
-
 			Category: "connection_pool",
 
 			Priority: "medium",
@@ -821,7 +741,6 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			Effort: "low",
 
 			Actions: []string{
-
 				"Increase max connections",
 
 				"Optimize connection reuse",
@@ -830,21 +749,17 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			},
 
 			Metadata: map[string]interface{}{
-
 				"current_utilization": report.ConnectionPerformance.PoolUtilization,
 
 				"recommended_increase": 0.3,
 			},
 		})
-
 	}
 
 	// Error handling recommendations.
 
 	if report.ErrorAnalysis.ErrorRate > pi.config.PerformanceTargets.MaxErrorRate {
-
 		recommendations = append(recommendations, PerformanceRecommendation{
-
 			Category: "error_handling",
 
 			Priority: "high",
@@ -858,7 +773,6 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			Effort: "medium",
 
 			Actions: []string{
-
 				"Tighten circuit breaker thresholds",
 
 				"Implement better retry policies",
@@ -867,25 +781,20 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 			},
 
 			Metadata: map[string]interface{}{
-
 				"current_error_rate": report.ErrorAnalysis.ErrorRate,
 
 				"target_error_rate": pi.config.PerformanceTargets.MaxErrorRate,
 			},
 		})
-
 	}
 
 	return recommendations
-
 }
 
 // SLA compliance checking.
 
 func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) *SLAComplianceReport {
-
 	compliance := &SLAComplianceReport{
-
 		TargetCompliance: make(map[string]bool),
 
 		Violations: []SLAViolation{},
@@ -902,9 +811,7 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 	compliance.TargetCompliance["latency"] = latencyCompliant
 
 	if !latencyCompliant {
-
 		compliance.Violations = append(compliance.Violations, SLAViolation{
-
 			Target: "latency",
 
 			ActualValue: float64(report.QueryPerformance.P95Latency.Milliseconds()),
@@ -915,7 +822,6 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 
 			Timestamp: time.Now(),
 		})
-
 	}
 
 	// Check cache hit rate SLA.
@@ -925,9 +831,7 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 	compliance.TargetCompliance["cache_hit_rate"] = cacheCompliant
 
 	if !cacheCompliant {
-
 		compliance.Violations = append(compliance.Violations, SLAViolation{
-
 			Target: "cache_hit_rate",
 
 			ActualValue: report.CachePerformance.OverallHitRate,
@@ -938,7 +842,6 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 
 			Timestamp: time.Now(),
 		})
-
 	}
 
 	// Check error rate SLA.
@@ -948,9 +851,7 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 	compliance.TargetCompliance["error_rate"] = errorCompliant
 
 	if !errorCompliant {
-
 		compliance.Violations = append(compliance.Violations, SLAViolation{
-
 			Target: "error_rate",
 
 			ActualValue: report.ErrorAnalysis.ErrorRate,
@@ -961,7 +862,6 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 
 			Timestamp: time.Now(),
 		})
-
 	}
 
 	// Calculate overall compliance.
@@ -971,33 +871,25 @@ func (pi *PerformanceIntegration) checkSLACompliance(report *PerformanceReport) 
 	compliantTargets := 0
 
 	for _, compliant := range compliance.TargetCompliance {
-
 		if compliant {
-
 			compliantTargets++
-
 		}
-
 	}
 
 	compliance.OverallCompliance = float64(compliantTargets) / float64(totalTargets)
 
 	return compliance
-
 }
 
 // Helper methods.
 
 func (pi *PerformanceIntegration) addPerformanceContext(ctx context.Context, request *RAGRequest) context.Context {
-
 	// Add performance monitoring context.
 
 	return context.WithValue(ctx, "performance_monitoring", true)
-
 }
 
 func (pi *PerformanceIntegration) preprocessRequest(request *RAGRequest) *RAGRequest {
-
 	// Apply preprocessing optimizations.
 
 	optimized := *request
@@ -1005,17 +897,13 @@ func (pi *PerformanceIntegration) preprocessRequest(request *RAGRequest) *RAGReq
 	// Set optimal defaults based on configuration.
 
 	if optimized.MaxResults == 0 {
-
 		optimized.MaxResults = 10
-
 	}
 
 	return &optimized
-
 }
 
 func (pi *PerformanceIntegration) postprocessResponse(response *RAGResponse, request *RAGRequest) *RAGResponse {
-
 	// Apply post-processing enhancements.
 
 	enhanced := *response
@@ -1023,9 +911,7 @@ func (pi *PerformanceIntegration) postprocessResponse(response *RAGResponse, req
 	// Add performance metadata.
 
 	if enhanced.Metadata == nil {
-
 		enhanced.Metadata = make(map[string]interface{})
-
 	}
 
 	enhanced.Metadata["performance_optimized"] = true
@@ -1033,17 +919,13 @@ func (pi *PerformanceIntegration) postprocessResponse(response *RAGResponse, req
 	enhanced.Metadata["optimization_level"] = "full"
 
 	return &enhanced
-
 }
 
 func (pi *PerformanceIntegration) recordQueryMetrics(request *RAGRequest, response *RAGResponse, err error, duration time.Duration) {
-
 	status := "success"
 
 	if err != nil {
-
 		status = "error"
-
 	}
 
 	pi.prometheusMetrics.RecordQueryLatency(
@@ -1060,23 +942,15 @@ func (pi *PerformanceIntegration) recordQueryMetrics(request *RAGRequest, respon
 	pi.prometheusMetrics.RecordQueryProcessed(request.IntentType, status)
 
 	if response != nil {
-
 		if quality, ok := response.Metadata["response_quality"].(float64); ok {
-
 			pi.prometheusMetrics.RecordResponseQuality(request.IntentType, "optimized", quality)
-
 		}
-
 	}
-
 }
 
 func (pi *PerformanceIntegration) getOverallHealth() string {
-
 	if !pi.isHealthy {
-
 		return "unhealthy"
-
 	}
 
 	// Check component health.
@@ -1088,43 +962,31 @@ func (pi *PerformanceIntegration) getOverallHealth() string {
 		}
 	}
 	if health == "unhealthy" {
-
 		return "degraded"
-
 	}
 
 	return "healthy"
-
 }
 
 func (pi *PerformanceIntegration) calculateThroughput(metrics *OptimizedRAGMetrics) float64 {
-
 	if metrics.TotalQueries == 0 {
-
 		return 0
-
 	}
 
 	uptime := time.Since(pi.startTime)
 
 	return float64(metrics.TotalQueries) / uptime.Seconds()
-
 }
 
 func (pi *PerformanceIntegration) calculateSuccessRate(metrics *OptimizedRAGMetrics) float64 {
-
 	if metrics.TotalQueries == 0 {
-
 		return 1.0
-
 	}
 
 	return float64(metrics.SuccessfulQueries) / float64(metrics.TotalQueries)
-
 }
 
 func (pi *PerformanceIntegration) calculateCacheEfficiency(memStats *MemoryCacheMetrics, redisHitRate float64) float64 {
-
 	// Combined efficiency metric considering hit rates and latencies.
 
 	memEfficiency := memStats.HitRate * 1.0 // Memory cache is faster
@@ -1132,77 +994,56 @@ func (pi *PerformanceIntegration) calculateCacheEfficiency(memStats *MemoryCache
 	redisEfficiency := redisHitRate * 0.8 // Redis cache is slower but still good
 
 	return (memEfficiency + redisEfficiency) / 2
-
 }
 
 func (pi *PerformanceIntegration) calculateEvictionRate(memStats *MemoryCacheMetrics) float64 {
-
 	if memStats.Sets == 0 {
-
 		return 0
-
 	}
 
 	return float64(memStats.Evictions) / float64(memStats.Sets)
-
 }
 
 // Shutdown gracefully shuts down all components.
 
 func (pi *PerformanceIntegration) Shutdown(ctx context.Context) error {
-
 	pi.logger.Info("Shutting down performance integration")
 
 	// Shutdown in reverse order of initialization.
 
 	if pi.metricsCollector != nil {
-
 		pi.metricsCollector.Stop()
-
 	}
 
 	if pi.monitor != nil {
-
 		pi.monitor.Shutdown(ctx)
-
 	}
 
 	if pi.optimizedRAG != nil {
-
 		pi.optimizedRAG.Shutdown(ctx)
-
 	}
 
 	if pi.weaviatePool != nil {
-
 		pi.weaviatePool.Stop()
-
 	}
 
 	if pi.memoryCache != nil {
-
 		pi.memoryCache.Close()
-
 	}
 
 	if pi.redisCache != nil {
-
 		pi.redisCache.Close()
-
 	}
 
 	pi.logger.Info("Performance integration shutdown completed")
 
 	return nil
-
 }
 
 // Configuration defaults.
 
 func getDefaultPerformanceConfig() *PerformanceConfig {
-
 	return &PerformanceConfig{
-
 		OptimizedRAGConfig: getDefaultOptimizedRAGConfig(),
 
 		WeaviatePoolConfig: DefaultPoolConfig(),
@@ -1220,7 +1061,6 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		OptimizationInterval: 15 * time.Minute,
 
 		PerformanceTargets: &PerformanceTargets{
-
 			MaxQueryLatencyMs: 2000, // 2 seconds
 
 			MinCacheHitRate: 0.75, // 75%
@@ -1239,5 +1079,4 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 
 		EnableLoadBalancing: false,
 	}
-
 }

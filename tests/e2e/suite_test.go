@@ -26,7 +26,7 @@ import (
 var (
 	suiteCfg    *rest.Config
 	suiteClient client.Client
-	k8sClient   client.Client  // Add global k8sClient variable for tests
+	k8sClient   client.Client // Add global k8sClient variable for tests
 	testEnv     *envtest.Environment
 	suiteCtx    context.Context
 	suiteCancel context.CancelFunc
@@ -65,7 +65,7 @@ var _ = BeforeSuite(func() {
 	suiteClient, err = client.New(suiteCfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(suiteClient).NotTo(BeNil())
-	
+
 	// Initialize k8sClient as an alias to suiteClient for backward compatibility
 	k8sClient = suiteClient
 

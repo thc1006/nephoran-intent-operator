@@ -11,7 +11,6 @@ import (
 // This isolates our business logic from changes in the generated O-RAN O2 IMS models.
 
 type InternalResourceType struct {
-
 	// Core identification.
 
 	ResourceTypeID string `json:"resourceTypeId"`
@@ -52,7 +51,6 @@ type InternalResourceType struct {
 // This provides a stable interface for resource type configuration.
 
 type InternalResourceTypeSpec struct {
-
 	// Category from the generated model.
 
 	Category string `json:"category"`
@@ -85,15 +83,11 @@ type InternalResourceTypeSpec struct {
 // This function adapts the current O-RAN model structure to our stable internal format.
 
 func FromGenerated(generated *models.ResourceType) *InternalResourceType {
-
 	if generated == nil {
-
 		return nil
-
 	}
 
 	internal := &InternalResourceType{
-
 		ResourceTypeID: generated.ResourceTypeID,
 
 		Name: generated.Name,
@@ -126,7 +120,6 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 	// Create internal specifications from current model structure.
 
 	internal.Specifications = &InternalResourceTypeSpec{
-
 		Category: generated.Category,
 
 		ResourceClass: generated.ResourceClass,
@@ -141,9 +134,7 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 		internal.Specifications.Capabilities = make([]string, len(generated.Capabilities))
 
 		for i, cap := range generated.Capabilities {
-
 			internal.Specifications.Capabilities[i] = cap.Name
-
 		}
 
 	}
@@ -155,9 +146,7 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 		internal.Specifications.Features = make([]string, len(generated.Features))
 
 		for i, feature := range generated.Features {
-
 			internal.Specifications.Features[i] = feature.Name
-
 		}
 
 	}
@@ -177,21 +166,15 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 		if generated.ResourceLimits.CPULimits != nil {
 
 			if generated.ResourceLimits.CPULimits.MinValue != "" {
-
 				internal.Specifications.MinResources["cpu"] = generated.ResourceLimits.CPULimits.MinValue
-
 			}
 
 			if generated.ResourceLimits.CPULimits.DefaultValue != "" {
-
 				internal.Specifications.DefaultResources["cpu"] = generated.ResourceLimits.CPULimits.DefaultValue
-
 			}
 
 			if generated.ResourceLimits.CPULimits.MaxValue != "" {
-
 				internal.Specifications.MaxResources["cpu"] = generated.ResourceLimits.CPULimits.MaxValue
-
 			}
 
 		}
@@ -201,21 +184,15 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 		if generated.ResourceLimits.MemoryLimits != nil {
 
 			if generated.ResourceLimits.MemoryLimits.MinValue != "" {
-
 				internal.Specifications.MinResources["memory"] = generated.ResourceLimits.MemoryLimits.MinValue
-
 			}
 
 			if generated.ResourceLimits.MemoryLimits.DefaultValue != "" {
-
 				internal.Specifications.DefaultResources["memory"] = generated.ResourceLimits.MemoryLimits.DefaultValue
-
 			}
 
 			if generated.ResourceLimits.MemoryLimits.MaxValue != "" {
-
 				internal.Specifications.MaxResources["memory"] = generated.ResourceLimits.MemoryLimits.MaxValue
-
 			}
 
 		}
@@ -225,21 +202,15 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 		if generated.ResourceLimits.StorageLimits != nil {
 
 			if generated.ResourceLimits.StorageLimits.MinValue != "" {
-
 				internal.Specifications.MinResources["storage"] = generated.ResourceLimits.StorageLimits.MinValue
-
 			}
 
 			if generated.ResourceLimits.StorageLimits.DefaultValue != "" {
-
 				internal.Specifications.DefaultResources["storage"] = generated.ResourceLimits.StorageLimits.DefaultValue
-
 			}
 
 			if generated.ResourceLimits.StorageLimits.MaxValue != "" {
-
 				internal.Specifications.MaxResources["storage"] = generated.ResourceLimits.StorageLimits.MaxValue
-
 			}
 
 		}
@@ -251,17 +222,12 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 	internal.Specifications.Properties = make(map[string]interface{})
 
 	if generated.Extensions != nil {
-
 		for k, v := range generated.Extensions {
-
 			internal.Specifications.Properties[k] = v
-
 		}
-
 	}
 
 	return internal
-
 }
 
 // ToGenerated converts our internal representation back to the generated model format.
@@ -269,15 +235,11 @@ func FromGenerated(generated *models.ResourceType) *InternalResourceType {
 // This allows us to work with the current O-RAN model when needed.
 
 func (i *InternalResourceType) ToGenerated() *models.ResourceType {
-
 	if i == nil {
-
 		return nil
-
 	}
 
 	generated := &models.ResourceType{
-
 		ResourceTypeID: i.ResourceTypeID,
 
 		Name: i.Name,
@@ -324,9 +286,7 @@ func (i *InternalResourceType) ToGenerated() *models.ResourceType {
 			generated.Extensions = make(map[string]interface{})
 
 			for k, v := range i.Specifications.Properties {
-
 				generated.Extensions[k] = v
-
 			}
 
 		}
@@ -334,15 +294,12 @@ func (i *InternalResourceType) ToGenerated() *models.ResourceType {
 	}
 
 	return generated
-
 }
 
 // CreateDefaultComputeResourceType creates a default compute resource type using our internal format.
 
 func CreateDefaultComputeResourceType() *InternalResourceType {
-
 	return &InternalResourceType{
-
 		ResourceTypeID: "compute-deployment",
 
 		Name: "Kubernetes Deployment",
@@ -356,18 +313,15 @@ func CreateDefaultComputeResourceType() *InternalResourceType {
 		Version: "apps/v1",
 
 		Specifications: &InternalResourceTypeSpec{
-
 			Category: models.ResourceCategoryCompute,
 
 			MinResources: map[string]string{
-
 				"cpu": "100m",
 
 				"memory": "128Mi",
 			},
 
 			DefaultResources: map[string]string{
-
 				"cpu": "500m",
 
 				"memory": "512Mi",
@@ -382,15 +336,12 @@ func CreateDefaultComputeResourceType() *InternalResourceType {
 
 		UpdatedAt: time.Now(),
 	}
-
 }
 
 // CreateDefaultNetworkResourceType creates a default network resource type using our internal format.
 
 func CreateDefaultNetworkResourceType() *InternalResourceType {
-
 	return &InternalResourceType{
-
 		ResourceTypeID: "network-service",
 
 		Name: "Kubernetes Service",
@@ -404,11 +355,9 @@ func CreateDefaultNetworkResourceType() *InternalResourceType {
 		Version: "v1",
 
 		Specifications: &InternalResourceTypeSpec{
-
 			Category: models.ResourceCategoryNetwork,
 
 			Properties: map[string]interface{}{
-
 				"serviceTypes": []string{"ClusterIP", "NodePort", "LoadBalancer"},
 
 				"protocols": []string{"TCP", "UDP"},
@@ -423,15 +372,12 @@ func CreateDefaultNetworkResourceType() *InternalResourceType {
 
 		UpdatedAt: time.Now(),
 	}
-
 }
 
 // CreateDefaultStorageResourceType creates a default storage resource type using our internal format.
 
 func CreateDefaultStorageResourceType() *InternalResourceType {
-
 	return &InternalResourceType{
-
 		ResourceTypeID: "storage-pvc",
 
 		Name: "Persistent Volume Claim",
@@ -445,11 +391,9 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 		Version: "v1",
 
 		Specifications: &InternalResourceTypeSpec{
-
 			Category: models.ResourceCategoryStorage,
 
 			Properties: map[string]interface{}{
-
 				"accessModes": []string{"ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"},
 
 				"volumeModes": []string{"Filesystem", "Block"},
@@ -464,5 +408,4 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 
 		UpdatedAt: time.Now(),
 	}
-
 }

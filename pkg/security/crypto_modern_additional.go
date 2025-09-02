@@ -35,7 +35,7 @@ func (c *CryptoModern) GenerateRandomBytes(length int) ([]byte, error) {
 	if length < 0 {
 		return nil, fmt.Errorf("invalid length: %d", length)
 	}
-	
+
 	if length == 0 {
 		return []byte{}, nil
 	}
@@ -44,7 +44,7 @@ func (c *CryptoModern) GenerateRandomBytes(length int) ([]byte, error) {
 	if _, err := rand.Read(buf); err != nil {
 		return nil, fmt.Errorf("failed to generate random bytes: %w", err)
 	}
-	
+
 	return buf, nil
 }
 

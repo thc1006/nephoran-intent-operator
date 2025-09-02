@@ -66,7 +66,6 @@ type DeploymentTemplate struct {
 	InputSchema *runtime.RawExtension `json:"inputSchema,omitempty"` // Maps to TemplateSpec.InputSchema
 
 	OutputSchema *runtime.RawExtension `json:"outputSchema,omitempty"` // Maps to TemplateSpec.OutputSchema
-
 }
 
 // TemplateDependency represents a dependency of a deployment template.
@@ -575,7 +574,6 @@ type NetworkPolicyConfig struct {
 	Egress []NetworkPolicyRule `json:"egress,omitempty"`
 
 	PolicyTypes []string `json:"policyTypes,omitempty"` // Ingress, Egress
-
 }
 
 // NetworkPolicyRule defines a network policy rule.
@@ -638,7 +636,6 @@ type ServiceMeshConfig struct {
 
 type MTLSConfig struct {
 	Mode string `json:"mode"` // STRICT, PERMISSIVE, DISABLE
-
 }
 
 // TrafficPolicyConfig defines traffic policy configuration.
@@ -655,7 +652,6 @@ type TrafficPolicyConfig struct {
 
 type TrafficLoadBalancerConfig struct {
 	Simple string `json:"simple,omitempty"` // ROUND_ROBIN, LEAST_CONN, RANDOM, PASSTHROUGH
-
 }
 
 // CircuitBreakerConfig defines circuit breaker configuration.
@@ -860,7 +856,6 @@ type AuthzPolicy struct {
 	Condition string `json:"condition,omitempty"`
 
 	Effect string `json:"effect"` // ALLOW, DENY
-
 }
 
 // ComplianceRequirement defines a compliance requirement.
@@ -1193,7 +1188,6 @@ type ResourceEndpoint struct {
 	Scheme string `json:"scheme,omitempty"`
 
 	Type string `json:"type"` // HTTP, HTTPS, TCP, UDP, GRPC
-
 }
 
 // ServicePort represents a port exposed by a service.

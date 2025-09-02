@@ -72,62 +72,47 @@ type StreamingDocumentProcessor struct {
 // NewStreamingDocumentProcessor creates a new streaming processor.
 
 func NewStreamingDocumentProcessor(
-
 	config *StreamingConfig,
 
 	chunkingService *ChunkingService,
 
 	embeddingService interface{},
-
 ) *StreamingDocumentProcessor {
-
 	return &StreamingDocumentProcessor{
-
 		config: &StreamingProcessorConfig{BufferSize: 1024},
 	}
-
 }
 
 // ProcessDocumentStream processes a document stream.
 
 func (sdp *StreamingDocumentProcessor) ProcessDocumentStream(ctx context.Context, doc *LoadedDocument) (interface{}, error) {
-
 	// Stub implementation.
 
 	return nil, nil
-
 }
 
 // GetMetrics returns streaming processor metrics.
 
 func (sdp *StreamingDocumentProcessor) GetMetrics() interface{} {
-
 	return map[string]interface{}{"status": "ok"}
-
 }
 
 // Shutdown shuts down the streaming processor.
 
 func (sdp *StreamingDocumentProcessor) Shutdown(timeout time.Duration) error {
-
 	return nil
-
 }
 
 // NewParallelChunkProcessorExt creates a new parallel chunk processor with extended config.
 
 func NewParallelChunkProcessorExt(
-
 	config *ParallelChunkConfig,
 
 	chunkingService *ChunkingService,
 
 	embeddingService interface{},
-
 ) *ParallelChunkProcessor {
-
 	return nil // Stub implementation
-
 }
 
 // CostAwareEmbeddingServiceAdapter adapts CostAwareEmbeddingService to expected interface.
@@ -139,19 +124,15 @@ type CostAwareEmbeddingServiceAdapter struct {
 // NewCostAwareEmbeddingServiceAdapter creates an adapter.
 
 func NewCostAwareEmbeddingServiceAdapter(service *CostAwareEmbeddingService) *CostAwareEmbeddingServiceAdapter {
-
 	return &CostAwareEmbeddingServiceAdapter{service: service}
-
 }
 
 // GenerateEmbeddingsOptimized generates embeddings with cost optimization.
 
 func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx context.Context, request *EmbeddingRequestExt) (*EmbeddingResponseExt, error) {
-
 	// Convert request format.
 
 	embeddingRequest := CostAwareEmbeddingRequest{
-
 		Text: request.Texts[0], // Take first text for now
 
 		MaxBudget: 10.0,
@@ -164,11 +145,8 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 	// Call the actual service.
 
 	response, err := caesa.service.GetEmbeddings(ctx, embeddingRequest)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Convert response format.
@@ -180,30 +158,24 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 		embeddings[i] = make([]float32, len(response.Embeddings))
 
 		for j, val := range response.Embeddings {
-
 			embeddings[i][j] = float32(val)
-
 		}
 
 	}
 
 	return &EmbeddingResponseExt{
-
 		Embeddings: embeddings,
 
 		TokenUsage: &TokenUsage{EstimatedCost: response.Cost},
 
 		ModelUsed: response.Provider,
 	}, nil
-
 }
 
 // Helper functions.
 
 func generateChunkID(docID string, index int) string {
-
 	return docID + "_chunk_" + string(rune(index))
-
 }
 
 // generateDocumentID definition moved to enhanced_rag_integration.go to avoid duplicates.

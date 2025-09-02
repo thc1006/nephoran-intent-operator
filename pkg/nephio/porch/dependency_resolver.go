@@ -50,7 +50,6 @@ import (
 // transitive dependency resolution, update propagation, and conflict resolution with optimization.
 
 type DependencyResolver interface {
-
 	// Dependency graph operations.
 
 	BuildDependencyGraph(ctx context.Context, rootPackages []*PackageReference, opts *GraphBuildOptions) (*DependencyGraph, error)
@@ -139,7 +138,6 @@ type DependencyResolver interface {
 // dependencyResolver implements comprehensive dependency resolution.
 
 type dependencyResolver struct {
-
 	// Core dependencies.
 
 	client *Client
@@ -924,21 +922,15 @@ const (
 // NewDependencyResolver creates a new dependency resolver instance.
 
 func NewDependencyResolver(client *Client, config *DependencyResolverConfig) (DependencyResolver, error) {
-
 	if client == nil {
-
 		return nil, fmt.Errorf("client cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = getDefaultDependencyResolverConfig()
-
 	}
 
 	resolver := &dependencyResolver{
-
 		client: client,
 
 		logger: log.Log.WithName("dependency-resolver"),
@@ -999,21 +991,17 @@ func NewDependencyResolver(client *Client, config *DependencyResolverConfig) (De
 	go resolver.cacheCleanupLoop()
 
 	return resolver, nil
-
 }
 
 // BuildDependencyGraph builds a complete dependency graph for root packages.
 
 func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPackages []*PackageReference, opts *GraphBuildOptions) (*DependencyGraph, error) {
-
 	dr.logger.Info("Building dependency graph", "rootPackages", len(rootPackages))
 
 	startTime := time.Now()
 
 	if opts == nil {
-
 		opts = &GraphBuildOptions{
-
 			MaxDepth: 10,
 
 			IncludeOptional: false,
@@ -1026,7 +1014,6 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 
 			VersionSelection: VersionSelectionStrategyLatest,
 		}
-
 	}
 
 	// Check cache if enabled.
@@ -1040,9 +1027,7 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 			dr.logger.V(1).Info("Using cached dependency graph", "cacheKey", cacheKey)
 
 			if dr.metrics != nil {
-
 				dr.metrics.graphCacheHits.Inc()
-
 			}
 
 			return cached, nil
@@ -1050,9 +1035,7 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		}
 
 		if dr.metrics != nil {
-
 			dr.metrics.graphCacheMisses.Inc()
-
 		}
 
 	}
@@ -1060,7 +1043,6 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 	// Create new graph.
 
 	graph := &DependencyGraph{
-
 		ID: fmt.Sprintf("graph-%d", time.Now().UnixNano()),
 
 		RootPackages: rootPackages,
@@ -1077,23 +1059,17 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 	// Build graph using the graph builder.
 
 	if err := dr.graphBuilder.BuildGraph(ctx, graph, opts); err != nil {
-
 		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
-
 	}
 
 	// Resolve versions if requested.
 
 	if opts.VersionSelection != VersionSelectionStrategyNone {
-
 		if err := dr.resolveVersionsInGraph(ctx, graph, opts); err != nil {
-
 			dr.logger.Error(err, "Failed to resolve versions in graph")
 
 			// Continue with unresolved graph.
-
 		}
-
 	}
 
 	// Detect circular dependencies.
@@ -1101,13 +1077,9 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 	circularResult, err := dr.DetectCircularDependencies(ctx, graph)
 
 	if err != nil {
-
 		dr.logger.Error(err, "Failed to detect circular dependencies")
-
 	} else {
-
 		graph.IsAcyclic = !circularResult.HasCircularDependencies
-
 	}
 
 	// Calculate graph statistics.
@@ -1125,9 +1097,7 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		cacheKey := dr.generateGraphCacheKey(rootPackages, opts)
 
 		if err := dr.graphCache.Set(ctx, cacheKey, graph); err != nil {
-
 			dr.logger.Error(err, "Failed to cache dependency graph", "cacheKey", cacheKey)
-
 		}
 
 	}
@@ -1157,13 +1127,11 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		"duration", buildDuration)
 
 	return graph, nil
-
 }
 
 // ResolveDependencies resolves dependencies for a specific package.
 
 func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *PackageReference, constraints *DependencyConstraints) (*ResolutionResult, error) {
-
 	dr.logger.Info("Resolving dependencies", "package", ref.GetPackageKey())
 
 	startTime := time.Now()
@@ -1179,9 +1147,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 			cached.CacheHit = true
 
 			if dr.metrics != nil {
-
 				dr.metrics.resolutionCacheHits.Inc()
-
 			}
 
 			return cached, nil
@@ -1189,9 +1155,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		}
 
 		if dr.metrics != nil {
-
 			dr.metrics.resolutionCacheMisses.Inc()
-
 		}
 
 	}
@@ -1199,24 +1163,19 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 	// Build dependency graph for this package.
 
 	graph, err := dr.BuildDependencyGraph(ctx, []*PackageReference{ref}, &GraphBuildOptions{
-
 		MaxDepth: 10,
 
 		ResolveTransitive: true,
 
 		UseCache: true,
 	})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
-
 	}
 
 	// Create resolution result.
 
 	result := &ResolutionResult{
-
 		Success: graph.Resolved,
 
 		ResolvedGraph: graph,
@@ -1233,13 +1192,9 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 	conflicts, err := dr.DetectDependencyConflicts(ctx, graph)
 
 	if err != nil {
-
 		dr.logger.Error(err, "Failed to detect dependency conflicts")
-
 	} else {
-
 		result.Conflicts = conflicts.Conflicts
-
 	}
 
 	// Generate resolution plan.
@@ -1249,13 +1204,9 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		plan, err := dr.generateResolutionPlan(ctx, graph, constraints)
 
 		if err != nil {
-
 			dr.logger.Error(err, "Failed to generate resolution plan")
-
 		} else {
-
 			result.ResolutionPlan = plan
-
 		}
 
 	}
@@ -1267,9 +1218,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		cacheKey := dr.generateResolutionCacheKey(ref, constraints)
 
 		if err := dr.resolutionCache.Set(ctx, cacheKey, result); err != nil {
-
 			dr.logger.Error(err, "Failed to cache resolution result")
-
 		}
 
 	}
@@ -1281,9 +1230,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		status := "success"
 
 		if !result.Success {
-
 			status = "failed"
-
 		}
 
 		dr.metrics.resolutionsTotal.WithLabelValues(status).Inc()
@@ -1303,17 +1250,14 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		"duration", result.ResolutionTime)
 
 	return result, nil
-
 }
 
 // DetectCircularDependencies detects circular dependencies in a graph.
 
 func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, graph *DependencyGraph) (*CircularDependencyResult, error) {
-
 	dr.logger.V(1).Info("Detecting circular dependencies", "graphID", graph.ID)
 
 	result := &CircularDependencyResult{
-
 		HasCircularDependencies: false,
 
 		Cycles: []*DependencyCycle{},
@@ -1326,7 +1270,6 @@ func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, gr
 	cycles := dr.findStronglyConnectedComponents(graph)
 
 	for _, cycle := range cycles {
-
 		if len(cycle.Nodes) > 1 {
 
 			result.HasCircularDependencies = true
@@ -1336,13 +1279,10 @@ func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, gr
 			// Add affected packages.
 
 			for _, node := range cycle.Nodes {
-
 				result.AffectedPackages = append(result.AffectedPackages, node.PackageRef)
-
 			}
 
 		}
-
 	}
 
 	// Generate breaking suggestions if cycles found.
@@ -1368,13 +1308,11 @@ func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, gr
 		"cycles", len(result.Cycles))
 
 	return result, nil
-
 }
 
 // SolveVersionConstraints solves version constraints for multiple packages.
 
 func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error) {
-
 	dr.logger.V(1).Info("Solving version constraints", "requirements", len(requirements))
 
 	startTime := time.Now()
@@ -1382,11 +1320,8 @@ func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requi
 	// Use the version solver.
 
 	solution, err := dr.versionSolver.Solve(ctx, requirements)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("version constraint solving failed: %w", err)
-
 	}
 
 	solution.SolvingTime = time.Since(startTime)
@@ -1398,9 +1333,7 @@ func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requi
 		status := "success"
 
 		if !solution.Success {
-
 			status = "failed"
-
 		}
 
 		dr.metrics.versionSolveTime.Observe(solution.SolvingTime.Seconds())
@@ -1410,13 +1343,11 @@ func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requi
 	}
 
 	return solution, nil
-
 }
 
 // PropagateUpdates propagates package updates through dependency graph.
 
 func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPackage *PackageReference, strategy PropagationStrategy) (*UpdatePropagationResult, error) {
-
 	dr.logger.Info("Propagating updates", "package", updatedPackage.GetPackageKey(), "strategy", strategy)
 
 	startTime := time.Now()
@@ -1424,20 +1355,15 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 	// Find all dependents of the updated package.
 
 	dependents, err := dr.FindDependents(ctx, updatedPackage, &DependentSearchOptions{
-
 		SearchDepth: 10,
 
 		IncludeTransitive: true,
 	})
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to find dependents: %w", err)
-
 	}
 
 	result := &UpdatePropagationResult{
-
 		Success: true,
 
 		UpdatedPackages: []*PackageUpdate{},
@@ -1456,7 +1382,6 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 	for _, dependent := range dependents {
 
 		update, err := dr.createPackageUpdate(ctx, dependent.PackageRef, updatedPackage, strategy)
-
 		if err != nil {
 
 			dr.logger.Error(err, "Failed to create package update", "package", dependent.PackageRef.GetPackageKey())
@@ -1468,9 +1393,7 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 		}
 
 		if update != nil {
-
 			result.UpdatedPackages = append(result.UpdatedPackages, update)
-
 		}
 
 	}
@@ -1502,13 +1425,11 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 		"duration", result.PropagationTime)
 
 	return result, nil
-
 }
 
 // Close gracefully shuts down the dependency resolver.
 
 func (dr *dependencyResolver) Close() error {
-
 	dr.logger.Info("Shutting down dependency resolver")
 
 	close(dr.shutdown)
@@ -1518,47 +1439,34 @@ func (dr *dependencyResolver) Close() error {
 	// Close components.
 
 	if dr.versionSolver != nil {
-
 		dr.versionSolver.Close()
-
 	}
 
 	if dr.conflictResolver != nil {
-
 		dr.conflictResolver.Close()
-
 	}
 
 	if dr.resolverPool != nil {
-
 		dr.resolverPool.Close()
-
 	}
 
 	// Close caches.
 
 	if dr.resolutionCache != nil {
-
 		dr.resolutionCache.Close()
-
 	}
 
 	if dr.graphCache != nil {
-
 		dr.graphCache.Close()
-
 	}
 
 	if dr.versionCache != nil {
-
 		dr.versionCache.Close()
-
 	}
 
 	dr.logger.Info("Dependency resolver shutdown complete")
 
 	return nil
-
 }
 
 // Helper methods and supporting functionality.
@@ -1566,7 +1474,6 @@ func (dr *dependencyResolver) Close() error {
 // Background processes.
 
 func (dr *dependencyResolver) metricsCollectionLoop() {
-
 	defer dr.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1574,7 +1481,6 @@ func (dr *dependencyResolver) metricsCollectionLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-dr.shutdown:
@@ -1588,13 +1494,10 @@ func (dr *dependencyResolver) metricsCollectionLoop() {
 			dr.collectMetrics()
 
 		}
-
 	}
-
 }
 
 func (dr *dependencyResolver) cacheCleanupLoop() {
-
 	defer dr.wg.Done()
 
 	ticker := time.NewTicker(1 * time.Hour)
@@ -1602,7 +1505,6 @@ func (dr *dependencyResolver) cacheCleanupLoop() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-dr.shutdown:
@@ -1616,17 +1518,13 @@ func (dr *dependencyResolver) cacheCleanupLoop() {
 			dr.cleanupCaches()
 
 		}
-
 	}
-
 }
 
 // Implementation helper methods (simplified for space).
 
 func getDefaultDependencyResolverConfig() *DependencyResolverConfig {
-
 	return &DependencyResolverConfig{
-
 		WorkerCount: 10,
 
 		QueueSize: 100,
@@ -1639,17 +1537,13 @@ func getDefaultDependencyResolverConfig() *DependencyResolverConfig {
 
 		MaxResolutionTime: 5 * time.Minute,
 	}
-
 }
 
 func initDependencyResolverMetrics() *DependencyResolverMetrics {
-
 	return &DependencyResolverMetrics{
-
 		resolutionsTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_dependency_resolutions_total",
 
 				Help: "Total number of dependency resolutions",
@@ -1661,7 +1555,6 @@ func initDependencyResolverMetrics() *DependencyResolverMetrics {
 		resolutionTime: prometheus.NewHistogram(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_dependency_resolution_duration_seconds",
 
 				Help: "Duration of dependency resolutions",
@@ -1673,7 +1566,6 @@ func initDependencyResolverMetrics() *DependencyResolverMetrics {
 		// Additional metrics...
 
 	}
-
 }
 
 // Placeholder implementations for complex algorithms and supporting methods.
@@ -1681,75 +1573,57 @@ func initDependencyResolverMetrics() *DependencyResolverMetrics {
 // (These would be fully implemented in a production system).
 
 func (dr *dependencyResolver) generateGraphCacheKey(packages []*PackageReference, opts *GraphBuildOptions) string {
-
 	// Implementation would generate a unique cache key.
 
 	return fmt.Sprintf("graph-%d", time.Now().UnixNano())
-
 }
 
 func (dr *dependencyResolver) generateResolutionCacheKey(ref *PackageReference, constraints *DependencyConstraints) string {
-
 	// Implementation would generate a unique cache key.
 
 	return fmt.Sprintf("resolution-%s", ref.GetPackageKey())
-
 }
 
 func (dr *dependencyResolver) resolveVersionsInGraph(ctx context.Context, graph *DependencyGraph, opts *GraphBuildOptions) error {
-
 	// Implementation would resolve versions for all nodes in graph.
 
 	return nil
-
 }
 
 func (dr *dependencyResolver) calculateGraphStatistics(graph *DependencyGraph) *GraphStatistics {
-
 	// Implementation would calculate comprehensive graph statistics.
 
 	return &GraphStatistics{}
-
 }
 
 func (dr *dependencyResolver) findStronglyConnectedComponents(graph *DependencyGraph) []*DependencyCycle {
-
 	// Implementation would use Tarjan's algorithm to find SCCs.
 
 	return []*DependencyCycle{}
-
 }
 
 func (dr *dependencyResolver) generateCircularBreakingSuggestions(cycles []*DependencyCycle) []*CircularBreakingSuggestion {
-
 	// Implementation would generate suggestions for breaking circular dependencies.
 
 	return []*CircularBreakingSuggestion{}
-
 }
 
 func (dr *dependencyResolver) collectMetrics() {
-
 	// Implementation would collect runtime metrics.
-
 }
 
 func (dr *dependencyResolver) cleanupCaches() {
-
 	// Implementation would cleanup expired cache entries.
-
 }
 
 // AnalyzeDependencyHealth analyzes the health of a package's dependencies.
 
 func (dr *dependencyResolver) AnalyzeDependencyHealth(ctx context.Context, ref *PackageReference) (*DependencyHealthReport, error) {
-
 	dr.logger.Info("Analyzing dependency health", "package", ref.GetPackageKey())
 
 	// Create a basic health report.
 
 	report := &DependencyHealthReport{
-
 		PackageRef: ref,
 
 		LastAnalyzed: time.Now(),
@@ -1782,13 +1656,11 @@ func (dr *dependencyResolver) AnalyzeDependencyHealth(ctx context.Context, ref *
 	// - Dependency availability.
 
 	return report, nil
-
 }
 
 // registerDefaultProviders registers the default package providers.
 
 func (dr *dependencyResolver) registerDefaultProviders() {
-
 	dr.logger.Info("Registering default package providers")
 
 	// TODO: Implement provider registration logic.
@@ -1800,13 +1672,11 @@ func (dr *dependencyResolver) registerDefaultProviders() {
 	// - Git repositories.
 
 	// - OCI registries.
-
 }
 
 // registerDefaultStrategies registers the default resolution strategies.
 
 func (dr *dependencyResolver) registerDefaultStrategies() {
-
 	dr.logger.Info("Registering default resolution strategies")
 
 	// TODO: Implement strategy registration logic.
@@ -1818,19 +1688,16 @@ func (dr *dependencyResolver) registerDefaultStrategies() {
 	// - Conflict resolution policies.
 
 	// - Update propagation strategies.
-
 }
 
 // AnalyzeUpdateImpact analyzes the impact of package updates.
 
 func (dr *dependencyResolver) AnalyzeUpdateImpact(ctx context.Context, updates []*PackageUpdate) (*ImpactAnalysis, error) {
-
 	dr.logger.Info("Analyzing update impact", "updates", len(updates))
 
 	// Create basic impact analysis.
 
 	impact := &ImpactAnalysis{
-
 		TotalAffectedPackages: len(updates),
 
 		DirectlyAffected: make([]*PackageReference, 0),
@@ -1849,17 +1716,14 @@ func (dr *dependencyResolver) AnalyzeUpdateImpact(ctx context.Context, updates [
 	// TODO: Implement actual impact analysis.
 
 	return impact, nil
-
 }
 
 // DetectDependencyConflicts detects conflicts in dependency graph.
 
 func (dr *dependencyResolver) DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*ConflictAnalysis, error) {
-
 	dr.logger.V(1).Info("Detecting dependency conflicts", "graphID", graph.ID)
 
 	analysis := &ConflictAnalysis{
-
 		HasConflicts: false,
 
 		Conflicts: make([]*DependencyConflict, 0),
@@ -1874,15 +1738,12 @@ func (dr *dependencyResolver) DetectDependencyConflicts(ctx context.Context, gra
 	// TODO: Implement conflict detection logic.
 
 	return analysis, nil
-
 }
 
 // generateResolutionPlan generates a plan to resolve dependencies.
 
 func (dr *dependencyResolver) generateResolutionPlan(ctx context.Context, graph *DependencyGraph, constraints *DependencyConstraints) (*ResolutionPlan, error) {
-
 	plan := &ResolutionPlan{
-
 		ID: fmt.Sprintf("plan-%d", time.Now().UnixNano()),
 
 		Steps: make([]*ResolutionStep, 0),
@@ -1899,23 +1760,19 @@ func (dr *dependencyResolver) generateResolutionPlan(ctx context.Context, graph 
 	// TODO: Generate actual resolution steps.
 
 	return plan, nil
-
 }
 
 // calculateCircularImpactAnalysis calculates impact of circular dependencies.
 
 func (dr *dependencyResolver) calculateCircularImpactAnalysis(cycles []*DependencyCycle, graph *DependencyGraph) *CircularImpactAnalysis {
-
 	// TODO: Implement circular impact analysis.
 
 	return &CircularImpactAnalysis{}
-
 }
 
 // FindDependents finds packages that depend on the given package.
 
 func (dr *dependencyResolver) FindDependents(ctx context.Context, ref *PackageReference, opts *DependentSearchOptions) ([]*Dependent, error) {
-
 	dr.logger.V(1).Info("Finding dependents", "package", ref.GetPackageKey())
 
 	dependents := make([]*Dependent, 0)
@@ -1923,27 +1780,22 @@ func (dr *dependencyResolver) FindDependents(ctx context.Context, ref *PackageRe
 	// TODO: Implement dependent search logic.
 
 	return dependents, nil
-
 }
 
 // createPropagationPlan creates a plan for update propagation.
 
 func (dr *dependencyResolver) createPropagationPlan(updated *PackageReference, dependents []*Dependent, strategy PropagationStrategy) *PropagationPlan {
-
 	plan := &PropagationPlan{} // Fields set according to dependency_types.go definition
 
 	// TODO: Create propagation steps.
 
 	return plan
-
 }
 
 // createPackageUpdate creates a package update for propagation.
 
 func (dr *dependencyResolver) createPackageUpdate(ctx context.Context, ref, updatedDep *PackageReference, strategy PropagationStrategy) (*PackageUpdate, error) {
-
 	update := &PackageUpdate{
-
 		PackageRef: ref,
 
 		CurrentVersion: "1.0.0", // TODO: Get actual version
@@ -1958,25 +1810,21 @@ func (dr *dependencyResolver) createPackageUpdate(ctx context.Context, ref, upda
 	// TODO: Implement update creation logic.
 
 	return update, nil
-
 }
 
 // analyzePropagationImpact analyzes the impact of update propagation.
 
 func (dr *dependencyResolver) analyzePropagationImpact(updates []*PackageUpdate) *PropagationImpact {
-
 	impact := &PropagationImpact{}
 
 	// TODO: Implement impact analysis.
 
 	return impact
-
 }
 
 // BreakCircularDependencies breaks circular dependencies using the specified strategy.
 
 func (dr *dependencyResolver) BreakCircularDependencies(ctx context.Context, graph *DependencyGraph, strategy CircularResolutionStrategy) (*GraphModification, error) {
-
 	dr.logger.Info("Breaking circular dependencies", "strategy", strategy)
 
 	modification := &GraphModification{}
@@ -1984,7 +1832,6 @@ func (dr *dependencyResolver) BreakCircularDependencies(ctx context.Context, gra
 	// TODO: Implement circular dependency breaking logic.
 
 	return modification, nil
-
 }
 
 // Additional interface methods to complete DependencyResolver implementation.
@@ -1992,163 +1839,123 @@ func (dr *dependencyResolver) BreakCircularDependencies(ctx context.Context, gra
 // ValidateDependencyGraph performs validatedependencygraph operation.
 
 func (dr *dependencyResolver) ValidateDependencyGraph(ctx context.Context, graph *DependencyGraph) (*ValidationResult, error) {
-
 	result := &ValidationResult{Valid: true}
 
 	return result, nil
-
 }
 
 // FindCompatibleVersions performs findcompatibleversions operation.
 
 func (dr *dependencyResolver) FindCompatibleVersions(ctx context.Context, ref *PackageReference, constraints []*VersionConstraint) ([]string, error) {
-
 	return []string{"1.0.0"}, nil
-
 }
 
 // GetVersionCompatibilityMatrix performs getversioncompatibilitymatrix operation.
 
 func (dr *dependencyResolver) GetVersionCompatibilityMatrix(ctx context.Context, packages []*PackageReference) (*CompatibilityMatrix, error) {
-
 	return &CompatibilityMatrix{}, nil
-
 }
 
 // ResolveTransitiveDependencies performs resolvetransitivedependencies operation.
 
 func (dr *dependencyResolver) ResolveTransitiveDependencies(ctx context.Context, ref *PackageReference, maxDepth int) (*TransitiveDependencies, error) {
-
 	return &TransitiveDependencies{}, nil
-
 }
 
 // ComputeTransitiveClosure performs computetransitiveclosure operation.
 
 func (dr *dependencyResolver) ComputeTransitiveClosure(ctx context.Context, graph *DependencyGraph) (*DependencyGraph, error) {
-
 	return graph, nil
-
 }
 
 // OptimizeDependencyTree performs optimizedependencytree operation.
 
 func (dr *dependencyResolver) OptimizeDependencyTree(ctx context.Context, graph *DependencyGraph, opts *OptimizationOptions) (*OptimizedGraph, error) {
-
 	return &OptimizedGraph{}, nil
-
 }
 
 // CreateUpdatePlan performs createupdateplan operation.
 
 func (dr *dependencyResolver) CreateUpdatePlan(ctx context.Context, targetUpdates []*PackageUpdate, opts *UpdatePlanOptions) (*UpdatePlan, error) {
-
 	return &UpdatePlan{}, nil
-
 }
 
 // ResolveConflicts performs resolveconflicts operation.
 
 func (dr *dependencyResolver) ResolveConflicts(ctx context.Context, conflicts *ConflictAnalysis, strategy ConflictResolutionStrategy) (*ConflictResolution, error) {
-
 	return &ConflictResolution{}, nil
-
 }
 
 // SuggestConflictResolutions performs suggestconflictresolutions operation.
 
 func (dr *dependencyResolver) SuggestConflictResolutions(ctx context.Context, conflicts *ConflictAnalysis) ([]*ConflictSuggestion, error) {
-
 	return []*ConflictSuggestion{}, nil
-
 }
 
 // FindUnusedDependencies performs findunuseddependencies operation.
 
 func (dr *dependencyResolver) FindUnusedDependencies(ctx context.Context, ref *PackageReference) ([]*UnusedDependency, error) {
-
 	return []*UnusedDependency{}, nil
-
 }
 
 // SuggestOptimizations performs suggestoptimizations operation.
 
 func (dr *dependencyResolver) SuggestOptimizations(ctx context.Context, graph *DependencyGraph) ([]*OptimizationSuggestion, error) {
-
 	return []*OptimizationSuggestion{}, nil
-
 }
 
 // GetDependencyPath performs getdependencypath operation.
 
 func (dr *dependencyResolver) GetDependencyPath(ctx context.Context, from, to *PackageReference) (*DependencyPath, error) {
-
 	return &DependencyPath{}, nil
-
 }
 
 // GetDependencyTree performs getdependencytree operation.
 
 func (dr *dependencyResolver) GetDependencyTree(ctx context.Context, ref *PackageReference, opts *TreeOptions) (*DependencyTree, error) {
-
 	return &DependencyTree{}, nil
-
 }
 
 // CheckCompatibility performs checkcompatibility operation.
 
 func (dr *dependencyResolver) CheckCompatibility(ctx context.Context, ref1, ref2 *PackageReference) (*CompatibilityResult, error) {
-
 	return &CompatibilityResult{Compatible: true}, nil
-
 }
 
 // GetVersionHistory performs getversionhistory operation.
 
 func (dr *dependencyResolver) GetVersionHistory(ctx context.Context, ref *PackageReference) (*VersionHistory, error) {
-
 	return &VersionHistory{}, nil
-
 }
 
 // ComputeVersionDistance performs computeversiondistance operation.
 
 func (dr *dependencyResolver) ComputeVersionDistance(ctx context.Context, version1, version2 string) (*VersionDistance, error) {
-
 	return &VersionDistance{}, nil
-
 }
 
 // GetDependencyMetrics performs getdependencymetrics operation.
 
 func (dr *dependencyResolver) GetDependencyMetrics(ctx context.Context) (*DependencyMetrics, error) {
-
 	return &DependencyMetrics{}, nil
-
 }
 
 // GetResolutionStatistics performs getresolutionstatistics operation.
 
 func (dr *dependencyResolver) GetResolutionStatistics(ctx context.Context, timeRange *TimeRange) (*ResolutionStatistics, error) {
-
 	return &ResolutionStatistics{}, nil
-
 }
 
 // GetResolverHealth performs getresolverhealth operation.
 
 func (dr *dependencyResolver) GetResolverHealth(ctx context.Context) (*ResolverHealth, error) {
-
 	return &ResolverHealth{Status: "healthy"}, nil
-
 }
 
 // CleanupResolutionCache performs cleanupresolutioncache operation.
 
 func (dr *dependencyResolver) CleanupResolutionCache(ctx context.Context, olderThan time.Duration) (*CacheCleanupResult, error) {
-
 	return &CacheCleanupResult{}, nil
-
 }
 
 // Additional helper methods would be implemented here...

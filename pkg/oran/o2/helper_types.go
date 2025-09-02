@@ -919,7 +919,6 @@ type ResourceEndpoint struct {
 	Scheme string `json:"scheme,omitempty"`
 
 	Type string `json:"type"` // HTTP, HTTPS, TCP, UDP, GRPC
-
 }
 
 // DeployedService represents a service that has been deployed.
@@ -1296,7 +1295,6 @@ type SecretConfig struct {
 	Secrets []*SecretSpec `json:"secrets,omitempty"`
 
 	Provider string `json:"provider,omitempty"` // KUBERNETES, VAULT, AWS_SECRETS_MANAGER
-
 }
 
 // SecretSpec defines secret specification.

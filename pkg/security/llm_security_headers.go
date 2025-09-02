@@ -25,29 +25,21 @@ type SecurityHeaders struct {
 // NewSecurityHeaders creates a new set of security headers for an LLM request.
 
 func NewSecurityHeaders() (*SecurityHeaders, error) {
-
 	// Generate request ID.
 
 	requestID, err := generateRequestID()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate request ID: %w", err)
-
 	}
 
 	// Generate nonce.
 
 	nonce, err := generateNonce()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-
 	}
 
 	return &SecurityHeaders{
-
 		requestID: requestID,
 
 		nonce: nonce,
@@ -58,13 +50,11 @@ func NewSecurityHeaders() (*SecurityHeaders, error) {
 
 		contextBounds: "STRICT_BOUNDARY",
 	}, nil
-
 }
 
 // ApplyToHTTPRequest applies security headers to an HTTP request.
 
 func (sh *SecurityHeaders) ApplyToHTTPRequest(req *http.Request) {
-
 	req.Header.Set("X-Request-ID", sh.requestID)
 
 	req.Header.Set("X-Nonce", sh.nonce)
@@ -88,23 +78,18 @@ func (sh *SecurityHeaders) ApplyToHTTPRequest(req *http.Request) {
 	req.Header.Set("X-Frequency-Penalty", "0.5")
 
 	req.Header.Set("X-Presence-Penalty", "0.5")
-
 }
 
 // GetRequestID returns the request ID.
 
 func (sh *SecurityHeaders) GetRequestID() string {
-
 	return sh.requestID
-
 }
 
 // GetNonce returns the nonce.
 
 func (sh *SecurityHeaders) GetNonce() string {
-
 	return sh.nonce
-
 }
 
 // StructuredPrompt provides a structured format for LLM prompts with clear boundaries.
@@ -128,9 +113,7 @@ type StructuredPrompt struct {
 // NewStructuredPrompt creates a new structured prompt with security boundaries.
 
 func NewStructuredPrompt(userIntent string) *StructuredPrompt {
-
 	return &StructuredPrompt{
-
 		SystemContext: "You are a secure telecommunications network orchestration system. " +
 
 			"Your role is to translate network deployment intents into valid Kubernetes configurations. " +
@@ -146,7 +129,6 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 		OutputFormat: "JSON",
 
 		Constraints: []string{
-
 			"Output must be valid JSON for Kubernetes network function deployment",
 
 			"No privileged containers or host access",
@@ -163,7 +145,6 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 		},
 
 		ForbiddenTopics: []string{
-
 			"System administration",
 
 			"File system access",
@@ -180,7 +161,6 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 		},
 
 		Metadata: map[string]interface{}{
-
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 
 			"version": "1.0",
@@ -188,13 +168,11 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 			"security_mode": "strict",
 		},
 	}
-
 }
 
 // ToDelimitedString converts the structured prompt to a delimited string format.
 
 func (sp *StructuredPrompt) ToDelimitedString(boundary string) string {
-
 	var result string
 
 	// System context section.
@@ -218,9 +196,7 @@ func (sp *StructuredPrompt) ToDelimitedString(boundary string) string {
 	result += fmt.Sprintf("%s CONSTRAINTS START %s\n", boundary, boundary)
 
 	for i, constraint := range sp.Constraints {
-
 		result += fmt.Sprintf("%d. %s\n", i+1, constraint)
-
 	}
 
 	result += fmt.Sprintf("%s CONSTRAINTS END %s\n\n", boundary, boundary)
@@ -232,9 +208,7 @@ func (sp *StructuredPrompt) ToDelimitedString(boundary string) string {
 	result += "The following topics are strictly forbidden and must not be addressed:\n"
 
 	for _, topic := range sp.ForbiddenTopics {
-
 		result += fmt.Sprintf("- %s\n", topic)
-
 	}
 
 	result += fmt.Sprintf("%s FORBIDDEN TOPICS END %s\n\n", boundary, boundary)
@@ -262,7 +236,6 @@ func (sp *StructuredPrompt) ToDelimitedString(boundary string) string {
 	result += fmt.Sprintf("%s OUTPUT REQUIREMENTS END %s\n", boundary, boundary)
 
 	return result
-
 }
 
 // ResponseValidator validates LLM responses for security compliance.
@@ -280,9 +253,7 @@ type ResponseValidator struct {
 // NewResponseValidator creates a new response validator with security limits.
 
 func NewResponseValidator() *ResponseValidator {
-
 	return &ResponseValidator{
-
 		maxJSONDepth: 10, // Maximum nesting depth
 
 		maxArrayLength: 100, // Maximum array size
@@ -290,7 +261,6 @@ func NewResponseValidator() *ResponseValidator {
 		maxStringLength: 10000, // Maximum string length
 
 		allowedJSONTypes: []string{
-
 			"network_functions",
 
 			"deployment_type",
@@ -316,23 +286,17 @@ func NewResponseValidator() *ResponseValidator {
 			"storage",
 		},
 	}
-
 }
 
 // ValidateJSONStructure performs deep validation of JSON response structure.
 
 func (rv *ResponseValidator) ValidateJSONStructure(data map[string]interface{}) error {
-
 	return rv.validateJSONRecursive(data, 0)
-
 }
 
 func (rv *ResponseValidator) validateJSONRecursive(data interface{}, depth int) error {
-
 	if depth > rv.maxJSONDepth {
-
 		return fmt.Errorf("JSON nesting depth exceeds maximum of %d", rv.maxJSONDepth)
-
 	}
 
 	switch v := data.(type) {
@@ -344,15 +308,11 @@ func (rv *ResponseValidator) validateJSONRecursive(data interface{}, depth int) 
 			// Check if key contains suspicious patterns.
 
 			if containsSuspiciousPattern(key) {
-
 				return fmt.Errorf("suspicious key detected: %s", key)
-
 			}
 
 			if err := rv.validateJSONRecursive(value, depth+1); err != nil {
-
 				return err
-
 			}
 
 		}
@@ -360,35 +320,25 @@ func (rv *ResponseValidator) validateJSONRecursive(data interface{}, depth int) 
 	case []interface{}:
 
 		if len(v) > rv.maxArrayLength {
-
 			return fmt.Errorf("array length %d exceeds maximum of %d", len(v), rv.maxArrayLength)
-
 		}
 
 		for _, item := range v {
-
 			if err := rv.validateJSONRecursive(item, depth+1); err != nil {
-
 				return err
-
 			}
-
 		}
 
 	case string:
 
 		if len(v) > rv.maxStringLength {
-
 			return fmt.Errorf("string length %d exceeds maximum of %d", len(v), rv.maxStringLength)
-
 		}
 
 		// Check for suspicious content in strings.
 
 		if containsSuspiciousContent(v) {
-
 			return fmt.Errorf("suspicious content detected in string value")
-
 		}
 
 	case float64, int, bool, nil:
@@ -402,47 +352,34 @@ func (rv *ResponseValidator) validateJSONRecursive(data interface{}, depth int) 
 	}
 
 	return nil
-
 }
 
 // Helper functions.
 
 func generateRequestID() (string, error) {
-
 	b := make([]byte, 16)
 
 	_, err := rand.Read(b)
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	return fmt.Sprintf("req_%s_%d", base64.URLEncoding.EncodeToString(b), time.Now().UnixNano()), nil
-
 }
 
 func generateNonce() (string, error) {
-
 	b := make([]byte, 32)
 
 	_, err := rand.Read(b)
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	return base64.URLEncoding.EncodeToString(b), nil
-
 }
 
 func containsSuspiciousPattern(key string) bool {
-
 	suspiciousKeys := []string{
-
 		"exec", "eval", "system", "command", "shell",
 
 		"password", "token", "secret", "key", "credential",
@@ -451,23 +388,16 @@ func containsSuspiciousPattern(key string) bool {
 	}
 
 	for _, pattern := range suspiciousKeys {
-
 		if containsIgnoreCase(key, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func containsSuspiciousContent(value string) bool {
-
 	suspiciousContent := []string{
-
 		"<script", "javascript:", "onerror=", "onclick=",
 
 		"eval(", "exec(", "system(", "subprocess",
@@ -478,41 +408,29 @@ func containsSuspiciousContent(value string) bool {
 	}
 
 	for _, pattern := range suspiciousContent {
-
 		if containsIgnoreCase(value, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func containsIgnoreCase(s, substr string) bool {
-
 	// Simple case-insensitive contains check.
 
 	// In production, use a more sophisticated approach.
 
 	return len(s) >= len(substr) && containsIgnoreCaseHelper(s, substr)
-
 }
 
 func containsIgnoreCaseHelper(s, substr string) bool {
-
 	if substr == "" {
-
 		return true
-
 	}
 
 	if len(s) < len(substr) {
-
 		return false
-
 	}
 
 	for i := 0; i <= len(s)-len(substr); i++ {
@@ -520,7 +438,6 @@ func containsIgnoreCaseHelper(s, substr string) bool {
 		match := true
 
 		for j := range len(substr) {
-
 			if s[i+j] != substr[j] &&
 
 				s[i+j] != substr[j]-32 && // uppercase
@@ -532,17 +449,13 @@ func containsIgnoreCaseHelper(s, substr string) bool {
 				break
 
 			}
-
 		}
 
 		if match {
-
 			return true
-
 		}
 
 	}
 
 	return false
-
 }

@@ -65,21 +65,15 @@ type OpenStackProvider struct {
 // NewOpenStackProvider creates a new OpenStack provider instance.
 
 func NewOpenStackProvider(config *ProviderConfiguration) (CloudProvider, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("configuration is required for OpenStack provider")
-
 	}
 
 	if config.Type != ProviderTypeOpenStack {
-
 		return nil, fmt.Errorf("invalid provider type: expected %s, got %s", ProviderTypeOpenStack, config.Type)
-
 	}
 
 	provider := &OpenStackProvider{
-
 		name: config.Name,
 
 		config: config,
@@ -94,19 +88,16 @@ func NewOpenStackProvider(config *ProviderConfiguration) (CloudProvider, error) 
 	}
 
 	return provider, nil
-
 }
 
 // GetProviderInfo returns information about this OpenStack provider.
 
 func (o *OpenStackProvider) GetProviderInfo() *ProviderInfo {
-
 	o.mutex.RLock()
 
 	defer o.mutex.RUnlock()
 
 	return &ProviderInfo{
-
 		Name: o.name,
 
 		Type: ProviderTypeOpenStack,
@@ -122,7 +113,6 @@ func (o *OpenStackProvider) GetProviderInfo() *ProviderInfo {
 		Endpoint: o.config.Endpoint,
 
 		Tags: map[string]string{
-
 			"auth_url": o.config.Endpoint,
 
 			"region": o.config.Region,
@@ -132,15 +122,12 @@ func (o *OpenStackProvider) GetProviderInfo() *ProviderInfo {
 
 		LastUpdated: time.Now(),
 	}
-
 }
 
 // GetSupportedResourceTypes returns the resource types supported by OpenStack.
 
 func (o *OpenStackProvider) GetSupportedResourceTypes() []string {
-
 	return []string{
-
 		"server", // Compute instances
 
 		"flavor", // Instance types
@@ -172,15 +159,12 @@ func (o *OpenStackProvider) GetSupportedResourceTypes() []string {
 		"quota", // Resource quotas
 
 	}
-
 }
 
 // GetCapabilities returns the capabilities of this OpenStack provider.
 
 func (o *OpenStackProvider) GetCapabilities() *ProviderCapabilities {
-
 	return &ProviderCapabilities{
-
 		ComputeTypes: []string{"server", "flavor", "image", "keypair"},
 
 		StorageTypes: []string{"volume", "snapshot", "backup"},
@@ -240,13 +224,11 @@ func (o *OpenStackProvider) GetCapabilities() *ProviderCapabilities {
 		MaxVolumes: 50000, // Block volumes
 
 	}
-
 }
 
 // Connect establishes connection to the OpenStack cloud.
 
 func (o *OpenStackProvider) Connect(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("connecting to OpenStack cloud", "auth_url", o.config.Endpoint)
@@ -254,7 +236,6 @@ func (o *OpenStackProvider) Connect(ctx context.Context) error {
 	// Create authentication options.
 
 	authOpts := gophercloud.AuthOptions{
-
 		IdentityEndpoint: o.config.Endpoint,
 
 		Username: o.config.Credentials["username"],
@@ -269,26 +250,20 @@ func (o *OpenStackProvider) Connect(ctx context.Context) error {
 	// Alternative: Use application credentials if provided.
 
 	if appCredID := o.config.Credentials["app_credential_id"]; appCredID != "" {
-
 		authOpts = gophercloud.AuthOptions{
-
 			IdentityEndpoint: o.config.Endpoint,
 
 			ApplicationCredentialID: appCredID,
 
 			ApplicationCredentialSecret: o.config.Credentials["app_credential_secret"],
 		}
-
 	}
 
 	// Create the provider client.
 
 	provider, err := openstack.AuthenticatedClient(authOpts)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to authenticate with OpenStack: %w", err)
-
 	}
 
 	o.authClient = provider
@@ -296,9 +271,7 @@ func (o *OpenStackProvider) Connect(ctx context.Context) error {
 	// Initialize service clients.
 
 	if err := o.initializeServiceClients(ctx); err != nil {
-
 		return fmt.Errorf("failed to initialize service clients: %w", err)
-
 	}
 
 	o.mutex.Lock()
@@ -310,26 +283,20 @@ func (o *OpenStackProvider) Connect(ctx context.Context) error {
 	logger.Info("successfully connected to OpenStack cloud")
 
 	return nil
-
 }
 
 // initializeServiceClients initializes all OpenStack service clients.
 
 func (o *OpenStackProvider) initializeServiceClients(ctx context.Context) error {
-
 	endpointOpts := gophercloud.EndpointOpts{
-
 		Region: o.config.Region,
 	}
 
 	// Initialize compute (Nova) client.
 
 	computeClient, err := openstack.NewComputeV2(o.authClient, endpointOpts)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create compute client: %w", err)
-
 	}
 
 	o.computeClient = computeClient
@@ -337,11 +304,8 @@ func (o *OpenStackProvider) initializeServiceClients(ctx context.Context) error 
 	// Initialize network (Neutron) client.
 
 	networkClient, err := openstack.NewNetworkV2(o.authClient, endpointOpts)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create network client: %w", err)
-
 	}
 
 	o.networkClient = networkClient
@@ -349,11 +313,8 @@ func (o *OpenStackProvider) initializeServiceClients(ctx context.Context) error 
 	// Initialize block storage (Cinder) client.
 
 	storageClient, err := openstack.NewBlockStorageV3(o.authClient, endpointOpts)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create storage client: %w", err)
-
 	}
 
 	o.storageClient = storageClient
@@ -371,31 +332,24 @@ func (o *OpenStackProvider) initializeServiceClients(ctx context.Context) error 
 		logger.Info("Heat orchestration service not available")
 
 	} else {
-
 		o.heatClient = heatClient
-
 	}
 
 	// Initialize identity (Keystone) client.
 
 	identityClient, err := openstack.NewIdentityV3(o.authClient, endpointOpts)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create identity client: %w", err)
-
 	}
 
 	o.identityClient = identityClient
 
 	return nil
-
 }
 
 // Disconnect closes the connection to the OpenStack cloud.
 
 func (o *OpenStackProvider) Disconnect(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("disconnecting from OpenStack cloud")
@@ -431,13 +385,11 @@ func (o *OpenStackProvider) Disconnect(ctx context.Context) error {
 	logger.Info("disconnected from OpenStack cloud")
 
 	return nil
-
 }
 
 // HealthCheck performs a health check on the OpenStack cloud.
 
 func (o *OpenStackProvider) HealthCheck(ctx context.Context) error {
-
 	// Check if we can list hypervisors (requires admin or appropriate role).
 
 	if o.computeClient != nil {
@@ -449,11 +401,8 @@ func (o *OpenStackProvider) HealthCheck(ctx context.Context) error {
 			// Try listing flavors as a fallback (less privileged operation).
 
 			_, err = flavors.ListDetail(o.computeClient, flavors.ListOpts{Limit: 1}).AllPages()
-
 			if err != nil {
-
 				return fmt.Errorf("health check failed: unable to access compute service: %w", err)
-
 			}
 
 		} else {
@@ -467,19 +416,13 @@ func (o *OpenStackProvider) HealthCheck(ctx context.Context) error {
 				activeHypervisors := 0
 
 				for _, h := range hypervisorList {
-
 					if h.State == "up" {
-
 						activeHypervisors++
-
 					}
-
 				}
 
 				if activeHypervisors == 0 {
-
 					return fmt.Errorf("health check warning: no active hypervisors found")
-
 				}
 
 			}
@@ -493,11 +436,8 @@ func (o *OpenStackProvider) HealthCheck(ctx context.Context) error {
 	if o.networkClient != nil {
 
 		_, err := networks.List(o.networkClient, networks.ListOpts{Limit: 1}).AllPages()
-
 		if err != nil {
-
 			return fmt.Errorf("health check failed: unable to access network service: %w", err)
-
 		}
 
 	}
@@ -507,23 +447,18 @@ func (o *OpenStackProvider) HealthCheck(ctx context.Context) error {
 	if o.storageClient != nil {
 
 		_, err := volumes.List(o.storageClient, volumes.ListOpts{Limit: 1}).AllPages()
-
 		if err != nil {
-
 			return fmt.Errorf("health check failed: unable to access storage service: %w", err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // Close closes any resources held by the provider.
 
 func (o *OpenStackProvider) Close() error {
-
 	o.mutex.Lock()
 
 	defer o.mutex.Unlock()
@@ -541,13 +476,11 @@ func (o *OpenStackProvider) Close() error {
 	o.connected = false
 
 	return nil
-
 }
 
 // CreateResource creates a new OpenStack resource.
 
 func (o *OpenStackProvider) CreateResource(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating OpenStack resource", "type", req.Type, "name", req.Name)
@@ -583,13 +516,11 @@ func (o *OpenStackProvider) CreateResource(ctx context.Context, req *CreateResou
 		return nil, fmt.Errorf("unsupported resource type: %s", req.Type)
 
 	}
-
 }
 
 // GetResource retrieves an OpenStack resource.
 
 func (o *OpenStackProvider) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.V(1).Info("getting OpenStack resource", "resourceID", resourceID)
@@ -599,9 +530,7 @@ func (o *OpenStackProvider) GetResource(ctx context.Context, resourceID string) 
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -633,13 +562,11 @@ func (o *OpenStackProvider) GetResource(ctx context.Context, resourceID string) 
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 
 	}
-
 }
 
 // UpdateResource updates an OpenStack resource.
 
 func (o *OpenStackProvider) UpdateResource(ctx context.Context, resourceID string, req *UpdateResourceRequest) (*ResourceResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating OpenStack resource", "resourceID", resourceID)
@@ -647,9 +574,7 @@ func (o *OpenStackProvider) UpdateResource(ctx context.Context, resourceID strin
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -673,13 +598,11 @@ func (o *OpenStackProvider) UpdateResource(ctx context.Context, resourceID strin
 		return nil, fmt.Errorf("resource type %s does not support updates", resourceType)
 
 	}
-
 }
 
 // DeleteResource deletes an OpenStack resource.
 
 func (o *OpenStackProvider) DeleteResource(ctx context.Context, resourceID string) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting OpenStack resource", "resourceID", resourceID)
@@ -687,9 +610,7 @@ func (o *OpenStackProvider) DeleteResource(ctx context.Context, resourceID strin
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -723,13 +644,11 @@ func (o *OpenStackProvider) DeleteResource(ctx context.Context, resourceID strin
 		return fmt.Errorf("unsupported resource type for deletion: %s", resourceType)
 
 	}
-
 }
 
 // ListResources lists OpenStack resources with optional filtering.
 
 func (o *OpenStackProvider) ListResources(ctx context.Context, filter *ResourceFilter) ([]*ResourceResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.V(1).Info("listing OpenStack resources", "filter", filter)
@@ -739,17 +658,14 @@ func (o *OpenStackProvider) ListResources(ctx context.Context, filter *ResourceF
 	resourceTypes := filter.Types
 
 	if len(resourceTypes) == 0 {
-
 		// Default to common resource types.
 
 		resourceTypes = []string{"server", "volume", "network"}
-
 	}
 
 	for _, resourceType := range resourceTypes {
 
 		typeResources, err := o.listResourcesByType(ctx, resourceType, filter)
-
 		if err != nil {
 
 			logger.Error(err, "failed to list resources", "type", resourceType)
@@ -763,21 +679,17 @@ func (o *OpenStackProvider) ListResources(ctx context.Context, filter *ResourceF
 	}
 
 	return resources, nil
-
 }
 
 // Deploy creates a deployment using Heat templates.
 
 func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("deploying Heat stack", "name", req.Name)
 
 	if o.heatClient == nil {
-
 		return nil, fmt.Errorf("Heat orchestration service not available")
-
 	}
 
 	// Create Heat stack from template.
@@ -785,7 +697,6 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 	templateContent := req.Template
 
 	if templateContent == "" {
-
 		// Create a minimal Heat template if none provided.
 
 		templateContent = `{
@@ -797,17 +708,13 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 			"resources": {}
 
 		}`
-
 	}
 
 	createOpts := stacks.CreateOpts{
-
 		Name: req.Name,
 
 		TemplateOpts: &stacks.Template{
-
 			TE: stacks.TE{
-
 				Bin: []byte(templateContent),
 			},
 		},
@@ -822,25 +729,18 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 	result := stacks.Create(o.heatClient, createOpts)
 
 	stack, err := result.Extract()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Heat stack: %w", err)
-
 	}
 
 	return o.convertStackToDeploymentResponse(stack), nil
-
 }
 
 // GetDeployment retrieves a Heat stack deployment.
 
 func (o *OpenStackProvider) GetDeployment(ctx context.Context, deploymentID string) (*DeploymentResponse, error) {
-
 	if o.heatClient == nil {
-
 		return nil, fmt.Errorf("Heat orchestration service not available")
-
 	}
 
 	// Parse stack name and ID.
@@ -850,25 +750,18 @@ func (o *OpenStackProvider) GetDeployment(ctx context.Context, deploymentID stri
 	result := stacks.Get(o.heatClient, stackName, stackID)
 
 	stack, err := result.Extract()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get Heat stack: %w", err)
-
 	}
 
 	return o.convertRetrievedStackToDeploymentResponse(stack), nil
-
 }
 
 // UpdateDeployment updates a Heat stack deployment.
 
 func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
-
 	if o.heatClient == nil {
-
 		return nil, fmt.Errorf("Heat orchestration service not available")
-
 	}
 
 	stackName, stackID := parseStackIdentifier(deploymentID)
@@ -878,7 +771,6 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 	templateContent := req.Template
 
 	if templateContent == "" {
-
 		// Create a minimal Heat template if none provided.
 
 		templateContent = `{
@@ -890,15 +782,11 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 			"resources": {}
 
 		}`
-
 	}
 
 	updateOpts := stacks.UpdateOpts{
-
 		TemplateOpts: &stacks.Template{
-
 			TE: stacks.TE{
-
 				Bin: []byte(templateContent),
 			},
 		},
@@ -911,92 +799,66 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 	}
 
 	err := stacks.Update(o.heatClient, stackName, stackID, updateOpts).ExtractErr()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to update Heat stack: %w", err)
-
 	}
 
 	return o.GetDeployment(ctx, deploymentID)
-
 }
 
 // DeleteDeployment deletes a Heat stack deployment.
 
 func (o *OpenStackProvider) DeleteDeployment(ctx context.Context, deploymentID string) error {
-
 	if o.heatClient == nil {
-
 		return fmt.Errorf("Heat orchestration service not available")
-
 	}
 
 	stackName, stackID := parseStackIdentifier(deploymentID)
 
 	return stacks.Delete(o.heatClient, stackName, stackID).ExtractErr()
-
 }
 
 // ListDeployments lists Heat stack deployments.
 
 func (o *OpenStackProvider) ListDeployments(ctx context.Context, filter *DeploymentFilter) ([]*DeploymentResponse, error) {
-
 	if o.heatClient == nil {
-
 		return nil, fmt.Errorf("Heat orchestration service not available")
-
 	}
 
 	listOpts := stacks.ListOpts{
-
 		Limit: filter.Limit,
 	}
 
 	if len(filter.Names) > 0 {
-
 		listOpts.Name = filter.Names[0] // Heat only supports single name filter
-
 	}
 
 	if len(filter.Statuses) > 0 {
-
 		listOpts.Status = filter.Statuses[0]
-
 	}
 
 	allPages, err := stacks.List(o.heatClient, listOpts).AllPages()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to list Heat stacks: %w", err)
-
 	}
 
 	stackList, err := stacks.ExtractStacks(allPages)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to extract stacks: %w", err)
-
 	}
 
 	var deployments []*DeploymentResponse
 
 	for _, stack := range stackList {
-
 		deployments = append(deployments, o.convertListedStackToDeploymentResponse(&stack))
-
 	}
 
 	return deployments, nil
-
 }
 
 // ScaleResource scales an OpenStack resource (servers).
 
 func (o *OpenStackProvider) ScaleResource(ctx context.Context, resourceID string, req *ScaleRequest) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("scaling OpenStack resource", "resourceID", resourceID, "direction", req.Direction)
@@ -1004,17 +866,13 @@ func (o *OpenStackProvider) ScaleResource(ctx context.Context, resourceID string
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
 
 	if resourceType != "server" {
-
 		return fmt.Errorf("scaling not supported for resource type: %s", resourceType)
-
 	}
 
 	// For servers, scaling typically means resizing.
@@ -1026,23 +884,16 @@ func (o *OpenStackProvider) ScaleResource(ctx context.Context, resourceID string
 		flavorID := ""
 
 		if req.Target != nil {
-
 			if fid, ok := req.Target["flavor_id"].(string); ok {
-
 				flavorID = fid
-
 			}
-
 		}
 
 		if flavorID == "" {
-
 			return fmt.Errorf("flavor_id required for vertical scaling")
-
 		}
 
 		resizeOpts := servers.ResizeOpts{
-
 			FlavorRef: flavorID,
 		}
 
@@ -1051,19 +902,15 @@ func (o *OpenStackProvider) ScaleResource(ctx context.Context, resourceID string
 	}
 
 	return fmt.Errorf("horizontal scaling requires Heat autoscaling groups")
-
 }
 
 // GetScalingCapabilities returns scaling capabilities for a resource.
 
 func (o *OpenStackProvider) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
-
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType := parts[0]
@@ -1073,7 +920,6 @@ func (o *OpenStackProvider) GetScalingCapabilities(ctx context.Context, resource
 	case "server":
 
 		return &ScalingCapabilities{
-
 			HorizontalScaling: false, // Requires Heat
 
 			VerticalScaling: true, // Resize operation
@@ -1094,7 +940,6 @@ func (o *OpenStackProvider) GetScalingCapabilities(ctx context.Context, resource
 		// Heat stacks can support autoscaling.
 
 		return &ScalingCapabilities{
-
 			HorizontalScaling: true,
 
 			VerticalScaling: false,
@@ -1113,20 +958,17 @@ func (o *OpenStackProvider) GetScalingCapabilities(ctx context.Context, resource
 	default:
 
 		return &ScalingCapabilities{
-
 			HorizontalScaling: false,
 
 			VerticalScaling: false,
 		}, nil
 
 	}
-
 }
 
 // GetMetrics returns cloud-level metrics.
 
 func (o *OpenStackProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
-
 	metrics := make(map[string]interface{})
 
 	// Get hypervisor statistics if available.
@@ -1206,13 +1048,9 @@ func (o *OpenStackProvider) GetMetrics(ctx context.Context) (map[string]interfac
 				activeServers := 0
 
 				for _, s := range serverList {
-
 					if s.Status == "ACTIVE" {
-
 						activeServers++
-
 					}
-
 				}
 
 				metrics["servers_total"] = len(serverList)
@@ -1236,9 +1074,7 @@ func (o *OpenStackProvider) GetMetrics(ctx context.Context) (map[string]interfac
 			networkList, err := networks.ExtractNetworks(networkPages)
 
 			if err == nil {
-
 				metrics["networks_total"] = len(networkList)
-
 			}
 
 		}
@@ -1250,9 +1086,7 @@ func (o *OpenStackProvider) GetMetrics(ctx context.Context) (map[string]interfac
 			subnetList, err := subnets.ExtractSubnets(subnetPages)
 
 			if err == nil {
-
 				metrics["subnets_total"] = len(subnetList)
-
 			}
 
 		}
@@ -1280,9 +1114,7 @@ func (o *OpenStackProvider) GetMetrics(ctx context.Context) (map[string]interfac
 					totalVolumeGB += v.Size
 
 					if v.Status == "available" {
-
 						availableVolumes++
-
 					}
 
 				}
@@ -1302,19 +1134,15 @@ func (o *OpenStackProvider) GetMetrics(ctx context.Context) (map[string]interfac
 	metrics["timestamp"] = time.Now().Unix()
 
 	return metrics, nil
-
 }
 
 // GetResourceMetrics returns metrics for a specific resource.
 
 func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
-
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -1326,11 +1154,8 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 	case "server":
 
 		server, err := servers.Get(o.computeClient, id).Extract()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get server: %w", err)
-
 		}
 
 		metrics["status"] = server.Status
@@ -1366,11 +1191,8 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 	case "volume":
 
 		volume, err := volumes.Get(o.storageClient, id).Extract()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get volume: %w", err)
-
 		}
 
 		metrics["status"] = volume.Status
@@ -1388,11 +1210,8 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 	case "network":
 
 		network, err := networks.Get(o.networkClient, id).Extract()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get network: %w", err)
-
 		}
 
 		metrics["status"] = network.Status
@@ -1408,9 +1227,7 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 		// Note: External and PortSecurityEnabled may be in different fields or extensions.
 
 		if len(network.Tags) > 0 {
-
 			metrics["tags"] = network.Tags
-
 		}
 
 	}
@@ -1418,19 +1235,15 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 	metrics["timestamp"] = time.Now().Unix()
 
 	return metrics, nil
-
 }
 
 // GetResourceHealth returns the health status of a resource.
 
 func (o *OpenStackProvider) GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
-
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -1440,15 +1253,11 @@ func (o *OpenStackProvider) GetResourceHealth(ctx context.Context, resourceID st
 	case "server":
 
 		server, err := servers.Get(o.computeClient, id).Extract()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get server: %w", err)
-
 		}
 
 		health := &HealthStatus{
-
 			LastUpdated: time.Now(),
 		}
 
@@ -1485,15 +1294,11 @@ func (o *OpenStackProvider) GetResourceHealth(ctx context.Context, resourceID st
 	case "volume":
 
 		volume, err := volumes.Get(o.storageClient, id).Extract()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to get volume: %w", err)
-
 		}
 
 		health := &HealthStatus{
-
 			LastUpdated: time.Now(),
 		}
 
@@ -1524,7 +1329,6 @@ func (o *OpenStackProvider) GetResourceHealth(ctx context.Context, resourceID st
 	default:
 
 		return &HealthStatus{
-
 			Status: HealthStatusUnknown,
 
 			Message: fmt.Sprintf("Health check not implemented for resource type: %s", resourceType),
@@ -1533,13 +1337,11 @@ func (o *OpenStackProvider) GetResourceHealth(ctx context.Context, resourceID st
 		}, nil
 
 	}
-
 }
 
 // Network operations.
 
 func (o *OpenStackProvider) CreateNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating network service", "type", req.Type, "name", req.Name)
@@ -1567,19 +1369,15 @@ func (o *OpenStackProvider) CreateNetworkService(ctx context.Context, req *Netwo
 		return nil, fmt.Errorf("unsupported network service type: %s", req.Type)
 
 	}
-
 }
 
 // GetNetworkService performs getnetworkservice operation.
 
 func (o *OpenStackProvider) GetNetworkService(ctx context.Context, serviceID string) (*NetworkServiceResponse, error) {
-
 	parts := splitResourceID(serviceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid serviceID format: %s", serviceID)
-
 	}
 
 	serviceType, id := parts[0], parts[1]
@@ -1603,19 +1401,15 @@ func (o *OpenStackProvider) GetNetworkService(ctx context.Context, serviceID str
 		return nil, fmt.Errorf("unsupported network service type: %s", serviceType)
 
 	}
-
 }
 
 // DeleteNetworkService performs deletenetworkservice operation.
 
 func (o *OpenStackProvider) DeleteNetworkService(ctx context.Context, serviceID string) error {
-
 	parts := splitResourceID(serviceID)
 
 	if len(parts) < 2 {
-
 		return fmt.Errorf("invalid serviceID format: %s", serviceID)
-
 	}
 
 	serviceType, id := parts[0], parts[1]
@@ -1641,31 +1435,24 @@ func (o *OpenStackProvider) DeleteNetworkService(ctx context.Context, serviceID 
 		return fmt.Errorf("unsupported network service type: %s", serviceType)
 
 	}
-
 }
 
 // ListNetworkServices performs listnetworkservices operation.
 
 func (o *OpenStackProvider) ListNetworkServices(ctx context.Context, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
-
 	var services []*NetworkServiceResponse
 
 	serviceTypes := filter.Types
 
 	if len(serviceTypes) == 0 {
-
 		serviceTypes = []string{"network", "subnet", "router"}
-
 	}
 
 	for _, serviceType := range serviceTypes {
 
 		typeServices, err := o.listNetworkServicesByType(ctx, serviceType, filter)
-
 		if err != nil {
-
 			continue
-
 		}
 
 		services = append(services, typeServices...)
@@ -1673,13 +1460,11 @@ func (o *OpenStackProvider) ListNetworkServices(ctx context.Context, filter *Net
 	}
 
 	return services, nil
-
 }
 
 // Storage operations.
 
 func (o *OpenStackProvider) CreateStorageResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating storage resource", "type", req.Type, "name", req.Name)
@@ -1699,19 +1484,15 @@ func (o *OpenStackProvider) CreateStorageResource(ctx context.Context, req *Stor
 		return nil, fmt.Errorf("unsupported storage resource type: %s", req.Type)
 
 	}
-
 }
 
 // GetStorageResource performs getstorageresource operation.
 
 func (o *OpenStackProvider) GetStorageResource(ctx context.Context, resourceID string) (*StorageResourceResponse, error) {
-
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -1731,19 +1512,15 @@ func (o *OpenStackProvider) GetStorageResource(ctx context.Context, resourceID s
 		return nil, fmt.Errorf("unsupported storage resource type: %s", resourceType)
 
 	}
-
 }
 
 // DeleteStorageResource performs deletestorageresource operation.
 
 func (o *OpenStackProvider) DeleteStorageResource(ctx context.Context, resourceID string) error {
-
 	parts := splitResourceID(resourceID)
 
 	if len(parts) < 2 {
-
 		return fmt.Errorf("invalid resourceID format: %s", resourceID)
-
 	}
 
 	resourceType, id := parts[0], parts[1]
@@ -1765,31 +1542,24 @@ func (o *OpenStackProvider) DeleteStorageResource(ctx context.Context, resourceI
 		return fmt.Errorf("unsupported storage resource type: %s", resourceType)
 
 	}
-
 }
 
 // ListStorageResources performs liststorageresources operation.
 
 func (o *OpenStackProvider) ListStorageResources(ctx context.Context, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
-
 	var resources []*StorageResourceResponse
 
 	resourceTypes := filter.Types
 
 	if len(resourceTypes) == 0 {
-
 		resourceTypes = []string{"volume", "snapshot"}
-
 	}
 
 	for _, resourceType := range resourceTypes {
 
 		typeResources, err := o.listStorageResourcesByType(ctx, resourceType, filter)
-
 		if err != nil {
-
 			continue
-
 		}
 
 		resources = append(resources, typeResources...)
@@ -1797,13 +1567,11 @@ func (o *OpenStackProvider) ListStorageResources(ctx context.Context, filter *St
 	}
 
 	return resources, nil
-
 }
 
 // Event handling.
 
 func (o *OpenStackProvider) SubscribeToEvents(ctx context.Context, callback EventCallback) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("subscribing to OpenStack events")
@@ -1823,13 +1591,11 @@ func (o *OpenStackProvider) SubscribeToEvents(ctx context.Context, callback Even
 	go o.watchEvents(ctx)
 
 	return nil
-
 }
 
 // UnsubscribeFromEvents performs unsubscribefromevents operation.
 
 func (o *OpenStackProvider) UnsubscribeFromEvents(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("unsubscribing from OpenStack events")
@@ -1849,13 +1615,11 @@ func (o *OpenStackProvider) UnsubscribeFromEvents(ctx context.Context) error {
 	}
 
 	return nil
-
 }
 
 // Configuration management.
 
 func (o *OpenStackProvider) ApplyConfiguration(ctx context.Context, config *ProviderConfiguration) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("applying provider configuration", "name", config.Name)
@@ -1869,39 +1633,29 @@ func (o *OpenStackProvider) ApplyConfiguration(ctx context.Context, config *Prov
 	// Re-authenticate if credentials changed.
 
 	if o.connected {
-
 		if err := o.Connect(ctx); err != nil {
-
 			return fmt.Errorf("failed to reconnect with new configuration: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetConfiguration performs getconfiguration operation.
 
 func (o *OpenStackProvider) GetConfiguration(ctx context.Context) (*ProviderConfiguration, error) {
-
 	o.mutex.RLock()
 
 	defer o.mutex.RUnlock()
 
 	return o.config, nil
-
 }
 
 // ValidateConfiguration performs validateconfiguration operation.
 
 func (o *OpenStackProvider) ValidateConfiguration(ctx context.Context, config *ProviderConfiguration) error {
-
 	if config.Type != ProviderTypeOpenStack {
-
 		return fmt.Errorf("invalid provider type: expected %s, got %s", ProviderTypeOpenStack, config.Type)
-
 	}
 
 	// Check required credentials.
@@ -1909,69 +1663,50 @@ func (o *OpenStackProvider) ValidateConfiguration(ctx context.Context, config *P
 	requiredCreds := []string{"username", "password", "project", "domain"}
 
 	for _, key := range requiredCreds {
-
 		if _, exists := config.Credentials[key]; !exists {
-
 			// Check for application credentials as alternative.
 
 			if _, hasAppCred := config.Credentials["app_credential_id"]; !hasAppCred {
-
 				return fmt.Errorf("missing required credential: %s", key)
-
 			}
-
 		}
-
 	}
 
 	if config.Endpoint == "" {
-
 		return fmt.Errorf("endpoint (auth_url) is required")
-
 	}
 
 	return nil
-
 }
 
 // Helper functions.
 
 func splitResourceID(resourceID string) []string {
-
 	// Simple split by forward slash.
 
 	// Format: type/id or namespace/type/id.
 
 	return strings.Split(resourceID, "/")
-
 }
 
 func convertLabelsToTags(labels map[string]string) []string {
-
 	var tags []string
 
 	for key, value := range labels {
-
 		tags = append(tags, fmt.Sprintf("%s=%s", key, value))
-
 	}
 
 	return tags
-
 }
 
 func parseStackIdentifier(deploymentID string) (string, string) {
-
 	parts := strings.Split(deploymentID, "/")
 
 	if len(parts) >= 2 {
-
 		return parts[0], parts[1]
-
 	}
 
 	return deploymentID, ""
-
 }
 
 // Placeholder for additional helper methods...
@@ -1981,131 +1716,99 @@ func parseStackIdentifier(deploymentID string) (string, string) {
 // referenced above, following similar patterns to the Kubernetes provider.
 
 func (o *OpenStackProvider) createServer(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would create an OpenStack server instance.
 
 	return nil, fmt.Errorf("server creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getServer(ctx context.Context, id string) (*ResourceResponse, error) {
-
 	// Implementation would retrieve server details.
 
 	return nil, fmt.Errorf("server retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) updateServer(ctx context.Context, id string, req *UpdateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would update server properties.
 
 	return nil, fmt.Errorf("server update not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createVolume(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would create a Cinder volume.
 
 	return nil, fmt.Errorf("volume creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getVolume(ctx context.Context, id string) (*ResourceResponse, error) {
-
 	// Implementation would retrieve volume details.
 
 	return nil, fmt.Errorf("volume retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) updateVolume(ctx context.Context, id string, req *UpdateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would update volume properties.
 
 	return nil, fmt.Errorf("volume update not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createNetwork(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would create a Neutron network.
 
 	return nil, fmt.Errorf("network creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getNetwork(ctx context.Context, id string) (*ResourceResponse, error) {
-
 	// Implementation would retrieve network details.
 
 	return nil, fmt.Errorf("network retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) updateNetwork(ctx context.Context, id string, req *UpdateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would update network properties.
 
 	return nil, fmt.Errorf("network update not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createSubnet(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would create a subnet.
 
 	return nil, fmt.Errorf("subnet creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getSubnet(ctx context.Context, id string) (*ResourceResponse, error) {
-
 	// Implementation would retrieve subnet details.
 
 	return nil, fmt.Errorf("subnet retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createFloatingIP(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would allocate a floating IP.
 
 	return nil, fmt.Errorf("floating IP creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getFloatingIP(ctx context.Context, id string) (*ResourceResponse, error) {
-
 	// Implementation would retrieve floating IP details.
 
 	return nil, fmt.Errorf("floating IP retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createSecurityGroup(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-
 	// Implementation would create a security group.
 
 	return nil, fmt.Errorf("security group creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) listResourcesByType(ctx context.Context, resourceType string, filter *ResourceFilter) ([]*ResourceResponse, error) {
-
 	// Implementation would list resources by type with filtering.
 
 	return nil, fmt.Errorf("resource listing not yet implemented for type: %s", resourceType)
-
 }
 
 func (o *OpenStackProvider) convertStackToDeploymentResponse(stack *stacks.CreatedStack) *DeploymentResponse {
-
 	// Implementation would convert Heat stack to deployment response.
 
 	return &DeploymentResponse{
-
 		ID: stack.ID,
 
 		Name: stack.ID, // CreatedStack doesn't have Name field, use ID
@@ -2120,15 +1823,12 @@ func (o *OpenStackProvider) convertStackToDeploymentResponse(stack *stacks.Creat
 
 		UpdatedAt: time.Now(),
 	}
-
 }
 
 func (o *OpenStackProvider) convertRetrievedStackToDeploymentResponse(stack *stacks.RetrievedStack) *DeploymentResponse {
-
 	// Convert RetrievedStack to deployment response.
 
 	return &DeploymentResponse{
-
 		ID: stack.ID,
 
 		Name: stack.Name,
@@ -2143,15 +1843,12 @@ func (o *OpenStackProvider) convertRetrievedStackToDeploymentResponse(stack *sta
 
 		UpdatedAt: stack.UpdatedTime,
 	}
-
 }
 
 func (o *OpenStackProvider) convertListedStackToDeploymentResponse(stack *stacks.ListedStack) *DeploymentResponse {
-
 	// Convert ListedStack to deployment response.
 
 	return &DeploymentResponse{
-
 		ID: stack.ID,
 
 		Name: stack.Name,
@@ -2166,117 +1863,88 @@ func (o *OpenStackProvider) convertListedStackToDeploymentResponse(stack *stacks
 
 		UpdatedAt: stack.UpdatedTime,
 	}
-
 }
 
 func (o *OpenStackProvider) createNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
-
 	// Implementation would create network service.
 
 	return nil, fmt.Errorf("network service creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getNetworkService(ctx context.Context, id string) (*NetworkServiceResponse, error) {
-
 	// Implementation would retrieve network service.
 
 	return nil, fmt.Errorf("network service retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createSubnetService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
-
 	// Implementation would create subnet service.
 
 	return nil, fmt.Errorf("subnet service creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getSubnetService(ctx context.Context, id string) (*NetworkServiceResponse, error) {
-
 	// Implementation would retrieve subnet service.
 
 	return nil, fmt.Errorf("subnet service retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createRouterService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
-
 	// Implementation would create router service.
 
 	return nil, fmt.Errorf("router service creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getRouterService(ctx context.Context, id string) (*NetworkServiceResponse, error) {
-
 	// Implementation would retrieve router service.
 
 	return nil, fmt.Errorf("router service retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createFloatingIPService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
-
 	// Implementation would create floating IP service.
 
 	return nil, fmt.Errorf("floating IP service creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) listNetworkServicesByType(ctx context.Context, serviceType string, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
-
 	// Implementation would list network services by type.
 
 	return nil, fmt.Errorf("network service listing not yet implemented for type: %s", serviceType)
-
 }
 
 func (o *OpenStackProvider) createVolumeResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
-
 	// Implementation would create volume resource.
 
 	return nil, fmt.Errorf("volume resource creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getVolumeResource(ctx context.Context, id string) (*StorageResourceResponse, error) {
-
 	// Implementation would retrieve volume resource.
 
 	return nil, fmt.Errorf("volume resource retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) createSnapshotResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
-
 	// Implementation would create snapshot resource.
 
 	return nil, fmt.Errorf("snapshot resource creation not yet implemented")
-
 }
 
 func (o *OpenStackProvider) getSnapshotResource(ctx context.Context, id string) (*StorageResourceResponse, error) {
-
 	// Implementation would retrieve snapshot resource.
 
 	return nil, fmt.Errorf("snapshot resource retrieval not yet implemented")
-
 }
 
 func (o *OpenStackProvider) listStorageResourcesByType(ctx context.Context, resourceType string, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
-
 	// Implementation would list storage resources by type.
 
 	return nil, fmt.Errorf("storage resource listing not yet implemented for type: %s", resourceType)
-
 }
 
 func (o *OpenStackProvider) watchEvents(ctx context.Context) {
-
 	// Implementation would watch for OpenStack events.
 
 	// This could involve polling or connecting to message queue.
-
 }

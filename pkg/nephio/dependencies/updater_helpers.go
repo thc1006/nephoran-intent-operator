@@ -170,38 +170,27 @@ type RollbackStepResult struct {
 // Helper methods for the dependencyUpdater.
 
 func (u *dependencyUpdater) validatePropagationSpec(spec *PropagationSpec) error {
-
 	if spec == nil {
-
 		return fmt.Errorf("propagation spec cannot be nil")
-
 	}
 
 	if spec.InitialUpdate == nil {
-
 		return fmt.Errorf("initial update cannot be nil")
-
 	}
 
 	return nil
-
 }
 
 func (u *dependencyUpdater) handleApprovalWorkflow(ctx context.Context, updateCtx *UpdateContext, plan *UpdatePlan) (*ApprovalResult, error) {
-
 	// Placeholder implementation.
 
 	return &ApprovalResult{
-
 		Status: ApprovalStatusApproved,
 	}, nil
-
 }
 
 func (u *dependencyUpdater) createUpdateRecord(updateCtx *UpdateContext) *UpdateRecord {
-
 	return &UpdateRecord{
-
 		ID: updateCtx.UpdateID,
 
 		Type: "dependency_update",
@@ -218,15 +207,12 @@ func (u *dependencyUpdater) createUpdateRecord(updateCtx *UpdateContext) *Update
 
 		Duration: time.Since(updateCtx.StartTime),
 	}
-
 }
 
 func (u *dependencyUpdater) sendUpdateNotifications(ctx context.Context, updateCtx *UpdateContext) {
-
 	// Placeholder implementation.
 
 	notification := &UpdateNotification{
-
 		ID: generateNotificationID(),
 
 		Type: "update_completed",
@@ -243,21 +229,15 @@ func (u *dependencyUpdater) sendUpdateNotifications(ctx context.Context, updateC
 	}
 
 	if u.notificationManager != nil {
-
 		// Send notification.
 
 		u.logger.V(1).Info("Sending update notification", "notificationId", notification.ID)
-
 	}
-
 }
 
 func (u *dependencyUpdater) updateMetrics(result *UpdateResult) {
-
 	if u.metrics == nil {
-
 		return
-
 	}
 
 	u.metrics.UpdatesTotal.Inc()
@@ -267,41 +247,30 @@ func (u *dependencyUpdater) updateMetrics(result *UpdateResult) {
 	for _, failed := range result.FailedUpdates {
 
 		if u.metrics.UpdateErrors != nil {
-
 			u.metrics.UpdateErrors.WithLabelValues("update_failed").Inc()
-
 		}
 
 		u.logger.Error(nil, "Update failed", "package", failed.Package.Name, "error", failed.Error)
 
 	}
-
 }
 
 func (u *dependencyUpdater) updatePropagationMetrics(result *PropagationResult) {
-
 	if u.metrics == nil {
-
 		return
-
 	}
 
 	u.metrics.PropagationsTotal.Inc()
 
 	u.metrics.PropagationDuration.Observe(result.PropagationTime.Seconds())
-
 }
 
 func (u *dependencyUpdater) executeUpdatesSequentially(ctx context.Context, updateCtx *UpdateContext, steps []*UpdateStep) error {
-
 	for _, step := range steps {
 
 		stepResult, err := u.executeUpdateStep(ctx, step)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to execute update step %s: %w", step.ID, err)
-
 		}
 
 		u.processStepResult(updateCtx, stepResult)
@@ -309,15 +278,12 @@ func (u *dependencyUpdater) executeUpdatesSequentially(ctx context.Context, upda
 	}
 
 	return nil
-
 }
 
 func (u *dependencyUpdater) executeUpdateStep(ctx context.Context, step *UpdateStep) (*UpdateStepResult, error) {
-
 	startTime := time.Now()
 
 	result := &UpdateStepResult{
-
 		StepID: step.ID,
 
 		StartTime: startTime,
@@ -356,17 +322,14 @@ func (u *dependencyUpdater) executeUpdateStep(ctx context.Context, step *UpdateS
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
 	return result, result.Error
-
 }
 
 func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResult *UpdateStepResult) {
-
 	if stepResult.Status == "completed" {
 
 		// Add to successful updates.
 
 		updatedPkg := &UpdatedPackage{
-
 			Package: stepResult.getPackageReference(),
 
 			PreviousVersion: "1.0.0", // This would be determined from actual step data
@@ -385,7 +348,6 @@ func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResu
 		// Add to failed updates.
 
 		failedUpdate := &FailedUpdate{
-
 			Package: stepResult.getPackageReference(),
 
 			Error: stepResult.Error.Error(),
@@ -396,128 +358,99 @@ func (u *dependencyUpdater) processStepResult(updateCtx *UpdateContext, stepResu
 		updateCtx.Result.FailedUpdates = append(updateCtx.Result.FailedUpdates, failedUpdate)
 
 	}
-
 }
 
 func (stepResult *UpdateStepResult) getPackageReference() *PackageReference {
-
 	// This would extract package reference from step result.
 
 	return &PackageReference{
-
 		Repository: "example-repo",
 
 		Name: "example-package",
 
 		Version: "1.1.0",
 	}
-
 }
 
 func (u *dependencyUpdater) determineTargetVersion(pkg *PackageReference, spec *UpdateSpec) string {
-
 	if targetVersion, exists := spec.TargetVersions[pkg.Name]; exists {
-
 		return targetVersion
-
 	}
 
 	// Default logic would determine latest compatible version.
 
 	return "latest"
-
 }
 
 func (u *dependencyUpdater) determineUpdateType(pkg *PackageReference, spec *UpdateSpec) UpdateType {
-
 	// Logic to determine if this is a major, minor, patch, or security update.
 
 	return UpdateTypePatch
-
 }
 
 func (u *dependencyUpdater) determineUpdateReason(pkg *PackageReference, spec *UpdateSpec) UpdateReason {
-
 	// Logic to determine the reason for the update.
 
 	return UpdateReasonMaintenance
-
 }
 
 func (u *dependencyUpdater) determineUpdatePriority(pkg *PackageReference, spec *UpdateSpec) UpdatePriority {
-
 	// Logic to determine update priority.
 
 	return UpdatePriorityMedium
-
 }
 
 // Propagation helper methods.
 
 func (u *dependencyUpdater) executeImmediatePropagation(ctx context.Context, propagationCtx *PropagationContext) error {
-
 	u.logger.Info("Executing immediate propagation", "propagationId", propagationCtx.PropagationID)
 
 	// Implementation would propagate updates immediately to all environments.
 
 	return nil
-
 }
 
 func (u *dependencyUpdater) executeStaggeredPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
-
 	u.logger.Info("Executing staggered propagation", "propagationId", propagationCtx.PropagationID)
 
 	// Implementation would propagate updates in stages with delays.
 
 	return nil
-
 }
 
 func (u *dependencyUpdater) executeCanaryPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
-
 	u.logger.Info("Executing canary propagation", "propagationId", propagationCtx.PropagationID)
 
 	// Implementation would do canary deployments.
 
 	return nil
-
 }
 
 func (u *dependencyUpdater) executeBlueGreenPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
-
 	u.logger.Info("Executing blue-green propagation", "propagationId", propagationCtx.PropagationID)
 
 	// Implementation would do blue-green deployments.
 
 	return nil
-
 }
 
 func (u *dependencyUpdater) executeRollingPropagation(ctx context.Context, propagationCtx *PropagationContext) error {
-
 	u.logger.Info("Executing rolling propagation", "propagationId", propagationCtx.PropagationID)
 
 	// Implementation would do rolling updates.
 
 	return nil
-
 }
 
 // Impact analysis helper methods.
 
 func (u *dependencyUpdater) mergeUpdateImpact(analysis, updateImpact *ImpactAnalysis) {
-
 	// Merge individual update impact into overall analysis.
 
 	if updateImpact.SecurityImpact != nil {
-
 		if analysis.SecurityImpact == nil {
-
 			analysis.SecurityImpact = updateImpact.SecurityImpact
-
 		} else {
-
 			// Merge security impacts.
 
 			analysis.SecurityImpact.Vulnerabilities = append(
@@ -526,9 +459,7 @@ func (u *dependencyUpdater) mergeUpdateImpact(analysis, updateImpact *ImpactAnal
 
 				updateImpact.SecurityImpact.Vulnerabilities...,
 			)
-
 		}
-
 	}
 
 	// Merge other impact types similarly.
@@ -538,49 +469,35 @@ func (u *dependencyUpdater) mergeUpdateImpact(analysis, updateImpact *ImpactAnal
 	analysis.BreakingChanges = append(analysis.BreakingChanges, updateImpact.BreakingChanges...)
 
 	analysis.RiskFactors = append(analysis.RiskFactors, updateImpact.RiskFactors...)
-
 }
 
 func (u *dependencyUpdater) mergeCrossImpact(analysis, crossImpact *ImpactAnalysis) {
-
 	// Merge cross-update impact analysis.
 
 	if crossImpact != nil {
-
 		u.mergeUpdateImpact(analysis, crossImpact)
-
 	}
-
 }
 
 func (u *dependencyUpdater) calculateOverallRisk(analysis *ImpactAnalysis) RiskLevel {
-
 	// Logic to calculate overall risk based on individual risk factors.
 
 	if len(analysis.BreakingChanges) > 0 {
-
 		return RiskLevelHigh
-
 	}
 
 	if len(analysis.RiskFactors) > 5 {
-
 		return RiskLevelMedium
-
 	}
 
 	return RiskLevelLow
-
 }
 
 func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalysis) []*ImpactRecommendation {
-
 	var recommendations []*ImpactRecommendation
 
 	if analysis.OverallRisk == RiskLevelHigh {
-
 		recommendations = append(recommendations, &ImpactRecommendation{
-
 			Type: "testing",
 
 			Priority: RiskLevelHigh,
@@ -589,13 +506,10 @@ func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalys
 
 			Action: "Run full test suite including integration and regression tests",
 		})
-
 	}
 
 	if len(analysis.BreakingChanges) > 0 {
-
 		recommendations = append(recommendations, &ImpactRecommendation{
-
 			Type: "migration",
 
 			Priority: RiskLevelHigh,
@@ -604,21 +518,16 @@ func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalys
 
 			Action: "Review breaking changes and create migration strategy",
 		})
-
 	}
 
 	return recommendations
-
 }
 
 func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysis) []*MitigationStrategy {
-
 	var strategies []*MitigationStrategy
 
 	if analysis.OverallRisk == RiskLevelHigh {
-
 		strategies = append(strategies, &MitigationStrategy{
-
 			Name: "Staged Rollout",
 
 			Type: "deployment",
@@ -628,7 +537,6 @@ func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysi
 			Description: "Deploy updates in stages to minimize blast radius",
 
 			Steps: []string{
-
 				"Deploy to development environment first",
 
 				"Run comprehensive tests",
@@ -640,51 +548,39 @@ func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysi
 				"Deploy to production in batches",
 			},
 		})
-
 	}
 
 	return strategies
-
 }
 
 // Background process methods.
 
 func (u *dependencyUpdater) autoUpdateProcess() {
-
 	defer u.wg.Done()
 
 	// Auto-update background process implementation.
-
 }
 
 func (u *dependencyUpdater) updateQueueProcess() {
-
 	defer u.wg.Done()
 
 	// Update queue processing implementation.
-
 }
 
 func (u *dependencyUpdater) metricsCollectionProcess() {
-
 	defer u.wg.Done()
 
 	// Metrics collection process implementation.
-
 }
 
 func (u *dependencyUpdater) changeTrackingProcess() {
-
 	defer u.wg.Done()
 
 	// Change tracking process implementation.
-
 }
 
 // Utility functions.
 
 func generateNotificationID() string {
-
 	return fmt.Sprintf("notif-%d", time.Now().UnixNano())
-
 }

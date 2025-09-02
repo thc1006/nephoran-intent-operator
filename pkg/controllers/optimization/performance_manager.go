@@ -86,7 +86,6 @@ type PerformanceManager struct {
 // PerformanceConfig holds performance optimization configuration.
 
 type PerformanceConfig struct {
-
 	// Monitoring intervals.
 
 	MetricsCollectionInterval time.Duration `json:"metricsCollectionInterval"`
@@ -217,9 +216,7 @@ type ScalingPolicy struct {
 // NewPerformanceManager creates a new performance manager.
 
 func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *PerformanceManager {
-
 	pm := &PerformanceManager{
-
 		logger: logger.WithName("performance-manager"),
 
 		config: config,
@@ -248,41 +245,31 @@ func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *Perfo
 	pm.loadPerformanceProfiles(config.Profiles)
 
 	return pm
-
 }
 
 // Start starts the performance manager.
 
 func (pm *PerformanceManager) Start(ctx context.Context) error {
-
 	pm.mutex.Lock()
 
 	defer pm.mutex.Unlock()
 
 	if pm.started {
-
 		return fmt.Errorf("performance manager already started")
-
 	}
 
 	// Start all components.
 
 	if err := pm.resourceMonitor.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start resource monitor: %w", err)
-
 	}
 
 	if err := pm.cacheManager.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start cache manager: %w", err)
-
 	}
 
 	if err := pm.connectionManager.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start connection manager: %w", err)
-
 	}
 
 	// Start performance monitoring and optimization loops.
@@ -298,21 +285,17 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 	pm.logger.Info("Performance manager started")
 
 	return nil
-
 }
 
 // Stop stops the performance manager.
 
 func (pm *PerformanceManager) Stop(ctx context.Context) error {
-
 	pm.mutex.Lock()
 
 	defer pm.mutex.Unlock()
 
 	if !pm.started {
-
 		return nil
-
 	}
 
 	pm.logger.Info("Stopping performance manager")
@@ -320,21 +303,15 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 	// Stop all components.
 
 	if err := pm.connectionManager.Stop(ctx); err != nil {
-
 		pm.logger.Error(err, "Error stopping connection manager")
-
 	}
 
 	if err := pm.cacheManager.Stop(ctx); err != nil {
-
 		pm.logger.Error(err, "Error stopping cache manager")
-
 	}
 
 	if err := pm.resourceMonitor.Stop(ctx); err != nil {
-
 		pm.logger.Error(err, "Error stopping resource monitor")
-
 	}
 
 	// Signal stop to all loops.
@@ -346,19 +323,15 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 	pm.logger.Info("Performance manager stopped")
 
 	return nil
-
 }
 
 // OptimizeForProfile applies a performance profile to the system.
 
 func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileName string, phase interfaces.ProcessingPhase) error {
-
 	profile, exists := pm.profiles[profileName]
 
 	if !exists {
-
 		return fmt.Errorf("performance profile %s not found", profileName)
-
 	}
 
 	pm.logger.Info("Applying performance profile", "profile", profileName, "phase", phase)
@@ -366,17 +339,13 @@ func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileNam
 	// Apply caching strategy.
 
 	if err := pm.cacheManager.ApplyCachingProfile(profile.CachingStrategy); err != nil {
-
 		pm.logger.Error(err, "Failed to apply caching profile")
-
 	}
 
 	// Apply connection pool settings.
 
 	if err := pm.connectionManager.ApplyResourceProfile(profile.ResourceLimits); err != nil {
-
 		pm.logger.Error(err, "Failed to apply resource profile")
-
 	}
 
 	// Apply scaling policies.
@@ -384,13 +353,11 @@ func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileNam
 	pm.scalingDecision.ApplyScalingProfile(profile.ScalingPolicy)
 
 	return nil
-
 }
 
 // GetPerformanceRecommendations analyzes current performance and provides recommendations.
 
 func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context) (*PerformanceRecommendations, error) {
-
 	// Collect current metrics.
 
 	currentMetrics := pm.resourceMonitor.GetCurrentMetrics()
@@ -402,7 +369,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 	// Generate recommendations.
 
 	recommendations := &PerformanceRecommendations{
-
 		Timestamp: time.Now(),
 
 		CurrentMetrics: currentMetrics,
@@ -415,9 +381,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 	// CPU optimization recommendations.
 
 	if analysis.CPUUtilization > pm.config.CPUScaleUpThreshold {
-
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
-
 			Type: "scaling",
 
 			Priority: "high",
@@ -427,7 +391,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 			Action: "scale_up",
 
 			Parameters: map[string]interface{}{
-
 				"metric": "cpu",
 
 				"current": analysis.CPUUtilization,
@@ -437,15 +400,12 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 				"suggestion": "increase worker count by 25%",
 			},
 		})
-
 	}
 
 	// Memory optimization recommendations.
 
 	if analysis.MemoryUtilization > pm.config.MemoryScaleUpThreshold {
-
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
-
 			Type: "resource",
 
 			Priority: "medium",
@@ -455,7 +415,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 			Action: "optimize_cache",
 
 			Parameters: map[string]interface{}{
-
 				"metric": "memory",
 
 				"current": analysis.MemoryUtilization,
@@ -463,15 +422,12 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 				"suggestion": "reduce cache size or implement compression",
 			},
 		})
-
 	}
 
 	// Queue depth recommendations.
 
 	if analysis.MaxQueueDepth > pm.config.QueueDepthThreshold {
-
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
-
 			Type: "scaling",
 
 			Priority: "high",
@@ -481,7 +437,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 			Action: "scale_up",
 
 			Parameters: map[string]interface{}{
-
 				"metric": "queue_depth",
 
 				"current": analysis.MaxQueueDepth,
@@ -491,15 +446,12 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 				"suggestion": "increase worker pools for bottleneck phases",
 			},
 		})
-
 	}
 
 	// Response time recommendations.
 
 	if analysis.AverageResponseTime > pm.config.ResponseTimeThreshold {
-
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
-
 			Type: "performance",
 
 			Priority: "medium",
@@ -509,7 +461,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 			Action: "optimize_performance",
 
 			Parameters: map[string]interface{}{
-
 				"metric": "response_time",
 
 				"current": analysis.AverageResponseTime.String(),
@@ -519,7 +470,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 				"suggestion": "enable advanced caching and connection pooling",
 			},
 		})
-
 	}
 
 	// Cache optimization recommendations.
@@ -527,7 +477,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 	if analysis.CacheHitRate < 0.7 { // Less than 70% hit rate
 
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
-
 			Type: "caching",
 
 			Priority: "low",
@@ -537,7 +486,6 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 			Action: "optimize_cache",
 
 			Parameters: map[string]interface{}{
-
 				"metric": "cache_hit_rate",
 
 				"current": analysis.CacheHitRate,
@@ -545,49 +493,35 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 				"suggestion": "increase cache size or adjust TTL settings",
 			},
 		})
-
 	}
 
 	return recommendations, nil
-
 }
 
 // AutoOptimize automatically applies optimizations based on current performance.
 
 func (pm *PerformanceManager) AutoOptimize(ctx context.Context) error {
-
 	recommendations, err := pm.GetPerformanceRecommendations(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get recommendations: %w", err)
-
 	}
 
 	pm.logger.Info("Applying auto-optimizations", "recommendationCount", len(recommendations.Recommendations))
 
 	for _, recommendation := range recommendations.Recommendations {
-
 		if recommendation.Priority == "high" || recommendation.Priority == "medium" {
-
 			if err := pm.applyRecommendation(ctx, recommendation); err != nil {
-
 				pm.logger.Error(err, "Failed to apply recommendation", "type", recommendation.Type, "action", recommendation.Action)
-
 			}
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // metricsCollectionLoop continuously collects performance metrics.
 
 func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(pm.config.MetricsCollectionInterval)
 
 	defer ticker.Stop()
@@ -595,7 +529,6 @@ func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 	pm.logger.Info("Started metrics collection loop")
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -615,15 +548,12 @@ func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 			return
 
 		}
-
 	}
-
 }
 
 // performanceAnalysisLoop continuously analyzes performance.
 
 func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(pm.config.AnalysisInterval)
 
 	defer ticker.Stop()
@@ -631,7 +561,6 @@ func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 	pm.logger.Info("Started performance analysis loop")
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -651,15 +580,12 @@ func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 			return
 
 		}
-
 	}
-
 }
 
 // scalingDecisionLoop makes scaling decisions based on performance metrics.
 
 func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Minute) // Check every minute
 
 	defer ticker.Stop()
@@ -667,7 +593,6 @@ func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 	pm.logger.Info("Started scaling decision loop")
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -687,15 +612,12 @@ func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 			return
 
 		}
-
 	}
-
 }
 
 // Helper methods.
 
 func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]PerformanceProfile) {
-
 	for name, profile := range profiles {
 
 		profileCopy := profile
@@ -707,21 +629,16 @@ func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]Perfor
 	// Add default profiles if none exist.
 
 	if len(pm.profiles) == 0 {
-
 		pm.addDefaultProfiles()
-
 	}
 
 	pm.logger.Info("Loaded performance profiles", "count", len(pm.profiles))
-
 }
 
 func (pm *PerformanceManager) addDefaultProfiles() {
-
 	// High-performance profile.
 
 	pm.profiles["high-performance"] = &PerformanceProfile{
-
 		Name: "high-performance",
 
 		Description: "Maximum performance for production workloads",
@@ -729,7 +646,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		MaxConcurrentOperations: 100,
 
 		TimeoutSettings: TimeoutProfile{
-
 			LLMProcessing: 30 * time.Second,
 
 			ResourcePlanning: 15 * time.Second,
@@ -742,7 +658,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		CachingStrategy: CachingProfile{
-
 			EnableL1Cache: true,
 
 			EnableL2Cache: true,
@@ -758,7 +673,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		ResourceLimits: ResourceProfile{
-
 			CPURequest: "2",
 
 			CPULimit: "4",
@@ -771,13 +685,11 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		ScalingPolicy: ScalingProfile{
-
 			MinReplicas: 3,
 
 			MaxReplicas: 50,
 
 			ScaleUpPolicy: ScalingPolicy{
-
 				MetricType: "cpu",
 
 				TargetValue: 70.0,
@@ -792,7 +704,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 	// Balanced profile.
 
 	pm.profiles["balanced"] = &PerformanceProfile{
-
 		Name: "balanced",
 
 		Description: "Balanced performance and resource usage",
@@ -800,7 +711,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		MaxConcurrentOperations: 50,
 
 		TimeoutSettings: TimeoutProfile{
-
 			LLMProcessing: 60 * time.Second,
 
 			ResourcePlanning: 30 * time.Second,
@@ -813,7 +723,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		CachingStrategy: CachingProfile{
-
 			EnableL1Cache: true,
 
 			EnableL2Cache: true,
@@ -828,7 +737,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		ResourceLimits: ResourceProfile{
-
 			CPURequest: "1",
 
 			CPULimit: "2",
@@ -841,13 +749,11 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		ScalingPolicy: ScalingProfile{
-
 			MinReplicas: 2,
 
 			MaxReplicas: 20,
 
 			ScaleUpPolicy: ScalingPolicy{
-
 				MetricType: "cpu",
 
 				TargetValue: 80.0,
@@ -862,7 +768,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 	// Resource-efficient profile.
 
 	pm.profiles["efficient"] = &PerformanceProfile{
-
 		Name: "efficient",
 
 		Description: "Optimized for resource efficiency",
@@ -870,7 +775,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		MaxConcurrentOperations: 20,
 
 		TimeoutSettings: TimeoutProfile{
-
 			LLMProcessing: 120 * time.Second,
 
 			ResourcePlanning: 60 * time.Second,
@@ -883,7 +787,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		CachingStrategy: CachingProfile{
-
 			EnableL1Cache: true,
 
 			EnableL2Cache: false,
@@ -898,7 +801,6 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		ResourceLimits: ResourceProfile{
-
 			CPURequest: "500m",
 
 			CPULimit: "1",
@@ -911,13 +813,11 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 
 		ScalingPolicy: ScalingProfile{
-
 			MinReplicas: 1,
 
 			MaxReplicas: 10,
 
 			ScaleUpPolicy: ScalingPolicy{
-
 				MetricType: "memory",
 
 				TargetValue: 90.0,
@@ -928,19 +828,15 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 			},
 		},
 	}
-
 }
 
 func (pm *PerformanceManager) collectMetrics(ctx context.Context) {
-
 	pm.logger.V(1).Info("Collecting performance metrics")
 
 	pm.resourceMonitor.CollectMetrics(ctx)
-
 }
 
 func (pm *PerformanceManager) analyzePerformance(ctx context.Context) {
-
 	pm.logger.V(1).Info("Analyzing performance")
 
 	metrics := pm.resourceMonitor.GetCurrentMetrics()
@@ -950,27 +846,19 @@ func (pm *PerformanceManager) analyzePerformance(ctx context.Context) {
 	// Log significant performance issues.
 
 	if analysis.CPUUtilization > pm.config.CPUScaleUpThreshold {
-
 		pm.logger.Info("High CPU utilization detected", "utilization", analysis.CPUUtilization)
-
 	}
 
 	if analysis.MemoryUtilization > pm.config.MemoryScaleUpThreshold {
-
 		pm.logger.Info("High memory utilization detected", "utilization", analysis.MemoryUtilization)
-
 	}
 
 	if analysis.MaxQueueDepth > pm.config.QueueDepthThreshold {
-
 		pm.logger.Info("High queue depth detected", "depth", analysis.MaxQueueDepth)
-
 	}
-
 }
 
 func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
-
 	pm.logger.V(1).Info("Making scaling decisions")
 
 	metrics := pm.resourceMonitor.GetCurrentMetrics()
@@ -992,17 +880,13 @@ func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
 		// Apply scaling decisions (this would integrate with Kubernetes HPA or custom scaling logic).
 
 		if err := pm.applyScalingDecision(ctx, &decision); err != nil {
-
 			pm.logger.Error(err, "Failed to apply scaling decision", "action", decision.Action)
-
 		}
 
 	}
-
 }
 
 func (pm *PerformanceManager) applyRecommendation(ctx context.Context, recommendation Recommendation) error {
-
 	pm.logger.Info("Applying performance recommendation",
 
 		"type", recommendation.Type,
@@ -1030,47 +914,38 @@ func (pm *PerformanceManager) applyRecommendation(ctx context.Context, recommend
 		return fmt.Errorf("unknown recommendation action: %s", recommendation.Action)
 
 	}
-
 }
 
 func (pm *PerformanceManager) handleScaleUpRecommendation(ctx context.Context, recommendation Recommendation) error {
-
 	// This would implement actual scaling logic.
 
 	pm.logger.Info("Handling scale up recommendation", "parameters", recommendation.Parameters)
 
 	return nil
-
 }
 
 func (pm *PerformanceManager) handleCacheOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {
-
 	// This would implement cache optimization logic.
 
 	pm.logger.Info("Handling cache optimization recommendation", "parameters", recommendation.Parameters)
 
 	return pm.cacheManager.OptimizeCache(ctx, recommendation.Parameters)
-
 }
 
 func (pm *PerformanceManager) handlePerformanceOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {
-
 	// This would implement general performance optimization.
 
 	pm.logger.Info("Handling performance optimization recommendation", "parameters", recommendation.Parameters)
 
 	return nil
-
 }
 
 func (pm *PerformanceManager) applyScalingDecision(ctx context.Context, decision *ScalingDecision) error {
-
 	// This would implement actual scaling through Kubernetes APIs.
 
 	pm.logger.Info("Applying scaling decision", "decision", decision)
 
 	return nil
-
 }
 
 // Data structures.
@@ -1101,7 +976,6 @@ type Recommendation struct {
 	Parameters map[string]interface{} `json:"parameters"`
 
 	Confidence float64 `json:"confidence"` // 0.0 to 1.0
-
 }
 
 // SystemMetrics represents current system performance metrics.
@@ -1216,7 +1090,6 @@ type PerformanceBottleneck struct {
 	Description string `json:"description"`
 
 	Impact float64 `json:"impact"` // 0.0 to 1.0
-
 }
 
 // PerformanceTrend represents a performance trend over time.
@@ -1229,7 +1102,6 @@ type PerformanceTrend struct {
 	Rate float64 `json:"rate"` // rate of change
 
 	Confidence float64 `json:"confidence"` // 0.0 to 1.0
-
 }
 
 // ScalingDecision represents a scaling decision.

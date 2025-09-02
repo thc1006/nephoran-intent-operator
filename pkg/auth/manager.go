@@ -44,21 +44,15 @@ type Manager struct {
 // NewManager creates a new authentication manager (renamed to avoid conflict with auth_manager.go).
 
 func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Manager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("auth config is required")
-
 	}
 
 	if logger == nil {
-
 		logger = slog.Default()
-
 	}
 
 	am := &Manager{
-
 		config: config,
 
 		logger: logger,
@@ -75,7 +69,6 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 		// Use a stub JWT manager for now - would need proper config structure.
 
 		jwtConfig := &JWTConfig{
-
 			Issuer: "nephoran-intent-operator",
 
 			SigningKey: config.JWTSecretKey,
@@ -86,11 +79,8 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 		}
 
 		jwtManager, err := NewJWTManager(ctx, jwtConfig, nil, nil, logger)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to create JWT manager: %w", err)
-
 		}
 
 		am.jwtManager = jwtManager
@@ -100,7 +90,6 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 	// Initialize session manager - using stub for now.
 
 	sessionConfig := &SessionConfig{
-
 		SessionTimeout: config.TokenTTL,
 
 		MaxSessions: 100,
@@ -117,7 +106,6 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 	if config.RBAC.Enabled {
 
 		rbacConfig := &RBACManagerConfig{
-
 			CacheTTL: 5 * time.Minute,
 
 			EnableHierarchy: true,
@@ -142,13 +130,11 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 	ldapProviders := make(map[string]providers.LDAPProvider)
 
 	if len(config.LDAPProviders) > 0 {
-
 		for name, ldapProviderConfig := range config.LDAPProviders {
 
 			// Convert to providers.LDAPConfig.
 
 			ldapConfig := &providers.LDAPConfig{
-
 				Host: ldapProviderConfig.Host,
 
 				Port: ldapProviderConfig.Port,
@@ -193,13 +179,11 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 			am.ldapProviders[name] = ldapClient
 
 		}
-
 	}
 
 	// Initialize middleware with existing signature.
 
 	middlewareConfig := &MiddlewareConfig{
-
 		SkipAuth: []string{"/health", "/auth/login", "/auth/callback"},
 	}
 
@@ -210,7 +194,6 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 	if len(ldapProviders) > 0 {
 
 		ldapMiddlewareConfig := &LDAPMiddlewareConfig{
-
 			Realm: "Nephoran Intent Operator",
 
 			AllowBasicAuth: true,
@@ -225,7 +208,6 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 	if len(config.Providers) > 0 {
 
 		oauth2ManagerConfig := &OAuth2ManagerConfig{
-
 			Enabled: config.Enabled,
 
 			JWTSecretKey: config.JWTSecretKey,
@@ -239,11 +221,8 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 
 		// TODO: Pass proper context from caller instead of Background()
 		oauth2Manager, err := NewOAuth2Manager(context.Background(), oauth2ManagerConfig, logger)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to create OAuth2 manager: %w", err)
-
 		}
 
 		am.oauth2Manager = oauth2Manager
@@ -263,69 +242,53 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 		"oauth_providers", len(am.oauthProviders))
 
 	return am, nil
-
 }
 
 // GetMiddleware returns the auth middleware.
 
 func (am *Manager) GetMiddleware() *AuthMiddleware {
-
 	return am.middleware
-
 }
 
 // GetLDAPMiddleware returns the LDAP auth middleware.
 
 func (am *Manager) GetLDAPMiddleware() *LDAPAuthMiddleware {
-
 	return am.ldapMiddleware
-
 }
 
 // GetOAuth2Manager returns the OAuth2 manager.
 
 func (am *Manager) GetOAuth2Manager() *OAuth2Manager {
-
 	return am.oauth2Manager
-
 }
 
 // GetSessionManager returns the session manager.
 
 func (am *Manager) GetSessionManager() *SessionManager {
-
 	return am.sessionManager
-
 }
 
 // GetJWTManager returns the JWT manager.
 
 func (am *Manager) GetJWTManager() *JWTManager {
-
 	return am.jwtManager
-
 }
 
 // GetRBACManager returns the RBAC manager.
 
 func (am *Manager) GetRBACManager() *RBACManager {
-
 	return am.rbacManager
-
 }
 
 // GetHandlers returns the auth handlers.
 
 func (am *Manager) GetHandlers() *AuthHandlers {
-
 	return am.handlers
-
 }
 
 // ListProviders returns information about available authentication providers.
 
 func (am *Manager) ListProviders() map[string]interface{} {
-
 	result := make(map[string]interface{})
 
 	// LDAP providers.
@@ -333,14 +296,11 @@ func (am *Manager) ListProviders() map[string]interface{} {
 	ldapProviders := make(map[string]interface{})
 
 	for name := range am.ldapProviders {
-
 		ldapProviders[name] = map[string]interface{}{
-
 			"type": "ldap",
 
 			"enabled": true,
 		}
-
 	}
 
 	result["ldap"] = ldapProviders
@@ -350,46 +310,35 @@ func (am *Manager) ListProviders() map[string]interface{} {
 	oauth2Providers := make(map[string]interface{})
 
 	for name := range am.oauthProviders {
-
 		oauth2Providers[name] = map[string]interface{}{
-
 			"type": "oauth2",
 
 			"enabled": true,
 		}
-
 	}
 
 	result["oauth2"] = oauth2Providers
 
 	return result
-
 }
 
 // RefreshTokens refreshes access and refresh tokens.
 
 func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (string, string, error) {
-
 	if am.jwtManager == nil {
-
 		return "", "", fmt.Errorf("JWT manager not initialized")
-
 	}
 
 	// Validate the refresh token.
 
 	claims, err := am.jwtManager.ValidateToken(ctx, refreshToken)
-
 	if err != nil {
-
 		return "", "", fmt.Errorf("invalid refresh token: %w", err)
-
 	}
 
 	// Create a new user info from claims for token generation.
 
 	userInfo := &providers.UserInfo{
-
 		Subject: claims.Subject,
 
 		Email: claims.Email,
@@ -406,51 +355,36 @@ func (am *Manager) RefreshTokens(ctx context.Context, refreshToken string) (stri
 	// Generate new access token.
 
 	newAccessToken, _, err := am.jwtManager.GenerateAccessToken(ctx, userInfo, "session-"+claims.Subject)
-
 	if err != nil {
-
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
-
 	}
 
 	// Generate new refresh token.
 
 	newRefreshToken, _, err := am.jwtManager.GenerateRefreshToken(ctx, userInfo, "session-"+claims.Subject)
-
 	if err != nil {
-
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
-
 	}
 
 	// Revoke the old refresh token.
 
 	if err := am.jwtManager.RevokeToken(ctx, refreshToken); err != nil {
-
 		am.logger.Warn("Failed to revoke old refresh token", "error", err)
-
 	}
 
 	return newAccessToken, newRefreshToken, nil
-
 }
 
 // ValidateSession validates a session and returns session information.
 
 func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*UserSession, error) {
-
 	if am.sessionManager == nil {
-
 		return nil, fmt.Errorf("session manager not initialized")
-
 	}
 
 	session, err := am.sessionManager.GetSession(ctx, sessionID)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("invalid session: %w", err)
-
 	}
 
 	// Check if session is expired - the session manager should handle this.
@@ -458,19 +392,15 @@ func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*User
 	// Just return the session as-is for now.
 
 	return session, nil
-
 }
 
 // HandleHealthCheck handles health check requests.
 
 func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
-
 	health := map[string]interface{}{
-
 		"status": "healthy",
 
 		"services": map[string]string{
-
 			"jwt_manager": "unknown",
 
 			"session_manager": "unknown",
@@ -480,33 +410,25 @@ func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if am.jwtManager != nil {
-
 		health["services"].(map[string]string)["jwt_manager"] = "healthy"
-
 	}
 
 	if am.sessionManager != nil {
-
 		health["services"].(map[string]string)["session_manager"] = "healthy"
-
 	}
 
 	if am.rbacManager != nil {
-
 		health["services"].(map[string]string)["rbac_manager"] = "healthy"
-
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(health)
-
 }
 
 // Shutdown gracefully shuts down the auth manager.
 
 func (am *Manager) Shutdown(ctx context.Context) error {
-
 	am.logger.Info("Shutting down AuthManager")
 
 	var errors []error
@@ -514,23 +436,16 @@ func (am *Manager) Shutdown(ctx context.Context) error {
 	// Close LDAP providers.
 
 	for name, provider := range am.ldapProviders {
-
 		if err := provider.Close(); err != nil {
-
 			errors = append(errors, fmt.Errorf("failed to close LDAP provider %s: %w", name, err))
-
 		}
-
 	}
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("shutdown errors: %v", errors)
-
 	}
 
 	am.logger.Info("AuthManager shutdown completed")
 
 	return nil
-
 }

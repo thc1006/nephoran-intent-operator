@@ -87,11 +87,8 @@ type TestFixture struct {
 // NewTestFixture creates a new test fixture with default configuration.
 
 func NewTestFixture(ctx context.Context) *TestFixture {
-
 	if ctx == nil {
-
 		ctx = context.Background()
-
 	}
 
 	scheme := runtime.NewScheme()
@@ -103,7 +100,6 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 		Build()
 
 	fixture := &TestFixture{
-
 		Client: fakeClient,
 
 		Context: ctx,
@@ -112,30 +108,23 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 	}
 
 	return fixture
-
 }
 
 // CreateTestNetworkIntent creates a test NetworkIntent for testing.
 
 func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntentOption) *v1.NetworkIntent {
-
 	if name == "" {
-
 		name = fmt.Sprintf("test-intent-%s", GenerateRandomString(8))
-
 	}
 
 	intent := &v1.NetworkIntent{
-
 		TypeMeta: metav1.TypeMeta{
-
 			APIVersion: "nephoran.com/v1",
 
 			Kind: "NetworkIntent",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: name,
 
 			Namespace: f.Namespace,
@@ -143,13 +132,11 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 			UID: types.UID(uuid.New().String()),
 
 			Labels: map[string]string{
-
 				"test.nephoran.com/fixture": "true",
 			},
 		},
 
 		Spec: v1.NetworkIntentSpec{
-
 			Intent: "Deploy 3 AMF instances in us-east-1 region",
 
 			IntentType: v1.IntentTypeDeployment,
@@ -157,13 +144,11 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 			Priority: v1.NetworkPriorityNormal,
 
 			TargetComponents: []v1.NetworkTargetComponent{
-
 				v1.NetworkTargetComponentAMF,
 			},
 		},
 
 		Status: v1.NetworkIntentStatus{
-
 			Phase: "processing",
 
 			LastMessage: "Processing deployment intent",
@@ -175,13 +160,10 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 	// Apply options.
 
 	for _, opt := range opts {
-
 		opt(intent)
-
 	}
 
 	return intent
-
 }
 
 // NetworkIntentOption allows customization of test network intents.
@@ -191,61 +173,41 @@ type NetworkIntentOption func(*v1.NetworkIntent)
 // WithIntentType sets the intent type.
 
 func WithIntentType(intentType v1.IntentType) NetworkIntentOption {
-
 	return func(intent *v1.NetworkIntent) {
-
 		intent.Spec.IntentType = intentType
-
 	}
-
 }
 
 // WithIntentPriority sets the intent priority.
 
 func WithIntentPriority(priority v1.NetworkPriority) NetworkIntentOption {
-
 	return func(intent *v1.NetworkIntent) {
-
 		intent.Spec.Priority = priority
-
 	}
-
 }
 
 // WithTargetComponent adds a target component.
 
 func WithTargetComponent(component v1.NetworkTargetComponent) NetworkIntentOption {
-
 	return func(intent *v1.NetworkIntent) {
-
 		intent.Spec.TargetComponents = append(intent.Spec.TargetComponents, component)
-
 	}
-
 }
 
 // WithIntent sets the intent text.
 
 func WithIntent(intentText string) NetworkIntentOption {
-
 	return func(intent *v1.NetworkIntent) {
-
 		intent.Spec.Intent = intentText
-
 	}
-
 }
 
 // WithIntentPhase sets the intent phase.
 
 func WithIntentPhase(phase string) NetworkIntentOption {
-
 	return func(intent *v1.NetworkIntent) {
-
 		intent.Status.Phase = v1.NetworkIntentPhase(phase)
-
 	}
-
 }
 
 // Helper functions for test data generation.
@@ -253,35 +215,27 @@ func WithIntentPhase(phase string) NetworkIntentOption {
 // GenerateRandomString generates a random string of specified length.
 
 func GenerateRandomString(length int) string {
-
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 	b := make([]byte, length)
 
 	for i := range b {
-
 		b[i] = charset[rand.Intn(len(charset))]
-
 	}
 
 	return string(b)
-
 }
 
 // Cleanup removes test resources and performs cleanup.
 
 func (f *TestFixture) Cleanup() {
-
 	// Clear any internal state if needed.
-
 }
 
 // AssertCondition checks if a condition exists and has expected values.
 
 func AssertCondition(conditions []metav1.Condition, conditionType string, status metav1.ConditionStatus, reason string) bool {
-
 	for _, condition := range conditions {
-
 		if condition.Type == conditionType &&
 
 			condition.Status == status &&
@@ -289,19 +243,15 @@ func AssertCondition(conditions []metav1.Condition, conditionType string, status
 			condition.Reason == reason {
 
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // WaitForCondition waits for a condition to be met within a timeout.
 
 func WaitForCondition(ctx context.Context, check func() bool, timeout time.Duration) bool {
-
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 
 	defer cancel()
@@ -311,7 +261,6 @@ func WaitForCondition(ctx context.Context, check func() bool, timeout time.Durat
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -321,29 +270,21 @@ func WaitForCondition(ctx context.Context, check func() bool, timeout time.Durat
 		case <-ticker.C:
 
 			if check() {
-
 				return true
-
 			}
 
 		}
-
 	}
-
 }
 
 // GetTestKubeConfig returns a test Kubernetes configuration.
 
 func GetTestKubeConfig() *rest.Config {
-
 	return &rest.Config{
-
 		Host: "https://localhost:6443",
 
 		TLSClientConfig: rest.TLSClientConfig{
-
 			Insecure: true,
 		},
 	}
-
 }

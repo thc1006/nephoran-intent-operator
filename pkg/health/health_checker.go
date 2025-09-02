@@ -126,9 +126,7 @@ type HealthSummary struct {
 // NewHealthChecker creates a new health checker instance.
 
 func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *HealthChecker {
-
 	return &HealthChecker{
-
 		serviceName: serviceName,
 
 		serviceVersion: serviceVersion,
@@ -149,53 +147,43 @@ func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *
 
 		readyState: false,
 	}
-
 }
 
 // RegisterCheck registers a health check function.
 
 func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunc) {
-
 	hc.mu.Lock()
 
 	defer hc.mu.Unlock()
 
 	if hc.checks == nil {
-
 		hc.checks = make(map[string]CheckFunc)
-
 	}
 
 	hc.checks[name] = checkFunc
 
 	hc.logger.Info("Health check registered", "name", name, "service", hc.serviceName)
-
 }
 
 // RegisterDependency registers a dependency health check.
 
 func (hc *HealthChecker) RegisterDependency(name string, checkFunc CheckFunc) {
-
 	hc.mu.Lock()
 
 	defer hc.mu.Unlock()
 
 	if hc.dependencies == nil {
-
 		hc.dependencies = make(map[string]CheckFunc)
-
 	}
 
 	hc.dependencies[name] = checkFunc
 
 	hc.logger.Info("Dependency check registered", "name", name, "service", hc.serviceName)
-
 }
 
 // SetReady marks the service as ready.
 
 func (hc *HealthChecker) SetReady(ready bool) {
-
 	hc.stateMu.Lock()
 
 	defer hc.stateMu.Unlock()
@@ -203,13 +191,11 @@ func (hc *HealthChecker) SetReady(ready bool) {
 	hc.readyState = ready
 
 	hc.logger.Info("Readiness state changed", "ready", ready, "service", hc.serviceName)
-
 }
 
 // SetHealthy marks the service as healthy or unhealthy.
 
 func (hc *HealthChecker) SetHealthy(healthy bool) {
-
 	hc.stateMu.Lock()
 
 	defer hc.stateMu.Unlock()
@@ -217,43 +203,36 @@ func (hc *HealthChecker) SetHealthy(healthy bool) {
 	hc.healthyState = healthy
 
 	hc.logger.Info("Health state changed", "healthy", healthy, "service", hc.serviceName)
-
 }
 
 // IsReady returns the current readiness state.
 
 func (hc *HealthChecker) IsReady() bool {
-
 	hc.stateMu.RLock()
 
 	defer hc.stateMu.RUnlock()
 
 	return hc.readyState
-
 }
 
 // IsHealthy returns the current health state.
 
 func (hc *HealthChecker) IsHealthy() bool {
-
 	hc.stateMu.RLock()
 
 	defer hc.stateMu.RUnlock()
 
 	return hc.healthyState
-
 }
 
 // Check performs all registered health checks.
 
 func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
-
 	ctx, cancel := context.WithTimeout(ctx, hc.timeout)
 
 	defer cancel()
 
 	response := &HealthResponse{
-
 		Service: hc.serviceName,
 
 		Version: hc.serviceVersion,
@@ -267,7 +246,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		Dependencies: []Check{},
 
 		Metadata: map[string]interface{}{
-
 			"grace_period_remaining": hc.getGracePeriodRemaining(),
 
 			"checks_count": len(hc.checks),
@@ -283,17 +261,13 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 	checks := make(map[string]CheckFunc)
 
 	for name, checkFunc := range hc.checks {
-
 		checks[name] = checkFunc
-
 	}
 
 	dependencies := make(map[string]CheckFunc)
 
 	for name, checkFunc := range hc.dependencies {
-
 		dependencies[name] = checkFunc
-
 	}
 
 	hc.mu.RUnlock()
@@ -311,7 +285,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		wg.Add(1)
 
 		go func(name string, checkFunc CheckFunc) {
-
 			defer wg.Done()
 
 			start := time.Now()
@@ -319,9 +292,7 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 			check := checkFunc(ctx)
 
 			if check == nil {
-
 				check = &Check{
-
 					Name: name,
 
 					Status: StatusUnknown,
@@ -334,7 +305,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 					Component: hc.serviceName,
 				}
-
 			}
 
 			check.Name = name
@@ -346,7 +316,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 			check.Component = hc.serviceName
 
 			checkResults <- *check
-
 		}(name, checkFunc)
 
 	}
@@ -358,7 +327,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		wg.Add(1)
 
 		go func(name string, checkFunc CheckFunc) {
-
 			defer wg.Done()
 
 			start := time.Now()
@@ -366,9 +334,7 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 			check := checkFunc(ctx)
 
 			if check == nil {
-
 				check = &Check{
-
 					Name: name,
 
 					Status: StatusUnknown,
@@ -381,7 +347,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 					Component: "dependency",
 				}
-
 			}
 
 			check.Name = name
@@ -393,7 +358,6 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 			check.Component = "dependency"
 
 			checkResults <- *check
-
 		}(name, checkFunc)
 
 	}
@@ -401,11 +365,9 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 	// Wait for all checks to complete.
 
 	go func() {
-
 		wg.Wait()
 
 		close(checkResults)
-
 	}()
 
 	// Collect results.
@@ -437,13 +399,9 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		}
 
 		if check.Component == "dependency" {
-
 			response.Dependencies = append(response.Dependencies, check)
-
 		} else {
-
 			response.Checks = append(response.Checks, check)
-
 		}
 
 	}
@@ -459,13 +417,11 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 	hc.updateHealthState(response.Status)
 
 	return response
-
 }
 
 // HealthzHandler provides Kubernetes liveness probe endpoint.
 
 func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodGet {
 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -492,17 +448,13 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-
 		http.Error(w, "Failed to encode livez response", http.StatusInternalServerError)
-
 	}
-
 }
 
 // ReadyzHandler provides Kubernetes readiness probe endpoint.
 
 func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodGet {
 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -522,7 +474,6 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	// Check critical dependencies.
 
 	for _, dep := range response.Dependencies {
-
 		if dep.Status == StatusUnhealthy {
 
 			isReady = false
@@ -530,7 +481,6 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 			break
 
 		}
-
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -550,69 +500,52 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-
 		http.Error(w, "Failed to encode readyz response", http.StatusInternalServerError)
-
 	}
-
 }
 
 // determineOverallStatus determines the overall service status.
 
 func (hc *HealthChecker) determineOverallStatus(summary HealthSummary) Status {
-
 	if summary.Total == 0 {
-
 		return StatusUnknown
-
 	}
 
 	// If all checks are healthy, service is healthy.
 
 	if summary.Healthy == summary.Total {
-
 		return StatusHealthy
-
 	}
 
 	// If any check is unhealthy, service is unhealthy.
 
 	if summary.Unhealthy > 0 {
-
 		return StatusUnhealthy
-
 	}
 
 	// If we have degraded checks but no unhealthy ones, service is degraded.
 
 	if summary.Degraded > 0 {
-
 		return StatusDegraded
-
 	}
 
 	// Otherwise, status is unknown.
 
 	return StatusUnknown
-
 }
 
 // updateHealthState updates the internal health state.
 
 func (hc *HealthChecker) updateHealthState(status Status) {
-
 	healthy := status == StatusHealthy || status == StatusDegraded
 
 	hc.SetHealthy(healthy)
-
 }
 
 // isInGracePeriod checks if we're still in the startup grace period.
 
 func (hc *HealthChecker) isInGracePeriod() bool {
-
 	return time.Since(hc.startTime) < hc.gracePeriod
-
 }
 
 // getGracePeriodRemaining returns remaining grace period duration.
@@ -682,122 +615,92 @@ func (hc *HealthChecker) RunCheck(ctx context.Context, name string) *Check {
 // HTTPCheck performs an HTTP health check.
 
 func HTTPCheck(name, url string) CheckFunc {
-
 	return func(ctx context.Context) *Check {
-
 		client := &http.Client{Timeout: 5 * time.Second}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-
 		if err != nil {
-
 			return &Check{
-
 				Name: name,
 
 				Status: StatusUnhealthy,
 
 				Error: fmt.Sprintf("Failed to create request: %v", err),
 			}
-
 		}
 
 		resp, err := client.Do(req)
-
 		if err != nil {
-
 			return &Check{
-
 				Name: name,
 
 				Status: StatusUnhealthy,
 
 				Error: fmt.Sprintf("HTTP request failed: %v", err),
 			}
-
 		}
 
 		defer resp.Body.Close()
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-
 			return &Check{
-
 				Name: name,
 
 				Status: StatusHealthy,
 
 				Message: fmt.Sprintf("HTTP %d", resp.StatusCode),
 			}
-
 		}
 
 		return &Check{
-
 			Name: name,
 
 			Status: StatusUnhealthy,
 
 			Error: fmt.Sprintf("HTTP %d", resp.StatusCode),
 		}
-
 	}
-
 }
 
 // DatabaseCheck performs a database connection health check.
 
 func DatabaseCheck(name string, pingFunc func(ctx context.Context) error) CheckFunc {
-
 	return func(ctx context.Context) *Check {
-
 		err := pingFunc(ctx)
-
 		if err != nil {
-
 			return &Check{
-
 				Name: name,
 
 				Status: StatusUnhealthy,
 
 				Error: fmt.Sprintf("Database connection failed: %v", err),
 			}
-
 		}
 
 		return &Check{
-
 			Name: name,
 
 			Status: StatusHealthy,
 
 			Message: "Database connection successful",
 		}
-
 	}
-
 }
 
 // MemoryCheck performs a memory usage health check.
 
 func MemoryCheck(name string, maxMemoryMB int64) CheckFunc {
-
 	return func(ctx context.Context) *Check {
-
 		// This is a simplified memory check.
 
 		// In a real implementation, you would use runtime.MemStats.
 
 		return &Check{
-
 			Name: name,
 
 			Status: StatusHealthy,
 
 			Message: "Memory usage within limits",
 		}
-
 	}
-
 }

@@ -46,13 +46,11 @@ type OptimizerConfig struct {
 	EnableBatchOptimization bool `json:"enable_batch_optimization"`
 
 	MonitoringWindow time.Duration `json:"monitoring_window"` // Window for collecting metrics
-
 }
 
 // PerformanceMetrics tracks system performance metrics.
 
 type PerformanceMetrics struct {
-
 	// System metrics.
 
 	CPUUsage float64 `json:"cpu_usage"`
@@ -114,21 +112,16 @@ type OptimizationTask struct {
 	Result string `json:"result,omitempty"`
 
 	Impact float64 `json:"impact"` // Expected performance impact (0.0-1.0)
-
 }
 
 // NewPerformanceOptimizer creates a new performance optimizer.
 
 func NewPerformanceOptimizer(config *OptimizerConfig) *PerformanceOptimizer {
-
 	if config == nil {
-
 		config = getDefaultOptimizerConfig()
-
 	}
 
 	optimizer := &PerformanceOptimizer{
-
 		config: config,
 
 		logger: slog.Default().With("component", "performance-optimizer"),
@@ -141,21 +134,16 @@ func NewPerformanceOptimizer(config *OptimizerConfig) *PerformanceOptimizer {
 	// Start background optimization if enabled.
 
 	if config.EnableAutoOptimization {
-
 		go optimizer.startAutoOptimization()
-
 	}
 
 	return optimizer
-
 }
 
 // getDefaultOptimizerConfig returns default optimizer configuration.
 
 func getDefaultOptimizerConfig() *OptimizerConfig {
-
 	return &OptimizerConfig{
-
 		EnableAutoOptimization: true,
 
 		OptimizationInterval: 10 * time.Minute,
@@ -176,13 +164,11 @@ func getDefaultOptimizerConfig() *OptimizerConfig {
 
 		MonitoringWindow: 5 * time.Minute,
 	}
-
 }
 
 // CollectMetrics collects current performance metrics.
 
 func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
-
 	po.metrics.mutex.Lock()
 
 	defer po.metrics.mutex.Unlock()
@@ -206,7 +192,6 @@ func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
 	// Return a copy of the metrics without mutex.
 
 	metricsCopy := &PerformanceMetrics{
-
 		CPUUsage: po.metrics.CPUUsage,
 
 		MemoryUsage: po.metrics.MemoryUsage,
@@ -241,13 +226,11 @@ func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
 	}
 
 	return metricsCopy
-
 }
 
 // OptimizePerformance analyzes current performance and applies optimizations.
 
 func (po *PerformanceOptimizer) OptimizePerformance(pipeline *RAGPipeline) error {
-
 	po.logger.Info("Starting performance optimization")
 
 	// Collect current metrics.
@@ -286,45 +269,35 @@ func (po *PerformanceOptimizer) OptimizePerformance(pipeline *RAGPipeline) error
 	po.logger.Info("Performance optimization completed")
 
 	return nil
-
 }
 
 // analyzeBottlenecks identifies performance bottlenecks.
 
 func (po *PerformanceOptimizer) analyzeBottlenecks(metrics *PerformanceMetrics) []string {
-
 	var bottlenecks []string
 
 	// Memory pressure analysis.
 
 	if metrics.MemoryUsage > po.config.MemoryThreshold {
-
 		bottlenecks = append(bottlenecks, "high_memory_usage")
-
 	}
 
 	// CPU usage analysis.
 
 	if metrics.CPUUsage > po.config.CPUThreshold {
-
 		bottlenecks = append(bottlenecks, "high_cpu_usage")
-
 	}
 
 	// Latency analysis.
 
 	if metrics.AverageLatency > po.config.LatencyThreshold {
-
 		bottlenecks = append(bottlenecks, "high_latency")
-
 	}
 
 	// Throughput analysis.
 
 	if metrics.ThroughputRPM < po.config.ThroughputTarget {
-
 		bottlenecks = append(bottlenecks, "low_throughput")
-
 	}
 
 	// Cache efficiency analysis.
@@ -332,33 +305,25 @@ func (po *PerformanceOptimizer) analyzeBottlenecks(metrics *PerformanceMetrics) 
 	if metrics.CacheHitRate < 0.7 { // 70% cache hit rate threshold
 
 		bottlenecks = append(bottlenecks, "low_cache_efficiency")
-
 	}
 
 	// Component-specific analysis.
 
 	if metrics.EmbeddingGenerationTime > 2*time.Second {
-
 		bottlenecks = append(bottlenecks, "slow_embedding_generation")
-
 	}
 
 	if metrics.DocumentProcessingTime > 5*time.Second {
-
 		bottlenecks = append(bottlenecks, "slow_document_processing")
-
 	}
 
 	return bottlenecks
-
 }
 
 // createOptimizationTask creates an optimization task for a bottleneck.
 
 func (po *PerformanceOptimizer) createOptimizationTask(bottleneck string) *OptimizationTask {
-
 	task := &OptimizationTask{
-
 		ID: fmt.Sprintf("opt_%s_%d", bottleneck, time.Now().Unix()),
 
 		Type: bottleneck,
@@ -437,13 +402,11 @@ func (po *PerformanceOptimizer) createOptimizationTask(bottleneck string) *Optim
 	}
 
 	return task
-
 }
 
 // applyOptimization applies a specific optimization to the pipeline.
 
 func (po *PerformanceOptimizer) applyOptimization(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.mutex.Lock()
 
 	po.activeOptimizations[task.ID] = task
@@ -451,13 +414,11 @@ func (po *PerformanceOptimizer) applyOptimization(pipeline *RAGPipeline, task *O
 	po.mutex.Unlock()
 
 	defer func() {
-
 		po.mutex.Lock()
 
 		delete(po.activeOptimizations, task.ID)
 
 		po.mutex.Unlock()
-
 	}()
 
 	switch task.Type {
@@ -499,13 +460,11 @@ func (po *PerformanceOptimizer) applyOptimization(pipeline *RAGPipeline, task *O
 		return fmt.Errorf("unknown optimization type: %s", task.Type)
 
 	}
-
 }
 
 // optimizeMemoryUsage optimizes memory usage.
 
 func (po *PerformanceOptimizer) optimizeMemoryUsage(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing memory usage")
 
 	// Force garbage collection.
@@ -515,19 +474,15 @@ func (po *PerformanceOptimizer) optimizeMemoryUsage(pipeline *RAGPipeline, task 
 	// Clear cache if memory pressure is high.
 
 	if pipeline.redisCache != nil {
-
 		// Implement selective cache cleanup based on usage patterns.
 
 		// This would require additional cache analytics.
-
 	}
 
 	// Optimize batch sizes to reduce memory footprint.
 
 	if pipeline.config.DocumentLoaderConfig != nil {
-
 		pipeline.config.DocumentLoaderConfig.PageProcessingBatch = min(pipeline.config.DocumentLoaderConfig.PageProcessingBatch, 5)
-
 	}
 
 	task.Status = "completed"
@@ -535,13 +490,11 @@ func (po *PerformanceOptimizer) optimizeMemoryUsage(pipeline *RAGPipeline, task 
 	task.Result = "Memory optimization applied: GC triggered, batch sizes reduced"
 
 	return nil
-
 }
 
 // optimizeCPUUsage optimizes CPU usage.
 
 func (po *PerformanceOptimizer) optimizeCPUUsage(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing CPU usage")
 
 	// Reduce concurrency if CPU usage is high.
@@ -549,15 +502,11 @@ func (po *PerformanceOptimizer) optimizeCPUUsage(pipeline *RAGPipeline, task *Op
 	maxConcurrency := runtime.NumCPU()
 
 	if pipeline.config.MaxConcurrentProcessing > maxConcurrency {
-
 		pipeline.config.MaxConcurrentProcessing = maxConcurrency
-
 	}
 
 	if pipeline.config.EmbeddingConfig != nil {
-
 		pipeline.config.EmbeddingConfig.MaxConcurrency = min(pipeline.config.EmbeddingConfig.MaxConcurrency, maxConcurrency/2)
-
 	}
 
 	task.Status = "completed"
@@ -565,21 +514,17 @@ func (po *PerformanceOptimizer) optimizeCPUUsage(pipeline *RAGPipeline, task *Op
 	task.Result = "CPU optimization applied: concurrency limits adjusted"
 
 	return nil
-
 }
 
 // optimizeLatency optimizes request latency.
 
 func (po *PerformanceOptimizer) optimizeLatency(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing latency")
 
 	// Reduce timeouts for faster failure detection.
 
 	if pipeline.config.EmbeddingConfig != nil {
-
 		pipeline.config.EmbeddingConfig.RequestTimeout = minDuration(pipeline.config.EmbeddingConfig.RequestTimeout, 15*time.Second)
-
 	}
 
 	// Optimize cache to prioritize frequently accessed items.
@@ -591,21 +536,17 @@ func (po *PerformanceOptimizer) optimizeLatency(pipeline *RAGPipeline, task *Opt
 	task.Result = "Latency optimization applied: timeouts reduced, cache prioritization enabled"
 
 	return nil
-
 }
 
 // optimizeThroughput optimizes system throughput.
 
 func (po *PerformanceOptimizer) optimizeThroughput(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing throughput")
 
 	// Increase batch sizes for better throughput (within memory limits).
 
 	if pipeline.config.EmbeddingConfig != nil && po.metrics.MemoryUsage < 0.6 {
-
 		pipeline.config.EmbeddingConfig.BatchSize = min(pipeline.config.EmbeddingConfig.BatchSize*2, 200)
-
 	}
 
 	// Optimize connection pooling.
@@ -617,33 +558,27 @@ func (po *PerformanceOptimizer) optimizeThroughput(pipeline *RAGPipeline, task *
 	task.Result = "Throughput optimization applied: batch sizes increased, connection pooling optimized"
 
 	return nil
-
 }
 
 // optimizeCacheEfficiency optimizes cache performance.
 
 func (po *PerformanceOptimizer) optimizeCacheEfficiency(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing cache efficiency")
 
 	// Implement cache warming for frequently accessed items.
 
 	if pipeline.redisCache != nil {
-
 		// This would require implementing cache analytics and warming strategies.
 
 		po.logger.Debug("Cache warming would be implemented here")
-
 	}
 
 	// Adjust cache TTLs based on access patterns.
 
 	if pipeline.config.RedisCacheConfig != nil {
-
 		// Increase TTL for frequently accessed items.
 
 		pipeline.config.RedisCacheConfig.EmbeddingTTL = 48 * time.Hour
-
 	}
 
 	task.Status = "completed"
@@ -651,31 +586,25 @@ func (po *PerformanceOptimizer) optimizeCacheEfficiency(pipeline *RAGPipeline, t
 	task.Result = "Cache optimization applied: TTLs adjusted, warming strategies enabled"
 
 	return nil
-
 }
 
 // optimizeEmbeddingGeneration optimizes embedding generation performance.
 
 func (po *PerformanceOptimizer) optimizeEmbeddingGeneration(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing embedding generation")
 
 	// Switch to faster provider if available.
 
 	if pipeline.embeddingService != nil {
-
 		// This would require implementing provider performance tracking.
 
 		po.logger.Debug("Provider optimization would be implemented here")
-
 	}
 
 	// Optimize batch sizes for embedding generation.
 
 	if pipeline.config.EmbeddingConfig != nil {
-
 		pipeline.config.EmbeddingConfig.BatchSize = min(pipeline.config.EmbeddingConfig.BatchSize, 50) // Smaller batches for faster response
-
 	}
 
 	task.Status = "completed"
@@ -683,13 +612,11 @@ func (po *PerformanceOptimizer) optimizeEmbeddingGeneration(pipeline *RAGPipelin
 	task.Result = "Embedding optimization applied: provider selection optimized, batch sizes adjusted"
 
 	return nil
-
 }
 
 // optimizeDocumentProcessing optimizes document processing performance.
 
 func (po *PerformanceOptimizer) optimizeDocumentProcessing(pipeline *RAGPipeline, task *OptimizationTask) error {
-
 	po.logger.Info("Optimizing document processing")
 
 	// Enable streaming for large documents.
@@ -705,9 +632,7 @@ func (po *PerformanceOptimizer) optimizeDocumentProcessing(pipeline *RAGPipeline
 	// Optimize chunking batch sizes.
 
 	if pipeline.config.ChunkingConfig != nil {
-
 		pipeline.config.ChunkingConfig.BatchSize = min(pipeline.config.ChunkingConfig.BatchSize, 25)
-
 	}
 
 	task.Status = "completed"
@@ -715,13 +640,11 @@ func (po *PerformanceOptimizer) optimizeDocumentProcessing(pipeline *RAGPipeline
 	task.Result = "Document processing optimization applied: streaming enabled, batch sizes optimized"
 
 	return nil
-
 }
 
 // startAutoOptimization starts the background optimization process.
 
 func (po *PerformanceOptimizer) startAutoOptimization() {
-
 	ticker := time.NewTicker(po.config.OptimizationInterval)
 
 	defer ticker.Stop()
@@ -729,21 +652,17 @@ func (po *PerformanceOptimizer) startAutoOptimization() {
 	po.logger.Info("Started auto-optimization", "interval", po.config.OptimizationInterval)
 
 	for range ticker.C {
-
 		// This would require access to the pipeline instance.
 
 		// In a real implementation, this would be injected or made available.
 
 		po.logger.Debug("Auto-optimization tick")
-
 	}
-
 }
 
 // GetActiveOptimizations returns currently running optimizations.
 
 func (po *PerformanceOptimizer) GetActiveOptimizations() map[string]*OptimizationTask {
-
 	po.mutex.RLock()
 
 	defer po.mutex.RUnlock()
@@ -761,19 +680,16 @@ func (po *PerformanceOptimizer) GetActiveOptimizations() map[string]*Optimizatio
 	}
 
 	return result
-
 }
 
 // GetPerformanceReport generates a comprehensive performance report.
 
 func (po *PerformanceOptimizer) GetPerformanceReport() *OptimizerPerformanceReport {
-
 	metrics := po.CollectMetrics()
 
 	activeOpts := po.GetActiveOptimizations()
 
 	return &OptimizerPerformanceReport{
-
 		GeneratedAt: time.Now(),
 
 		CurrentMetrics: metrics,
@@ -784,7 +700,6 @@ func (po *PerformanceOptimizer) GetPerformanceReport() *OptimizerPerformanceRepo
 
 		HealthScore: po.calculateHealthScore(metrics),
 	}
-
 }
 
 // OptimizerPerformanceReport represents a comprehensive performance report.
@@ -799,153 +714,109 @@ type OptimizerPerformanceReport struct {
 	Recommendations []string `json:"recommendations"`
 
 	HealthScore float64 `json:"health_score"` // 0.0-1.0
-
 }
 
 // generateRecommendations generates performance recommendations.
 
 func (po *PerformanceOptimizer) generateRecommendations(metrics *PerformanceMetrics) []string {
-
 	var recommendations []string
 
 	if metrics.MemoryUsage > 0.8 {
-
 		recommendations = append(recommendations, "Consider increasing available memory or optimizing memory usage")
-
 	}
 
 	if metrics.CacheHitRate < 0.7 {
-
 		recommendations = append(recommendations, "Improve cache strategies and consider cache warming")
-
 	}
 
 	if metrics.AverageLatency > po.config.LatencyThreshold {
-
 		recommendations = append(recommendations, "Optimize request processing and consider connection pooling")
-
 	}
 
 	if metrics.ErrorRate > 0.05 { // 5% error rate
 
 		recommendations = append(recommendations, "Investigate and resolve sources of errors")
-
 	}
 
 	if len(recommendations) == 0 {
-
 		recommendations = append(recommendations, "System performance is within acceptable parameters")
-
 	}
 
 	return recommendations
-
 }
 
 // calculateHealthScore calculates an overall health score.
 
 func (po *PerformanceOptimizer) calculateHealthScore(metrics *PerformanceMetrics) float64 {
-
 	score := 1.0
 
 	// Memory usage impact.
 
 	if metrics.MemoryUsage > 0.8 {
-
 		score -= 0.2
-
 	} else if metrics.MemoryUsage > 0.6 {
-
 		score -= 0.1
-
 	}
 
 	// CPU usage impact.
 
 	if metrics.CPUUsage > 0.8 {
-
 		score -= 0.2
-
 	} else if metrics.CPUUsage > 0.6 {
-
 		score -= 0.1
-
 	}
 
 	// Latency impact.
 
 	if metrics.AverageLatency > po.config.LatencyThreshold {
-
 		score -= 0.3
-
 	}
 
 	// Error rate impact.
 
 	if metrics.ErrorRate > 0.1 {
-
 		score -= 0.3
-
 	} else if metrics.ErrorRate > 0.05 {
-
 		score -= 0.2
-
 	}
 
 	// Cache efficiency impact.
 
 	if metrics.CacheHitRate < 0.5 {
-
 		score -= 0.2
-
 	} else if metrics.CacheHitRate < 0.7 {
-
 		score -= 0.1
-
 	}
 
 	if score < 0 {
-
 		score = 0
-
 	}
 
 	return score
-
 }
 
 // Helper function for minimum duration calculation.
 
 func minDuration(a, b time.Duration) time.Duration {
-
 	if a < b {
-
 		return a
-
 	}
 
 	return b
-
 }
 
 // copyDurations creates a copy of duration slice.
 
 func copyDurations(original []time.Duration) []time.Duration {
-
 	if original == nil {
-
 		return nil
-
 	}
 
 	copy := make([]time.Duration, len(original))
 
 	for i, v := range original {
-
 		copy[i] = v
-
 	}
 
 	return copy
-
 }

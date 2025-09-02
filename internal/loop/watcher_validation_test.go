@@ -37,7 +37,7 @@ func TestWatcherValidationSuite(t *testing.T) {
 func (s *WatcherValidationTestSuite) SetupTest() {
 	s.tempDir = s.T().TempDir()
 	outDir := filepath.Join(s.tempDir, "out")
-	s.Require().NoError(os.MkdirAll(outDir, 0755))
+	s.Require().NoError(os.MkdirAll(outDir, 0o755))
 
 	s.porchPath = createMockPorch(s.T(), s.tempDir, 0, "processed successfully", "")
 	s.config = Config{
@@ -80,7 +80,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_CreateFollowed
 	time.Sleep(100 * time.Millisecond)
 
 	// Simulate CREATE event followed by WRITE event rapidly
-	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Trigger events manually to simulate filesystem behavior
 	watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
@@ -179,7 +179,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 			time.Sleep(50 * time.Millisecond) // Let watcher start
 
 			// First event
-			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
 
 			// Wait specified gap
@@ -187,7 +187,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 
 			// Second event - update file content to trigger processing
 			testContent2 := `{"apiVersion": "v1", "kind": "NetworkIntent", "updated": true}`
-			require.NoError(t, os.WriteFile(testFile, []byte(testContent2), 0644))
+			require.NoError(t, os.WriteFile(testFile, []byte(testContent2), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Write)
 
 			// Wait for processing to complete
@@ -224,7 +224,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_ConcurrentEven
 
 	initialStats := watcher.executor.GetStats()
 
-	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
+	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Simulate multiple concurrent events for the same file
 	numEvents := 10
@@ -369,7 +369,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_SyncOncePattern()
 			// Simulate the sync.Once pattern
 			once.Do(func() {
 				atomic.AddInt64(&actualMkdirCalls, 1)
-				os.MkdirAll(targetDir, 0755)
+				os.MkdirAll(targetDir, 0o755)
 			})
 		}()
 	}
@@ -523,7 +523,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_ValidNetworkIntentStruct
 			fileName := fmt.Sprintf("intent-%s.json", tc.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tc.content), 0644)
+			err := os.WriteFile(filePath, []byte(tc.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -618,7 +618,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 			fileName := fmt.Sprintf("intent-invalid-%s.json", tc.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tc.content), 0644)
+			err := os.WriteFile(filePath, []byte(tc.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -674,8 +674,8 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 	for _, tc := range maliciousPaths {
 		s.T().Run(tc.name, func(t *testing.T) {
 			// Try to create the malicious file
-			os.MkdirAll(filepath.Dir(tc.path), 0755)
-			os.WriteFile(tc.path, []byte(validContent), 0644)
+			os.MkdirAll(filepath.Dir(tc.path), 0o755)
+			os.WriteFile(tc.path, []byte(validContent), 0o644)
 
 			err := watcher.validatePath(tc.path)
 			assert.Error(t, err, "Should reject path traversal: %s", tc.desc)
@@ -787,9 +787,9 @@ func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
 			if strings.Contains(tc.path, s.tempDir) || (!strings.Contains(tc.path, ":") && !strings.HasPrefix(tc.path, "\\\\")) {
 				// Create parent directories
 				if dir := filepath.Dir(tc.path); dir != "." {
-					os.MkdirAll(dir, 0755)
+					os.MkdirAll(dir, 0o755)
 				}
-				os.WriteFile(tc.path, []byte(validContent), 0644)
+				os.WriteFile(tc.path, []byte(validContent), 0o644)
 			}
 
 			err := watcher.validatePath(tc.path)
@@ -839,7 +839,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				// Create valid JSON of specified size
 				padding := strings.Repeat("x", tt.size-100)
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				require.NoError(t, err)
 			} else {
 				// Create oversized file with well-formed JSON
@@ -852,7 +852,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				padding := strings.Repeat("A", paddingSize)
 				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
 
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				err := os.WriteFile(filePath, []byte(content), 0o644)
 				require.NoError(t, err)
 			}
 
@@ -896,7 +896,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 			filePath := filepath.Join(s.tempDir, pattern)
 
 			// Create the file
-			os.WriteFile(filePath, []byte(validContent), 0644)
+			os.WriteFile(filePath, []byte(validContent), 0o644)
 
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", pattern)
@@ -1067,7 +1067,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_ComplexIntentValidation(
 			fileName := fmt.Sprintf("intent-complex-%s.json", tc.name)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			err := os.WriteFile(filePath, []byte(tc.content), 0644)
+			err := os.WriteFile(filePath, []byte(tc.content), 0o644)
 			require.NoError(t, err)
 
 			err = watcher.validateJSONFile(filePath)
@@ -1109,7 +1109,7 @@ func (s *WatcherValidationTestSuite) TestIntegration_DebouncingWithValidation() 
 	// Write invalid JSON multiple times rapidly
 	invalidContent := `{"apiVersion": "v1", "kind": "InvalidKind"`
 	for i := 0; i < 5; i++ {
-		s.Require().NoError(os.WriteFile(testFile, []byte(invalidContent), 0644))
+		s.Require().NoError(os.WriteFile(testFile, []byte(invalidContent), 0o644))
 		watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Write)
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -1171,7 +1171,7 @@ func (s *WatcherValidationTestSuite) TestIntegration_ConcurrentDirectoryAndFileP
 			fileName := fmt.Sprintf("intent-concurrent-%d.json", fileID)
 			filePath := filepath.Join(s.tempDir, fileName)
 
-			s.Require().NoError(os.WriteFile(filePath, []byte(validContent), 0644))
+			s.Require().NoError(os.WriteFile(filePath, []byte(validContent), 0o644))
 			watcher.handleIntentFileWithEnhancedDebounce(filePath, fsnotify.Create)
 		}(i)
 
@@ -1240,7 +1240,7 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 	}`
 
 	testFile := filepath.Join(tempDir, "intent-bench.json")
-	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0644))
+	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0o644))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1284,7 +1284,7 @@ func BenchmarkWatcherValidation_EventDebouncing(b *testing.B) {
 
 	testFile := filepath.Join(tempDir, "intent-debounce-bench.json")
 	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
-	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0644))
+	require.NoError(b, os.WriteFile(testFile, []byte(validContent), 0o644))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

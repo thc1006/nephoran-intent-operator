@@ -36,7 +36,7 @@ func TestConcurrentStateStress(t *testing.T) {
 	for i := 0; i < numFiles; i++ {
 		filename := fmt.Sprintf("stress-file-%d.json", i)
 		testFile := filepath.Join(tempDir, filename)
-		err := os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d}`, i)), 0644)
+		err := os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d}`, i)), 0o644)
 		require.NoError(t, err)
 		files = append(files, filename)
 	}
@@ -106,7 +106,7 @@ func TestConcurrentStateStress(t *testing.T) {
 					os.Remove(testFile) // Ignore error if already deleted
 					// Sometimes recreate it
 					if rng.Float32() > 0.5 {
-						os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d, "new": true}`, fileIdx)), 0644)
+						os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d, "new": true}`, fileIdx)), 0o644)
 					}
 					successfulOps.Add(1)
 				}
@@ -169,7 +169,7 @@ func TestRapidFileChurn(t *testing.T) {
 				return
 			default:
 				// Create file
-				os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+				os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 				time.Sleep(time.Millisecond)
 				// Delete file
 				os.Remove(testFile)
@@ -222,7 +222,7 @@ func TestConcurrentHashCalculation(t *testing.T) {
 	numWorkers := 10
 
 	// Create initial file
-	err = os.WriteFile(testFile, []byte(`{"version": 1}`), 0644)
+	err = os.WriteFile(testFile, []byte(`{"version": 1}`), 0o644)
 	require.NoError(t, err)
 
 	// Workers that calculate hash while file is being modified
@@ -246,14 +246,14 @@ func TestConcurrentHashCalculation(t *testing.T) {
 				// Sometimes modify the file
 				if i%5 == 0 {
 					content := fmt.Sprintf(`{"version": %d, "worker": %d}`, i, workerID)
-					os.WriteFile(testFile, []byte(content), 0644)
+					os.WriteFile(testFile, []byte(content), 0o644)
 				}
 
 				// Sometimes delete the file
 				if i%7 == 0 {
 					os.Remove(testFile)
 					// Recreate it
-					os.WriteFile(testFile, []byte(`{"version": "new"}`), 0644)
+					os.WriteFile(testFile, []byte(`{"version": "new"}`), 0o644)
 				}
 			}
 		}(w)
@@ -283,7 +283,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 				newFile := filepath.Join(tempDir, newName)
 
 				// Create file
-				err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+				err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 				require.NoError(t, err)
 
 				// Mark as processed with old name
@@ -313,7 +313,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 		testFile := filepath.Join(tempDir, filename)
 
 		// Create file
-		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0644)
+		err := os.WriteFile(testFile, []byte(`{"test": true}`), 0o644)
 		require.NoError(t, err)
 
 		var wg sync.WaitGroup

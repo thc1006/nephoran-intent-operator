@@ -84,7 +84,6 @@ type LLMLatencyDataPoint struct {
 // PerformanceMetrics holds all performance-related metrics.
 
 type PerformanceMetrics struct {
-
 	// Prometheus metrics.
 
 	requestLatencyHistogram *prometheus.HistogramVec
@@ -161,11 +160,8 @@ type BatchConfig struct {
 // NewPerformanceOptimizer creates a new performance optimizer.
 
 func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
-
 	if config == nil {
-
 		config = getDefaultPerformanceConfig()
-
 	}
 
 	logger := slog.Default().With("component", "performance-optimizer")
@@ -175,7 +171,6 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	meter := otel.Meter("nephoran-intent-operator/llm")
 
 	po := &PerformanceOptimizer{
-
 		logger: logger,
 
 		tracer: tracer,
@@ -196,7 +191,6 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	// Initialize circuit breaker.
 
 	cbConfig := CircuitBreakerConfig{
-
 		FailureThreshold: int64(config.CircuitBreakerConfig.FailureThreshold),
 
 		SuccessThreshold: int64(config.CircuitBreakerConfig.SuccessThreshold),
@@ -238,15 +232,12 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	go po.optimizationRoutine()
 
 	return po
-
 }
 
 // getDefaultPerformanceConfig returns default performance configuration.
 
 func getDefaultPerformanceConfig() *PerformanceConfig {
-
 	return &PerformanceConfig{
-
 		LatencyBufferSize: 10000,
 
 		OptimizationInterval: time.Minute,
@@ -258,7 +249,6 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		TraceSamplingRatio: 0.1,
 
 		CircuitBreakerConfig: OptimizerCircuitBreakerConfig{
-
 			FailureThreshold: 5,
 
 			SuccessThreshold: 3,
@@ -271,7 +261,6 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		},
 
 		BatchProcessingConfig: BatchConfig{
-
 			MaxBatchSize: 10,
 
 			BatchTimeout: 100 * time.Millisecond,
@@ -281,19 +270,15 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 			EnablePrioritization: true,
 		},
 	}
-
 }
 
 // initializeMetrics sets up Prometheus and OpenTelemetry metrics.
 
 func (po *PerformanceOptimizer) initializeMetrics() {
-
 	// Prometheus metrics.
 
 	po.metrics = &PerformanceMetrics{
-
 		requestLatencyHistogram: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "llm_request_duration_seconds",
 
 			Help: "Duration of LLM requests in seconds",
@@ -302,28 +287,24 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 		}, []string{"intent_type", "model_name", "success", "cache_hit"}),
 
 		tokenUsageCounter: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_tokens_total",
 
 			Help: "Total number of tokens processed",
 		}, []string{"model_name", "token_type", "intent_type"}),
 
 		tokenCostGauge: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_token_cost_usd",
 
 			Help: "Cost of token usage in USD",
 		}, []string{"model_name", "token_type"}),
 
 		circuitBreakerStateGauge: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_circuit_breaker_state",
 
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
 		}, []string{"backend"}),
 
 		batchProcessingHistogram: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "llm_batch_processing_duration_seconds",
 
 			Help: "Duration of batch processing operations",
@@ -332,21 +313,18 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 		}, []string{"batch_size_range"}),
 
 		requestThroughputCounter: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_requests_per_second_total",
 
 			Help: "Request throughput per second",
 		}, []string{"intent_type", "model_name"}),
 
 		errorRateCounter: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "llm_errors_total",
 
 			Help: "Total number of LLM request errors",
 		}, []string{"error_type", "model_name"}),
 
 		cacheHitRateGauge: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "llm_cache_hit_rate",
 
 			Help: "Cache hit rate percentage",
@@ -365,11 +343,8 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 
 		metric.WithUnit("s"),
 	)
-
 	if err != nil {
-
 		po.logger.Error("Failed to create OpenTelemetry latency histogram", "error", err)
-
 	}
 
 	po.metrics.tokenUsageCounterOTel, err = po.meter.Int64Counter(
@@ -378,11 +353,8 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 
 		metric.WithDescription("Total number of tokens processed"),
 	)
-
 	if err != nil {
-
 		po.logger.Error("Failed to create OpenTelemetry token counter", "error", err)
-
 	}
 
 	po.metrics.circuitBreakerCounterOTel, err = po.meter.Int64Counter(
@@ -391,11 +363,8 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 
 		metric.WithDescription("Circuit breaker state changes"),
 	)
-
 	if err != nil {
-
 		po.logger.Error("Failed to create OpenTelemetry circuit breaker counter", "error", err)
-
 	}
 
 	po.metrics.batchSizeHistogramOTel, err = po.meter.Int64Histogram(
@@ -404,19 +373,14 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 
 		metric.WithDescription("Batch size distribution"),
 	)
-
 	if err != nil {
-
 		po.logger.Error("Failed to create OpenTelemetry batch size histogram", "error", err)
-
 	}
-
 }
 
 // RecordLatency records a latency data point.
 
 func (po *PerformanceOptimizer) RecordLatency(ctx context.Context, dataPoint LLMLatencyDataPoint) {
-
 	po.bufferMutex.Lock()
 
 	defer po.bufferMutex.Unlock()
@@ -440,17 +404,14 @@ func (po *PerformanceOptimizer) RecordLatency(ctx context.Context, dataPoint LLM
 	// Update metrics.
 
 	po.updateMetrics(ctx, dataPoint)
-
 }
 
 // updateMetrics updates Prometheus and OpenTelemetry metrics.
 
 func (po *PerformanceOptimizer) updateMetrics(ctx context.Context, dataPoint LLMLatencyDataPoint) {
-
 	// Prometheus metrics.
 
 	labels := prometheus.Labels{
-
 		"intent_type": dataPoint.IntentType,
 
 		"model_name": dataPoint.ModelName,
@@ -467,7 +428,6 @@ func (po *PerformanceOptimizer) updateMetrics(ctx context.Context, dataPoint LLM
 	if dataPoint.TokenCount > 0 {
 
 		tokenLabels := prometheus.Labels{
-
 			"model_name": dataPoint.ModelName,
 
 			"token_type": "total",
@@ -484,7 +444,6 @@ func (po *PerformanceOptimizer) updateMetrics(ctx context.Context, dataPoint LLM
 	if !dataPoint.Success && dataPoint.ErrorType != "" {
 
 		errorLabels := prometheus.Labels{
-
 			"error_type": dataPoint.ErrorType,
 
 			"model_name": dataPoint.ModelName,
@@ -497,7 +456,6 @@ func (po *PerformanceOptimizer) updateMetrics(ctx context.Context, dataPoint LLM
 	// OpenTelemetry metrics.
 
 	otelLabels := []attribute.KeyValue{
-
 		attribute.String("intent_type", dataPoint.IntentType),
 
 		attribute.String("model_name", dataPoint.ModelName),
@@ -510,25 +468,19 @@ func (po *PerformanceOptimizer) updateMetrics(ctx context.Context, dataPoint LLM
 	po.metrics.requestLatencyHistogramOTel.Record(ctx, dataPoint.Duration.Seconds(), metric.WithAttributes(otelLabels...))
 
 	if dataPoint.TokenCount > 0 {
-
 		po.metrics.tokenUsageCounterOTel.Add(ctx, int64(dataPoint.TokenCount), metric.WithAttributes(otelLabels...))
-
 	}
-
 }
 
 // GetLatencyProfile returns a comprehensive latency profile.
 
 func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
-
 	po.bufferMutex.RLock()
 
 	defer po.bufferMutex.RUnlock()
 
 	if len(po.latencyBuffer) == 0 {
-
 		return &LatencyProfile{}
-
 	}
 
 	// Create a copy for analysis.
@@ -540,13 +492,10 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	// Sort by duration.
 
 	sort.Slice(data, func(i, j int) bool {
-
 		return data[i].Duration < data[j].Duration
-
 	})
 
 	profile := &LatencyProfile{
-
 		TotalRequests: len(data),
 
 		Percentiles: calculatePercentiles(data),
@@ -556,7 +505,6 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 		ByModelName: make(map[string]*ModelProfile),
 
 		TimeRange: TimeRange{
-
 			Start: data[0].Timestamp,
 
 			End: data[len(data)-1].Timestamp,
@@ -568,13 +516,9 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	successCount := 0
 
 	for _, dp := range data {
-
 		if dp.Success {
-
 			successCount++
-
 		}
-
 	}
 
 	profile.SuccessRate = float64(successCount) / float64(len(data))
@@ -584,22 +528,17 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	intentGroups := make(map[string][]LLMLatencyDataPoint)
 
 	for _, dp := range data {
-
 		intentGroups[dp.IntentType] = append(intentGroups[dp.IntentType], dp)
-
 	}
 
 	for intentType, group := range intentGroups {
-
 		profile.ByIntentType[intentType] = &IntentTypeProfile{
-
 			Count: len(group),
 
 			Percentiles: calculatePercentiles(group),
 
 			SuccessRate: calculateSuccessRate(group),
 		}
-
 	}
 
 	// Group by model.
@@ -607,15 +546,11 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	modelGroups := make(map[string][]LLMLatencyDataPoint)
 
 	for _, dp := range data {
-
 		modelGroups[dp.ModelName] = append(modelGroups[dp.ModelName], dp)
-
 	}
 
 	for modelName, group := range modelGroups {
-
 		profile.ByModelName[modelName] = &ModelProfile{
-
 			Count: len(group),
 
 			Percentiles: calculatePercentiles(group),
@@ -624,11 +559,9 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 
 			AvgTokenCount: calculateAvgTokenCount(group),
 		}
-
 	}
 
 	return profile
-
 }
 
 // LatencyProfile represents a comprehensive latency analysis.
@@ -694,23 +627,18 @@ type TimeRange struct {
 // optimizationRoutine runs background optimization tasks.
 
 func (po *PerformanceOptimizer) optimizationRoutine() {
-
 	ticker := time.NewTicker(po.config.OptimizationInterval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		po.performOptimization()
-
 	}
-
 }
 
 // performOptimization analyzes performance data and makes optimizations.
 
 func (po *PerformanceOptimizer) performOptimization() {
-
 	profile := po.GetLatencyProfile()
 
 	// Log performance insights.
@@ -731,21 +659,17 @@ func (po *PerformanceOptimizer) performOptimization() {
 	// Adaptive circuit breaker tuning.
 
 	if po.config.CircuitBreakerConfig.EnableAdaptiveTimeout {
-
 		po.adaptCircuitBreakerTimeout(profile)
-
 	}
 
 	// Update cache hit rate metrics.
 
 	po.updateCacheMetrics()
-
 }
 
 // adaptCircuitBreakerTimeout adjusts circuit breaker timeout based on latency patterns.
 
 func (po *PerformanceOptimizer) adaptCircuitBreakerTimeout(profile *LatencyProfile) {
-
 	// Use P95 latency + buffer as the new timeout.
 
 	adaptiveTimeout := profile.Percentiles.P95 + (profile.Percentiles.P95 / 2)
@@ -757,13 +681,9 @@ func (po *PerformanceOptimizer) adaptCircuitBreakerTimeout(profile *LatencyProfi
 	maxTimeout := 60 * time.Second
 
 	if adaptiveTimeout < minTimeout {
-
 		adaptiveTimeout = minTimeout
-
 	} else if adaptiveTimeout > maxTimeout {
-
 		adaptiveTimeout = maxTimeout
-
 	}
 
 	// Update circuit breaker configuration.
@@ -776,53 +696,40 @@ func (po *PerformanceOptimizer) adaptCircuitBreakerTimeout(profile *LatencyProfi
 
 		"p95_latency", profile.Percentiles.P95,
 	)
-
 }
 
 // updateCacheMetrics updates cache-related metrics.
 
 func (po *PerformanceOptimizer) updateCacheMetrics() {
-
 	po.bufferMutex.RLock()
 
 	defer po.bufferMutex.RUnlock()
 
 	if len(po.latencyBuffer) == 0 {
-
 		return
-
 	}
 
 	cacheHits := 0
 
 	for _, dp := range po.latencyBuffer {
-
 		if dp.CacheHit {
-
 			cacheHits++
-
 		}
-
 	}
 
 	hitRate := float64(cacheHits) / float64(len(po.latencyBuffer)) * 100
 
 	po.metrics.cacheHitRateGauge.WithLabelValues("response").Set(hitRate)
-
 }
 
 // Helper functions.
 
 func calculatePercentiles(data []LLMLatencyDataPoint) LatencyPercentiles {
-
 	if len(data) == 0 {
-
 		return LatencyPercentiles{}
-
 	}
 
 	return LatencyPercentiles{
-
 		P50: data[int(float64(len(data))*0.50)].Duration,
 
 		P75: data[int(float64(len(data))*0.75)].Duration,
@@ -833,89 +740,64 @@ func calculatePercentiles(data []LLMLatencyDataPoint) LatencyPercentiles {
 
 		P99: data[int(float64(len(data))*0.99)].Duration,
 	}
-
 }
 
 func calculateSuccessRate(data []LLMLatencyDataPoint) float64 {
-
 	if len(data) == 0 {
-
 		return 0
-
 	}
 
 	successCount := 0
 
 	for _, dp := range data {
-
 		if dp.Success {
-
 			successCount++
-
 		}
-
 	}
 
 	return float64(successCount) / float64(len(data))
-
 }
 
 func calculateAvgTokenCount(data []LLMLatencyDataPoint) float64 {
-
 	if len(data) == 0 {
-
 		return 0
-
 	}
 
 	totalTokens := 0
 
 	for _, dp := range data {
-
 		totalTokens += dp.TokenCount
-
 	}
 
 	return float64(totalTokens) / float64(len(data))
-
 }
 
 // GetMetrics returns the current metrics.
 
 func (po *PerformanceOptimizer) GetMetrics() *PerformanceMetrics {
-
 	return po.metrics
-
 }
 
 // GetCircuitBreaker returns the circuit breaker instance.
 
 func (po *PerformanceOptimizer) GetCircuitBreaker() *AdvancedCircuitBreaker {
-
 	return po.circuitBreaker
-
 }
 
 // GetBatchProcessor returns the batch processor instance.
 
 func (po *PerformanceOptimizer) GetBatchProcessor() BatchProcessor {
-
 	return po.batchProcessor
-
 }
 
 // Close gracefully shuts down the performance optimizer.
 
 func (po *PerformanceOptimizer) Close() error {
-
 	po.logger.Info("Shutting down performance optimizer")
 
 	if po.batchProcessor != nil {
-
 		po.batchProcessor.Close()
-
 	}
 
 	return nil
-
 }

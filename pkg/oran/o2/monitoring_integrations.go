@@ -239,7 +239,6 @@ type ThresholdSpec struct {
 	Color string `json:"color"`
 
 	Operation string `json:"operation"` // gt, lt, eq
-
 }
 
 // GridPosition position and size of a panel in the dashboard grid.
@@ -301,29 +300,21 @@ type MetricData struct {
 // NewMonitoringIntegrations creates a new monitoring integrations service.
 
 func NewMonitoringIntegrations(
-
 	config *MonitoringIntegrationConfig,
 
 	logger *logging.StructuredLogger,
-
 ) (*MonitoringIntegrations, error) {
-
 	if config == nil {
-
 		config = DefaultMonitoringIntegrationConfig()
-
 	}
 
 	if logger == nil {
-
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("monitoring-integrations", "1.0.0", "production"))
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	integrations := &MonitoringIntegrations{
-
 		config: config,
 
 		logger: logger,
@@ -354,17 +345,13 @@ func NewMonitoringIntegrations(
 	}
 
 	return integrations, nil
-
 }
 
 // DefaultMonitoringIntegrationConfig returns default configuration.
 
 func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
-
 	return &MonitoringIntegrationConfig{
-
 		PrometheusConfig: &PrometheusConfig{
-
 			Enabled: true,
 
 			Endpoint: "http://prometheus:9090",
@@ -375,7 +362,6 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 		},
 
 		GrafanaConfig: &GrafanaConfig{
-
 			Enabled: true,
 
 			Endpoint: "http://grafana:3000",
@@ -386,7 +372,6 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 		},
 
 		AlertmanagerConfig: &AlertmanagerConfig{
-
 			Enabled: true,
 
 			Endpoints: []string{"http://alertmanager:9093"},
@@ -395,14 +380,12 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 		},
 
 		JaegerConfig: &JaegerConfig{
-
 			Enabled: true,
 
 			Endpoint: "http://jaeger:14268",
 		},
 
 		EventProcessingConfig: &EventProcessingConfig{
-
 			Enabled: true,
 
 			BatchSize: 100,
@@ -415,7 +398,6 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 		},
 
 		DashboardConfig: &DashboardConfig{
-
 			Enabled: true,
 
 			AutoDeploy: true,
@@ -423,26 +405,20 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 			UpdateInterval: 5 * time.Minute,
 		},
 	}
-
 }
 
 // initializeClients initializes monitoring system clients.
 
 func (m *MonitoringIntegrations) initializeClients() error {
-
 	// Initialize Prometheus client.
 
 	if m.config.PrometheusConfig.Enabled {
 
 		client, err := api.NewClient(api.Config{
-
 			Address: m.config.PrometheusConfig.Endpoint,
 		})
-
 		if err != nil {
-
 			return fmt.Errorf("failed to create Prometheus client: %w", err)
-
 		}
 
 		m.prometheusClient = v1.NewAPI(client)
@@ -496,13 +472,11 @@ func (m *MonitoringIntegrations) initializeClients() error {
 	}
 
 	return nil
-
 }
 
 // initializeProcessors initializes event and alert processors.
 
 func (m *MonitoringIntegrations) initializeProcessors() error {
-
 	// Initialize event processor.
 
 	if m.config.EventProcessingConfig.Enabled {
@@ -530,83 +504,61 @@ func (m *MonitoringIntegrations) initializeProcessors() error {
 	}
 
 	return nil
-
 }
 
 // Start starts the monitoring integrations service.
 
 func (m *MonitoringIntegrations) Start(ctx context.Context) error {
-
 	m.logger.Info("starting monitoring integrations service")
 
 	// Deploy default dashboards.
 
 	if m.config.DashboardConfig.Enabled && m.config.DashboardConfig.AutoDeploy {
-
 		if err := m.deployDefaultDashboards(); err != nil {
-
 			m.logger.Error("failed to deploy default dashboards", "error", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // Stop stops the monitoring integrations service.
 
 func (m *MonitoringIntegrations) Stop() error {
-
 	m.logger.Info("stopping monitoring integrations service")
 
 	m.cancel()
 
 	return nil
-
 }
 
 // QueryMetrics queries metrics from Prometheus.
 
 func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string, timestamp time.Time) (model.Value, error) {
-
 	if !m.config.PrometheusConfig.Enabled {
-
 		return nil, fmt.Errorf("Prometheus client not enabled")
-
 	}
 
 	result, warnings, err := m.prometheusClient.Query(ctx, query, timestamp)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to query Prometheus: %w", err)
-
 	}
 
 	if len(warnings) > 0 {
-
 		m.logger.Warn("Prometheus query warnings", "warnings", warnings)
-
 	}
 
 	return result, nil
-
 }
 
 // QueryRangeMetrics queries range metrics from Prometheus.
 
 func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query string, start, end time.Time, step time.Duration) (model.Value, error) {
-
 	if !m.config.PrometheusConfig.Enabled {
-
 		return nil, fmt.Errorf("Prometheus client not enabled")
-
 	}
 
 	r := v1.Range{
-
 		Start: start,
 
 		End: end,
@@ -615,99 +567,71 @@ func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query st
 	}
 
 	result, warnings, err := m.prometheusClient.QueryRange(ctx, query, r)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to query Prometheus range: %w", err)
-
 	}
 
 	if len(warnings) > 0 {
-
 		m.logger.Warn("Prometheus query range warnings", "warnings", warnings)
-
 	}
 
 	return result, nil
-
 }
 
 // CreateDashboard creates a new Grafana dashboard.
 
 func (m *MonitoringIntegrations) CreateDashboard(ctx context.Context, spec *DashboardSpec) error {
-
 	if !m.config.GrafanaConfig.Enabled {
-
 		return fmt.Errorf("Grafana client not enabled")
-
 	}
 
 	return m.grafanaClient.CreateDashboard(ctx, spec)
-
 }
 
 // UpdateDashboard updates an existing Grafana dashboard.
 
 func (m *MonitoringIntegrations) UpdateDashboard(ctx context.Context, spec *DashboardSpec) error {
-
 	if !m.config.GrafanaConfig.Enabled {
-
 		return fmt.Errorf("Grafana client not enabled")
-
 	}
 
 	return m.grafanaClient.UpdateDashboard(ctx, spec)
-
 }
 
 // DeleteDashboard deletes a Grafana dashboard.
 
 func (m *MonitoringIntegrations) DeleteDashboard(ctx context.Context, name string) error {
-
 	if !m.config.GrafanaConfig.Enabled {
-
 		return fmt.Errorf("Grafana client not enabled")
-
 	}
 
 	return m.grafanaClient.DeleteDashboard(ctx, name)
-
 }
 
 // CreateAlertRule creates a new alert rule.
 
 func (m *MonitoringIntegrations) CreateAlertRule(ctx context.Context, rule *AlertRule) error {
-
 	if !m.config.AlertmanagerConfig.Enabled {
-
 		return fmt.Errorf("Alertmanager client not enabled")
-
 	}
 
 	return m.alertmanagerClient.CreateAlertRule(ctx, rule)
-
 }
 
 // ProcessEvent processes a monitoring event.
 
 func (m *MonitoringIntegrations) ProcessEvent(ctx context.Context, event *Event) error {
-
 	if m.eventProcessor == nil {
-
 		return fmt.Errorf("event processor not initialized")
-
 	}
 
 	return m.eventProcessor.ProcessEvent(ctx, event)
-
 }
 
 // GetInfrastructureHealth gets overall infrastructure health.
 
 func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*InfrastructureHealthSummary, error) {
-
 	summary := &InfrastructureHealthSummary{
-
 		OverallStatus: "healthy",
 
 		Timestamp: time.Now(),
@@ -720,7 +644,6 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 	// Query key health metrics.
 
 	healthQueries := map[string]string{
-
 		"node_health": "up{job=\"node-exporter\"}",
 
 		"cpu_utilization": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
@@ -733,7 +656,6 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 	for metricName, query := range healthQueries {
 
 		result, err := m.QueryMetrics(ctx, query, time.Now())
-
 		if err != nil {
 
 			m.logger.Error("failed to query health metric",
@@ -753,9 +675,7 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 		// This is simplified - in practice you'd process the actual results.
 
 		if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
-
 			summary.Metrics[metricName] = float64(vector[0].Value)
-
 		}
 
 	}
@@ -765,13 +685,11 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 	summary.OverallStatus = m.calculateOverallHealth(summary.Metrics)
 
 	return summary, nil
-
 }
 
 // calculateOverallHealth calculates overall health status from metrics.
 
 func (m *MonitoringIntegrations) calculateOverallHealth(metrics map[string]float64) string {
-
 	// Simple health calculation - in practice this would be more sophisticated.
 
 	cpuUtil := metrics["cpu_utilization"]
@@ -781,63 +699,47 @@ func (m *MonitoringIntegrations) calculateOverallHealth(metrics map[string]float
 	diskUtil := metrics["disk_utilization"]
 
 	if cpuUtil > 90 || memUtil > 90 || diskUtil > 95 {
-
 		return "critical"
-
 	} else if cpuUtil > 80 || memUtil > 80 || diskUtil > 85 {
-
 		return "warning"
-
 	}
 
 	return "healthy"
-
 }
 
 // deployDefaultDashboards deploys the default set of dashboards.
 
 func (m *MonitoringIntegrations) deployDefaultDashboards() error {
-
 	m.logger.Info("deploying default dashboards")
 
 	dashboards := m.getDefaultDashboards()
 
 	for _, dashboard := range dashboards {
-
 		if err := m.CreateDashboard(m.ctx, &dashboard); err != nil {
-
 			m.logger.Error("failed to deploy dashboard",
 
 				"dashboard", dashboard.Name,
 
 				"error", err)
-
 		} else {
-
 			m.logger.Info("deployed dashboard",
 
 				"dashboard", dashboard.Name,
 
 				"title", dashboard.Title)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // getDefaultDashboards returns the default set of dashboards.
 
 func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
-
 	return []DashboardSpec{
-
 		// Infrastructure Overview Dashboard.
 
 		{
-
 			Name: "infrastructure-overview",
 
 			Title: "Infrastructure Overview",
@@ -847,9 +749,7 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 			Tags: []string{"infrastructure", "overview"},
 
 			Panels: []PanelSpec{
-
 				{
-
 					Title: "Node Health",
 
 					Type: "stat",
@@ -862,7 +762,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "CPU Utilization",
 
 					Type: "graph",
@@ -875,7 +774,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "Memory Utilization",
 
 					Type: "graph",
@@ -888,7 +786,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "Disk Utilization",
 
 					Type: "graph",
@@ -907,7 +804,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 		// Telecommunications KPIs Dashboard.
 
 		{
-
 			Name: "telco-kpis",
 
 			Title: "Telecommunications KPIs",
@@ -917,9 +813,7 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 			Tags: []string{"telecommunications", "kpi", "5g", "oran"},
 
 			Panels: []PanelSpec{
-
 				{
-
 					Title: "PRB Utilization",
 
 					Type: "graph",
@@ -931,7 +825,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 					GridPos: GridPosition{X: 0, Y: 0, Width: 6, Height: 4},
 
 					Thresholds: []ThresholdSpec{
-
 						{Value: 80, Color: "yellow", Operation: "gt"},
 
 						{Value: 90, Color: "red", Operation: "gt"},
@@ -939,7 +832,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "Handover Success Rate",
 
 					Type: "stat",
@@ -951,7 +843,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 					GridPos: GridPosition{X: 6, Y: 0, Width: 6, Height: 4},
 
 					Thresholds: []ThresholdSpec{
-
 						{Value: 95, Color: "red", Operation: "lt"},
 
 						{Value: 98, Color: "yellow", Operation: "lt"},
@@ -959,7 +850,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "Session Setup Time",
 
 					Type: "graph",
@@ -972,7 +862,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "Packet Loss Rate",
 
 					Type: "graph",
@@ -984,7 +873,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 					GridPos: GridPosition{X: 18, Y: 0, Width: 6, Height: 4},
 
 					Thresholds: []ThresholdSpec{
-
 						{Value: 0.1, Color: "yellow", Operation: "gt"},
 
 						{Value: 1.0, Color: "red", Operation: "gt"},
@@ -998,7 +886,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 		// CNF Management Dashboard.
 
 		{
-
 			Name: "cnf-management",
 
 			Title: "Cloud-Native Network Functions",
@@ -1008,9 +895,7 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 			Tags: []string{"cnf", "kubernetes", "containers"},
 
 			Panels: []PanelSpec{
-
 				{
-
 					Title: "CNF Instances",
 
 					Type: "stat",
@@ -1023,7 +908,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "CNF CPU Usage",
 
 					Type: "graph",
@@ -1036,7 +920,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "CNF Memory Usage",
 
 					Type: "graph",
@@ -1049,7 +932,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 				},
 
 				{
-
 					Title: "Pod Restart Count",
 
 					Type: "graph",
@@ -1065,7 +947,6 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 			RefreshInterval: "15s",
 		},
 	}
-
 }
 
 // InfrastructureHealthSummary represents overall infrastructure health.
@@ -1099,87 +980,65 @@ type ComponentHealthStatus struct {
 // Stub constructor functions.
 
 func NewGrafanaClient(config *GrafanaConfig, logger *logging.StructuredLogger) *GrafanaClient {
-
 	return &GrafanaClient{}
-
 }
 
 // NewAlertmanagerClient performs newalertmanagerclient operation.
 
 func NewAlertmanagerClient(config *AlertmanagerConfig, logger *logging.StructuredLogger) *AlertmanagerClient {
-
 	return &AlertmanagerClient{}
-
 }
 
 // NewJaegerClient performs newjaegerclient operation.
 
 func NewJaegerClient(config *JaegerConfig, logger *logging.StructuredLogger) *JaegerClient {
-
 	return &JaegerClient{}
-
 }
 
 // NewEventProcessor performs neweventprocessor operation.
 
 func NewEventProcessor(config *EventProcessingConfig, logger *logging.StructuredLogger) *EventProcessor {
-
 	return &EventProcessor{}
-
 }
 
 // NewAlertProcessor performs newalertprocessor operation.
 
 func NewAlertProcessor(config *MonitoringIntegrationConfig, logger *logging.StructuredLogger) *AlertProcessor {
-
 	return &AlertProcessor{}
-
 }
 
 // NewDashboardManager performs newdashboardmanager operation.
 
 func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, logger *logging.StructuredLogger) *DashboardManager {
-
 	return &DashboardManager{}
-
 }
 
 // Stub methods for the client types.
 
 func (g *GrafanaClient) CreateDashboard(ctx context.Context, spec *DashboardSpec) error {
-
 	return nil
-
 }
 
 // UpdateDashboard performs updatedashboard operation.
 
 func (g *GrafanaClient) UpdateDashboard(ctx context.Context, spec *DashboardSpec) error {
-
 	return nil
-
 }
 
 // DeleteDashboard performs deletedashboard operation.
 
 func (g *GrafanaClient) DeleteDashboard(ctx context.Context, name string) error {
-
 	return nil
-
 }
 
 // CreateAlertRule performs createalertrule operation.
 
 func (a *AlertmanagerClient) CreateAlertRule(ctx context.Context, rule *AlertRule) error {
-
 	return nil
-
 }
 
 // ProcessEvent performs processevent operation.
 
 func (e *EventProcessor) ProcessEvent(ctx context.Context, event *Event) error {
-
 	return nil
-
 }

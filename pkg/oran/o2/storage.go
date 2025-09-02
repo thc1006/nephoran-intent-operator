@@ -14,7 +14,6 @@ import (
 // initializeStorage initializes the storage backend based on configuration.
 
 func (s *O2APIServer) initializeStorage() (O2IMSStorage, error) {
-
 	switch s.config.DatabaseType {
 
 	case "memory", "":
@@ -52,13 +51,11 @@ func (s *O2APIServer) initializeStorage() (O2IMSStorage, error) {
 		return nil, fmt.Errorf("unsupported database type: %s", s.config.DatabaseType)
 
 	}
-
 }
 
 // InMemoryStorage provides an in-memory implementation of O2IMSStorage for development and testing.
 
 type InMemoryStorage struct {
-
 	// Resource pools.
 
 	resourcePools map[string]*models.ResourcePool
@@ -105,9 +102,7 @@ type InMemoryStorage struct {
 // NewInMemoryStorage creates a new in-memory storage instance.
 
 func NewInMemoryStorage() O2IMSStorage {
-
 	return &InMemoryStorage{
-
 		resourcePools: make(map[string]*models.ResourcePool),
 
 		resourceTypes: make(map[string]*models.ResourceType),
@@ -122,7 +117,6 @@ func NewInMemoryStorage() O2IMSStorage {
 
 		cloudProviders: make(map[string]*CloudProviderConfig),
 	}
-
 }
 
 // Resource Pool storage implementation.
@@ -130,7 +124,6 @@ func NewInMemoryStorage() O2IMSStorage {
 // StoreResourcePool stores a resource pool.
 
 func (s *InMemoryStorage) StoreResourcePool(ctx context.Context, pool *models.ResourcePool) error {
-
 	s.rpMutex.Lock()
 
 	defer s.rpMutex.Unlock()
@@ -138,13 +131,11 @@ func (s *InMemoryStorage) StoreResourcePool(ctx context.Context, pool *models.Re
 	s.resourcePools[pool.ResourcePoolID] = pool
 
 	return nil
-
 }
 
 // GetResourcePool retrieves a resource pool by ID.
 
 func (s *InMemoryStorage) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
-
 	s.rpMutex.RLock()
 
 	defer s.rpMutex.RUnlock()
@@ -152,9 +143,7 @@ func (s *InMemoryStorage) GetResourcePool(ctx context.Context, poolID string) (*
 	pool, exists := s.resourcePools[poolID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("resource pool not found: %s", poolID)
-
 	}
 
 	// Return a copy to prevent modification.
@@ -162,13 +151,11 @@ func (s *InMemoryStorage) GetResourcePool(ctx context.Context, poolID string) (*
 	poolCopy := *pool
 
 	return &poolCopy, nil
-
 }
 
 // ListResourcePools lists resource pools with optional filtering.
 
 func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filters map[string]interface{}) ([]*models.ResourcePool, error) {
-
 	s.rpMutex.RLock()
 
 	defer s.rpMutex.RUnlock()
@@ -176,7 +163,6 @@ func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filters map[str
 	var pools []*models.ResourcePool
 
 	for _, pool := range s.resourcePools {
-
 		if s.matchesResourcePoolFilterMap(pool, filters) {
 
 			poolCopy := *pool
@@ -184,7 +170,6 @@ func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filters map[str
 			pools = append(pools, &poolCopy)
 
 		}
-
 	}
 
 	// Apply pagination if filters contain limit and offset.
@@ -200,29 +185,23 @@ func (s *InMemoryStorage) ListResourcePools(ctx context.Context, filters map[str
 	}
 
 	return pools, nil
-
 }
 
 // UpdateResourcePool updates a resource pool.
 
 func (s *InMemoryStorage) UpdateResourcePool(ctx context.Context, poolID string, pool *models.ResourcePool) error {
-
 	s.rpMutex.Lock()
 
 	defer s.rpMutex.Unlock()
 
 	if pool == nil || poolID == "" {
-
 		return fmt.Errorf("invalid pool or poolID")
-
 	}
 
 	_, exists := s.resourcePools[poolID]
 
 	if !exists {
-
 		return fmt.Errorf("resource pool not found: %s", poolID)
-
 	}
 
 	// Update the pool.
@@ -232,27 +211,22 @@ func (s *InMemoryStorage) UpdateResourcePool(ctx context.Context, poolID string,
 	s.resourcePools[poolID] = pool
 
 	return nil
-
 }
 
 // DeleteResourcePool deletes a resource pool.
 
 func (s *InMemoryStorage) DeleteResourcePool(ctx context.Context, poolID string) error {
-
 	s.rpMutex.Lock()
 
 	defer s.rpMutex.Unlock()
 
 	if _, exists := s.resourcePools[poolID]; !exists {
-
 		return fmt.Errorf("resource pool not found: %s", poolID)
-
 	}
 
 	delete(s.resourcePools, poolID)
 
 	return nil
-
 }
 
 // Resource Type storage implementation.
@@ -260,7 +234,6 @@ func (s *InMemoryStorage) DeleteResourcePool(ctx context.Context, poolID string)
 // StoreResourceType stores a resource type.
 
 func (s *InMemoryStorage) StoreResourceType(ctx context.Context, resourceType *models.ResourceType) error {
-
 	s.rtMutex.Lock()
 
 	defer s.rtMutex.Unlock()
@@ -268,13 +241,11 @@ func (s *InMemoryStorage) StoreResourceType(ctx context.Context, resourceType *m
 	s.resourceTypes[resourceType.ResourceTypeID] = resourceType
 
 	return nil
-
 }
 
 // GetResourceType retrieves a resource type by ID.
 
 func (s *InMemoryStorage) GetResourceType(ctx context.Context, typeID string) (*models.ResourceType, error) {
-
 	s.rtMutex.RLock()
 
 	defer s.rtMutex.RUnlock()
@@ -282,9 +253,7 @@ func (s *InMemoryStorage) GetResourceType(ctx context.Context, typeID string) (*
 	resourceType, exists := s.resourceTypes[typeID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("resource type not found: %s", typeID)
-
 	}
 
 	// Return a copy to prevent modification.
@@ -292,13 +261,11 @@ func (s *InMemoryStorage) GetResourceType(ctx context.Context, typeID string) (*
 	typeCopy := *resourceType
 
 	return &typeCopy, nil
-
 }
 
 // ListResourceTypes lists resource types with optional filtering.
 
 func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter map[string]interface{}) ([]*models.ResourceType, error) {
-
 	s.rtMutex.RLock()
 
 	defer s.rtMutex.RUnlock()
@@ -306,7 +273,6 @@ func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter map[stri
 	var resourceTypes []*models.ResourceType
 
 	for _, resourceType := range s.resourceTypes {
-
 		if s.matchesResourceTypeFilterMap(resourceType, filter) {
 
 			typeCopy := *resourceType
@@ -314,7 +280,6 @@ func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter map[stri
 			resourceTypes = append(resourceTypes, &typeCopy)
 
 		}
-
 	}
 
 	// Apply pagination if filters contain limit and offset.
@@ -330,47 +295,38 @@ func (s *InMemoryStorage) ListResourceTypes(ctx context.Context, filter map[stri
 	}
 
 	return resourceTypes, nil
-
 }
 
 // UpdateResourceType updates a resource type.
 
 func (s *InMemoryStorage) UpdateResourceType(ctx context.Context, typeID string, resourceType *models.ResourceType) error {
-
 	s.rtMutex.Lock()
 
 	defer s.rtMutex.Unlock()
 
 	if _, exists := s.resourceTypes[typeID]; !exists {
-
 		return fmt.Errorf("resource type not found: %s", typeID)
-
 	}
 
 	s.resourceTypes[typeID] = resourceType
 
 	return nil
-
 }
 
 // DeleteResourceType deletes a resource type.
 
 func (s *InMemoryStorage) DeleteResourceType(ctx context.Context, typeID string) error {
-
 	s.rtMutex.Lock()
 
 	defer s.rtMutex.Unlock()
 
 	if _, exists := s.resourceTypes[typeID]; !exists {
-
 		return fmt.Errorf("resource type not found: %s", typeID)
-
 	}
 
 	delete(s.resourceTypes, typeID)
 
 	return nil
-
 }
 
 // Resource storage implementation.
@@ -378,7 +334,6 @@ func (s *InMemoryStorage) DeleteResourceType(ctx context.Context, typeID string)
 // StoreResource stores a resource.
 
 func (s *InMemoryStorage) StoreResource(ctx context.Context, resource *models.Resource) error {
-
 	s.rMutex.Lock()
 
 	defer s.rMutex.Unlock()
@@ -386,13 +341,11 @@ func (s *InMemoryStorage) StoreResource(ctx context.Context, resource *models.Re
 	s.resources[resource.ResourceID] = resource
 
 	return nil
-
 }
 
 // GetResource retrieves a resource by ID.
 
 func (s *InMemoryStorage) GetResource(ctx context.Context, resourceID string) (*models.Resource, error) {
-
 	s.rMutex.RLock()
 
 	defer s.rMutex.RUnlock()
@@ -400,9 +353,7 @@ func (s *InMemoryStorage) GetResource(ctx context.Context, resourceID string) (*
 	resource, exists := s.resources[resourceID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("resource not found: %s", resourceID)
-
 	}
 
 	// Return a copy to prevent modification.
@@ -410,21 +361,17 @@ func (s *InMemoryStorage) GetResource(ctx context.Context, resourceID string) (*
 	resourceCopy := *resource
 
 	return &resourceCopy, nil
-
 }
 
 // RetrieveResource retrieves a resource by ID (alias for GetResource to match interface).
 
 func (s *InMemoryStorage) RetrieveResource(ctx context.Context, resourceID string) (*models.Resource, error) {
-
 	return s.GetResource(ctx, resourceID)
-
 }
 
 // ListResources lists resources with optional filtering.
 
 func (s *InMemoryStorage) ListResources(ctx context.Context, filters map[string]interface{}) ([]*models.Resource, error) {
-
 	s.rMutex.RLock()
 
 	defer s.rMutex.RUnlock()
@@ -432,7 +379,6 @@ func (s *InMemoryStorage) ListResources(ctx context.Context, filters map[string]
 	var resources []*models.Resource
 
 	for _, resource := range s.resources {
-
 		if s.matchesResourceFilterMap(resource, filters) {
 
 			resourceCopy := *resource
@@ -440,7 +386,6 @@ func (s *InMemoryStorage) ListResources(ctx context.Context, filters map[string]
 			resources = append(resources, &resourceCopy)
 
 		}
-
 	}
 
 	// Apply pagination if filters contain limit and offset.
@@ -456,29 +401,23 @@ func (s *InMemoryStorage) ListResources(ctx context.Context, filters map[string]
 	}
 
 	return resources, nil
-
 }
 
 // UpdateResource updates a resource.
 
 func (s *InMemoryStorage) UpdateResource(ctx context.Context, resource *models.Resource) error {
-
 	s.rMutex.Lock()
 
 	defer s.rMutex.Unlock()
 
 	if resource == nil || resource.ResourceID == "" {
-
 		return fmt.Errorf("invalid resource")
-
 	}
 
 	_, exists := s.resources[resource.ResourceID]
 
 	if !exists {
-
 		return fmt.Errorf("resource not found: %s", resource.ResourceID)
-
 	}
 
 	// Update the resource.
@@ -488,27 +427,22 @@ func (s *InMemoryStorage) UpdateResource(ctx context.Context, resource *models.R
 	s.resources[resource.ResourceID] = resource
 
 	return nil
-
 }
 
 // DeleteResource deletes a resource.
 
 func (s *InMemoryStorage) DeleteResource(ctx context.Context, resourceID string) error {
-
 	s.rMutex.Lock()
 
 	defer s.rMutex.Unlock()
 
 	if _, exists := s.resources[resourceID]; !exists {
-
 		return fmt.Errorf("resource not found: %s", resourceID)
-
 	}
 
 	delete(s.resources, resourceID)
 
 	return nil
-
 }
 
 // Placeholder implementations for other storage methods.
@@ -516,7 +450,6 @@ func (s *InMemoryStorage) DeleteResource(ctx context.Context, resourceID string)
 // StoreDeploymentTemplate stores a deployment template.
 
 func (s *InMemoryStorage) StoreDeploymentTemplate(ctx context.Context, template *DeploymentTemplate) error {
-
 	s.dtMutex.Lock()
 
 	defer s.dtMutex.Unlock()
@@ -524,13 +457,11 @@ func (s *InMemoryStorage) StoreDeploymentTemplate(ctx context.Context, template 
 	s.deploymentTemplates[template.DeploymentTemplateID] = template
 
 	return nil
-
 }
 
 // GetDeploymentTemplate retrieves a deployment template by ID.
 
 func (s *InMemoryStorage) GetDeploymentTemplate(ctx context.Context, templateID string) (*DeploymentTemplate, error) {
-
 	s.dtMutex.RLock()
 
 	defer s.dtMutex.RUnlock()
@@ -538,19 +469,15 @@ func (s *InMemoryStorage) GetDeploymentTemplate(ctx context.Context, templateID 
 	template, exists := s.deploymentTemplates[templateID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("deployment template not found: %s", templateID)
-
 	}
 
 	return template, nil
-
 }
 
 // ListDeploymentTemplates lists deployment templates.
 
 func (s *InMemoryStorage) ListDeploymentTemplates(ctx context.Context, filter *DeploymentTemplateFilter) ([]*DeploymentTemplate, error) {
-
 	s.dtMutex.RLock()
 
 	defer s.dtMutex.RUnlock()
@@ -558,59 +485,47 @@ func (s *InMemoryStorage) ListDeploymentTemplates(ctx context.Context, filter *D
 	var templates []*DeploymentTemplate
 
 	for _, template := range s.deploymentTemplates {
-
 		templates = append(templates, template)
-
 	}
 
 	return templates, nil
-
 }
 
 // UpdateDeploymentTemplate updates a deployment template.
 
 func (s *InMemoryStorage) UpdateDeploymentTemplate(ctx context.Context, templateID string, template *DeploymentTemplate) error {
-
 	s.dtMutex.Lock()
 
 	defer s.dtMutex.Unlock()
 
 	if _, exists := s.deploymentTemplates[templateID]; !exists {
-
 		return fmt.Errorf("deployment template not found: %s", templateID)
-
 	}
 
 	s.deploymentTemplates[templateID] = template
 
 	return nil
-
 }
 
 // DeleteDeploymentTemplate deletes a deployment template.
 
 func (s *InMemoryStorage) DeleteDeploymentTemplate(ctx context.Context, templateID string) error {
-
 	s.dtMutex.Lock()
 
 	defer s.dtMutex.Unlock()
 
 	if _, exists := s.deploymentTemplates[templateID]; !exists {
-
 		return fmt.Errorf("deployment template not found: %s", templateID)
-
 	}
 
 	delete(s.deploymentTemplates, templateID)
 
 	return nil
-
 }
 
 // StoreDeployment stores a deployment.
 
 func (s *InMemoryStorage) StoreDeployment(ctx context.Context, deployment *Deployment) error {
-
 	s.dMutex.Lock()
 
 	defer s.dMutex.Unlock()
@@ -618,13 +533,11 @@ func (s *InMemoryStorage) StoreDeployment(ctx context.Context, deployment *Deplo
 	s.deployments[deployment.DeploymentManagerID] = deployment
 
 	return nil
-
 }
 
 // GetDeployment retrieves a deployment by ID.
 
 func (s *InMemoryStorage) GetDeployment(ctx context.Context, deploymentID string) (*Deployment, error) {
-
 	s.dMutex.RLock()
 
 	defer s.dMutex.RUnlock()
@@ -632,19 +545,15 @@ func (s *InMemoryStorage) GetDeployment(ctx context.Context, deploymentID string
 	deployment, exists := s.deployments[deploymentID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("deployment not found: %s", deploymentID)
-
 	}
 
 	return deployment, nil
-
 }
 
 // ListDeployments lists deployments.
 
 func (s *InMemoryStorage) ListDeployments(ctx context.Context, filter *DeploymentFilter) ([]*Deployment, error) {
-
 	s.dMutex.RLock()
 
 	defer s.dMutex.RUnlock()
@@ -652,59 +561,47 @@ func (s *InMemoryStorage) ListDeployments(ctx context.Context, filter *Deploymen
 	var deployments []*Deployment
 
 	for _, deployment := range s.deployments {
-
 		deployments = append(deployments, deployment)
-
 	}
 
 	return deployments, nil
-
 }
 
 // UpdateDeployment updates a deployment.
 
 func (s *InMemoryStorage) UpdateDeployment(ctx context.Context, deploymentID string, updates map[string]interface{}) error {
-
 	s.dMutex.Lock()
 
 	defer s.dMutex.Unlock()
 
 	if _, exists := s.deployments[deploymentID]; !exists {
-
 		return fmt.Errorf("deployment not found: %s", deploymentID)
-
 	}
 
 	// Apply updates would be implemented here.
 
 	return nil
-
 }
 
 // DeleteDeployment deletes a deployment.
 
 func (s *InMemoryStorage) DeleteDeployment(ctx context.Context, deploymentID string) error {
-
 	s.dMutex.Lock()
 
 	defer s.dMutex.Unlock()
 
 	if _, exists := s.deployments[deploymentID]; !exists {
-
 		return fmt.Errorf("deployment not found: %s", deploymentID)
-
 	}
 
 	delete(s.deployments, deploymentID)
 
 	return nil
-
 }
 
 // StoreSubscription stores a subscription.
 
 func (s *InMemoryStorage) StoreSubscription(ctx context.Context, subscription *Subscription) error {
-
 	s.sMutex.Lock()
 
 	defer s.sMutex.Unlock()
@@ -712,13 +609,11 @@ func (s *InMemoryStorage) StoreSubscription(ctx context.Context, subscription *S
 	s.subscriptions[subscription.SubscriptionID] = subscription
 
 	return nil
-
 }
 
 // GetSubscription retrieves a subscription by ID.
 
 func (s *InMemoryStorage) GetSubscription(ctx context.Context, subscriptionID string) (*Subscription, error) {
-
 	s.sMutex.RLock()
 
 	defer s.sMutex.RUnlock()
@@ -726,19 +621,15 @@ func (s *InMemoryStorage) GetSubscription(ctx context.Context, subscriptionID st
 	subscription, exists := s.subscriptions[subscriptionID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("subscription not found: %s", subscriptionID)
-
 	}
 
 	return subscription, nil
-
 }
 
 // ListSubscriptions lists subscriptions.
 
 func (s *InMemoryStorage) ListSubscriptions(ctx context.Context, filter *SubscriptionFilter) ([]*Subscription, error) {
-
 	s.sMutex.RLock()
 
 	defer s.sMutex.RUnlock()
@@ -746,59 +637,47 @@ func (s *InMemoryStorage) ListSubscriptions(ctx context.Context, filter *Subscri
 	var subscriptions []*Subscription
 
 	for _, subscription := range s.subscriptions {
-
 		subscriptions = append(subscriptions, subscription)
-
 	}
 
 	return subscriptions, nil
-
 }
 
 // UpdateSubscription updates a subscription.
 
 func (s *InMemoryStorage) UpdateSubscription(ctx context.Context, subscriptionID string, subscription *Subscription) error {
-
 	s.sMutex.Lock()
 
 	defer s.sMutex.Unlock()
 
 	if _, exists := s.subscriptions[subscriptionID]; !exists {
-
 		return fmt.Errorf("subscription not found: %s", subscriptionID)
-
 	}
 
 	s.subscriptions[subscriptionID] = subscription
 
 	return nil
-
 }
 
 // DeleteSubscription deletes a subscription.
 
 func (s *InMemoryStorage) DeleteSubscription(ctx context.Context, subscriptionID string) error {
-
 	s.sMutex.Lock()
 
 	defer s.sMutex.Unlock()
 
 	if _, exists := s.subscriptions[subscriptionID]; !exists {
-
 		return fmt.Errorf("subscription not found: %s", subscriptionID)
-
 	}
 
 	delete(s.subscriptions, subscriptionID)
 
 	return nil
-
 }
 
 // StoreCloudProvider stores a cloud provider.
 
 func (s *InMemoryStorage) StoreCloudProvider(ctx context.Context, provider *CloudProviderConfig) error {
-
 	s.cpMutex.Lock()
 
 	defer s.cpMutex.Unlock()
@@ -806,13 +685,11 @@ func (s *InMemoryStorage) StoreCloudProvider(ctx context.Context, provider *Clou
 	s.cloudProviders[provider.ProviderID] = provider
 
 	return nil
-
 }
 
 // GetCloudProvider retrieves a cloud provider by ID.
 
 func (s *InMemoryStorage) GetCloudProvider(ctx context.Context, providerID string) (*CloudProviderConfig, error) {
-
 	s.cpMutex.RLock()
 
 	defer s.cpMutex.RUnlock()
@@ -820,19 +697,15 @@ func (s *InMemoryStorage) GetCloudProvider(ctx context.Context, providerID strin
 	provider, exists := s.cloudProviders[providerID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("cloud provider not found: %s", providerID)
-
 	}
 
 	return provider, nil
-
 }
 
 // ListCloudProviders lists cloud providers.
 
 func (s *InMemoryStorage) ListCloudProviders(ctx context.Context) ([]*CloudProviderConfig, error) {
-
 	s.cpMutex.RLock()
 
 	defer s.cpMutex.RUnlock()
@@ -840,59 +713,47 @@ func (s *InMemoryStorage) ListCloudProviders(ctx context.Context) ([]*CloudProvi
 	var providers []*CloudProviderConfig
 
 	for _, provider := range s.cloudProviders {
-
 		providers = append(providers, provider)
-
 	}
 
 	return providers, nil
-
 }
 
 // UpdateCloudProvider updates a cloud provider.
 
 func (s *InMemoryStorage) UpdateCloudProvider(ctx context.Context, providerID string, provider *CloudProviderConfig) error {
-
 	s.cpMutex.Lock()
 
 	defer s.cpMutex.Unlock()
 
 	if _, exists := s.cloudProviders[providerID]; !exists {
-
 		return fmt.Errorf("cloud provider not found: %s", providerID)
-
 	}
 
 	s.cloudProviders[providerID] = provider
 
 	return nil
-
 }
 
 // DeleteCloudProvider deletes a cloud provider.
 
 func (s *InMemoryStorage) DeleteCloudProvider(ctx context.Context, providerID string) error {
-
 	s.cpMutex.Lock()
 
 	defer s.cpMutex.Unlock()
 
 	if _, exists := s.cloudProviders[providerID]; !exists {
-
 		return fmt.Errorf("cloud provider not found: %s", providerID)
-
 	}
 
 	delete(s.cloudProviders, providerID)
 
 	return nil
-
 }
 
 // UpdateResourceStatus updates resource status.
 
 func (s *InMemoryStorage) UpdateResourceStatus(ctx context.Context, resourceID string, status *models.ResourceStatus) error {
-
 	s.rMutex.Lock()
 
 	defer s.rMutex.Unlock()
@@ -900,9 +761,7 @@ func (s *InMemoryStorage) UpdateResourceStatus(ctx context.Context, resourceID s
 	resource, exists := s.resources[resourceID]
 
 	if !exists {
-
 		return fmt.Errorf("resource not found: %s", resourceID)
-
 	}
 
 	resource.Status = status
@@ -910,17 +769,14 @@ func (s *InMemoryStorage) UpdateResourceStatus(ctx context.Context, resourceID s
 	resource.UpdatedAt = time.Now()
 
 	return nil
-
 }
 
 // GetResourceHistory retrieves resource history.
 
 func (s *InMemoryStorage) GetResourceHistory(ctx context.Context, resourceID string, limit int) ([]*ResourceHistoryEntry, error) {
-
 	// In a real implementation, this would retrieve actual history.
 
 	return []*ResourceHistoryEntry{}, nil
-
 }
 
 // BackupData creates a backup of the data.
@@ -984,31 +840,25 @@ func (s *InMemoryStorage) GetStorageMetrics(ctx context.Context) (map[string]int
 // BeginTransaction begins a transaction.
 
 func (s *InMemoryStorage) BeginTransaction(ctx context.Context) (interface{}, error) {
-
 	// In-memory storage doesn't need real transactions.
 
 	return &struct{}{}, nil
-
 }
 
 // CommitTransaction commits a transaction.
 
 func (s *InMemoryStorage) CommitTransaction(ctx context.Context, tx interface{}) error {
-
 	// In-memory storage doesn't need real transactions.
 
 	return nil
-
 }
 
 // RollbackTransaction rolls back a transaction.
 
 func (s *InMemoryStorage) RollbackTransaction(ctx context.Context, tx interface{}) error {
-
 	// In-memory storage doesn't need real transactions.
 
 	return nil
-
 }
 
 // Helper methods for filtering and pagination.
@@ -1016,11 +866,8 @@ func (s *InMemoryStorage) RollbackTransaction(ctx context.Context, tx interface{
 // matchesResourcePoolFilterMap checks if a resource pool matches the filter map.
 
 func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool, filters map[string]interface{}) bool {
-
 	if filters == nil {
-
 		return true
-
 	}
 
 	// Check names filter.
@@ -1030,7 +877,6 @@ func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool
 		found := false
 
 		for _, name := range names {
-
 			if pool.Name == name {
 
 				found = true
@@ -1038,13 +884,10 @@ func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1056,7 +899,6 @@ func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool
 		found := false
 
 		for _, region := range regions {
-
 			if pool.Region == region {
 
 				found = true
@@ -1064,13 +906,10 @@ func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1082,7 +921,6 @@ func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool
 		found := false
 
 		for _, provider := range providers {
-
 			if pool.Provider == provider {
 
 				found = true
@@ -1090,29 +928,22 @@ func (s *InMemoryStorage) matchesResourcePoolFilterMap(pool *models.ResourcePool
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // matchesResourcePoolFilter checks if a resource pool matches the filter.
 
 func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, filter *models.ResourcePoolFilter) bool {
-
 	if filter == nil {
-
 		return true
-
 	}
 
 	// Check names filter.
@@ -1122,7 +953,6 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 		found := false
 
 		for _, name := range filter.Names {
-
 			if pool.Name == name {
 
 				found = true
@@ -1130,13 +960,10 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1148,7 +975,6 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 		found := false
 
 		for _, region := range filter.Regions {
-
 			if pool.Region == region {
 
 				found = true
@@ -1156,13 +982,10 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1174,7 +997,6 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 		found := false
 
 		for _, provider := range filter.Providers {
-
 			if pool.Provider == provider {
 
 				found = true
@@ -1182,29 +1004,22 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // matchesResourceTypeFilter checks if a resource type matches the filter.
 
 func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.ResourceType, filter *models.ResourceTypeFilter) bool {
-
 	if filter == nil {
-
 		return true
-
 	}
 
 	// Check names filter.
@@ -1214,7 +1029,6 @@ func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.Resourc
 		found := false
 
 		for _, name := range filter.Names {
-
 			if resourceType.Name == name {
 
 				found = true
@@ -1222,13 +1036,10 @@ func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.Resourc
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1240,7 +1051,6 @@ func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.Resourc
 		found := false
 
 		for _, category := range filter.Categories {
-
 			if resourceType.Specifications.Category == category {
 
 				found = true
@@ -1248,13 +1058,10 @@ func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.Resourc
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1266,7 +1073,6 @@ func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.Resourc
 		found := false
 
 		for _, vendor := range filter.Vendors {
-
 			if resourceType.Vendor == vendor {
 
 				found = true
@@ -1274,29 +1080,22 @@ func (s *InMemoryStorage) matchesResourceTypeFilter(resourceType *models.Resourc
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // matchesResourceFilter checks if a resource matches the filter.
 
 func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filter *models.ResourceFilter) bool {
-
 	if filter == nil {
-
 		return true
-
 	}
 
 	// Check resource pool IDs filter.
@@ -1306,7 +1105,6 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 		found := false
 
 		for _, poolID := range filter.ResourcePoolIDs {
-
 			if resource.ResourcePoolID == poolID {
 
 				found = true
@@ -1314,13 +1112,10 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1332,7 +1127,6 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 		found := false
 
 		for _, typeID := range filter.ResourceTypeIDs {
-
 			if resource.ResourceTypeID == typeID {
 
 				found = true
@@ -1340,13 +1134,10 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1358,7 +1149,6 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 		found := false
 
 		for _, status := range filter.LifecycleStates {
-
 			if resource.Status != nil && resource.Status.State == status {
 
 				found = true
@@ -1366,29 +1156,22 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // matchesResourceTypeFilterMap checks if a resource type matches the filter map.
 
 func (s *InMemoryStorage) matchesResourceTypeFilterMap(resourceType *models.ResourceType, filters map[string]interface{}) bool {
-
 	if filters == nil {
-
 		return true
-
 	}
 
 	// Check vendor filter.
@@ -1398,7 +1181,6 @@ func (s *InMemoryStorage) matchesResourceTypeFilterMap(resourceType *models.Reso
 		found := false
 
 		for _, vendor := range vendors {
-
 			if resourceType.Vendor == vendor {
 
 				found = true
@@ -1406,13 +1188,10 @@ func (s *InMemoryStorage) matchesResourceTypeFilterMap(resourceType *models.Reso
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1424,7 +1203,6 @@ func (s *InMemoryStorage) matchesResourceTypeFilterMap(resourceType *models.Reso
 		found := false
 
 		for _, model := range models {
-
 			if resourceType.Model == model {
 
 				found = true
@@ -1432,29 +1210,22 @@ func (s *InMemoryStorage) matchesResourceTypeFilterMap(resourceType *models.Reso
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // matchesResourceFilterMap checks if a resource matches the filter map.
 
 func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, filters map[string]interface{}) bool {
-
 	if filters == nil {
-
 		return true
-
 	}
 
 	// Check resource pool IDs filter.
@@ -1464,7 +1235,6 @@ func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, fi
 		found := false
 
 		for _, poolID := range poolIDs {
-
 			if resource.ResourcePoolID == poolID {
 
 				found = true
@@ -1472,13 +1242,10 @@ func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, fi
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1490,7 +1257,6 @@ func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, fi
 		found := false
 
 		for _, typeID := range typeIDs {
-
 			if resource.ResourceTypeID == typeID {
 
 				found = true
@@ -1498,13 +1264,10 @@ func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, fi
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
@@ -1516,7 +1279,6 @@ func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, fi
 		found := false
 
 		for _, state := range states {
-
 			if resource.Status != nil && resource.Status.State == state {
 
 				found = true
@@ -1524,121 +1286,87 @@ func (s *InMemoryStorage) matchesResourceFilterMap(resource *models.Resource, fi
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // Generic pagination helpers.
 
 func (s *InMemoryStorage) applyPagination(pools []*models.ResourcePool, limit, offset int) []*models.ResourcePool {
-
 	if limit <= 0 {
-
 		limit = 100 // Default limit
-
 	}
 
 	if offset < 0 {
-
 		offset = 0
-
 	}
 
 	start := offset
 
 	if start >= len(pools) {
-
 		return []*models.ResourcePool{}
-
 	}
 
 	end := start + limit
 
 	if end > len(pools) {
-
 		end = len(pools)
-
 	}
 
 	return pools[start:end]
-
 }
 
 func (s *InMemoryStorage) applyResourceTypePagination(resourceTypes []*models.ResourceType, limit, offset int) []*models.ResourceType {
-
 	if limit <= 0 {
-
 		limit = 100 // Default limit
-
 	}
 
 	if offset < 0 {
-
 		offset = 0
-
 	}
 
 	start := offset
 
 	if start >= len(resourceTypes) {
-
 		return []*models.ResourceType{}
-
 	}
 
 	end := start + limit
 
 	if end > len(resourceTypes) {
-
 		end = len(resourceTypes)
-
 	}
 
 	return resourceTypes[start:end]
-
 }
 
 func (s *InMemoryStorage) applyResourcePagination(resources []*models.Resource, limit, offset int) []*models.Resource {
-
 	if limit <= 0 {
-
 		limit = 100 // Default limit
-
 	}
 
 	if offset < 0 {
-
 		offset = 0
-
 	}
 
 	start := offset
 
 	if start >= len(resources) {
-
 		return []*models.Resource{}
-
 	}
 
 	end := start + limit
 
 	if end > len(resources) {
-
 		end = len(resources)
-
 	}
 
 	return resources[start:end]
-
 }

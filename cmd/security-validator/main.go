@@ -38,7 +38,7 @@ func main() {
 	fmt.Println()
 
 	// Create reports directory
-	if err := os.MkdirAll(*reportDir, 0755); err != nil {
+	if err := os.MkdirAll(*reportDir, 0o755); err != nil {
 		log.Fatalf("Failed to create report directory: %v", err)
 	}
 
@@ -143,8 +143,8 @@ func contains(s, substr string) bool {
 }
 
 func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSecurityTestSuite,
-	runPenetration, runValidation, runMonitoring, runRegression bool) *security.ComprehensiveTestResults {
-
+	runPenetration, runValidation, runMonitoring, runRegression bool,
+) *security.ComprehensiveTestResults {
 	fmt.Println("🔍 Running Selective Security Tests...")
 
 	// This is a simplified version for selective testing
@@ -340,7 +340,7 @@ func generateCSVReport(results *security.ComprehensiveTestResults, reportDir str
 	}
 
 	csvFile := filepath.Join(reportDir, fmt.Sprintf("security-test-results-%s.csv", results.TestSuiteID))
-	if err := os.WriteFile(csvFile, []byte(csvContent), 0644); err != nil {
+	if err := os.WriteFile(csvFile, []byte(csvContent), 0o644); err != nil {
 		log.Printf("Failed to write CSV report: %v", err)
 	}
 }
@@ -374,7 +374,7 @@ func generateJUnitReport(results *security.ComprehensiveTestResults, reportDir s
 	junitXML += "</testsuites>\n"
 
 	junitFile := filepath.Join(reportDir, fmt.Sprintf("junit-security-tests-%s.xml", results.TestSuiteID))
-	if err := os.WriteFile(junitFile, []byte(junitXML), 0644); err != nil {
+	if err := os.WriteFile(junitFile, []byte(junitXML), 0o644); err != nil {
 		log.Printf("Failed to write JUnit report: %v", err)
 	}
 }
@@ -399,7 +399,7 @@ security_execution_time_seconds %.0f
 	}
 
 	metricsFile := filepath.Join(reportDir, fmt.Sprintf("security-metrics-%s.txt", results.TestSuiteID))
-	if err := os.WriteFile(metricsFile, []byte(metrics), 0644); err != nil {
+	if err := os.WriteFile(metricsFile, []byte(metrics), 0o644); err != nil {
 		log.Printf("Failed to write metrics report: %v", err)
 	}
 }

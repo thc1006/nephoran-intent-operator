@@ -527,11 +527,18 @@ func (eoe *EnergyOptimizationEngine) GetEnergyMetrics() *EnergyMetrics {
 
 	defer eoe.mu.RUnlock()
 
-	// Create a copy to avoid race conditions.
+	// Create a safe copy without copying mutex to avoid lock copying violation
+	metrics := &EnergyMetrics{
+		CurrentPowerConsumption: eoe.metrics.CurrentPowerConsumption,
+		AveragePowerConsumption: eoe.metrics.AveragePowerConsumption,
+		PeakPowerConsumption:    eoe.metrics.PeakPowerConsumption,
+		CurrentThroughput:       eoe.metrics.CurrentThroughput,
+		EnergyEfficiency:        eoe.metrics.EnergyEfficiency,
+		CarbonIntensity:         eoe.metrics.CarbonIntensity,
+		CarbonEmissions:         eoe.metrics.CarbonEmissions,
+	}
 
-	metrics := *eoe.metrics
-
-	return &metrics
+	return metrics
 }
 
 // GetEnergyEfficiency returns current Gbps/Watt efficiency.

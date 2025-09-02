@@ -423,15 +423,11 @@ type EncryptedData struct {
 // NewEncryptionManager creates a new encryption manager.
 
 func NewEncryptionManager(config *EncryptionConfig, logger *logging.StructuredLogger) (*EncryptionManager, error) {
-
 	if config == nil {
-
 		return nil, errors.New("encryption config is required")
-
 	}
 
 	em := &EncryptionManager{
-
 		config: config,
 
 		logger: logger,
@@ -442,11 +438,8 @@ func NewEncryptionManager(config *EncryptionConfig, logger *logging.StructuredLo
 	// Initialize key manager.
 
 	keyManager, err := em.initializeKeyManager()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize key manager: %w", err)
-
 	}
 
 	em.keyManager = keyManager
@@ -454,9 +447,7 @@ func NewEncryptionManager(config *EncryptionConfig, logger *logging.StructuredLo
 	// Initialize master key.
 
 	if err := em.initializeMasterKey(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize master key: %w", err)
-
 	}
 
 	// Initialize encryptors.
@@ -466,31 +457,23 @@ func NewEncryptionManager(config *EncryptionConfig, logger *logging.StructuredLo
 	em.fieldEncryptor = NewFieldEncryptor(config.FieldEncryption, em.dataEncryptor)
 
 	if config.FieldEncryption != nil && config.FieldEncryption.TokenizationEnabled {
-
 		em.tokenizer = NewTokenizer(em.dataEncryptor)
-
 	}
 
 	// Start key rotation if enabled.
 
 	if config.KeyManagement != nil && config.KeyManagement.RotationEnabled {
-
 		go em.startKeyRotation()
-
 	}
 
 	return em, nil
-
 }
 
 // initializeKeyManager initializes the key management system.
 
 func (em *EncryptionManager) initializeKeyManager() (KeyManager, error) {
-
 	if em.config.KeyManagement == nil {
-
 		return NewLocalKeyManager(nil)
-
 	}
 
 	switch em.config.KeyManagement.Provider {
@@ -506,9 +489,7 @@ func (em *EncryptionManager) initializeKeyManager() (KeyManager, error) {
 	case KeyProviderHSM:
 
 		if em.config.HSMConfig == nil {
-
 			return nil, errors.New("HSM config required for HSM provider")
-
 		}
 
 		return NewHSMKeyManager(em.config.HSMConfig)
@@ -518,13 +499,11 @@ func (em *EncryptionManager) initializeKeyManager() (KeyManager, error) {
 		return nil, fmt.Errorf("unsupported key provider: %s", em.config.KeyManagement.Provider)
 
 	}
-
 }
 
 // initializeMasterKey initializes or loads the master encryption key.
 
 func (em *EncryptionManager) initializeMasterKey() error {
-
 	if em.config.KeyManagement == nil || em.config.KeyManagement.MasterKeyPath == "" {
 
 		// Generate a new master key.
@@ -532,9 +511,7 @@ func (em *EncryptionManager) initializeMasterKey() error {
 		key := make([]byte, 32) // 256-bit key
 
 		if _, err := rand.Read(key); err != nil {
-
 			return fmt.Errorf("failed to generate master key: %w", err)
-
 		}
 
 		em.activeMasterKey = key
@@ -550,57 +527,41 @@ func (em *EncryptionManager) initializeMasterKey() error {
 	em.activeMasterKey = make([]byte, 32)
 
 	if _, err := rand.Read(em.activeMasterKey); err != nil {
-
 		return fmt.Errorf("failed to generate master key: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // EncryptPolicyData encrypts policy data.
 
 func (em *EncryptionManager) EncryptPolicyData(ctx context.Context, policyData map[string]interface{}) (*EncryptedData, error) {
-
 	// Serialize policy data.
 
 	plaintext, err := json.Marshal(policyData)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to serialize policy data: %w", err)
-
 	}
 
 	// Generate a new data encryption key.
 
 	dataKey, encryptedDataKey, err := em.keyManager.GenerateDataKey(ctx, "policy-key")
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to generate data key: %w", err)
-
 	}
 
 	// Create cipher.
 
 	block, err := aes.NewCipher(dataKey)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
-
 	}
 
 	// Use GCM mode for authenticated encryption.
 
 	aead, err := cipher.NewGCM(block)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
-
 	}
 
 	// Generate nonce.
@@ -608,9 +569,7 @@ func (em *EncryptionManager) EncryptPolicyData(ctx context.Context, policyData m
 	nonce := make([]byte, aead.NonceSize())
 
 	if _, err := rand.Read(nonce); err != nil {
-
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-
 	}
 
 	// Create additional authenticated data.
@@ -628,7 +587,6 @@ func (em *EncryptionManager) EncryptPolicyData(ctx context.Context, policyData m
 	clearBytes(plaintext)
 
 	encrypted := &EncryptedData{
-
 		Version: 1,
 
 		KeyID: "policy-key",
@@ -644,7 +602,6 @@ func (em *EncryptionManager) EncryptPolicyData(ctx context.Context, policyData m
 		EncryptedAt: time.Now(),
 
 		Metadata: map[string]string{
-
 			"encrypted_key": base64.StdEncoding.EncodeToString(encryptedDataKey),
 		},
 	}
@@ -656,39 +613,29 @@ func (em *EncryptionManager) EncryptPolicyData(ctx context.Context, policyData m
 		slog.Int("size", len(ciphertext)))
 
 	return encrypted, nil
-
 }
 
 // DecryptPolicyData decrypts policy data.
 
 func (em *EncryptionManager) DecryptPolicyData(ctx context.Context, encrypted *EncryptedData) (map[string]interface{}, error) {
-
 	// Retrieve encrypted data key from metadata.
 
 	encryptedKeyStr, ok := encrypted.Metadata["encrypted_key"]
 
 	if !ok {
-
 		return nil, errors.New("encrypted key not found in metadata")
-
 	}
 
 	encryptedKey, err := base64.StdEncoding.DecodeString(encryptedKeyStr)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to decode encrypted key: %w", err)
-
 	}
 
 	// Decrypt the data key.
 
 	dataKey, err := em.keyManager.DecryptDataKey(ctx, encryptedKey)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to decrypt data key: %w", err)
-
 	}
 
 	defer clearBytes(dataKey)
@@ -696,31 +643,22 @@ func (em *EncryptionManager) DecryptPolicyData(ctx context.Context, encrypted *E
 	// Create cipher.
 
 	block, err := aes.NewCipher(dataKey)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
-
 	}
 
 	// Use GCM mode.
 
 	aead, err := cipher.NewGCM(block)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
-
 	}
 
 	// Decrypt the data.
 
 	plaintext, err := aead.Open(nil, encrypted.Nonce, encrypted.Ciphertext, encrypted.AAD)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to decrypt data: %w", err)
-
 	}
 
 	defer clearBytes(plaintext)
@@ -730,9 +668,7 @@ func (em *EncryptionManager) DecryptPolicyData(ctx context.Context, encrypted *E
 	var policyData map[string]interface{}
 
 	if err := json.Unmarshal(plaintext, &policyData); err != nil {
-
 		return nil, fmt.Errorf("failed to deserialize policy data: %w", err)
-
 	}
 
 	em.logger.Debug("policy data decrypted successfully",
@@ -740,69 +676,51 @@ func (em *EncryptionManager) DecryptPolicyData(ctx context.Context, encrypted *E
 		slog.String("key_id", encrypted.KeyID))
 
 	return policyData, nil
-
 }
 
 // EncryptSensitiveFields encrypts sensitive fields in data.
 
 func (em *EncryptionManager) EncryptSensitiveFields(ctx context.Context, data map[string]interface{}) (map[string]interface{}, error) {
-
 	if em.fieldEncryptor == nil {
-
 		return data, nil
-
 	}
 
 	return em.fieldEncryptor.EncryptFields(ctx, data)
-
 }
 
 // DecryptSensitiveFields decrypts sensitive fields in data.
 
 func (em *EncryptionManager) DecryptSensitiveFields(ctx context.Context, data map[string]interface{}) (map[string]interface{}, error) {
-
 	if em.fieldEncryptor == nil {
-
 		return data, nil
-
 	}
 
 	return em.fieldEncryptor.DecryptFields(ctx, data)
-
 }
 
 // TokenizePII tokenizes PII data.
 
 func (em *EncryptionManager) TokenizePII(ctx context.Context, pii string) (string, error) {
-
 	if em.tokenizer == nil {
-
 		return "", errors.New("tokenization not enabled")
-
 	}
 
 	return em.tokenizer.Tokenize(ctx, pii)
-
 }
 
 // DetokenizePII detokenizes PII data.
 
 func (em *EncryptionManager) DetokenizePII(ctx context.Context, token string) (string, error) {
-
 	if em.tokenizer == nil {
-
 		return "", errors.New("tokenization not enabled")
-
 	}
 
 	return em.tokenizer.Detokenize(ctx, token)
-
 }
 
 // RotateKeys rotates encryption keys.
 
 func (em *EncryptionManager) RotateKeys(ctx context.Context) error {
-
 	em.mu.Lock()
 
 	defer em.mu.Unlock()
@@ -834,9 +752,7 @@ func (em *EncryptionManager) RotateKeys(ctx context.Context) error {
 	newMasterKey := make([]byte, 32)
 
 	if _, err := rand.Read(newMasterKey); err != nil {
-
 		return fmt.Errorf("failed to generate new master key: %w", err)
-
 	}
 
 	// Clear old master key.
@@ -852,13 +768,11 @@ func (em *EncryptionManager) RotateKeys(ctx context.Context) error {
 		slog.Int("key_version", em.keyVersion))
 
 	return nil
-
 }
 
 // startKeyRotation starts automatic key rotation.
 
 func (em *EncryptionManager) startKeyRotation() {
-
 	ticker := time.NewTicker(em.config.KeyManagement.RotationInterval)
 
 	defer ticker.Stop()
@@ -868,13 +782,10 @@ func (em *EncryptionManager) startKeyRotation() {
 		ctx := context.Background()
 
 		if err := em.RotateKeys(ctx); err != nil {
-
 			em.logger.Error("automatic key rotation failed", slog.String("error", err.Error()))
-
 		}
 
 	}
-
 }
 
 // Helper functions.
@@ -882,19 +793,14 @@ func (em *EncryptionManager) startKeyRotation() {
 // clearBytes securely clears a byte slice.
 
 func clearBytes(b []byte) {
-
 	for i := range b {
-
 		b[i] = 0
-
 	}
-
 }
 
 // deriveKey derives a key using the configured KDF.
 
 func deriveKey(password, salt []byte, config *KeyManagementConfig) ([]byte, error) {
-
 	switch config.KeyDerivation {
 
 	case KDFArgon2:
@@ -916,9 +822,7 @@ func deriveKey(password, salt []byte, config *KeyManagementConfig) ([]byte, erro
 		key := make([]byte, 32)
 
 		if _, err := io.ReadFull(hkdf, key); err != nil {
-
 			return nil, err
-
 		}
 
 		return key, nil
@@ -928,7 +832,6 @@ func deriveKey(password, salt []byte, config *KeyManagementConfig) ([]byte, erro
 		return nil, fmt.Errorf("unsupported KDF: %s", config.KeyDerivation)
 
 	}
-
 }
 
 // Implementation stubs for interfaces.
@@ -946,28 +849,22 @@ type LocalKeyManager struct {
 // NewLocalKeyManager performs newlocalkeymanager operation.
 
 func NewLocalKeyManager(config *KeyManagementConfig) (*LocalKeyManager, error) {
-
 	return &LocalKeyManager{
-
 		config: config,
 
 		keys: make(map[string]*EncryptionKey),
 	}, nil
-
 }
 
 // GenerateDataKey performs generatedatakey operation.
 
 func (lkm *LocalKeyManager) GenerateDataKey(ctx context.Context, keyID string) ([]byte, []byte, error) {
-
 	// Generate a new data encryption key.
 
 	dataKey := make([]byte, 32)
 
 	if _, err := rand.Read(dataKey); err != nil {
-
 		return nil, nil, err
-
 	}
 
 	// Encrypt the data key (simplified - in production would use KEK).
@@ -977,13 +874,11 @@ func (lkm *LocalKeyManager) GenerateDataKey(ctx context.Context, keyID string) (
 	copy(encryptedKey, dataKey)
 
 	return dataKey, encryptedKey, nil
-
 }
 
 // EncryptDataKey performs encryptdatakey operation.
 
 func (lkm *LocalKeyManager) EncryptDataKey(ctx context.Context, plainKey []byte) ([]byte, error) {
-
 	// Simplified implementation.
 
 	encrypted := make([]byte, len(plainKey))
@@ -991,13 +886,11 @@ func (lkm *LocalKeyManager) EncryptDataKey(ctx context.Context, plainKey []byte)
 	copy(encrypted, plainKey)
 
 	return encrypted, nil
-
 }
 
 // DecryptDataKey performs decryptdatakey operation.
 
 func (lkm *LocalKeyManager) DecryptDataKey(ctx context.Context, encryptedKey []byte) ([]byte, error) {
-
 	// Simplified implementation.
 
 	decrypted := make([]byte, len(encryptedKey))
@@ -1005,57 +898,46 @@ func (lkm *LocalKeyManager) DecryptDataKey(ctx context.Context, encryptedKey []b
 	copy(decrypted, encryptedKey)
 
 	return decrypted, nil
-
 }
 
 // RotateKey performs rotatekey operation.
 
 func (lkm *LocalKeyManager) RotateKey(ctx context.Context, keyID string) error {
-
 	// Rotate key implementation.
 
 	return nil
-
 }
 
 // GetKey performs getkey operation.
 
 func (lkm *LocalKeyManager) GetKey(ctx context.Context, keyID string, version int) ([]byte, error) {
-
 	// Get key implementation.
 
 	return nil, nil
-
 }
 
 // DeleteKey performs deletekey operation.
 
 func (lkm *LocalKeyManager) DeleteKey(ctx context.Context, keyID string) error {
-
 	// Delete key implementation.
 
 	return nil
-
 }
 
 // BackupKeys performs backupkeys operation.
 
 func (lkm *LocalKeyManager) BackupKeys(ctx context.Context) error {
-
 	// Backup keys implementation.
 
 	return nil
-
 }
 
 // RestoreKeys performs restorekeys operation.
 
 func (lkm *LocalKeyManager) RestoreKeys(ctx context.Context, backup []byte) error {
-
 	// Restore keys implementation.
 
 	return nil
-
 }
 
 // Additional stub implementations for other managers...
@@ -1063,21 +945,17 @@ func (lkm *LocalKeyManager) RestoreKeys(ctx context.Context, backup []byte) erro
 // NewVaultKeyManager performs newvaultkeymanager operation.
 
 func NewVaultKeyManager(config *KeyManagementConfig) (KeyManager, error) {
-
 	// Vault key manager implementation.
 
 	return &LocalKeyManager{config: config}, nil
-
 }
 
 // NewHSMKeyManager performs newhsmkeymanager operation.
 
 func NewHSMKeyManager(config *HSMConfig) (KeyManager, error) {
-
 	// HSM key manager implementation.
 
 	return &LocalKeyManager{}, nil
-
 }
 
 // DefaultDataEncryptor represents a defaultdataencryptor.
@@ -1091,54 +969,43 @@ type DefaultDataEncryptor struct {
 // NewDataEncryptor performs newdataencryptor operation.
 
 func NewDataEncryptor(config *EncryptionConfig, masterKey []byte) DataEncryptor {
-
 	return &DefaultDataEncryptor{
-
 		config: config,
 
 		masterKey: masterKey,
 	}
-
 }
 
 // Encrypt performs encrypt operation.
 
 func (dde *DefaultDataEncryptor) Encrypt(ctx context.Context, plaintext, additionalData []byte) ([]byte, error) {
-
 	// Encryption implementation.
 
 	return nil, nil
-
 }
 
 // Decrypt performs decrypt operation.
 
 func (dde *DefaultDataEncryptor) Decrypt(ctx context.Context, ciphertext, additionalData []byte) ([]byte, error) {
-
 	// Decryption implementation.
 
 	return nil, nil
-
 }
 
 // EncryptStream performs encryptstream operation.
 
 func (dde *DefaultDataEncryptor) EncryptStream(ctx context.Context, reader io.Reader, writer io.Writer) error {
-
 	// Stream encryption implementation.
 
 	return nil
-
 }
 
 // DecryptStream performs decryptstream operation.
 
 func (dde *DefaultDataEncryptor) DecryptStream(ctx context.Context, reader io.Reader, writer io.Writer) error {
-
 	// Stream decryption implementation.
 
 	return nil
-
 }
 
 // DefaultFieldEncryptor represents a defaultfieldencryptor.
@@ -1152,54 +1019,43 @@ type DefaultFieldEncryptor struct {
 // NewFieldEncryptor performs newfieldencryptor operation.
 
 func NewFieldEncryptor(config *FieldEncryptionConfig, encryptor DataEncryptor) FieldEncryptor {
-
 	return &DefaultFieldEncryptor{
-
 		config: config,
 
 		encryptor: encryptor,
 	}
-
 }
 
 // EncryptField performs encryptfield operation.
 
 func (dfe *DefaultFieldEncryptor) EncryptField(ctx context.Context, field string, value interface{}) (interface{}, error) {
-
 	// Field encryption implementation.
 
 	return nil, nil
-
 }
 
 // DecryptField performs decryptfield operation.
 
 func (dfe *DefaultFieldEncryptor) DecryptField(ctx context.Context, field string, encryptedValue interface{}) (interface{}, error) {
-
 	// Field decryption implementation.
 
 	return nil, nil
-
 }
 
 // EncryptFields performs encryptfields operation.
 
 func (dfe *DefaultFieldEncryptor) EncryptFields(ctx context.Context, data map[string]interface{}) (map[string]interface{}, error) {
-
 	// Fields encryption implementation.
 
 	return nil, nil
-
 }
 
 // DecryptFields performs decryptfields operation.
 
 func (dfe *DefaultFieldEncryptor) DecryptFields(ctx context.Context, encryptedData map[string]interface{}) (map[string]interface{}, error) {
-
 	// Fields decryption implementation.
 
 	return nil, nil
-
 }
 
 // DefaultTokenizer represents a defaulttokenizer.
@@ -1211,40 +1067,31 @@ type DefaultTokenizer struct {
 // NewTokenizer performs newtokenizer operation.
 
 func NewTokenizer(encryptor DataEncryptor) Tokenizer {
-
 	return &DefaultTokenizer{
-
 		encryptor: encryptor,
 	}
-
 }
 
 // Tokenize performs tokenize operation.
 
 func (dt *DefaultTokenizer) Tokenize(ctx context.Context, value string) (string, error) {
-
 	// Tokenization implementation.
 
 	return "", nil
-
 }
 
 // Detokenize performs detokenize operation.
 
 func (dt *DefaultTokenizer) Detokenize(ctx context.Context, token string) (string, error) {
-
 	// Detokenization implementation.
 
 	return "", nil
-
 }
 
 // ValidateToken performs validatetoken operation.
 
 func (dt *DefaultTokenizer) ValidateToken(ctx context.Context, token string) (bool, error) {
-
 	// Token validation implementation.
 
 	return false, nil
-
 }

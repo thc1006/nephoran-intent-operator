@@ -213,9 +213,7 @@ const (
 // NewEventBus creates a new EventBus.
 
 func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
-
 	return &EventBus{
-
 		client: client,
 
 		logger: logger.WithName("event-bus"),
@@ -234,21 +232,17 @@ func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
 
 		stopChan: make(chan bool),
 	}
-
 }
 
 // Subscribe registers an event handler for a specific event type.
 
 func (e *EventBus) Subscribe(eventType string, handler EventHandler) error {
-
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
 
 	if handler == nil {
-
 		return fmt.Errorf("handler cannot be nil")
-
 	}
 
 	e.subscribers[eventType] = append(e.subscribers[eventType], handler)
@@ -256,13 +250,11 @@ func (e *EventBus) Subscribe(eventType string, handler EventHandler) error {
 	e.logger.Info("Subscribed to event type", "eventType", eventType, "handlerCount", len(e.subscribers[eventType]))
 
 	return nil
-
 }
 
 // Unsubscribe removes an event handler (note: removes all handlers for the event type).
 
 func (e *EventBus) Unsubscribe(eventType string) {
-
 	e.mutex.Lock()
 
 	defer e.mutex.Unlock()
@@ -270,33 +262,25 @@ func (e *EventBus) Unsubscribe(eventType string) {
 	delete(e.subscribers, eventType)
 
 	e.logger.Info("Unsubscribed from event type", "eventType", eventType)
-
 }
 
 // Publish publishes an event to all subscribers.
 
 func (e *EventBus) Publish(ctx context.Context, event ProcessingEvent) error {
-
 	if !e.started {
-
 		return fmt.Errorf("event bus not started")
-
 	}
 
 	// Add timestamp if not set.
 
 	if event.Timestamp.IsZero() {
-
 		event.Timestamp = time.Now()
-
 	}
 
 	// Store event for persistence.
 
 	if err := e.eventStore.Store(event); err != nil {
-
 		e.logger.Error(err, "Failed to store event", "eventType", event.Type, "intentId", event.IntentID)
-
 	}
 
 	// Send to processing channel (non-blocking).
@@ -314,15 +298,12 @@ func (e *EventBus) Publish(ctx context.Context, event ProcessingEvent) error {
 		return fmt.Errorf("event bus buffer full")
 
 	}
-
 }
 
 // PublishPhaseEvent publishes a phase-specific event.
 
 func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.ProcessingPhase, eventType, intentID string, success bool, data map[string]interface{}) error {
-
 	event := ProcessingEvent{
-
 		Type: eventType,
 
 		Source: string(phase),
@@ -341,17 +322,13 @@ func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.Proce
 	}
 
 	return e.Publish(ctx, event)
-
 }
 
 // Start starts the event bus processing.
 
 func (e *EventBus) Start(ctx context.Context) error {
-
 	if e.started {
-
 		return fmt.Errorf("event bus already started")
-
 	}
 
 	e.started = true
@@ -363,17 +340,13 @@ func (e *EventBus) Start(ctx context.Context) error {
 	e.logger.Info("Event bus started")
 
 	return nil
-
 }
 
 // Stop stops the event bus.
 
 func (e *EventBus) Stop(ctx context.Context) error {
-
 	if !e.started {
-
 		return nil
-
 	}
 
 	e.logger.Info("Stopping event bus")
@@ -397,17 +370,14 @@ func (e *EventBus) Stop(ctx context.Context) error {
 	}
 
 	return nil
-
 }
 
 // processEvents processes events from the event channel.
 
 func (e *EventBus) processEvents(ctx context.Context) {
-
 	e.logger.Info("Started event processing")
 
 	for {
-
 		select {
 
 		case event := <-e.eventChan:
@@ -427,15 +397,12 @@ func (e *EventBus) processEvents(ctx context.Context) {
 			return
 
 		}
-
 	}
-
 }
 
 // handleEvent processes a single event.
 
 func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
-
 	log := e.logger.WithValues("eventType", event.Type, "intentId", event.IntentID, "phase", event.Phase)
 
 	// Get subscribers for this event type.
@@ -465,7 +432,6 @@ func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
 	// Process handlers with retry logic.
 
 	for i, handler := range allHandlers {
-
 		if err := e.executeHandlerWithRetry(ctx, handler, event); err != nil {
 
 			log.Error(err, "Handler failed permanently", "handlerIndex", i)
@@ -475,23 +441,19 @@ func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
 			e.recordHandlerFailure(event, i, err)
 
 		}
-
 	}
 
 	log.V(1).Info("Event processed successfully")
-
 }
 
 // executeHandlerWithRetry executes a handler with retry logic.
 
 func (e *EventBus) executeHandlerWithRetry(ctx context.Context, handler EventHandler, event ProcessingEvent) error {
-
 	var lastErr error
 
 	for attempt := range e.maxRetries {
 
 		if attempt > 0 {
-
 			// Wait before retry.
 
 			select {
@@ -503,7 +465,6 @@ func (e *EventBus) executeHandlerWithRetry(ctx context.Context, handler EventHan
 				return ctx.Err()
 
 			}
-
 		}
 
 		if err := handler(ctx, event); err != nil {
@@ -521,13 +482,11 @@ func (e *EventBus) executeHandlerWithRetry(ctx context.Context, handler EventHan
 	}
 
 	return fmt.Errorf("handler failed after %d attempts: %w", e.maxRetries, lastErr)
-
 }
 
 // recordHandlerFailure records a handler failure for monitoring.
 
 func (e *EventBus) recordHandlerFailure(event ProcessingEvent, handlerIndex int, err error) {
-
 	// Create a Kubernetes event for the failure.
 
 	if e.recorder != nil {
@@ -541,23 +500,18 @@ func (e *EventBus) recordHandlerFailure(event ProcessingEvent, handlerIndex int,
 		e.logger.Error(err, "Handler failure recorded", "eventType", event.Type, "handlerIndex", handlerIndex)
 
 	}
-
 }
 
 // GetEventHistory retrieves event history for an intent.
 
 func (e *EventBus) GetEventHistory(ctx context.Context, intentID string) ([]ProcessingEvent, error) {
-
 	return e.eventStore.GetEventsByIntentID(intentID)
-
 }
 
 // GetEventsByType retrieves events by type.
 
 func (e *EventBus) GetEventsByType(ctx context.Context, eventType string, limit int) ([]ProcessingEvent, error) {
-
 	return e.eventStore.GetEventsByType(eventType, limit)
-
 }
 
 // EventStore provides event persistence.
@@ -577,9 +531,7 @@ type EventStore struct {
 // NewEventStore creates a new event store.
 
 func NewEventStore() *EventStore {
-
 	return &EventStore{
-
 		events: make([]ProcessingEvent, 0),
 
 		maxEvents: 10000, // Keep last 10k events
@@ -587,13 +539,11 @@ func NewEventStore() *EventStore {
 		retentionTime: 24 * time.Hour, // Keep events for 24 hours
 
 	}
-
 }
 
 // Store stores an event.
 
 func (es *EventStore) Store(event ProcessingEvent) error {
-
 	es.mutex.Lock()
 
 	defer es.mutex.Unlock()
@@ -619,7 +569,6 @@ func (es *EventStore) Store(event ProcessingEvent) error {
 	cutoff := time.Now().Add(-es.retentionTime)
 
 	for i, e := range es.events {
-
 		if e.Timestamp.After(cutoff) {
 
 			es.events = es.events[i:]
@@ -627,17 +576,14 @@ func (es *EventStore) Store(event ProcessingEvent) error {
 			break
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetEventsByIntentID retrieves events for a specific intent.
 
 func (es *EventStore) GetEventsByIntentID(intentID string) ([]ProcessingEvent, error) {
-
 	es.mutex.RLock()
 
 	defer es.mutex.RUnlock()
@@ -645,23 +591,17 @@ func (es *EventStore) GetEventsByIntentID(intentID string) ([]ProcessingEvent, e
 	var result []ProcessingEvent
 
 	for _, event := range es.events {
-
 		if event.IntentID == intentID {
-
 			result = append(result, event)
-
 		}
-
 	}
 
 	return result, nil
-
 }
 
 // GetEventsByType retrieves events by type.
 
 func (es *EventStore) GetEventsByType(eventType string, limit int) ([]ProcessingEvent, error) {
-
 	es.mutex.RLock()
 
 	defer es.mutex.RUnlock()
@@ -673,7 +613,6 @@ func (es *EventStore) GetEventsByType(eventType string, limit int) ([]Processing
 	// Return most recent events first.
 
 	for i := len(es.events) - 1; i >= 0 && count < limit; i-- {
-
 		if es.events[i].Type == eventType {
 
 			result = append(result, es.events[i])
@@ -681,11 +620,9 @@ func (es *EventStore) GetEventsByType(eventType string, limit int) ([]Processing
 			count++
 
 		}
-
 	}
 
 	return result, nil
-
 }
 
 // EventBusMetrics provides metrics for the event bus.
@@ -709,18 +646,14 @@ type EventBusMetrics struct {
 // NewEventBusMetrics creates new metrics collector.
 
 func NewEventBusMetrics() *EventBusMetrics {
-
 	return &EventBusMetrics{
-
 		EventsPerType: make(map[string]int64),
 	}
-
 }
 
 // RecordEventPublished records an event publication.
 
 func (m *EventBusMetrics) RecordEventPublished(eventType string) {
-
 	m.mutex.Lock()
 
 	defer m.mutex.Unlock()
@@ -728,13 +661,11 @@ func (m *EventBusMetrics) RecordEventPublished(eventType string) {
 	m.TotalEventsPublished++
 
 	m.EventsPerType[eventType]++
-
 }
 
 // RecordEventProcessed records event processing completion.
 
 func (m *EventBusMetrics) RecordEventProcessed(processingTime time.Duration) {
-
 	m.mutex.Lock()
 
 	defer m.mutex.Unlock()
@@ -744,39 +675,30 @@ func (m *EventBusMetrics) RecordEventProcessed(processingTime time.Duration) {
 	// Update average processing time (simple moving average).
 
 	if m.AverageProcessingTime == 0 {
-
 		m.AverageProcessingTime = processingTime
-
 	} else {
-
 		m.AverageProcessingTime = (m.AverageProcessingTime + processingTime) / 2
-
 	}
-
 }
 
 // RecordHandlerFailure records a handler failure.
 
 func (m *EventBusMetrics) RecordHandlerFailure() {
-
 	m.mutex.Lock()
 
 	defer m.mutex.Unlock()
 
 	m.FailedHandlers++
-
 }
 
 // GetMetrics returns current metrics.
 
 func (m *EventBusMetrics) GetMetrics() map[string]interface{} {
-
 	m.mutex.RLock()
 
 	defer m.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"totalEventsPublished": m.TotalEventsPublished,
 
 		"totalEventsProcessed": m.TotalEventsProcessed,
@@ -789,5 +711,4 @@ func (m *EventBusMetrics) GetMetrics() map[string]interface{} {
 
 		"bufferUtilization": m.BufferUtilization,
 	}
-
 }

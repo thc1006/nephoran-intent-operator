@@ -168,11 +168,11 @@ func (tm *OAuth2TokenManager) AllocateTokens(request string) (int, error) {
 	return estimatedTokens, nil
 }
 
-// CalculateTokenBudget calculates the recommended token budget for a given context  
+// CalculateTokenBudget calculates the recommended token budget for a given context
 func (tm *OAuth2TokenManager) CalculateTokenBudget(context string, requirements map[string]interface{}) (int, error) {
 	// Base token budget calculation
 	baseTokens := len(strings.Fields(context)) * 2 // Rough estimation: 2 tokens per word
-	
+
 	// Add buffer for requirements
 	if requirements != nil {
 		if complexity, ok := requirements["complexity"]; ok {
@@ -186,17 +186,17 @@ func (tm *OAuth2TokenManager) CalculateTokenBudget(context string, requirements 
 			}
 		}
 	}
-	
+
 	// Ensure minimum budget
 	if baseTokens < 100 {
 		baseTokens = 100
 	}
-	
+
 	// Ensure it's within our limits
 	if baseTokens > tm.maxTokens {
 		baseTokens = tm.maxTokens
 	}
-	
+
 	return baseTokens, nil
 }
 

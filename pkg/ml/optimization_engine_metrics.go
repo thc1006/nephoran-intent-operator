@@ -16,7 +16,6 @@ var (
 	optimizationRequests = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "ml_optimization_requests_total",
 
 			Help: "Total number of optimization requests processed",
@@ -28,7 +27,6 @@ var (
 	optimizationDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "ml_optimization_duration_seconds",
 
 			Help: "Duration of optimization requests in seconds",
@@ -45,7 +43,6 @@ var (
 	dataGatheringDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "ml_data_gathering_duration_seconds",
 
 			Help: "Duration of historical data gathering in seconds",
@@ -60,7 +57,6 @@ var (
 	prometheusQueryErrors = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "ml_prometheus_query_errors_total",
 
 			Help: "Total number of Prometheus query errors",
@@ -74,7 +70,6 @@ var (
 	dataPointsInMemory = promauto.NewGauge(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_data_points_in_memory",
 
 			Help: "Current number of data points stored in memory",
@@ -84,7 +79,6 @@ var (
 	memoryUsageBytes = promauto.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_memory_usage_bytes",
 
 			Help: "Memory usage by component in bytes",
@@ -98,7 +92,6 @@ var (
 	modelAccuracy = promauto.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_model_accuracy",
 
 			Help: "Current accuracy of ML models",
@@ -110,7 +103,6 @@ var (
 	modelPredictionDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "ml_model_prediction_duration_seconds",
 
 			Help: "Duration of model predictions in seconds",
@@ -125,7 +117,6 @@ var (
 	modelTrainingDuration = promauto.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "ml_model_training_duration_seconds",
 
 			Help: "Duration of model training in seconds",
@@ -142,7 +133,6 @@ var (
 	cacheHits = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "ml_cache_hits_total",
 
 			Help: "Total number of cache hits",
@@ -154,7 +144,6 @@ var (
 	cacheMisses = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "ml_cache_misses_total",
 
 			Help: "Total number of cache misses",
@@ -166,7 +155,6 @@ var (
 	cacheSize = promauto.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_cache_size_entries",
 
 			Help: "Current number of entries in cache",
@@ -180,7 +168,6 @@ var (
 	recommendationConfidence = promauto.NewHistogram(
 
 		prometheus.HistogramOpts{
-
 			Name: "ml_recommendation_confidence_score",
 
 			Help: "Confidence scores of generated recommendations",
@@ -193,7 +180,6 @@ var (
 	optimizationPotential = promauto.NewHistogram(
 
 		prometheus.HistogramOpts{
-
 			Name: "ml_optimization_potential_score",
 
 			Help: "Optimization potential scores",
@@ -208,7 +194,6 @@ var (
 	cpuUtilization = promauto.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_resource_cpu_utilization_percent",
 
 			Help: "CPU utilization percentage by component",
@@ -220,7 +205,6 @@ var (
 	goroutineCount = promauto.NewGauge(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_goroutine_count",
 
 			Help: "Current number of goroutines",
@@ -232,7 +216,6 @@ var (
 	circuitBreakerState = promauto.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "ml_circuit_breaker_state",
 
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
@@ -244,7 +227,6 @@ var (
 	circuitBreakerTrips = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "ml_circuit_breaker_trips_total",
 
 			Help: "Total number of circuit breaker trips",
@@ -257,109 +239,81 @@ var (
 // RecordOptimizationRequest records metrics for an optimization request.
 
 func RecordOptimizationRequest(intentType, status string, duration float64) {
-
 	optimizationRequests.WithLabelValues(intentType, status).Inc()
 
 	optimizationDuration.WithLabelValues(intentType, "total").Observe(duration)
-
 }
 
 // RecordDataGathering records metrics for data gathering operations.
 
 func RecordDataGathering(queryType string, duration float64) {
-
 	dataGatheringDuration.WithLabelValues(queryType).Observe(duration)
-
 }
 
 // RecordPrometheusError records Prometheus query errors.
 
 func RecordPrometheusError(queryType, errorType string) {
-
 	prometheusQueryErrors.WithLabelValues(queryType, errorType).Inc()
-
 }
 
 // UpdateMemoryMetrics updates memory usage metrics.
 
 func UpdateMemoryMetrics(component string, bytes float64) {
-
 	memoryUsageBytes.WithLabelValues(component).Set(bytes)
-
 }
 
 // UpdateModelMetrics updates model performance metrics.
 
 func UpdateModelMetrics(modelType string, accuracy float64) {
-
 	modelAccuracy.WithLabelValues(modelType).Set(accuracy)
-
 }
 
 // RecordModelPrediction records model prediction metrics.
 
 func RecordModelPrediction(modelType string, duration float64) {
-
 	modelPredictionDuration.WithLabelValues(modelType).Observe(duration)
-
 }
 
 // RecordCacheMetrics records cache performance metrics.
 
 func RecordCacheMetrics(cacheType string, hit bool) {
-
 	if hit {
-
 		cacheHits.WithLabelValues(cacheType).Inc()
-
 	} else {
-
 		cacheMisses.WithLabelValues(cacheType).Inc()
-
 	}
-
 }
 
 // UpdateCacheSize updates cache size metrics.
 
 func UpdateCacheSize(cacheType string, size float64) {
-
 	cacheSize.WithLabelValues(cacheType).Set(size)
-
 }
 
 // RecordRecommendationQuality records recommendation quality metrics.
 
 func RecordRecommendationQuality(confidence, potential float64) {
-
 	recommendationConfidence.Observe(confidence)
 
 	optimizationPotential.Observe(potential)
-
 }
 
 // UpdateResourceMetrics updates resource utilization metrics.
 
 func UpdateResourceMetrics(component string, cpuPercent float64, goroutines int) {
-
 	cpuUtilization.WithLabelValues(component).Set(cpuPercent)
 
 	goroutineCount.Set(float64(goroutines))
-
 }
 
 // UpdateCircuitBreakerMetrics updates circuit breaker metrics.
 
 func UpdateCircuitBreakerMetrics(breakerName string, state int, trips int64) {
-
 	circuitBreakerState.WithLabelValues(breakerName).Set(float64(state))
 
 	if trips > 0 {
-
 		circuitBreakerTrips.WithLabelValues(breakerName).Add(float64(trips))
-
 	}
-
 }
 
 // GrafanaDashboardJSON provides a Grafana dashboard configuration for ML optimization metrics.

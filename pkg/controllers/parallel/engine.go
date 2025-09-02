@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 	resiliencecontroller "github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
@@ -90,67 +90,78 @@ const (
 )
 
 // Task represents a unit of work in the parallel processing system
+// Using Go 1.24+ struct evolution patterns for backward compatibility
 type Task struct {
 	// ID is a unique identifier for the task
-	ID string
+	ID string `json:"id"`
 
 	// IntentID links the task to a NetworkIntent
-	IntentID string
+	IntentID string `json:"intent_id"`
+
+	// CorrelationID for tracing and error correlation (Go 1.24+ migration)
+	// Added for backward compatibility with existing tests
+	CorrelationID string `json:"correlation_id,omitempty"`
 
 	// Type specifies the type of task
-	Type TaskType
+	Type TaskType `json:"type"`
 
 	// Priority determines processing priority
-	Priority int
+	Priority int `json:"priority"`
 
 	// Status tracks the current task status
-	Status TaskStatus
+	Status TaskStatus `json:"status"`
 
 	// InputData contains input parameters for the task
-	InputData map[string]interface{}
+	InputData map[string]interface{} `json:"input_data,omitempty"`
 
 	// OutputData contains results from task execution
-	OutputData map[string]interface{}
+	OutputData map[string]interface{} `json:"output_data,omitempty"`
 
 	// Error contains error information if task failed
-	Error error
+	Error error `json:"-"`
 
 	// Context for the task execution
-	Context context.Context
+	Context context.Context `json:"-"`
 
 	// Cancel function for task cancellation
-	Cancel context.CancelFunc
+	Cancel context.CancelFunc `json:"-"`
 
 	// Timeout for task execution
-	Timeout time.Duration
+	Timeout time.Duration `json:"timeout"`
 
-	// RetryCount tracks number of retry attempts
-	RetryCount int
+	// RetryConfig for advanced retry configuration (Go 1.24+ evolution)
+	RetryConfig *TaskRetryConfig `json:"retry_config,omitempty"`
+
+	// RetryCount tracks number of retry attempts (maintained for compatibility)
+	RetryCount int `json:"retry_count"`
 
 	// CreatedAt timestamp
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
 
 	// StartedAt timestamp
-	StartedAt *time.Time
+	StartedAt *time.Time `json:"started_at,omitempty"`
 
 	// CompletedAt timestamp
-	CompletedAt *time.Time
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 
 	// ScheduledAt timestamp when task was scheduled
-	ScheduledAt *time.Time
+	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
 
 	// Dependencies are tasks that must complete before this task
-	Dependencies []string
+	Dependencies []string `json:"dependencies,omitempty"`
 
 	// Metadata for additional task information
-	Metadata map[string]string
+	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// Intent reference for context
-	Intent *v1.NetworkIntent
+	Intent *v1.NetworkIntent `json:"-"`
 
 	// Callback functions
-	OnSuccess func(*TaskResult)
-	OnFailure func(*TaskResult)
+	OnSuccess func(*TaskResult) `json:"-"`
+	OnFailure func(*TaskResult) `json:"-"`
+
+	// Version field for struct evolution tracking
+	Version int `json:"version,omitempty"`
 }
 
 // GetID implements TaskInterface
@@ -657,21 +668,29 @@ func (e *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 	e.metricsLock.RLock()
 	defer e.metricsLock.RUnlock()
 
-	// Return a copy to avoid concurrent access issues
-	metrics := *e.metrics
+	// Create a safe copy without copying mutex to avoid lock copying violation
+	metrics := &ProcessingMetrics{
+		TotalTasks:        e.metrics.TotalTasks,
+		SuccessfulTasks:   e.metrics.SuccessfulTasks,
+		FailedTasks:       e.metrics.FailedTasks,
+		RunningTasks:      e.metrics.RunningTasks,
+		PendingTasks:      e.metrics.PendingTasks,
+		AverageLatency:    e.metrics.AverageLatency,
+		SuccessRate:       e.metrics.SuccessRate,
+		WorkerUtilization: make(map[TaskType]float64),
+		QueueDepths:       make(map[TaskType]int),
+	}
 
-	// Copy maps
-	metrics.WorkerUtilization = make(map[TaskType]float64)
+	// Copy maps safely
 	for k, v := range e.metrics.WorkerUtilization {
 		metrics.WorkerUtilization[k] = v
 	}
 
-	metrics.QueueDepths = make(map[TaskType]int)
 	for k, v := range e.metrics.QueueDepths {
 		metrics.QueueDepths[k] = v
 	}
 
-	return &metrics
+	return metrics
 }
 
 // HealthCheck returns the health status of the processing engine
@@ -1177,7 +1196,7 @@ func (w *Worker) processDeployment(ctx context.Context, task *Task) error {
 func (e *ParallelProcessingEngine) GetTaskStatus(taskID string) *Task {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	if task, exists := e.tasks[taskID]; exists {
 		return task
 	}
@@ -1188,24 +1207,24 @@ func (e *ParallelProcessingEngine) GetTaskStatus(taskID string) *Task {
 func (e *ParallelProcessingEngine) GetDependencyMetrics() map[string]interface{} {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	metrics := make(map[string]interface{})
 	metrics["total_tasks"] = len(e.tasks)
-	
+
 	// Count tasks by status
 	statusCounts := make(map[string]int)
 	for _, task := range e.tasks {
 		statusCounts[string(task.Status)]++
 	}
 	metrics["tasks_by_status"] = statusCounts
-	
+
 	// Count tasks by type
 	typeCounts := make(map[string]int)
 	for _, task := range e.tasks {
 		typeCounts[string(task.Type)]++
 	}
 	metrics["tasks_by_type"] = typeCounts
-	
+
 	return metrics
 }
 

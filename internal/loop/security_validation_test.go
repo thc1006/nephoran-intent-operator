@@ -122,7 +122,7 @@ func TestJSONBombProtection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Write test JSON to file
 			testFile := filepath.Join(tempDir, "test.json")
-			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0644)
+			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0o644)
 			require.NoError(t, err)
 
 			// Test parsing with security checks
@@ -237,7 +237,7 @@ func TestFilePermissions(t *testing.T) {
 
 	// Check directory permissions (platform-specific)
 	dirMode := dirInfo.Mode().Perm()
-	assert.Equal(t, os.FileMode(0700), dirMode, "directory should have 0700 permissions")
+	assert.Equal(t, os.FileMode(0o700), dirMode, "directory should have 0700 permissions")
 
 	// Test file creation
 	testFile := filepath.Join(testDir, "secure-file.json")
@@ -248,7 +248,7 @@ func TestFilePermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	fileMode := fileInfo.Mode().Perm()
-	assert.Equal(t, os.FileMode(0600), fileMode, "file should have 0600 permissions")
+	assert.Equal(t, os.FileMode(0o600), fileMode, "file should have 0600 permissions")
 }
 
 // TestIntentValidation tests intent content validation
@@ -325,7 +325,7 @@ func TestIntentValidation(t *testing.T) {
 			intentFile := filepath.Join(tempDir, "intent-test.json")
 			data, err := json.Marshal(tt.intent)
 			require.NoError(t, err)
-			err = os.WriteFile(intentFile, data, 0644)
+			err = os.WriteFile(intentFile, data, 0o644)
 			require.NoError(t, err)
 
 			// Validate intent
@@ -415,8 +415,8 @@ func validatePathSafety(path string) error {
 
 const (
 	// Secure permission constants
-	SecureDirPerm  = 0700
-	SecureFilePerm = 0600
+	SecureDirPerm  = 0o700
+	SecureFilePerm = 0o600
 )
 
 // ParseIntentFile parses an intent file with comprehensive security checks

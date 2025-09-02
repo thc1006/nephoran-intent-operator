@@ -50,9 +50,7 @@ type FiveGCoreOptimizer struct {
 // NewFiveGCoreOptimizer creates a new 5G Core optimizer.
 
 func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
-
 	metadata := &FunctionMetadata{
-
 		Name: "5g-core-optimizer",
 
 		Version: "v1.0.0",
@@ -66,7 +64,6 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 		Keywords: []string{"5g", "optimization", "performance", "resource", "scaling"},
 
 		ResourceTypes: []ResourceTypeSupport{
-
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "AMF", Operations: []string{"read", "update"}},
 
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "SMF", Operations: []string{"read", "update"}},
@@ -77,7 +74,6 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 		},
 
 		Telecom: &TelecomProfile{
-
 			NetworkFunctionTypes: []string{"AMF", "SMF", "UPF", "NSSF"},
 
 			FiveGCapabilities: []string{"performance-optimization", "auto-scaling", "resource-planning"},
@@ -89,13 +85,10 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 	}
 
 	schema := &FunctionSchema{
-
 		Type: "object",
 
 		Properties: map[string]*SchemaProperty{
-
 			"optimizationTarget": {
-
 				Type: "string",
 
 				Description: "Target for optimization",
@@ -106,15 +99,12 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 			},
 
 			"expectedLoad": {
-
 				Type: "object",
 
 				Description: "Expected system load characteristics",
 
 				Properties: map[string]*SchemaProperty{
-
 					"peakUsers": {
-
 						Type: "integer",
 
 						Description: "Peak concurrent users",
@@ -125,7 +115,6 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 					},
 
 					"averageUsers": {
-
 						Type: "integer",
 
 						Description: "Average concurrent users",
@@ -134,7 +123,6 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 					},
 
 					"sessionRate": {
-
 						Type: "number",
 
 						Description: "Sessions per second",
@@ -145,13 +133,11 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 			},
 
 			"resourceConstraints": {
-
 				Type: "object",
 
 				Description: "Resource constraints",
 
 				Properties: map[string]*SchemaProperty{
-
 					"maxCPU": {Type: "string", Description: "Maximum CPU per instance"},
 
 					"maxMemory": {Type: "string", Description: "Maximum memory per instance"},
@@ -165,13 +151,11 @@ func NewFiveGCoreOptimizer() *FiveGCoreOptimizer {
 	base := NewBaseFunctionImpl(metadata, schema)
 
 	return &FiveGCoreOptimizer{BaseFunctionImpl: base}
-
 }
 
 // Execute optimizes 5G Core configurations.
 
 func (o *FiveGCoreOptimizer) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
-
 	LogInfo(ctx, "Starting 5G Core optimization")
 
 	// Parse configuration.
@@ -181,7 +165,6 @@ func (o *FiveGCoreOptimizer) Execute(ctx context.Context, input *ResourceList) (
 	// Create output resource list.
 
 	output := &ResourceList{
-
 		Items: make([]porch.KRMResource, len(input.Items)),
 
 		FunctionConfig: input.FunctionConfig,
@@ -212,7 +195,6 @@ func (o *FiveGCoreOptimizer) Execute(ctx context.Context, input *ResourceList) (
 	LogInfo(ctx, "5G Core optimization completed", "results", len(output.Results))
 
 	return output, nil
-
 }
 
 // NetworkSliceOptimizer optimizes network slice configurations.
@@ -224,9 +206,7 @@ type NetworkSliceOptimizer struct {
 // NewNetworkSliceOptimizer creates a new network slice optimizer.
 
 func NewNetworkSliceOptimizer() *NetworkSliceOptimizer {
-
 	metadata := &FunctionMetadata{
-
 		Name: "network-slice-optimizer",
 
 		Version: "v1.0.0",
@@ -240,7 +220,6 @@ func NewNetworkSliceOptimizer() *NetworkSliceOptimizer {
 		Keywords: []string{"network-slice", "embb", "urllc", "mmtc", "qos", "sla"},
 
 		ResourceTypes: []ResourceTypeSupport{
-
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "NetworkSlice", Operations: []string{"read", "update"}},
 
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "AMF", Operations: []string{"read", "update"}},
@@ -251,7 +230,6 @@ func NewNetworkSliceOptimizer() *NetworkSliceOptimizer {
 		},
 
 		Telecom: &TelecomProfile{
-
 			NetworkSliceSupport: true,
 
 			FiveGCapabilities: []string{"eMBB", "URLLC", "mMTC", "network-slicing"},
@@ -263,19 +241,15 @@ func NewNetworkSliceOptimizer() *NetworkSliceOptimizer {
 	}
 
 	schema := &FunctionSchema{
-
 		Type: "object",
 
 		Properties: map[string]*SchemaProperty{
-
 			"sliceTypes": {
-
 				Type: "array",
 
 				Description: "Types of network slices to optimize",
 
 				Items: &SchemaProperty{
-
 					Type: "string",
 
 					Enum: []interface{}{"eMBB", "URLLC", "mMTC"},
@@ -283,7 +257,6 @@ func NewNetworkSliceOptimizer() *NetworkSliceOptimizer {
 			},
 
 			"isolationLevel": {
-
 				Type: "string",
 
 				Description: "Isolation level for network slices",
@@ -298,17 +271,14 @@ func NewNetworkSliceOptimizer() *NetworkSliceOptimizer {
 	base := NewBaseFunctionImpl(metadata, schema)
 
 	return &NetworkSliceOptimizer{BaseFunctionImpl: base}
-
 }
 
 // Execute optimizes network slice configurations.
 
 func (o *NetworkSliceOptimizer) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
-
 	LogInfo(ctx, "Starting network slice optimization")
 
 	output := &ResourceList{
-
 		Items: make([]porch.KRMResource, len(input.Items)),
 
 		FunctionConfig: input.FunctionConfig,
@@ -323,7 +293,6 @@ func (o *NetworkSliceOptimizer) Execute(ctx context.Context, input *ResourceList
 	// Find network slices.
 
 	networkSlices := FindResourcesByGVK(output.Items, schema.GroupVersionKind{
-
 		Group: "workload.nephio.org",
 
 		Version: "v1alpha1",
@@ -354,7 +323,6 @@ func (o *NetworkSliceOptimizer) Execute(ctx context.Context, input *ResourceList
 		"results", len(output.Results))
 
 	return output, nil
-
 }
 
 // MultiVendorNormalizer normalizes multi-vendor configurations.
@@ -366,9 +334,7 @@ type MultiVendorNormalizer struct {
 // NewMultiVendorNormalizer creates a new multi-vendor normalizer.
 
 func NewMultiVendorNormalizer() *MultiVendorNormalizer {
-
 	metadata := &FunctionMetadata{
-
 		Name: "multi-vendor-normalizer",
 
 		Version: "v1.0.0",
@@ -382,7 +348,6 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 		Keywords: []string{"vendor", "interoperability", "normalization", "standards"},
 
 		ResourceTypes: []ResourceTypeSupport{
-
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "AMF", Operations: []string{"read", "update"}},
 
 			{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "SMF", Operations: []string{"read", "update"}},
@@ -395,9 +360,7 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 		},
 
 		Telecom: &TelecomProfile{
-
 			Standards: []StandardCompliance{
-
 				{Name: "3GPP", Version: "R17", Required: true},
 
 				{Name: "O-RAN", Version: "R1.0", Required: true},
@@ -410,13 +373,10 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 	}
 
 	schema := &FunctionSchema{
-
 		Type: "object",
 
 		Properties: map[string]*SchemaProperty{
-
 			"targetVendor": {
-
 				Type: "string",
 
 				Description: "Target vendor for normalization",
@@ -427,7 +387,6 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 			},
 
 			"normalizeInterfaces": {
-
 				Type: "boolean",
 
 				Description: "Normalize interface configurations",
@@ -436,7 +395,6 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 			},
 
 			"normalizeParameters": {
-
 				Type: "boolean",
 
 				Description: "Normalize vendor-specific parameters",
@@ -449,19 +407,16 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 	base := NewBaseFunctionImpl(metadata, schema)
 
 	return &MultiVendorNormalizer{BaseFunctionImpl: base}
-
 }
 
 // Execute normalizes multi-vendor configurations.
 
 func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
-
 	LogInfo(ctx, "Starting multi-vendor normalization")
 
 	config := n.parseNormalizationConfig(input.FunctionConfig)
 
 	output := &ResourceList{
-
 		Items: make([]porch.KRMResource, len(input.Items)),
 
 		FunctionConfig: input.FunctionConfig,
@@ -486,21 +441,16 @@ func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList
 	LogInfo(ctx, "Multi-vendor normalization completed", "results", len(output.Results))
 
 	return output, nil
-
 }
 
 // Helper methods for FiveGCoreOptimizer.
 
 func (o *FiveGCoreOptimizer) parseOptimizationConfig(config map[string]interface{}) map[string]interface{} {
-
 	if config == nil {
-
 		return map[string]interface{}{
-
 			"optimizationTarget": "balanced",
 
 			"expectedLoad": map[string]interface{}{
-
 				"peakUsers": 100000,
 
 				"averageUsers": 50000,
@@ -508,17 +458,13 @@ func (o *FiveGCoreOptimizer) parseOptimizationConfig(config map[string]interface
 				"sessionRate": 1000,
 			},
 		}
-
 	}
 
 	return config
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeAMFs(ctx context.Context, output *ResourceList, config map[string]interface{}) {
-
 	amfs := FindResourcesByGVK(output.Items, schema.GroupVersionKind{
-
 		Group: "workload.nephio.org",
 
 		Version: "v1alpha1",
@@ -539,11 +485,9 @@ func (o *FiveGCoreOptimizer) optimizeAMFs(ctx context.Context, output *ResourceL
 		}
 
 	}
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeAMF(ctx context.Context, amf *porch.KRMResource, config map[string]interface{}) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(amf)
@@ -553,17 +497,13 @@ func (o *FiveGCoreOptimizer) optimizeAMF(ctx context.Context, amf *porch.KRMReso
 	expectedLoad, ok := config["expectedLoad"].(map[string]interface{})
 
 	if !ok {
-
 		return results
-
 	}
 
 	peakUsers, _ := expectedLoad["peakUsers"].(int)
 
 	if peakUsers == 0 {
-
 		peakUsers = 100000
-
 	}
 
 	// Calculate optimal resource allocation.
@@ -577,21 +517,17 @@ func (o *FiveGCoreOptimizer) optimizeAMF(ctx context.Context, amf *porch.KRMReso
 	// Update resource specifications.
 
 	if err := SetSpecField(amf, "resources.requests.cpu", fmt.Sprintf("%dm", cpuCores)); err == nil {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("AMF %s: Set CPU request to %dm", name, cpuCores),
 		))
-
 	}
 
 	if err := SetSpecField(amf, "resources.requests.memory", fmt.Sprintf("%dMi", memory)); err == nil {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("AMF %s: Set memory request to %dMi", name, memory),
 		))
-
 	}
 
 	// Set resource limits (20% higher than requests).
@@ -607,12 +543,10 @@ func (o *FiveGCoreOptimizer) optimizeAMF(ctx context.Context, amf *porch.KRMReso
 	// Update replica count.
 
 	if err := SetSpecField(amf, "replicas", replicas); err == nil {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("AMF %s: Set replica count to %d", name, replicas),
 		))
-
 	}
 
 	// Optimize connection pool sizes.
@@ -620,22 +554,17 @@ func (o *FiveGCoreOptimizer) optimizeAMF(ctx context.Context, amf *porch.KRMReso
 	maxConnections := o.calculateAMFConnections(peakUsers)
 
 	if err := SetSpecField(amf, "connectionPool.maxConnections", maxConnections); err == nil {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("AMF %s: Set max connections to %d", name, maxConnections),
 		))
-
 	}
 
 	return results
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeSMFs(ctx context.Context, output *ResourceList, config map[string]interface{}) {
-
 	smfs := FindResourcesByGVK(output.Items, schema.GroupVersionKind{
-
 		Group: "workload.nephio.org",
 
 		Version: "v1alpha1",
@@ -656,11 +585,9 @@ func (o *FiveGCoreOptimizer) optimizeSMFs(ctx context.Context, output *ResourceL
 		}
 
 	}
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeSMF(ctx context.Context, smf *porch.KRMResource, config map[string]interface{}) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(smf)
@@ -668,17 +595,13 @@ func (o *FiveGCoreOptimizer) optimizeSMF(ctx context.Context, smf *porch.KRMReso
 	expectedLoad, ok := config["expectedLoad"].(map[string]interface{})
 
 	if !ok {
-
 		return results
-
 	}
 
 	sessionRate, _ := expectedLoad["sessionRate"].(float64)
 
 	if sessionRate == 0 {
-
 		sessionRate = 1000
-
 	}
 
 	// Calculate SMF resources based on session rate.
@@ -698,12 +621,10 @@ func (o *FiveGCoreOptimizer) optimizeSMF(ctx context.Context, smf *porch.KRMReso
 	maxSessions := int(sessionRate * 3600) // Sessions per hour
 
 	if err := SetSpecField(smf, "pduSessions.maxConcurrentSessions", maxSessions); err == nil {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("SMF %s: Set max concurrent sessions to %d", name, maxSessions),
 		))
-
 	}
 
 	// Configure PFCP settings.
@@ -718,13 +639,10 @@ func (o *FiveGCoreOptimizer) optimizeSMF(ctx context.Context, smf *porch.KRMReso
 	))
 
 	return results
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeUPFs(ctx context.Context, output *ResourceList, config map[string]interface{}) {
-
 	upfs := FindResourcesByGVK(output.Items, schema.GroupVersionKind{
-
 		Group: "workload.nephio.org",
 
 		Version: "v1alpha1",
@@ -745,11 +663,9 @@ func (o *FiveGCoreOptimizer) optimizeUPFs(ctx context.Context, output *ResourceL
 		}
 
 	}
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeUPF(ctx context.Context, upf *porch.KRMResource, config map[string]interface{}) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(upf)
@@ -759,17 +675,13 @@ func (o *FiveGCoreOptimizer) optimizeUPF(ctx context.Context, upf *porch.KRMReso
 	expectedLoad, ok := config["expectedLoad"].(map[string]interface{})
 
 	if !ok {
-
 		return results
-
 	}
 
 	peakUsers, _ := expectedLoad["peakUsers"].(int)
 
 	if peakUsers == 0 {
-
 		peakUsers = 100000
-
 	}
 
 	// Calculate throughput requirements (assuming average 10 Mbps per user).
@@ -793,12 +705,10 @@ func (o *FiveGCoreOptimizer) optimizeUPF(ctx context.Context, upf *porch.KRMReso
 	workerThreads := maxInt(2, cpuCores/1000) // One thread per CPU core
 
 	if err := SetSpecField(upf, "dataPlane.workerThreads", workerThreads); err == nil {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("UPF %s: Set worker threads to %d", name, workerThreads),
 		))
-
 	}
 
 	// Configure packet buffer.
@@ -813,13 +723,10 @@ func (o *FiveGCoreOptimizer) optimizeUPF(ctx context.Context, upf *porch.KRMReso
 	))
 
 	return results
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeNSSFs(ctx context.Context, output *ResourceList, config map[string]interface{}) {
-
 	nssfs := FindResourcesByGVK(output.Items, schema.GroupVersionKind{
-
 		Group: "workload.nephio.org",
 
 		Version: "v1alpha1",
@@ -840,11 +747,9 @@ func (o *FiveGCoreOptimizer) optimizeNSSFs(ctx context.Context, output *Resource
 		}
 
 	}
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeNSSF(ctx context.Context, nssf *porch.KRMResource, config map[string]interface{}) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(nssf)
@@ -863,11 +768,9 @@ func (o *FiveGCoreOptimizer) optimizeNSSF(ctx context.Context, nssf *porch.KRMRe
 	))
 
 	return results
-
 }
 
 func (o *FiveGCoreOptimizer) optimizeInterFunctionConnections(ctx context.Context, output *ResourceList, config map[string]interface{}) {
-
 	// This would optimize connections between different NFs.
 
 	// For example, configuring load balancer affinities, connection pooling, etc.
@@ -876,13 +779,11 @@ func (o *FiveGCoreOptimizer) optimizeInterFunctionConnections(ctx context.Contex
 
 		"Inter-function connection optimization completed",
 	))
-
 }
 
 // Resource calculation methods.
 
 func (o *FiveGCoreOptimizer) calculateAMFCPU(peakUsers int) int {
-
 	// Base CPU requirement plus scaling factor.
 
 	baseCPU := 500 // 500m base
@@ -890,11 +791,9 @@ func (o *FiveGCoreOptimizer) calculateAMFCPU(peakUsers int) int {
 	scalingFactor := float64(peakUsers) / 10000 // 100m per 10k users
 
 	return baseCPU + int(scalingFactor*100)
-
 }
 
 func (o *FiveGCoreOptimizer) calculateAMFMemory(peakUsers int) int {
-
 	// Base memory plus per-user memory.
 
 	baseMemory := 512 // 512Mi base
@@ -902,29 +801,23 @@ func (o *FiveGCoreOptimizer) calculateAMFMemory(peakUsers int) int {
 	perUserMemory := float64(peakUsers) * 0.001 // 1KB per user
 
 	return baseMemory + int(perUserMemory)
-
 }
 
 func (o *FiveGCoreOptimizer) calculateAMFReplicas(peakUsers int) int {
-
 	// Each AMF instance can handle ~50k users.
 
 	replicas := int(math.Ceil(float64(peakUsers) / 50000))
 
 	return maxInt(2, replicas) // Minimum 2 for HA
-
 }
 
 func (o *FiveGCoreOptimizer) calculateAMFConnections(peakUsers int) int {
-
 	// Assume 10% of users are actively connected.
 
 	return int(float64(peakUsers) * 0.1)
-
 }
 
 func (o *FiveGCoreOptimizer) calculateSMFCPU(sessionRate float64) int {
-
 	// CPU scales with session establishment rate.
 
 	baseCPU := 300
@@ -932,39 +825,29 @@ func (o *FiveGCoreOptimizer) calculateSMFCPU(sessionRate float64) int {
 	sessionCPU := sessionRate * 0.5 // 0.5m per session/sec
 
 	return baseCPU + int(sessionCPU)
-
 }
 
 func (o *FiveGCoreOptimizer) calculateSMFMemory(sessionRate float64) int {
-
 	baseMemory := 256
 
 	sessionMemory := sessionRate * 0.1 // 0.1Mi per session/sec
 
 	return baseMemory + int(sessionMemory)
-
 }
 
 func (o *FiveGCoreOptimizer) calculatePFCPTimeout(sessionRate float64) int {
-
 	// Higher session rates need shorter timeouts.
 
 	if sessionRate > 1000 {
-
 		return 30
-
 	} else if sessionRate > 100 {
-
 		return 60
-
 	}
 
 	return 120
-
 }
 
 func (o *FiveGCoreOptimizer) calculateUPFCPU(throughputGbps float64) int {
-
 	// UPF is CPU intensive for packet processing.
 
 	baseCPU := 1000 // 1 CPU base
@@ -972,21 +855,17 @@ func (o *FiveGCoreOptimizer) calculateUPFCPU(throughputGbps float64) int {
 	throughputCPU := throughputGbps * 500 // 500m per Gbps
 
 	return baseCPU + int(throughputCPU)
-
 }
 
 func (o *FiveGCoreOptimizer) calculateUPFMemory(throughputGbps float64) int {
-
 	baseMemory := 1024 // 1Gi base
 
 	throughputMemory := throughputGbps * 200 // 200Mi per Gbps
 
 	return baseMemory + int(throughputMemory)
-
 }
 
 func (o *FiveGCoreOptimizer) calculatePacketBufferSize(throughputGbps float64) int {
-
 	// Buffer size based on throughput.
 
 	baseBuffer := 128 // 128MB base
@@ -994,35 +873,25 @@ func (o *FiveGCoreOptimizer) calculatePacketBufferSize(throughputGbps float64) i
 	throughputBuffer := throughputGbps * 64 // 64MB per Gbps
 
 	return baseBuffer + int(throughputBuffer)
-
 }
 
 func (o *FiveGCoreOptimizer) findResourceIndex(resources []porch.KRMResource, target *porch.KRMResource) int {
-
 	targetName, _ := GetResourceName(target)
 
 	for i, resource := range resources {
-
 		if resource.Kind == target.Kind && resource.APIVersion == target.APIVersion {
-
 			if name, _ := GetResourceName(&resource); name == targetName {
-
 				return i
-
 			}
-
 		}
-
 	}
 
 	return -1
-
 }
 
 // Network slice optimization methods.
 
 func (o *NetworkSliceOptimizer) optimizeNetworkSlice(ctx context.Context, slice *porch.KRMResource) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(slice)
@@ -1030,7 +899,6 @@ func (o *NetworkSliceOptimizer) optimizeNetworkSlice(ctx context.Context, slice 
 	// Get slice type.
 
 	sliceType, err := GetSpecField(slice, "sliceType")
-
 	if err != nil {
 
 		results = append(results, CreateWarning(
@@ -1045,9 +913,7 @@ func (o *NetworkSliceOptimizer) optimizeNetworkSlice(ctx context.Context, slice 
 	sliceTypeStr, ok := sliceType.(string)
 
 	if !ok {
-
 		return results
-
 	}
 
 	switch strings.ToUpper(sliceTypeStr) {
@@ -1074,11 +940,9 @@ func (o *NetworkSliceOptimizer) optimizeNetworkSlice(ctx context.Context, slice 
 	}
 
 	return results
-
 }
 
 func (o *NetworkSliceOptimizer) optimizeEMBBSlice(ctx context.Context, slice *porch.KRMResource) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(slice)
@@ -1099,11 +963,9 @@ func (o *NetworkSliceOptimizer) optimizeEMBBSlice(ctx context.Context, slice *po
 	))
 
 	return results
-
 }
 
 func (o *NetworkSliceOptimizer) optimizeURLLCSlice(ctx context.Context, slice *porch.KRMResource) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(slice)
@@ -1126,11 +988,9 @@ func (o *NetworkSliceOptimizer) optimizeURLLCSlice(ctx context.Context, slice *p
 	))
 
 	return results
-
 }
 
 func (o *NetworkSliceOptimizer) optimizeMTCSlice(ctx context.Context, slice *porch.KRMResource) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(slice)
@@ -1151,54 +1011,39 @@ func (o *NetworkSliceOptimizer) optimizeMTCSlice(ctx context.Context, slice *por
 	))
 
 	return results
-
 }
 
 func (o *NetworkSliceOptimizer) findResourceIndex(resources []porch.KRMResource, target *porch.KRMResource) int {
-
 	targetName, _ := GetResourceName(target)
 
 	for i, resource := range resources {
-
 		if resource.Kind == target.Kind && resource.APIVersion == target.APIVersion {
-
 			if name, _ := GetResourceName(&resource); name == targetName {
-
 				return i
-
 			}
-
 		}
-
 	}
 
 	return -1
-
 }
 
 // Multi-vendor normalization methods.
 
 func (n *MultiVendorNormalizer) parseNormalizationConfig(config map[string]interface{}) map[string]interface{} {
-
 	if config == nil {
-
 		return map[string]interface{}{
-
 			"targetVendor": "generic",
 
 			"normalizeInterfaces": true,
 
 			"normalizeParameters": true,
 		}
-
 	}
 
 	return config
-
 }
 
 func (n *MultiVendorNormalizer) normalizeResource(ctx context.Context, resource *porch.KRMResource, config map[string]interface{}) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	name, _ := GetResourceName(resource)
@@ -1210,23 +1055,17 @@ func (n *MultiVendorNormalizer) normalizeResource(ctx context.Context, resource 
 	targetVendor, ok := config["targetVendor"].(string)
 
 	if !ok {
-
 		targetVendor = "generic"
-
 	}
 
 	if vendor != "" && vendor != targetVendor {
-
 		results = append(results, n.normalizeVendorSpecific(ctx, resource, vendor, targetVendor)...)
-
 	}
 
 	// Normalize interface configurations.
 
 	if normalizeInterfaces, ok := config["normalizeInterfaces"].(bool); ok && normalizeInterfaces {
-
 		results = append(results, n.normalizeInterfaces(ctx, resource)...)
-
 	}
 
 	// Add normalization metadata.
@@ -1236,34 +1075,26 @@ func (n *MultiVendorNormalizer) normalizeResource(ctx context.Context, resource 
 	SetResourceAnnotation(resource, "nephoran.io/normalized-to", targetVendor)
 
 	if len(results) > 0 {
-
 		results = append(results, CreateInfo(
 
 			fmt.Sprintf("Resource %s normalized from %s to %s", name, vendor, targetVendor),
 		))
-
 	}
 
 	return results
-
 }
 
 func (n *MultiVendorNormalizer) detectVendor(resource *porch.KRMResource) string {
-
 	// Check annotations for vendor information.
 
 	if vendor, exists := GetResourceAnnotation(resource, "vendor"); exists {
-
 		return strings.ToLower(vendor)
-
 	}
 
 	// Check labels.
 
 	if vendor, exists := GetResourceLabel(resource, "vendor"); exists {
-
 		return strings.ToLower(vendor)
-
 	}
 
 	// Check spec fields for vendor-specific patterns.
@@ -1273,35 +1104,27 @@ func (n *MultiVendorNormalizer) detectVendor(resource *porch.KRMResource) string
 		// Ericsson patterns.
 
 		if _, exists := resource.Spec["ericsson"]; exists {
-
 			return "ericsson"
-
 		}
 
 		// Nokia patterns.
 
 		if _, exists := resource.Spec["nokia"]; exists {
-
 			return "nokia"
-
 		}
 
 		// Huawei patterns.
 
 		if _, exists := resource.Spec["huawei"]; exists {
-
 			return "huawei"
-
 		}
 
 	}
 
 	return "unknown"
-
 }
 
 func (n *MultiVendorNormalizer) normalizeVendorSpecific(ctx context.Context, resource *porch.KRMResource, fromVendor, toVendor string) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	// This would contain vendor-specific normalization logic.
@@ -1325,17 +1148,14 @@ func (n *MultiVendorNormalizer) normalizeVendorSpecific(ctx context.Context, res
 	}
 
 	return results
-
 }
 
 func (n *MultiVendorNormalizer) normalizeFromEricsson(ctx context.Context, resource *porch.KRMResource, toVendor string) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	// Example: Convert Ericsson-specific configuration format.
 
 	if ericssonConfig, err := GetSpecField(resource, "ericsson"); err == nil && ericssonConfig != nil {
-
 		// Convert to generic format.
 
 		if genericConfig := n.convertEricssonToGeneric(ericssonConfig); genericConfig != nil {
@@ -1345,49 +1165,39 @@ func (n *MultiVendorNormalizer) normalizeFromEricsson(ctx context.Context, resou
 			// Remove vendor-specific section.
 
 			if resource.Spec != nil {
-
 				delete(resource.Spec, "ericsson")
-
 			}
 
 			results = append(results, CreateInfo("Converted Ericsson-specific configuration"))
 
 		}
-
 	}
 
 	return results
-
 }
 
 func (n *MultiVendorNormalizer) normalizeFromNokia(ctx context.Context, resource *porch.KRMResource, toVendor string) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	// Similar normalization for Nokia.
 
 	return results
-
 }
 
 func (n *MultiVendorNormalizer) normalizeFromHuawei(ctx context.Context, resource *porch.KRMResource, toVendor string) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	// Similar normalization for Huawei.
 
 	return results
-
 }
 
 func (n *MultiVendorNormalizer) normalizeInterfaces(ctx context.Context, resource *porch.KRMResource) []*porch.FunctionResult {
-
 	var results []*porch.FunctionResult
 
 	// Normalize interface naming and parameters.
 
 	if interfaces, err := GetSpecField(resource, "interfaces"); err == nil && interfaces != nil {
-
 		if interfaceMap, ok := interfaces.(map[string]interface{}); ok {
 
 			normalizedInterfaces := n.normalizeInterfaceMap(interfaceMap)
@@ -1397,30 +1207,24 @@ func (n *MultiVendorNormalizer) normalizeInterfaces(ctx context.Context, resourc
 			results = append(results, CreateInfo("Normalized interface configurations"))
 
 		}
-
 	}
 
 	return results
-
 }
 
 func (n *MultiVendorNormalizer) convertEricssonToGeneric(ericssonConfig interface{}) map[string]interface{} {
-
 	// This would contain actual conversion logic.
 
 	// For now, return a placeholder.
 
 	return map[string]interface{}{
-
 		"converted": true,
 
 		"source": "ericsson",
 	}
-
 }
 
 func (n *MultiVendorNormalizer) normalizeInterfaceMap(interfaces map[string]interface{}) map[string]interface{} {
-
 	normalized := make(map[string]interface{})
 
 	for key, value := range interfaces {
@@ -1434,11 +1238,9 @@ func (n *MultiVendorNormalizer) normalizeInterfaceMap(interfaces map[string]inte
 	}
 
 	return normalized
-
 }
 
 func (n *MultiVendorNormalizer) normalizeInterfaceName(interfaceName string) string {
-
 	// Normalize interface names to standard format.
 
 	lower := strings.ToLower(interfaceName)
@@ -1446,7 +1248,6 @@ func (n *MultiVendorNormalizer) normalizeInterfaceName(interfaceName string) str
 	// Map vendor-specific names to standard names.
 
 	nameMapping := map[string]string{
-
 		"n1-n2": "n1_n2",
 
 		"n1/n2": "n1_n2",
@@ -1461,31 +1262,22 @@ func (n *MultiVendorNormalizer) normalizeInterfaceName(interfaceName string) str
 	}
 
 	if normalized, exists := nameMapping[lower]; exists {
-
 		return normalized
-
 	}
 
 	return lower
-
 }
 
 // Utility functions.
 
 func floatPtr(f float64) *float64 {
-
 	return &f
-
 }
 
 func maxInt(a, b int) int {
-
 	if a > b {
-
 		return a
-
 	}
 
 	return b
-
 }

@@ -31,11 +31,8 @@ type AuthHandlers = Handlers
 // NewHandlers creates new authentication handlers.
 
 func NewHandlers(sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *HandlersConfig) *Handlers {
-
 	if config == nil {
-
 		config = &HandlersConfig{
-
 			BaseURL: "http://localhost:8080",
 
 			DefaultRedirect: "/dashboard",
@@ -52,11 +49,9 @@ func NewHandlers(sessionManager *SessionManager, jwtManager *JWTManager, rbacMan
 
 			TokenPath: "/auth/token",
 		}
-
 	}
 
 	return &Handlers{
-
 		sessionManager: sessionManager,
 
 		jwtManager: jwtManager,
@@ -65,7 +60,6 @@ func NewHandlers(sessionManager *SessionManager, jwtManager *JWTManager, rbacMan
 
 		config: config,
 	}
-
 }
 
 // NewAuthHandlers creates new authentication handlers (compatibility function)
@@ -76,7 +70,6 @@ func NewAuthHandlers(sessionManager *SessionManager, jwtManager *JWTManager, rba
 // RegisterRoutes registers authentication routes with the router.
 
 func (ah *Handlers) RegisterRoutes(router *mux.Router) {
-
 	// Authentication endpoints.
 
 	router.HandleFunc("/auth/providers", ah.GetProvidersHandler).Methods("GET")
@@ -126,13 +119,11 @@ func (ah *Handlers) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/auth/users/{userId}/roles/{roleId}", ah.RevokeRoleHandler).Methods("DELETE")
 
 	router.HandleFunc("/auth/permissions", ah.ListPermissionsHandler).Methods("GET")
-
 }
 
 // GetProvidersHandler returns available OAuth2 providers.
 
 func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) {
-
 	providers := make(map[string]interface{})
 
 	for name, provider := range ah.sessionManager.providers {
@@ -140,7 +131,6 @@ func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) 
 		config := provider.GetConfiguration()
 
 		providers[name] = map[string]interface{}{
-
 			"name": config.Name,
 
 			"type": config.Type,
@@ -151,16 +141,13 @@ func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"providers": providers,
 	})
-
 }
 
 // InitiateLoginHandler initiates OAuth2 login flow.
 
 func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	providerName := vars["provider"]
@@ -170,7 +157,6 @@ func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
 	var loginReq LoginRequest
 
 	if r.Method == "POST" {
-
 		if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
 
 			ah.writeErrorResponse(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
@@ -178,7 +164,6 @@ func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
 			return
 
 		}
-
 	} else {
 
 		// GET request - extract from query parameters.
@@ -192,13 +177,9 @@ func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
 		// Extract custom parameters.
 
 		for key, values := range r.URL.Query() {
-
 			if len(values) > 0 && !isReservedParam(key) {
-
 				loginReq.Options[key] = values[0]
-
 			}
-
 		}
 
 	}
@@ -212,7 +193,6 @@ func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
 	// Initiate login.
 
 	response, err := ah.sessionManager.InitiateLogin(r.Context(), &loginReq)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusBadRequest, "login_failed", err.Error())
@@ -234,19 +214,16 @@ func (ah *Handlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Request)
 	// For POST requests, return JSON.
 
 	ah.writeJSONResponse(w, http.StatusOK, response)
-
 }
 
 // CallbackHandler handles OAuth2 callback.
 
 func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	providerName := vars["provider"]
 
 	callbackReq := &CallbackRequest{
-
 		Provider: providerName,
 
 		Code: r.URL.Query().Get("code"),
@@ -275,7 +252,6 @@ func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// Process callback.
 
 	response, err := ah.sessionManager.HandleCallback(r.Context(), callbackReq)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "callback_failed", err.Error())
@@ -301,9 +277,7 @@ func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	redirectURL := ah.config.DefaultRedirect
 
 	if response.RedirectURL != "" {
-
 		redirectURL = response.RedirectURL
-
 	}
 
 	// For API requests, return JSON.
@@ -319,13 +293,11 @@ func (ah *Handlers) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// For browser requests, redirect.
 
 	http.Redirect(w, r, redirectURL, http.StatusFound)
-
 }
 
 // LogoutHandler logs out the user.
 
 func (ah *Handlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-
 	sessionID := ah.getSessionID(r)
 
 	if sessionID == "" {
@@ -351,16 +323,13 @@ func (ah *Handlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	ah.sessionManager.ClearSessionCookie(w)
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"message": "Logged out successfully",
 	})
-
 }
 
 // GetUserInfoHandler returns current user information.
 
 func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-
 	authContext := GetAuthContext(r.Context())
 
 	if authContext == nil {
@@ -374,7 +343,6 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	// Get session info.
 
 	sessionInfo, err := ah.sessionManager.ValidateSession(r.Context(), authContext.SessionID)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "session_error", err.Error())
@@ -384,7 +352,6 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userInfo := map[string]interface{}{
-
 		"user_id": authContext.UserID,
 
 		"session_id": authContext.SessionID,
@@ -407,13 +374,11 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, userInfo)
-
 }
 
 // GetSessionHandler returns current session information.
 
 func (ah *Handlers) GetSessionHandler(w http.ResponseWriter, r *http.Request) {
-
 	sessionID := ah.getSessionID(r)
 
 	if sessionID == "" {
@@ -425,7 +390,6 @@ func (ah *Handlers) GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionInfo, err := ah.sessionManager.ValidateSession(r.Context(), sessionID)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusUnauthorized, "invalid_session", err.Error())
@@ -435,13 +399,11 @@ func (ah *Handlers) GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, sessionInfo)
-
 }
 
 // ListSessionsHandler lists user sessions.
 
 func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) {
-
 	authContext := GetAuthContext(r.Context())
 
 	if authContext == nil {
@@ -453,7 +415,6 @@ func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sessions, err := ah.sessionManager.ListUserSessions(r.Context(), authContext.UserID)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "sessions_error", err.Error())
@@ -463,16 +424,13 @@ func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"sessions": sessions,
 	})
-
 }
 
 // RevokeSessionHandler revokes a specific session.
 
 func (ah *Handlers) RevokeSessionHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	sessionIDToRevoke := vars["sessionId"]
@@ -490,7 +448,6 @@ func (ah *Handlers) RevokeSessionHandler(w http.ResponseWriter, r *http.Request)
 	// Get session to check ownership.
 
 	session, err := ah.sessionManager.GetSession(r.Context(), sessionIDToRevoke)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusNotFound, "session_not_found", "Session not found")
@@ -520,16 +477,13 @@ func (ah *Handlers) RevokeSessionHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"message": "Session revoked successfully",
 	})
-
 }
 
 // GenerateTokenHandler generates API tokens.
 
 func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.config.EnableAPITokens {
 
 		ah.writeErrorResponse(w, http.StatusNotFound, "not_supported", "API tokens not enabled")
@@ -565,7 +519,6 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 	// Get session to create user info.
 
 	session, err := ah.sessionManager.GetSession(r.Context(), authContext.SessionID)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "session_error", err.Error())
@@ -579,25 +532,18 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 	var options []TokenOption
 
 	if tokenReq.Scope != "" {
-
 		options = append(options, WithScope(tokenReq.Scope))
-
 	}
 
 	if tokenReq.TTL != "" {
-
 		if ttl, err := time.ParseDuration(tokenReq.TTL); err == nil {
-
 			options = append(options, WithTTL(ttl))
-
 		}
-
 	}
 
 	options = append(options, WithIPAddress(getClientIP(r)), WithUserAgent(r.UserAgent()))
 
 	accessToken, tokenInfo, err := ah.jwtManager.GenerateAccessToken(r.Context(), session.UserInfo, session.ID, options...)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusInternalServerError, "token_generation_failed", err.Error())
@@ -607,7 +553,6 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"access_token": accessToken,
 
 		"token_type": "Bearer",
@@ -616,13 +561,11 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 
 		"scope": tokenInfo.Scope,
 	})
-
 }
 
 // RefreshTokenHandler refreshes a token.
 
 func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.config.EnableAPITokens {
 
 		ah.writeErrorResponse(w, http.StatusNotFound, "not_supported", "API tokens not enabled")
@@ -644,7 +587,6 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	accessToken, tokenInfo, err := ah.jwtManager.RefreshAccessToken(r.Context(), refreshReq.RefreshToken)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusBadRequest, "invalid_grant", err.Error())
@@ -654,20 +596,17 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"access_token": accessToken,
 
 		"token_type": "Bearer",
 
 		"expires_at": tokenInfo.ExpiresAt,
 	})
-
 }
 
 // RevokeTokenHandler revokes a token.
 
 func (ah *Handlers) RevokeTokenHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.config.EnableAPITokens {
 
 		ah.writeErrorResponse(w, http.StatusNotFound, "not_supported", "API tokens not enabled")
@@ -697,10 +636,8 @@ func (ah *Handlers) RevokeTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"message": "Token revoked successfully",
 	})
-
 }
 
 // RBAC Handlers.
@@ -708,30 +645,22 @@ func (ah *Handlers) RevokeTokenHandler(w http.ResponseWriter, r *http.Request) {
 // ListRolesHandler lists all roles (admin only).
 
 func (ah *Handlers) ListRolesHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	roles := ah.rbacManager.ListRoles(r.Context())
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"roles": roles,
 	})
-
 }
 
 // CreateRoleHandler creates a new role (admin only).
 
 func (ah *Handlers) CreateRoleHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	var role Role
@@ -753,17 +682,13 @@ func (ah *Handlers) CreateRoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusCreated, role)
-
 }
 
 // GetRoleHandler gets a specific role.
 
 func (ah *Handlers) GetRoleHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	vars := mux.Vars(r)
@@ -771,7 +696,6 @@ func (ah *Handlers) GetRoleHandler(w http.ResponseWriter, r *http.Request) {
 	roleID := vars["roleId"]
 
 	role, err := ah.rbacManager.GetRole(r.Context(), roleID)
-
 	if err != nil {
 
 		ah.writeErrorResponse(w, http.StatusNotFound, "role_not_found", err.Error())
@@ -781,17 +705,13 @@ func (ah *Handlers) GetRoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, role)
-
 }
 
 // UpdateRoleHandler updates a role (admin only).
 
 func (ah *Handlers) UpdateRoleHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	vars := mux.Vars(r)
@@ -819,17 +739,13 @@ func (ah *Handlers) UpdateRoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, role)
-
 }
 
 // DeleteRoleHandler deletes a role (admin only).
 
 func (ah *Handlers) DeleteRoleHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	vars := mux.Vars(r)
@@ -845,16 +761,13 @@ func (ah *Handlers) DeleteRoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"message": "Role deleted successfully",
 	})
-
 }
 
 // GetUserRolesHandler gets user roles.
 
 func (ah *Handlers) GetUserRolesHandler(w http.ResponseWriter, r *http.Request) {
-
 	authContext := GetAuthContext(r.Context())
 
 	if authContext == nil {
@@ -882,22 +795,17 @@ func (ah *Handlers) GetUserRolesHandler(w http.ResponseWriter, r *http.Request) 
 	roles := ah.rbacManager.GetUserRoles(r.Context(), userID)
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"user_id": userID,
 
 		"roles": roles,
 	})
-
 }
 
 // AssignRoleHandler assigns a role to a user (admin only).
 
 func (ah *Handlers) AssignRoleHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	vars := mux.Vars(r)
@@ -925,20 +833,15 @@ func (ah *Handlers) AssignRoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"message": "Role assigned successfully",
 	})
-
 }
 
 // RevokeRoleHandler revokes a role from a user (admin only).
 
 func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
-
 	if !ah.requireAdmin(w, r) {
-
 		return
-
 	}
 
 	vars := mux.Vars(r)
@@ -956,53 +859,41 @@ func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"message": "Role revoked successfully",
 	})
-
 }
 
 // ListPermissionsHandler lists all permissions.
 
 func (ah *Handlers) ListPermissionsHandler(w http.ResponseWriter, r *http.Request) {
-
 	permissions := ah.rbacManager.ListPermissions(r.Context())
 
 	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-
 		"permissions": permissions,
 	})
-
 }
 
 // Helper methods.
 
 func (ah *Handlers) getSessionID(r *http.Request) string {
-
 	// Try cookie first.
 
 	cookie, err := r.Cookie("nephoran_session")
 
 	if err == nil && cookie.Value != "" {
-
 		return cookie.Value
-
 	}
 
 	// Try header.
 
 	return r.Header.Get("X-Session-ID")
-
 }
 
 func (ah *Handlers) buildCallbackURL(provider string) string {
-
 	return fmt.Sprintf("%s/auth/callback/%s", ah.config.BaseURL, provider)
-
 }
 
 func (ah *Handlers) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
-
 	authContext := GetAuthContext(r.Context())
 
 	if authContext == nil {
@@ -1022,27 +913,22 @@ func (ah *Handlers) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	return true
-
 }
 
 func (ah *Handlers) writeJSONResponse(w http.ResponseWriter, status int, data interface{}) {
-
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(status)
 
 	json.NewEncoder(w).Encode(data)
-
 }
 
 func (ah *Handlers) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
-
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(status)
 
 	errorResponse := map[string]interface{}{
-
 		"error": code,
 
 		"error_description": message,
@@ -1053,37 +939,28 @@ func (ah *Handlers) writeErrorResponse(w http.ResponseWriter, status int, code, 
 	}
 
 	json.NewEncoder(w).Encode(errorResponse)
-
 }
 
 // Helper functions.
 
 func isReservedParam(key string) bool {
-
 	reserved := []string{"code", "state", "redirect_uri", "scope", "response_type", "client_id"}
 
 	for _, param := range reserved {
-
 		if key == param {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func isAPIRequest(r *http.Request) bool {
-
 	// Check Accept header.
 
 	accept := r.Header.Get("Accept")
 
 	return accept == "application/json" || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
-
 }
 
 // getClientIP is defined in middleware.go

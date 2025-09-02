@@ -60,31 +60,24 @@ type RerankingScore struct {
 // NewSemanticReranker creates a new semantic reranker.
 
 func NewSemanticReranker(config *RetrievalConfig) *SemanticReranker {
-
 	return &SemanticReranker{
-
 		config: config,
 
 		logger: slog.Default().With("component", "semantic-reranker"),
 
 		crossEncoder: &CrossEncoder{
-
 			modelName: config.CrossEncoderModel,
 
 			scoreCache: make(map[string]float32),
 		},
 	}
-
 }
 
 // RerankResults reranks search results using semantic similarity.
 
 func (sr *SemanticReranker) RerankResults(ctx context.Context, query string, results []*EnhancedSearchResult) ([]*EnhancedSearchResult, error) {
-
 	if len(results) <= 1 {
-
 		return results, nil
-
 	}
 
 	sr.logger.Debug("Starting semantic reranking",
@@ -99,7 +92,6 @@ func (sr *SemanticReranker) RerankResults(ctx context.Context, query string, res
 	for i, result := range results {
 
 		score, err := sr.calculateDetailedScore(ctx, query, result)
-
 		if err != nil {
 
 			sr.logger.Warn("Failed to calculate detailed score",
@@ -126,9 +118,7 @@ func (sr *SemanticReranker) RerankResults(ctx context.Context, query string, res
 		// Add processing note.
 
 		if result.ProcessingNotes == nil {
-
 			result.ProcessingNotes = []string{}
-
 		}
 
 		result.ProcessingNotes = append(result.ProcessingNotes, "semantic_reranked")
@@ -138,9 +128,7 @@ func (sr *SemanticReranker) RerankResults(ctx context.Context, query string, res
 	// Sort by combined score.
 
 	sort.Slice(results, func(i, j int) bool {
-
 		return results[i].CombinedScore > results[j].CombinedScore
-
 	})
 
 	sr.logger.Info("Semantic reranking completed",
@@ -151,17 +139,13 @@ func (sr *SemanticReranker) RerankResults(ctx context.Context, query string, res
 	)
 
 	return results, nil
-
 }
 
 // calculateDetailedScore calculates a comprehensive relevance score.
 
 func (sr *SemanticReranker) calculateDetailedScore(ctx context.Context, query string, result *EnhancedSearchResult) (*RerankingScore, error) {
-
 	if result.Document == nil {
-
 		return &RerankingScore{}, fmt.Errorf("result document is nil")
-
 	}
 
 	score := &RerankingScore{}
@@ -173,7 +157,6 @@ func (sr *SemanticReranker) calculateDetailedScore(ctx context.Context, query st
 	// 2. Cross-encoder score (if cross-encoder is available).
 
 	crossScore, err := sr.calculateCrossEncoderScore(ctx, query, result.Document.Content)
-
 	if err != nil {
 
 		sr.logger.Debug("Cross-encoder scoring failed", "error", err)
@@ -205,13 +188,11 @@ func (sr *SemanticReranker) calculateDetailedScore(ctx context.Context, query st
 	score.Explanation = sr.generateScoreExplanation(score, result)
 
 	return score, nil
-
 }
 
 // calculateSemanticSimilarity calculates semantic similarity using embeddings.
 
 func (sr *SemanticReranker) calculateSemanticSimilarity(query, content string) float32 {
-
 	// This is a simplified implementation.
 
 	// In practice, you would use actual embeddings and cosine similarity.
@@ -223,9 +204,7 @@ func (sr *SemanticReranker) calculateSemanticSimilarity(query, content string) f
 	contentTerms := sr.extractImportantTerms(content)
 
 	if len(queryTerms) == 0 || len(contentTerms) == 0 {
-
 		return 0.0
-
 	}
 
 	// Calculate term overlap with TF-IDF weighting.
@@ -239,35 +218,27 @@ func (sr *SemanticReranker) calculateSemanticSimilarity(query, content string) f
 		totalWeight += queryWeight
 
 		if contentWeight, exists := contentTerms[queryTerm]; exists {
-
 			overlap += queryWeight * contentWeight
-
 		}
 
 	}
 
 	if totalWeight == 0 {
-
 		return 0.0
-
 	}
 
 	similarity := float32(overlap / totalWeight)
 
 	if similarity > 1.0 {
-
 		similarity = 1.0
-
 	}
 
 	return similarity
-
 }
 
 // extractImportantTerms extracts important terms with weights.
 
 func (sr *SemanticReranker) extractImportantTerms(text string) map[string]float64 {
-
 	terms := make(map[string]float64)
 
 	words := strings.Fields(strings.ToLower(text))
@@ -285,7 +256,6 @@ func (sr *SemanticReranker) extractImportantTerms(text string) map[string]float6
 		if len(word) > 2 { // Only consider meaningful words
 
 			termFreq[word]++
-
 		}
 
 	}
@@ -305,9 +275,7 @@ func (sr *SemanticReranker) extractImportantTerms(text string) map[string]float6
 		idf := 1.0
 
 		if sr.isTechnicalTerm(term) {
-
 			idf = 2.0
-
 		}
 
 		terms[term] = tf * idf
@@ -315,25 +283,20 @@ func (sr *SemanticReranker) extractImportantTerms(text string) map[string]float6
 	}
 
 	return terms
-
 }
 
 // isTechnicalTerm checks if a term is likely a technical term.
 
 func (sr *SemanticReranker) isTechnicalTerm(term string) bool {
-
 	// Check for acronyms (all caps).
 
 	if len(term) >= 2 && strings.ToUpper(term) == term {
-
 		return true
-
 	}
 
 	// Check for technical patterns.
 
 	technicalPatterns := []string{
-
 		"config", "parameter", "protocol", "interface", "algorithm",
 
 		"network", "wireless", "radio", "frequency", "signal",
@@ -344,31 +307,23 @@ func (sr *SemanticReranker) isTechnicalTerm(term string) bool {
 	}
 
 	for _, pattern := range technicalPatterns {
-
 		if strings.Contains(term, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // calculateCrossEncoderScore calculates score using a cross-encoder model.
 
 func (sr *SemanticReranker) calculateCrossEncoderScore(ctx context.Context, query, content string) (float32, error) {
-
 	// Check cache first.
 
 	cacheKey := sr.generateCacheKey(query, content)
 
 	if score, exists := sr.crossEncoder.getCachedScore(cacheKey); exists {
-
 		return score, nil
-
 	}
 
 	// For now, return a placeholder score based on lexical similarity.
@@ -382,13 +337,11 @@ func (sr *SemanticReranker) calculateCrossEncoderScore(ctx context.Context, quer
 	sr.crossEncoder.setCachedScore(cacheKey, score)
 
 	return score, nil
-
 }
 
 // generateCacheKey generates a cache key for cross-encoder scores using fast FNV hash.
 
 func (sr *SemanticReranker) generateCacheKey(query, content string) string {
-
 	h := fnv.New64a()
 
 	h.Write([]byte(query))
@@ -398,21 +351,17 @@ func (sr *SemanticReranker) generateCacheKey(query, content string) string {
 	h.Write([]byte(content))
 
 	return fmt.Sprintf("%016x", h.Sum64())
-
 }
 
 // calculateLexicalSimilarity calculates lexical similarity using keyword matching.
 
 func (sr *SemanticReranker) calculateLexicalSimilarity(query, content string) float32 {
-
 	queryWords := sr.tokenize(strings.ToLower(query))
 
 	contentWords := sr.tokenize(strings.ToLower(content))
 
 	if len(queryWords) == 0 {
-
 		return 0.0
-
 	}
 
 	// Create word frequency maps.
@@ -422,15 +371,11 @@ func (sr *SemanticReranker) calculateLexicalSimilarity(query, content string) fl
 	contentFreq := make(map[string]int)
 
 	for _, word := range queryWords {
-
 		queryFreq[word]++
-
 	}
 
 	for _, word := range contentWords {
-
 		contentFreq[word]++
-
 	}
 
 	// Calculate cosine similarity.
@@ -452,39 +397,30 @@ func (sr *SemanticReranker) calculateLexicalSimilarity(query, content string) fl
 	}
 
 	for _, cFreq := range contentFreq {
-
 		contentMagnitude += float64(cFreq * cFreq)
-
 	}
 
 	if queryMagnitude == 0 || contentMagnitude == 0 {
-
 		return 0.0
-
 	}
 
 	similarity := dotProduct / (math.Sqrt(queryMagnitude) * math.Sqrt(contentMagnitude))
 
 	return float32(similarity)
-
 }
 
 // tokenize splits text into meaningful tokens.
 
 func (sr *SemanticReranker) tokenize(text string) []string {
-
 	// Split on whitespace and punctuation.
 
 	words := strings.FieldsFunc(text, func(c rune) bool {
-
 		return !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
-
 	})
 
 	// Filter out very short words and common stop words.
 
 	stopWords := map[string]bool{
-
 		"the": true, "and": true, "or": true, "but": true, "in": true,
 
 		"on": true, "at": true, "to": true, "for": true, "of": true,
@@ -503,29 +439,21 @@ func (sr *SemanticReranker) tokenize(text string) []string {
 	var filtered []string
 
 	for _, word := range words {
-
 		if len(word) > 2 && !stopWords[word] {
-
 			filtered = append(filtered, word)
-
 		}
-
 	}
 
 	return filtered
-
 }
 
 // calculateStructuralRelevance calculates relevance based on document structure.
 
 func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *EnhancedSearchResult) float32 {
-
 	score := float32(0.0)
 
 	if result.Document == nil {
-
 		return score
-
 	}
 
 	doc := result.Document
@@ -581,7 +509,6 @@ func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *E
 	// Document type relevance.
 
 	if doc.DocumentType != "" {
-
 		switch strings.ToLower(doc.DocumentType) {
 
 		case "specification", "standard":
@@ -593,39 +520,30 @@ func (sr *SemanticReranker) calculateStructuralRelevance(query string, result *E
 			score += 0.05
 
 		}
-
 	}
 
 	// Confidence score from document metadata.
 
 	if doc.Confidence > 0 {
-
 		score += float32(doc.Confidence) * 0.1
-
 	}
 
 	// Normalize score.
 
 	if score > 1.0 {
-
 		score = 1.0
-
 	}
 
 	return score
-
 }
 
 // calculateContextualRelevance calculates relevance based on context.
 
 func (sr *SemanticReranker) calculateContextualRelevance(query string, result *EnhancedSearchResult) float32 {
-
 	score := float32(0.0)
 
 	if result.Document == nil {
-
 		return score
-
 	}
 
 	doc := result.Document
@@ -633,57 +551,37 @@ func (sr *SemanticReranker) calculateContextualRelevance(query string, result *E
 	// Technology relevance.
 
 	if len(doc.Technology) > 0 {
-
 		for _, tech := range doc.Technology {
-
 			if strings.Contains(strings.ToLower(query), strings.ToLower(tech)) {
-
 				score += 0.15
-
 			}
-
 		}
-
 	}
 
 	// Network function relevance.
 
 	if len(doc.NetworkFunction) > 0 {
-
 		for _, nf := range doc.NetworkFunction {
-
 			if strings.Contains(strings.ToLower(query), strings.ToLower(nf)) {
-
 				score += 0.15
-
 			}
-
 		}
-
 	}
 
 	// Use case relevance.
 
 	if doc.UseCase != "" {
-
 		if strings.Contains(strings.ToLower(query), strings.ToLower(doc.UseCase)) {
-
 			score += 0.1
-
 		}
-
 	}
 
 	// Category relevance.
 
 	if doc.Category != "" {
-
 		if strings.Contains(strings.ToLower(query), strings.ToLower(doc.Category)) {
-
 			score += 0.1
-
 		}
-
 	}
 
 	// Recency boost.
@@ -699,23 +597,18 @@ func (sr *SemanticReranker) calculateContextualRelevance(query string, result *E
 	// Normalize score.
 
 	if score > 1.0 {
-
 		score = 1.0
-
 	}
 
 	return score
-
 }
 
 // calculateCombinedScore calculates the final combined score.
 
 func (sr *SemanticReranker) calculateCombinedScore(score *RerankingScore) float32 {
-
 	// Define weights for different scoring components.
 
 	weights := map[string]float32{
-
 		"semantic": 0.3,
 
 		"cross": 0.25,
@@ -738,45 +631,33 @@ func (sr *SemanticReranker) calculateCombinedScore(score *RerankingScore) float3
 		score.ContextualRelevance*weights["contextual"]
 
 	return combined
-
 }
 
 // generateScoreExplanation generates a human-readable explanation of the score.
 
 func (sr *SemanticReranker) generateScoreExplanation(score *RerankingScore, result *EnhancedSearchResult) string {
-
 	var explanations []string
 
 	// Identify the strongest scoring components.
 
 	if score.SemanticSimilarity > 0.7 {
-
 		explanations = append(explanations, "high semantic similarity")
-
 	}
 
 	if score.CrossEncoderScore > 0.7 {
-
 		explanations = append(explanations, "strong cross-encoder relevance")
-
 	}
 
 	if score.LexicalSimilarity > 0.7 {
-
 		explanations = append(explanations, "excellent keyword match")
-
 	}
 
 	if score.StructuralRelevance > 0.7 {
-
 		explanations = append(explanations, "authoritative source")
-
 	}
 
 	if score.ContextualRelevance > 0.7 {
-
 		explanations = append(explanations, "contextually relevant")
-
 	}
 
 	// Add document-specific information.
@@ -784,27 +665,20 @@ func (sr *SemanticReranker) generateScoreExplanation(score *RerankingScore, resu
 	if result.Document != nil {
 
 		if result.Document.Source != "" && result.Document.Source != "Unknown" {
-
 			explanations = append(explanations, fmt.Sprintf("from %s", result.Document.Source))
-
 		}
 
 		if len(result.Document.Technology) > 0 {
-
 			explanations = append(explanations, fmt.Sprintf("covers %s", strings.Join(result.Document.Technology, ", ")))
-
 		}
 
 	}
 
 	if len(explanations) == 0 {
-
 		return "moderate relevance"
-
 	}
 
 	return strings.Join(explanations, "; ")
-
 }
 
 // CrossEncoder methods.
@@ -812,7 +686,6 @@ func (sr *SemanticReranker) generateScoreExplanation(score *RerankingScore, resu
 // getCachedScore retrieves a cached cross-encoder score.
 
 func (ce *CrossEncoder) getCachedScore(key string) (float32, bool) {
-
 	ce.cacheMutex.RLock()
 
 	defer ce.cacheMutex.RUnlock()
@@ -820,13 +693,11 @@ func (ce *CrossEncoder) getCachedScore(key string) (float32, bool) {
 	score, exists := ce.scoreCache[key]
 
 	return score, exists
-
 }
 
 // setCachedScore stores a cross-encoder score in cache.
 
 func (ce *CrossEncoder) setCachedScore(key string, score float32) {
-
 	ce.cacheMutex.Lock()
 
 	defer ce.cacheMutex.Unlock()
@@ -846,9 +717,7 @@ func (ce *CrossEncoder) setCachedScore(key string, score float32) {
 			count++
 
 			if count > 2500 {
-
 				break
-
 			}
 
 		}
@@ -856,17 +725,14 @@ func (ce *CrossEncoder) setCachedScore(key string, score float32) {
 	}
 
 	ce.scoreCache[key] = score
-
 }
 
 // clearCache clears the cross-encoder cache.
 
 func (ce *CrossEncoder) clearCache() {
-
 	ce.cacheMutex.Lock()
 
 	defer ce.cacheMutex.Unlock()
 
 	ce.scoreCache = make(map[string]float32)
-
 }

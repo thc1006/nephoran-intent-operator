@@ -70,13 +70,11 @@ type APIServerConfig struct {
 // NewAPIServer creates a new Nephio Web UI API server.
 
 func NewAPIServer(config APIServerConfig) *APIServer {
-
 	router := mux.NewRouter()
 
 	wsServer := NewWebSocketServer(config.Logger, config.KubeClient)
 
 	server := &APIServer{
-
 		logger: config.Logger,
 
 		router: router,
@@ -103,13 +101,11 @@ func NewAPIServer(config APIServerConfig) *APIServer {
 	server.setupRoutes()
 
 	return server
-
 }
 
 // setupRoutes configures API routes and middleware.
 
 func (s *APIServer) setupRoutes() {
-
 	// Package handlers.
 
 	packageHandlers := NewPackageHandlers(s.logger, s.kubeClient)
@@ -170,25 +166,19 @@ func (s *APIServer) setupRoutes() {
 	// System routes.
 
 	baseRouter.HandleFunc("/health", systemHandlers.GetHealthStatus).Methods("GET")
-
 }
 
 // Start launches the API server.
 
 func (s *APIServer) Start(ctx context.Context) error {
-
 	// Create HTTP server.
 
 	httpListener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.httpPort))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to listen on HTTP port: %w", err)
-
 	}
 
 	s.httpServer = &http.Server{
-
 		Addr: httpListener.Addr().String(),
 
 		Handler: s.router,
@@ -205,13 +195,11 @@ func (s *APIServer) Start(ctx context.Context) error {
 	if s.tlsCertPath != "" && s.tlsKeyPath != "" {
 
 		tlsConfig := &tls.Config{
-
 			MinVersion: tls.VersionTLS12,
 
 			PreferServerCipherSuites: true,
 
 			CipherSuites: []uint16{
-
 				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 
 				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -219,15 +207,11 @@ func (s *APIServer) Start(ctx context.Context) error {
 		}
 
 		httpsListener, err = tls.Listen("tcp", fmt.Sprintf(":%d", s.httpsPort), tlsConfig)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to listen on HTTPS port: %w", err)
-
 		}
 
 		s.httpsServer = &http.Server{
-
 			Addr: httpsListener.Addr().String(),
 
 			Handler: s.router,
@@ -244,9 +228,7 @@ func (s *APIServer) Start(ctx context.Context) error {
 	// Start WebSocket server.
 
 	if err := s.wsServer.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start WebSocket server: %w", err)
-
 	}
 
 	// Use errgroup for managing server goroutines.
@@ -256,43 +238,32 @@ func (s *APIServer) Start(ctx context.Context) error {
 	// HTTP server goroutine.
 
 	eg.Go(func() error {
-
 		s.logger.Info("Starting HTTP server", zap.Int("port", s.httpPort))
 
 		if err := s.httpServer.Serve(httpListener); err != http.ErrServerClosed {
-
 			return fmt.Errorf("HTTP server error: %w", err)
-
 		}
 
 		return nil
-
 	})
 
 	// HTTPS server goroutine (if configured).
 
 	if s.httpsServer != nil {
-
 		eg.Go(func() error {
-
 			s.logger.Info("Starting HTTPS server", zap.Int("port", s.httpsPort))
 
 			if err := s.httpsServer.Serve(httpsListener); err != http.ErrServerClosed {
-
 				return fmt.Errorf("HTTPS server error: %w", err)
-
 			}
 
 			return nil
-
 		})
-
 	}
 
 	// Signal handling and graceful shutdown.
 
 	eg.Go(func() error {
-
 		sigChan := make(chan os.Signal, 1)
 
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -310,7 +281,6 @@ func (s *APIServer) Start(ctx context.Context) error {
 			return s.Shutdown()
 
 		}
-
 	})
 
 	// Signal server is ready.
@@ -318,13 +288,11 @@ func (s *APIServer) Start(ctx context.Context) error {
 	close(s.readyChan)
 
 	return eg.Wait()
-
 }
 
 // Shutdown gracefully stops the API server.
 
 func (s *APIServer) Shutdown() error {
-
 	s.logger.Info("Initiating graceful shutdown")
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownWait)
@@ -336,35 +304,23 @@ func (s *APIServer) Shutdown() error {
 	wg.Add(2)
 
 	go func() {
-
 		defer wg.Done()
 
 		if s.httpServer != nil {
-
 			if err := s.httpServer.Shutdown(ctx); err != nil {
-
 				s.logger.Error("HTTP server shutdown error", zap.Error(err))
-
 			}
-
 		}
-
 	}()
 
 	go func() {
-
 		defer wg.Done()
 
 		if s.httpsServer != nil {
-
 			if err := s.httpsServer.Shutdown(ctx); err != nil {
-
 				s.logger.Error("HTTPS server shutdown error", zap.Error(err))
-
 			}
-
 		}
-
 	}()
 
 	// Stop WebSocket server.
@@ -378,21 +334,16 @@ func (s *APIServer) Shutdown() error {
 	s.logger.Info("Server shutdown complete")
 
 	return nil
-
 }
 
 // Ready provides a channel that is closed when the server is ready.
 
 func (s *APIServer) Ready() <-chan struct{} {
-
 	return s.readyChan
-
 }
 
 // Stop provides a channel that is closed when the server is stopped.
 
 func (s *APIServer) Stop() <-chan struct{} {
-
 	return s.stopChan
-
 }

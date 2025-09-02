@@ -31,9 +31,7 @@ type RetryPolicy struct {
 // DefaultRetryPolicy returns a sensible default retry policy.
 
 func DefaultRetryPolicy() *RetryPolicy {
-
 	return &RetryPolicy{
-
 		MaxRetries: 3,
 
 		InitialDelay: time.Millisecond * 100,
@@ -45,7 +43,6 @@ func DefaultRetryPolicy() *RetryPolicy {
 		Jitter: true,
 
 		RetryableErrors: []ErrorType{
-
 			ErrorTypeNetwork,
 
 			ErrorTypeTimeout,
@@ -60,7 +57,6 @@ func DefaultRetryPolicy() *RetryPolicy {
 		},
 
 		NonRetryableErrors: []ErrorType{
-
 			ErrorTypeValidation,
 
 			ErrorTypeAuth,
@@ -72,7 +68,6 @@ func DefaultRetryPolicy() *RetryPolicy {
 			ErrorTypeNotFound,
 		},
 	}
-
 }
 
 // CircuitBreakerState represents the state of a circuit breaker.
@@ -97,7 +92,6 @@ const (
 // String performs string operation.
 
 func (s CircuitBreakerState) String() string {
-
 	switch s {
 
 	case CircuitBreakerClosed:
@@ -117,7 +111,6 @@ func (s CircuitBreakerState) String() string {
 		return "unknown"
 
 	}
-
 }
 
 // CircuitBreakerConfig configures circuit breaker behavior.
@@ -145,9 +138,7 @@ type CircuitBreakerConfig struct {
 // DefaultCircuitBreakerConfig returns sensible defaults.
 
 func DefaultCircuitBreakerConfig(name string) *CircuitBreakerConfig {
-
 	return &CircuitBreakerConfig{
-
 		Name: name,
 
 		MaxFailures: 5,
@@ -166,7 +157,6 @@ func DefaultCircuitBreakerConfig(name string) *CircuitBreakerConfig {
 
 		ConsecutiveFailures: false,
 	}
-
 }
 
 // CircuitBreaker implements the circuit breaker pattern for error recovery.
@@ -198,46 +188,36 @@ type CircuitBreaker struct {
 // NewCircuitBreaker creates a new circuit breaker.
 
 func NewCircuitBreaker(config *CircuitBreakerConfig) *CircuitBreaker {
-
 	if config == nil {
-
 		config = DefaultCircuitBreakerConfig("default")
-
 	}
 
 	return &CircuitBreaker{
-
 		config: config,
 
 		state: int32(CircuitBreakerClosed),
 
 		failureWindow: make([]time.Time, 0),
 	}
-
 }
 
 // SetStateChangeCallback sets a callback for state changes.
 
 func (cb *CircuitBreaker) SetStateChangeCallback(callback func(string, CircuitBreakerState, CircuitBreakerState)) {
-
 	cb.mu.Lock()
 
 	defer cb.mu.Unlock()
 
 	cb.onStateChange = callback
-
 }
 
 // Execute runs a function with circuit breaker protection.
 
 func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
-
 	// Check if we can proceed.
 
 	if err := cb.canProceed(); err != nil {
-
 		return err
-
 	}
 
 	// Execute the function.
@@ -255,13 +235,11 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 	cb.recordResult(err, latency)
 
 	return err
-
 }
 
 // canProceed checks if the circuit breaker allows the request to proceed.
 
 func (cb *CircuitBreaker) canProceed() error {
-
 	state := CircuitBreakerState(atomic.LoadInt32(&cb.state))
 
 	switch state {
@@ -295,9 +273,7 @@ func (cb *CircuitBreaker) canProceed() error {
 	case CircuitBreakerHalfOpen:
 
 		if atomic.LoadInt64(&cb.halfOpenCalls) >= int64(cb.config.HalfOpenMaxCalls) {
-
 			return cb.createCircuitBreakerError("circuit breaker half-open call limit exceeded")
-
 		}
 
 		atomic.AddInt64(&cb.halfOpenCalls, 1)
@@ -309,13 +285,11 @@ func (cb *CircuitBreaker) canProceed() error {
 		return cb.createCircuitBreakerError("unknown circuit breaker state")
 
 	}
-
 }
 
 // recordResult records the result of a function execution.
 
 func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
-
 	state := CircuitBreakerState(atomic.LoadInt32(&cb.state))
 
 	if err != nil {
@@ -327,7 +301,6 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		case CircuitBreakerClosed:
 
 			if cb.shouldTripToOpen() {
-
 				if atomic.CompareAndSwapInt32(&cb.state, int32(CircuitBreakerClosed), int32(CircuitBreakerOpen)) {
 
 					atomic.StoreInt64(&cb.lastFailureTime, time.Now().UnixNano())
@@ -335,7 +308,6 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 					cb.notifyStateChange(CircuitBreakerClosed, CircuitBreakerOpen)
 
 				}
-
 			}
 
 		case CircuitBreakerHalfOpen:
@@ -357,11 +329,9 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 		cb.recordSuccess()
 
 		if state == CircuitBreakerHalfOpen {
-
 			// Check if we should close the circuit.
 
 			if atomic.LoadInt64(&cb.halfOpenCalls) >= int64(cb.config.HalfOpenMaxCalls) {
-
 				if atomic.CompareAndSwapInt32(&cb.state, int32(CircuitBreakerHalfOpen), int32(CircuitBreakerClosed)) {
 
 					atomic.StoreInt64(&cb.failures, 0)
@@ -371,19 +341,15 @@ func (cb *CircuitBreaker) recordResult(err error, latency time.Duration) {
 					cb.clearFailureWindow()
 
 				}
-
 			}
-
 		}
 
 	}
-
 }
 
 // recordFailure records a failure.
 
 func (cb *CircuitBreaker) recordFailure() {
-
 	atomic.AddInt64(&cb.failures, 1)
 
 	// Add to sliding window.
@@ -401,35 +367,27 @@ func (cb *CircuitBreaker) recordFailure() {
 	i := 0
 
 	for i < len(cb.failureWindow) && cb.failureWindow[i].Before(cutoff) {
-
 		i++
-
 	}
 
 	cb.failureWindow = cb.failureWindow[i:]
 
 	cb.windowMutex.Unlock()
-
 }
 
 // recordSuccess records a successful operation.
 
 func (cb *CircuitBreaker) recordSuccess() {
-
 	// Reset consecutive failures if configured.
 
 	if cb.config.ConsecutiveFailures {
-
 		atomic.StoreInt64(&cb.failures, 0)
-
 	}
-
 }
 
 // shouldTripToOpen determines if the circuit breaker should trip to open state.
 
 func (cb *CircuitBreaker) shouldTripToOpen() bool {
-
 	failures := atomic.LoadInt64(&cb.failures)
 
 	requests := atomic.LoadInt64(&cb.requests)
@@ -437,17 +395,13 @@ func (cb *CircuitBreaker) shouldTripToOpen() bool {
 	// Check consecutive failures.
 
 	if cb.config.ConsecutiveFailures {
-
 		return failures >= int64(cb.config.MaxFailures)
-
 	}
 
 	// Check failure ratio.
 
 	if requests < int64(cb.config.MinRequestThreshold) {
-
 		return false
-
 	}
 
 	cb.windowMutex.RLock()
@@ -459,27 +413,22 @@ func (cb *CircuitBreaker) shouldTripToOpen() bool {
 	failureRatio := float64(windowFailures) / float64(requests)
 
 	return failureRatio >= cb.config.FailureThresholdRatio
-
 }
 
 // clearFailureWindow clears the failure tracking window.
 
 func (cb *CircuitBreaker) clearFailureWindow() {
-
 	cb.windowMutex.Lock()
 
 	cb.failureWindow = cb.failureWindow[:0]
 
 	cb.windowMutex.Unlock()
-
 }
 
 // createCircuitBreakerError creates a circuit breaker specific error.
 
 func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
-
 	return &ServiceError{
-
 		Type: ErrorTypeResource,
 
 		Code: "circuit_breaker_open",
@@ -511,7 +460,6 @@ func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 		RetryAfter: cb.config.ResetTimeout,
 
 		Metadata: map[string]interface{}{
-
 			"circuit_breaker_state": CircuitBreakerState(atomic.LoadInt32(&cb.state)).String(),
 
 			"failures": atomic.LoadInt64(&cb.failures),
@@ -519,13 +467,11 @@ func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 			"requests": atomic.LoadInt64(&cb.requests),
 		},
 	}
-
 }
 
 // notifyStateChange notifies about state changes.
 
 func (cb *CircuitBreaker) notifyStateChange(from, to CircuitBreakerState) {
-
 	cb.mu.RLock()
 
 	callback := cb.onStateChange
@@ -533,25 +479,19 @@ func (cb *CircuitBreaker) notifyStateChange(from, to CircuitBreakerState) {
 	cb.mu.RUnlock()
 
 	if callback != nil {
-
 		callback(cb.config.Name, from, to)
-
 	}
-
 }
 
 // GetState returns the current circuit breaker state.
 
 func (cb *CircuitBreaker) GetState() CircuitBreakerState {
-
 	return CircuitBreakerState(atomic.LoadInt32(&cb.state))
-
 }
 
 // GetMetrics returns current circuit breaker metrics.
 
 func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
-
 	cb.windowMutex.RLock()
 
 	windowFailures := len(cb.failureWindow)
@@ -559,7 +499,6 @@ func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
 	cb.windowMutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"name": cb.config.Name,
 
 		"state": cb.GetState().String(),
@@ -572,13 +511,11 @@ func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
 
 		"half_open_calls": atomic.LoadInt64(&cb.halfOpenCalls),
 	}
-
 }
 
 // Reset resets the circuit breaker to its initial state.
 
 func (cb *CircuitBreaker) Reset() {
-
 	atomic.StoreInt32(&cb.state, int32(CircuitBreakerClosed))
 
 	atomic.StoreInt64(&cb.failures, 0)
@@ -590,7 +527,6 @@ func (cb *CircuitBreaker) Reset() {
 	atomic.StoreInt64(&cb.halfOpenCalls, 0)
 
 	cb.clearFailureWindow()
-
 }
 
 // RetryableOperation represents an operation that can be retried.
@@ -608,44 +544,32 @@ type RetryExecutor struct {
 // NewRetryExecutor creates a new retry executor.
 
 func NewRetryExecutor(policy *RetryPolicy, circuitBreaker *CircuitBreaker) *RetryExecutor {
-
 	if policy == nil {
-
 		policy = DefaultRetryPolicy()
-
 	}
 
 	return &RetryExecutor{
-
 		policy: policy,
 
 		circuitBreaker: circuitBreaker,
 	}
-
 }
 
 // Execute executes an operation with retry logic and circuit breaker protection.
 
 func (re *RetryExecutor) Execute(ctx context.Context, operation RetryableOperation) error {
-
 	if re.circuitBreaker != nil {
-
 		return re.circuitBreaker.Execute(ctx, func() error {
-
 			return re.executeWithRetry(ctx, operation)
-
 		})
-
 	}
 
 	return re.executeWithRetry(ctx, operation)
-
 }
 
 // executeWithRetry executes an operation with retry logic.
 
 func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation RetryableOperation) error {
-
 	var lastError error
 
 	delay := re.policy.InitialDelay
@@ -667,9 +591,7 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 		err := operation()
 
 		if err == nil {
-
 			return nil // Success
-
 		}
 
 		lastError = err
@@ -677,9 +599,7 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 		// Check if we should retry.
 
 		if !re.shouldRetry(err, attempt) {
-
 			break
-
 		}
 
 		// Don't sleep after the last attempt.
@@ -720,7 +640,6 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 	// Wrap non-ServiceError in a ServiceError.
 
 	return &ServiceError{
-
 		Type: ErrorTypeInternal,
 
 		Code: "retry_exhausted",
@@ -751,66 +670,48 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 
 		Tags: []string{"retry_exhausted"},
 	}
-
 }
 
 // shouldRetry determines if an error is retryable.
 
 func (re *RetryExecutor) shouldRetry(err error, attempt int) bool {
-
 	if attempt >= re.policy.MaxRetries {
-
 		return false
-
 	}
 
 	// Check for non-retryable errors first.
 
 	for _, nonRetryable := range re.policy.NonRetryableErrors {
-
 		if isErrorOfType(err, nonRetryable) {
-
 			return false
-
 		}
-
 	}
 
 	// Check for explicitly retryable errors.
 
 	for _, retryable := range re.policy.RetryableErrors {
-
 		if isErrorOfType(err, retryable) {
-
 			return true
-
 		}
-
 	}
 
 	// Default to checking if it's a ServiceError with Retryable flag.
 
 	var serviceErr *ServiceError
 	if errors.As(err, &serviceErr) {
-
 		return serviceErr.IsRetryable()
-
 	}
 
 	return false
-
 }
 
 // calculateNextDelay calculates the next delay using exponential backoff with optional jitter.
 
 func (re *RetryExecutor) calculateNextDelay(currentDelay time.Duration, attempt int) time.Duration {
-
 	nextDelay := time.Duration(float64(currentDelay) * re.policy.BackoffMultiplier)
 
 	if nextDelay > re.policy.MaxDelay {
-
 		nextDelay = re.policy.MaxDelay
-
 	}
 
 	if re.policy.Jitter {
@@ -824,22 +725,17 @@ func (re *RetryExecutor) calculateNextDelay(currentDelay time.Duration, attempt 
 	}
 
 	return nextDelay
-
 }
 
 // isErrorOfType checks if an error is of a specific type.
 
 func isErrorOfType(err error, errorType ErrorType) bool {
-
 	var serviceErr *ServiceError
 	if errors.As(err, &serviceErr) {
-
 		return serviceErr.Type == errorType
-
 	}
 
 	return false
-
 }
 
 // BulkheadConfig configures bulkhead isolation patterns.
@@ -859,9 +755,7 @@ type BulkheadConfig struct {
 // DefaultBulkheadConfig returns sensible defaults.
 
 func DefaultBulkheadConfig(name string) *BulkheadConfig {
-
 	return &BulkheadConfig{
-
 		Name: name,
 
 		MaxConcurrent: 10,
@@ -872,7 +766,6 @@ func DefaultBulkheadConfig(name string) *BulkheadConfig {
 
 		RejectOverflow: true,
 	}
-
 }
 
 // Bulkhead implements the bulkhead pattern for resource isolation.
@@ -898,15 +791,11 @@ type Bulkhead struct {
 // NewBulkhead creates a new bulkhead.
 
 func NewBulkhead(config *BulkheadConfig) *Bulkhead {
-
 	if config == nil {
-
 		config = DefaultBulkheadConfig("default")
-
 	}
 
 	b := &Bulkhead{
-
 		config: config,
 
 		semaphore: make(chan struct{}, config.MaxConcurrent),
@@ -917,23 +806,18 @@ func NewBulkhead(config *BulkheadConfig) *Bulkhead {
 	// Start worker goroutines.
 
 	for range config.MaxConcurrent {
-
 		go b.worker()
-
 	}
 
 	return b
-
 }
 
 // Execute executes a function within the bulkhead.
 
 func (b *Bulkhead) Execute(ctx context.Context, fn func() error) error {
-
 	resultChan := make(chan error, 1)
 
 	work := func() {
-
 		atomic.AddInt64(&b.active, 1)
 
 		defer atomic.AddInt64(&b.active, -1)
@@ -941,7 +825,6 @@ func (b *Bulkhead) Execute(ctx context.Context, fn func() error) error {
 		defer atomic.AddInt64(&b.completed, 1)
 
 		resultChan <- fn()
-
 	}
 
 	// Try to queue the work.
@@ -959,9 +842,7 @@ func (b *Bulkhead) Execute(ctx context.Context, fn func() error) error {
 		atomic.AddInt64(&b.rejected, 1)
 
 		if b.config.RejectOverflow {
-
 			return b.createBulkheadError("bulkhead queue is full")
-
 		}
 
 		// Block until we can queue (with timeout).
@@ -1001,13 +882,11 @@ func (b *Bulkhead) Execute(ctx context.Context, fn func() error) error {
 		return b.createBulkheadError("bulkhead execution timeout")
 
 	}
-
 }
 
 // worker processes work from the queue.
 
 func (b *Bulkhead) worker() {
-
 	for work := range b.queue {
 
 		atomic.AddInt64(&b.queued, -1)
@@ -1015,15 +894,12 @@ func (b *Bulkhead) worker() {
 		work()
 
 	}
-
 }
 
 // createBulkheadError creates a bulkhead-specific error.
 
 func (b *Bulkhead) createBulkheadError(message string) error {
-
 	return &ServiceError{
-
 		Type: ErrorTypeResource,
 
 		Code: "bulkhead_limit",
@@ -1051,7 +927,6 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 		Timestamp: time.Now(),
 
 		Metadata: map[string]interface{}{
-
 			"active": atomic.LoadInt64(&b.active),
 
 			"queued": atomic.LoadInt64(&b.queued),
@@ -1061,15 +936,12 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 			"completed": atomic.LoadInt64(&b.completed),
 		},
 	}
-
 }
 
 // GetMetrics returns current bulkhead metrics.
 
 func (b *Bulkhead) GetMetrics() map[string]interface{} {
-
 	return map[string]interface{}{
-
 		"name": b.config.Name,
 
 		"active": atomic.LoadInt64(&b.active),
@@ -1080,15 +952,12 @@ func (b *Bulkhead) GetMetrics() map[string]interface{} {
 
 		"completed": atomic.LoadInt64(&b.completed),
 	}
-
 }
 
 // Close shuts down the bulkhead.
 
 func (b *Bulkhead) Close() {
-
 	close(b.queue)
-
 }
 
 // TimeoutConfig configures timeout behavior.
@@ -1104,16 +973,13 @@ type TimeoutConfig struct {
 // DefaultTimeoutConfig returns sensible timeout defaults.
 
 func DefaultTimeoutConfig() *TimeoutConfig {
-
 	return &TimeoutConfig{
-
 		DefaultTimeout: time.Second * 30,
 
 		MaxTimeout: time.Minute * 5,
 
 		MinTimeout: time.Millisecond * 100,
 	}
-
 }
 
 // TimeoutExecutor executes operations with timeout protection.
@@ -1125,37 +991,26 @@ type TimeoutExecutor struct {
 // NewTimeoutExecutor creates a new timeout executor.
 
 func NewTimeoutExecutor(config *TimeoutConfig) *TimeoutExecutor {
-
 	if config == nil {
-
 		config = DefaultTimeoutConfig()
-
 	}
 
 	return &TimeoutExecutor{config: config}
-
 }
 
 // ExecuteWithTimeout executes an operation with timeout protection.
 
 func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.Duration, operation func(context.Context) error) error {
-
 	if timeout <= 0 {
-
 		timeout = te.config.DefaultTimeout
-
 	}
 
 	if timeout > te.config.MaxTimeout {
-
 		timeout = te.config.MaxTimeout
-
 	}
 
 	if timeout < te.config.MinTimeout {
-
 		timeout = te.config.MinTimeout
-
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -1165,9 +1020,7 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 	errChan := make(chan error, 1)
 
 	go func() {
-
 		errChan <- operation(ctx)
-
 	}()
 
 	select {
@@ -1179,9 +1032,7 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 	case <-ctx.Done():
 
 		if ctx.Err() == context.DeadlineExceeded {
-
 			return &ServiceError{
-
 				Type: ErrorTypeTimeout,
 
 				Code: "operation_timeout",
@@ -1207,15 +1058,12 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 				Timestamp: time.Now(),
 
 				Metadata: map[string]interface{}{
-
 					"timeout": timeout.String(),
 				},
 			}
-
 		}
 
 		return ctx.Err()
 
 	}
-
 }

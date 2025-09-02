@@ -69,15 +69,11 @@ type OpenTelemetryProvider struct {
 // NewOpenTelemetryProvider creates a new OpenTelemetry provider.
 
 func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvider, error) {
-
 	if config == nil {
-
 		config = DefaultOpenTelemetryConfig()
-
 	}
 
 	otp := &OpenTelemetryProvider{
-
 		config: config,
 	}
 
@@ -86,11 +82,8 @@ func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvid
 	// Initialize resource.
 
 	res, err := otp.initResource()
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize resource: %w", err)
-
 	}
 
 	// Initialize tracing.
@@ -98,11 +91,8 @@ func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvid
 	if config.EnableTracing {
 
 		err = otp.initTracing(res)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize tracing: %w", err)
-
 		}
 
 	}
@@ -112,11 +102,8 @@ func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvid
 	if config.EnableMetrics {
 
 		err = otp.initMetrics(res)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize metrics: %w", err)
-
 		}
 
 	}
@@ -131,15 +118,12 @@ func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvid
 	))
 
 	return otp, nil
-
 }
 
 // DefaultOpenTelemetryConfig returns default OpenTelemetry configuration.
 
 func DefaultOpenTelemetryConfig() *OpenTelemetryConfig {
-
 	return &OpenTelemetryConfig{
-
 		ServiceName: ServiceName,
 
 		ServiceVersion: ServiceVersion,
@@ -156,13 +140,11 @@ func DefaultOpenTelemetryConfig() *OpenTelemetryConfig {
 
 		EnableLogging: true,
 	}
-
 }
 
 // initResource initializes OpenTelemetry resource.
 
 func (otp *OpenTelemetryProvider) initResource() (*resource.Resource, error) {
-
 	return resource.Merge(
 
 		resource.Default(),
@@ -182,13 +164,11 @@ func (otp *OpenTelemetryProvider) initResource() (*resource.Resource, error) {
 			attribute.String("service.component", "nephoran-intent-operator"),
 		),
 	)
-
 }
 
 // initTracing initializes OpenTelemetry tracing.
 
 func (otp *OpenTelemetryProvider) initTracing(res *resource.Resource) error {
-
 	// Create OTLP exporter.
 
 	exporter, err := otlptrace.New(
@@ -202,11 +182,8 @@ func (otp *OpenTelemetryProvider) initTracing(res *resource.Resource) error {
 			otlptracehttp.WithInsecure(),
 		),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create OTLP exporter: %w", err)
-
 	}
 
 	// Create tracer provider.
@@ -233,21 +210,16 @@ func (otp *OpenTelemetryProvider) initTracing(res *resource.Resource) error {
 	otp.shutdownFuncs = append(otp.shutdownFuncs, otp.tracerProvider.Shutdown)
 
 	return nil
-
 }
 
 // initMetrics initializes OpenTelemetry metrics.
 
 func (otp *OpenTelemetryProvider) initMetrics(res *resource.Resource) error {
-
 	// Create Prometheus exporter.
 
 	_, err := prometheus.New()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create Prometheus exporter: %w", err)
-
 	}
 
 	// Get meter.
@@ -257,55 +229,40 @@ func (otp *OpenTelemetryProvider) initMetrics(res *resource.Resource) error {
 	// Add shutdown function (Prometheus exporter doesn't need explicit shutdown).
 
 	otp.shutdownFuncs = append(otp.shutdownFuncs, func(ctx context.Context) error {
-
 		return nil
-
 	})
 
 	return nil
-
 }
 
 // GetTracer returns the tracer instance.
 
 func (otp *OpenTelemetryProvider) GetTracer() trace.Tracer {
-
 	return otp.tracer
-
 }
 
 // GetMeter returns the meter instance.
 
 func (otp *OpenTelemetryProvider) GetMeter() metric.Meter {
-
 	return otp.meter
-
 }
 
 // Shutdown gracefully shuts down the OpenTelemetry provider.
 
 func (otp *OpenTelemetryProvider) Shutdown(ctx context.Context) error {
-
 	var errors []error
 
 	for _, shutdown := range otp.shutdownFuncs {
-
 		if err := shutdown(ctx); err != nil {
-
 			errors = append(errors, err)
-
 		}
-
 	}
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("shutdown errors: %v", errors)
-
 	}
 
 	return nil
-
 }
 
 // NetworkIntentTracer provides tracing for NetworkIntent operations.
@@ -317,15 +274,12 @@ type NetworkIntentTracer struct {
 // NewNetworkIntentTracer creates a new NetworkIntent tracer.
 
 func NewNetworkIntentTracer(tracer trace.Tracer) *NetworkIntentTracer {
-
 	return &NetworkIntentTracer{tracer: tracer}
-
 }
 
 // StartReconciliation starts a reconciliation span.
 
 func (nt *NetworkIntentTracer) StartReconciliation(ctx context.Context, name, namespace string) (context.Context, trace.Span) {
-
 	return nt.tracer.Start(ctx, "networkintent.reconciliation",
 
 		trace.WithAttributes(
@@ -337,13 +291,11 @@ func (nt *NetworkIntentTracer) StartReconciliation(ctx context.Context, name, na
 			attribute.String("operation.type", "reconciliation"),
 		),
 	)
-
 }
 
 // StartLLMProcessing starts an LLM processing span.
 
 func (nt *NetworkIntentTracer) StartLLMProcessing(ctx context.Context, model, intentType string) (context.Context, trace.Span) {
-
 	return nt.tracer.Start(ctx, "networkintent.llm_processing",
 
 		trace.WithAttributes(
@@ -355,13 +307,11 @@ func (nt *NetworkIntentTracer) StartLLMProcessing(ctx context.Context, model, in
 			attribute.String("operation.type", "llm_processing"),
 		),
 	)
-
 }
 
 // StartRAGRetrieval starts a RAG retrieval span.
 
 func (nt *NetworkIntentTracer) StartRAGRetrieval(ctx context.Context, query string) (context.Context, trace.Span) {
-
 	return nt.tracer.Start(ctx, "networkintent.rag_retrieval",
 
 		trace.WithAttributes(
@@ -371,13 +321,11 @@ func (nt *NetworkIntentTracer) StartRAGRetrieval(ctx context.Context, query stri
 			attribute.String("operation.type", "rag_retrieval"),
 		),
 	)
-
 }
 
 // StartGitOpsGeneration starts a GitOps generation span.
 
 func (nt *NetworkIntentTracer) StartGitOpsGeneration(ctx context.Context, packageType string) (context.Context, trace.Span) {
-
 	return nt.tracer.Start(ctx, "networkintent.gitops_generation",
 
 		trace.WithAttributes(
@@ -387,33 +335,26 @@ func (nt *NetworkIntentTracer) StartGitOpsGeneration(ctx context.Context, packag
 			attribute.String("operation.type", "gitops_generation"),
 		),
 	)
-
 }
 
 // AddSpanAttributes adds attributes to the current span.
 
 func (nt *NetworkIntentTracer) AddSpanAttributes(span trace.Span, attrs ...attribute.KeyValue) {
-
 	span.SetAttributes(attrs...)
-
 }
 
 // RecordError records an error in the span.
 
 func (nt *NetworkIntentTracer) RecordError(span trace.Span, err error) {
-
 	span.RecordError(err)
 
 	span.SetStatus(codes.Error, err.Error())
-
 }
 
 // SetSpanStatus sets the span status.
 
 func (nt *NetworkIntentTracer) SetSpanStatus(span trace.Span, code codes.Code, description string) {
-
 	span.SetStatus(code, description)
-
 }
 
 // ORANInterfaceTracer provides tracing for O-RAN interface operations.
@@ -425,15 +366,12 @@ type ORANInterfaceTracer struct {
 // NewORANInterfaceTracer creates a new O-RAN interface tracer.
 
 func NewORANInterfaceTracer(tracer trace.Tracer) *ORANInterfaceTracer {
-
 	return &ORANInterfaceTracer{tracer: tracer}
-
 }
 
 // StartInterfaceOperation starts an interface operation span.
 
 func (ot *ORANInterfaceTracer) StartInterfaceOperation(ctx context.Context, interfaceType, operation, endpoint string) (context.Context, trace.Span) {
-
 	return ot.tracer.Start(ctx, fmt.Sprintf("oran.%s.%s", interfaceType, operation),
 
 		trace.WithAttributes(
@@ -447,13 +385,11 @@ func (ot *ORANInterfaceTracer) StartInterfaceOperation(ctx context.Context, inte
 			attribute.String("operation.type", "oran_interface"),
 		),
 	)
-
 }
 
 // StartPolicyOperation starts a policy operation span.
 
 func (ot *ORANInterfaceTracer) StartPolicyOperation(ctx context.Context, policyType, operation string) (context.Context, trace.Span) {
-
 	return ot.tracer.Start(ctx, fmt.Sprintf("oran.policy.%s", operation),
 
 		trace.WithAttributes(
@@ -465,7 +401,6 @@ func (ot *ORANInterfaceTracer) StartPolicyOperation(ctx context.Context, policyT
 			attribute.String("operation.type", "policy_operation"),
 		),
 	)
-
 }
 
 // E2NodeSetTracer provides tracing for E2NodeSet operations.
@@ -477,15 +412,12 @@ type E2NodeSetTracer struct {
 // NewE2NodeSetTracer creates a new E2NodeSet tracer.
 
 func NewE2NodeSetTracer(tracer trace.Tracer) *E2NodeSetTracer {
-
 	return &E2NodeSetTracer{tracer: tracer}
-
 }
 
 // StartReconciliation starts a reconciliation span.
 
 func (et *E2NodeSetTracer) StartReconciliation(ctx context.Context, name, namespace string) (context.Context, trace.Span) {
-
 	return et.tracer.Start(ctx, "e2nodeset.reconciliation",
 
 		trace.WithAttributes(
@@ -497,13 +429,11 @@ func (et *E2NodeSetTracer) StartReconciliation(ctx context.Context, name, namesp
 			attribute.String("operation.type", "reconciliation"),
 		),
 	)
-
 }
 
 // StartScalingOperation starts a scaling operation span.
 
 func (et *E2NodeSetTracer) StartScalingOperation(ctx context.Context, name, namespace string, fromReplicas, toReplicas int) (context.Context, trace.Span) {
-
 	return et.tracer.Start(ctx, "e2nodeset.scaling",
 
 		trace.WithAttributes(
@@ -519,7 +449,6 @@ func (et *E2NodeSetTracer) StartScalingOperation(ctx context.Context, name, name
 			attribute.String("operation.type", "scaling"),
 		),
 	)
-
 }
 
 // MetricsInstrumentation provides OpenTelemetry metrics instrumentation.
@@ -545,7 +474,6 @@ type MetricsInstrumentation struct {
 // NewMetricsInstrumentation creates a new metrics instrumentation.
 
 func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, error) {
-
 	mi := &MetricsInstrumentation{meter: meter}
 
 	var err error
@@ -560,11 +488,8 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithUnit("s"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	mi.intentProcessingCounter, err = meter.Int64Counter(
@@ -573,11 +498,8 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithDescription("Total number of intent processing operations"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// LLM metrics.
@@ -590,11 +512,8 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithUnit("s"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	mi.llmTokensUsed, err = meter.Int64Counter(
@@ -603,11 +522,8 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithDescription("Total number of LLM tokens used"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// O-RAN metrics.
@@ -620,11 +536,8 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithUnit("s"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	mi.oranRequestCounter, err = meter.Int64Counter(
@@ -633,11 +546,8 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithDescription("Total number of O-RAN interface requests"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// System metrics.
@@ -648,21 +558,16 @@ func NewMetricsInstrumentation(meter metric.Meter) (*MetricsInstrumentation, err
 
 		metric.WithDescription("System resource usage"),
 	)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	return mi, nil
-
 }
 
 // RecordIntentProcessing records intent processing metrics.
 
 func (mi *MetricsInstrumentation) RecordIntentProcessing(ctx context.Context, duration time.Duration, intentType, status string) {
-
 	mi.intentProcessingDuration.Record(ctx, duration.Seconds(),
 
 		metric.WithAttributes(
@@ -682,13 +587,11 @@ func (mi *MetricsInstrumentation) RecordIntentProcessing(ctx context.Context, du
 			attribute.String("status", status),
 		),
 	)
-
 }
 
 // RecordLLMRequest records LLM request metrics.
 
 func (mi *MetricsInstrumentation) RecordLLMRequest(ctx context.Context, duration time.Duration, model, status string, tokensUsed int64) {
-
 	mi.llmRequestDuration.Record(ctx, duration.Seconds(),
 
 		metric.WithAttributes(
@@ -706,13 +609,11 @@ func (mi *MetricsInstrumentation) RecordLLMRequest(ctx context.Context, duration
 			attribute.String("model", model),
 		),
 	)
-
 }
 
 // RecordORANRequest records O-RAN request metrics.
 
 func (mi *MetricsInstrumentation) RecordORANRequest(ctx context.Context, duration time.Duration, interfaceType, operation, status string) {
-
 	mi.oranRequestDuration.Record(ctx, duration.Seconds(),
 
 		metric.WithAttributes(
@@ -736,13 +637,11 @@ func (mi *MetricsInstrumentation) RecordORANRequest(ctx context.Context, duratio
 			attribute.String("status", status),
 		),
 	)
-
 }
 
 // RecordResourceUsage records system resource usage.
 
 func (mi *MetricsInstrumentation) RecordResourceUsage(ctx context.Context, resourceType string, usage float64) {
-
 	mi.systemResourceUsage.Record(ctx, usage,
 
 		metric.WithAttributes(
@@ -750,7 +649,6 @@ func (mi *MetricsInstrumentation) RecordResourceUsage(ctx context.Context, resou
 			attribute.String("resource_type", resourceType),
 		),
 	)
-
 }
 
 // Note: Utility functions have been moved to pkg/config/env_helpers.go.
@@ -758,7 +656,6 @@ func (mi *MetricsInstrumentation) RecordResourceUsage(ctx context.Context, resou
 // TraceWithSpan executes a function within a trace span.
 
 func TraceWithSpan(ctx context.Context, tracer trace.Tracer, spanName string, fn func(context.Context, trace.Span) error, attrs ...attribute.KeyValue) error {
-
 	ctx, span := tracer.Start(ctx, spanName, trace.WithAttributes(attrs...))
 
 	defer span.End()
@@ -776,5 +673,4 @@ func TraceWithSpan(ctx context.Context, tracer trace.Tracer, spanName string, fn
 	span.SetStatus(codes.Ok, "")
 
 	return nil
-
 }

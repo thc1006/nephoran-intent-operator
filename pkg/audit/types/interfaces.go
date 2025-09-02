@@ -12,7 +12,6 @@ import (
 // AuditLogger defines the interface for audit logging systems.
 
 type AuditLogger interface {
-
 	// LogEvent logs a single audit event.
 
 	LogEvent(ctx context.Context, event *AuditEvent) error
@@ -37,7 +36,6 @@ type AuditLogger interface {
 // Backend represents an audit log destination.
 
 type Backend interface {
-
 	// Type returns the backend type identifier.
 
 	Type() string
@@ -70,7 +68,6 @@ type Backend interface {
 // ComplianceTracker defines the interface for compliance tracking.
 
 type ComplianceTracker interface {
-
 	// ProcessEvent processes an audit event for compliance tracking.
 
 	ProcessEvent(event *AuditEvent)
@@ -91,7 +88,6 @@ type ComplianceTracker interface {
 // AuditEntry represents a generic audit entry interface.
 
 type AuditEntry interface {
-
 	// GetID returns the unique identifier.
 
 	GetID() string
@@ -124,31 +120,23 @@ var _ AuditEntry = (*AuditEvent)(nil)
 // GetID returns the unique identifier.
 
 func (ae *AuditEvent) GetID() string {
-
 	return ae.ID
-
 }
 
 // GetTimestamp returns the event timestamp.
 
 func (ae *AuditEvent) GetTimestamp() time.Time {
-
 	return ae.Timestamp
-
 }
 
 // GetEventType returns the event type.
 
 func (ae *AuditEvent) GetEventType() EventType {
-
 	return ae.EventType
-
 }
 
 // GetSeverity returns the severity level.
 
 func (ae *AuditEvent) GetSeverity() Severity {
-
 	return ae.Severity
-
 }

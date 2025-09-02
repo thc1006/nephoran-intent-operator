@@ -52,7 +52,6 @@ import (
 // usage pattern analysis, cost optimization, health scoring, and intelligent recommendations.
 
 type DependencyAnalyzer interface {
-
 	// Core analysis operations.
 
 	AnalyzeDependencies(ctx context.Context, spec *AnalysisSpec) (*AnalysisResult, error)
@@ -884,23 +883,17 @@ const (
 // NewDependencyAnalyzer creates a new dependency analyzer with comprehensive configuration.
 
 func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
-
 	if config == nil {
-
 		config = DefaultAnalyzerConfig()
-
 	}
 
 	if err := config.Validate(); err != nil {
-
 		return nil, fmt.Errorf("invalid analyzer config: %w", err)
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	analyzer := &dependencyAnalyzer{
-
 		logger: log.Log.WithName("dependency-analyzer"),
 
 		config: config,
@@ -919,63 +912,42 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 	var err error
 
 	analyzer.usageAnalyzer, err = NewUsageAnalyzer(config.UsageAnalyzerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize usage analyzer: %w", err)
-
 	}
 
 	analyzer.costAnalyzer, err = NewCostAnalyzer(config.CostAnalyzerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize cost analyzer: %w", err)
-
 	}
 
 	analyzer.healthAnalyzer, err = NewHealthAnalyzer(config.HealthAnalyzerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize health analyzer: %w", err)
-
 	}
 
 	analyzer.riskAnalyzer, err = NewRiskAnalyzer(config.RiskAnalyzerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize risk analyzer: %w", err)
-
 	}
 
 	analyzer.performanceAnalyzer, err = NewPerformanceAnalyzer(config.PerformanceAnalyzerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize performance analyzer: %w", err)
-
 	}
 
 	// Initialize optimization engines.
 
 	analyzer.optimizationEngine, err = NewOptimizationEngine(config.OptimizationEngineConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize optimization engine: %w", err)
-
 	}
 
 	if config.EnableMLOptimization {
 
 		analyzer.mlOptimizer, err = NewMLOptimizer(config.MLOptimizerConfig)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize ML optimizer: %w", err)
-
 		}
 
 	}
@@ -993,27 +965,18 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 	if config.EnableMLAnalysis {
 
 		analyzer.predictionModel, err = NewPredictionModel(config.PredictionModelConfig)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize prediction model: %w", err)
-
 		}
 
 		analyzer.recommendationModel, err = NewRecommendationModel(config.RecommendationModelConfig)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize recommendation model: %w", err)
-
 		}
 
 		analyzer.anomalyDetector, err = NewAnomalyDetector(config.AnomalyDetectorConfig)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize anomaly detector: %w", err)
-
 		}
 
 	}
@@ -1021,17 +984,12 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 	// Initialize caching and storage.
 
 	if config.EnableCaching {
-
 		analyzer.analysisCache = NewAnalysisCache(config.AnalysisCacheConfig)
-
 	}
 
 	analyzer.dataStore, err = NewAnalysisDataStore(config.DataStoreConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize data store: %w", err)
-
 	}
 
 	// Initialize external integrations.
@@ -1039,11 +997,8 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 	if config.PackageRegistryConfig != nil {
 
 		analyzer.packageRegistry, err = NewPackageRegistry(config.PackageRegistryConfig)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to initialize package registry: %w", err)
-
 		}
 
 	}
@@ -1051,9 +1006,7 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 	// Initialize worker pool.
 
 	if config.EnableConcurrency {
-
 		analyzer.workerPool = NewAnalysisWorkerPool(config.WorkerCount, config.QueueSize)
-
 	}
 
 	// Start background processes.
@@ -1069,7 +1022,6 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 		"concurrency", config.EnableConcurrency)
 
 	return analyzer, nil
-
 }
 
 // Core analysis methods.
@@ -1077,15 +1029,12 @@ func NewDependencyAnalyzer(config *AnalyzerConfig) (DependencyAnalyzer, error) {
 // AnalyzeDependencies performs comprehensive dependency analysis.
 
 func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *AnalysisSpec) (*AnalysisResult, error) {
-
 	startTime := time.Now()
 
 	// Validate specification.
 
 	if err := a.validateAnalysisSpec(spec); err != nil {
-
 		return nil, fmt.Errorf("invalid analysis spec: %w", err)
-
 	}
 
 	a.logger.Info("Starting dependency analysis",
@@ -1099,7 +1048,6 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 	analysisID := generateAnalysisID()
 
 	result := &AnalysisResult{
-
 		AnalysisID: analysisID,
 
 		Packages: spec.Packages,
@@ -1118,7 +1066,6 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 	// Create analysis context.
 
 	analysisCtx := &AnalysisContext{
-
 		AnalysisID: analysisID,
 
 		Spec: spec,
@@ -1151,9 +1098,7 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 	// Perform individual analyses based on requested types.
 
 	if err := a.performIndividualAnalyses(ctx, analysisCtx); err != nil {
-
 		return nil, fmt.Errorf("individual analyses failed: %w", err)
-
 	}
 
 	// Generate optimization recommendations if requested.
@@ -1161,7 +1106,6 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 	if spec.GenerateRecommendations {
 
 		recommendations, err := a.GenerateOptimizationRecommendations(ctx, spec.Packages, &OptimizationObjectives{
-
 			CostOptimization: true,
 
 			PerformanceOptimization: true,
@@ -1172,13 +1116,9 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 		})
 
 		if err != nil {
-
 			a.logger.Error(err, "Failed to generate optimization recommendations")
-
 		} else {
-
 			result.OptimizationRecommendations = recommendations
-
 		}
 
 	}
@@ -1186,13 +1126,9 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 	// Perform machine learning analysis if enabled.
 
 	if spec.EnableMLAnalysis && a.predictionModel != nil {
-
 		if err := a.performMLAnalysis(ctx, analysisCtx); err != nil {
-
 			a.logger.Error(err, "Machine learning analysis failed")
-
 		}
-
 	}
 
 	// Calculate overall scores.
@@ -1208,9 +1144,7 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 		cacheKey := a.generateAnalysisCacheKey(spec)
 
 		if err := a.analysisCache.Set(ctx, cacheKey, result); err != nil {
-
 			a.logger.Error(err, "Failed to cache analysis result")
-
 		}
 
 	}
@@ -1230,13 +1164,11 @@ func (a *dependencyAnalyzer) AnalyzeDependencies(ctx context.Context, spec *Anal
 		"duration", result.AnalysisTime)
 
 	return result, nil
-
 }
 
 // AnalyzeUsagePatterns analyzes usage patterns for packages.
 
 func (a *dependencyAnalyzer) AnalyzeUsagePatterns(ctx context.Context, packages []*PackageReference, timeRange *TimeRange) (*UsageAnalysis, error) {
-
 	startTime := time.Now()
 
 	a.logger.V(1).Info("Analyzing usage patterns",
@@ -1246,7 +1178,6 @@ func (a *dependencyAnalyzer) AnalyzeUsagePatterns(ctx context.Context, packages 
 		"timeRange", timeRange)
 
 	analysis := &UsageAnalysis{
-
 		AnalysisID: generateUsageAnalysisID(),
 
 		TimeRange: timeRange,
@@ -1265,11 +1196,8 @@ func (a *dependencyAnalyzer) AnalyzeUsagePatterns(ctx context.Context, packages 
 	// Collect usage data.
 
 	usageData, err := a.usageCollector.CollectUsageData(ctx, packages, timeRange)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to collect usage data: %w", err)
-
 	}
 
 	// Convert usage data to data points for analysis.
@@ -1337,19 +1265,16 @@ func (a *dependencyAnalyzer) AnalyzeUsagePatterns(ctx context.Context, packages 
 	a.metrics.UsageAnalysisTime.Observe(analysis.AnalysisTime.Seconds())
 
 	return analysis, nil
-
 }
 
 // AnalyzeCost performs comprehensive cost analysis.
 
 func (a *dependencyAnalyzer) AnalyzeCost(ctx context.Context, packages []*PackageReference) (*CostAnalysis, error) {
-
 	startTime := time.Now()
 
 	a.logger.V(1).Info("Analyzing costs", "packages", len(packages))
 
 	analysis := &CostAnalysis{
-
 		AnalysisID: generateCostAnalysisID(),
 
 		CostByPackage: make([]*PackageCost, 0, len(packages)),
@@ -1368,15 +1293,10 @@ func (a *dependencyAnalyzer) AnalyzeCost(ctx context.Context, packages []*Packag
 	costMutex := sync.Mutex{}
 
 	for _, pkg := range packages {
-
 		g.Go(func() error {
-
 			packageCost, err := a.costAnalyzer.CalculatePackageCost(gCtx, pkg)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to calculate cost for %s: %w", pkg.Name, err)
-
 			}
 
 			costMutex.Lock()
@@ -1386,15 +1306,11 @@ func (a *dependencyAnalyzer) AnalyzeCost(ctx context.Context, packages []*Packag
 			costMutex.Unlock()
 
 			return nil
-
 		})
-
 	}
 
 	if err := g.Wait(); err != nil {
-
 		return nil, fmt.Errorf("cost calculation failed: %w", err)
-
 	}
 
 	// Calculate total cost.
@@ -1408,7 +1324,6 @@ func (a *dependencyAnalyzer) AnalyzeCost(ctx context.Context, packages []*Packag
 	// Analyze cost trends.
 
 	if a.config.EnableTrendAnalysis {
-
 		// trend, err := a.analyzeCostTrend(ctx, packages).
 
 		// if err != nil {.
@@ -1422,7 +1337,6 @@ func (a *dependencyAnalyzer) AnalyzeCost(ctx context.Context, packages []*Packag
 		// }.
 
 		// TODO: Implement cost trend analysis properly.
-
 	}
 
 	// Project future costs.
@@ -1462,19 +1376,16 @@ func (a *dependencyAnalyzer) AnalyzeCost(ctx context.Context, packages []*Packag
 	a.metrics.CostAnalysisTime.Observe(analysis.AnalysisTime.Seconds())
 
 	return analysis, nil
-
 }
 
 // AnalyzeHealth performs comprehensive health analysis.
 
 func (a *dependencyAnalyzer) AnalyzeHealth(ctx context.Context, packages []*PackageReference) (*HealthAnalysis, error) {
-
 	startTime := time.Now()
 
 	a.logger.V(1).Info("Analyzing health", "packages", len(packages))
 
 	analysis := &HealthAnalysis{
-
 		AnalysisID: generateHealthAnalysisID(),
 
 		PackageHealthScores: make(map[string]float64),
@@ -1495,7 +1406,6 @@ func (a *dependencyAnalyzer) AnalyzeHealth(ctx context.Context, packages []*Pack
 	for _, pkg := range packages {
 
 		healthScore, err := a.ScorePackageHealth(ctx, pkg)
-
 		if err != nil {
 
 			a.logger.Error(err, "Failed to score package health", "package", pkg.Name)
@@ -1521,9 +1431,7 @@ func (a *dependencyAnalyzer) AnalyzeHealth(ctx context.Context, packages []*Pack
 	// Calculate overall health score.
 
 	if len(healthScores) > 0 {
-
 		analysis.OverallHealthScore = stat.Mean(healthScores, nil)
-
 	}
 
 	// Determine health grade.
@@ -1559,13 +1467,11 @@ func (a *dependencyAnalyzer) AnalyzeHealth(ctx context.Context, packages []*Pack
 	a.metrics.HealthAnalysisTime.Observe(analysis.AnalysisTime.Seconds())
 
 	return analysis, nil
-
 }
 
 // GenerateOptimizationRecommendations generates comprehensive optimization recommendations.
 
 func (a *dependencyAnalyzer) GenerateOptimizationRecommendations(ctx context.Context, packages []*PackageReference, objectives *OptimizationObjectives) (*OptimizationRecommendations, error) {
-
 	startTime := time.Now()
 
 	a.logger.V(1).Info("Generating optimization recommendations",
@@ -1575,7 +1481,6 @@ func (a *dependencyAnalyzer) GenerateOptimizationRecommendations(ctx context.Con
 		"objectives", fmt.Sprintf("%+v", objectives))
 
 	recommendations := &OptimizationRecommendations{
-
 		RecommendationID: generateRecommendationID(),
 
 		GeneratedAt: time.Now(),
@@ -1604,105 +1509,72 @@ func (a *dependencyAnalyzer) GenerateOptimizationRecommendations(ctx context.Con
 	g, gCtx := errgroup.WithContext(ctx)
 
 	if objectives.CostOptimization {
-
 		g.Go(func() error {
-
 			costOpts, err := a.generateCostOptimizations(gCtx, packages)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to generate cost optimizations: %w", err)
-
 			}
 
 			recommendations.CostOptimizations = costOpts
 
 			return nil
-
 		})
-
 	}
 
 	if objectives.PerformanceOptimization {
-
 		g.Go(func() error {
-
 			perfOpts, err := a.generatePerformanceOptimizations(gCtx, packages)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to generate performance optimizations: %w", err)
-
 			}
 
 			recommendations.PerformanceOptimizations = perfOpts
 
 			return nil
-
 		})
-
 	}
 
 	if objectives.SecurityOptimization {
-
 		g.Go(func() error {
-
 			secOpts, err := a.generateSecurityOptimizations(gCtx, packages)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to generate security optimizations: %w", err)
-
 			}
 
 			recommendations.SecurityOptimizations = secOpts
 
 			return nil
-
 		})
-
 	}
 
 	if objectives.QualityOptimization {
 
 		g.Go(func() error {
-
 			versionOpts, err := a.generateVersionOptimizations(gCtx, packages)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to generate version optimizations: %w", err)
-
 			}
 
 			recommendations.VersionOptimizations = versionOpts
 
 			return nil
-
 		})
 
 		g.Go(func() error {
-
 			depOpts, err := a.generateDependencyOptimizations(gCtx, packages)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to generate dependency optimizations: %w", err)
-
 			}
 
 			recommendations.DependencyOptimizations = depOpts
 
 			return nil
-
 		})
 
 	}
 
 	if err := g.Wait(); err != nil {
-
 		return nil, fmt.Errorf("optimization generation failed: %w", err)
-
 	}
 
 	// Generate ML-based recommendations if enabled.
@@ -1712,9 +1584,7 @@ func (a *dependencyAnalyzer) GenerateOptimizationRecommendations(ctx context.Con
 		mlRecs, err := a.generateMLRecommendations(ctx, packages, objectives)
 
 		if err != nil {
-
 			a.logger.Error(err, "Failed to generate ML recommendations")
-
 		} else {
 
 			recommendations.MLRecommendations = mlRecs
@@ -1742,7 +1612,6 @@ func (a *dependencyAnalyzer) GenerateOptimizationRecommendations(ctx context.Con
 	a.metrics.OptimizationRecommendationTime.Observe(time.Since(startTime).Seconds())
 
 	return recommendations, nil
-
 }
 
 // Helper methods and context structures.
@@ -1764,23 +1633,16 @@ type AnalysisContext struct {
 // validateAnalysisSpec validates the analysis specification.
 
 func (a *dependencyAnalyzer) validateAnalysisSpec(spec *AnalysisSpec) error {
-
 	if spec == nil {
-
 		return fmt.Errorf("analysis spec cannot be nil")
-
 	}
 
 	if len(spec.Packages) == 0 {
-
 		return fmt.Errorf("packages cannot be empty")
-
 	}
 
 	if len(spec.AnalysisTypes) == 0 {
-
 		spec.AnalysisTypes = []AnalysisType{
-
 			AnalysisTypeUsage,
 
 			AnalysisTypeCost,
@@ -1789,137 +1651,101 @@ func (a *dependencyAnalyzer) validateAnalysisSpec(spec *AnalysisSpec) error {
 
 			AnalysisTypeRisk,
 		}
-
 	}
 
 	return nil
-
 }
 
 // performIndividualAnalyses performs different types of analyses.
 
 func (a *dependencyAnalyzer) performIndividualAnalyses(ctx context.Context, analysisCtx *AnalysisContext) error {
-
 	g, gCtx := errgroup.WithContext(ctx)
 
 	for _, analysisType := range analysisCtx.Spec.AnalysisTypes {
-
 		switch analysisType {
 
 		case AnalysisTypeUsage:
 
 			g.Go(func() error {
-
 				usage, err := a.AnalyzeUsagePatterns(gCtx, analysisCtx.Spec.Packages, analysisCtx.Spec.TimeRange)
-
 				if err != nil {
-
 					return fmt.Errorf("usage analysis failed: %w", err)
-
 				}
 
 				analysisCtx.Result.UsageAnalysis = usage
 
 				return nil
-
 			})
 
 		case AnalysisTypeCost:
 
 			g.Go(func() error {
-
 				cost, err := a.AnalyzeCost(gCtx, analysisCtx.Spec.Packages)
-
 				if err != nil {
-
 					return fmt.Errorf("cost analysis failed: %w", err)
-
 				}
 
 				analysisCtx.Result.CostAnalysis = cost
 
 				return nil
-
 			})
 
 		case AnalysisTypeHealth:
 
 			g.Go(func() error {
-
 				health, err := a.AnalyzeHealth(gCtx, analysisCtx.Spec.Packages)
-
 				if err != nil {
-
 					return fmt.Errorf("health analysis failed: %w", err)
-
 				}
 
 				analysisCtx.Result.HealthAnalysis = health
 
 				return nil
-
 			})
 
 		case AnalysisTypeRisk:
 
 			g.Go(func() error {
-
 				risk, err := a.AnalyzeRisks(gCtx, analysisCtx.Spec.Packages)
-
 				if err != nil {
-
 					return fmt.Errorf("risk analysis failed: %w", err)
-
 				}
 
 				analysisCtx.Result.RiskAnalysis = risk
 
 				return nil
-
 			})
 
 		case AnalysisTypePerformance:
 
 			g.Go(func() error {
-
 				performance, err := a.AnalyzePerformance(gCtx, analysisCtx.Spec.Packages)
-
 				if err != nil {
-
 					return fmt.Errorf("performance analysis failed: %w", err)
-
 				}
 
 				analysisCtx.Result.PerformanceAnalysis = performance
 
 				return nil
-
 			})
 
 		}
-
 	}
 
 	return g.Wait()
-
 }
 
 // calculateOverallScores calculates overall scores for the analysis.
 
 func (a *dependencyAnalyzer) calculateOverallScores(result *AnalysisResult) {
-
 	scores := make([]float64, 0, 4)
 
 	if result.UsageAnalysis != nil {
-
 		scores = append(scores, result.UsageAnalysis.EfficiencyScore)
-
 	}
 
 	if result.CostAnalysis != nil {
-
 		scores = append(scores, result.CostAnalysis.EfficiencyScore)
-
 	}
 
 	if result.HealthAnalysis != nil {
@@ -1945,39 +1771,28 @@ func (a *dependencyAnalyzer) calculateOverallScores(result *AnalysisResult) {
 		result.QualityScore = a.calculateQualityScore(result)
 
 	}
-
 }
 
 // Utility functions.
 
 func generateAnalysisID() string {
-
 	return fmt.Sprintf("analysis-%d", time.Now().UnixNano())
-
 }
 
 func generateUsageAnalysisID() string {
-
 	return fmt.Sprintf("usage-%d", time.Now().UnixNano())
-
 }
 
 func generateCostAnalysisID() string {
-
 	return fmt.Sprintf("cost-%d", time.Now().UnixNano())
-
 }
 
 func generateHealthAnalysisID() string {
-
 	return fmt.Sprintf("health-%d", time.Now().UnixNano())
-
 }
 
 func generateRecommendationID() string {
-
 	return fmt.Sprintf("recommendation-%d", time.Now().UnixNano())
-
 }
 
 // Background processes and lifecycle management.
@@ -1985,7 +1800,6 @@ func generateRecommendationID() string {
 // startBackgroundProcesses starts background processing goroutines.
 
 func (a *dependencyAnalyzer) startBackgroundProcesses() {
-
 	// Start usage data collection.
 
 	if a.usageCollector != nil {
@@ -2021,21 +1835,17 @@ func (a *dependencyAnalyzer) startBackgroundProcesses() {
 		go a.mlModelUpdateProcess()
 
 	}
-
 }
 
 // Close gracefully shuts down the dependency analyzer.
 
 func (a *dependencyAnalyzer) Close() error {
-
 	a.mu.Lock()
 
 	defer a.mu.Unlock()
 
 	if a.closed {
-
 		return nil
-
 	}
 
 	a.logger.Info("Shutting down dependency analyzer")
@@ -2049,21 +1859,15 @@ func (a *dependencyAnalyzer) Close() error {
 	// Close components.
 
 	if a.analysisCache != nil {
-
 		a.analysisCache.Close()
-
 	}
 
 	if a.dataStore != nil {
-
 		a.dataStore.Close()
-
 	}
 
 	if a.workerPool != nil {
-
 		a.workerPool.Close()
-
 	}
 
 	a.closed = true
@@ -2071,17 +1875,14 @@ func (a *dependencyAnalyzer) Close() error {
 	a.logger.Info("Dependency analyzer shutdown complete")
 
 	return nil
-
 }
 
 // GenerateCostReport generates comprehensive cost report.
 
 func (a *dependencyAnalyzer) GenerateCostReport(ctx context.Context, scope *CostReportScope) (*CostReport, error) {
-
 	a.logger.V(1).Info("Generating cost report", "scope", scope)
 
 	report := &CostReport{
-
 		ReportID: generateCostReportID(),
 
 		Scope: scope,
@@ -2100,11 +1901,8 @@ func (a *dependencyAnalyzer) GenerateCostReport(ctx context.Context, scope *Cost
 	if scope != nil && len(scope.Packages) > 0 {
 
 		costAnalysis, err := a.AnalyzeCost(ctx, scope.Packages)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to analyze costs for report: %w", err)
-
 		}
 
 		report.TotalCost = costAnalysis.TotalCost
@@ -2112,7 +1910,6 @@ func (a *dependencyAnalyzer) GenerateCostReport(ctx context.Context, scope *Cost
 		// Set cost breakdown with default values.
 
 		report.CostBreakdown = &CostBreakdown{
-
 			LicenseCost: costAnalysis.TotalCost.Amount * 0.3, // 30% license
 
 			SupportCost: costAnalysis.TotalCost.Amount * 0.2, // 20% support
@@ -2134,7 +1931,6 @@ func (a *dependencyAnalyzer) GenerateCostReport(ctx context.Context, scope *Cost
 		for _, opportunity := range costAnalysis.OptimizationOpportunities {
 
 			recommendation := &CostOptimization{
-
 				Type: "cost_reduction",
 
 				Description: opportunity.Description,
@@ -2157,23 +1953,18 @@ func (a *dependencyAnalyzer) GenerateCostReport(ctx context.Context, scope *Cost
 	// a.metrics.CostReportsGenerated.Inc().
 
 	return report, nil
-
 }
 
 // ScorePackageHealth scores the health of a single package.
 
 func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *PackageReference) (*HealthScore, error) {
-
 	if pkg == nil {
-
 		return nil, fmt.Errorf("package reference cannot be nil")
-
 	}
 
 	a.logger.V(1).Info("Scoring package health", "package", pkg.Name)
 
 	score := &HealthScore{
-
 		Package: pkg,
 
 		OverallScore: 0.0,
@@ -2206,9 +1997,7 @@ func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *Packag
 	var weightedSum float64
 
 	for i, weight := range weights {
-
 		weightedSum += weight * scores[i]
-
 	}
 
 	score.OverallScore = weightedSum
@@ -2218,7 +2007,6 @@ func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *Packag
 	if score.OverallScore < 0.6 {
 
 		warning := &HealthWarning{
-
 			Type: "low_health_score",
 
 			Severity: "medium",
@@ -2235,7 +2023,6 @@ func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *Packag
 	// Add sample recommendation.
 
 	recommendation := &HealthRecommendation{
-
 		Type: "version_update",
 
 		Priority: "medium",
@@ -2249,13 +2036,11 @@ func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *Packag
 	score.Recommendations = append(score.Recommendations, recommendation)
 
 	return score, nil
-
 }
 
 // determineHealthGrade determines health grade based on score.
 
 func (a *dependencyAnalyzer) determineHealthGrade(score float64) HealthGrade {
-
 	switch {
 
 	case score >= 90.0:
@@ -2279,15 +2064,12 @@ func (a *dependencyAnalyzer) determineHealthGrade(score float64) HealthGrade {
 		return HealthGradeF
 
 	}
-
 }
 
 // analyzeSecurityHealth analyzes security health of packages.
 
 func (a *dependencyAnalyzer) analyzeSecurityHealth(ctx context.Context, packages []*PackageReference) *SecurityHealth {
-
 	health := &SecurityHealth{
-
 		Score: 0.8, // Default good security score
 
 		VulnerabilityCount: 0,
@@ -2302,25 +2084,20 @@ func (a *dependencyAnalyzer) analyzeSecurityHealth(ctx context.Context, packages
 	// Analyze each package for security issues (stub implementation).
 
 	for _, pkg := range packages {
-
 		// In a real implementation, this would query security databases.
 
 		_ = pkg
 
 		// For now, assume good security health.
-
 	}
 
 	return health
-
 }
 
 // analyzeMaintenanceHealth analyzes maintenance health of packages.
 
 func (a *dependencyAnalyzer) analyzeMaintenanceHealth(ctx context.Context, packages []*PackageReference) *MaintenanceHealth {
-
 	health := &MaintenanceHealth{
-
 		Score: 0.75, // Default maintenance score
 
 		OutdatedPackages: 2, // 2 outdated packages
@@ -2335,23 +2112,18 @@ func (a *dependencyAnalyzer) analyzeMaintenanceHealth(ctx context.Context, packa
 	// Analyze maintenance metrics for packages (stub implementation).
 
 	for _, pkg := range packages {
-
 		// In a real implementation, this would analyze commit history, maintainer activity, etc.
 
 		_ = pkg
-
 	}
 
 	return health
-
 }
 
 // analyzeQualityHealth analyzes code quality health of packages.
 
 func (a *dependencyAnalyzer) analyzeQualityHealth(ctx context.Context, packages []*PackageReference) *QualityHealth {
-
 	health := &QualityHealth{
-
 		Score: 0.8, // Default quality score
 
 		CodeCoverage: 85.0, // 85% test coverage
@@ -2366,23 +2138,18 @@ func (a *dependencyAnalyzer) analyzeQualityHealth(ctx context.Context, packages 
 	// Analyze quality metrics for packages (stub implementation).
 
 	for _, pkg := range packages {
-
 		// In a real implementation, this would analyze code metrics, test coverage, etc.
 
 		_ = pkg
-
 	}
 
 	return health
-
 }
 
 // analyzePerformanceHealth analyzes performance health of packages.
 
 func (a *dependencyAnalyzer) analyzePerformanceHealth(ctx context.Context, packages []*PackageReference) *PerformanceHealth {
-
 	health := &PerformanceHealth{
-
 		Score: 0.8, // Default performance score
 
 		ResponseTime: 100.0, // 100ms average response time
@@ -2397,33 +2164,27 @@ func (a *dependencyAnalyzer) analyzePerformanceHealth(ctx context.Context, packa
 	// Analyze performance metrics for packages (stub implementation).
 
 	for _, pkg := range packages {
-
 		// In a real implementation, this would analyze performance metrics, benchmarks, etc.
 
 		_ = pkg
-
 	}
 
 	return health
-
 }
 
 // determineHealthTrend determines overall health trend for packages.
 
 func (a *dependencyAnalyzer) determineHealthTrend(ctx context.Context, packages []*PackageReference) HealthTrend {
-
 	// Stub implementation - in reality would analyze historical health data.
 
 	_ = packages
 
 	return HealthTrendStable
-
 }
 
 // generateHealthRecommendations generates health improvement recommendations.
 
 func (a *dependencyAnalyzer) generateHealthRecommendations(analysis *HealthAnalysis) []*HealthRecommendation {
-
 	recommendations := make([]*HealthRecommendation, 0)
 
 	// Generate recommendations based on health analysis.
@@ -2431,7 +2192,6 @@ func (a *dependencyAnalyzer) generateHealthRecommendations(analysis *HealthAnaly
 	if analysis.SecurityHealth.Score < 0.7 {
 
 		rec := &HealthRecommendation{
-
 			Type: "security_improvement",
 
 			Priority: "high",
@@ -2449,7 +2209,6 @@ func (a *dependencyAnalyzer) generateHealthRecommendations(analysis *HealthAnaly
 	if analysis.MaintenanceHealth.Score < 0.6 {
 
 		rec := &HealthRecommendation{
-
 			Type: "maintenance_improvement",
 
 			Priority: "medium",
@@ -2467,7 +2226,6 @@ func (a *dependencyAnalyzer) generateHealthRecommendations(analysis *HealthAnaly
 	if analysis.QualityHealth.Score < 0.7 {
 
 		rec := &HealthRecommendation{
-
 			Type: "quality_improvement",
 
 			Priority: "medium",
@@ -2483,7 +2241,6 @@ func (a *dependencyAnalyzer) generateHealthRecommendations(analysis *HealthAnaly
 	}
 
 	return recommendations
-
 }
 
 // Helper functions for cost analysis.
@@ -2491,19 +2248,16 @@ func (a *dependencyAnalyzer) generateHealthRecommendations(analysis *HealthAnaly
 // generateCostOptimizations generates cost optimization recommendations.
 
 func (a *dependencyAnalyzer) generateCostOptimizations(ctx context.Context, packages []*PackageReference) ([]*CostOptimization, error) {
-
 	optimizations := make([]*CostOptimization, 0)
 
 	// Analyze each package for cost optimization opportunities.
 
 	for _, pkg := range packages {
-
 		// Stub implementation - in reality would analyze usage patterns, alternatives, etc.
 
 		if pkg.Version != "latest" {
 
 			optimization := &CostOptimization{
-
 				Type: "version_optimization",
 
 				Description: fmt.Sprintf("Update %s to latest version for cost savings", pkg.Name),
@@ -2518,35 +2272,27 @@ func (a *dependencyAnalyzer) generateCostOptimizations(ctx context.Context, pack
 			optimizations = append(optimizations, optimization)
 
 		}
-
 	}
 
 	return optimizations, nil
-
 }
 
 // Additional utility functions.
 
 func generateCostReportID() string {
-
 	return fmt.Sprintf("cost-report-%d", time.Now().UnixNano())
-
 }
 
 // OptimizeCost optimizes costs for packages with constraints.
 
 func (a *dependencyAnalyzer) OptimizeCost(ctx context.Context, packages []*PackageReference, constraints *CostConstraints) (*CostOptimization, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for cost optimization")
-
 	}
 
 	a.logger.V(1).Info("Optimizing costs", "packages", len(packages), "constraints", constraints)
 
 	optimization := &CostOptimization{
-
 		Type: "cost_reduction",
 
 		Description: fmt.Sprintf("Cost optimization for %d packages", len(packages)),
@@ -2561,29 +2307,22 @@ func (a *dependencyAnalyzer) OptimizeCost(ctx context.Context, packages []*Packa
 	// Apply constraints if provided (stub implementation).
 
 	if constraints != nil {
-
 		// In a real implementation, would check constraints and adjust optimization.
 
 		_ = constraints
-
 	}
 
 	return optimization, nil
-
 }
 
 // AnalyzeComplianceRisks analyzes compliance risks for packages.
 
 func (a *dependencyAnalyzer) AnalyzeComplianceRisks(ctx context.Context, packages []*PackageReference) (*ComplianceRiskAnalysis, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for compliance risk analysis")
-
 	}
 
 	analysis := &ComplianceRiskAnalysis{
-
 		AnalysisID: fmt.Sprintf("compliance-analysis-%d", time.Now().UnixNano()),
 
 		Packages: packages,
@@ -2604,7 +2343,6 @@ func (a *dependencyAnalyzer) AnalyzeComplianceRisks(ctx context.Context, package
 	if len(packages) > 0 {
 
 		issue := &ComplianceIssue{
-
 			ID: fmt.Sprintf("comp-issue-%d", time.Now().UnixNano()),
 
 			Type: "license",
@@ -2623,23 +2361,18 @@ func (a *dependencyAnalyzer) AnalyzeComplianceRisks(ctx context.Context, package
 	}
 
 	return analysis, nil
-
 }
 
 // OptimizeDependencyTree optimizes a dependency tree using specified strategy.
 
 func (a *dependencyAnalyzer) OptimizeDependencyTree(ctx context.Context, graph *DependencyGraph, strategy OptimizationStrategy) (*OptimizedGraph, error) {
-
 	if graph == nil {
-
 		return nil, fmt.Errorf("dependency graph cannot be nil")
-
 	}
 
 	a.logger.V(1).Info("Optimizing dependency tree", "strategy", strategy, "nodes", len(graph.Nodes))
 
 	optimized := &OptimizedGraph{
-
 		OriginalGraph: graph,
 
 		OptimizedGraph: graph, // Stub: in reality would create optimized version
@@ -2656,7 +2389,6 @@ func (a *dependencyAnalyzer) OptimizeDependencyTree(ctx context.Context, graph *
 	// Add sample optimization.
 
 	optimization := &GraphOptimization{
-
 		Type: "node_reduction",
 
 		Description: "Reduced duplicate dependencies",
@@ -2667,17 +2399,13 @@ func (a *dependencyAnalyzer) OptimizeDependencyTree(ctx context.Context, graph *
 	optimized.Optimizations = append(optimized.Optimizations, optimization)
 
 	return optimized, nil
-
 }
 
 // SuggestReplacements suggests alternative packages based on criteria.
 
 func (a *dependencyAnalyzer) SuggestReplacements(ctx context.Context, pkg *PackageReference, criteria *ReplacementCriteria) ([]*ReplacementSuggestion, error) {
-
 	if pkg == nil {
-
 		return nil, fmt.Errorf("package reference cannot be nil")
-
 	}
 
 	suggestions := make([]*ReplacementSuggestion, 0)
@@ -2685,7 +2413,6 @@ func (a *dependencyAnalyzer) SuggestReplacements(ctx context.Context, pkg *Packa
 	// Create a sample replacement suggestion.
 
 	suggestion := &ReplacementSuggestion{
-
 		OriginalPackage: pkg.Name,
 
 		SuggestedPackage: pkg.Name + "-alternative",
@@ -2700,17 +2427,13 @@ func (a *dependencyAnalyzer) SuggestReplacements(ctx context.Context, pkg *Packa
 	suggestions = append(suggestions, suggestion)
 
 	return suggestions, nil
-
 }
 
 // GenerateAnalysisReport generates a report in the specified format.
 
 func (a *dependencyAnalyzer) GenerateAnalysisReport(ctx context.Context, analysis *AnalysisResult, format ReportFormat) ([]byte, error) {
-
 	if analysis == nil {
-
 		return nil, fmt.Errorf("analysis result cannot be nil")
-
 	}
 
 	switch format {
@@ -2742,17 +2465,13 @@ func (a *dependencyAnalyzer) GenerateAnalysisReport(ctx context.Context, analysi
 		return nil, fmt.Errorf("unsupported report format: %s", format)
 
 	}
-
 }
 
 // ExportAnalysisData exports analysis data in the specified format.
 
 func (a *dependencyAnalyzer) ExportAnalysisData(ctx context.Context, analysis *AnalysisResult, format DataFormat) ([]byte, error) {
-
 	if analysis == nil {
-
 		return nil, fmt.Errorf("analysis result cannot be nil")
-
 	}
 
 	switch format {
@@ -2782,15 +2501,12 @@ func (a *dependencyAnalyzer) ExportAnalysisData(ctx context.Context, analysis *A
 		return nil, fmt.Errorf("unsupported data format: %s", format)
 
 	}
-
 }
 
 // GetAnalyzerHealth returns the current health status of the analyzer.
 
 func (a *dependencyAnalyzer) GetAnalyzerHealth(ctx context.Context) (*AnalyzerHealth, error) {
-
 	health := &AnalyzerHealth{
-
 		Status: "healthy",
 
 		Uptime: time.Since(time.Now().Add(-time.Hour)), // Dummy uptime calculation
@@ -2809,37 +2525,29 @@ func (a *dependencyAnalyzer) GetAnalyzerHealth(ctx context.Context) (*AnalyzerHe
 	a.mu.RLock()
 
 	if a.closed {
-
 		health.Status = "stopped"
-
 	}
 
 	a.mu.RUnlock()
 
 	return health, nil
-
 }
 
 // GetAnalyzerMetrics returns current analyzer metrics.
 
 func (a *dependencyAnalyzer) GetAnalyzerMetrics(ctx context.Context) (*AnalyzerMetrics, error) {
-
 	a.mu.RLock()
 
 	defer a.mu.RUnlock()
 
 	return a.metrics, nil
-
 }
 
 // UpdateAnalysisModels updates the ML models used by the analyzer.
 
 func (a *dependencyAnalyzer) UpdateAnalysisModels(ctx context.Context, models *AnalysisModels) error {
-
 	if models == nil {
-
 		return fmt.Errorf("analysis models cannot be nil")
-
 	}
 
 	a.logger.Info("Updating analysis models", "version", models.Version)
@@ -2847,25 +2555,20 @@ func (a *dependencyAnalyzer) UpdateAnalysisModels(ctx context.Context, models *A
 	// Update prediction model if provided.
 
 	if models.PredictionModel != nil && a.predictionModel != nil {
-
 		// In a real implementation, this would update the ML model.
 
 		a.logger.V(1).Info("Updated prediction model")
-
 	}
 
 	// Update recommendation model if provided.
 
 	if models.RecommendationModel != nil && a.recommendationModel != nil {
-
 		// In a real implementation, this would update the ML model.
 
 		a.logger.V(1).Info("Updated recommendation model")
-
 	}
 
 	return nil
-
 }
 
 // Helper functions for optimization recommendations.
@@ -2873,13 +2576,11 @@ func (a *dependencyAnalyzer) UpdateAnalysisModels(ctx context.Context, models *A
 // generatePerformanceOptimizations generates performance optimization recommendations.
 
 func (a *dependencyAnalyzer) generatePerformanceOptimizations(ctx context.Context, packages []*PackageReference) ([]*PerformanceOptimization, error) {
-
 	optimizations := make([]*PerformanceOptimization, 0)
 
 	for _, pkg := range packages {
 
 		optimization := &PerformanceOptimization{
-
 			Type: "performance_improvement",
 
 			Description: fmt.Sprintf("Optimize %s for better performance", pkg.Name),
@@ -2894,19 +2595,16 @@ func (a *dependencyAnalyzer) generatePerformanceOptimizations(ctx context.Contex
 	}
 
 	return optimizations, nil
-
 }
 
 // generateSecurityOptimizations generates security optimization recommendations.
 
 func (a *dependencyAnalyzer) generateSecurityOptimizations(ctx context.Context, packages []*PackageReference) ([]*SecurityOptimization, error) {
-
 	optimizations := make([]*SecurityOptimization, 0)
 
 	for _, pkg := range packages {
 
 		optimization := &SecurityOptimization{
-
 			Type: "security_enhancement",
 
 			Description: fmt.Sprintf("Update %s to address security vulnerabilities", pkg.Name),
@@ -2925,21 +2623,17 @@ func (a *dependencyAnalyzer) generateSecurityOptimizations(ctx context.Context, 
 	}
 
 	return optimizations, nil
-
 }
 
 // generateVersionOptimizations generates version optimization recommendations.
 
 func (a *dependencyAnalyzer) generateVersionOptimizations(ctx context.Context, packages []*PackageReference) ([]*VersionOptimization, error) {
-
 	optimizations := make([]*VersionOptimization, 0)
 
 	for _, pkg := range packages {
-
 		if pkg.Version != "latest" {
 
 			optimization := &VersionOptimization{
-
 				PackageName: pkg.Name,
 
 				CurrentVersion: pkg.Version,
@@ -2956,23 +2650,19 @@ func (a *dependencyAnalyzer) generateVersionOptimizations(ctx context.Context, p
 			optimizations = append(optimizations, optimization)
 
 		}
-
 	}
 
 	return optimizations, nil
-
 }
 
 // generateDependencyOptimizations generates dependency structure optimizations.
 
 func (a *dependencyAnalyzer) generateDependencyOptimizations(ctx context.Context, packages []*PackageReference) ([]*DependencyOptimization, error) {
-
 	optimizations := make([]*DependencyOptimization, 0)
 
 	// Sample dependency optimization.
 
 	optimization := &DependencyOptimization{
-
 		Type: "dependency_reduction",
 
 		Description: "Remove unused transitive dependencies",
@@ -2985,27 +2675,22 @@ func (a *dependencyAnalyzer) generateDependencyOptimizations(ctx context.Context
 	}
 
 	for _, pkg := range packages {
-
 		optimization.AffectedPackages = append(optimization.AffectedPackages, pkg.Name)
-
 	}
 
 	optimizations = append(optimizations, optimization)
 
 	return optimizations, nil
-
 }
 
 // generateMLRecommendations generates ML-based recommendations.
 
 func (a *dependencyAnalyzer) generateMLRecommendations(ctx context.Context, packages []*PackageReference, objectives *OptimizationObjectives) ([]*MLRecommendation, error) {
-
 	recommendations := make([]*MLRecommendation, 0)
 
 	// Sample ML recommendation.
 
 	recommendation := &MLRecommendation{
-
 		Type: "ml_optimization",
 
 		Description: "ML-based package optimization recommendation",
@@ -3020,41 +2705,32 @@ func (a *dependencyAnalyzer) generateMLRecommendations(ctx context.Context, pack
 	recommendations = append(recommendations, recommendation)
 
 	return recommendations, nil
-
 }
 
 // calculateMLConfidence calculates confidence score for ML recommendations.
 
 func (a *dependencyAnalyzer) calculateMLConfidence(recommendations []*MLRecommendation) float64 {
-
 	if len(recommendations) == 0 {
-
 		return 0.0
-
 	}
 
 	var totalConfidence float64
 
 	for _, rec := range recommendations {
-
 		totalConfidence += rec.Confidence
-
 	}
 
 	return totalConfidence / float64(len(recommendations))
-
 }
 
 // prioritizeRecommendations prioritizes optimization recommendations.
 
 func (a *dependencyAnalyzer) prioritizeRecommendations(recommendations *OptimizationRecommendations) {
-
 	// High priority: security optimizations and cost optimizations with high savings.
 
 	for _, secOpt := range recommendations.SecurityOptimizations {
 
 		action := &OptimizationAction{
-
 			ID: fmt.Sprintf("security-%d", time.Now().UnixNano()),
 
 			Type: "security",
@@ -3077,7 +2753,6 @@ func (a *dependencyAnalyzer) prioritizeRecommendations(recommendations *Optimiza
 	for _, perfOpt := range recommendations.PerformanceOptimizations {
 
 		action := &OptimizationAction{
-
 			ID: fmt.Sprintf("performance-%d", time.Now().UnixNano()),
 
 			Type: "performance",
@@ -3100,7 +2775,6 @@ func (a *dependencyAnalyzer) prioritizeRecommendations(recommendations *Optimiza
 	for _, verOpt := range recommendations.VersionOptimizations {
 
 		action := &OptimizationAction{
-
 			ID: fmt.Sprintf("version-%d", time.Now().UnixNano()),
 
 			Type: "version",
@@ -3117,15 +2791,12 @@ func (a *dependencyAnalyzer) prioritizeRecommendations(recommendations *Optimiza
 		recommendations.LowPriorityActions = append(recommendations.LowPriorityActions, action)
 
 	}
-
 }
 
 // estimateOptimizationBenefits estimates the benefits of optimization recommendations.
 
 func (a *dependencyAnalyzer) estimateOptimizationBenefits(recommendations *OptimizationRecommendations) *OptimizationBenefits {
-
 	benefits := &OptimizationBenefits{
-
 		CostSavings: &Cost{Amount: 0.0, Currency: a.config.Currency},
 
 		PerformanceGains: 10.0, // 10% improvement
@@ -3140,23 +2811,19 @@ func (a *dependencyAnalyzer) estimateOptimizationBenefits(recommendations *Optim
 	var totalSavings float64
 
 	for _, costOpt := range recommendations.CostOptimizations {
-
 		// Use PotentialSaving field instead of EstimatedSavings.
 
 		totalSavings += costOpt.PotentialSaving
-
 	}
 
 	benefits.CostSavings.Amount = totalSavings
 
 	return benefits
-
 }
 
 // estimateImplementationEffort estimates the effort required for implementation.
 
 func (a *dependencyAnalyzer) estimateImplementationEffort(recommendations *OptimizationRecommendations) ImplementationEffort {
-
 	// Count actions by effort level.
 
 	lowEffortCount := len(recommendations.LowPriorityActions)
@@ -3168,59 +2835,40 @@ func (a *dependencyAnalyzer) estimateImplementationEffort(recommendations *Optim
 	// Determine overall effort based on action counts.
 
 	if highEffortCount > 3 {
-
 		return ImplementationEffortExtreme
-
 	} else if mediumEffortCount > 5 {
-
 		return ImplementationEffortHigh
-
 	} else if lowEffortCount > 10 {
-
 		return ImplementationEffortMedium
-
 	} else {
-
 		return ImplementationEffortLow
-
 	}
-
 }
 
 // calculateQualityScore calculates overall quality score from analysis result.
 
 func (a *dependencyAnalyzer) calculateQualityScore(result *AnalysisResult) float64 {
-
 	scores := make([]float64, 0)
 
 	if result.HealthAnalysis != nil && result.HealthAnalysis.QualityHealth != nil {
-
 		scores = append(scores, result.HealthAnalysis.QualityHealth.Score)
-
 	}
 
 	if result.UsageAnalysis != nil {
-
 		scores = append(scores, result.UsageAnalysis.EfficiencyScore)
-
 	}
 
 	if len(scores) == 0 {
-
 		return 0.7 // Default quality score
-
 	}
 
 	var sum float64
 
 	for _, score := range scores {
-
 		sum += score
-
 	}
 
 	return sum / float64(len(scores))
-
 }
 
 // Additional lifecycle process methods.
@@ -3228,7 +2876,6 @@ func (a *dependencyAnalyzer) calculateQualityScore(result *AnalysisResult) float
 // usageDataCollectionProcess runs usage data collection in background.
 
 func (a *dependencyAnalyzer) usageDataCollectionProcess() {
-
 	defer a.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Minute) // Collect data every 5 minutes
@@ -3236,7 +2883,6 @@ func (a *dependencyAnalyzer) usageDataCollectionProcess() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-a.ctx.Done():
@@ -3250,15 +2896,12 @@ func (a *dependencyAnalyzer) usageDataCollectionProcess() {
 			a.logger.V(2).Info("Collecting usage data")
 
 		}
-
 	}
-
 }
 
 // metricsCollectionProcess runs metrics collection in background.
 
 func (a *dependencyAnalyzer) metricsCollectionProcess() {
-
 	defer a.wg.Done()
 
 	ticker := time.NewTicker(1 * time.Minute) // Collect metrics every minute
@@ -3266,7 +2909,6 @@ func (a *dependencyAnalyzer) metricsCollectionProcess() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-a.ctx.Done():
@@ -3282,19 +2924,15 @@ func (a *dependencyAnalyzer) metricsCollectionProcess() {
 			// a.metrics.Uptime.Add(1) // This would be the proper way.
 
 		}
-
 	}
-
 }
 
 // eventProcessingLoop runs event processing in background.
 
 func (a *dependencyAnalyzer) eventProcessingLoop() {
-
 	defer a.wg.Done()
 
 	for {
-
 		select {
 
 		case <-a.ctx.Done():
@@ -3308,15 +2946,12 @@ func (a *dependencyAnalyzer) eventProcessingLoop() {
 			time.Sleep(100 * time.Millisecond)
 
 		}
-
 	}
-
 }
 
 // mlModelUpdateProcess runs ML model updates in background.
 
 func (a *dependencyAnalyzer) mlModelUpdateProcess() {
-
 	defer a.wg.Done()
 
 	ticker := time.NewTicker(24 * time.Hour) // Update models daily
@@ -3324,7 +2959,6 @@ func (a *dependencyAnalyzer) mlModelUpdateProcess() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-a.ctx.Done():
@@ -3338,45 +2972,33 @@ func (a *dependencyAnalyzer) mlModelUpdateProcess() {
 			a.logger.V(1).Info("Updating ML models")
 
 		}
-
 	}
-
 }
 
 // generateAnalysisCacheKey generates cache key for analysis.
 
 func (a *dependencyAnalyzer) generateAnalysisCacheKey(spec *AnalysisSpec) string {
-
 	h := sha256.New()
 
 	for _, pkg := range spec.Packages {
-
 		h.Write([]byte(pkg.Name + pkg.Version))
-
 	}
 
 	for _, analysisType := range spec.AnalysisTypes {
-
 		h.Write([]byte(string(analysisType)))
-
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil))[:32] // Use first 32 chars of hash
-
 }
 
 // performMLAnalysis performs machine learning analysis.
 
 func (a *dependencyAnalyzer) performMLAnalysis(ctx context.Context, analysisCtx *AnalysisContext) error {
-
 	// Predict dependency issues.
 
 	prediction, err := a.PredictDependencyIssues(ctx, analysisCtx.Spec.Packages)
-
 	if err != nil {
-
 		return fmt.Errorf("issue prediction failed: %w", err)
-
 	}
 
 	analysisCtx.Result.IssuePredictions = prediction
@@ -3384,23 +3006,18 @@ func (a *dependencyAnalyzer) performMLAnalysis(ctx context.Context, analysisCtx 
 	// Generate upgrade recommendations.
 
 	upgrades, err := a.RecommendVersionUpgrades(ctx, analysisCtx.Spec.Packages)
-
 	if err != nil {
-
 		return fmt.Errorf("upgrade recommendations failed: %w", err)
-
 	}
 
 	analysisCtx.Result.UpgradeRecommendations = upgrades
 
 	return nil
-
 }
 
 // updateAnalysisMetrics updates analyzer metrics after analysis.
 
 func (a *dependencyAnalyzer) updateAnalysisMetrics(result *AnalysisResult) {
-
 	// Metrics would be updated here using prometheus counters.
 
 	// a.metrics.TotalAnalyses.Inc().
@@ -3408,19 +3025,14 @@ func (a *dependencyAnalyzer) updateAnalysisMetrics(result *AnalysisResult) {
 	// a.metrics.TotalPackagesAnalyzed.Add(float64(len(result.Packages))).
 
 	if len(result.Errors) > 0 {
-
 		// a.metrics.AnalysisErrors.Inc().
-
 	}
 
 	if result.AnalysisTime > 0 {
-
 		// Update average analysis time (would use prometheus histogram).
 
 		// a.metrics.AnalysisTime.Observe(result.AnalysisTime.Seconds()).
-
 	}
-
 }
 
 // Additional helper methods would be implemented here...

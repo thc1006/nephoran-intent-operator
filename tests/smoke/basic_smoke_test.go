@@ -66,7 +66,7 @@ func (suite *SmokeTestSuite) TestSmoke_NetworkIntentCRUD() {
 	// Test Create
 	intent := fixtures.SimpleNetworkIntent()
 	intent.Namespace = suite.namespace
-	
+
 	err := suite.client.Create(suite.ctx, intent)
 	suite.Require().NoError(err, "Should create NetworkIntent successfully")
 
@@ -171,7 +171,7 @@ func (suite *SmokeTestSuite) TestSmoke_SchemeRegistration() {
 	// Test type creation
 	obj, err := suite.scheme.New(gvk)
 	suite.NoError(err, "Should be able to create new NetworkIntent from scheme")
-	
+
 	intent, ok := obj.(*nephoranv1.NetworkIntent)
 	suite.True(ok, "Created object should be a NetworkIntent")
 	suite.NotNil(intent, "Created NetworkIntent should not be nil")
@@ -190,7 +190,7 @@ func (suite *SmokeTestSuite) TestSmoke_ClientOperations() {
 		intent := fixtures.SimpleNetworkIntent()
 		intent.Namespace = suite.namespace
 		intent.Name = fmt.Sprintf("smoke-client-%d", i)
-		
+
 		err := suite.client.Create(suite.ctx, intent)
 		suite.NoError(err, "Should create NetworkIntent %d", i)
 	}
@@ -211,19 +211,19 @@ func (suite *SmokeTestSuite) TestSmoke_Performance() {
 		intent := fixtures.SimpleNetworkIntent()
 		intent.Namespace = suite.namespace
 		intent.Name = fmt.Sprintf("perf-test-%d", i)
-		
+
 		err := suite.client.Create(suite.ctx, intent)
 		suite.NoError(err, "Should create NetworkIntent %d quickly", i)
 	}
 
 	duration := time.Since(start)
 	avgDuration := duration / numOperations
-	
-	suite.T().Logf("Created %d NetworkIntents in %v (avg: %v per operation)", 
+
+	suite.T().Logf("Created %d NetworkIntents in %v (avg: %v per operation)",
 		numOperations, duration, avgDuration)
-	
+
 	// Smoke test should complete quickly (less than 10ms per operation on average)
-	suite.Less(avgDuration, 10*time.Millisecond, 
+	suite.Less(avgDuration, 10*time.Millisecond,
 		"Average operation time should be less than 10ms for smoke test")
 }
 
@@ -264,16 +264,16 @@ func TestSmoke_BasicNetworkIntentCreation(t *testing.T) {
 func TestSmoke_QuickValidation(t *testing.T) {
 	// Test that can be run in seconds
 	start := time.Now()
-	
+
 	// Basic type validation
 	intent := fixtures.SimpleNetworkIntent()
 	assert.NotNil(t, intent, "Fixture should not be nil")
 	assert.NotEmpty(t, intent.Spec.Intent, "Intent should not be empty")
 	assert.Equal(t, "NetworkIntent", intent.Kind, "Kind should be correct")
-	
+
 	duration := time.Since(start)
 	t.Logf("Quick validation completed in %v", duration)
-	
+
 	// Should complete in milliseconds
 	assert.Less(t, duration, 100*time.Millisecond, "Quick validation should complete very fast")
 }
@@ -295,7 +295,7 @@ func TestSmoke_ErrorHandling(t *testing.T) {
 	// Test duplicate creation (this might not error with fake client)
 	originalIntent := fixtures.SimpleNetworkIntent()
 	originalIntent.Namespace = "default"
-	
+
 	err = client.Create(ctx, originalIntent)
 	assert.NoError(t, err, "Should create first intent")
 
@@ -317,16 +317,15 @@ func BenchmarkSmoke_NetworkIntentCreation(b *testing.B) {
 	ctx := context.Background()
 
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		intent := fixtures.SimpleNetworkIntent()
 		intent.Namespace = "default"
 		intent.Name = fmt.Sprintf("benchmark-%d", i)
-		
+
 		err := client.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create intent %d: %v", i, err)
 		}
 	}
 }
-

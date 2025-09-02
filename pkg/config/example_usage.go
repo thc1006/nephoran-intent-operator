@@ -11,7 +11,6 @@ import (
 // This file provides real-world examples that can be used as reference for other parts of the codebase.
 
 func ExampleUsage() {
-
 	// Basic string configuration with fallback.
 
 	port := GetEnvOrDefault("PORT", "8080")
@@ -55,13 +54,9 @@ func ExampleUsage() {
 	validatedPort, err := GetEnvWithValidation("API_PORT", "8080", ValidatePort)
 
 	if err != nil {
-
 		log.Printf("Port validation error: %v", err)
-
 	} else {
-
 		fmt.Printf("Validated API port: %s\n", validatedPort)
-
 	}
 
 	// Environment-specific configuration.
@@ -71,13 +66,9 @@ func ExampleUsage() {
 		ValidateOneOfIgnoreCase([]string{"development", "staging", "production"}))
 
 	if err != nil {
-
 		log.Printf("Environment validation error: %v", err)
-
 	} else {
-
 		fmt.Printf("Environment: %s\n", environment)
-
 	}
 
 	// Critical configuration that must be present.
@@ -86,7 +77,6 @@ func ExampleUsage() {
 	// apiKey := MustGetEnv("API_KEY").
 
 	// fmt.Printf("API Key loaded: %s\n", apiKey[:8]+"...") // Only show first 8 chars.
-
 }
 
 // ExampleLLMProcessorConfig demonstrates how to refactor existing configuration loading.
@@ -94,7 +84,6 @@ func ExampleUsage() {
 // to use the new environment helpers, replacing the duplicate getEnvOrDefault functions.
 
 func ExampleLLMProcessorConfig() {
-
 	// Replace existing patterns like:.
 
 	// cfg.Port = getEnvOrDefault("PORT", cfg.Port).
@@ -174,13 +163,11 @@ func ExampleLLMProcessorConfig() {
 	fmt.Printf("LLM Config - Port: %s, Streaming: %v, Timeout: %v, MaxTokens: %d, Origins: %v\n",
 
 		port, streamingEnabled, timeout, maxTokens, allowedOrigins)
-
 }
 
 // ExampleAuthConfig demonstrates replacing auth configuration patterns.
 
 func ExampleAuthConfig() {
-
 	// Replace patterns like:.
 
 	// func getBoolEnv(key string, defaultValue bool) bool {.
@@ -266,51 +253,37 @@ func ExampleAuthConfig() {
 		authEnabled, rbacEnabled, tokenTTL, refreshTTL)
 
 	fmt.Printf("Admin users: %v, Operator users: %v\n", adminUsers, operatorUsers)
-
 }
 
 // ExampleValidationUsage demonstrates advanced validation patterns.
 
 func ExampleValidationUsage() {
-
 	// URL validation.
 
 	ragURL, err := GetEnvWithValidation("RAG_API_URL", "http://localhost:5001", ValidateURL)
-
 	if err != nil {
-
 		log.Printf("RAG URL validation error: %v", err)
-
 	}
 
 	// Port validation.
 
 	metricsPort, err := GetEnvWithValidation("METRICS_PORT", "9090", ValidatePort)
-
 	if err != nil {
-
 		log.Printf("Metrics port validation error: %v", err)
-
 	}
 
 	// Log level validation.
 
 	logLevel, err := GetEnvWithValidation("LOG_LEVEL", "info", ValidateLogLevel)
-
 	if err != nil {
-
 		log.Printf("Log level validation error: %v", err)
-
 	}
 
 	// Custom validation with ranges.
 
 	maxRetries, err := GetIntEnvWithValidation("MAX_RETRIES", 3, ValidateIntRange(0, 10))
-
 	if err != nil {
-
 		log.Printf("Max retries validation error: %v", err)
-
 	}
 
 	// Duration validation with ranges.
@@ -318,11 +291,8 @@ func ExampleValidationUsage() {
 	circuitBreakerTimeout, err := GetDurationEnvWithValidation("CIRCUIT_BREAKER_TIMEOUT",
 
 		30*time.Second, ValidateDurationRange(1*time.Second, 5*time.Minute))
-
 	if err != nil {
-
 		log.Printf("Circuit breaker timeout validation error: %v", err)
-
 	}
 
 	// Custom validation for specific values.
@@ -330,11 +300,8 @@ func ExampleValidationUsage() {
 	backendType, err := GetEnvWithValidation("LLM_BACKEND_TYPE", "rag",
 
 		ValidateOneOf([]string{"openai", "mistral", "rag", "mock"}))
-
 	if err != nil {
-
 		log.Printf("Backend type validation error: %v", err)
-
 	}
 
 	fmt.Printf("Validated config - RAG URL: %s, Metrics port: %s, Log level: %s\n",
@@ -344,13 +311,11 @@ func ExampleValidationUsage() {
 	fmt.Printf("Max retries: %d, CB timeout: %v, Backend: %s\n",
 
 		maxRetries, circuitBreakerTimeout, backendType)
-
 }
 
 // ExampleMigrationPattern shows how to migrate existing code.
 
 func ExampleMigrationPattern() {
-
 	fmt.Println("=== Migration Examples ===")
 
 	// BEFORE: Duplicate helper functions in each file.
@@ -406,13 +371,11 @@ func ExampleMigrationPattern() {
 	fmt.Printf("Migrated config - URL: %s, Enabled: %v, Timeout: %v\n",
 
 		llmProcessorURL, featureEnabled, timeout)
-
 }
 
 // ExampleErrorHandling demonstrates proper error handling patterns.
 
 func ExampleErrorHandling() {
-
 	fmt.Println("=== Error Handling Examples ===")
 
 	// Validation with error handling.
@@ -430,17 +393,12 @@ func ExampleErrorHandling() {
 	// Required configuration with panic recovery.
 
 	func() {
-
 		defer func() {
-
 			if r := recover(); r != nil {
-
 				log.Printf("Missing required configuration: %v", r)
 
 				// Handle gracefully or exit.
-
 			}
-
 		}()
 
 		// This will panic if not set.
@@ -448,7 +406,6 @@ func ExampleErrorHandling() {
 		// secretKey := MustGetEnv("SECRET_KEY").
 
 		// Use secretKey...
-
 	}()
 
 	// Conditional validation.
@@ -458,23 +415,17 @@ func ExampleErrorHandling() {
 		featureConfig, err := GetEnvWithValidation("OPTIONAL_FEATURE", "", ValidateNonEmpty)
 
 		if err != nil {
-
 			log.Printf("Optional feature misconfigured: %v", err)
-
 		} else {
-
 			fmt.Printf("Optional feature configured: %s\n", featureConfig)
-
 		}
 
 	}
-
 }
 
 // ExamplePerformancePatterns demonstrates efficient usage patterns.
 
 func ExamplePerformancePatterns() {
-
 	fmt.Println("=== Performance Examples ===")
 
 	// Load configuration once at startup.
@@ -492,7 +443,6 @@ func ExamplePerformancePatterns() {
 	}
 
 	config := Config{
-
 		Port: GetEnvOrDefault("PORT", "8080"),
 
 		DebugEnabled: GetBoolEnv("DEBUG", false),
@@ -513,19 +463,12 @@ func ExamplePerformancePatterns() {
 	fmt.Println("App-specific environment variables:")
 
 	for _, key := range GetEnvKeys() {
-
 		if len(key) >= 4 && key[:4] == "APP_" {
-
 			// Only show non-sensitive variables.
 
 			if key != "APP_SECRET_KEY" && key != "APP_PASSWORD" {
-
 				fmt.Printf("  %s=%s\n", key, GetEnvOrDefault(key, ""))
-
 			}
-
 		}
-
 	}
-
 }

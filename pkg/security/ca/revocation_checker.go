@@ -239,59 +239,42 @@ type MethodFailure struct {
 // NewRevocationChecker creates a new revocation checker.
 
 func NewRevocationChecker(config *RevocationConfig, logger *logging.StructuredLogger) (*RevocationChecker, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("revocation config is required")
-
 	}
 
 	// Set defaults.
 
 	if config.Timeout == 0 {
-
 		config.Timeout = 30 * time.Second
-
 	}
 
 	if config.CacheTTL == 0 {
-
 		config.CacheTTL = 1 * time.Hour
-
 	}
 
 	if config.CacheSize == 0 {
-
 		config.CacheSize = 1000
-
 	}
 
 	if config.MaxCRLSize == 0 {
-
 		config.MaxCRLSize = 50 * 1024 * 1024 // 50MB
-
 	}
 
 	if config.RetryAttempts == 0 {
-
 		config.RetryAttempts = 3
-
 	}
 
 	if config.RetryDelay == 0 {
-
 		config.RetryDelay = 1 * time.Second
-
 	}
 
 	checker := &RevocationChecker{
-
 		config: config,
 
 		logger: logger,
 
 		httpClient: &http.Client{
-
 			Timeout: config.Timeout,
 		},
 	}
@@ -299,63 +282,49 @@ func NewRevocationChecker(config *RevocationConfig, logger *logging.StructuredLo
 	// Initialize CRL cache.
 
 	if config.CRLCheckEnabled {
-
 		checker.crlCache = &CRLCache{
-
 			cache: make(map[string]*CRLEntry),
 
 			ttl: config.CacheTTL,
 
 			maxSize: config.CacheSize,
 		}
-
 	}
 
 	// Initialize OCSP cache.
 
 	if config.OCSPCheckEnabled {
-
 		checker.ocspCache = &OCSPCache{
-
 			cache: make(map[string]*OCSPEntry),
 
 			ttl: config.CacheTTL,
 
 			maxSize: config.CacheSize,
 		}
-
 	}
 
 	return checker, nil
-
 }
 
 // CheckRevocation performs comprehensive revocation checking.
 
 func (rc *RevocationChecker) CheckRevocation(ctx context.Context, cert *x509.Certificate) (RevocationStatus, error) {
-
 	result, err := rc.CheckRevocationDetailed(ctx, cert)
-
 	if err != nil {
-
 		return RevocationStatusUnknown, err
-
 	}
 
 	return result.Status, nil
-
 }
 
 // CheckRevocationDetailed performs detailed revocation checking.
 
 func (rc *RevocationChecker) CheckRevocationDetailed(ctx context.Context, cert *x509.Certificate) (*RevocationCheckResult, error) {
-
 	start := time.Now()
 
 	serialNumber := cert.SerialNumber.String()
 
 	result := &RevocationCheckResult{
-
 		SerialNumber: serialNumber,
 
 		Status: RevocationStatusUnknown,
@@ -365,7 +334,6 @@ func (rc *RevocationChecker) CheckRevocationDetailed(ctx context.Context, cert *
 		CacheHit: false,
 
 		Details: &RevocationCheckDetails{
-
 			MethodsFailed: []MethodFailure{},
 		},
 	}
@@ -383,21 +351,15 @@ func (rc *RevocationChecker) CheckRevocationDetailed(ctx context.Context, cert *
 	// Determine check strategy.
 
 	if rc.config.ParallelCheck && rc.config.CRLCheckEnabled && rc.config.OCSPCheckEnabled {
-
 		return rc.performParallelCheck(ctx, cert, result)
-
 	} else {
-
 		return rc.performSequentialCheck(ctx, cert, result)
-
 	}
-
 }
 
 // Extract revocation endpoints from certificate.
 
 func (rc *RevocationChecker) extractRevocationEndpoints(cert *x509.Certificate, details *RevocationCheckDetails) {
-
 	// Extract CRL Distribution Points.
 
 	details.CRLDistributionPoints = cert.CRLDistributionPoints
@@ -409,18 +371,15 @@ func (rc *RevocationChecker) extractRevocationEndpoints(cert *x509.Certificate, 
 	// Extract issuer information.
 
 	details.IssuerInfo = &IssuerInfo{
-
 		Subject: cert.Issuer.String(),
 
 		Hash: fmt.Sprintf("%x", cert.AuthorityKeyId),
 	}
-
 }
 
 // Perform parallel revocation checking.
 
 func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x509.Certificate, result *RevocationCheckResult) (*RevocationCheckResult, error) {
-
 	var wg sync.WaitGroup
 
 	resultsChan := make(chan *RevocationCheckResult, 2)
@@ -432,7 +391,6 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			crlResult := rc.checkCRL(ctx, cert)
@@ -440,7 +398,6 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 			crlResult.Method = RevocationMethodCRL
 
 			resultsChan <- crlResult
-
 		}()
 
 	}
@@ -452,7 +409,6 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			ocspResult := rc.checkOCSP(ctx, cert)
@@ -460,7 +416,6 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 			ocspResult.Method = RevocationMethodOCSP
 
 			resultsChan <- ocspResult
-
 		}()
 
 	}
@@ -468,11 +423,9 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 	// Wait for results.
 
 	go func() {
-
 		wg.Wait()
 
 		close(resultsChan)
-
 	}()
 
 	// Process results.
@@ -500,11 +453,9 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 			break
 
 		} else if checkResult.Status == RevocationStatusGood {
-
 			// Keep the good result.
 
 			bestResult = checkResult
-
 		}
 
 		// Merge errors and warnings.
@@ -532,13 +483,11 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 	result.CheckDuration = time.Since(result.CheckTime)
 
 	return result, nil
-
 }
 
 // Perform sequential revocation checking.
 
 func (rc *RevocationChecker) performSequentialCheck(ctx context.Context, cert *x509.Certificate, result *RevocationCheckResult) (*RevocationCheckResult, error) {
-
 	// Try OCSP first (faster).
 
 	if rc.config.OCSPCheckEnabled && len(result.Details.OCSPServers) > 0 {
@@ -574,14 +523,11 @@ func (rc *RevocationChecker) performSequentialCheck(ctx context.Context, cert *x
 		// Add to failed methods if CRL fallback is disabled.
 
 		if !rc.config.CRLFallback {
-
 			result.Details.MethodsFailed = append(result.Details.MethodsFailed, MethodFailure{
-
 				Method: RevocationMethodOCSP,
 
 				Error: "OCSP check failed",
 			})
-
 		}
 
 	}
@@ -619,7 +565,6 @@ func (rc *RevocationChecker) performSequentialCheck(ctx context.Context, cert *x
 		result.Warnings = append(result.Warnings, crlResult.Warnings...)
 
 		result.Details.MethodsFailed = append(result.Details.MethodsFailed, MethodFailure{
-
 			Method: RevocationMethodCRL,
 
 			Error: "CRL check failed",
@@ -630,15 +575,12 @@ func (rc *RevocationChecker) performSequentialCheck(ctx context.Context, cert *x
 	result.CheckDuration = time.Since(result.CheckTime)
 
 	return result, nil
-
 }
 
 // Check certificate revocation via CRL.
 
 func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificate) *RevocationCheckResult {
-
 	result := &RevocationCheckResult{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Status: RevocationStatusUnknown,
@@ -655,7 +597,6 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 	for _, crlURL := range cert.CRLDistributionPoints {
 
 		crlEntry, err := rc.getCRL(ctx, crlURL)
-
 		if err != nil {
 
 			result.Errors = append(result.Errors, fmt.Sprintf("CRL fetch failed for %s: %v", crlURL, err))
@@ -667,7 +608,6 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 		// Check if certificate is revoked.
 
 		for _, revokedCert := range crlEntry.CRL.TBSCertList.RevokedCertificates {
-
 			if revokedCert.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 
 				result.Status = RevocationStatusRevoked
@@ -677,7 +617,6 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 				// Extract revocation reason if present.
 
 				for _, ext := range revokedCert.Extensions {
-
 					if ext.Id.Equal([]int{2, 5, 29, 21}) { // reasonCode extension
 
 						if len(ext.Value) > 0 {
@@ -687,9 +626,7 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 							result.RevocationReason = &reason
 
 						}
-
 					}
-
 				}
 
 				result.ResponseSource = crlURL
@@ -699,13 +636,10 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 				// Add CRL info to details.
 
 				if result.Details == nil {
-
 					result.Details = &RevocationCheckDetails{}
-
 				}
 
 				result.Details.CRLInfo = &CRLInfo{
-
 					URL: crlURL,
 
 					LastModified: crlEntry.LastModified,
@@ -722,7 +656,6 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 				return result
 
 			}
-
 		}
 
 		// Certificate not found in CRL - it's good.
@@ -736,13 +669,10 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 		// Add CRL info to details.
 
 		if result.Details == nil {
-
 			result.Details = &RevocationCheckDetails{}
-
 		}
 
 		result.Details.CRLInfo = &CRLInfo{
-
 			URL: crlURL,
 
 			LastModified: crlEntry.LastModified,
@@ -761,15 +691,12 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 	}
 
 	return result
-
 }
 
 // Check certificate revocation via OCSP.
 
 func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certificate) *RevocationCheckResult {
-
 	result := &RevocationCheckResult{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Status: RevocationStatusUnknown,
@@ -844,7 +771,6 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 		// This is a placeholder - real implementation would construct and send OCSP request.
 
 		ocspResp, err := rc.performOCSPRequest(ctx, ocspURL, cert)
-
 		if err != nil {
 
 			result.Errors = append(result.Errors, fmt.Sprintf("OCSP request failed for %s: %v", ocspURL, err))
@@ -900,7 +826,6 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 		}
 
 		rc.cacheOCSPResponse(cacheKey, &OCSPEntry{
-
 			SerialNumber: cert.SerialNumber.String(),
 
 			Status: statusInt,
@@ -915,13 +840,10 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 		// Add OCSP info to details.
 
 		if result.Details == nil {
-
 			result.Details = &RevocationCheckDetails{}
-
 		}
 
 		result.Details.OCSPInfo = &OCSPInfo{
-
 			ResponderURL: ocspURL,
 
 			ProducedAt: ocspResp.ProducedAt,
@@ -938,91 +860,66 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 	}
 
 	return result
-
 }
 
 // Get CRL from cache or fetch from URL.
 
 func (rc *RevocationChecker) getCRL(ctx context.Context, crlURL string) (*CRLEntry, error) {
-
 	// Check cache first.
 
 	if cached := rc.getCRLCache(crlURL); cached != nil {
-
 		// Check if CRL is still valid.
 
 		if time.Now().Before(cached.NextUpdate) {
-
 			return cached, nil
-
 		}
-
 	}
 
 	// Fetch CRL from URL.
 
 	return rc.fetchCRL(ctx, crlURL)
-
 }
 
 // Fetch CRL from URL.
 
 func (rc *RevocationChecker) fetchCRL(ctx context.Context, crlURL string) (*CRLEntry, error) {
-
 	req, err := http.NewRequestWithContext(ctx, "GET", crlURL, http.NoBody)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create CRL request: %w", err)
-
 	}
 
 	resp, err := rc.httpClient.Do(req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("CRL request failed: %w", err)
-
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("CRL server returned status %d", resp.StatusCode)
-
 	}
 
 	// Check content length.
 
 	if resp.ContentLength > rc.config.MaxCRLSize {
-
 		return nil, fmt.Errorf("CRL size (%d bytes) exceeds maximum (%d bytes)", resp.ContentLength, rc.config.MaxCRLSize)
-
 	}
 
 	// Read CRL data.
 
 	crlData, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read CRL data: %w", err)
-
 	}
 
 	// Parse CRL.
 
 	crl, err := x509.ParseCRL(crlData)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to parse CRL: %w", err)
-
 	}
 
 	entry := &CRLEntry{
-
 		URL: crlURL,
 
 		CRL: crl,
@@ -1043,13 +940,11 @@ func (rc *RevocationChecker) fetchCRL(ctx context.Context, crlURL string) (*CRLE
 	rc.cacheCRL(crlURL, entry)
 
 	return entry, nil
-
 }
 
 // Perform OCSP request.
 
 func (rc *RevocationChecker) performOCSPRequest(ctx context.Context, ocspURL string, cert *x509.Certificate) (*ocsp.Response, error) {
-
 	// This is a placeholder - real implementation would:.
 
 	// 1. Get the issuer certificate.
@@ -1061,17 +956,13 @@ func (rc *RevocationChecker) performOCSPRequest(ctx context.Context, ocspURL str
 	// 4. Parse OCSP response.
 
 	return nil, fmt.Errorf("OCSP request not implemented")
-
 }
 
 // Cache management methods.
 
 func (rc *RevocationChecker) getCRLCache(url string) *CRLEntry {
-
 	if rc.crlCache == nil {
-
 		return nil
-
 	}
 
 	rc.crlCache.mu.RLock()
@@ -1081,21 +972,15 @@ func (rc *RevocationChecker) getCRLCache(url string) *CRLEntry {
 	entry, exists := rc.crlCache.cache[url]
 
 	if !exists || time.Since(entry.CachedAt) > rc.crlCache.ttl {
-
 		return nil
-
 	}
 
 	return entry
-
 }
 
 func (rc *RevocationChecker) cacheCRL(url string, entry *CRLEntry) {
-
 	if rc.crlCache == nil {
-
 		return
-
 	}
 
 	rc.crlCache.mu.Lock()
@@ -1105,23 +990,18 @@ func (rc *RevocationChecker) cacheCRL(url string, entry *CRLEntry) {
 	// Check cache size and evict if necessary.
 
 	if len(rc.crlCache.cache) >= rc.crlCache.maxSize {
-
 		rc.evictOldestCRL()
-
 	}
 
 	rc.crlCache.cache[url] = entry
-
 }
 
 func (rc *RevocationChecker) evictOldestCRL() {
-
 	var oldestURL string
 
 	var oldestTime time.Time
 
 	for url, entry := range rc.crlCache.cache {
-
 		if oldestURL == "" || entry.CachedAt.Before(oldestTime) {
 
 			oldestURL = url
@@ -1129,23 +1009,16 @@ func (rc *RevocationChecker) evictOldestCRL() {
 			oldestTime = entry.CachedAt
 
 		}
-
 	}
 
 	if oldestURL != "" {
-
 		delete(rc.crlCache.cache, oldestURL)
-
 	}
-
 }
 
 func (rc *RevocationChecker) getOCSPCache(key string) *OCSPEntry {
-
 	if rc.ocspCache == nil {
-
 		return nil
-
 	}
 
 	rc.ocspCache.mu.RLock()
@@ -1155,21 +1028,15 @@ func (rc *RevocationChecker) getOCSPCache(key string) *OCSPEntry {
 	entry, exists := rc.ocspCache.cache[key]
 
 	if !exists || time.Since(entry.CachedAt) > rc.ocspCache.ttl {
-
 		return nil
-
 	}
 
 	return entry
-
 }
 
 func (rc *RevocationChecker) cacheOCSPResponse(key string, entry *OCSPEntry) {
-
 	if rc.ocspCache == nil {
-
 		return
-
 	}
 
 	rc.ocspCache.mu.Lock()
@@ -1179,23 +1046,18 @@ func (rc *RevocationChecker) cacheOCSPResponse(key string, entry *OCSPEntry) {
 	// Check cache size and evict if necessary.
 
 	if len(rc.ocspCache.cache) >= rc.ocspCache.maxSize {
-
 		rc.evictOldestOCSP()
-
 	}
 
 	rc.ocspCache.cache[key] = entry
-
 }
 
 func (rc *RevocationChecker) evictOldestOCSP() {
-
 	var oldestKey string
 
 	var oldestTime time.Time
 
 	for key, entry := range rc.ocspCache.cache {
-
 		if oldestKey == "" || entry.CachedAt.Before(oldestTime) {
 
 			oldestKey = key
@@ -1203,21 +1065,16 @@ func (rc *RevocationChecker) evictOldestOCSP() {
 			oldestTime = entry.CachedAt
 
 		}
-
 	}
 
 	if oldestKey != "" {
-
 		delete(rc.ocspCache.cache, oldestKey)
-
 	}
-
 }
 
 // GetCacheStats returns cache statistics.
 
 func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
-
 	stats := make(map[string]interface{})
 
 	if rc.crlCache != nil {
@@ -1225,7 +1082,6 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 		rc.crlCache.mu.RLock()
 
 		stats["crl_cache"] = map[string]interface{}{
-
 			"entries": len(rc.crlCache.cache),
 
 			"max_size": rc.crlCache.maxSize,
@@ -1242,7 +1098,6 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 		rc.ocspCache.mu.RLock()
 
 		stats["ocsp_cache"] = map[string]interface{}{
-
 			"entries": len(rc.ocspCache.cache),
 
 			"max_size": rc.ocspCache.maxSize,
@@ -1255,13 +1110,11 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 	}
 
 	return stats
-
 }
 
 // ClearCache clears all caches.
 
 func (rc *RevocationChecker) ClearCache() {
-
 	if rc.crlCache != nil {
 
 		rc.crlCache.mu.Lock()
@@ -1283,5 +1136,4 @@ func (rc *RevocationChecker) ClearCache() {
 	}
 
 	rc.logger.Info("revocation caches cleared")
-
 }

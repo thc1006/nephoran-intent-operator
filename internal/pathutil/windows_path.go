@@ -61,25 +61,18 @@ var (
 //
 //	An error detailing the first validation issue found, or nil if the path is valid
 func ValidateWindowsPath(p string) error {
-
 	if runtime.GOOS != "windows" {
-
 		return nil // Skip Windows validation on non-Windows systems
-
 	}
 
 	if p == "" {
-
 		return fmt.Errorf("empty path")
-
 	}
 
 	// Check for drive letter only (C:, D:) - these are relative paths.
 
 	if windowsDrivePattern.MatchString(p) {
-
 		return fmt.Errorf("drive letter without path (relative to current directory on drive): %q", p)
-
 	}
 
 	// Skip character validation for device paths as they have special rules.
@@ -91,7 +84,6 @@ func ValidateWindowsPath(p string) error {
 		if len(p) > 32767 { // Max path length for device paths
 
 			return fmt.Errorf("device path too long (%d chars, max 32767): %q", len(p), p)
-
 		}
 
 		return nil
@@ -101,9 +93,7 @@ func ValidateWindowsPath(p string) error {
 	// Check for malformed UNC-like paths that start with \\ but are not valid UNC or device paths.
 
 	if strings.HasPrefix(p, "\\\\") && !windowsUNCPattern.MatchString(p) && !windowsDevicePattern.MatchString(p) {
-
 		return fmt.Errorf("malformed UNC path: %q", p)
-
 	}
 
 	// Check for invalid characters in Windows paths.
@@ -121,9 +111,7 @@ func ValidateWindowsPath(p string) error {
 			colonCount := strings.Count(p, ":")
 
 			if colonCount > 1 {
-
 				return fmt.Errorf("multiple colons not allowed in path: %q", p)
-
 			}
 
 			if colonCount == 1 {
@@ -133,9 +121,7 @@ func ValidateWindowsPath(p string) error {
 				// Colon must be at position 1 for drive letter (C:).
 
 				if colonIndex != 1 || !regexp.MustCompile(`^[A-Za-z]:`).MatchString(p[:2]) {
-
 					return fmt.Errorf("colon in invalid position: %q", p)
-
 				}
 
 			}
@@ -145,9 +131,7 @@ func ValidateWindowsPath(p string) error {
 		}
 
 		if strings.Contains(p, char) {
-
 			return fmt.Errorf("invalid character %q in path: %q", char, p)
-
 		}
 
 	}
@@ -161,19 +145,13 @@ func ValidateWindowsPath(p string) error {
 	// Remove extension for checking.
 
 	if dotIndex := strings.LastIndex(baseName, "."); dotIndex != -1 {
-
 		baseName = baseName[:dotIndex]
-
 	}
 
 	for _, reserved := range reservedNames {
-
 		if baseName == reserved {
-
 			return fmt.Errorf("reserved filename: %q", p)
-
 		}
-
 	}
 
 	// Check path length (Windows has a 260 character limit by default, we use 248 to be conservative).
@@ -183,13 +161,10 @@ func ValidateWindowsPath(p string) error {
 	maxLength := WindowsMaxPath + 10 // Allow some buffer for edge cases
 
 	if len(p) > maxLength && !strings.HasPrefix(p, `\\?\`) {
-
 		return fmt.Errorf("path too long (%d chars, max %d without \\\\?\\ prefix): %q", len(p), maxLength, p)
-
 	}
 
 	return nil
-
 }
 
 // NormalizeUserPath sanitizes and normalizes a user-provided file path.
@@ -216,11 +191,8 @@ func ValidateWindowsPath(p string) error {
 //
 //	A normalized, safe, absolute path, or an error if normalization fails
 func NormalizeUserPath(p string) (string, error) {
-
 	if p == "" {
-
 		return "", fmt.Errorf("empty path")
-
 	}
 
 	// Skip Windows validation initially - we'll validate after normalization.
@@ -252,17 +224,13 @@ func NormalizeUserPath(p string) (string, error) {
 			cwd, err := os.Getwd()
 
 			if err == nil && len(cwd) >= 2 && strings.EqualFold(cwd[:2], drive) {
-
 				// Same drive, use current directory as base.
 
 				p = filepath.Join(cwd, rest)
-
 			} else {
-
 				// Different drive, assume root of the drive.
 
 				p = drive + "\\" + rest
-
 			}
 
 		}
@@ -274,9 +242,7 @@ func NormalizeUserPath(p string) (string, error) {
 	// This is important because filepath.Clean() will resolve legitimate .. segments.
 
 	if detectPathTraversal(p) {
-
 		return "", fmt.Errorf("path traversal attempt detected: %q", p)
-
 	}
 
 	// Clean the path to remove . and .. elements.
@@ -286,11 +252,8 @@ func NormalizeUserPath(p string) (string, error) {
 	// Convert to absolute path.
 
 	abs, err := filepath.Abs(cleaned)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to get absolute path: %w", err)
-
 	}
 
 	// On Windows, handle long paths and UNC paths.
@@ -300,15 +263,11 @@ func NormalizeUserPath(p string) (string, error) {
 		// Check if the path is already a long path or UNC path.
 
 		if !windowsDevicePattern.MatchString(abs) && !windowsUNCPattern.MatchString(abs) {
-
 			// If path is too long, add the \\?\ prefix.
 
 			if len(abs) >= WindowsMaxPath {
-
 				abs = `\\?\` + abs
-
 			}
-
 		}
 
 		// Final validation of the normalized path.
@@ -316,19 +275,14 @@ func NormalizeUserPath(p string) (string, error) {
 		// For long paths with \\?\ prefix, skip some validations that don't apply.
 
 		if !windowsDevicePattern.MatchString(abs) {
-
 			if err := ValidateWindowsPath(abs); err != nil {
-
 				return "", fmt.Errorf("windows path validation failed: %w", err)
-
 			}
-
 		}
 
 	}
 
 	return abs, nil
-
 }
 
 // EnsureParentDir creates the parent directory of a given path if it doesn't exist.
@@ -352,27 +306,20 @@ func NormalizeUserPath(p string) (string, error) {
 //
 //	An error if directory creation fails, nil if parent directory exists or was created successfully
 func EnsureParentDir(path string) error {
-
 	if path == "" {
-
 		return fmt.Errorf("empty path")
-
 	}
 
 	dir := filepath.Dir(path)
 
 	if dir == "" || dir == "." || dir == "/" {
-
 		return nil // Current directory or root, assume it exists
-
 	}
 
 	// Handle Windows drive root paths.
 
 	if runtime.GOOS == "windows" && len(dir) == 3 && dir[1] == ':' && (dir[2] == '\\' || dir[2] == '/') {
-
 		return nil // Drive root like C:\ or C:/, assume it exists
-
 	}
 
 	// Check if directory already exists.
@@ -380,9 +327,7 @@ func EnsureParentDir(path string) error {
 	if info, err := os.Stat(dir); err == nil {
 
 		if !info.IsDir() {
-
 			return fmt.Errorf("parent path exists but is not a directory: %q", dir)
-
 		}
 
 		return nil // Directory already exists
@@ -398,15 +343,11 @@ func EnsureParentDir(path string) error {
 		// Handle race condition where directory was created concurrently.
 
 		if os.IsExist(err) {
-
 			// Verify it's actually a directory.
 
 			if info, statErr := os.Stat(dir); statErr == nil && info.IsDir() {
-
 				return nil // Directory exists, created concurrently
-
 			}
-
 		}
 
 		return fmt.Errorf("failed to create parent directory %q: %w", dir, err)
@@ -414,7 +355,6 @@ func EnsureParentDir(path string) error {
 	}
 
 	return nil
-
 }
 
 // IsWindowsBatchFile determines whether a file is a Windows batch script.
@@ -433,17 +373,13 @@ func EnsureParentDir(path string) error {
 //
 //	true if the file is a Windows batch script, false otherwise
 func IsWindowsBatchFile(path string) bool {
-
 	if runtime.GOOS != "windows" {
-
 		return false
-
 	}
 
 	ext := strings.ToLower(filepath.Ext(path))
 
 	return ext == ".bat" || ext == ".cmd"
-
 }
 
 // IsUNCPath determines whether a path follows the Universal Naming Convention (UNC) format.
@@ -467,9 +403,7 @@ func IsWindowsBatchFile(path string) bool {
 //
 //	true if the path is a valid UNC path, false otherwise
 func IsUNCPath(path string) bool {
-
 	return windowsUNCPattern.MatchString(path)
-
 }
 
 // IsWindowsDevicePath determines whether a path is a Windows device path.
@@ -492,9 +426,7 @@ func IsUNCPath(path string) bool {
 //
 //	true if the path is a Windows device path, false otherwise
 func IsWindowsDevicePath(path string) bool {
-
 	return windowsDevicePattern.MatchString(path)
-
 }
 
 // IsAbsoluteWindowsPath determines whether a path is absolute according to Windows path conventions.
@@ -520,35 +452,25 @@ func IsWindowsDevicePath(path string) bool {
 //
 //	true if the path is absolute on Windows, false otherwise
 func IsAbsoluteWindowsPath(path string) bool {
-
 	if runtime.GOOS != "windows" {
-
 		return filepath.IsAbs(path)
-
 	}
 
 	return windowsAbsPathPattern.MatchString(path) || IsUNCPath(path) || IsWindowsDevicePath(path)
-
 }
 
 // NormalizePathSeparators normalizes path separators for the current OS.
 func NormalizePathSeparators(path string) string {
-
 	if runtime.GOOS == "windows" {
-
 		return strings.ReplaceAll(path, "/", "\\")
-
 	}
 
 	return strings.ReplaceAll(path, "\\", "/")
-
 }
 
 // NormalizeCRLF converts Windows CRLF line endings to Unix LF.
 func NormalizeCRLF(data []byte) []byte {
-
 	return []byte(strings.ReplaceAll(string(data), "\r\n", "\n"))
-
 }
 
 // detectPathTraversal checks for path traversal patterns that should be rejected.
@@ -556,7 +478,6 @@ func NormalizeCRLF(data []byte) []byte {
 // It looks for patterns that attempt to access files outside the intended directory.
 
 func detectPathTraversal(p string) bool {
-
 	// Normalize separators for consistent checking.
 
 	normalized := strings.ReplaceAll(p, "\\", "/")
@@ -564,7 +485,6 @@ func detectPathTraversal(p string) bool {
 	// Check for common path traversal patterns.
 
 	traversalPatterns := []string{
-
 		"../", // Standard path traversal
 
 		"..\\", // Windows path traversal
@@ -594,31 +514,22 @@ func detectPathTraversal(p string) bool {
 	// Check each pattern.
 
 	for _, pattern := range traversalPatterns {
-
 		if strings.Contains(lowerPath, strings.ToLower(pattern)) {
-
 			return true
-
 		}
-
 	}
 
 	// Check if path starts with ../ or ..\\ (immediate parent directory access).
 
 	if strings.HasPrefix(normalized, "../") || strings.HasPrefix(p, "..\\") {
-
 		return true
-
 	}
 
 	// Check for excessive .. sequences (more than 2 in a row is suspicious).
 
 	if strings.Contains(normalized, "../../..") {
-
 		return true
-
 	}
 
 	return false
-
 }

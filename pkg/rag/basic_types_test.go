@@ -19,9 +19,9 @@ func TestBasicTypesCompilation(t *testing.T) {
 		t.Errorf("Expected ID to be test-id, got %s", telecomDoc.ID)
 	}
 
-	// Test WeaviateClient stub methods  
+	// Test WeaviateClient stub methods
 	config := &WeaviateConfig{
-		Host: "localhost",
+		Host:   "localhost",
 		Scheme: "http",
 	}
 	client, err := NewWeaviateClient(config)

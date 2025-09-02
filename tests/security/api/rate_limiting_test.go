@@ -754,7 +754,6 @@ func TestGracefulDegradation(t *testing.T) {
 
 			// Execute function
 			err := fn()
-
 			if err != nil {
 				cb.failures++
 				if cb.state == "half-open" {

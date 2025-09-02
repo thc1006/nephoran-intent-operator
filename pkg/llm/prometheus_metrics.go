@@ -33,7 +33,6 @@ var (
 // PrometheusMetrics holds all LLM-related Prometheus metrics.
 
 type PrometheusMetrics struct {
-
 	// Counter metrics.
 
 	RequestsTotal *prometheus.CounterVec
@@ -87,9 +86,7 @@ func NewPrometheusMetrics() *PrometheusMetrics {
 // isMetricsEnabled checks if metrics are enabled via environment variable.
 
 func isMetricsEnabled() bool {
-
 	return os.Getenv("METRICS_ENABLED") == "true"
-
 }
 
 // SetTestMode enables/disables test mode for metrics isolation.
@@ -207,111 +204,80 @@ func createMetricsWithRegistry(registry prometheus.Registerer) *PrometheusMetric
 // GetPrometheusMetrics returns the singleton instance.
 
 func GetPrometheusMetrics() *PrometheusMetrics {
-
 	if prometheusMetrics == nil {
-
 		return NewPrometheusMetrics()
-
 	}
 
 	return prometheusMetrics
-
 }
 
 // RecordRequest records an LLM request.
 
 func (pm *PrometheusMetrics) RecordRequest(model, status string, duration time.Duration) {
-
 	if !pm.isRegistered() {
-
 		return
-
 	}
 
 	pm.RequestsTotal.WithLabelValues(model, status).Inc()
 
 	pm.ProcessingDurationSeconds.WithLabelValues(model, status).Observe(duration.Seconds())
-
 }
 
 // RecordError records an LLM error.
 
 func (pm *PrometheusMetrics) RecordError(model, errorType string) {
-
 	if !pm.isRegistered() {
-
 		return
-
 	}
 
 	pm.ErrorsTotal.WithLabelValues(model, errorType).Inc()
-
 }
 
 // RecordCacheHit records a cache hit.
 
 func (pm *PrometheusMetrics) RecordCacheHit(model string) {
-
 	if !pm.isRegistered() {
-
 		return
-
 	}
 
 	pm.CacheHitsTotal.WithLabelValues(model).Inc()
-
 }
 
 // RecordCacheMiss records a cache miss.
 
 func (pm *PrometheusMetrics) RecordCacheMiss(model string) {
-
 	if !pm.isRegistered() {
-
 		return
-
 	}
 
 	pm.CacheMissesTotal.WithLabelValues(model).Inc()
-
 }
 
 // RecordFallbackAttempt records a fallback attempt.
 
 func (pm *PrometheusMetrics) RecordFallbackAttempt(originalModel, fallbackModel string) {
-
 	if !pm.isRegistered() {
-
 		return
-
 	}
 
 	pm.FallbackAttemptsTotal.WithLabelValues(originalModel, fallbackModel).Inc()
-
 }
 
 // RecordRetryAttempt records a retry attempt.
 
 func (pm *PrometheusMetrics) RecordRetryAttempt(model string) {
-
 	if !pm.isRegistered() {
-
 		return
-
 	}
 
 	pm.RetryAttemptsTotal.WithLabelValues(model).Inc()
-
 }
 
 // isRegistered safely checks if metrics are registered.
 
 func (pm *PrometheusMetrics) isRegistered() bool {
-
 	if pm == nil {
-
 		return false
-
 	}
 
 	pm.mutex.RLock()
@@ -319,7 +285,6 @@ func (pm *PrometheusMetrics) isRegistered() bool {
 	defer pm.mutex.RUnlock()
 
 	return pm.registered
-
 }
 
 // MetricsIntegrator integrates Prometheus metrics with the existing MetricsCollector.
@@ -333,20 +298,16 @@ type MetricsIntegrator struct {
 // NewMetricsIntegrator creates a new metrics integrator.
 
 func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
-
 	return &MetricsIntegrator{
-
 		collector: collector,
 
 		prometheusMetrics: GetPrometheusMetrics(),
 	}
-
 }
 
 // RecordLLMRequest records an LLM request to both metrics systems.
 
 func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time.Duration, tokens int) {
-
 	// Record to existing MetricsCollector.
 
 	mi.collector.RecordLLMRequest(model, status, latency, tokens)
@@ -358,17 +319,13 @@ func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time
 	// Record error if status indicates failure.
 
 	if status == "error" || status == "failed" {
-
 		mi.prometheusMetrics.RecordError(model, "processing_error")
-
 	}
-
 }
 
 // RecordCacheOperation records cache operations to both metrics systems.
 
 func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit bool) {
-
 	// Record to existing MetricsCollector.
 
 	mi.collector.RecordCacheOperation(operation, hit)
@@ -376,21 +333,15 @@ func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit b
 	// Record to Prometheus metrics.
 
 	if hit {
-
 		mi.prometheusMetrics.RecordCacheHit(model)
-
 	} else {
-
 		mi.prometheusMetrics.RecordCacheMiss(model)
-
 	}
-
 }
 
 // RecordFallbackAttempt records fallback attempts to both metrics systems.
 
 func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel string) {
-
 	// Increment fallback in existing collector's client metrics.
 
 	// This requires accessing the client metrics - we'll add a method for this.
@@ -404,13 +355,11 @@ func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel 
 	// Record to Prometheus metrics.
 
 	mi.prometheusMetrics.RecordFallbackAttempt(originalModel, fallbackModel)
-
 }
 
 // RecordRetryAttempt records retry attempts to both metrics systems.
 
 func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
-
 	// Increment retry in existing collector's client metrics.
 
 	mi.collector.clientMetrics.mutex.Lock()
@@ -422,13 +371,11 @@ func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
 	// Record to Prometheus metrics.
 
 	mi.prometheusMetrics.RecordRetryAttempt(model)
-
 }
 
 // RecordCircuitBreakerEvent records circuit breaker events with error categorization.
 
 func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string) {
-
 	// Record to existing MetricsCollector.
 
 	mi.collector.RecordCircuitBreakerEvent(name, event)
@@ -450,25 +397,21 @@ func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string
 		mi.prometheusMetrics.RecordError(model, "request_failure")
 
 	}
-
 }
 
 // ResetMetrics resets both metrics systems (useful for testing).
 
 func (mi *MetricsIntegrator) ResetMetrics() {
-
 	mi.collector.Reset()
 
 	// Note: Prometheus metrics cannot be reset easily as they're cumulative.
 
 	// This is by design - use different metric names/labels for testing.
-
 }
 
 // GetComprehensiveMetrics returns metrics from both systems.
 
 func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
-
 	result := mi.collector.GetComprehensiveMetrics()
 
 	result["prometheus_enabled"] = mi.prometheusMetrics.isRegistered()
@@ -476,5 +419,4 @@ func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
 	result["metrics_enabled_env"] = isMetricsEnabled()
 
 	return result
-
 }

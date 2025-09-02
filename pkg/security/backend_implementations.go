@@ -22,7 +22,7 @@ type FileBackend struct {
 // NewFileBackend creates a new file-based secrets backend
 func NewFileBackend(basePath string, logger *slog.Logger) (SecretsBackend, error) {
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(basePath, 0700); err != nil {
+	if err := os.MkdirAll(basePath, 0o700); err != nil {
 		return nil, fmt.Errorf("failed to create backend directory: %w", err)
 	}
 
@@ -45,12 +45,12 @@ func (fb *FileBackend) Store(ctx context.Context, key string, value *EncryptedSe
 
 	// Create directory if needed
 	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	// Write file with secure permissions
-	if err := os.WriteFile(filename, data, 0600); err != nil {
+	if err := os.WriteFile(filename, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write secret file: %w", err)
 	}
 
@@ -127,7 +127,6 @@ func (fb *FileBackend) List(ctx context.Context, prefix string) ([]string, error
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to list secrets: %w", err)
 	}
@@ -166,7 +165,7 @@ func (fb *FileBackend) Health(ctx context.Context) error {
 
 	// Try to create a test file
 	testFile := filepath.Join(fb.basePath, ".health_check")
-	if err := os.WriteFile(testFile, []byte("health"), 0600); err != nil {
+	if err := os.WriteFile(testFile, []byte("health"), 0o600); err != nil {
 		return fmt.Errorf("cannot write to base directory: %w", err)
 	}
 

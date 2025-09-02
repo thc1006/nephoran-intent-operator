@@ -17,7 +17,6 @@ import (
 )
 
 func main() {
-
 	var (
 		testScope = flag.String("scope", "all", "Test scope to run (all, functional, performance, security, production)")
 
@@ -51,15 +50,12 @@ func main() {
 	// Create output directory.
 
 	if err := os.MkdirAll(*outputDir, 0o755); err != nil {
-
 		log.Fatalf("Failed to create output directory: %v", err)
-
 	}
 
 	// Create validation configuration.
 
 	config := &test_validation.ValidationConfig{
-
 		FunctionalTarget: 45,
 
 		PerformanceTarget: 23,
@@ -138,11 +134,9 @@ func main() {
 	}
 
 	if *verbose {
-
 		log.Printf("Configuration: Target=%d, Scope=%s, Concurrency=%d, LoadTest=%t, ChaosTest=%t",
 
 			config.TotalTarget, *testScope, config.ConcurrencyLevel, config.EnableLoadTesting, config.EnableChaosTesting)
-
 	}
 
 	// Create validation suite.
@@ -158,9 +152,7 @@ func main() {
 	// Setup test suite.
 
 	if *verbose {
-
 		log.Println("Setting up test environment...")
-
 	}
 
 	suite.SetupSuite()
@@ -208,9 +200,7 @@ func main() {
 		log.Printf("Validation execution failed: %v", err)
 
 		if results != nil {
-
 			generateReports(results, *outputDir, *reportFormat, *verbose)
-
 		}
 
 		log.Fatal(1)
@@ -218,11 +208,9 @@ func main() {
 	}
 
 	if *verbose {
-
 		log.Printf("Validation completed successfully: %d/%d points",
 
 			results.TotalScore, results.MaxPossibleScore)
-
 	}
 
 	// Generate reports.
@@ -244,29 +232,23 @@ func main() {
 	log.Printf("✅ Validation PASSED: Achieved %d points, target %d points",
 
 		results.TotalScore, config.TotalTarget)
-
 }
 
 // runFunctionalValidation executes only functional tests.
 
 func runFunctionalValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
-
 	log.Println("Running Functional Completeness Validation...")
 
 	// Execute functional tests only.
 
 	funcScore, err := suite.GetFunctionalValidator().ExecuteFunctionalTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("functional tests failed: %w", err)
-
 	}
 
 	// Create results structure.
 
 	results := &test_validation.ValidationResults{
-
 		TotalScore: funcScore,
 
 		MaxPossibleScore: 50,
@@ -283,27 +265,21 @@ func runFunctionalValidation(ctx context.Context, suite *test_validation.Validat
 	}
 
 	return results, nil
-
 }
 
 // runPerformanceValidation executes only performance tests.
 
 func runPerformanceValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
-
 	log.Println("Running Performance Benchmarking...")
 
 	// Execute performance tests only.
 
 	perfScore, err := suite.GetPerformanceBenchmarker().ExecutePerformanceTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("performance tests failed: %w", err)
-
 	}
 
 	results := &test_validation.ValidationResults{
-
 		TotalScore: perfScore,
 
 		MaxPossibleScore: 25,
@@ -320,27 +296,21 @@ func runPerformanceValidation(ctx context.Context, suite *test_validation.Valida
 	}
 
 	return results, nil
-
 }
 
 // runSecurityValidation executes only security tests.
 
 func runSecurityValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
-
 	log.Println("Running Security Compliance Validation...")
 
 	// Execute security tests only.
 
 	secScore, err := suite.GetSecurityValidator().ExecuteSecurityTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("security tests failed: %w", err)
-
 	}
 
 	results := &test_validation.ValidationResults{
-
 		TotalScore: secScore,
 
 		MaxPossibleScore: 15,
@@ -357,27 +327,21 @@ func runSecurityValidation(ctx context.Context, suite *test_validation.Validatio
 	}
 
 	return results, nil
-
 }
 
 // runProductionValidation executes only production readiness tests.
 
 func runProductionValidation(ctx context.Context, suite *test_validation.ValidationSuite) (*test_validation.ValidationResults, error) {
-
 	log.Println("Running Production Readiness Validation...")
 
 	// Execute production tests only.
 
 	prodScore, err := suite.GetReliabilityValidator().ExecuteProductionTests(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("production tests failed: %w", err)
-
 	}
 
 	results := &test_validation.ValidationResults{
-
 		TotalScore: prodScore,
 
 		MaxPossibleScore: 10,
@@ -397,17 +361,13 @@ func runProductionValidation(ctx context.Context, suite *test_validation.Validat
 	}
 
 	return results, nil
-
 }
 
 // generateReports creates validation reports in requested formats.
 
 func generateReports(results *test_validation.ValidationResults, outputDir, format string, verbose bool) {
-
 	if verbose {
-
 		log.Println("Generating validation reports...")
-
 	}
 
 	switch format {
@@ -433,17 +393,14 @@ func generateReports(results *test_validation.ValidationResults, outputDir, form
 		generateJSONReport(results, outputDir, verbose)
 
 	}
-
 }
 
 // generateJSONReport creates a JSON validation report.
 
 func generateJSONReport(results *test_validation.ValidationResults, outputDir string, verbose bool) {
-
 	filename := filepath.Join(outputDir, "validation-report.json")
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Failed to create JSON report: %v", err)
@@ -467,17 +424,13 @@ func generateJSONReport(results *test_validation.ValidationResults, outputDir st
 	}
 
 	if verbose {
-
 		log.Printf("JSON report written to: %s", filename)
-
 	}
-
 }
 
 // generateHTMLReport creates an HTML validation report.
 
 func generateHTMLReport(results *test_validation.ValidationResults, outputDir string, verbose bool) {
-
 	const htmlTemplate = `
 
 <!DOCTYPE html>
@@ -621,7 +574,6 @@ func generateHTMLReport(results *test_validation.ValidationResults, outputDir st
 	filename := filepath.Join(outputDir, "validation-report.html")
 
 	file, err := os.Create(filename)
-
 	if err != nil {
 
 		log.Printf("Failed to create HTML report: %v", err)
@@ -633,7 +585,6 @@ func generateHTMLReport(results *test_validation.ValidationResults, outputDir st
 	defer file.Close()
 
 	tmpl, err := template.New("report").Parse(htmlTemplate)
-
 	if err != nil {
 
 		log.Printf("Failed to parse HTML template: %v", err)
@@ -651,9 +602,6 @@ func generateHTMLReport(results *test_validation.ValidationResults, outputDir st
 	}
 
 	if verbose {
-
 		log.Printf("HTML report written to: %s", filename)
-
 	}
-
 }

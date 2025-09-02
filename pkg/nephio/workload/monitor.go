@@ -762,13 +762,10 @@ type monitoringMetrics struct {
 // NewWorkloadMonitor creates a new workload monitor.
 
 func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger logr.Logger) *WorkloadMonitor {
-
 	metrics := &monitoringMetrics{
-
 		clusterHealth: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_cluster_health_score",
 
 				Help: "Cluster health score (0-100)",
@@ -780,7 +777,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		performanceScore: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_cluster_performance_score",
 
 				Help: "Cluster performance score (0-100)",
@@ -792,7 +788,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		resourceUtilization: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_cluster_resource_utilization_percent",
 
 				Help: "Cluster resource utilization percentage",
@@ -804,7 +799,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		activeAlerts: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_cluster_active_alerts",
 
 				Help: "Number of active alerts",
@@ -816,7 +810,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		remediationActions: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_remediation_actions_total",
 
 				Help: "Total number of remediation actions",
@@ -828,7 +821,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		anomalyDetections: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_anomaly_detections_total",
 
 				Help: "Total number of anomaly detections",
@@ -840,7 +832,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		predictionAccuracy: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_prediction_accuracy",
 
 				Help: "Accuracy of predictive models",
@@ -852,7 +843,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		healthCheckDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephio_health_check_duration_seconds",
 
 				Help: "Duration of health checks",
@@ -886,17 +876,14 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 	)
 
 	return &WorkloadMonitor{
-
 		registry: registry,
 
 		healthChecker: &HealthChecker{
-
 			healthChecks: make(map[string]*HealthCheck),
 
 			healthHistory: make(map[string][]*HealthSnapshot),
 
 			thresholds: HealthThresholds{
-
 				CPUUtilization: 80.0,
 
 				MemoryUtilization: 85.0,
@@ -914,7 +901,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		},
 
 		performanceMonitor: &PerformanceMonitor{
-
 			metrics: make(map[string]*PerformanceMetrics),
 
 			benchmarks: make(map[string]*PerformanceBenchmark),
@@ -927,7 +913,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		},
 
 		resourceMonitor: &ResourceMonitor{
-
 			resourceUsage: make(map[string]*ResourceUsage),
 
 			quotas: make(map[string]*ResourceQuotas),
@@ -938,7 +923,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		},
 
 		alertManager: &AlertManager{
-
 			alertRules: make(map[string]*AlertRule),
 
 			activeAlerts: make(map[string]*Alert),
@@ -955,7 +939,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		},
 
 		dashboardIntegrator: &DashboardIntegrator{
-
 			dashboards: make(map[string]*Dashboard),
 
 			datasources: make(map[string]*DataSource),
@@ -966,7 +949,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		},
 
 		predictiveAnalyzer: &PredictiveAnalyzer{
-
 			models: make(map[string]*PredictiveModel),
 
 			predictions: make(map[string]*Prediction),
@@ -977,7 +959,6 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 		},
 
 		autoRemediator: &AutoRemediator{
-
 			remediationRules: make(map[string]*RemediationRule),
 
 			remediationHistory: make(map[string][]*RemediationAction),
@@ -993,13 +974,11 @@ func NewWorkloadMonitor(client client.Client, registry *ClusterRegistry, logger 
 
 		stopCh: make(chan struct{}),
 	}
-
 }
 
 // Start starts the workload monitor.
 
 func (wm *WorkloadMonitor) Start(ctx context.Context) error {
-
 	wm.logger.Info("Starting workload monitor")
 
 	// Start monitoring loops.
@@ -1021,23 +1000,19 @@ func (wm *WorkloadMonitor) Start(ctx context.Context) error {
 	wm.initializeDefaults()
 
 	return nil
-
 }
 
 // Stop stops the workload monitor.
 
 func (wm *WorkloadMonitor) Stop() {
-
 	wm.logger.Info("Stopping workload monitor")
 
 	close(wm.stopCh)
-
 }
 
 // GetClusterHealth retrieves health information for a cluster.
 
 func (wm *WorkloadMonitor) GetClusterHealth(clusterID string) (*HealthSnapshot, error) {
-
 	wm.healthChecker.mu.RLock()
 
 	defer wm.healthChecker.mu.RUnlock()
@@ -1045,19 +1020,15 @@ func (wm *WorkloadMonitor) GetClusterHealth(clusterID string) (*HealthSnapshot, 
 	history, exists := wm.healthChecker.healthHistory[clusterID]
 
 	if !exists || len(history) == 0 {
-
 		return nil, fmt.Errorf("no health data available for cluster %s", clusterID)
-
 	}
 
 	return history[len(history)-1], nil
-
 }
 
 // GetPerformanceMetrics retrieves performance metrics for a cluster.
 
 func (wm *WorkloadMonitor) GetPerformanceMetrics(clusterID string) (*PerformanceMetrics, error) {
-
 	wm.performanceMonitor.mu.RLock()
 
 	defer wm.performanceMonitor.mu.RUnlock()
@@ -1065,19 +1036,15 @@ func (wm *WorkloadMonitor) GetPerformanceMetrics(clusterID string) (*Performance
 	metrics, exists := wm.performanceMonitor.metrics[clusterID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no performance metrics available for cluster %s", clusterID)
-
 	}
 
 	return metrics, nil
-
 }
 
 // GetResourceUsage retrieves resource usage for a cluster.
 
 func (wm *WorkloadMonitor) GetResourceUsage(clusterID string) (*ResourceUsage, error) {
-
 	wm.resourceMonitor.mu.RLock()
 
 	defer wm.resourceMonitor.mu.RUnlock()
@@ -1085,19 +1052,15 @@ func (wm *WorkloadMonitor) GetResourceUsage(clusterID string) (*ResourceUsage, e
 	usage, exists := wm.resourceMonitor.resourceUsage[clusterID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no resource usage data available for cluster %s", clusterID)
-
 	}
 
 	return usage, nil
-
 }
 
 // GetActiveAlerts retrieves active alerts for a cluster.
 
 func (wm *WorkloadMonitor) GetActiveAlerts(clusterID string) ([]*Alert, error) {
-
 	wm.alertManager.mu.RLock()
 
 	defer wm.alertManager.mu.RUnlock()
@@ -1105,23 +1068,17 @@ func (wm *WorkloadMonitor) GetActiveAlerts(clusterID string) ([]*Alert, error) {
 	alerts := []*Alert{}
 
 	for _, alert := range wm.alertManager.activeAlerts {
-
 		if alert.ClusterID == clusterID {
-
 			alerts = append(alerts, alert)
-
 		}
-
 	}
 
 	return alerts, nil
-
 }
 
 // GetPredictions retrieves predictions for a cluster.
 
 func (wm *WorkloadMonitor) GetPredictions(clusterID string) ([]*Prediction, error) {
-
 	wm.predictiveAnalyzer.mu.RLock()
 
 	defer wm.predictiveAnalyzer.mu.RUnlock()
@@ -1129,47 +1086,35 @@ func (wm *WorkloadMonitor) GetPredictions(clusterID string) ([]*Prediction, erro
 	predictions := []*Prediction{}
 
 	for _, prediction := range wm.predictiveAnalyzer.predictions {
-
 		if prediction.ClusterID == clusterID {
-
 			predictions = append(predictions, prediction)
-
 		}
-
 	}
 
 	return predictions, nil
-
 }
 
 // CreateAlert creates a new alert.
 
 func (wm *WorkloadMonitor) CreateAlert(alert *Alert) error {
-
 	return wm.alertManager.CreateAlert(alert)
-
 }
 
 // CreateDashboard creates a new dashboard.
 
 func (wm *WorkloadMonitor) CreateDashboard(dashboard *Dashboard) error {
-
 	return wm.dashboardIntegrator.CreateDashboard(dashboard)
-
 }
 
 // AddRemediationRule adds a new remediation rule.
 
 func (wm *WorkloadMonitor) AddRemediationRule(rule *RemediationRule) error {
-
 	return wm.autoRemediator.AddRule(rule)
-
 }
 
 // Private methods.
 
 func (wm *WorkloadMonitor) initializeDefaults() {
-
 	// Initialize default health checks.
 
 	wm.initializeDefaultHealthChecks()
@@ -1185,15 +1130,11 @@ func (wm *WorkloadMonitor) initializeDefaults() {
 	// Initialize default remediation rules.
 
 	wm.initializeDefaultRemediationRules()
-
 }
 
 func (wm *WorkloadMonitor) initializeDefaultHealthChecks() {
-
 	defaultChecks := []*HealthCheck{
-
 		{
-
 			Name: "api-server-health",
 
 			Type: "kubernetes-api",
@@ -1210,7 +1151,6 @@ func (wm *WorkloadMonitor) initializeDefaultHealthChecks() {
 		},
 
 		{
-
 			Name: "node-health",
 
 			Type: "node-status",
@@ -1227,7 +1167,6 @@ func (wm *WorkloadMonitor) initializeDefaultHealthChecks() {
 		},
 
 		{
-
 			Name: "pod-health",
 
 			Type: "pod-status",
@@ -1244,7 +1183,6 @@ func (wm *WorkloadMonitor) initializeDefaultHealthChecks() {
 		},
 
 		{
-
 			Name: "storage-health",
 
 			Type: "storage-status",
@@ -1264,21 +1202,15 @@ func (wm *WorkloadMonitor) initializeDefaultHealthChecks() {
 	wm.healthChecker.mu.Lock()
 
 	for _, check := range defaultChecks {
-
 		wm.healthChecker.healthChecks[check.Name] = check
-
 	}
 
 	wm.healthChecker.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) initializeDefaultAlertRules() {
-
 	defaultRules := []*AlertRule{
-
 		{
-
 			ID: "high-cpu-usage",
 
 			Name: "High CPU Usage",
@@ -1299,7 +1231,6 @@ func (wm *WorkloadMonitor) initializeDefaultAlertRules() {
 		},
 
 		{
-
 			ID: "high-memory-usage",
 
 			Name: "High Memory Usage",
@@ -1320,7 +1251,6 @@ func (wm *WorkloadMonitor) initializeDefaultAlertRules() {
 		},
 
 		{
-
 			ID: "node-down",
 
 			Name: "Node Down",
@@ -1341,7 +1271,6 @@ func (wm *WorkloadMonitor) initializeDefaultAlertRules() {
 		},
 
 		{
-
 			ID: "pod-restart-loop",
 
 			Name: "Pod Restart Loop",
@@ -1365,21 +1294,15 @@ func (wm *WorkloadMonitor) initializeDefaultAlertRules() {
 	wm.alertManager.mu.Lock()
 
 	for _, rule := range defaultRules {
-
 		wm.alertManager.alertRules[rule.ID] = rule
-
 	}
 
 	wm.alertManager.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) initializeDefaultDashboards() {
-
 	defaultDashboards := []*Dashboard{
-
 		{
-
 			ID: "cluster-overview",
 
 			Title: "Cluster Overview",
@@ -1394,7 +1317,6 @@ func (wm *WorkloadMonitor) initializeDefaultDashboards() {
 		},
 
 		{
-
 			ID: "resource-utilization",
 
 			Title: "Resource Utilization",
@@ -1409,7 +1331,6 @@ func (wm *WorkloadMonitor) initializeDefaultDashboards() {
 		},
 
 		{
-
 			ID: "performance-metrics",
 
 			Title: "Performance Metrics",
@@ -1427,21 +1348,15 @@ func (wm *WorkloadMonitor) initializeDefaultDashboards() {
 	wm.dashboardIntegrator.mu.Lock()
 
 	for _, dashboard := range defaultDashboards {
-
 		wm.dashboardIntegrator.dashboards[dashboard.ID] = dashboard
-
 	}
 
 	wm.dashboardIntegrator.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) initializeDefaultRemediationRules() {
-
 	defaultRules := []*RemediationRule{
-
 		{
-
 			ID: "restart-failed-pods",
 
 			Name: "Restart Failed Pods",
@@ -1462,7 +1377,6 @@ func (wm *WorkloadMonitor) initializeDefaultRemediationRules() {
 		},
 
 		{
-
 			ID: "scale-up-on-high-cpu",
 
 			Name: "Scale Up on High CPU",
@@ -1486,23 +1400,18 @@ func (wm *WorkloadMonitor) initializeDefaultRemediationRules() {
 	wm.autoRemediator.mu.Lock()
 
 	for _, rule := range defaultRules {
-
 		wm.autoRemediator.remediationRules[rule.ID] = rule
-
 	}
 
 	wm.autoRemediator.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) runHealthChecks(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1518,31 +1427,23 @@ func (wm *WorkloadMonitor) runHealthChecks(ctx context.Context) {
 			wm.performHealthChecks(ctx)
 
 		}
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) performHealthChecks(ctx context.Context) {
-
 	clusters := wm.registry.ListClusters()
 
 	for _, cluster := range clusters {
-
 		go wm.checkClusterHealth(ctx, cluster)
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *ClusterEntry) {
-
 	timer := prometheus.NewTimer(wm.metrics.healthCheckDuration.WithLabelValues(cluster.Metadata.ID, "comprehensive"))
 
 	defer timer.ObserveDuration()
 
 	snapshot := &HealthSnapshot{
-
 		Timestamp: time.Now(),
 
 		ClusterID: cluster.Metadata.ID,
@@ -1561,9 +1462,7 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 	snapshot.ComponentHealth["api-server"] = apiHealth
 
 	if apiHealth != "healthy" {
-
 		snapshot.Issues = append(snapshot.Issues, HealthIssue{
-
 			Severity: "critical",
 
 			Component: "api-server",
@@ -1572,7 +1471,6 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 
 			DetectedAt: time.Now(),
 		})
-
 	}
 
 	// Check node health.
@@ -1582,9 +1480,7 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 	snapshot.ComponentHealth["nodes"] = nodeHealth
 
 	for k, v := range nodeMetrics {
-
 		snapshot.Metrics[k] = v
-
 	}
 
 	// Check pod health.
@@ -1594,9 +1490,7 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 	snapshot.ComponentHealth["pods"] = podHealth
 
 	for k, v := range podMetrics {
-
 		snapshot.Metrics[k] = v
-
 	}
 
 	// Check storage health.
@@ -1625,9 +1519,7 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 	history := wm.healthChecker.healthHistory[cluster.Metadata.ID]
 
 	if len(history) > 100 {
-
 		wm.healthChecker.healthHistory[cluster.Metadata.ID] = history[len(history)-100:]
-
 	}
 
 	wm.healthChecker.mu.Unlock()
@@ -1643,43 +1535,31 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 		score := 100.0
 
 		if health != "healthy" {
-
 			score = 0.0
-
 		}
 
 		wm.metrics.clusterHealth.WithLabelValues(cluster.Metadata.ID, component).Set(score)
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) checkAPIServerHealth(ctx context.Context, cluster *ClusterEntry) string {
-
 	// Check if we can list namespaces.
 
 	_, err := cluster.Clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
-
 	if err != nil {
-
 		return "unhealthy"
-
 	}
 
 	return "healthy"
-
 }
 
 func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *ClusterEntry) (string, map[string]float64) {
-
 	metrics := make(map[string]float64)
 
 	nodeList, err := cluster.Clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return "unknown", metrics
-
 	}
 
 	totalNodes := len(nodeList.Items)
@@ -1687,9 +1567,7 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 	readyNodes := 0
 
 	for _, node := range nodeList.Items {
-
 		for _, condition := range node.Status.Conditions {
-
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
 
 				readyNodes++
@@ -1697,9 +1575,7 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 				break
 
 			}
-
 		}
-
 	}
 
 	metrics["total_nodes"] = float64(totalNodes)
@@ -1707,9 +1583,7 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 	metrics["ready_nodes"] = float64(readyNodes)
 
 	if totalNodes == 0 {
-
 		return "unknown", metrics
-
 	}
 
 	readinessRatio := float64(readyNodes) / float64(totalNodes)
@@ -1717,29 +1591,20 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 	metrics["node_readiness_ratio"] = readinessRatio
 
 	if readinessRatio >= wm.healthChecker.thresholds.NodeReadiness {
-
 		return "healthy", metrics
-
 	} else if readinessRatio > 0.5 {
-
 		return "degraded", metrics
-
 	}
 
 	return "unhealthy", metrics
-
 }
 
 func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterEntry) (string, map[string]float64) {
-
 	metrics := make(map[string]float64)
 
 	podList, err := cluster.Clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return "unknown", metrics
-
 	}
 
 	totalPods := len(podList.Items)
@@ -1751,7 +1616,6 @@ func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterE
 	pendingPods := 0
 
 	for _, pod := range podList.Items {
-
 		switch pod.Status.Phase {
 
 		case corev1.PodRunning:
@@ -1767,7 +1631,6 @@ func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterE
 			pendingPods++
 
 		}
-
 	}
 
 	metrics["total_pods"] = float64(totalPods)
@@ -1779,67 +1642,46 @@ func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterE
 	metrics["pending_pods"] = float64(pendingPods)
 
 	if totalPods == 0 {
-
 		return "healthy", metrics
-
 	}
 
 	failureRate := float64(failedPods) / float64(totalPods)
 
 	if failureRate <= 0.05 {
-
 		return "healthy", metrics
-
 	} else if failureRate <= 0.15 {
-
 		return "degraded", metrics
-
 	}
 
 	return "unhealthy", metrics
-
 }
 
 func (wm *WorkloadMonitor) checkStorageHealth(ctx context.Context, cluster *ClusterEntry) string {
-
 	// Check persistent volumes.
 
 	pvList, err := cluster.Clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return "unknown"
-
 	}
 
 	failedPVs := 0
 
 	for _, pv := range pvList.Items {
-
 		if pv.Status.Phase == corev1.VolumeFailed {
-
 			failedPVs++
-
 		}
-
 	}
 
 	if failedPVs == 0 {
-
 		return "healthy"
-
 	} else if failedPVs < 3 {
-
 		return "degraded"
-
 	}
 
 	return "unhealthy"
-
 }
 
 func (wm *WorkloadMonitor) calculateOverallHealth(snapshot *HealthSnapshot) string {
-
 	healthyCount := 0
 
 	totalCount := 0
@@ -1849,37 +1691,27 @@ func (wm *WorkloadMonitor) calculateOverallHealth(snapshot *HealthSnapshot) stri
 		totalCount++
 
 		if health == "healthy" {
-
 			healthyCount++
-
 		}
 
 	}
 
 	if totalCount == 0 {
-
 		return "unknown"
-
 	}
 
 	ratio := float64(healthyCount) / float64(totalCount)
 
 	if ratio >= 0.8 {
-
 		return "healthy"
-
 	} else if ratio >= 0.5 {
-
 		return "degraded"
-
 	}
 
 	return "unhealthy"
-
 }
 
 func (wm *WorkloadMonitor) calculateHealthScore(snapshot *HealthSnapshot) float64 {
-
 	totalScore := 0.0
 
 	componentCount := 0
@@ -1911,23 +1743,18 @@ func (wm *WorkloadMonitor) calculateHealthScore(snapshot *HealthSnapshot) float6
 	}
 
 	if componentCount == 0 {
-
 		return 0.0
-
 	}
 
 	return totalScore / float64(componentCount)
-
 }
 
 func (wm *WorkloadMonitor) runPerformanceMonitoring(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1943,27 +1770,19 @@ func (wm *WorkloadMonitor) runPerformanceMonitoring(ctx context.Context) {
 			wm.collectPerformanceMetrics(ctx)
 
 		}
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectPerformanceMetrics(ctx context.Context) {
-
 	clusters := wm.registry.ListClusters()
 
 	for _, cluster := range clusters {
-
 		go wm.collectClusterPerformanceMetrics(ctx, cluster)
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectClusterPerformanceMetrics(ctx context.Context, cluster *ClusterEntry) {
-
 	metrics := &PerformanceMetrics{
-
 		ClusterID: cluster.Metadata.ID,
 
 		Timestamp: time.Now(),
@@ -2010,17 +1829,14 @@ func (wm *WorkloadMonitor) collectClusterPerformanceMetrics(ctx context.Context,
 	// Analyze trends.
 
 	wm.analyzeTrends(cluster.Metadata.ID, metrics)
-
 }
 
 func (wm *WorkloadMonitor) collectCPUMetrics(ctx context.Context, cluster *ClusterEntry) CPUMetrics {
-
 	// This would typically integrate with metrics-server or Prometheus.
 
 	// Placeholder implementation.
 
 	return CPUMetrics{
-
 		TotalCores: int(cluster.Metadata.Resources.TotalCPU / 1000), // Convert millicores to cores
 
 		UsedCores: float64(cluster.Metadata.Resources.TotalCPU-cluster.Metadata.Resources.AvailableCPU) / 1000,
@@ -2036,17 +1852,14 @@ func (wm *WorkloadMonitor) collectCPUMetrics(ctx context.Context, cluster *Clust
 		ThrottledCPU: 0.1, // Placeholder
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectMemoryMetrics(ctx context.Context, cluster *ClusterEntry) MemoryMetrics {
-
 	totalBytes := cluster.Metadata.Resources.TotalMemory
 
 	usedBytes := cluster.Metadata.Resources.TotalMemory - cluster.Metadata.Resources.AvailableMemory
 
 	return MemoryMetrics{
-
 		TotalBytes: totalBytes,
 
 		UsedBytes: usedBytes,
@@ -2064,17 +1877,14 @@ func (wm *WorkloadMonitor) collectMemoryMetrics(ctx context.Context, cluster *Cl
 		SwapUsedBytes: totalBytes / 100, // Placeholder
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectStorageMetrics(ctx context.Context, cluster *ClusterEntry) StorageMetrics {
-
 	totalBytes := cluster.Metadata.Resources.TotalStorage
 
 	usedBytes := cluster.Metadata.Resources.TotalStorage - cluster.Metadata.Resources.AvailableStorage
 
 	return StorageMetrics{
-
 		TotalBytes: totalBytes,
 
 		UsedBytes: usedBytes,
@@ -2093,13 +1903,10 @@ func (wm *WorkloadMonitor) collectStorageMetrics(ctx context.Context, cluster *C
 
 		VolumeMetrics: make(map[string]float64),
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectNetworkMetrics(ctx context.Context, cluster *ClusterEntry) NetworkMetrics {
-
 	return NetworkMetrics{
-
 		BytesReceived: 1024 * 1024 * 1024, // Placeholder
 
 		BytesTransmitted: 800 * 1024 * 1024, // Placeholder
@@ -2116,21 +1923,15 @@ func (wm *WorkloadMonitor) collectNetworkMetrics(ctx context.Context, cluster *C
 
 		InterfaceMetrics: make(map[string]float64),
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectPodMetrics(ctx context.Context, cluster *ClusterEntry) PodMetrics {
-
 	podList, err := cluster.Clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return PodMetrics{}
-
 	}
 
 	metrics := PodMetrics{
-
 		TotalPods: len(podList.Items),
 
 		PodsByPhase: make(map[string]int),
@@ -2171,9 +1972,7 @@ func (wm *WorkloadMonitor) collectPodMetrics(ctx context.Context, cluster *Clust
 		// Sum restart counts.
 
 		for _, container := range pod.Status.ContainerStatuses {
-
 			restartCount += int64(container.RestartCount)
-
 		}
 
 	}
@@ -2181,21 +1980,15 @@ func (wm *WorkloadMonitor) collectPodMetrics(ctx context.Context, cluster *Clust
 	metrics.RestartCount = restartCount
 
 	return metrics
-
 }
 
 func (wm *WorkloadMonitor) collectServiceMetrics(ctx context.Context, cluster *ClusterEntry) ServiceMetrics {
-
 	serviceList, err := cluster.Clientset.CoreV1().Services("").List(ctx, metav1.ListOptions{})
-
 	if err != nil {
-
 		return ServiceMetrics{}
-
 	}
 
 	metrics := ServiceMetrics{
-
 		TotalServices: len(serviceList.Items),
 
 		ServicesByType: make(map[string]int),
@@ -2217,17 +2010,14 @@ func (wm *WorkloadMonitor) collectServiceMetrics(ctx context.Context, cluster *C
 			service.Spec.Type == corev1.ServiceTypeNodePort {
 
 			metrics.ExternalServices++
-
 		}
 
 	}
 
 	return metrics
-
 }
 
 func (wm *WorkloadMonitor) updatePerformanceMetrics(clusterID string, metrics *PerformanceMetrics) {
-
 	wm.metrics.performanceScore.WithLabelValues(clusterID, "cpu").Set(100 - metrics.CPUMetrics.UtilizationPercent)
 
 	wm.metrics.performanceScore.WithLabelValues(clusterID, "memory").Set(100 - metrics.MemoryMetrics.UtilizationPercent)
@@ -2239,11 +2029,9 @@ func (wm *WorkloadMonitor) updatePerformanceMetrics(clusterID string, metrics *P
 	wm.metrics.resourceUtilization.WithLabelValues(clusterID, "memory").Set(metrics.MemoryMetrics.UtilizationPercent)
 
 	wm.metrics.resourceUtilization.WithLabelValues(clusterID, "storage").Set(metrics.StorageMetrics.UtilizationPercent)
-
 }
 
 func (wm *WorkloadMonitor) analyzeTrends(clusterID string, metrics *PerformanceMetrics) {
-
 	// Analyze CPU trend.
 
 	cpuTrend := wm.calculateTrend(clusterID, "cpu_utilization", metrics.CPUMetrics.UtilizationPercent)
@@ -2271,17 +2059,14 @@ func (wm *WorkloadMonitor) analyzeTrends(clusterID string, metrics *PerformanceM
 		wm.performanceMonitor.mu.Unlock()
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) calculateTrend(clusterID, metricName string, currentValue float64) *PerformanceTrend {
-
 	// This would implement trend analysis algorithms.
 
 	// Placeholder implementation.
 
 	return &PerformanceTrend{
-
 		ClusterID: clusterID,
 
 		MetricName: metricName,
@@ -2296,17 +2081,14 @@ func (wm *WorkloadMonitor) calculateTrend(clusterID, metricName string, currentV
 
 		TimeRange: "1h",
 	}
-
 }
 
 func (wm *WorkloadMonitor) runResourceMonitoring(ctx context.Context) {
-
 	ticker := time.NewTicker(2 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -2322,27 +2104,19 @@ func (wm *WorkloadMonitor) runResourceMonitoring(ctx context.Context) {
 			wm.collectResourceUsage(ctx)
 
 		}
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectResourceUsage(ctx context.Context) {
-
 	clusters := wm.registry.ListClusters()
 
 	for _, cluster := range clusters {
-
 		go wm.collectClusterResourceUsage(ctx, cluster)
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectClusterResourceUsage(ctx context.Context, cluster *ClusterEntry) {
-
 	usage := &ResourceUsage{
-
 		ClusterID: cluster.Metadata.ID,
 
 		Timestamp: time.Now(),
@@ -2385,13 +2159,10 @@ func (wm *WorkloadMonitor) collectClusterResourceUsage(ctx context.Context, clus
 	}
 
 	wm.resourceMonitor.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster *ClusterEntry, usage *ResourceUsage) {
-
 	nodeList, err := cluster.Clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
 
 		wm.logger.Error(err, "Failed to list nodes", "cluster", cluster.Metadata.ID)
@@ -2403,7 +2174,6 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 	// Try to get metrics from metrics-server.
 
 	metricsClient, err := versioned.NewForConfig(cluster.Config)
-
 	if err != nil {
 
 		wm.logger.Error(err, "Failed to create metrics client", "cluster", cluster.Metadata.ID)
@@ -2413,7 +2183,6 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 	}
 
 	nodeMetrics, err := metricsClient.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
 
 		wm.logger.Error(err, "Failed to get node metrics", "cluster", cluster.Metadata.ID)
@@ -2423,7 +2192,6 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 		for _, node := range nodeList.Items {
 
 			nodeResource := &NodeResource{
-
 				NodeName: node.Name,
 
 				CPUUsage: *resource.NewMilliQuantity(int64(float64(node.Status.Allocatable.Cpu().MilliValue())*0.5), resource.DecimalSI),
@@ -2436,7 +2204,6 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 			// Count actual pods on this node.
 
 			podList, _ := cluster.Clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
-
 				FieldSelector: "spec.nodeName=" + node.Name,
 			})
 
@@ -2455,7 +2222,6 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 	for _, nodeMetric := range nodeMetrics.Items {
 
 		nodeResource := &NodeResource{
-
 			NodeName: nodeMetric.Name,
 
 			CPUUsage: nodeMetric.Usage[corev1.ResourceCPU],
@@ -2466,7 +2232,6 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 		// Find corresponding node for capacity info.
 
 		for _, node := range nodeList.Items {
-
 			if node.Name == nodeMetric.Name {
 
 				nodeResource.PodCapacity = int(node.Status.Capacity.Pods().Value())
@@ -2474,13 +2239,11 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 				break
 
 			}
-
 		}
 
 		// Count pods on this node.
 
 		podList, _ := cluster.Clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
-
 			FieldSelector: "spec.nodeName=" + nodeMetric.Name,
 		})
 
@@ -2489,13 +2252,10 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 		usage.NodeResources[nodeMetric.Name] = nodeResource
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) collectNamespaceResourceUsage(ctx context.Context, cluster *ClusterEntry, usage *ResourceUsage) {
-
 	namespaceList, err := cluster.Clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
 
 		wm.logger.Error(err, "Failed to list namespaces", "cluster", cluster.Metadata.ID)
@@ -2507,7 +2267,6 @@ func (wm *WorkloadMonitor) collectNamespaceResourceUsage(ctx context.Context, cl
 	for _, namespace := range namespaceList.Items {
 
 		nsUsage := &NamespaceUsage{
-
 			Namespace: namespace.Name,
 		}
 
@@ -2516,9 +2275,7 @@ func (wm *WorkloadMonitor) collectNamespaceResourceUsage(ctx context.Context, cl
 		podList, err := cluster.Clientset.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
 
 		if err == nil {
-
 			nsUsage.PodCount = len(podList.Items)
-
 		}
 
 		// Try to get pod metrics for this namespace.
@@ -2534,7 +2291,6 @@ func (wm *WorkloadMonitor) collectNamespaceResourceUsage(ctx context.Context, cl
 				var totalCPU, totalMemory int64
 
 				for _, podMetric := range podMetrics.Items {
-
 					for _, container := range podMetric.Containers {
 
 						totalCPU += container.Usage.Cpu().MilliValue()
@@ -2542,7 +2298,6 @@ func (wm *WorkloadMonitor) collectNamespaceResourceUsage(ctx context.Context, cl
 						totalMemory += container.Usage.Memory().Value()
 
 					}
-
 				}
 
 				nsUsage.CPUUsage = *resource.NewMilliQuantity(totalCPU, resource.DecimalSI)
@@ -2556,11 +2311,9 @@ func (wm *WorkloadMonitor) collectNamespaceResourceUsage(ctx context.Context, cl
 		usage.NamespaceUsage[namespace.Name] = nsUsage
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) calculateResourceEfficiency(usage *ResourceUsage) ResourceEfficiency {
-
 	// Calculate CPU efficiency.
 
 	totalCPU := usage.TotalUsage.TotalCPU
@@ -2570,9 +2323,7 @@ func (wm *WorkloadMonitor) calculateResourceEfficiency(usage *ResourceUsage) Res
 	cpuEfficiency := 0.0
 
 	if totalCPU > 0 {
-
 		cpuEfficiency = float64(usedCPU) / float64(totalCPU) * 100
-
 	}
 
 	// Calculate memory efficiency.
@@ -2584,9 +2335,7 @@ func (wm *WorkloadMonitor) calculateResourceEfficiency(usage *ResourceUsage) Res
 	memoryEfficiency := 0.0
 
 	if totalMemory > 0 {
-
 		memoryEfficiency = float64(usedMemory) / float64(totalMemory) * 100
-
 	}
 
 	// Calculate storage efficiency.
@@ -2598,9 +2347,7 @@ func (wm *WorkloadMonitor) calculateResourceEfficiency(usage *ResourceUsage) Res
 	storageEfficiency := 0.0
 
 	if totalStorage > 0 {
-
 		storageEfficiency = float64(usedStorage) / float64(totalStorage) * 100
-
 	}
 
 	// Calculate overall efficiency.
@@ -2612,13 +2359,10 @@ func (wm *WorkloadMonitor) calculateResourceEfficiency(usage *ResourceUsage) Res
 	wastePercentage := 100 - overallEfficiency
 
 	if wastePercentage < 0 {
-
 		wastePercentage = 0
-
 	}
 
 	return ResourceEfficiency{
-
 		CPUEfficiency: cpuEfficiency,
 
 		MemoryEfficiency: memoryEfficiency,
@@ -2629,19 +2373,15 @@ func (wm *WorkloadMonitor) calculateResourceEfficiency(usage *ResourceUsage) Res
 
 		WastePercentage: wastePercentage,
 	}
-
 }
 
 func (wm *WorkloadMonitor) generateResourceRecommendations(usage *ResourceUsage) []*ResourceRecommendation {
-
 	recommendations := []*ResourceRecommendation{}
 
 	// CPU recommendations.
 
 	if usage.Efficiency.CPUEfficiency < 30 {
-
 		recommendations = append(recommendations, &ResourceRecommendation{
-
 			ClusterID: usage.ClusterID,
 
 			Type: "scale-down",
@@ -2660,11 +2400,8 @@ func (wm *WorkloadMonitor) generateResourceRecommendations(usage *ResourceUsage)
 
 			CreatedAt: time.Now(),
 		})
-
 	} else if usage.Efficiency.CPUEfficiency > 85 {
-
 		recommendations = append(recommendations, &ResourceRecommendation{
-
 			ClusterID: usage.ClusterID,
 
 			Type: "scale-up",
@@ -2683,15 +2420,12 @@ func (wm *WorkloadMonitor) generateResourceRecommendations(usage *ResourceUsage)
 
 			CreatedAt: time.Now(),
 		})
-
 	}
 
 	// Memory recommendations.
 
 	if usage.Efficiency.MemoryEfficiency < 40 {
-
 		recommendations = append(recommendations, &ResourceRecommendation{
-
 			ClusterID: usage.ClusterID,
 
 			Type: "optimize",
@@ -2710,21 +2444,17 @@ func (wm *WorkloadMonitor) generateResourceRecommendations(usage *ResourceUsage)
 
 			CreatedAt: time.Now(),
 		})
-
 	}
 
 	return recommendations
-
 }
 
 func (wm *WorkloadMonitor) runAlertProcessing(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -2740,55 +2470,40 @@ func (wm *WorkloadMonitor) runAlertProcessing(ctx context.Context) {
 			wm.processAlerts(ctx)
 
 		}
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) processAlerts(ctx context.Context) {
-
 	clusters := wm.registry.ListClusters()
 
 	for _, cluster := range clusters {
-
 		wm.evaluateAlertRules(ctx, cluster)
-
 	}
 
 	// Process active alerts for escalation.
 
 	wm.processAlertEscalations(ctx)
-
 }
 
 func (wm *WorkloadMonitor) evaluateAlertRules(ctx context.Context, cluster *ClusterEntry) {
-
 	wm.alertManager.mu.RLock()
 
 	rules := make([]*AlertRule, 0, len(wm.alertManager.alertRules))
 
 	for _, rule := range wm.alertManager.alertRules {
-
 		if rule.Enabled {
-
 			rules = append(rules, rule)
-
 		}
-
 	}
 
 	wm.alertManager.mu.RUnlock()
 
 	for _, rule := range rules {
-
 		wm.evaluateAlertRule(ctx, cluster, rule)
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *ClusterEntry, rule *AlertRule) {
-
 	// Get current metric value.
 
 	value := wm.getMetricValue(cluster, rule.Query)
@@ -2832,13 +2547,11 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 	existingAlert, exists := wm.alertManager.activeAlerts[alertID]
 
 	if triggered {
-
 		if !exists {
 
 			// Create new alert.
 
 			alert := &Alert{
-
 				ID: alertID,
 
 				RuleID: rule.ID,
@@ -2865,15 +2578,11 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 			// Copy labels and annotations from rule.
 
 			for k, v := range rule.Labels {
-
 				alert.Labels[k] = v
-
 			}
 
 			for k, v := range rule.Annotations {
-
 				alert.Annotations[k] = v
-
 			}
 
 			alert.Labels["cluster"] = cluster.Metadata.ID
@@ -2899,7 +2608,6 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 			existingAlert.Message = fmt.Sprintf("%s: %s (value: %.2f, threshold: %.2f)", rule.Name, rule.Description, value, rule.Threshold)
 
 		}
-
 	} else if exists {
 
 		// Resolve alert.
@@ -2934,11 +2642,9 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 	}
 
 	wm.alertManager.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) float64 {
-
 	// This would typically query Prometheus or another metrics system.
 
 	// For now, return values from our collected metrics.
@@ -2954,9 +2660,7 @@ func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) f
 		wm.performanceMonitor.mu.RUnlock()
 
 		if exists {
-
 			return metrics.CPUMetrics.UtilizationPercent
-
 		}
 
 		return cluster.Metadata.Resources.Utilization * 100
@@ -2970,9 +2674,7 @@ func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) f
 		wm.performanceMonitor.mu.RUnlock()
 
 		if exists {
-
 			return metrics.MemoryMetrics.UtilizationPercent
-
 		}
 
 		return 0.0
@@ -2990,13 +2692,9 @@ func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) f
 			latest := history[len(history)-1]
 
 			if readyNodes, ok := latest.Metrics["ready_nodes"]; ok {
-
 				if totalNodes, ok := latest.Metrics["total_nodes"]; ok && totalNodes > 0 {
-
 					return readyNodes / totalNodes
-
 				}
-
 			}
 
 		}
@@ -3012,11 +2710,9 @@ func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) f
 		wm.performanceMonitor.mu.RUnlock()
 
 		if exists {
-
 			// Calculate restart rate per hour (simplified).
 
 			return float64(metrics.PodMetrics.RestartCount) / 24.0
-
 		}
 
 		return 0.0
@@ -3026,11 +2722,9 @@ func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) f
 		return 0.0
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) sendAlertNotifications(alert *Alert) {
-
 	// Implementation would send notifications via configured channels.
 
 	wm.logger.Info("Alert triggered",
@@ -3042,11 +2736,9 @@ func (wm *WorkloadMonitor) sendAlertNotifications(alert *Alert) {
 		"severity", alert.Severity,
 
 		"message", alert.Message)
-
 }
 
 func (wm *WorkloadMonitor) sendAlertResolution(alert *Alert) {
-
 	// Implementation would send resolution notifications.
 
 	wm.logger.Info("Alert resolved",
@@ -3056,25 +2748,20 @@ func (wm *WorkloadMonitor) sendAlertResolution(alert *Alert) {
 		"cluster", alert.ClusterID,
 
 		"duration", alert.EndsAt.Sub(alert.StartsAt))
-
 }
 
 func (wm *WorkloadMonitor) processAlertEscalations(ctx context.Context) {
-
 	// Implementation would process alert escalations based on configured rules.
 
 	// This is a placeholder for the escalation logic.
-
 }
 
 func (wm *WorkloadMonitor) runPredictiveAnalysis(ctx context.Context) {
-
 	ticker := time.NewTicker(15 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -3090,13 +2777,10 @@ func (wm *WorkloadMonitor) runPredictiveAnalysis(ctx context.Context) {
 			wm.performPredictiveAnalysis(ctx)
 
 		}
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) performPredictiveAnalysis(ctx context.Context) {
-
 	clusters := wm.registry.ListClusters()
 
 	for _, cluster := range clusters {
@@ -3106,17 +2790,14 @@ func (wm *WorkloadMonitor) performPredictiveAnalysis(ctx context.Context) {
 		wm.detectAnomalies(ctx, cluster)
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) analyzePredictiveMetrics(ctx context.Context, cluster *ClusterEntry) {
-
 	// This would implement machine learning models for prediction.
 
 	// Placeholder implementation.
 
 	prediction := &Prediction{
-
 		ClusterID: cluster.Metadata.ID,
 
 		MetricName: "cpu_utilization",
@@ -3137,11 +2818,9 @@ func (wm *WorkloadMonitor) analyzePredictiveMetrics(ctx context.Context, cluster
 	wm.predictiveAnalyzer.predictions[key] = prediction
 
 	wm.predictiveAnalyzer.mu.Unlock()
-
 }
 
 func (wm *WorkloadMonitor) detectAnomalies(ctx context.Context, cluster *ClusterEntry) {
-
 	// This would implement anomaly detection algorithms.
 
 	// Placeholder implementation.
@@ -3153,9 +2832,7 @@ func (wm *WorkloadMonitor) detectAnomalies(ctx context.Context, cluster *Cluster
 	wm.performanceMonitor.mu.RUnlock()
 
 	if !exists {
-
 		return
-
 	}
 
 	// Simple anomaly detection based on thresholds.
@@ -3163,7 +2840,6 @@ func (wm *WorkloadMonitor) detectAnomalies(ctx context.Context, cluster *Cluster
 	if metrics.CPUMetrics.UtilizationPercent > 95 {
 
 		anomaly := &Anomaly{
-
 			ClusterID: cluster.Metadata.ID,
 
 			MetricName: "cpu_utilization",
@@ -3193,17 +2869,14 @@ func (wm *WorkloadMonitor) detectAnomalies(ctx context.Context, cluster *Cluster
 		wm.metrics.anomalyDetections.WithLabelValues(cluster.Metadata.ID, "cpu_utilization", "high").Inc()
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) runAutoRemediation(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -3219,59 +2892,42 @@ func (wm *WorkloadMonitor) runAutoRemediation(ctx context.Context) {
 			wm.processAutoRemediation(ctx)
 
 		}
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) processAutoRemediation(ctx context.Context) {
-
 	clusters := wm.registry.ListClusters()
 
 	for _, cluster := range clusters {
-
 		wm.evaluateRemediationRules(ctx, cluster)
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) evaluateRemediationRules(ctx context.Context, cluster *ClusterEntry) {
-
 	wm.autoRemediator.mu.RLock()
 
 	rules := make([]*RemediationRule, 0, len(wm.autoRemediator.remediationRules))
 
 	for _, rule := range wm.autoRemediator.remediationRules {
-
 		if rule.Enabled {
-
 			rules = append(rules, rule)
-
 		}
-
 	}
 
 	wm.autoRemediator.mu.RUnlock()
 
 	for _, rule := range rules {
-
 		wm.evaluateRemediationRule(ctx, cluster, rule)
-
 	}
-
 }
 
 func (wm *WorkloadMonitor) evaluateRemediationRule(ctx context.Context, cluster *ClusterEntry, rule *RemediationRule) {
-
 	// Check if rule should be triggered.
 
 	triggered := wm.shouldTriggerRemediation(ctx, cluster, rule)
 
 	if !triggered {
-
 		return
-
 	}
 
 	// Check safety conditions.
@@ -3293,7 +2949,6 @@ func (wm *WorkloadMonitor) evaluateRemediationRule(ctx context.Context, cluster 
 	for _, actionType := range rule.Actions {
 
 		action := &RemediationAction{
-
 			ID: fmt.Sprintf("%s-%s-%d", cluster.Metadata.ID, rule.ID, time.Now().Unix()),
 
 			RuleID: rule.ID,
@@ -3339,11 +2994,9 @@ func (wm *WorkloadMonitor) evaluateRemediationRule(ctx context.Context, cluster 
 			"result", result)
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) shouldTriggerRemediation(ctx context.Context, cluster *ClusterEntry, rule *RemediationRule) bool {
-
 	// This would implement rule evaluation logic.
 
 	// Placeholder implementation based on rule trigger.
@@ -3375,15 +3028,12 @@ func (wm *WorkloadMonitor) shouldTriggerRemediation(ctx context.Context, cluster
 		return false
 
 	}
-
 }
 
 func (wm *WorkloadMonitor) checkSafetyConditions(ctx context.Context, cluster *ClusterEntry, rule *RemediationRule) bool {
-
 	// Implement safety checks.
 
 	for _, check := range rule.SafetyChecks {
-
 		switch check {
 
 		case "check-pod-age":
@@ -3417,15 +3067,12 @@ func (wm *WorkloadMonitor) checkSafetyConditions(ctx context.Context, cluster *C
 			return false
 
 		}
-
 	}
 
 	return true
-
 }
 
 func (wm *WorkloadMonitor) executeRemediationAction(ctx context.Context, cluster *ClusterEntry, action *RemediationAction) string {
-
 	// Execute the remediation action.
 
 	switch action.Action {
@@ -3453,7 +3100,6 @@ func (wm *WorkloadMonitor) executeRemediationAction(ctx context.Context, cluster
 		return "unknown-action"
 
 	}
-
 }
 
 // AlertManager methods.
@@ -3461,7 +3107,6 @@ func (wm *WorkloadMonitor) executeRemediationAction(ctx context.Context, cluster
 // CreateAlert creates a new alert.
 
 func (am *AlertManager) CreateAlert(alert *Alert) error {
-
 	am.mu.Lock()
 
 	defer am.mu.Unlock()
@@ -3471,7 +3116,6 @@ func (am *AlertManager) CreateAlert(alert *Alert) error {
 	am.logger.Info("Alert created", "id", alert.ID, "severity", alert.Severity)
 
 	return nil
-
 }
 
 // DashboardIntegrator methods.
@@ -3479,7 +3123,6 @@ func (am *AlertManager) CreateAlert(alert *Alert) error {
 // CreateDashboard creates a new dashboard.
 
 func (di *DashboardIntegrator) CreateDashboard(dashboard *Dashboard) error {
-
 	di.mu.Lock()
 
 	defer di.mu.Unlock()
@@ -3489,7 +3132,6 @@ func (di *DashboardIntegrator) CreateDashboard(dashboard *Dashboard) error {
 	di.logger.Info("Dashboard created", "id", dashboard.ID, "title", dashboard.Title)
 
 	return nil
-
 }
 
 // AutoRemediator methods.
@@ -3497,7 +3139,6 @@ func (di *DashboardIntegrator) CreateDashboard(dashboard *Dashboard) error {
 // AddRule adds a new remediation rule.
 
 func (ar *AutoRemediator) AddRule(rule *RemediationRule) error {
-
 	ar.mu.Lock()
 
 	defer ar.mu.Unlock()
@@ -3507,5 +3148,4 @@ func (ar *AutoRemediator) AddRule(rule *RemediationRule) error {
 	ar.logger.Info("Remediation rule added", "id", rule.ID, "name", rule.Name)
 
 	return nil
-
 }

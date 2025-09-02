@@ -47,7 +47,6 @@ import (
 // Provides comprehensive CRUD operations for Porch resources with O-RAN compliance.
 
 type PorchClient interface {
-
 	// Repository Operations.
 
 	GetRepository(ctx context.Context, name string) (*Repository, error)
@@ -116,7 +115,6 @@ type PorchClient interface {
 // RepositoryManager provides high-level repository lifecycle management.
 
 type RepositoryManager interface {
-
 	// Repository lifecycle.
 
 	RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error)
@@ -145,7 +143,6 @@ type RepositoryManager interface {
 // PackageRevisionManager provides package revision lifecycle management.
 
 type PackageRevisionManager interface {
-
 	// Package lifecycle.
 
 	CreatePackage(ctx context.Context, spec *PackageSpec) (*PackageRevision, error)
@@ -184,7 +181,6 @@ type PackageRevisionManager interface {
 // FunctionRunner provides KRM function execution capabilities.
 
 type FunctionRunner interface {
-
 	// Function execution.
 
 	ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error)
@@ -205,7 +201,6 @@ type FunctionRunner interface {
 // NetworkIntentExtensions provides Nephio-specific extensions to NetworkIntent CRD.
 
 type NetworkIntentExtensions struct {
-
 	// Porch integration metadata.
 
 	PorchMetadata *PorchMetadata `json:"porchMetadata,omitempty"`
@@ -258,7 +253,6 @@ type RepositoryList struct {
 // RepositorySpec defines the desired state of a repository.
 
 type RepositorySpec struct {
-
 	// Repository type (git, oci).
 
 	Type string `json:"type"`
@@ -291,7 +285,6 @@ type RepositorySpec struct {
 // RepositoryStatus defines the observed state of a repository.
 
 type RepositoryStatus struct {
-
 	// Conditions represent the current state.
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -1410,7 +1403,6 @@ type RetryPolicy struct {
 	BackoffDelay *metav1.Duration `json:"backoffDelay,omitempty"`
 
 	BackoffType string `json:"backoffType,omitempty"` // fixed, exponential
-
 }
 
 // WorkflowCondition defines conditions for stage execution.
@@ -1523,7 +1515,6 @@ type CoverageParameters struct {
 	Mobility string `json:"mobility,omitempty"` // stationary, pedestrian, vehicular
 
 	Density string `json:"density,omitempty"` // sparse, dense, ultra_dense
-
 }
 
 // SLA requirement types.
@@ -1579,30 +1570,24 @@ type ReliabilityRequirement struct {
 // GetPackageReference creates a PackageReference from components.
 
 func GetPackageReference(repository, packageName, revision string) *PackageReference {
-
 	return &PackageReference{
-
 		Repository: repository,
 
 		PackageName: packageName,
 
 		Revision: revision,
 	}
-
 }
 
 // GetPackageKey returns a unique key for a package revision.
 
 func (pr *PackageReference) GetPackageKey() string {
-
 	return fmt.Sprintf("%s/%s@%s", pr.Repository, pr.PackageName, pr.Revision)
-
 }
 
 // IsValidLifecycle checks if a lifecycle value is valid.
 
 func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
-
 	switch lifecycle {
 
 	case PackageRevisionLifecycleDraft,
@@ -1620,7 +1605,6 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 		return false
 
 	}
-
 }
 
 // CanTransitionTo is a helper function that works like a method for PackageRevisionLifecycle.
@@ -1628,26 +1612,20 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 // Usage: CanTransitionTo(current, target) instead of current.CanTransitionTo(target).
 
 func CanTransitionTo(current, target PackageRevisionLifecycle) bool {
-
 	return CanPackageRevisionTransitionTo(current, target)
-
 }
 
 // CanPackageRevisionTransitionTo checks if lifecycle transition is valid.
 
 func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bool {
-
 	transitions := map[PackageRevisionLifecycle][]PackageRevisionLifecycle{
-
 		PackageRevisionLifecycleDraft: {
-
 			PackageRevisionLifecycleProposed,
 
 			PackageRevisionLifecycleDeletable,
 		},
 
 		PackageRevisionLifecycleProposed: {
-
 			PackageRevisionLifecyclePublished,
 
 			PackageRevisionLifecycleDraft,
@@ -1656,7 +1634,6 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 		},
 
 		PackageRevisionLifecyclePublished: {
-
 			PackageRevisionLifecycleDeletable,
 		},
 
@@ -1666,49 +1643,34 @@ func CanPackageRevisionTransitionTo(current, target PackageRevisionLifecycle) bo
 	validTargets, exists := transitions[current]
 
 	if !exists {
-
 		return false
-
 	}
 
 	for _, valid := range validTargets {
-
 		if valid == target {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // Helper methods for working with conditions.
 
 func (r *Repository) GetCondition(conditionType string) *metav1.Condition {
-
 	for _, condition := range r.Status.Conditions {
-
 		if condition.Type == conditionType {
-
 			return &condition
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // SetCondition performs setcondition operation.
 
 func (r *Repository) SetCondition(condition metav1.Condition) {
-
 	for i, existing := range r.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			r.Status.Conditions[i] = condition
@@ -1716,37 +1678,27 @@ func (r *Repository) SetCondition(condition metav1.Condition) {
 			return
 
 		}
-
 	}
 
 	r.Status.Conditions = append(r.Status.Conditions, condition)
-
 }
 
 // Helper functions for PackageRevision conditions (since we can't define methods on type aliases).
 
 func GetPackageRevisionCondition(pr *PackageRevision, conditionType string) *metav1.Condition {
-
 	for _, condition := range pr.Status.Conditions {
-
 		if condition.Type == conditionType {
-
 			return &condition
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // SetPackageRevisionCondition performs setpackagerevisioncondition operation.
 
 func SetPackageRevisionCondition(pr *PackageRevision, condition metav1.Condition) {
-
 	for i, existing := range pr.Status.Conditions {
-
 		if existing.Type == condition.Type {
 
 			pr.Status.Conditions[i] = condition
@@ -1754,27 +1706,21 @@ func SetPackageRevisionCondition(pr *PackageRevision, condition metav1.Condition
 			return
 
 		}
-
 	}
 
 	pr.Status.Conditions = append(pr.Status.Conditions, condition)
-
 }
 
 // Implement runtime.Object interface for Kubernetes integration.
 
 func (r *Repository) DeepCopyObject() runtime.Object {
-
 	return r.DeepCopy()
-
 }
 
 // DeepCopyObject performs deepcopyobject operation.
 
 func (rl *RepositoryList) DeepCopyObject() runtime.Object {
-
 	return rl
-
 }
 
 // DeepCopyObject methods are implemented by the multicluster package types.
@@ -1782,17 +1728,13 @@ func (rl *RepositoryList) DeepCopyObject() runtime.Object {
 // DeepCopyObject performs deepcopyobject operation.
 
 func (w *Workflow) DeepCopyObject() runtime.Object {
-
 	return w
-
 }
 
 // DeepCopyObject performs deepcopyobject operation.
 
 func (wl *WorkflowList) DeepCopyObject() runtime.Object {
-
 	return wl
-
 }
 
 // DeepCopy methods would be generated by code-gen or implemented manually.
@@ -1800,11 +1742,8 @@ func (wl *WorkflowList) DeepCopyObject() runtime.Object {
 // For brevity, showing the pattern for Repository.
 
 func (r *Repository) DeepCopy() *Repository {
-
 	if r == nil {
-
 		return nil
-
 	}
 
 	out := new(Repository)
@@ -1812,13 +1751,11 @@ func (r *Repository) DeepCopy() *Repository {
 	r.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (r *Repository) DeepCopyInto(out *Repository) {
-
 	*out = *r
 
 	out.TypeMeta = r.TypeMeta
@@ -1828,13 +1765,11 @@ func (r *Repository) DeepCopyInto(out *Repository) {
 	r.Spec.DeepCopyInto(&out.Spec)
 
 	r.Status.DeepCopyInto(&out.Status)
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *RepositorySpec) DeepCopyInto(out *RepositorySpec) {
-
 	*out = *rs
 
 	if rs.Auth != nil {
@@ -1858,13 +1793,11 @@ func (rs *RepositorySpec) DeepCopyInto(out *RepositorySpec) {
 		copy(out.Capabilities, rs.Capabilities)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
-
 	*out = *rs
 
 	if rs.Conditions != nil {
@@ -1872,19 +1805,14 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 		out.Conditions = make([]metav1.Condition, len(rs.Conditions))
 
 		for i := range rs.Conditions {
-
 			rs.Conditions[i].DeepCopyInto(&out.Conditions[i])
-
 		}
 
 	}
 
 	if rs.LastSyncTime != nil {
-
 		out.LastSyncTime = rs.LastSyncTime.DeepCopy()
-
 	}
-
 }
 
 // DeepCopy methods are implemented in deepcopy.go.
@@ -1928,23 +1856,17 @@ type PorchError struct {
 // Error performs error operation.
 
 func (e *PorchError) Error() string {
-
 	if e.Cause != nil {
-
 		return fmt.Sprintf("%s: %s (caused by: %v)", e.Type, e.Message, e.Cause)
-
 	}
 
 	return fmt.Sprintf("%s: %s", e.Type, e.Message)
-
 }
 
 // Unwrap performs unwrap operation.
 
 func (e *PorchError) Unwrap() error {
-
 	return e.Cause
-
 }
 
 // Common error types.

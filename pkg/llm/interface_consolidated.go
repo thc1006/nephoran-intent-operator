@@ -40,26 +40,19 @@ type BatchProcessor interface {
 // StreamingProcessor handles streaming requests (concrete implementation for disable_rag builds).
 
 type ConsolidatedStreamingProcessor struct {
-
 	// Stub implementation fields.
-
 }
 
 // GetMetrics returns streaming processor metrics (stub implementation).
 
 func (sp *ConsolidatedStreamingProcessor) GetMetrics() map[string]interface{} {
-
 	if sp == nil {
-
 		return map[string]interface{}{
-
 			"status": "disabled",
 		}
-
 	}
 
 	return map[string]interface{}{
-
 		"active_streams": 0,
 
 		"total_streams": 0,
@@ -72,30 +65,27 @@ func (sp *ConsolidatedStreamingProcessor) GetMetrics() map[string]interface{} {
 
 		"status": "stub",
 	}
-
 }
 
 // Shutdown gracefully shuts down the streaming processor (stub implementation).
 
 func (sp *ConsolidatedStreamingProcessor) Shutdown(ctx context.Context) error {
-
 	// Stub implementation - no actual shutdown needed.
 
 	return nil
-
 }
 
 // StreamingProcessorStub is an alias for StreamingProcessor for compatibility.
 
-type StreamingProcessorStub = ConsolidatedStreamingProcessor
-type StreamingProcessor = ConsolidatedStreamingProcessor
+type (
+	StreamingProcessorStub = ConsolidatedStreamingProcessor
+	StreamingProcessor     = ConsolidatedStreamingProcessor
+)
 
 // NewStreamingProcessor creates a new streaming processor.
 
 func NewConsolidatedStreamingProcessor() *ConsolidatedStreamingProcessor {
-
 	return &ConsolidatedStreamingProcessor{}
-
 }
 
 // NewStreamingProcessor creates a new streaming processor (alias for NewConsolidatedStreamingProcessor)
@@ -106,9 +96,7 @@ func NewStreamingProcessor() *StreamingProcessorStub {
 // NewRelevanceScorerStub creates a new relevance scorer stub.
 
 func NewConsolidatedRelevanceScorerStub() *ConsolidatedRelevanceScorer {
-
 	return &ConsolidatedRelevanceScorer{
-
 		config: &ConsolidatedRelevanceScorerConfig{},
 
 		logger: nil, // Will be set later if needed
@@ -119,19 +107,15 @@ func NewConsolidatedRelevanceScorerStub() *ConsolidatedRelevanceScorer {
 
 		metrics: &ConsolidatedScoringMetrics{},
 	}
-
 }
 
 // NewContextBuilderStub creates a new context builder stub.
 
 func NewContextBuilderStub() *ContextBuilder {
-
 	return &ContextBuilder{
-
 		weaviatePool: nil,
 
 		config: &ContextBuilderConfig{
-
 			DefaultMaxDocs: 5,
 
 			MaxContextLength: 8192,
@@ -151,7 +135,6 @@ func NewContextBuilderStub() *ContextBuilder {
 
 		metrics: &ContextBuilderMetrics{},
 	}
-
 }
 
 // CacheProvider provides caching functionality.
@@ -271,9 +254,7 @@ type StreamingRequest struct {
 // WeaviateConnectionPool is a stub type for the connection pool.
 
 type WeaviateConnectionPool struct {
-
 	// Stub implementation - no actual fields needed.
-
 }
 
 // ContextBuilder provides context building functionality for RAG systems.
@@ -351,7 +332,6 @@ type ConsolidatedRelevanceScorer struct {
 // ConsolidatedRelevanceScorerConfig holds configuration for relevance scoring.
 
 type ConsolidatedRelevanceScorerConfig struct {
-
 	// Scoring weights.
 
 	SemanticWeight float64 `json:"semantic_weight"`
@@ -462,15 +442,12 @@ type ConsolidatedSimpleTokenTracker struct {
 // NewSimpleTokenTracker creates a new token tracker.
 
 func NewConsolidatedSimpleTokenTracker() *ConsolidatedSimpleTokenTracker {
-
 	return &ConsolidatedSimpleTokenTracker{}
-
 }
 
 // RecordUsage records token usage.
 
 func (tt *ConsolidatedSimpleTokenTracker) RecordUsage(tokens int) {
-
 	tt.mutex.Lock()
 
 	defer tt.mutex.Unlock()
@@ -484,13 +461,11 @@ func (tt *ConsolidatedSimpleTokenTracker) RecordUsage(tokens int) {
 	costPerToken := 0.0001 // Example: $0.0001 per token
 
 	tt.totalCost += float64(tokens) * costPerToken
-
 }
 
 // GetStats returns usage statistics.
 
 func (tt *ConsolidatedSimpleTokenTracker) GetStats() map[string]interface{} {
-
 	tt.mutex.RLock()
 
 	defer tt.mutex.RUnlock()
@@ -498,13 +473,10 @@ func (tt *ConsolidatedSimpleTokenTracker) GetStats() map[string]interface{} {
 	avgTokensPerRequest := float64(0)
 
 	if tt.requestCount > 0 {
-
 		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
-
 	}
 
 	return map[string]interface{}{
-
 		"total_tokens": tt.totalTokens,
 
 		"total_cost": tt.totalCost,
@@ -513,7 +485,6 @@ func (tt *ConsolidatedSimpleTokenTracker) GetStats() map[string]interface{} {
 
 		"avg_tokens_per_request": avgTokensPerRequest,
 	}
-
 }
 
 // RequestContext contains context for LLM requests.
@@ -536,7 +507,6 @@ type RequestContext struct {
 	StartTime time.Time // Request start time
 
 	Deadline time.Time // Request deadline
-
 }
 
 // HealthChecker performs health checks on endpoints.
@@ -595,71 +565,57 @@ type ConsolidatedTokenManager struct {
 // NewConsolidatedTokenManager creates a new token manager.
 
 func NewConsolidatedTokenManager() *ConsolidatedTokenManager {
-
 	return &ConsolidatedTokenManager{
-
 		maxTokens: 8192,
 
 		tokensPerWord: 1.3, // Average tokens per word
 
 	}
-
 }
 
 // CountTokens estimates token count from text.
 
 func (tm *ConsolidatedTokenManager) CountTokens(text string) int {
-
 	// Simple approximation: count words and multiply by average tokens per word.
 
 	words := len(strings.Fields(text))
 
 	return int(float64(words) * tm.tokensPerWord)
-
 }
 
 // EstimateTokensForModel estimates tokens for a specific model.
 
 func (tm *ConsolidatedTokenManager) EstimateTokensForModel(text, model string) int {
-
 	// For now, use the same estimation for all models.
 
 	return tm.CountTokens(text)
-
 }
 
 // SupportsSystemPrompt checks if model supports system prompts.
 
 func (tm *ConsolidatedTokenManager) SupportsSystemPrompt(model string) bool {
-
 	// Most modern models support system prompts.
 
 	return true
-
 }
 
 // SupportsChatFormat checks if model supports chat format.
 
 func (tm *ConsolidatedTokenManager) SupportsChatFormat(model string) bool {
-
 	// Most modern models support chat format.
 
 	return true
-
 }
 
 // TruncateToFit truncates text to fit within token limit.
 
 func (tm *ConsolidatedTokenManager) TruncateToFit(text string, maxTokens int, model string) string {
-
 	// Model parameter is for compatibility, using same logic for all models.
 
 	tokens := tm.CountTokens(text)
 
 	if tokens <= maxTokens {
-
 		return text
-
 	}
 
 	// Simple truncation by character ratio.
@@ -669,31 +625,24 @@ func (tm *ConsolidatedTokenManager) TruncateToFit(text string, maxTokens int, mo
 	targetLen := int(float64(len(text)) * ratio * 0.95) // 95% to ensure we're under limit
 
 	if targetLen > len(text) {
-
 		return text
-
 	}
 
 	return text[:targetLen] + "..."
-
 }
 
 // SupportsStreaming checks if model supports streaming.
 
 func (tm *ConsolidatedTokenManager) SupportsStreaming(model string) bool {
-
 	// Most modern models support streaming.
 
 	return true
-
 }
 
 // GetSupportedModels returns list of supported models.
 
 func (tm *ConsolidatedTokenManager) GetSupportedModels() []string {
-
 	return []string{
-
 		"gpt-3.5-turbo",
 
 		"gpt-4",
@@ -706,7 +655,6 @@ func (tm *ConsolidatedTokenManager) GetSupportedModels() []string {
 
 		"mistral",
 	}
-
 }
 
 // StreamingContextManager manages streaming context.
@@ -720,35 +668,26 @@ type StreamingContextManager struct {
 // NewStreamingContextManager creates a new streaming context manager.
 
 func NewStreamingContextManager(tokenManager *ConsolidatedTokenManager, contextOverhead time.Duration) *StreamingContextManager {
-
 	// Parameters are for compatibility but not used in stub implementation.
 
 	return &StreamingContextManager{
-
 		contexts: make(map[string]interface{}),
 	}
-
 }
 
 // Close closes the streaming context manager.
 
 func (scm *StreamingContextManager) Close() {
-
 	// No resources to clean up in stub implementation.
-
 }
 
 // GetMetrics returns metrics for the ContextBuilder.
 
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
-
 	if cb == nil || cb.metrics == nil {
-
 		return map[string]interface{}{
-
 			"status": "disabled",
 		}
-
 	}
 
 	cb.metrics.mutex.RLock()
@@ -756,7 +695,6 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	defer cb.metrics.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"total_queries": cb.metrics.TotalQueries,
 
 		"successful_queries": cb.metrics.SuccessfulQueries,
@@ -773,7 +711,6 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 
 		"total_latency": cb.metrics.TotalLatency.String(),
 	}
-
 }
 
 // Document represents a document for context building.
@@ -793,14 +730,10 @@ type Document struct {
 // GetMetrics returns metrics for the ConsolidatedRelevanceScorer.
 
 func (rs *ConsolidatedRelevanceScorer) GetMetrics() map[string]interface{} {
-
 	if rs == nil || rs.metrics == nil {
-
 		return map[string]interface{}{
-
 			"status": "disabled",
 		}
-
 	}
 
 	rs.metrics.mutex.RLock()
@@ -808,7 +741,6 @@ func (rs *ConsolidatedRelevanceScorer) GetMetrics() map[string]interface{} {
 	defer rs.metrics.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"total_scores": rs.metrics.TotalScores,
 
 		"average_scoring_time": rs.metrics.AverageScoringTime.String(),
@@ -827,7 +759,6 @@ func (rs *ConsolidatedRelevanceScorer) GetMetrics() map[string]interface{} {
 
 		"last_updated": rs.metrics.LastUpdated.Format("2006-01-02T15:04:05Z07:00"),
 	}
-
 }
 
 // IntentRequest represents a legacy request structure (backward compatibility).

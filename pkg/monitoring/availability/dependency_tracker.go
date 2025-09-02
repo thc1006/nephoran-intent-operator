@@ -74,11 +74,9 @@ type DependencyChainTracker struct {
 // NewDependencyChainTracker creates a new dependency chain tracker.
 
 func NewDependencyChainTracker() *DependencyChainTracker {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &DependencyChainTracker{
-
 		chains: make(map[string]*DependencyChain),
 
 		statuses: make(map[string]*DependencyServiceStatus),
@@ -87,17 +85,13 @@ func NewDependencyChainTracker() *DependencyChainTracker {
 
 		cancel: cancel,
 	}
-
 }
 
 // AddChain adds a dependency chain to track.
 
 func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
-
 	if chain == nil {
-
 		return fmt.Errorf("chain cannot be nil")
-
 	}
 
 	dct.mu.Lock()
@@ -109,9 +103,7 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 	// Initialize status for all services in the chain.
 
 	for _, service := range chain.Services {
-
 		dct.statuses[service.Name] = &DependencyServiceStatus{
-
 			ServiceName: service.Name,
 
 			Status: DepStatusUnknown,
@@ -122,17 +114,14 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 
 			ConsecutiveFails: 0,
 		}
-
 	}
 
 	return nil
-
 }
 
 // RemoveChain removes a dependency chain from tracking.
 
 func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
-
 	dct.mu.Lock()
 
 	defer dct.mu.Unlock()
@@ -140,29 +129,23 @@ func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 	chain, exists := dct.chains[chainID]
 
 	if !exists {
-
 		return fmt.Errorf("chain with ID %s not found", chainID)
-
 	}
 
 	// Remove statuses for all services in the chain.
 
 	for _, service := range chain.Services {
-
 		delete(dct.statuses, service.Name)
-
 	}
 
 	delete(dct.chains, chainID)
 
 	return nil
-
 }
 
 // UpdateStatus updates the status of a service in the dependency chain (stub implementation).
 
 func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, responseTime time.Duration, failureReason string) error {
-
 	dct.mu.Lock()
 
 	defer dct.mu.Unlock()
@@ -174,7 +157,6 @@ func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, resp
 		// Create a new status entry for unknown services.
 
 		serviceStatus = &DependencyServiceStatus{
-
 			ServiceName: serviceName,
 		}
 
@@ -195,13 +177,11 @@ func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, resp
 	serviceStatus.ConsecutiveFails = 0
 
 	return nil
-
 }
 
 // GetChainStatus returns the overall status of a dependency chain (stub implementation).
 
 func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error) {
-
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
@@ -209,9 +189,7 @@ func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error
 	chain, exists := dct.chains[chainID]
 
 	if !exists {
-
 		return "", fmt.Errorf("chain with ID %s not found", chainID)
-
 	}
 
 	// Stub implementation always returns healthy.
@@ -219,13 +197,11 @@ func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error
 	_ = chain
 
 	return "healthy", nil
-
 }
 
 // GetServiceStatus returns the status of a specific service.
 
 func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*DependencyServiceStatus, error) {
-
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
@@ -233,9 +209,7 @@ func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*Depend
 	status, exists := dct.statuses[serviceName]
 
 	if !exists {
-
 		return nil, fmt.Errorf("service %s not found", serviceName)
-
 	}
 
 	// Return a copy to avoid concurrent modifications.
@@ -243,13 +217,11 @@ func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*Depend
 	statusCopy := *status
 
 	return &statusCopy, nil
-
 }
 
 // GetAllChains returns all tracked dependency chains.
 
 func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
-
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
@@ -267,33 +239,27 @@ func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
 	}
 
 	return chains
-
 }
 
 // Start begins dependency tracking (stub implementation).
 
 func (dct *DependencyChainTracker) Start() error {
-
 	// Stub implementation does nothing.
 
 	return nil
-
 }
 
 // Stop stops dependency tracking.
 
 func (dct *DependencyChainTracker) Stop() error {
-
 	dct.cancel()
 
 	return nil
-
 }
 
 // AnalyzeImpact analyzes the impact of a service failure on dependency chains (stub implementation).
 
 func (dct *DependencyChainTracker) AnalyzeImpact(serviceName string) ([]string, error) {
-
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
@@ -301,13 +267,11 @@ func (dct *DependencyChainTracker) AnalyzeImpact(serviceName string) ([]string, 
 	// Stub implementation returns empty impact.
 
 	return []string{}, nil
-
 }
 
 // GetCriticalPath returns services on the critical path (stub implementation).
 
 func (dct *DependencyChainTracker) GetCriticalPath() ([]string, error) {
-
 	dct.mu.RLock()
 
 	defer dct.mu.RUnlock()
@@ -315,5 +279,4 @@ func (dct *DependencyChainTracker) GetCriticalPath() ([]string, error) {
 	// Stub implementation returns empty critical path.
 
 	return []string{}, nil
-
 }

@@ -130,7 +130,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 					if len(filePath) > 260 {
 						// Create the directory structure and file first
 						parentDir := filepath.Dir(filePath)
-						err := os.MkdirAll(parentDir, 0755)
+						err := os.MkdirAll(parentDir, 0o755)
 						if err != nil {
 							// Expected on Windows for very long paths without \\?\ prefix
 							assert.Contains(t, err.Error(), "path", "should be a path-related error")
@@ -139,7 +139,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 
 						// If directory creation succeeded, create the file
 						testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
-						err = os.WriteFile(filePath, testContent, 0644)
+						err = os.WriteFile(filePath, testContent, 0o644)
 						if err != nil {
 							// Expected for very long paths
 							assert.Contains(t, err.Error(), "path", "should be a path-related error")
@@ -156,11 +156,11 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 					} else {
 						// For moderately long paths, create the file and test normally
 						parentDir := filepath.Dir(filePath)
-						err := os.MkdirAll(parentDir, 0755)
+						err := os.MkdirAll(parentDir, 0o755)
 						require.NoError(t, err)
 
 						testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
-						err = os.WriteFile(filePath, testContent, 0644)
+						err = os.WriteFile(filePath, testContent, 0o644)
 						require.NoError(t, err)
 
 						err = sm.MarkProcessed(filePath)
@@ -173,11 +173,11 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 				} else {
 					// On non-Windows systems, create the file and test normally
 					parentDir := filepath.Dir(filePath)
-					err := os.MkdirAll(parentDir, 0755)
+					err := os.MkdirAll(parentDir, 0o755)
 					require.NoError(t, err)
 
 					testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
-					err = os.WriteFile(filePath, testContent, 0644)
+					err = os.WriteFile(filePath, testContent, 0o644)
 					require.NoError(t, err)
 
 					err = sm.MarkProcessed(filePath)
@@ -195,7 +195,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 			testFunc: func(t *testing.T, sm *StateManager, filePath string) {
 				// Create the directory structure and file first
 				parentDir := filepath.Dir(filePath)
-				err := os.MkdirAll(parentDir, 0755)
+				err := os.MkdirAll(parentDir, 0o755)
 				if err != nil {
 					if runtime.GOOS == "windows" {
 						// Windows might not support certain Unicode characters in paths
@@ -205,7 +205,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 				}
 
 				testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
-				err = os.WriteFile(filePath, testContent, 0644)
+				err = os.WriteFile(filePath, testContent, 0o644)
 				if err != nil {
 					if runtime.GOOS == "windows" {
 						// Windows might not support certain Unicode characters in paths
@@ -278,7 +278,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 		"replicas": 3
 	}`
 	intentFile := filepath.Join(tempDir, "test-intent.json")
-	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0o644))
 
 	tests := []struct {
 		name     string
@@ -305,7 +305,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 			testFunc: func(t *testing.T, fm *FileManager, intentFile string) {
 				// Create new intent file for this test
 				newIntentFile := filepath.Join(tempDir, "test-intent-2.json")
-				require.NoError(t, os.WriteFile(newIntentFile, []byte(intentContent), 0644))
+				require.NoError(t, os.WriteFile(newIntentFile, []byte(intentContent), 0o644))
 
 				// Attempt to move with malicious error message
 				maliciousError := "error occurred\n#!/bin/bash\nrm -rf /\necho 'hacked'"
@@ -337,7 +337,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 
 				// Create new intent file for this test
 				newIntentFile := filepath.Join(tempDir, "test-intent-3.json")
-				require.NoError(t, os.WriteFile(newIntentFile, []byte(intentContent), 0644))
+				require.NoError(t, os.WriteFile(newIntentFile, []byte(intentContent), 0o644))
 
 				err := fm.MoveToProcessed(newIntentFile)
 				require.NoError(t, err)
@@ -348,8 +348,8 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 				require.NoError(t, err)
 
 				mode := info.Mode()
-				expectedMode := os.FileMode(0755)
-				assert.Equal(t, expectedMode, mode&0777, "processed directory should have mode 0755")
+				expectedMode := os.FileMode(0o755)
+				assert.Equal(t, expectedMode, mode&0o777, "processed directory should have mode 0755")
 			},
 		},
 		{
@@ -357,13 +357,13 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 			testFunc: func(t *testing.T, fm *FileManager, intentFile string) {
 				// Create multiple old files
 				processedDir := filepath.Join(tempDir, "processed")
-				require.NoError(t, os.MkdirAll(processedDir, 0755))
+				require.NoError(t, os.MkdirAll(processedDir, 0o755))
 
 				oldTime := time.Now().Add(-48 * time.Hour)
 
 				for i := 0; i < 5; i++ {
 					oldFile := filepath.Join(processedDir, fmt.Sprintf("old-intent-%d.json", i))
-					require.NoError(t, os.WriteFile(oldFile, []byte(intentContent), 0644))
+					require.NoError(t, os.WriteFile(oldFile, []byte(intentContent), 0o644))
 					require.NoError(t, os.Chtimes(oldFile, oldTime, oldTime))
 				}
 
@@ -425,7 +425,7 @@ func TestConfig_SecurityValidation(t *testing.T) {
 				// Use a valid temporary directory for OutDir to avoid path validation errors
 				config.OutDir = filepath.Join(tempDir, "out")
 				// Create the output directory first
-				err := os.MkdirAll(config.OutDir, 0755)
+				err := os.MkdirAll(config.OutDir, 0o755)
 				require.NoError(t, err)
 				_, err = NewWatcher(tempDir, config)
 				assert.NoError(t, err, "watcher creation should not fail on malicious path")
@@ -469,7 +469,7 @@ func TestConfig_SecurityValidation(t *testing.T) {
 				// Use a valid temporary directory for OutDir to avoid path validation errors
 				config.OutDir = filepath.Join(tempDir, "out")
 				// Create the output directory first
-				err := os.MkdirAll(config.OutDir, 0755)
+				err := os.MkdirAll(config.OutDir, 0o755)
 				require.NoError(t, err)
 				watcher, err := NewWatcher(tempDir, config)
 				require.NoError(t, err)
@@ -615,7 +615,7 @@ func TestWindowsPathValidation(t *testing.T) {
 				// Empirically detect if long paths are supported on this system
 				// by attempting to create a long path without the \\?\ prefix
 				parentDir := filepath.Dir(testPath)
-				err := os.MkdirAll(parentDir, 0755)
+				err := os.MkdirAll(parentDir, 0o755)
 
 				if err == nil {
 					// Long paths are enabled on this system (e.g., Windows Server 2022 with long path support)
@@ -632,11 +632,11 @@ func TestWindowsPathValidation(t *testing.T) {
 			if !tt.expectError {
 				// For valid paths, create the file first
 				parentDir := filepath.Dir(testPath)
-				err := os.MkdirAll(parentDir, 0755)
+				err := os.MkdirAll(parentDir, 0o755)
 				require.NoError(t, err)
 
 				testContent := []byte(`{"action": "scale", "target": "test", "replicas": 3}`)
-				err = os.WriteFile(testPath, testContent, 0644)
+				err = os.WriteFile(testPath, testContent, 0o644)
 				require.NoError(t, err)
 			}
 

@@ -352,7 +352,7 @@ const (
 	PriorityNormal = 50
 	PriorityLow    = 10
 
-	// Task types  
+	// Task types
 	TaskTypeReconcile  = "reconcile"
 	TaskTypeValidation = "validation"
 	TaskTypeProcessing = "processing"

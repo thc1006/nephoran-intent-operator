@@ -175,7 +175,6 @@ type ProbeStatus struct {
 // ResourceUtilization represents the resource utilization status.
 
 type ResourceUtilization struct {
-
 	// Resource allocation.
 
 	AllocatedCPU string `json:"allocatedCpu,omitempty"`
@@ -393,7 +392,6 @@ type ComplianceViolation struct {
 	DetectedAt time.Time `json:"detectedAt"`
 
 	Status string `json:"status"` // open, acknowledged, resolved, suppressed
-
 }
 
 // VulnerabilityStatus represents vulnerability scan results.

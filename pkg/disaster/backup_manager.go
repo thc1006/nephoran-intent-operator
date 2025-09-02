@@ -66,14 +66,12 @@ var (
 	// Backup metrics.
 
 	backupOperations = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "backup_operations_total",
 
 		Help: "Total number of backup operations",
 	}, []string{"type", "status"})
 
 	backupDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "backup_duration_seconds",
 
 		Help: "Duration of backup operations",
@@ -83,14 +81,12 @@ var (
 	}, []string{"type"})
 
 	backupSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "backup_size_bytes",
 
 		Help: "Size of backups in bytes",
 	}, []string{"type", "component"})
 
 	backupAge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "backup_age_seconds",
 
 		Help: "Age of the most recent backup",
@@ -122,7 +118,6 @@ type BackupManager struct {
 // BackupConfig holds backup configuration.
 
 type BackupConfig struct {
-
 	// General settings.
 
 	Enabled bool `json:"enabled"`
@@ -180,7 +175,6 @@ type S3BackupConfig struct {
 	Prefix string `json:"prefix"`
 
 	StorageClass string `json:"storage_class"` // STANDARD, IA, GLACIER
-
 }
 
 // WeaviateBackupConfig holds Weaviate backup configuration.
@@ -233,7 +227,6 @@ type ConfigBackupConfig struct {
 	IncludeSecrets bool `json:"include_secrets"`
 
 	SecretMask bool `json:"secret_mask"` // Mask secret values
-
 }
 
 // ResourceType defines which Kubernetes resources to backup.
@@ -274,7 +267,6 @@ type BackupRecord struct {
 	Metadata map[string]interface{} `json:"metadata"`
 
 	RetentionClass string `json:"retention_class"` // daily, weekly, monthly
-
 }
 
 // ComponentBackup represents backup info for a specific component.
@@ -340,11 +332,9 @@ type RetentionPolicy struct {
 // NewBackupManager creates a new backup manager.
 
 func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Interface, logger *slog.Logger) (*BackupManager, error) {
-
 	// Create default backup config if not provided.
 
 	config := &BackupConfig{
-
 		Enabled: true,
 
 		BackupSchedule: "0 2 * * *", // Daily at 2 AM
@@ -356,7 +346,6 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 		StorageProvider: "s3",
 
 		S3Config: S3BackupConfig{
-
 			Bucket: "nephoran-backups",
 
 			Region: "us-west-2",
@@ -367,7 +356,6 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 		},
 
 		WeaviateConfig: WeaviateBackupConfig{
-
 			Endpoint: "http://weaviate:8080",
 
 			BackupID: "nephoran-vector-db",
@@ -380,15 +368,12 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 		},
 
 		GitConfig: GitBackupConfig{
-
 			IncludeHistory: true,
 
 			MaxHistoryDepth: 100,
 
 			Repositories: []GitRepository{
-
 				{
-
 					Name: "nephoran-packages",
 
 					URL: "https://github.com/nephoran/packages.git",
@@ -399,9 +384,7 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 		},
 
 		ConfigBackupConfig: ConfigBackupConfig{
-
 			KubernetesResources: []ResourceType{
-
 				{APIVersion: "nephoran.com/v1", Kind: "NetworkIntent"},
 
 				{APIVersion: "nephoran.com/v1", Kind: "E2NodeSet"},
@@ -436,7 +419,6 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 	}
 
 	bm := &BackupManager{
-
 		logger: logger,
 
 		k8sClient: k8sClient,
@@ -446,7 +428,6 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 		backupHistory: make(map[string][]*BackupRecord),
 
 		retentionPolicy: &RetentionPolicy{
-
 			DailyRetention: config.DailyRetention,
 
 			WeeklyRetention: config.WeeklyRetention,
@@ -458,31 +439,22 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 	// Initialize encryption key.
 
 	if config.EncryptionEnabled {
-
 		if err := bm.initializeEncryption(config.EncryptionKey); err != nil {
-
 			return nil, fmt.Errorf("failed to initialize encryption: %w", err)
-
 		}
-
 	}
 
 	// Initialize S3 client.
 
 	if config.StorageProvider == "s3" {
-
 		if err := bm.initializeS3Client(); err != nil {
-
 			return nil, fmt.Errorf("failed to initialize S3 client: %w", err)
-
 		}
-
 	}
 
 	// Initialize scheduler.
 
 	bm.scheduler = &BackupScheduler{
-
 		manager: bm,
 
 		stopCh: make(chan struct{}),
@@ -491,13 +463,11 @@ func NewBackupManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Int
 	logger.Info("Backup manager initialized successfully")
 
 	return bm, nil
-
 }
 
 // initializeEncryption sets up encryption key.
 
 func (bm *BackupManager) initializeEncryption(keyHex string) error {
-
 	if keyHex == "" {
 
 		// Generate a new key.
@@ -505,9 +475,7 @@ func (bm *BackupManager) initializeEncryption(keyHex string) error {
 		key := make([]byte, 32)
 
 		if _, err := rand.Read(key); err != nil {
-
 			return fmt.Errorf("failed to generate encryption key: %w", err)
-
 		}
 
 		bm.encryptionKey = key
@@ -521,9 +489,7 @@ func (bm *BackupManager) initializeEncryption(keyHex string) error {
 		key := []byte(keyHex)
 
 		if len(key) != 32 {
-
 			return fmt.Errorf("encryption key must be 32 bytes")
-
 		}
 
 		bm.encryptionKey = key
@@ -531,34 +497,27 @@ func (bm *BackupManager) initializeEncryption(keyHex string) error {
 	}
 
 	return nil
-
 }
 
 // initializeS3Client initializes the S3 client.
 
 func (bm *BackupManager) initializeS3Client() error {
-
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 
 		config.WithRegion(bm.config.S3Config.Region),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load AWS config: %w", err)
-
 	}
 
 	bm.s3Client = s3.NewFromConfig(cfg)
 
 	return nil
-
 }
 
 // Start starts the backup manager and scheduler.
 
 func (bm *BackupManager) Start(ctx context.Context) error {
-
 	if !bm.config.Enabled {
 
 		bm.logger.Info("Backup manager is disabled")
@@ -572,15 +531,12 @@ func (bm *BackupManager) Start(ctx context.Context) error {
 	// Start scheduler.
 
 	if err := bm.scheduler.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start backup scheduler: %w", err)
-
 	}
 
 	// Perform initial backup if none exists.
 
 	go func() {
-
 		time.Sleep(1 * time.Minute) // Wait for system to stabilize
 
 		if len(bm.backupHistory["full"]) == 0 {
@@ -588,41 +544,32 @@ func (bm *BackupManager) Start(ctx context.Context) error {
 			bm.logger.Info("No existing backups found, creating initial backup")
 
 			if _, err := bm.CreateFullBackup(ctx); err != nil {
-
 				bm.logger.Error("Failed to create initial backup", "error", err)
-
 			}
 
 		}
-
 	}()
 
 	bm.logger.Info("Backup manager started successfully")
 
 	return nil
-
 }
 
 // CreateFullBackup creates a comprehensive full backup.
 
 func (bm *BackupManager) CreateFullBackup(ctx context.Context) (*BackupRecord, error) {
-
 	return bm.createBackup(ctx, "full")
-
 }
 
 // CreateIncrementalBackup creates an incremental backup.
 
 func (bm *BackupManager) CreateIncrementalBackup(ctx context.Context) (*BackupRecord, error) {
-
 	return bm.createBackup(ctx, "incremental")
-
 }
 
 // createBackup creates a backup of specified type.
 
 func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*BackupRecord, error) {
-
 	start := time.Now()
 
 	backupID := fmt.Sprintf("%s-backup-%d", backupType, start.Unix())
@@ -630,15 +577,12 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 	bm.logger.Info("Starting backup creation", "type", backupType, "id", backupID)
 
 	defer func() {
-
 		backupDuration.WithLabelValues(backupType).Observe(time.Since(start).Seconds())
-
 	}()
 
 	// Create backup record.
 
 	record := &BackupRecord{
-
 		ID: backupID,
 
 		Type: backupType,
@@ -659,7 +603,6 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 
 		fn func(context.Context, *BackupRecord) error
 	}{
-
 		{"weaviate", bm.backupWeaviate},
 
 		{"kubernetes-config", bm.backupKubernetesConfig},
@@ -684,7 +627,6 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 		wg.Add(1)
 
 		go func(name string, backupFn func(context.Context, *BackupRecord) error) {
-
 			defer wg.Done()
 
 			semaphore <- struct{}{} // Acquire semaphore
@@ -702,11 +644,8 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 				errCh <- fmt.Errorf("component %s failed: %w", name, err)
 
 			} else {
-
 				bm.logger.Info("Component backup completed", "component", name, "duration", time.Since(start))
-
 			}
-
 		}(comp.name, comp.fn)
 
 	}
@@ -721,9 +660,7 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 	errors := make([]error, 0, len(components))
 
 	for err := range errCh {
-
 		errors = append(errors, err)
-
 	}
 
 	if len(errors) > 0 {
@@ -769,13 +706,9 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 	// Encrypt if enabled.
 
 	if bm.config.EncryptionEnabled {
-
 		if err := bm.encryptBackup(record); err != nil {
-
 			bm.logger.Error("Failed to encrypt backup", "error", err)
-
 		}
-
 	}
 
 	// Upload to storage.
@@ -793,7 +726,6 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 	// Validate if enabled.
 
 	if bm.config.ValidateAfterBackup {
-
 		if err := bm.validateBackup(ctx, record); err != nil {
 
 			record.Status = "validation_failed"
@@ -803,7 +735,6 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 			return record, fmt.Errorf("backup validation failed: %w", err)
 
 		}
-
 	}
 
 	// Store backup record.
@@ -839,17 +770,14 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 		"duration", record.Duration)
 
 	return record, nil
-
 }
 
 // backupWeaviate creates a backup of the Weaviate vector database.
 
 func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecord) error {
-
 	start := time.Now()
 
 	component := ComponentBackup{
-
 		Name: "weaviate",
 
 		Type: "vector_database",
@@ -872,7 +800,6 @@ func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecor
 	// For now, we'll simulate the backup process.
 
 	err := bm.createWeaviateBackup(ctx, backupPath)
-
 	if err != nil {
 
 		component.Status = "failed"
@@ -890,9 +817,7 @@ func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecor
 	// Get file size.
 
 	if stat, err := os.Stat(backupPath); err == nil {
-
 		component.Size = stat.Size()
-
 	}
 
 	// Compress if enabled.
@@ -904,9 +829,7 @@ func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecor
 		compressedSize, err := bm.compressFile(backupPath, compressedPath)
 
 		if err != nil {
-
 			bm.logger.Error("Failed to compress Weaviate backup", "error", err)
-
 		} else {
 
 			component.CompressedSize = compressedSize
@@ -946,13 +869,11 @@ func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecor
 	bm.logger.Info("Weaviate backup completed", "size", component.Size, "path", component.Path)
 
 	return nil
-
 }
 
 // createWeaviateBackup creates the actual Weaviate backup.
 
 func (bm *BackupManager) createWeaviateBackup(ctx context.Context, backupPath string) error {
-
 	// In a real implementation, this would:.
 
 	// 1. Call Weaviate's backup API: POST /v1/backups/{backend}/{backupId}.
@@ -966,11 +887,8 @@ func (bm *BackupManager) createWeaviateBackup(ctx context.Context, backupPath st
 	// For simulation, create a dummy backup file.
 
 	file, err := os.Create(backupPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create backup file: %w", err)
-
 	}
 
 	defer file.Close()
@@ -996,17 +914,14 @@ func (bm *BackupManager) createWeaviateBackup(ctx context.Context, backupPath st
 	_, err = file.WriteString(data)
 
 	return err
-
 }
 
 // backupKubernetesConfig backs up Kubernetes configurations and secrets.
 
 func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *BackupRecord) error {
-
 	start := time.Now()
 
 	component := ComponentBackup{
-
 		Name: "kubernetes-config",
 
 		Type: "configuration",
@@ -1025,11 +940,8 @@ func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *Bac
 	// Create tar.gz file for all configurations.
 
 	file, err := os.Create(backupPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create backup file: %w", err)
-
 	}
 
 	defer file.Close()
@@ -1047,11 +959,9 @@ func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *Bac
 	// Backup each resource type in each namespace.
 
 	for _, ns := range bm.config.ConfigBackupConfig.Namespaces {
-
 		for _, resourceType := range bm.config.ConfigBackupConfig.KubernetesResources {
 
 			size, err := bm.backupResourceType(ctx, tw, ns, resourceType)
-
 			if err != nil {
 
 				bm.logger.Error("Failed to backup resource type",
@@ -1065,7 +975,6 @@ func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *Bac
 			totalSize += size
 
 		}
-
 	}
 
 	component.Size = totalSize
@@ -1091,13 +1000,11 @@ func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *Bac
 	bm.logger.Info("Kubernetes configuration backup completed", "size", component.Size)
 
 	return nil
-
 }
 
 // backupResourceType backs up a specific resource type.
 
 func (bm *BackupManager) backupResourceType(ctx context.Context, tw *tar.Writer, namespace string, resourceType ResourceType) (int64, error) {
-
 	var totalSize int64
 
 	switch resourceType.Kind {
@@ -1121,9 +1028,7 @@ kind: %s
 		filename := fmt.Sprintf("%s/%s.yaml", namespace, strings.ToLower(resourceType.Kind))
 
 		if err := bm.addToTar(tw, filename, []byte(data)); err != nil {
-
 			return 0, err
-
 		}
 
 		totalSize += int64(len(data))
@@ -1131,29 +1036,21 @@ kind: %s
 	case "ConfigMap":
 
 		configMaps, err := bm.k8sClient.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
-
 		if err != nil {
-
 			return 0, fmt.Errorf("failed to list ConfigMaps: %w", err)
-
 		}
 
 		for _, cm := range configMaps.Items {
 
 			data, err := json.MarshalIndent(cm, "", "  ")
-
 			if err != nil {
-
 				continue
-
 			}
 
 			filename := fmt.Sprintf("%s/configmaps/%s.json", namespace, cm.Name)
 
 			if err := bm.addToTar(tw, filename, data); err != nil {
-
 				return 0, err
-
 			}
 
 			totalSize += int64(len(data))
@@ -1163,17 +1060,12 @@ kind: %s
 	case "Secret":
 
 		if !bm.config.ConfigBackupConfig.IncludeSecrets {
-
 			return 0, nil
-
 		}
 
 		secrets, err := bm.k8sClient.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
-
 		if err != nil {
-
 			return 0, fmt.Errorf("failed to list Secrets: %w", err)
-
 		}
 
 		for _, secret := range secrets.Items {
@@ -1181,29 +1073,20 @@ kind: %s
 			// Mask secret data if configured.
 
 			if bm.config.ConfigBackupConfig.SecretMask {
-
 				for key := range secret.Data {
-
 					secret.Data[key] = []byte("[MASKED]")
-
 				}
-
 			}
 
 			data, err := json.MarshalIndent(secret, "", "  ")
-
 			if err != nil {
-
 				continue
-
 			}
 
 			filename := fmt.Sprintf("%s/secrets/%s.json", namespace, secret.Name)
 
 			if err := bm.addToTar(tw, filename, data); err != nil {
-
 				return 0, err
-
 			}
 
 			totalSize += int64(len(data))
@@ -1213,15 +1096,12 @@ kind: %s
 	}
 
 	return totalSize, nil
-
 }
 
 // addToTar adds a file to the tar archive.
 
 func (bm *BackupManager) addToTar(tw *tar.Writer, filename string, data []byte) error {
-
 	header := &tar.Header{
-
 		Name: filename,
 
 		Size: int64(len(data)),
@@ -1232,25 +1112,20 @@ func (bm *BackupManager) addToTar(tw *tar.Writer, filename string, data []byte) 
 	}
 
 	if err := tw.WriteHeader(header); err != nil {
-
 		return err
-
 	}
 
 	_, err := tw.Write(data)
 
 	return err
-
 }
 
 // backupGitRepositories backs up Git repositories.
 
 func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *BackupRecord) error {
-
 	start := time.Now()
 
 	component := ComponentBackup{
-
 		Name: "git-repositories",
 
 		Type: "source_code",
@@ -1267,9 +1142,7 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 	backupDir := fmt.Sprintf("/tmp/git-backup-%d", start.Unix())
 
 	if err := os.MkdirAll(backupDir, 0o755); err != nil {
-
 		return fmt.Errorf("failed to create backup directory: %w", err)
-
 	}
 
 	defer os.RemoveAll(backupDir)
@@ -1287,13 +1160,11 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 		repoDir := filepath.Join(backupDir, repo.Name)
 
 		size, err := bm.cloneRepository(ctx, repo, repoDir)
-
 		if err != nil {
 
 			bm.logger.Error("Failed to backup repository", "name", repo.Name, "error", err)
 
 			repos[repo.Name] = map[string]interface{}{
-
 				"status": "failed",
 
 				"error": err.Error(),
@@ -1304,7 +1175,6 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 		}
 
 		repos[repo.Name] = map[string]interface{}{
-
 			"status": "success",
 
 			"size": size,
@@ -1323,7 +1193,6 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 	backupPath := fmt.Sprintf("/tmp/git-repositories-backup-%d.tar.gz", start.Unix())
 
 	compressedSize, err := bm.createTarGz(backupDir, backupPath)
-
 	if err != nil {
 
 		component.Status = "failed"
@@ -1361,15 +1230,12 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 	bm.logger.Info("Git repositories backup completed", "size", component.Size, "repos", len(repos))
 
 	return nil
-
 }
 
 // cloneRepository clones a Git repository.
 
 func (bm *BackupManager) cloneRepository(ctx context.Context, repo GitRepository, targetDir string) (int64, error) {
-
 	cloneOptions := &git.CloneOptions{
-
 		URL: repo.URL,
 
 		Progress: nil, // Could add progress reporting
@@ -1377,35 +1243,25 @@ func (bm *BackupManager) cloneRepository(ctx context.Context, repo GitRepository
 	}
 
 	if repo.Branch != "" {
-
 		cloneOptions.ReferenceName = plumbing.ReferenceName("refs/heads/" + repo.Branch)
-
 	}
 
 	// Set depth if not including full history.
 
 	if !bm.config.GitConfig.IncludeHistory {
-
 		cloneOptions.Depth = 1
-
 	} else if bm.config.GitConfig.MaxHistoryDepth > 0 {
-
 		cloneOptions.Depth = bm.config.GitConfig.MaxHistoryDepth
-
 	}
 
 	_, err := git.PlainCloneContext(ctx, targetDir, false, cloneOptions)
-
 	if err != nil {
-
 		return 0, fmt.Errorf("failed to clone repository: %w", err)
-
 	}
 
 	// Calculate directory size.
 
 	size, err := bm.calculateDirectorySize(targetDir)
-
 	if err != nil {
 
 		bm.logger.Warn("Failed to calculate repository size", "error", err)
@@ -1415,7 +1271,6 @@ func (bm *BackupManager) cloneRepository(ctx context.Context, repo GitRepository
 	}
 
 	return size, nil
-
 }
 
 // Helper methods.
@@ -1423,41 +1278,29 @@ func (bm *BackupManager) cloneRepository(ctx context.Context, repo GitRepository
 // calculateDirectorySize calculates the total size of a directory.
 
 func (bm *BackupManager) calculateDirectorySize(dirPath string) (int64, error) {
-
 	var size int64
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-
 		if err != nil {
-
 			return err
-
 		}
 
 		if !info.IsDir() {
-
 			size += info.Size()
-
 		}
 
 		return nil
-
 	})
 
 	return size, err
-
 }
 
 // createTarGz creates a tar.gz archive of a directory.
 
 func (bm *BackupManager) createTarGz(sourceDir, targetPath string) (int64, error) {
-
 	file, err := os.Create(targetPath)
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	defer file.Close()
@@ -1471,95 +1314,68 @@ func (bm *BackupManager) createTarGz(sourceDir, targetPath string) (int64, error
 	defer tw.Close()
 
 	err = filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
-
 		if err != nil {
-
 			return err
-
 		}
 
 		// Create tar header.
 
 		header, err := tar.FileInfoHeader(info, "")
-
 		if err != nil {
-
 			return err
-
 		}
 
 		// Update the name to maintain directory structure.
 
 		relPath, err := filepath.Rel(sourceDir, path)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		header.Name = filepath.ToSlash(relPath)
 
 		if err := tw.WriteHeader(header); err != nil {
-
 			return err
-
 		}
 
 		if !info.IsDir() {
 
 			file, err := os.Open(path)
-
 			if err != nil {
-
 				return err
-
 			}
 
 			defer file.Close()
 
 			_, err = io.Copy(tw, file)
-
 			if err != nil {
-
 				return err
-
 			}
 
 		}
 
 		return nil
-
 	})
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	// Get compressed file size.
 
 	stat, err := os.Stat(targetPath)
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	return stat.Size(), nil
-
 }
 
 // backupPersistentVolumes creates backups/snapshots of persistent volumes.
 
 func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *BackupRecord) error {
-
 	start := time.Now()
 
 	component := ComponentBackup{
-
 		Name: "persistent-volumes",
 
 		Type: "storage",
@@ -1582,7 +1398,6 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 	for _, ns := range bm.config.ConfigBackupConfig.Namespaces {
 
 		pvcList, err := bm.k8sClient.CoreV1().PersistentVolumeClaims(ns).List(ctx, metav1.ListOptions{})
-
 		if err != nil {
 
 			bm.logger.Error("Failed to list PVCs", "namespace", ns, "error", err)
@@ -1592,7 +1407,6 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 		}
 
 		for _, pvc := range pvcList.Items {
-
 			// Get PVC size.
 
 			if capacity, exists := pvc.Status.Capacity["storage"]; exists {
@@ -1602,7 +1416,6 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 				totalSize += size
 
 				pvcs[fmt.Sprintf("%s/%s", ns, pvc.Name)] = map[string]interface{}{
-
 					"size": size,
 
 					"storage_class": pvc.Spec.StorageClassName,
@@ -1613,7 +1426,6 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 				}
 
 			}
-
 		}
 
 	}
@@ -1625,7 +1437,6 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 	backupPath := fmt.Sprintf("/tmp/pv-backup-metadata-%d.json", start.Unix())
 
 	metadata := map[string]interface{}{
-
 		"timestamp": time.Now().Format(time.RFC3339),
 
 		"pvcs": pvcs,
@@ -1634,17 +1445,12 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 	}
 
 	data, err := json.MarshalIndent(metadata, "", "  ")
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal PV metadata: %w", err)
-
 	}
 
 	if err := os.WriteFile(backupPath, data, 0o640); err != nil {
-
 		return fmt.Errorf("failed to write PV backup metadata: %w", err)
-
 	}
 
 	component.Size = totalSize
@@ -1670,17 +1476,14 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 	bm.logger.Info("Persistent volumes backup completed", "pvc_count", len(pvcs), "total_size", totalSize)
 
 	return nil
-
 }
 
 // backupSystemState backs up system state and metadata.
 
 func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRecord) error {
-
 	start := time.Now()
 
 	component := ComponentBackup{
-
 		Name: "system-state",
 
 		Type: "metadata",
@@ -1697,7 +1500,6 @@ func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRe
 	// Collect system state information.
 
 	systemState := map[string]interface{}{
-
 		"timestamp": time.Now().Format(time.RFC3339),
 
 		"cluster_info": bm.getClusterInfo(ctx),
@@ -1712,19 +1514,14 @@ func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRe
 	}
 
 	data, err := json.MarshalIndent(systemState, "", "  ")
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal system state: %w", err)
-
 	}
 
 	backupPath := fmt.Sprintf("/tmp/system-state-backup-%d.json", start.Unix())
 
 	if err := os.WriteFile(backupPath, data, 0o640); err != nil {
-
 		return fmt.Errorf("failed to write system state backup: %w", err)
-
 	}
 
 	component.Size = int64(len(data))
@@ -1746,21 +1543,17 @@ func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRe
 	bm.logger.Info("System state backup completed", "size", component.Size)
 
 	return nil
-
 }
 
 // getClusterInfo collects cluster information.
 
 func (bm *BackupManager) getClusterInfo(ctx context.Context) map[string]interface{} {
-
 	info := make(map[string]interface{})
 
 	// Get server version.
 
 	if version, err := bm.k8sClient.Discovery().ServerVersion(); err == nil {
-
 		info["kubernetes_version"] = version
-
 	}
 
 	// Get API resources (sample).
@@ -1768,17 +1561,14 @@ func (bm *BackupManager) getClusterInfo(ctx context.Context) map[string]interfac
 	info["api_discovery_timestamp"] = time.Now().Format(time.RFC3339)
 
 	return info
-
 }
 
 // getNodeInfo collects node information.
 
 func (bm *BackupManager) getNodeInfo(ctx context.Context) map[string]interface{} {
-
 	info := make(map[string]interface{})
 
 	nodes, err := bm.k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
 
 		info["error"] = err.Error()
@@ -1792,7 +1582,6 @@ func (bm *BackupManager) getNodeInfo(ctx context.Context) map[string]interface{}
 	for _, node := range nodes.Items {
 
 		nodeInfo := map[string]interface{}{
-
 			"name": node.Name,
 
 			"ready": isNodeReady(node),
@@ -1809,35 +1598,26 @@ func (bm *BackupManager) getNodeInfo(ctx context.Context) map[string]interface{}
 	info["node_count"] = len(nodeList)
 
 	return info
-
 }
 
 // isNodeReady checks if a node is ready.
 
 func isNodeReady(node corev1.Node) bool {
-
 	for _, condition := range node.Status.Conditions {
-
 		if condition.Type == corev1.NodeReady {
-
 			return condition.Status == corev1.ConditionTrue
-
 		}
-
 	}
 
 	return false
-
 }
 
 // getNamespaceInfo collects namespace information.
 
 func (bm *BackupManager) getNamespaceInfo(ctx context.Context) map[string]interface{} {
-
 	info := make(map[string]interface{})
 
 	namespaces, err := bm.k8sClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-
 	if err != nil {
 
 		info["error"] = err.Error()
@@ -1849,9 +1629,7 @@ func (bm *BackupManager) getNamespaceInfo(ctx context.Context) map[string]interf
 	nsList := make([]string, 0, len(namespaces.Items))
 
 	for _, ns := range namespaces.Items {
-
 		nsList = append(nsList, ns.Name)
-
 	}
 
 	info["namespaces"] = nsList
@@ -1859,29 +1637,21 @@ func (bm *BackupManager) getNamespaceInfo(ctx context.Context) map[string]interf
 	info["namespace_count"] = len(nsList)
 
 	return info
-
 }
 
 // compressFile compresses a file using gzip.
 
 func (bm *BackupManager) compressFile(sourceFile, targetFile string) (int64, error) {
-
 	src, err := os.Open(sourceFile)
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	defer src.Close()
 
 	dst, err := os.Create(targetFile)
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	defer dst.Close()
@@ -1891,23 +1661,17 @@ func (bm *BackupManager) compressFile(sourceFile, targetFile string) (int64, err
 	defer gw.Close()
 
 	written, err := io.Copy(gw, src)
-
 	if err != nil {
-
 		return 0, err
-
 	}
 
 	return written, nil
-
 }
 
 // calculateFileChecksum calculates SHA256 checksum of a file.
 
 func (bm *BackupManager) calculateFileChecksum(filePath string) string {
-
 	file, err := os.Open(filePath)
-
 	if err != nil {
 
 		bm.logger.Error("Failed to open file for checksum", "path", filePath, "error", err)
@@ -1929,13 +1693,11 @@ func (bm *BackupManager) calculateFileChecksum(filePath string) string {
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil))
-
 }
 
 // calculateBackupChecksum calculates overall backup checksum.
 
 func (bm *BackupManager) calculateBackupChecksum(record *BackupRecord) string {
-
 	hash := sha256.New()
 
 	// Include backup metadata in checksum.
@@ -1947,33 +1709,24 @@ func (bm *BackupManager) calculateBackupChecksum(record *BackupRecord) string {
 	// Include component checksums.
 
 	for name, comp := range record.Components {
-
 		fmt.Fprintf(hash, "%s:%s", name, comp.Checksum)
-
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil))
-
 }
 
 // encryptBackup encrypts backup data.
 
 func (bm *BackupManager) encryptBackup(record *BackupRecord) error {
-
 	if len(bm.encryptionKey) == 0 {
-
 		return fmt.Errorf("encryption key not initialized")
-
 	}
 
 	// Create AES cipher.
 
 	block, err := aes.NewCipher(bm.encryptionKey)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create cipher: %w", err)
-
 	}
 
 	// Generate IV.
@@ -1981,19 +1734,14 @@ func (bm *BackupManager) encryptBackup(record *BackupRecord) error {
 	iv := make([]byte, aes.BlockSize)
 
 	if _, err := rand.Read(iv); err != nil {
-
 		return fmt.Errorf("failed to generate IV: %w", err)
-
 	}
 
 	// Create GCM mode.
 
 	_, err = cipher.NewGCM(block)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create GCM: %w", err)
-
 	}
 
 	// Store encryption info.
@@ -2001,7 +1749,6 @@ func (bm *BackupManager) encryptBackup(record *BackupRecord) error {
 	keyHash := sha256.Sum256(bm.encryptionKey)
 
 	record.EncryptionInfo = &EncryptionInfo{
-
 		Algorithm: "AES-256-GCM",
 
 		KeyHash: fmt.Sprintf("%x", keyHash),
@@ -2012,13 +1759,11 @@ func (bm *BackupManager) encryptBackup(record *BackupRecord) error {
 	bm.logger.Info("Backup encrypted successfully", "algorithm", "AES-256-GCM")
 
 	return nil
-
 }
 
 // uploadBackup uploads backup to configured storage.
 
 func (bm *BackupManager) uploadBackup(ctx context.Context, record *BackupRecord) error {
-
 	switch bm.config.StorageProvider {
 
 	case "s3":
@@ -2038,17 +1783,13 @@ func (bm *BackupManager) uploadBackup(ctx context.Context, record *BackupRecord)
 		return fmt.Errorf("unsupported storage provider: %s", bm.config.StorageProvider)
 
 	}
-
 }
 
 // uploadToS3 uploads backup to Amazon S3.
 
 func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) error {
-
 	if bm.s3Client == nil {
-
 		return fmt.Errorf("S3 client not initialized")
-
 	}
 
 	// Upload each component file.
@@ -2056,9 +1797,7 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 	for name, comp := range record.Components {
 
 		if comp.Path == "" {
-
 			continue
-
 		}
 
 		key := fmt.Sprintf("%s/%s/%s/%s", bm.config.S3Config.Prefix, record.Type, record.ID, name)
@@ -2066,15 +1805,11 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 		bm.logger.Info("Uploading component to S3", "component", name, "key", key)
 
 		file, err := os.Open(comp.Path)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to open component file %s: %w", comp.Path, err)
-
 		}
 
 		_, err = bm.s3Client.PutObject(ctx, &s3.PutObjectInput{
-
 			Bucket: aws.String(bm.config.S3Config.Bucket),
 
 			Key: aws.String(key),
@@ -2087,9 +1822,7 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 		file.Close()
 
 		if err != nil {
-
 			return fmt.Errorf("failed to upload component %s to S3: %w", name, err)
-
 		}
 
 		// Update component with S3 path.
@@ -2105,15 +1838,11 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 	metadataKey := fmt.Sprintf("%s/%s/%s/metadata.json", bm.config.S3Config.Prefix, record.Type, record.ID)
 
 	metadataData, err := json.MarshalIndent(record, "", "  ")
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal backup metadata: %w", err)
-
 	}
 
 	_, err = bm.s3Client.PutObject(ctx, &s3.PutObjectInput{
-
 		Bucket: aws.String(bm.config.S3Config.Bucket),
 
 		Key: aws.String(metadataKey),
@@ -2122,11 +1851,8 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 
 		StorageClass: types.StorageClass(bm.config.S3Config.StorageClass),
 	})
-
 	if err != nil {
-
 		return fmt.Errorf("failed to upload backup metadata to S3: %w", err)
-
 	}
 
 	record.StoragePath = fmt.Sprintf("s3://%s/%s", bm.config.S3Config.Bucket, metadataKey)
@@ -2134,75 +1860,55 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 	bm.logger.Info("Backup uploaded to S3 successfully", "path", record.StoragePath)
 
 	return nil
-
 }
 
 // Placeholder methods for other storage providers.
 
 func (bm *BackupManager) uploadToGCS(ctx context.Context, record *BackupRecord) error {
-
 	return fmt.Errorf("GCS upload not implemented yet")
-
 }
 
 func (bm *BackupManager) uploadToAzure(ctx context.Context, record *BackupRecord) error {
-
 	return fmt.Errorf("Azure upload not implemented yet")
-
 }
 
 // validateBackup validates backup integrity.
 
 func (bm *BackupManager) validateBackup(ctx context.Context, record *BackupRecord) error {
-
 	bm.logger.Info("Validating backup", "id", record.ID)
 
 	// Validate checksums.
 
 	if bm.config.ChecksumValidation {
-
 		for name, comp := range record.Components {
-
 			if comp.Checksum == "" {
-
 				return fmt.Errorf("component %s missing checksum", name)
-
 			}
-
 		}
-
 	}
 
 	// Validate backup completeness.
 
 	if record.Checksum == "" {
-
 		return fmt.Errorf("backup missing overall checksum")
-
 	}
 
 	// Validate component status.
 
 	for name, comp := range record.Components {
-
 		if comp.Status != "completed" {
-
 			return fmt.Errorf("component %s not completed: %s", name, comp.Status)
-
 		}
-
 	}
 
 	bm.logger.Info("Backup validation completed successfully", "id", record.ID)
 
 	return nil
-
 }
 
 // cleanupOldBackups removes old backups based on retention policy.
 
 func (bm *BackupManager) cleanupOldBackups(ctx context.Context, backupType string) {
-
 	bm.mu.Lock()
 
 	defer bm.mu.Unlock()
@@ -2210,9 +1916,7 @@ func (bm *BackupManager) cleanupOldBackups(ctx context.Context, backupType strin
 	backups := bm.backupHistory[backupType]
 
 	if len(backups) == 0 {
-
 		return
-
 	}
 
 	// Sort backups by date (newest first).
@@ -2242,9 +1946,7 @@ func (bm *BackupManager) cleanupOldBackups(ctx context.Context, backupType strin
 	}
 
 	if len(backups) <= retention {
-
 		return
-
 	}
 
 	// Delete old backups.
@@ -2256,9 +1958,7 @@ func (bm *BackupManager) cleanupOldBackups(ctx context.Context, backupType strin
 		bm.logger.Info("Deleting old backup", "id", backup.ID, "type", backupType)
 
 		if err := bm.deleteBackup(ctx, backup); err != nil {
-
 			bm.logger.Error("Failed to delete backup", "id", backup.ID, "error", err)
-
 		}
 
 	}
@@ -2266,13 +1966,11 @@ func (bm *BackupManager) cleanupOldBackups(ctx context.Context, backupType strin
 	// Update backup history.
 
 	bm.backupHistory[backupType] = backups[len(backups)-retention:]
-
 }
 
 // deleteBackup deletes a backup from storage.
 
 func (bm *BackupManager) deleteBackup(ctx context.Context, record *BackupRecord) error {
-
 	switch bm.config.StorageProvider {
 
 	case "s3":
@@ -2284,17 +1982,13 @@ func (bm *BackupManager) deleteBackup(ctx context.Context, record *BackupRecord)
 		return fmt.Errorf("delete not implemented for provider: %s", bm.config.StorageProvider)
 
 	}
-
 }
 
 // deleteFromS3 deletes backup from S3.
 
 func (bm *BackupManager) deleteFromS3(ctx context.Context, record *BackupRecord) error {
-
 	if bm.s3Client == nil {
-
 		return fmt.Errorf("S3 client not initialized")
-
 	}
 
 	// Delete all objects with the backup prefix.
@@ -2304,16 +1998,12 @@ func (bm *BackupManager) deleteFromS3(ctx context.Context, record *BackupRecord)
 	// List objects to delete.
 
 	listResult, err := bm.s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-
 		Bucket: aws.String(bm.config.S3Config.Bucket),
 
 		Prefix: aws.String(prefix),
 	})
-
 	if err != nil {
-
 		return fmt.Errorf("failed to list objects for deletion: %w", err)
-
 	}
 
 	// Delete each object.
@@ -2321,22 +2011,17 @@ func (bm *BackupManager) deleteFromS3(ctx context.Context, record *BackupRecord)
 	for _, obj := range listResult.Contents {
 
 		_, err := bm.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-
 			Bucket: aws.String(bm.config.S3Config.Bucket),
 
 			Key: obj.Key,
 		})
-
 		if err != nil {
-
 			return fmt.Errorf("failed to delete object %s: %w", *obj.Key, err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // BackupScheduler methods.
@@ -2344,15 +2029,12 @@ func (bm *BackupManager) deleteFromS3(ctx context.Context, record *BackupRecord)
 // Start starts the backup scheduler.
 
 func (bs *BackupScheduler) Start(ctx context.Context) error {
-
 	bs.mu.Lock()
 
 	defer bs.mu.Unlock()
 
 	if bs.isRunning {
-
 		return fmt.Errorf("backup scheduler is already running")
-
 	}
 
 	// Parse cron schedule (simplified implementation).
@@ -2370,15 +2052,12 @@ func (bs *BackupScheduler) Start(ctx context.Context) error {
 	bs.manager.logger.Info("Backup scheduler started", "interval", interval)
 
 	return nil
-
 }
 
 // run runs the backup scheduler.
 
 func (bs *BackupScheduler) run(ctx context.Context) {
-
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -2400,23 +2079,17 @@ func (bs *BackupScheduler) run(ctx context.Context) {
 			backupType := bs.determineBackupType()
 
 			_, err := bs.manager.createBackup(ctx, backupType)
-
 			if err != nil {
-
 				bs.manager.logger.Error("Scheduled backup failed", "type", backupType, "error", err)
-
 			}
 
 		}
-
 	}
-
 }
 
 // determineBackupType determines the type of backup to create.
 
 func (bs *BackupScheduler) determineBackupType() string {
-
 	now := time.Now()
 
 	// Simple logic - in real implementation, this would be more sophisticated.
@@ -2436,21 +2109,17 @@ func (bs *BackupScheduler) determineBackupType() string {
 		return "daily"
 
 	}
-
 }
 
 // stop stops the backup scheduler.
 
 func (bs *BackupScheduler) stop() {
-
 	bs.mu.Lock()
 
 	defer bs.mu.Unlock()
 
 	if !bs.isRunning {
-
 		return
-
 	}
 
 	bs.ticker.Stop()
@@ -2460,5 +2129,4 @@ func (bs *BackupScheduler) stop() {
 	bs.isRunning = false
 
 	bs.manager.logger.Info("Backup scheduler stopped")
-
 }

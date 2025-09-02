@@ -30,7 +30,7 @@ func TestMainIntegration(t *testing.T) {
 	}
 
 	intentFile := filepath.Join(tmpDir, "test-intent.json")
-	if err := os.WriteFile(intentFile, intentJSON, 0644); err != nil {
+	if err := os.WriteFile(intentFile, intentJSON, 0o644); err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
 
@@ -107,7 +107,7 @@ spec:
 
 		invalidJSON, _ := json.Marshal(invalidIntent)
 		invalidFile := filepath.Join(tmpDir, "invalid-intent.json")
-		if err := os.WriteFile(invalidFile, invalidJSON, 0644); err != nil {
+		if err := os.WriteFile(invalidFile, invalidJSON, 0o644); err != nil {
 			t.Fatalf("Failed to write test file: %v", err)
 		}
 

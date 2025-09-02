@@ -95,7 +95,6 @@ func TestProcessIntentWithRetryRobustness(t *testing.T) {
 
 	ctx := context.Background()
 	response, err := client.ProcessIntent(ctx, "deploy test network function")
-
 	if err != nil {
 		t.Errorf("Expected successful retry, got error: %v", err)
 	}
@@ -333,7 +332,6 @@ func TestFallbackURLs(t *testing.T) {
 
 	ctx := context.Background()
 	response, err := client.ProcessIntent(ctx, "deploy test")
-
 	if err != nil {
 		t.Errorf("Expected fallback to succeed, got error: %v", err)
 	}
@@ -380,7 +378,6 @@ func TestLoggingLevels(t *testing.T) {
 
 	// Process intent - logging should truncate at Debug level
 	response, err := client.ProcessIntent(ctx, "deploy test with very long description")
-
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

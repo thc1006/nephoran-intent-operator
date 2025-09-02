@@ -190,7 +190,6 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 					Name:      serviceName,
 					Namespace: namespace,
 				}, &service)
-
 				if err != nil {
 					By(fmt.Sprintf("Service %s not found - may not be deployed in test environment", serviceName))
 					continue
@@ -314,7 +313,6 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 					Name:      sourceService + "-client-cert",
 					Namespace: namespace,
 				}, &sourceSecret)
-
 				if err != nil {
 					By(fmt.Sprintf("Client certificate for %s not found - may not use mTLS", sourceService))
 					continue

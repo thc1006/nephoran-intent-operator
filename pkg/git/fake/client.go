@@ -9,15 +9,15 @@ import (
 // Client implements a fake git.ClientInterface for testing
 type Client struct {
 	// Track method calls for test verification
-	CommitAndPushCalls      int
+	CommitAndPushCalls        int
 	CommitAndPushChangesCalls int
-	InitRepoCalls           int
-	RemoveDirectoryCalls    int
-	
+	InitRepoCalls             int
+	RemoveDirectoryCalls      int
+
 	// Control return values
 	ShouldFailCommitAndPush bool
-	ShouldFailInit         bool
-	CommitHash             string
+	ShouldFailInit          bool
+	CommitHash              string
 }
 
 // NewClient creates a new fake git client
@@ -60,7 +60,7 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	return nil
 }
 
-// CommitFiles implements git.ClientInterface  
+// CommitFiles implements git.ClientInterface
 func (c *Client) CommitFiles(files []string, message string) error {
 	// Fake implementation for testing - just track the call
 	if c.ShouldFailCommitAndPush {

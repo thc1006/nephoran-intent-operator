@@ -51,7 +51,6 @@ import (
 // Provides a centralized factory for creating and configuring the complete system.
 
 type SystemFactory interface {
-
 	// Core component creation.
 
 	CreatePorchClient(ctx context.Context, config *porch.ClientConfig) (porch.PorchClient, error)
@@ -108,7 +107,6 @@ type SystemComponents struct {
 // SystemConfig contains configuration for the complete system.
 
 type SystemConfig struct {
-
 	// Component configurations.
 
 	PorchConfig *porch.ClientConfig `yaml:"porch"`
@@ -360,7 +358,6 @@ type TelemetryEndpoint struct {
 	Credentials map[string]string `yaml:"credentials"`
 
 	Format string `yaml:"format"` // json, xml, protobuf
-
 }
 
 // PackageRevisionSystem represents a complete configured system.
@@ -468,9 +465,7 @@ type SystemMetrics struct {
 // NewSystemFactory creates a new system factory.
 
 func NewSystemFactory() SystemFactory {
-
 	return &systemFactory{
-
 		logger: log.Log.WithName("packagerevision-factory"),
 
 		components: make(map[string]interface{}),
@@ -479,13 +474,11 @@ func NewSystemFactory() SystemFactory {
 
 		shutdown: make(chan struct{}),
 	}
-
 }
 
 // CreateCompleteSystem creates a complete PackageRevision system with all components.
 
 func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *SystemConfig) (*PackageRevisionSystem, error) {
-
 	f.logger.Info("Creating complete PackageRevision system",
 
 		"systemName", systemConfig.SystemName,
@@ -497,9 +490,7 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	// Validate system configuration.
 
 	if err := f.validateSystemConfig(systemConfig); err != nil {
-
 		return nil, fmt.Errorf("invalid system configuration: %w", err)
-
 	}
 
 	// Apply default configurations for nil components.
@@ -509,47 +500,34 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	// Create YANG validator first (required by template engine).
 
 	yangValidator, err := f.CreateYANGValidator(ctx, systemConfig.YANGConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create YANG validator: %w", err)
-
 	}
 
 	// Create template engine.
 
 	templateEngine, err := f.CreateTemplateEngine(ctx, yangValidator, systemConfig.TemplateConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create template engine: %w", err)
-
 	}
 
 	// Create Porch client.
 
 	porchClient, err := f.CreatePorchClient(ctx, systemConfig.PorchConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Porch client: %w", err)
-
 	}
 
 	// Create lifecycle manager.
 
 	lifecycleManager, err := f.CreateLifecycleManager(ctx, porchClient, systemConfig.LifecycleConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create lifecycle manager: %w", err)
-
 	}
 
 	// Create system components.
 
 	components := &SystemComponents{
-
 		PorchClient: porchClient,
 
 		LifecycleManager: lifecycleManager,
@@ -562,11 +540,8 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	// Create package revision manager.
 
 	packageManager, err := f.CreatePackageRevisionManager(ctx, components, systemConfig.PackageManagerConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create package revision manager: %w", err)
-
 	}
 
 	components.PackageManager = packageManager
@@ -574,7 +549,6 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	// Create system with initial health check.
 
 	system := &PackageRevisionSystem{
-
 		Config: systemConfig,
 
 		Components: components,
@@ -587,13 +561,11 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	// Perform initial health check.
 
 	health, err := f.performSystemHealthCheck(ctx, system)
-
 	if err != nil {
 
 		f.logger.Error(err, "Initial health check failed, but system created")
 
 		health = &SystemHealth{
-
 			Status: "unhealthy",
 
 			LastCheck: time.Now(),
@@ -610,9 +582,7 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	// Initialize external integrations if configured.
 
 	if err := f.initializeIntegrations(ctx, system); err != nil {
-
 		f.logger.Error(err, "Failed to initialize some external integrations")
-
 	}
 
 	// Register system for management.
@@ -630,50 +600,40 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 		"duration", time.Since(startTime))
 
 	return system, nil
-
 }
 
 // CreatePorchClient creates and configures a Porch client.
 
 func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.ClientConfig) (porch.PorchClient, error) {
-
 	f.logger.Info("Creating Porch client", "endpoint", config.Endpoint)
 
 	opts := porch.ClientOptions{
-
 		Config: config,
 
 		Logger: f.logger,
 	}
 
 	client, err := porch.NewClient(opts)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create Porch client: %w", err)
-
 	}
 
 	// Test connectivity.
 
 	if _, err := client.Health(ctx); err != nil {
-
 		f.logger.Error(err, "Porch client health check failed")
 
 		// Continue even if health check fails for now.
-
 	}
 
 	f.components["porch-client"] = client
 
 	return client, nil
-
 }
 
 // CreateLifecycleManager creates and configures a lifecycle manager.
 
 func (f *systemFactory) CreateLifecycleManager(ctx context.Context, client porch.PorchClient, config *porch.LifecycleManagerConfig) (porch.LifecycleManager, error) {
-
 	f.logger.Info("Creating lifecycle manager")
 
 	// Type assert PorchClient to *Client for NewLifecycleManager.
@@ -681,69 +641,52 @@ func (f *systemFactory) CreateLifecycleManager(ctx context.Context, client porch
 	clientImpl, ok := client.(*porch.Client)
 
 	if !ok {
-
 		return nil, fmt.Errorf("client must be *porch.Client, got %T", client)
-
 	}
 
 	lifecycleManager, err := porch.NewLifecycleManager(clientImpl, config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create lifecycle manager: %w", err)
-
 	}
 
 	f.components["lifecycle-manager"] = lifecycleManager
 
 	return lifecycleManager, nil
-
 }
 
 // CreateTemplateEngine creates and configures a template engine.
 
 func (f *systemFactory) CreateTemplateEngine(ctx context.Context, yangValidator yang.YANGValidator, config *templates.EngineConfig) (templates.TemplateEngine, error) {
-
 	f.logger.Info("Creating template engine")
 
 	templateEngine, err := templates.NewTemplateEngine(yangValidator, config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create template engine: %w", err)
-
 	}
 
 	f.components["template-engine"] = templateEngine
 
 	return templateEngine, nil
-
 }
 
 // CreateYANGValidator creates and configures a YANG validator.
 
 func (f *systemFactory) CreateYANGValidator(ctx context.Context, config *yang.ValidatorConfig) (yang.YANGValidator, error) {
-
 	f.logger.Info("Creating YANG validator")
 
 	yangValidator, err := yang.NewYANGValidator(config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create YANG validator: %w", err)
-
 	}
 
 	f.components["yang-validator"] = yangValidator
 
 	return yangValidator, nil
-
 }
 
 // CreatePackageRevisionManager creates and configures a package revision manager.
 
 func (f *systemFactory) CreatePackageRevisionManager(ctx context.Context, components *SystemComponents, config *ManagerConfig) (PackageRevisionManager, error) {
-
 	f.logger.Info("Creating package revision manager")
 
 	packageManager, err := NewPackageRevisionManager(
@@ -758,23 +701,18 @@ func (f *systemFactory) CreatePackageRevisionManager(ctx context.Context, compon
 
 		config,
 	)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create package revision manager: %w", err)
-
 	}
 
 	f.components["package-manager"] = packageManager
 
 	return packageManager, nil
-
 }
 
 // CreateNetworkIntentIntegration creates the NetworkIntent integration reconciler.
 
 func (f *systemFactory) CreateNetworkIntentIntegration(ctx context.Context, k8sClient client.Client, scheme *runtime.Scheme, system *PackageRevisionSystem, config *IntegrationConfig) (*NetworkIntentPackageReconciler, error) {
-
 	f.logger.Info("Creating NetworkIntent integration")
 
 	reconciler := NewNetworkIntentPackageReconciler(
@@ -797,23 +735,18 @@ func (f *systemFactory) CreateNetworkIntentIntegration(ctx context.Context, k8sC
 	)
 
 	return reconciler, nil
-
 }
 
 // SetupWithManager sets up the complete system with a controller manager.
 
 func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
-
 	factory := NewSystemFactory()
 
 	// Create the complete system.
 
 	system, err := factory.CreateCompleteSystem(context.Background(), systemConfig)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create PackageRevision system: %w", err)
-
 	}
 
 	// Create and setup the NetworkIntent integration.
@@ -830,75 +763,52 @@ func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 
 		systemConfig.IntegrationConfig,
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create NetworkIntent integration: %w", err)
-
 	}
 
 	// Setup the reconciler with the manager.
 
 	if err := reconciler.SetupWithManager(mgr); err != nil {
-
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // Helper methods.
 
 func (f *systemFactory) validateSystemConfig(config *SystemConfig) error {
-
 	if config.SystemName == "" {
-
 		return fmt.Errorf("system name is required")
-
 	}
 
 	if config.PorchConfig == nil {
-
 		return fmt.Errorf("Porch configuration is required")
-
 	}
 
 	if config.PorchConfig.Endpoint == "" {
-
 		return fmt.Errorf("Porch endpoint is required")
-
 	}
 
 	return nil
-
 }
 
 func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
-
 	if config.Environment == "" {
-
 		config.Environment = "development"
-
 	}
 
 	if config.LogLevel == "" {
-
 		config.LogLevel = "info"
-
 	}
 
 	if config.GracefulShutdownTimeout == 0 {
-
 		config.GracefulShutdownTimeout = 30 * time.Second
-
 	}
 
 	if config.LifecycleConfig == nil {
-
 		config.LifecycleConfig = &porch.LifecycleManagerConfig{
-
 			EventQueueSize: 1000,
 
 			EventWorkers: 5,
@@ -909,13 +819,10 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 			EnableMetrics: true,
 		}
-
 	}
 
 	if config.YANGConfig == nil {
-
 		config.YANGConfig = &yang.ValidatorConfig{
-
 			EnableConstraintValidation: true,
 
 			EnableDataTypeValidation: true,
@@ -932,13 +839,10 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 			EnableMetrics: true,
 		}
-
 	}
 
 	if config.TemplateConfig == nil {
-
 		config.TemplateConfig = &templates.EngineConfig{
-
 			TemplateRepository: "https://github.com/nephoran/templates.git",
 
 			RepositoryBranch: "main",
@@ -957,25 +861,18 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 			EnableMetrics: true,
 		}
-
 	}
 
 	if config.PackageManagerConfig == nil {
-
 		config.PackageManagerConfig = getDefaultManagerConfig()
-
 	}
 
 	if config.IntegrationConfig == nil {
-
 		config.IntegrationConfig = GetDefaultIntegrationConfig()
-
 	}
 
 	if config.Features == nil {
-
 		config.Features = &FeatureFlags{
-
 			EnableORANCompliance: true,
 
 			Enable3GPPValidation: true,
@@ -994,17 +891,13 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 
 			EnableMLOptimization: false,
 		}
-
 	}
 
 	return config
-
 }
 
 func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *PackageRevisionSystem) (*SystemHealth, error) {
-
 	health := &SystemHealth{
-
 		Status: "healthy",
 
 		Components: make(map[string]ComponentHealth),
@@ -1027,7 +920,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Status = "degraded"
 
 		health.Components["porch-client"] = ComponentHealth{
-
 			Status: "unhealthy",
 
 			LastCheck: time.Now(),
@@ -1036,9 +928,7 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		}
 
 	} else {
-
 		health.Components["porch-client"] = ComponentHealth{
-
 			Status: "healthy",
 
 			LastCheck: time.Now(),
@@ -1046,7 +936,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 			// Note: HealthStatus doesn't have Version field.
 
 		}
-
 	}
 
 	// Check lifecycle manager health.
@@ -1056,7 +945,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Status = "degraded"
 
 		health.Components["lifecycle-manager"] = ComponentHealth{
-
 			Status: "unhealthy",
 
 			LastCheck: time.Now(),
@@ -1065,14 +953,11 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		}
 
 	} else {
-
 		health.Components["lifecycle-manager"] = ComponentHealth{
-
 			Status: lifecycleHealth.Status,
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	// Check template engine health.
@@ -1082,7 +967,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Status = "degraded"
 
 		health.Components["template-engine"] = ComponentHealth{
-
 			Status: "unhealthy",
 
 			LastCheck: time.Now(),
@@ -1091,14 +975,11 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		}
 
 	} else {
-
 		health.Components["template-engine"] = ComponentHealth{
-
 			Status: templateHealth.Status,
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	// Check YANG validator health.
@@ -1108,7 +989,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Status = "degraded"
 
 		health.Components["yang-validator"] = ComponentHealth{
-
 			Status: "unhealthy",
 
 			LastCheck: time.Now(),
@@ -1117,14 +997,11 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		}
 
 	} else {
-
 		health.Components["yang-validator"] = ComponentHealth{
-
 			Status: yangHealth.Status,
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	// Check package manager health.
@@ -1134,7 +1011,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Status = "degraded"
 
 		health.Components["package-manager"] = ComponentHealth{
-
 			Status: "unhealthy",
 
 			LastCheck: time.Now(),
@@ -1143,86 +1019,63 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		}
 
 	} else {
-
 		health.Components["package-manager"] = ComponentHealth{
-
 			Status: managerHealth.Status,
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	return health, nil
-
 }
 
 func (f *systemFactory) initializeIntegrations(ctx context.Context, system *PackageRevisionSystem) error {
-
 	if system.Config.Integrations == nil {
-
 		return nil
-
 	}
 
 	// Initialize GitOps integration.
 
 	if system.Config.Integrations.GitOps != nil {
-
 		if err := f.initializeGitOpsIntegration(ctx, system.Config.Integrations.GitOps); err != nil {
-
 			f.logger.Error(err, "Failed to initialize GitOps integration")
-
 		}
-
 	}
 
 	// Initialize monitoring integration.
 
 	if system.Config.Integrations.Monitoring != nil {
-
 		if err := f.initializeMonitoringIntegration(ctx, system.Config.Integrations.Monitoring); err != nil {
-
 			f.logger.Error(err, "Failed to initialize monitoring integration")
-
 		}
-
 	}
 
 	// Initialize other integrations...
 
 	return nil
-
 }
 
 func (f *systemFactory) initializeGitOpsIntegration(ctx context.Context, config *GitOpsIntegration) error {
-
 	f.logger.Info("Initializing GitOps integration", "provider", config.Provider)
 
 	// Implementation would set up GitOps integration.
 
 	return nil
-
 }
 
 func (f *systemFactory) initializeMonitoringIntegration(ctx context.Context, config *MonitoringIntegration) error {
-
 	f.logger.Info("Initializing monitoring integration")
 
 	// Implementation would set up monitoring integration.
 
 	return nil
-
 }
 
 // GetSystemHealth returns the current system health.
 
 func (f *systemFactory) GetSystemHealth(ctx context.Context) (*SystemHealth, error) {
-
 	if len(f.systems) == 0 {
-
 		return &SystemHealth{Status: "no-systems"}, nil
-
 	}
 
 	// For simplicity, return the first system's health.
@@ -1230,13 +1083,11 @@ func (f *systemFactory) GetSystemHealth(ctx context.Context) (*SystemHealth, err
 	// In a real implementation, this might aggregate health across all systems.
 
 	return f.performSystemHealthCheck(ctx, f.systems[0])
-
 }
 
 // ShutdownSystem gracefully shuts down the system.
 
 func (f *systemFactory) ShutdownSystem(ctx context.Context, gracePeriod time.Duration) error {
-
 	f.logger.Info("Shutting down PackageRevision systems", "gracePeriod", gracePeriod)
 
 	// Create a timeout context.
@@ -1248,75 +1099,51 @@ func (f *systemFactory) ShutdownSystem(ctx context.Context, gracePeriod time.Dur
 	// Shutdown all systems.
 
 	for _, system := range f.systems {
-
 		if err := f.shutdownSingleSystem(shutdownCtx, system); err != nil {
-
 			f.logger.Error(err, "Failed to shutdown system", "systemID", system.SystemID)
-
 		}
-
 	}
 
 	f.logger.Info("All systems shutdown completed")
 
 	return nil
-
 }
 
 func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *PackageRevisionSystem) error {
-
 	f.logger.Info("Shutting down system", "systemID", system.SystemID)
 
 	// Shutdown components in reverse order of creation.
 
 	if system.Components.PackageManager != nil {
-
 		if err := system.Components.PackageManager.Close(); err != nil {
-
 			f.logger.Error(err, "Failed to close package manager")
-
 		}
-
 	}
 
 	if system.Components.LifecycleManager != nil {
-
 		if err := system.Components.LifecycleManager.Close(); err != nil {
-
 			f.logger.Error(err, "Failed to close lifecycle manager")
-
 		}
-
 	}
 
 	if system.Components.TemplateEngine != nil {
-
 		if err := system.Components.TemplateEngine.Close(); err != nil {
-
 			f.logger.Error(err, "Failed to close template engine")
-
 		}
-
 	}
 
 	if system.Components.YANGValidator != nil {
-
 		if err := system.Components.YANGValidator.Close(); err != nil {
-
 			f.logger.Error(err, "Failed to close YANG validator")
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // Close gracefully shuts down the factory.
 
 func (f *systemFactory) Close() error {
-
 	f.logger.Info("Shutting down system factory")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1324,15 +1151,12 @@ func (f *systemFactory) Close() error {
 	defer cancel()
 
 	return f.ShutdownSystem(ctx, 25*time.Second)
-
 }
 
 // GetDefaultSystemConfig returns a default system configuration.
 
 func GetDefaultSystemConfig() *SystemConfig {
-
 	return &SystemConfig{
-
 		SystemName: "nephoran-packagerevision-system",
 
 		Environment: "development",
@@ -1348,7 +1172,6 @@ func GetDefaultSystemConfig() *SystemConfig {
 		GracefulShutdownTimeout: 30 * time.Second,
 
 		PorchConfig: &porch.ClientConfig{
-
 			Endpoint: "http://porch-server:8080",
 
 			// Note: ClientConfig doesn't have Timeout field.
@@ -1356,7 +1179,6 @@ func GetDefaultSystemConfig() *SystemConfig {
 		},
 
 		Features: &FeatureFlags{
-
 			EnableORANCompliance: true,
 
 			Enable3GPPValidation: true,
@@ -1376,5 +1198,4 @@ func GetDefaultSystemConfig() *SystemConfig {
 			EnableMLOptimization: false,
 		},
 	}
-
 }

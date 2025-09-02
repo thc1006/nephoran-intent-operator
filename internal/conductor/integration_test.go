@@ -103,7 +103,7 @@ data:
   timestamp: "%s"
 `, intentFile, time.Now().Format(time.RFC3339))
 
-	if err := os.WriteFile(outputFile, []byte(fakeKRMContent), 0644); err != nil {
+	if err := os.WriteFile(outputFile, []byte(fakeKRMContent), 0o644); err != nil {
 		return fmt.Errorf("failed to write fake output: %w", err)
 	}
 
@@ -754,7 +754,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 		It("should handle file write permissions", func() {
 			By("creating a read-only directory")
 			readOnlyDir := filepath.Join(tempDir, "readonly")
-			err := os.MkdirAll(readOnlyDir, 0444) // Read-only permissions
+			err := os.MkdirAll(readOnlyDir, 0o444) // Read-only permissions
 			Expect(err).NotTo(HaveOccurred())
 
 			// Skip this test on Windows as file permissions work differently
@@ -792,7 +792,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			Expect(result.RequeueAfter).To(Equal(time.Minute * 5))
 
 			// Restore permissions for cleanup
-			_ = os.Chmod(readOnlyDir, 0755)
+			_ = os.Chmod(readOnlyDir, 0o755)
 		})
 	})
 

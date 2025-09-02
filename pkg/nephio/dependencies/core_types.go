@@ -45,7 +45,6 @@ import (
 // UpdaterConfig holds comprehensive configuration for the dependency updater.
 
 type UpdaterConfig struct {
-
 	// Core engine configurations.
 
 	UpdateEngineConfig *UpdateEngineConfig `yaml:"updateEngine"`
@@ -534,11 +533,8 @@ type DeploymentStatus struct {
 // Constructor functions.
 
 func DefaultUpdaterConfig() *UpdaterConfig {
-
 	return &UpdaterConfig{
-
 		UpdateEngineConfig: &UpdateEngineConfig{
-
 			MaxRetries: 3,
 
 			RetryDelay: 5 * time.Second,
@@ -549,7 +545,6 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 		},
 
 		PropagationEngineConfig: &PropagationEngineConfig{
-
 			PropagationTimeout: 60 * time.Minute,
 
 			MaxParallelUpdates: 5,
@@ -558,7 +553,6 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 		},
 
 		ImpactAnalyzerConfig: &ImpactAnalyzerConfig{
-
 			AnalysisTimeout: 10 * time.Minute,
 
 			EnableRiskScoring: true,
@@ -567,7 +561,6 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 		},
 
 		RolloutManagerConfig: &RolloutManagerConfig{
-
 			StagedRolloutEnabled: true,
 
 			CanaryPercentage: 10.0,
@@ -576,7 +569,6 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 		},
 
 		RollbackManagerConfig: &RollbackManagerConfig{
-
 			AutoRollbackEnabled: true,
 
 			RollbackTimeout: 30 * time.Minute,
@@ -594,264 +586,206 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 
 		QueueSize: 1000,
 	}
-
 }
 
 // Validate validates the UpdaterConfig.
 
 func (c *UpdaterConfig) Validate() error {
-
 	if c.MaxConcurrency <= 0 {
-
 		c.MaxConcurrency = 10
-
 	}
 
 	if c.WorkerCount <= 0 {
-
 		c.WorkerCount = 5
-
 	}
 
 	if c.QueueSize <= 0 {
-
 		c.QueueSize = 1000
-
 	}
 
 	return nil
-
 }
 
 // Constructor functions for engines and components.
 
 func NewUpdateEngine(config *UpdateEngineConfig) (*UpdateEngine, error) {
-
 	return &UpdateEngine{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		metrics: &UpdateEngineMetrics{},
 	}, nil
-
 }
 
 // NewPropagationEngine performs newpropagationengine operation.
 
 func NewPropagationEngine(config *PropagationEngineConfig) (*PropagationEngine, error) {
-
 	return &PropagationEngine{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		metrics: &PropagationEngineMetrics{},
 	}, nil
-
 }
 
 // NewImpactAnalyzer performs newimpactanalyzer operation.
 
 func NewImpactAnalyzer(config *ImpactAnalyzerConfig) (*ImpactAnalyzer, error) {
-
 	return &ImpactAnalyzer{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		metrics: &ImpactAnalyzerMetrics{},
 	}, nil
-
 }
 
 // NewRolloutManager performs newrolloutmanager operation.
 
 func NewRolloutManager(config *RolloutManagerConfig) (*RolloutManager, error) {
-
 	return &RolloutManager{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		metrics: &RolloutManagerMetrics{},
 	}, nil
-
 }
 
 // NewRollbackManager performs newrollbackmanager operation.
 
 func NewRollbackManager(config *RollbackManagerConfig) (*RollbackManager, error) {
-
 	return &RollbackManager{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		metrics: &RollbackManagerMetrics{},
 	}, nil
-
 }
 
 // NewAutoUpdateManager performs newautoupdatemanager operation.
 
 func NewAutoUpdateManager(config *AutoUpdateConfig) *AutoUpdateManager {
-
 	return &AutoUpdateManager{
-
 		config: config,
 
 		logger: logr.Discard(),
 	}
-
 }
 
 // NewUpdateQueue performs newupdatequeue operation.
 
 func NewUpdateQueue(config *UpdateQueueConfig) *UpdateQueue {
-
 	return &UpdateQueue{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		queue: make(chan *DependencyUpdate, config.MaxQueueSize),
 	}
-
 }
 
 // NewChangeTracker performs newchangetracker operation.
 
 func NewChangeTracker(config *ChangeTrackerConfig) *ChangeTracker {
-
 	return &ChangeTracker{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		changes: make([]ChangeEvent, 0),
 	}
-
 }
 
 // NewUpdateHistoryStore performs newupdatehistorystore operation.
 
 func NewUpdateHistoryStore(config *UpdateHistoryConfig) (*UpdateHistoryStore, error) {
-
 	return &UpdateHistoryStore{
-
 		config: config,
 
 		logger: logr.Discard(),
 	}, nil
-
 }
 
 // NewAuditLogger performs newauditlogger operation.
 
 func NewAuditLogger(config *AuditLoggerConfig) *AuditLogger {
-
 	return &AuditLogger{
-
 		config: config,
 
 		logger: logr.Discard(),
 	}
-
 }
 
 // NewUpdatePolicyEngine performs newupdatepolicyengine operation.
 
 func NewUpdatePolicyEngine(config *PolicyEngineConfig) *UpdatePolicyEngine {
-
 	return &UpdatePolicyEngine{
-
 		config: config,
 
 		logger: logr.Discard(),
 	}
-
 }
 
 // NewApprovalWorkflow performs newapprovalworkflow operation.
 
 func NewApprovalWorkflow(config *ApprovalWorkflowConfig) *ApprovalWorkflow {
-
 	return &ApprovalWorkflow{
-
 		config: config,
 
 		logger: logr.Discard(),
 	}
-
 }
 
 // NewNotificationManager performs newnotificationmanager operation.
 
 func NewNotificationManager(config *NotificationManagerConfig) *NotificationManager {
-
 	return &NotificationManager{
-
 		config: config,
 
 		logger: logr.Discard(),
 	}
-
 }
 
 // NewUpdateCache performs newupdatecache operation.
 
 func NewUpdateCache(config *UpdateCacheConfig) *UpdateCache {
-
 	return &UpdateCache{
-
 		config: config,
 
 		logger: logr.Discard(),
 
 		cache: make(map[string]interface{}),
 	}
-
 }
 
 // NewUpdateWorkerPool performs newupdateworkerpool operation.
 
 func NewUpdateWorkerPool(workers, queueSize int) *UpdateWorkerPool {
-
 	return &UpdateWorkerPool{
-
 		workers: workers,
 
 		queueSize: queueSize,
 
 		logger: logr.Discard(),
 	}
-
 }
 
 // NewPackageRegistry performs newpackageregistry operation.
 
 func NewPackageRegistry(config *PackageRegistryConfig) (PackageRegistry, error) {
-
 	// This would return a concrete implementation.
 
 	return nil, nil
-
 }
 
 // NewUpdaterMetrics performs newupdatermetrics operation.
 
 func NewUpdaterMetrics() *UpdaterMetrics {
-
 	return &UpdaterMetrics{
-
 		TotalUpdates: 0,
 
 		SuccessfulUpdates: 0,
@@ -875,7 +809,6 @@ func NewUpdaterMetrics() *UpdaterMetrics {
 		// Additional metrics would be initialized here.
 
 	}
-
 }
 
 // Close methods for cleanup.
@@ -893,7 +826,5 @@ func (w *UpdateWorkerPool) Close() error { return nil }
 // Record performs record operation.
 
 func (h *UpdateHistoryStore) Record(ctx context.Context, record interface{}) error {
-
 	return nil
-
 }

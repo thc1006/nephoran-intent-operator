@@ -73,7 +73,6 @@ type EscalationEngine struct {
 // EscalationConfig holds configuration for the escalation engine.
 
 type EscalationConfig struct {
-
 	// Core escalation settings.
 
 	DefaultEscalationDelay time.Duration `yaml:"default_escalation_delay"`
@@ -227,7 +226,6 @@ type EscalationAction struct {
 	RetryCount int `json:"retry_count,omitempty"`
 
 	OnFailure string `json:"on_failure,omitempty"` // continue, skip_level, stop
-
 }
 
 // EscalationRule defines when to escalate to the next level.
@@ -320,7 +318,6 @@ type ScheduleWindow struct {
 	End int `json:"end"` // Hour (0-23)
 
 	Weekdays []int `json:"weekdays"` // Days (0=Sunday)
-
 }
 
 // WeekendSchedule defines weekend-specific escalation behavior.
@@ -341,7 +338,6 @@ type HolidaySchedule struct {
 	Holidays []string `json:"holidays"`
 
 	Behavior string `json:"behavior"` // skip, delay, emergency_only
-
 }
 
 // LevelSchedule defines schedule constraints for a specific level.
@@ -597,7 +593,6 @@ type Role struct {
 	Permissions []string `json:"permissions"`
 
 	Stakeholders []string `json:"stakeholders"` // Current stakeholders in this role
-
 }
 
 // OncallSchedule manages on-call schedules.
@@ -640,7 +635,6 @@ type Rotation struct {
 	Participants []string `json:"participants"` // Stakeholder IDs
 
 	Current int `json:"current"` // Current participant index
-
 }
 
 // Override represents a schedule override.
@@ -715,7 +709,6 @@ type WorkflowStep struct {
 	OnSuccess string `json:"on_success,omitempty"` // next_step, complete
 
 	OnFailure string `json:"on_failure,omitempty"` // retry, next_step, fail
-
 }
 
 // RetryPolicy defines retry behavior for workflows.
@@ -829,9 +822,7 @@ type EscalationMetrics struct {
 // DefaultEscalationConfig returns production-ready escalation configuration.
 
 func DefaultEscalationConfig() *EscalationConfig {
-
 	return &EscalationConfig{
-
 		// Core escalation settings.
 
 		DefaultEscalationDelay: 15 * time.Minute,
@@ -874,45 +865,35 @@ func DefaultEscalationConfig() *EscalationConfig {
 
 		EscalationQueueSize: 100,
 	}
-
 }
 
 // NewEscalationEngine creates a new escalation engine.
 
 func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLogger) (*EscalationEngine, error) {
-
 	if config == nil {
-
 		config = DefaultEscalationConfig()
-
 	}
 
 	if logger == nil {
-
 		return nil, fmt.Errorf("logger is required")
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &EscalationMetrics{
-
 		EscalationsStarted: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "escalation_engine_escalations_started_total",
 
 			Help: "Total number of escalations started",
 		}, []string{"policy", "severity", "sla_type"}),
 
 		EscalationsResolved: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "escalation_engine_escalations_resolved_total",
 
 			Help: "Total number of escalations resolved",
 		}, []string{"policy", "level", "method"}),
 
 		EscalationDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "escalation_engine_duration_seconds",
 
 			Help: "Duration of escalations in seconds",
@@ -922,7 +903,6 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		}, []string{"policy", "result"}),
 
 		ActiveEscalations: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "escalation_engine_active_escalations",
 
 			Help: "Number of currently active escalations",
@@ -932,7 +912,6 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	// Register metrics with duplicate handling.
 
 	escalationMetrics := []prometheus.Collector{
-
 		metrics.EscalationsStarted,
 
 		metrics.EscalationsResolved,
@@ -945,24 +924,19 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	// Register each metric, ignoring duplicate registration errors.
 
 	for _, metric := range escalationMetrics {
-
 		if err := prometheus.Register(metric); err != nil {
 
 			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
 			if !errors.As(err, &alreadyRegisteredErr) {
-
 				// Only propagate non-duplicate errors.
 
 				logger.Error("Failed to register escalation metric", "error", err)
-
 			}
 
 		}
-
 	}
 
 	ee := &EscalationEngine{
-
 		logger: logger.WithComponent("escalation-engine"),
 
 		config: config,
@@ -976,7 +950,6 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		metrics: metrics,
 
 		escalationStats: &EscalationStatistics{
-
 			EscalationsByLevel: make(map[int]int64),
 
 			PolicyEffectiveness: make(map[string]float64),
@@ -990,7 +963,6 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	// Initialize sub-components.
 
 	ee.stakeholderRegistry = &StakeholderRegistry{
-
 		logger: logger.WithComponent("stakeholder-registry"),
 
 		stakeholders: make(map[string]*Stakeholder),
@@ -1001,20 +973,17 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	}
 
 	ee.oncallSchedule = &OncallSchedule{
-
 		logger: logger.WithComponent("oncall-schedule"),
 
 		schedules: make(map[string]*Schedule),
 	}
 
 	ee.autoResolver = &AutoResolver{
-
 		logger: logger.WithComponent("auto-resolver"),
 
 		config: config,
 
 		detector: &ResolutionDetector{
-
 			logger: logger.WithComponent("resolution-detector"),
 
 			config: config,
@@ -1022,14 +991,12 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	}
 
 	ee.workflowExecutor = &WorkflowExecutor{
-
 		logger: logger.WithComponent("workflow-executor"),
 
 		workflows: make(map[string]*Workflow),
 	}
 
 	ee.ticketingSystem = &TicketingSystem{
-
 		logger: logger.WithComponent("ticketing-system"),
 
 		providers: make(map[string]TicketingProvider),
@@ -1044,21 +1011,17 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	ee.loadDefaultWorkflows()
 
 	return ee, nil
-
 }
 
 // Start initializes the escalation engine.
 
 func (ee *EscalationEngine) Start(ctx context.Context) error {
-
 	ee.mu.Lock()
 
 	defer ee.mu.Unlock()
 
 	if ee.started {
-
 		return fmt.Errorf("escalation engine already started")
-
 	}
 
 	ee.logger.InfoWithContext("Starting escalation engine",
@@ -1075,7 +1038,6 @@ func (ee *EscalationEngine) Start(ctx context.Context) error {
 	for i := range 3 { // Start 3 escalation workers
 
 		go ee.escalationWorker(ctx, i)
-
 	}
 
 	// Start background processes.
@@ -1083,9 +1045,7 @@ func (ee *EscalationEngine) Start(ctx context.Context) error {
 	go ee.escalationMonitor(ctx)
 
 	if ee.config.AutoResolutionEnabled {
-
 		go ee.autoResolutionMonitor(ctx)
-
 	}
 
 	go ee.metricsUpdateLoop(ctx)
@@ -1095,21 +1055,17 @@ func (ee *EscalationEngine) Start(ctx context.Context) error {
 	ee.logger.InfoWithContext("Escalation engine started successfully")
 
 	return nil
-
 }
 
 // Stop shuts down the escalation engine.
 
 func (ee *EscalationEngine) Stop(ctx context.Context) error {
-
 	ee.mu.Lock()
 
 	defer ee.mu.Unlock()
 
 	if !ee.started {
-
 		return nil
-
 	}
 
 	ee.logger.InfoWithContext("Stopping escalation engine")
@@ -1123,15 +1079,12 @@ func (ee *EscalationEngine) Stop(ctx context.Context) error {
 	ee.logger.InfoWithContext("Escalation engine stopped")
 
 	return nil
-
 }
 
 // StartEscalation begins escalation for an alert.
 
 func (ee *EscalationEngine) StartEscalation(ctx context.Context, alert *SLAAlert) error {
-
 	request := &EscalationRequest{
-
 		Alert: alert,
 
 		Priority: ee.calculateAlertPriority(alert),
@@ -1142,9 +1095,7 @@ func (ee *EscalationEngine) StartEscalation(ctx context.Context, alert *SLAAlert
 	policy := ee.findEscalationPolicy(alert)
 
 	if policy != nil {
-
 		request.PolicyID = policy.ID
-
 	}
 
 	select {
@@ -1162,20 +1113,17 @@ func (ee *EscalationEngine) StartEscalation(ctx context.Context, alert *SLAAlert
 		return fmt.Errorf("escalation queue is full")
 
 	}
-
 }
 
 // escalationWorker processes escalation requests.
 
 func (ee *EscalationEngine) escalationWorker(ctx context.Context, workerID int) {
-
 	ee.logger.DebugWithContext("Starting escalation worker",
 
 		slog.Int("worker_id", workerID),
 	)
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1189,23 +1137,18 @@ func (ee *EscalationEngine) escalationWorker(ctx context.Context, workerID int) 
 		case request, ok := <-ee.escalationQueue:
 
 			if !ok {
-
 				return
-
 			}
 
 			ee.processEscalationRequest(ctx, request, workerID)
 
 		}
-
 	}
-
 }
 
 // processEscalationRequest processes a single escalation request.
 
 func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, request *EscalationRequest, workerID int) {
-
 	ee.logger.InfoWithContext("Starting escalation",
 
 		slog.String("alert_id", request.Alert.ID),
@@ -1220,7 +1163,6 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 	// Create active escalation.
 
 	escalation := &ActiveEscalation{
-
 		ID: fmt.Sprintf("esc-%s-%d", request.Alert.ID, time.Now().Unix()),
 
 		AlertID: request.Alert.ID,
@@ -1236,7 +1178,6 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 		Priority: request.Priority,
 
 		BusinessImpact: BusinessImpactScore{
-
 			OverallScore: ee.calculateBusinessImpact(request.Alert),
 		},
 
@@ -1262,7 +1203,6 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 	policy := ee.escalationPolicies[request.PolicyID]
 
 	if policy != nil {
-
 		ee.metrics.EscalationsStarted.WithLabelValues(
 
 			policy.Name,
@@ -1271,7 +1211,6 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 
 			string(request.Alert.SLAType),
 		).Inc()
-
 	}
 
 	ee.metrics.ActiveEscalations.Inc()
@@ -1281,7 +1220,6 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 	// Record escalation event.
 
 	ee.recordEscalationEvent(&EscalationEvent{
-
 		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
 
 		EscalationID: escalation.ID,
@@ -1295,7 +1233,6 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 		Timestamp: time.Now(),
 
 		Details: map[string]interface{}{
-
 			"policy_id": request.PolicyID,
 
 			"priority": request.Priority,
@@ -1305,13 +1242,11 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 	// Start escalation process.
 
 	ee.executeEscalationLevel(ctx, escalation, 0)
-
 }
 
 // executeEscalationLevel executes a specific escalation level.
 
 func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalation *ActiveEscalation, level int) {
-
 	policy, exists := ee.escalationPolicies[escalation.PolicyID]
 
 	if !exists || level >= len(policy.Levels) {
@@ -1345,37 +1280,27 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 	// Apply level delay if specified.
 
 	if level > 0 && levelConfig.Delay > 0 {
-
 		time.Sleep(levelConfig.Delay)
-
 	}
 
 	// Execute level actions.
 
 	for _, action := range levelConfig.Actions {
-
 		if err := ee.executeEscalationAction(ctx, escalation, action, level); err != nil {
-
 			ee.logger.ErrorWithContext("Failed to execute escalation action", err,
 
 				"action_type", action.Type, "alert_id", escalation.AlertID, "level", level)
-
 		}
-
 	}
 
 	// Notify stakeholders.
 
 	for _, stakeholder := range levelConfig.Stakeholders {
-
 		if err := ee.notifyStakeholder(ctx, escalation, stakeholder, level); err != nil {
-
 			ee.logger.ErrorWithContext("Failed to notify stakeholder", err,
 
 				"stakeholder", stakeholder.Identifier, "alert_id", escalation.AlertID, "level", level)
-
 		}
-
 	}
 
 	// Schedule next escalation level if conditions are met.
@@ -1385,7 +1310,6 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 	// Update escalation statistics.
 
 	ee.escalationStats.EscalationsByLevel[level]++
-
 }
 
 // Additional methods would include:.
@@ -1413,13 +1337,11 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 // escalationMonitor monitors active escalations for progression.
 
 func (ee *EscalationEngine) escalationMonitor(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1433,21 +1355,17 @@ func (ee *EscalationEngine) escalationMonitor(ctx context.Context) {
 			ee.checkEscalationProgression(ctx)
 
 		}
-
 	}
-
 }
 
 // autoResolutionMonitor checks for automatic resolution conditions.
 
 func (ee *EscalationEngine) autoResolutionMonitor(ctx context.Context) {
-
 	ticker := time.NewTicker(60 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1461,21 +1379,17 @@ func (ee *EscalationEngine) autoResolutionMonitor(ctx context.Context) {
 			ee.checkAutoResolution(ctx)
 
 		}
-
 	}
-
 }
 
 // metricsUpdateLoop periodically updates escalation metrics.
 
 func (ee *EscalationEngine) metricsUpdateLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1489,15 +1403,12 @@ func (ee *EscalationEngine) metricsUpdateLoop(ctx context.Context) {
 			ee.updateEscalationMetrics(ctx)
 
 		}
-
 	}
-
 }
 
 // executeEscalationAction executes specific escalation actions.
 
 func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalation *ActiveEscalation, action EscalationAction, level int) error {
-
 	ee.logger.InfoWithContext(fmt.Sprintf("Executing escalation action %s for alert %s at level %d",
 
 		action.Type, escalation.AlertID, level))
@@ -1521,13 +1432,11 @@ func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalat
 		return fmt.Errorf("unknown escalation action type: %s", action.Type)
 
 	}
-
 }
 
 // notifyStakeholder sends notifications to stakeholders.
 
 func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *ActiveEscalation, stakeholder StakeholderReference, level int) error {
-
 	ee.logger.InfoWithContext(fmt.Sprintf("Notifying stakeholder %s for alert %s at level %d",
 
 		stakeholder.Identifier, escalation.AlertID, level))
@@ -1535,13 +1444,11 @@ func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *A
 	// Implementation would send notifications via email, SMS, etc.
 
 	return nil
-
 }
 
 // scheduleNextEscalation schedules the next escalation level.
 
 func (ee *EscalationEngine) scheduleNextEscalation(ctx context.Context, escalation *ActiveEscalation, levelConfig EscalationLevel) {
-
 	nextTime := time.Now().Add(levelConfig.Delay)
 
 	ee.logger.InfoWithContext(fmt.Sprintf("Scheduling next escalation for alert %s at %v",
@@ -1549,79 +1456,59 @@ func (ee *EscalationEngine) scheduleNextEscalation(ctx context.Context, escalati
 		escalation.AlertID, nextTime))
 
 	// Implementation would schedule the next escalation.
-
 }
 
 // Helper methods for escalation monitoring.
 
 func (ee *EscalationEngine) checkEscalationProgression(ctx context.Context) {
-
 	// Check active escalations and progress them as needed.
-
 }
 
 func (ee *EscalationEngine) checkAutoResolution(ctx context.Context) {
-
 	// Check if any active escalations can be auto-resolved.
-
 }
 
 func (ee *EscalationEngine) updateEscalationMetrics(ctx context.Context) {
-
 	// Update metrics for escalation monitoring.
-
 }
 
 func (ee *EscalationEngine) sendNotification(ctx context.Context, escalation *ActiveEscalation, parameters map[string]string) error {
-
 	// Send notification implementation.
 
 	return nil
-
 }
 
 func (ee *EscalationEngine) createTicket(ctx context.Context, escalation *ActiveEscalation, parameters map[string]string) error {
-
 	// Create ticket implementation.
 
 	return nil
-
 }
 
 func (ee *EscalationEngine) callWebhook(ctx context.Context, escalation *ActiveEscalation, parameters map[string]string) error {
-
 	// Call webhook implementation.
 
 	return nil
-
 }
 
 // Helper methods for configuration loading and management.
 
 func (ee *EscalationEngine) loadDefaultEscalationPolicies() {
-
 	// Load default escalation policies for different SLA types and severities.
 
 	// This would typically load from configuration files or database.
-
 }
 
 func (ee *EscalationEngine) loadDefaultStakeholders() {
-
 	// Load stakeholder information from configuration or external systems.
-
 }
 
 func (ee *EscalationEngine) loadDefaultWorkflows() {
-
 	// Load automated workflow definitions.
-
 }
 
 // Simplified implementations for key methods.
 
 func (ee *EscalationEngine) calculateAlertPriority(alert *SLAAlert) int {
-
 	// Calculate priority based on severity, business impact, and SLA type.
 
 	var basePriority int
@@ -1653,55 +1540,41 @@ func (ee *EscalationEngine) calculateAlertPriority(alert *SLAAlert) int {
 	// Adjust for business impact.
 
 	if alert.BusinessImpact.CustomerFacing {
-
 		basePriority++
-
 	}
 
 	return basePriority
-
 }
 
 func (ee *EscalationEngine) findEscalationPolicy(alert *SLAAlert) *EscalationPolicy {
-
 	// Find the most appropriate escalation policy for the alert.
 
 	// This would evaluate trigger conditions and return the best match.
 
 	for _, policy := range ee.escalationPolicies {
-
 		if ee.evaluatePolicyTriggers(alert, policy.TriggerConditions) {
-
 			return policy
-
 		}
-
 	}
 
 	// Return default policy if no specific match.
 
 	if defaultPolicy, exists := ee.escalationPolicies["default"]; exists {
-
 		return defaultPolicy
-
 	}
 
 	return nil
-
 }
 
 func (ee *EscalationEngine) evaluatePolicyTriggers(alert *SLAAlert, triggers []EscalationTrigger) bool {
-
 	// Evaluate if the alert matches the policy triggers.
 
 	// Simplified implementation - production would be more sophisticated.
 
 	return true
-
 }
 
 func (ee *EscalationEngine) calculateBusinessImpact(alert *SLAAlert) float64 {
-
 	// Calculate business impact score based on alert characteristics.
 
 	impact := 0.0
@@ -1749,17 +1622,13 @@ func (ee *EscalationEngine) calculateBusinessImpact(alert *SLAAlert) float64 {
 	// Business context adjustments.
 
 	if alert.BusinessImpact.CustomerFacing {
-
 		impact *= 1.3
-
 	}
 
 	return math.Min(impact, 1.0)
-
 }
 
 func (ee *EscalationEngine) recordEscalationEvent(event *EscalationEvent) {
-
 	ee.mu.Lock()
 
 	defer ee.mu.Unlock()
@@ -1769,9 +1638,6 @@ func (ee *EscalationEngine) recordEscalationEvent(event *EscalationEvent) {
 	// Keep only recent history to prevent memory bloat.
 
 	if len(ee.escalationHistory) > 10000 {
-
 		ee.escalationHistory = ee.escalationHistory[1000:]
-
 	}
-
 }

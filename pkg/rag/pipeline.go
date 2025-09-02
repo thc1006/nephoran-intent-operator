@@ -17,7 +17,6 @@ import (
 // RAGPipeline orchestrates the complete RAG processing pipeline.
 
 type RAGPipeline struct {
-
 	// Core components.
 
 	documentLoader *DocumentLoader
@@ -82,7 +81,6 @@ type RAGPipeline struct {
 // PipelineConfig holds configuration for the entire RAG pipeline.
 
 type PipelineConfig struct {
-
 	// Component configurations.
 
 	DocumentLoaderConfig *DocumentLoaderConfig `json:"document_loader"`
@@ -349,15 +347,11 @@ type QueryParameters struct {
 // NewRAGPipeline creates a new RAG pipeline with all components.
 
 func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*RAGPipeline, error) {
-
 	if config == nil {
-
 		config = getDefaultPipelineConfig()
-
 	}
 
 	pipeline := &RAGPipeline{
-
 		config: config,
 
 		llmClient: llmClient,
@@ -370,29 +364,21 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 	// Initialize components in dependency order.
 
 	if err := pipeline.initializeComponents(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize pipeline components: %w", err)
-
 	}
 
 	// Set up monitoring.
 
 	if config.EnableMonitoring {
-
 		if err := pipeline.setupMonitoring(); err != nil {
-
 			pipeline.logger.Warn("Failed to setup monitoring", "error", err)
-
 		}
-
 	}
 
 	// Start background tasks.
 
 	if config.AutoIndexing {
-
 		go pipeline.startAutoIndexing()
-
 	}
 
 	pipeline.isInitialized = true
@@ -400,15 +386,12 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 	pipeline.logger.Info("RAG pipeline initialized successfully")
 
 	return pipeline, nil
-
 }
 
 // getDefaultPipelineConfig returns default pipeline configuration.
 
 func getDefaultPipelineConfig() *PipelineConfig {
-
 	return &PipelineConfig{
-
 		DocumentLoaderConfig: getDefaultLoaderConfig(),
 
 		ChunkingConfig: getDefaultChunkingConfig(),
@@ -416,7 +399,6 @@ func getDefaultPipelineConfig() *PipelineConfig {
 		EmbeddingConfig: getDefaultEmbeddingConfig(),
 
 		WeaviateConfig: &WeaviateConfig{
-
 			Host: "localhost:8080",
 
 			Scheme: "http",
@@ -460,13 +442,11 @@ func getDefaultPipelineConfig() *PipelineConfig {
 
 		KubernetesIntegration: true,
 	}
-
 }
 
 // initializeComponents initializes all pipeline components.
 
 func (rp *RAGPipeline) initializeComponents() error {
-
 	rp.logger.Info("Initializing RAG pipeline components")
 
 	// Initialize document loader.
@@ -480,9 +460,7 @@ func (rp *RAGPipeline) initializeComponents() error {
 	// Load secrets from files.
 
 	if err := LoadRAGPipelineSecrets(rp.config, rp.logger); err != nil {
-
 		rp.logger.Warn("Failed to load some secrets from files", "error", err.Error())
-
 	}
 
 	// Initialize embedding service.
@@ -494,11 +472,8 @@ func (rp *RAGPipeline) initializeComponents() error {
 	var err error
 
 	rp.weaviateClient, err = NewWeaviateClient(rp.config.WeaviateConfig)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to initialize Weaviate client: %w", err)
-
 	}
 
 	// Initialize enhanced retrieval service.
@@ -517,13 +492,10 @@ func (rp *RAGPipeline) initializeComponents() error {
 	if rp.config.EnableCaching {
 
 		rp.redisCache, err = NewRedisCache(rp.config.RedisCacheConfig)
-
 		if err != nil {
-
 			rp.logger.Warn("Failed to initialize Redis cache", "error", err)
 
 			// Continue without caching.
-
 		}
 
 	}
@@ -533,11 +505,8 @@ func (rp *RAGPipeline) initializeComponents() error {
 	if rp.config.AsyncProcessing {
 
 		err = rp.initializeAsyncProcessing()
-
 		if err != nil {
-
 			return fmt.Errorf("failed to initialize async processing: %w", err)
-
 		}
 
 	}
@@ -545,21 +514,17 @@ func (rp *RAGPipeline) initializeComponents() error {
 	rp.logger.Info("All RAG pipeline components initialized successfully")
 
 	return nil
-
 }
 
 // setupMonitoring sets up monitoring and health checks.
 
 func (rp *RAGPipeline) setupMonitoring() error {
-
 	rp.monitor = NewRAGMonitor(rp.config.MonitoringConfig)
 
 	// Register health checkers for components.
 
 	if rp.redisCache != nil {
-
 		rp.monitor.RegisterHealthChecker(&RedisHealthChecker{redisCache: rp.redisCache})
-
 	}
 
 	rp.monitor.RegisterHealthChecker(&EmbeddingServiceHealthChecker{embeddingService: rp.embeddingService})
@@ -567,17 +532,13 @@ func (rp *RAGPipeline) setupMonitoring() error {
 	rp.logger.Info("Monitoring setup completed")
 
 	return nil
-
 }
 
 // ProcessDocument processes a document through the complete RAG pipeline.
 
 func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string) error {
-
 	if !rp.isInitialized {
-
 		return fmt.Errorf("pipeline not initialized")
-
 	}
 
 	rp.mutex.Lock()
@@ -587,13 +548,11 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 	rp.mutex.Unlock()
 
 	defer func() {
-
 		rp.mutex.Lock()
 
 		rp.isProcessing = false
 
 		rp.mutex.Unlock()
-
 	}()
 
 	startTime := time.Now()
@@ -615,13 +574,10 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 	loadStart := time.Now()
 
 	documents, err := rp.documentLoader.LoadDocuments(ctx)
-
 	if err != nil {
 
 		if rp.monitor != nil {
-
 			rp.monitor.RecordQueryError("document_processing", "load_error")
-
 		}
 
 		return fmt.Errorf("failed to load documents: %w", err)
@@ -654,31 +610,24 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 	)
 
 	return nil
-
 }
 
 // processIndividualDocument processes a single document through the pipeline.
 
 func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *LoadedDocument) error {
-
 	// Step 1: Chunk the document.
 
 	chunkStart := time.Now()
 
 	chunks, err := rp.chunkingService.ChunkDocument(ctx, doc)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to chunk document %s: %w", doc.ID, err)
-
 	}
 
 	chunkTime := time.Since(chunkStart)
 
 	if rp.monitor != nil {
-
 		rp.monitor.RecordChunkingLatency(chunkTime, "intelligent")
-
 	}
 
 	rp.totalChunks += int64(len(chunks))
@@ -688,19 +637,14 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 	embeddingStart := time.Now()
 
 	err = rp.embeddingService.GenerateEmbeddingsForChunks(ctx, chunks)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to generate embeddings for document %s: %w", doc.ID, err)
-
 	}
 
 	embeddingTime := time.Since(embeddingStart)
 
 	if rp.monitor != nil {
-
 		rp.monitor.RecordEmbeddingLatency(embeddingTime, rp.config.EmbeddingConfig.ModelName, len(chunks))
-
 	}
 
 	// Step 3: Store in vector database.
@@ -708,7 +652,6 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 	// TODO: Implement proper document storage without TelecomDocument conversion.
 
 	for _, chunk := range chunks {
-
 		// telecomDoc := rp.convertChunkToTelecomDocument(chunk).
 
 		// if err := rp.weaviateClient.AddDocument(ctx, telecomDoc); err != nil {.
@@ -726,19 +669,14 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 		// }.
 
 		rp.logger.Debug("Chunk processed but not stored in vector database yet", "chunk_id", chunk.ID)
-
 	}
 
 	// Step 4: Cache document if caching is enabled.
 
 	if rp.redisCache != nil {
-
 		if err := rp.redisCache.SetDocument(ctx, doc); err != nil {
-
 			rp.logger.Warn("Failed to cache document", "doc_id", doc.ID, "error", err)
-
 		}
-
 	}
 
 	rp.logger.Debug("Document processed successfully",
@@ -753,35 +691,27 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 	)
 
 	return nil
-
 }
 
 // processDocumentsParallel processes multiple documents concurrently using a worker pool.
 
 func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents []*LoadedDocument) error {
-
 	maxWorkers := rp.config.MaxConcurrentProcessing
 
 	if maxWorkers <= 0 {
-
 		maxWorkers = runtime.NumCPU()
-
 	}
 
 	// Limit to reasonable maximum to avoid resource exhaustion.
 
 	if maxWorkers > 20 {
-
 		maxWorkers = 20
-
 	}
 
 	// Don't create more workers than documents.
 
 	if maxWorkers > len(documents) {
-
 		maxWorkers = len(documents)
-
 	}
 
 	rp.logger.Info("Starting parallel document processing",
@@ -806,13 +736,11 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 		wg.Add(1)
 
 		go func(workerID int) {
-
 			defer wg.Done()
 
 			rp.logger.Debug("Starting document processing worker", "worker_id", workerID)
 
 			for doc := range docChan {
-
 				select {
 
 				case <-ctx.Done():
@@ -862,9 +790,7 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 					}
 
 				}
-
 			}
-
 		}(i)
 
 	}
@@ -872,11 +798,9 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 	// Send documents to workers.
 
 	go func() {
-
 		defer close(docChan)
 
 		for _, doc := range documents {
-
 			select {
 
 			case docChan <- doc:
@@ -886,19 +810,15 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 				return
 
 			}
-
 		}
-
 	}()
 
 	// Wait for all workers to complete.
 
 	go func() {
-
 		wg.Wait()
 
 		close(resultChan)
-
 	}()
 
 	// Collect results and track errors.
@@ -908,17 +828,11 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 	processedCount := 0
 
 	for err := range resultChan {
-
 		if err != nil {
-
 			errors = append(errors, err)
-
 		} else {
-
 			processedCount++
-
 		}
-
 	}
 
 	rp.logger.Info("Parallel document processing completed",
@@ -939,13 +853,10 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 		errorRate := float64(len(errors)) / float64(len(documents))
 
 		if errorRate > 0.5 {
-
 			// More than 50% failed - consider this a critical failure.
 
 			return fmt.Errorf("parallel processing failed with %d/%d documents failing: %v", len(errors), len(documents), errors[:min(5, len(errors))])
-
 		} else {
-
 			// Less than 50% failed - log warnings but continue.
 
 			rp.logger.Warn("Some documents failed processing in parallel mode",
@@ -956,23 +867,18 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 
 				"error_rate", errorRate,
 			)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // ProcessQuery processes a query through the enhanced retrieval pipeline.
 
 func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearchRequest) (*EnhancedSearchResponse, error) {
-
 	if !rp.isInitialized {
-
 		return nil, fmt.Errorf("pipeline not initialized")
-
 	}
 
 	startTime := time.Now()
@@ -995,13 +901,10 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 			rp.logger.Debug("Query result found in cache", "query", request.Query)
 
 			if rp.monitor != nil {
-
 				rp.monitor.RecordCacheHitRate("query_result", 1.0)
-
 			}
 
 			return &EnhancedSearchResponse{
-
 				Query: request.Query,
 
 				AssembledContext: cached,
@@ -1016,9 +919,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		}
 
 		if rp.monitor != nil {
-
 			rp.monitor.RecordCacheHitRate("query_result", 0.0)
-
 		}
 
 	}
@@ -1026,13 +927,10 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	// Process query through enhanced retrieval.
 
 	response, err := rp.enhancedRetrieval.SearchEnhanced(ctx, request)
-
 	if err != nil {
 
 		if rp.monitor != nil {
-
 			rp.monitor.RecordQueryError(request.IntentType, "retrieval_error")
-
 		}
 
 		return nil, fmt.Errorf("enhanced retrieval failed: %w", err)
@@ -1048,15 +946,11 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		contextKey := request.IntentType
 
 		if contextKey == "" {
-
 			contextKey = "general"
-
 		}
 
 		if err := rp.redisCache.SetContext(ctx, request.Query, contextKey, response.AssembledContext, response.ContextMetadata); err != nil {
-
 			rp.logger.Warn("Failed to cache query result", "query", request.Query, "error", err)
-
 		}
 
 	}
@@ -1094,17 +988,13 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	)
 
 	return response, nil
-
 }
 
 // ProcessIntent processes a high-level intent through the complete RAG pipeline.
 
 func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string, error) {
-
 	if !rp.config.LLMIntegration || rp.llmClient == nil {
-
 		return "", fmt.Errorf("LLM integration not enabled or client not available")
-
 	}
 
 	rp.logger.Info("Processing intent", "intent", intent)
@@ -1112,7 +1002,6 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 	// Step 1: Enhance and retrieve relevant context.
 
 	searchRequest := &EnhancedSearchRequest{
-
 		Query: intent,
 
 		EnableQueryEnhancement: true,
@@ -1129,11 +1018,8 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 	// Get enhanced context.
 
 	response, err := rp.ProcessQuery(ctx, searchRequest)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to retrieve context for intent: %w", err)
-
 	}
 
 	// Step 2: Create enhanced prompt with context.
@@ -1143,11 +1029,8 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 	// Step 3: Process through LLM.
 
 	result, err := rp.llmClient.ProcessIntent(ctx, enhancedPrompt)
-
 	if err != nil {
-
 		return "", fmt.Errorf("LLM processing failed: %w", err)
-
 	}
 
 	rp.logger.Info("Intent processing completed",
@@ -1162,7 +1045,6 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 	)
 
 	return result, nil
-
 }
 
 // Utility methods.
@@ -1212,69 +1094,48 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 // Helper methods for metadata extraction.
 
 func (rp *RAGPipeline) getSourceFromMetadata(metadata *DocumentMetadata) string {
-
 	if metadata != nil {
-
 		return metadata.Source
-
 	}
 
 	return "Unknown"
-
 }
 
 func (rp *RAGPipeline) getCategoryFromMetadata(metadata *DocumentMetadata) string {
-
 	if metadata != nil {
-
 		return metadata.Category
-
 	}
 
 	return "General"
-
 }
 
 func (rp *RAGPipeline) getVersionFromMetadata(metadata *DocumentMetadata) string {
-
 	if metadata != nil {
-
 		return metadata.Version
-
 	}
 
 	return ""
-
 }
 
 func (rp *RAGPipeline) getNetworkFunctionsFromMetadata(metadata *DocumentMetadata) []string {
-
 	if metadata != nil {
-
 		return metadata.NetworkFunctions
-
 	}
 
 	return []string{}
-
 }
 
 func (rp *RAGPipeline) getTechnologiesFromMetadata(metadata *DocumentMetadata) []string {
-
 	if metadata != nil {
-
 		return metadata.Technologies
-
 	}
 
 	return []string{}
-
 }
 
 // classifyIntent performs simple intent classification.
 
 func (rp *RAGPipeline) classifyIntent(intent string) string {
-
 	intentLower := strings.ToLower(intent)
 
 	configKeywords := []string{"configure", "config", "setup", "parameter", "setting"}
@@ -1286,53 +1147,35 @@ func (rp *RAGPipeline) classifyIntent(intent string) string {
 	monitorKeywords := []string{"monitor", "metric", "measurement", "kpi", "tracking"}
 
 	for _, keyword := range configKeywords {
-
 		if strings.Contains(intentLower, keyword) {
-
 			return "configuration"
-
 		}
-
 	}
 
 	for _, keyword := range troubleshootKeywords {
-
 		if strings.Contains(intentLower, keyword) {
-
 			return "troubleshooting"
-
 		}
-
 	}
 
 	for _, keyword := range optimizeKeywords {
-
 		if strings.Contains(intentLower, keyword) {
-
 			return "optimization"
-
 		}
-
 	}
 
 	for _, keyword := range monitorKeywords {
-
 		if strings.Contains(intentLower, keyword) {
-
 			return "monitoring"
-
 		}
-
 	}
 
 	return "general"
-
 }
 
 // buildEnhancedPrompt creates an enhanced prompt with RAG context.
 
 func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) string {
-
 	var promptBuilder strings.Builder
 
 	// System prompt.
@@ -1394,13 +1237,11 @@ func (rp *RAGPipeline) buildEnhancedPrompt(intent, context, intentType string) s
 	promptBuilder.WriteString("clearly state what information is missing and provide general guidance based on telecom best practices.")
 
 	return promptBuilder.String()
-
 }
 
 // startAutoIndexing starts the automatic indexing background task.
 
 func (rp *RAGPipeline) startAutoIndexing() {
-
 	ticker := time.NewTicker(rp.config.IndexingInterval)
 
 	defer ticker.Stop()
@@ -1414,13 +1255,9 @@ func (rp *RAGPipeline) startAutoIndexing() {
 		// Process documents from configured paths.
 
 		for _, path := range rp.config.DocumentLoaderConfig.LocalPaths {
-
 			if err := rp.ProcessDocument(ctx, path); err != nil {
-
 				rp.logger.Error("Auto-indexing failed for path", "path", path, "error", err)
-
 			}
-
 		}
 
 		cancel()
@@ -1428,7 +1265,6 @@ func (rp *RAGPipeline) startAutoIndexing() {
 		rp.logger.Info("Automatic indexing completed")
 
 	}
-
 }
 
 // Status and management methods.
@@ -1436,13 +1272,11 @@ func (rp *RAGPipeline) startAutoIndexing() {
 // GetStatus returns the current pipeline status.
 
 func (rp *RAGPipeline) GetStatus() PipelineStatus {
-
 	rp.mutex.RLock()
 
 	defer rp.mutex.RUnlock()
 
 	status := PipelineStatus{
-
 		IsHealthy: rp.isInitialized,
 
 		IsProcessing: rp.isProcessing,
@@ -1467,9 +1301,7 @@ func (rp *RAGPipeline) GetStatus() PipelineStatus {
 		health := rp.weaviateClient.GetHealthStatus()
 
 		if health.IsHealthy {
-
 			status.ComponentStatuses["weaviate"] = "healthy"
-
 		} else {
 
 			status.ComponentStatuses["weaviate"] = "unhealthy"
@@ -1485,25 +1317,19 @@ func (rp *RAGPipeline) GetStatus() PipelineStatus {
 		health := rp.redisCache.GetHealthStatus(context.Background())
 
 		if healthy, ok := health["healthy"].(bool); ok && healthy {
-
 			status.ComponentStatuses["redis"] = "healthy"
-
 		} else {
-
 			status.ComponentStatuses["redis"] = "unhealthy"
-
 		}
 
 	}
 
 	return status
-
 }
 
 // Shutdown gracefully shuts down the pipeline.
 
 func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
-
 	rp.logger.Info("Shutting down RAG pipeline")
 
 	// Wait for current processing to complete.
@@ -1517,51 +1343,35 @@ func (rp *RAGPipeline) Shutdown(ctx context.Context) error {
 	// Shutdown components.
 
 	if rp.monitor != nil {
-
 		if err := rp.monitor.Shutdown(ctx); err != nil {
-
 			errors = append(errors, fmt.Errorf("monitor shutdown: %w", err))
-
 		}
-
 	}
 
 	if rp.redisCache != nil {
-
 		if err := rp.redisCache.Close(); err != nil {
-
 			errors = append(errors, fmt.Errorf("redis cache shutdown: %w", err))
-
 		}
-
 	}
 
 	if rp.weaviateClient != nil {
-
 		if err := rp.weaviateClient.Close(); err != nil {
-
 			errors = append(errors, fmt.Errorf("weaviate client shutdown: %w", err))
-
 		}
-
 	}
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("shutdown errors: %v", errors)
-
 	}
 
 	rp.logger.Info("RAG pipeline shutdown completed")
 
 	return nil
-
 }
 
 // initializeAsyncProcessing initializes async processing components.
 
 func (rp *RAGPipeline) initializeAsyncProcessing() error {
-
 	rp.logger.Info("Initializing async processing components")
 
 	// Initialize queues.
@@ -1577,7 +1387,6 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	rp.workerPool = &AsyncWorkerPool{
-
 		workerCount: rp.config.WorkerPoolSize,
 
 		jobQueue: make(chan AsyncJob, rp.config.WorkerPoolSize*10),
@@ -1587,7 +1396,6 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 		cancel: cancel,
 
 		metrics: &AsyncMetrics{
-
 			TotalJobs: 0,
 
 			CompletedJobs: 0,
@@ -1607,7 +1415,6 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 	for i := 0; i < rp.config.WorkerPoolSize; i++ {
 
 		worker := &AsyncWorker{
-
 			id: i,
 
 			pool: rp.workerPool,
@@ -1647,21 +1454,16 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 	)
 
 	return nil
-
 }
 
 // ProcessDocumentsAsync processes documents asynchronously.
 
 func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, documents []Document, callback func([]ProcessedDocument, error)) error {
-
 	if !rp.config.AsyncProcessing {
-
 		return rp.processDocumentsSync(ctx, documents, callback)
-
 	}
 
 	job := DocumentJob{
-
 		ID: jobID,
 
 		Documents: documents,
@@ -1692,21 +1494,16 @@ func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, 
 		return fmt.Errorf("document queue is full")
 
 	}
-
 }
 
 // ProcessQueryAsync processes a query asynchronously.
 
 func (rp *RAGPipeline) ProcessQueryAsync(ctx context.Context, jobID string, query string, params QueryParameters, callback func(QueryResult, error)) error {
-
 	if !rp.config.AsyncProcessing {
-
 		return rp.processQuerySync(ctx, query, params, callback)
-
 	}
 
 	job := QueryJob{
-
 		ID: jobID,
 
 		Query: query,
@@ -1739,17 +1536,14 @@ func (rp *RAGPipeline) ProcessQueryAsync(ctx context.Context, jobID string, quer
 		return fmt.Errorf("query queue is full")
 
 	}
-
 }
 
 // processDocumentJobs processes document jobs from the queue.
 
 func (rp *RAGPipeline) processDocumentJobs() {
-
 	for job := range rp.documentQueue {
 
 		asyncJob := AsyncJob{
-
 			Type: "document",
 
 			Payload: job,
@@ -1770,17 +1564,14 @@ func (rp *RAGPipeline) processDocumentJobs() {
 		}
 
 	}
-
 }
 
 // processQueryJobs processes query jobs from the queue.
 
 func (rp *RAGPipeline) processQueryJobs() {
-
 	for job := range rp.queryQueue {
 
 		asyncJob := AsyncJob{
-
 			Type: "query",
 
 			Payload: job,
@@ -1801,19 +1592,15 @@ func (rp *RAGPipeline) processQueryJobs() {
 		}
 
 	}
-
 }
 
 // processDocumentJob processes a single document job.
 
 func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface{}) error {
-
 	job, ok := payload.(DocumentJob)
 
 	if !ok {
-
 		return fmt.Errorf("invalid document job payload")
-
 	}
 
 	startTime := time.Now()
@@ -1825,18 +1612,15 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 		// Process document through pipeline.
 
 		chunks, err := rp.chunkingService.ChunkDocument(ctx, &LoadedDocument{
-
 			ID: doc.ID,
 
 			Content: doc.Content,
 
 			Metadata: &DocumentMetadata{},
 		})
-
 		if err != nil {
 
 			processedDocs = append(processedDocs, ProcessedDocument{
-
 				ID: doc.ID,
 
 				Error: fmt.Errorf("chunking failed: %w", err),
@@ -1855,10 +1639,8 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 		for i, chunk := range chunks {
 
 			embeddingResp, err := rp.embeddingService.GenerateEmbeddings(ctx, &EmbeddingRequest{
-
 				Texts: []string{chunk.Content},
 			})
-
 			if err != nil {
 
 				rp.logger.Warn("Failed to generate embedding for chunk", "chunk_index", i, "error", err)
@@ -1870,7 +1652,6 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 			if len(embeddingResp.Embeddings) > 0 {
 
 				processedChunks = append(processedChunks, ProcessedChunk{
-
 					Content: chunk.Content,
 
 					Embedding: embeddingResp.Embeddings[0],
@@ -1889,7 +1670,6 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 		}
 
 		processedDocs = append(processedDocs, ProcessedDocument{
-
 			ID: doc.ID,
 
 			Chunks: processedChunks,
@@ -1906,25 +1686,19 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 	// Call callback with results.
 
 	if job.Callback != nil {
-
 		job.Callback(processedDocs, nil)
-
 	}
 
 	return nil
-
 }
 
 // processQueryJob processes a single query job.
 
 func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{}) error {
-
 	job, ok := payload.(QueryJob)
 
 	if !ok {
-
 		return fmt.Errorf("invalid query job payload")
-
 	}
 
 	startTime := time.Now()
@@ -1932,7 +1706,6 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 	// Create search request.
 
 	searchRequest := &EnhancedSearchRequest{
-
 		Query: job.Query,
 
 		EnableQueryEnhancement: true,
@@ -1945,18 +1718,14 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 	// Process query.
 
 	response, err := rp.ProcessQuery(ctx, searchRequest)
-
 	if err != nil {
 
 		if job.Callback != nil {
-
 			job.Callback(QueryResult{
-
 				ID: job.ID,
 
 				ProcessTime: time.Since(startTime),
 			}, err)
-
 		}
 
 		return err
@@ -1968,9 +1737,7 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 	retrievedDocs := make([]RetrievedDocument, len(response.Results))
 
 	for i, result := range response.Results {
-
 		retrievedDocs[i] = RetrievedDocument{
-
 			ID: result.SearchResult.Document.ID,
 
 			Content: result.SearchResult.Document.Content,
@@ -1981,11 +1748,9 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 
 			Metadata: make(map[string]interface{}),
 		}
-
 	}
 
 	queryResult := QueryResult{
-
 		ID: job.ID,
 
 		Results: retrievedDocs,
@@ -2004,21 +1769,16 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 	// Call callback with results.
 
 	if job.Callback != nil {
-
 		job.Callback(queryResult, nil)
-
 	}
 
 	return nil
-
 }
 
 // processDocumentsSync processes documents synchronously (fallback).
 
 func (rp *RAGPipeline) processDocumentsSync(ctx context.Context, documents []Document, callback func([]ProcessedDocument, error)) error {
-
 	job := DocumentJob{
-
 		Documents: documents,
 
 		Context: ctx,
@@ -2027,15 +1787,12 @@ func (rp *RAGPipeline) processDocumentsSync(ctx context.Context, documents []Doc
 	err := rp.processDocumentJob(ctx, job)
 
 	return err
-
 }
 
 // processQuerySync processes query synchronously (fallback).
 
 func (rp *RAGPipeline) processQuerySync(ctx context.Context, query string, params QueryParameters, callback func(QueryResult, error)) error {
-
 	job := QueryJob{
-
 		Query: query,
 
 		Parameters: params,
@@ -2046,7 +1803,6 @@ func (rp *RAGPipeline) processQuerySync(ctx context.Context, query string, param
 	err := rp.processQueryJob(ctx, job)
 
 	return err
-
 }
 
 // AsyncWorker methods.
@@ -2054,7 +1810,6 @@ func (rp *RAGPipeline) processQuerySync(ctx context.Context, query string, param
 // start starts the worker's processing loop.
 
 func (w *AsyncWorker) start() {
-
 	defer w.pool.wg.Done()
 
 	w.pool.metrics.mutex.Lock()
@@ -2064,17 +1819,14 @@ func (w *AsyncWorker) start() {
 	w.pool.metrics.mutex.Unlock()
 
 	defer func() {
-
 		w.pool.metrics.mutex.Lock()
 
 		w.pool.metrics.ActiveWorkers--
 
 		w.pool.metrics.mutex.Unlock()
-
 	}()
 
 	for {
-
 		select {
 
 		case job := <-w.pool.jobQueue:
@@ -2086,15 +1838,12 @@ func (w *AsyncWorker) start() {
 			return
 
 		}
-
 	}
-
 }
 
 // processJob processes a single async job.
 
 func (w *AsyncWorker) processJob(job AsyncJob) {
-
 	startTime := time.Now()
 
 	w.pool.metrics.mutex.Lock()
@@ -2132,17 +1881,13 @@ func (w *AsyncWorker) processJob(job AsyncJob) {
 	}
 
 	w.pool.metrics.mutex.Unlock()
-
 }
 
 // GetAsyncMetrics returns current async processing metrics.
 
 func (rp *RAGPipeline) GetAsyncMetrics() *AsyncMetrics {
-
 	if rp.workerPool == nil {
-
 		return &AsyncMetrics{}
-
 	}
 
 	rp.workerPool.metrics.mutex.RLock()
@@ -2152,7 +1897,6 @@ func (rp *RAGPipeline) GetAsyncMetrics() *AsyncMetrics {
 	// Field-by-field copying to avoid mutex copying.
 
 	metrics := &AsyncMetrics{
-
 		TotalJobs: rp.workerPool.metrics.TotalJobs,
 
 		CompletedJobs: rp.workerPool.metrics.CompletedJobs,
@@ -2165,13 +1909,11 @@ func (rp *RAGPipeline) GetAsyncMetrics() *AsyncMetrics {
 	}
 
 	return metrics
-
 }
 
 // updateQueueMetrics updates queue size metrics.
 
 func (rp *RAGPipeline) updateQueueMetrics(docDelta, queryDelta int64) {
-
 	rp.mutex.Lock()
 
 	defer rp.mutex.Unlock()
@@ -2179,23 +1921,18 @@ func (rp *RAGPipeline) updateQueueMetrics(docDelta, queryDelta int64) {
 	rp.queuedJobs += docDelta + queryDelta
 
 	if rp.queuedJobs < 0 {
-
 		rp.queuedJobs = 0
-
 	}
-
 }
 
 // GetQueueStatus returns current queue status.
 
 func (rp *RAGPipeline) GetQueueStatus() map[string]interface{} {
-
 	rp.mutex.RLock()
 
 	defer rp.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"document_queue_length": len(rp.documentQueue),
 
 		"query_queue_length": len(rp.queryQueue),
@@ -2210,17 +1947,13 @@ func (rp *RAGPipeline) GetQueueStatus() map[string]interface{} {
 
 		"async_enabled": rp.config.AsyncProcessing,
 	}
-
 }
 
 // LoadRAGPipelineSecrets loads secrets from configuration files.
 
 func LoadRAGPipelineSecrets(config *PipelineConfig, logger *slog.Logger) error {
-
 	if config == nil {
-
 		return fmt.Errorf("config is nil")
-
 	}
 
 	// Placeholder implementation - in real scenarios this would load.
@@ -2238,17 +1971,12 @@ func LoadRAGPipelineSecrets(config *PipelineConfig, logger *slog.Logger) error {
 	// For now, just validate that required configuration is present.
 
 	if config.EmbeddingConfig.Provider == "" {
-
 		return fmt.Errorf("embedding provider not configured")
-
 	}
 
 	if config.WeaviateConfig.Host == "" {
-
 		return fmt.Errorf("Weaviate host not configured")
-
 	}
 
 	return nil
-
 }

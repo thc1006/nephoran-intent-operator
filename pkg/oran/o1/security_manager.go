@@ -2607,7 +2607,6 @@ type ComplianceReport struct {
 	Content []byte
 
 	Format string // PDF, HTML, JSON
-
 }
 
 // ComplianceScanner performs automated compliance scanning.
@@ -3032,7 +3031,6 @@ type Vulnerability struct {
 	Workarounds []string
 
 	Status string // NEW, ASSIGNED, MODIFIED, ANALYZED, CLOSED
-
 }
 
 // SecurityPatch represents a security patch.
@@ -4038,11 +4036,8 @@ type SecurityMetrics struct {
 // NewComprehensiveSecurityManager creates a new security manager.
 
 func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *ComprehensiveSecurityManager {
-
 	if config == nil {
-
 		config = &SecurityManagerConfig{
-
 			AuthenticationMethods: []string{"password", "certificate"},
 
 			SessionTimeout: 30 * time.Minute,
@@ -4059,11 +4054,9 @@ func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *Comprehensi
 
 			VulnerabilityScanInterval: 24 * time.Hour,
 		}
-
 	}
 
 	csm := &ComprehensiveSecurityManager{
-
 		config: config,
 
 		securityMetrics: initializeSecurityMetrics(),
@@ -4076,7 +4069,6 @@ func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *Comprehensi
 	csm.certificateManager = NewCertificateLifecycleManager(config.CertificateAuthority)
 
 	csm.authenticationMgr = NewAuthenticationManager(&AuthenticationConfig{
-
 		SessionTimeout: config.SessionTimeout,
 
 		MaxFailedAttempts: config.MaxFailedAttempts,
@@ -4097,45 +4089,35 @@ func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *Comprehensi
 	csm.secureChannelMgr = NewSecureChannelManager(&SecureChannelConfig{})
 
 	if config.IntrusionDetectionEnabled {
-
 		csm.intrusionDetection = NewIntrusionDetectionSystem(&IDSConfig{})
-
 	}
 
 	if config.ThreatDetectionEnabled {
-
 		csm.threatDetectionMgr = NewThreatDetectionManager(&ThreatDetectionConfig{})
-
 	}
 
 	csm.complianceMonitor = NewComplianceMonitor(&ComplianceConfig{
-
 		EnabledFrameworks: config.ComplianceModes,
 	})
 
 	csm.vulnerabilityScanner = NewVulnerabilityScanner(&VulnerabilityScanConfig{
-
 		ScanSchedule: map[string]string{"daily": "02:00"},
 	})
 
 	csm.incidentResponseMgr = NewIncidentResponseManager(&IncidentResponseConfig{})
 
 	return csm
-
 }
 
 // Start starts the security manager.
 
 func (csm *ComprehensiveSecurityManager) Start(ctx context.Context) error {
-
 	csm.mutex.Lock()
 
 	defer csm.mutex.Unlock()
 
 	if csm.running {
-
 		return fmt.Errorf("security manager already running")
-
 	}
 
 	logger := log.FromContext(ctx)
@@ -4145,49 +4127,35 @@ func (csm *ComprehensiveSecurityManager) Start(ctx context.Context) error {
 	// Start certificate lifecycle management.
 
 	if err := csm.certificateManager.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start certificate manager: %w", err)
-
 	}
 
 	// Start intrusion detection.
 
 	if csm.intrusionDetection != nil {
-
 		if err := csm.intrusionDetection.Start(ctx); err != nil {
-
 			logger.Error(err, "failed to start intrusion detection")
-
 		}
-
 	}
 
 	// Start threat detection.
 
 	if csm.threatDetectionMgr != nil {
-
 		if err := csm.threatDetectionMgr.Start(ctx); err != nil {
-
 			logger.Error(err, "failed to start threat detection")
-
 		}
-
 	}
 
 	// Start vulnerability scanning.
 
 	if err := csm.vulnerabilityScanner.Start(ctx); err != nil {
-
 		logger.Error(err, "failed to start vulnerability scanner")
-
 	}
 
 	// Start compliance monitoring.
 
 	if err := csm.complianceMonitor.Start(ctx); err != nil {
-
 		logger.Error(err, "failed to start compliance monitor")
-
 	}
 
 	csm.running = true
@@ -4195,21 +4163,17 @@ func (csm *ComprehensiveSecurityManager) Start(ctx context.Context) error {
 	logger.Info("comprehensive security manager started successfully")
 
 	return nil
-
 }
 
 // Stop stops the security manager.
 
 func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
-
 	csm.mutex.Lock()
 
 	defer csm.mutex.Unlock()
 
 	if !csm.running {
-
 		return nil
-
 	}
 
 	logger := log.FromContext(ctx)
@@ -4221,33 +4185,23 @@ func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
 	// Stop all components.
 
 	if csm.certificateManager != nil {
-
 		csm.certificateManager.Stop(ctx)
-
 	}
 
 	if csm.intrusionDetection != nil {
-
 		csm.intrusionDetection.Stop(ctx)
-
 	}
 
 	if csm.threatDetectionMgr != nil {
-
 		csm.threatDetectionMgr.Stop(ctx)
-
 	}
 
 	if csm.vulnerabilityScanner != nil {
-
 		csm.vulnerabilityScanner.Stop(ctx)
-
 	}
 
 	if csm.complianceMonitor != nil {
-
 		csm.complianceMonitor.Stop(ctx)
-
 	}
 
 	csm.running = false
@@ -4255,7 +4209,6 @@ func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
 	logger.Info("comprehensive security manager stopped")
 
 	return nil
-
 }
 
 // Core security operations.
@@ -4263,35 +4216,27 @@ func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
 // AuthenticateUser authenticates a user.
 
 func (csm *ComprehensiveSecurityManager) AuthenticateUser(ctx context.Context, credentials *AuthCredentials) (*AuthResult, error) {
-
 	return csm.authenticationMgr.Authenticate(ctx, credentials)
-
 }
 
 // AuthorizeAccess authorizes access to a resource.
 
 func (csm *ComprehensiveSecurityManager) AuthorizeAccess(ctx context.Context, request *AccessRequest) (*AccessDecision, error) {
-
 	return csm.authorizationMgr.Authorize(ctx, request)
-
 }
 
 // IssueCertificate issues a new certificate.
 
 func (csm *ComprehensiveSecurityManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) {
-
 	return csm.certificateManager.IssueCertificate(ctx, request)
-
 }
 
 // GetSecurityStatus returns overall security status.
 
 func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) (*SecurityStatus, error) {
-
 	// Implementation would aggregate status from all security components.
 
 	status := &SecurityStatus{
-
 		ComplianceLevel: "HIGH",
 
 		ActiveThreats: []string{},
@@ -4299,7 +4244,6 @@ func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) 
 		LastAudit: time.Now().Add(-24 * time.Hour),
 
 		Metrics: map[string]interface{}{
-
 			"active_sessions": csm.authenticationMgr.GetActiveSessions(),
 
 			"managed_certificates": csm.certificateManager.GetCertificateCount(),
@@ -4313,94 +4257,78 @@ func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) 
 	}
 
 	return status, nil
-
 }
 
 // Helper methods and placeholder implementations.
 
 func (csm *ComprehensiveSecurityManager) getActiveAlertCount() int {
-
 	// Would aggregate from all security components.
 
 	return 0
-
 }
 
 func initializeSecurityMetrics() *SecurityMetrics {
-
 	return &SecurityMetrics{
-
 		AuthenticationAttempts: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "oran_security_auth_attempts_total",
 
 			Help: "Total number of authentication attempts",
 		}, []string{"method", "result"}),
 
 		AuthenticationFailures: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "oran_security_auth_failures_total",
 
 			Help: "Total number of authentication failures",
 		}, []string{"method", "reason"}),
 
 		CertificatesManaged: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "oran_security_certificates_managed",
 
 			Help: "Number of certificates under management",
 		}),
 
 		CertificatesExpiring: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "oran_security_certificates_expiring",
 
 			Help: "Number of certificates expiring soon",
 		}),
 
 		SecurityAlerts: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "oran_security_alerts_total",
 
 			Help: "Total number of security alerts",
 		}, []string{"type", "severity"}),
 
 		ThreatDetections: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "oran_security_threats_detected_total",
 
 			Help: "Total number of threats detected",
 		}, []string{"type", "severity"}),
 
 		ComplianceScore: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "oran_security_compliance_score",
 
 			Help: "Compliance score by framework",
 		}, []string{"framework"}),
 
 		VulnerabilitiesFound: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "oran_security_vulnerabilities_found_total",
 
 			Help: "Total number of vulnerabilities found",
 		}, []string{"severity", "type"}),
 
 		IncidentsActive: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "oran_security_incidents_active",
 
 			Help: "Number of active security incidents",
 		}),
 
 		IncidentsResolved: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "oran_security_incidents_resolved_total",
 
 			Help: "Total number of resolved security incidents",
 		}),
 	}
-
 }
 
 // Placeholder implementations for major security components.
@@ -4426,16 +4354,13 @@ type CertificateRequest struct {
 // NewCertificateLifecycleManager performs newcertificatelifecyclemanager operation.
 
 func NewCertificateLifecycleManager(caConfig *CAConfig) *CertificateLifecycleManager {
-
 	return &CertificateLifecycleManager{
-
 		certificates: make(map[string]*ManagedCertificate),
 
 		autoRenewal: &AutoRenewalService{},
 
 		validationService: &CertificateValidationService{},
 	}
-
 }
 
 // Start performs start operation.
@@ -4449,9 +4374,7 @@ func (clm *CertificateLifecycleManager) Stop(ctx context.Context) error { return
 // IssueCertificate performs issuecertificate operation.
 
 func (clm *CertificateLifecycleManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) {
-
 	return &ManagedCertificate{}, nil
-
 }
 
 // GetCertificateCount performs getcertificatecount operation.
@@ -4461,9 +4384,7 @@ func (clm *CertificateLifecycleManager) GetCertificateCount() int { return len(c
 // NewAuthenticationManager performs newauthenticationmanager operation.
 
 func NewAuthenticationManager(config *AuthenticationConfig) *AuthenticationManager {
-
 	return &AuthenticationManager{
-
 		methods: make(map[string]AuthenticationMethod),
 
 		sessions: make(map[string]*AuthSession),
@@ -4472,15 +4393,12 @@ func NewAuthenticationManager(config *AuthenticationConfig) *AuthenticationManag
 
 		config: config,
 	}
-
 }
 
 // Authenticate performs authenticate operation.
 
 func (am *AuthenticationManager) Authenticate(ctx context.Context, credentials *AuthCredentials) (*AuthResult, error) {
-
 	return &AuthResult{Success: true}, nil
-
 }
 
 // GetActiveSessions performs getactivesessions operation.
@@ -4490,9 +4408,7 @@ func (am *AuthenticationManager) GetActiveSessions() int { return len(am.session
 // NewAuthorizationManager performs newauthorizationmanager operation.
 
 func NewAuthorizationManager() *AuthorizationManager {
-
 	return &AuthorizationManager{
-
 		rbacEngine: &RoleBasedAccessControl{},
 
 		abacEngine: &AttributeBasedAccessControl{},
@@ -4501,69 +4417,54 @@ func NewAuthorizationManager() *AuthorizationManager {
 
 		accessDecisions: make(map[string]*AccessDecision),
 	}
-
 }
 
 // Authorize performs authorize operation.
 
 func (azm *AuthorizationManager) Authorize(ctx context.Context, request *AccessRequest) (*AccessDecision, error) {
-
 	return &AccessDecision{Decision: "PERMIT"}, nil
-
 }
 
 // NewEncryptionManager performs newencryptionmanager operation.
 
 func NewEncryptionManager(config *EncryptionConfig) *EncryptionManager {
-
 	return &EncryptionManager{
-
 		encryptors: make(map[string]Encryptor),
 
 		config: config,
 	}
-
 }
 
 // NewKeyManagementService performs newkeymanagementservice operation.
 
 func NewKeyManagementService() *KeyManagementService {
-
 	return &KeyManagementService{
-
 		keys: make(map[string]*CryptographicKey),
 
 		keyPolicies: make(map[string]*KeyPolicy),
 	}
-
 }
 
 // NewSecurityAuditManager performs newsecurityauditmanager operation.
 
 func NewSecurityAuditManager(retention time.Duration) *SecurityAuditManager {
-
 	return &SecurityAuditManager{
-
 		auditLog: &AuditLog{entries: make([]*AuditEntry, 0)},
 
 		auditPolicies: make([]*AuditPolicy, 0),
 	}
-
 }
 
 // NewDefaultSecurityPolicyEngine performs newdefaultsecuritypolicyengine operation.
 
 func NewDefaultSecurityPolicyEngine() security.SecurityPolicyEngine {
-
 	return &DefaultSecurityPolicyEngine{
-
 		policies: make(map[string]*security.SecurityPolicy),
 
 		evaluators: make([]PolicyEvaluator, 0),
 
 		cache: &PolicyCache{decisions: make(map[string]*CachedDecision)},
 	}
-
 }
 
 // DefaultSecurityPolicyEngine provides a default implementation of SecurityPolicyEngine.
@@ -4581,22 +4482,18 @@ type DefaultSecurityPolicyEngine struct {
 // EvaluatePolicy performs evaluatepolicy operation.
 
 func (dpe *DefaultSecurityPolicyEngine) EvaluatePolicy(request *security.PolicyRequest) (*security.PolicyDecision, error) {
-
 	// Simplified implementation for compilation.
 
 	return &security.PolicyDecision{
-
 		Decision: "PERMIT",
 
 		Reason: "Default allow policy",
 	}, nil
-
 }
 
 // AddPolicy performs addpolicy operation.
 
 func (dpe *DefaultSecurityPolicyEngine) AddPolicy(policy *security.SecurityPolicy) error {
-
 	dpe.mutex.Lock()
 
 	defer dpe.mutex.Unlock()
@@ -4604,13 +4501,11 @@ func (dpe *DefaultSecurityPolicyEngine) AddPolicy(policy *security.SecurityPolic
 	dpe.policies[policy.ID] = policy
 
 	return nil
-
 }
 
 // RemovePolicy performs removepolicy operation.
 
 func (dpe *DefaultSecurityPolicyEngine) RemovePolicy(policyID string) error {
-
 	dpe.mutex.Lock()
 
 	defer dpe.mutex.Unlock()
@@ -4618,13 +4513,11 @@ func (dpe *DefaultSecurityPolicyEngine) RemovePolicy(policyID string) error {
 	delete(dpe.policies, policyID)
 
 	return nil
-
 }
 
 // UpdatePolicy performs updatepolicy operation.
 
 func (dpe *DefaultSecurityPolicyEngine) UpdatePolicy(policy *security.SecurityPolicy) error {
-
 	dpe.mutex.Lock()
 
 	defer dpe.mutex.Unlock()
@@ -4632,31 +4525,25 @@ func (dpe *DefaultSecurityPolicyEngine) UpdatePolicy(policy *security.SecurityPo
 	dpe.policies[policy.ID] = policy
 
 	return nil
-
 }
 
 // GetPolicy performs getpolicy operation.
 
 func (dpe *DefaultSecurityPolicyEngine) GetPolicy(policyID string) (*security.SecurityPolicy, error) {
-
 	dpe.mutex.RLock()
 
 	defer dpe.mutex.RUnlock()
 
 	if policy, exists := dpe.policies[policyID]; exists {
-
 		return policy, nil
-
 	}
 
 	return nil, fmt.Errorf("policy not found: %s", policyID)
-
 }
 
 // ListPolicies performs listpolicies operation.
 
 func (dpe *DefaultSecurityPolicyEngine) ListPolicies(filter *security.PolicyFilter) ([]*security.SecurityPolicy, error) {
-
 	dpe.mutex.RLock()
 
 	defer dpe.mutex.RUnlock()
@@ -4664,34 +4551,26 @@ func (dpe *DefaultSecurityPolicyEngine) ListPolicies(filter *security.PolicyFilt
 	var result []*security.SecurityPolicy
 
 	for _, policy := range dpe.policies {
-
 		result = append(result, policy)
-
 	}
 
 	return result, nil
-
 }
 
 // NewSecureChannelManager performs newsecurechannelmanager operation.
 
 func NewSecureChannelManager(config *SecureChannelConfig) *SecureChannelManager {
-
 	return &SecureChannelManager{
-
 		channels: make(map[string]*SecureChannel),
 
 		config: config,
 	}
-
 }
 
 // NewIntrusionDetectionSystem performs newintrusiondetectionsystem operation.
 
 func NewIntrusionDetectionSystem(config *IDSConfig) *IntrusionDetectionSystem {
-
 	return &IntrusionDetectionSystem{
-
 		sensors: make(map[string]*IDSSensor),
 
 		rules: make([]*IDSRule, 0),
@@ -4700,7 +4579,6 @@ func NewIntrusionDetectionSystem(config *IDSConfig) *IntrusionDetectionSystem {
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -4714,16 +4592,13 @@ func (ids *IntrusionDetectionSystem) Stop(ctx context.Context) error { ids.runni
 // NewThreatDetectionManager performs newthreatdetectionmanager operation.
 
 func NewThreatDetectionManager(config *ThreatDetectionConfig) *ThreatDetectionManager {
-
 	return &ThreatDetectionManager{
-
 		detectors: make(map[string]*ThreatDetector),
 
 		threatDatabase: &ThreatDatabase{},
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -4737,9 +4612,7 @@ func (tdm *ThreatDetectionManager) Stop(ctx context.Context) error { tdm.running
 // NewComplianceMonitor performs newcompliancemonitor operation.
 
 func NewComplianceMonitor(config *ComplianceConfig) *ComplianceMonitor {
-
 	return &ComplianceMonitor{
-
 		frameworks: make(map[string]*ComplianceFramework),
 
 		assessments: make(map[string]*ComplianceAssessment),
@@ -4748,7 +4621,6 @@ func NewComplianceMonitor(config *ComplianceConfig) *ComplianceMonitor {
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -4766,16 +4638,13 @@ func (cm *ComplianceMonitor) GetOverallScore() float64 { return 85.5 }
 // NewVulnerabilityScanner performs newvulnerabilityscanner operation.
 
 func NewVulnerabilityScanner(config *VulnerabilityScanConfig) *VulnerabilityScanner {
-
 	return &VulnerabilityScanner{
-
 		scanners: make(map[string]*VulnScanner),
 
 		database: &VulnerabilityDatabase{},
 
 		config: config,
 	}
-
 }
 
 // Start performs start operation.
@@ -4793,9 +4662,7 @@ func (vs *VulnerabilityScanner) GetVulnerabilityCount() int { return 0 }
 // NewIncidentResponseManager performs newincidentresponsemanager operation.
 
 func NewIncidentResponseManager(config *IncidentResponseConfig) *IncidentResponseManager {
-
 	return &IncidentResponseManager{
-
 		incidents: make(map[string]*SecurityIncident),
 
 		playbooks: make(map[string]*IncidentPlaybook),
@@ -4806,7 +4673,6 @@ func NewIncidentResponseManager(config *IncidentResponseConfig) *IncidentRespons
 
 		config: config,
 	}
-
 }
 
 // Additional configuration types.

@@ -464,7 +464,6 @@ func BenchmarkLLMTokenManager(b *testing.B) {
 			for pb.Next() {
 				testText := fmt.Sprintf("concurrent test request %d", runtime.NumGoroutine())
 				tokens, err := tokenManager.AllocateTokens(testText)
-
 				if err != nil {
 					atomic.AddInt64(&rateLimited, 1)
 				}
@@ -588,7 +587,6 @@ func (p *EnhancedLLMProcessor) ProcessIntent(ctx context.Context, intent string,
 	result, err := p.circuitBreaker.Execute(func() (interface{}, error) {
 		return p.processWithTokenLimit(ctx, intent, params)
 	})
-
 	if err != nil {
 		p.metrics.RecordError(err)
 		return nil, err

@@ -145,9 +145,7 @@ type MetricsSample struct {
 // NewStreamingMetricsCollector creates a high-performance streaming collector.
 
 func NewStreamingMetricsCollector(bufferSize, batchSize int, flushInterval time.Duration) *StreamingMetricsCollector {
-
 	return &StreamingMetricsCollector{
-
 		metricsBuffer: make(chan *MetricsSample, bufferSize),
 
 		batchSize: batchSize,
@@ -157,21 +155,18 @@ func NewStreamingMetricsCollector(bufferSize, batchSize int, flushInterval time.
 		maxBufferSize: bufferSize,
 
 		processingRate: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "sla_streaming_collector_processing_rate",
 
 			Help: "Current processing rate of streaming collector",
 		}),
 
 		bufferUtilization: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "sla_streaming_collector_buffer_utilization",
 
 			Help: "Buffer utilization percentage",
 		}),
 
 		collectionLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "sla_streaming_collector_latency_seconds",
 
 			Help: "Latency of metrics collection operations",
@@ -180,19 +175,16 @@ func NewStreamingMetricsCollector(bufferSize, batchSize int, flushInterval time.
 
 		}, []string{"operation"}),
 	}
-
 }
 
 // Start begins the streaming collection process.
 
 func (smc *StreamingMetricsCollector) Start(ctx context.Context) error {
-
 	// Start batch processor goroutines.
 
 	for range 4 { // 4 parallel processors for high throughput
 
 		go smc.processBatch(ctx)
-
 	}
 
 	// Start buffer monitoring.
@@ -200,19 +192,15 @@ func (smc *StreamingMetricsCollector) Start(ctx context.Context) error {
 	go smc.monitorBuffer(ctx)
 
 	return nil
-
 }
 
 // CollectMetric adds a metric to the streaming buffer.
 
 func (smc *StreamingMetricsCollector) CollectMetric(sample *MetricsSample) error {
-
 	start := time.Now()
 
 	defer func() {
-
 		smc.collectionLatency.WithLabelValues("collect").Observe(time.Since(start).Seconds())
-
 	}()
 
 	select {
@@ -228,13 +216,11 @@ func (smc *StreamingMetricsCollector) CollectMetric(sample *MetricsSample) error
 		return ErrBufferFull
 
 	}
-
 }
 
 // processBatch processes metrics in batches for efficiency.
 
 func (smc *StreamingMetricsCollector) processBatch(ctx context.Context) {
-
 	batch := make([]*MetricsSample, 0, smc.batchSize)
 
 	ticker := time.NewTicker(smc.flushInterval)
@@ -242,7 +228,6 @@ func (smc *StreamingMetricsCollector) processBatch(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -272,41 +257,33 @@ func (smc *StreamingMetricsCollector) processBatch(ctx context.Context) {
 			}
 
 		}
-
 	}
-
 }
 
 // processBatchData processes a batch of metrics.
 
 func (smc *StreamingMetricsCollector) processBatchData(batch []*MetricsSample) {
-
 	start := time.Now()
 
 	defer func() {
-
 		smc.collectionLatency.WithLabelValues("batch_process").Observe(time.Since(start).Seconds())
 
 		smc.processingRate.Set(float64(len(batch)) / time.Since(start).Seconds())
-
 	}()
 
 	// Process batch with parallel workers for high throughput.
 
 	// This would integrate with Prometheus, time series DB, etc.
-
 }
 
 // monitorBuffer monitors buffer utilization.
 
 func (smc *StreamingMetricsCollector) monitorBuffer(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -320,9 +297,7 @@ func (smc *StreamingMetricsCollector) monitorBuffer(ctx context.Context) {
 			smc.bufferUtilization.Set(utilization)
 
 		}
-
 	}
-
 }
 
 // CardinalityManager optimizes metric cardinality for high-volume scenarios.
@@ -344,9 +319,7 @@ type CardinalityManager struct {
 // NewCardinalityManager creates a new cardinality manager.
 
 func NewCardinalityManager(maxCardinality int) *CardinalityManager {
-
 	return &CardinalityManager{
-
 		maxCardinality: maxCardinality,
 
 		currentCardinality: make(map[string]int),
@@ -354,26 +327,22 @@ func NewCardinalityManager(maxCardinality int) *CardinalityManager {
 		cardinalityLimits: make(map[string]int),
 
 		cardinalityMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "sla_metrics_cardinality",
 
 			Help: "Current cardinality by metric family",
 		}, []string{"metric_family"}),
 
 		droppedMetrics: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "sla_dropped_metrics_total",
 
 			Help: "Total number of dropped metrics due to cardinality limits",
 		}, []string{"metric_family", "reason"}),
 	}
-
 }
 
 // ShouldAcceptMetric determines if a metric should be accepted based on cardinality.
 
 func (cm *CardinalityManager) ShouldAcceptMetric(metricName string, labels map[string]string) bool {
-
 	cm.mu.RLock()
 
 	defer cm.mu.RUnlock()
@@ -385,9 +354,7 @@ func (cm *CardinalityManager) ShouldAcceptMetric(metricName string, labels map[s
 	// Check if metric already exists.
 
 	if _, exists := cm.currentCardinality[metricKey]; exists {
-
 		return true
-
 	}
 
 	// Check total cardinality limit.
@@ -419,77 +386,59 @@ func (cm *CardinalityManager) ShouldAcceptMetric(metricName string, labels map[s
 	}
 
 	return true
-
 }
 
 // generateMetricKey generates a unique key for metric cardinality tracking.
 
 func (cm *CardinalityManager) generateMetricKey(metricName string, labels map[string]string) string {
-
 	// Implementation would generate a unique key based on metric name and label values.
 
 	return metricName + ":" + cm.hashLabels(labels)
-
 }
 
 // hashLabels creates a hash of label values for cardinality calculation.
 
 func (cm *CardinalityManager) hashLabels(labels map[string]string) string {
-
 	// Simplified implementation - in production would use proper hashing.
 
 	result := ""
 
 	for k, v := range labels {
-
 		result += k + "=" + v + ","
-
 	}
 
 	return result
-
 }
 
 // getTotalCardinality returns the current total cardinality.
 
 func (cm *CardinalityManager) getTotalCardinality() int {
-
 	total := 0
 
 	for _, count := range cm.currentCardinality {
-
 		total += count
-
 	}
 
 	return total
-
 }
 
 // getFamilyCardinality returns cardinality for a specific metric family.
 
 func (cm *CardinalityManager) getFamilyCardinality(metricName string) int {
-
 	count := 0
 
 	for key := range cm.currentCardinality {
-
 		if len(key) > len(metricName) && key[:len(metricName)] == metricName {
-
 			count++
-
 		}
-
 	}
 
 	return count
-
 }
 
 // RealTimeSLICalculator computes SLIs in real-time.
 
 type RealTimeSLICalculator struct {
-
 	// Availability calculation.
 
 	availabilityCalculator *AvailabilityCalculator
@@ -542,7 +491,6 @@ type SLIState struct {
 // AvailabilityCalculator computes multi-dimensional availability.
 
 type AvailabilityCalculator struct {
-
 	// Component availability tracking.
 
 	componentStates map[string]bool
@@ -569,7 +517,6 @@ type AvailabilityCalculator struct {
 // CalculateAvailability computes the current multi-dimensional availability.
 
 func (ac *AvailabilityCalculator) CalculateAvailability(timestamp time.Time) float64 {
-
 	// Component availability weighted calculation.
 
 	componentAvailability := ac.calculateComponentAvailability()
@@ -595,13 +542,11 @@ func (ac *AvailabilityCalculator) CalculateAvailability(timestamp time.Time) flo
 	ac.availabilityHistory.Add(timestamp, compositeAvailability)
 
 	return compositeAvailability
-
 }
 
 // calculateComponentAvailability calculates weighted component availability.
 
 func (ac *AvailabilityCalculator) calculateComponentAvailability() float64 {
-
 	totalWeight := 0.0
 
 	weightedSum := 0.0
@@ -613,27 +558,21 @@ func (ac *AvailabilityCalculator) calculateComponentAvailability() float64 {
 		totalWeight += weight
 
 		if available {
-
 			weightedSum += weight
-
 		}
 
 	}
 
 	if totalWeight == 0 {
-
 		return 1.0 // Default to available if no components tracked
-
 	}
 
 	return weightedSum / totalWeight
-
 }
 
 // calculateDependencyAvailability calculates weighted dependency availability.
 
 func (ac *AvailabilityCalculator) calculateDependencyAvailability() float64 {
-
 	totalWeight := 0.0
 
 	weightedSum := 0.0
@@ -645,27 +584,21 @@ func (ac *AvailabilityCalculator) calculateDependencyAvailability() float64 {
 		totalWeight += weight
 
 		if available {
-
 			weightedSum += weight
-
 		}
 
 	}
 
 	if totalWeight == 0 {
-
 		return 1.0
-
 	}
 
 	return weightedSum / totalWeight
-
 }
 
 // calculateJourneyAvailability calculates weighted user journey availability.
 
 func (ac *AvailabilityCalculator) calculateJourneyAvailability() float64 {
-
 	totalWeight := 0.0
 
 	weightedSum := 0.0
@@ -681,19 +614,15 @@ func (ac *AvailabilityCalculator) calculateJourneyAvailability() float64 {
 	}
 
 	if totalWeight == 0 {
-
 		return 1.0
-
 	}
 
 	return weightedSum / totalWeight
-
 }
 
 // LatencyCalculator computes real-time latency percentiles.
 
 type LatencyCalculator struct {
-
 	// Latency tracking by component.
 
 	endToEndLatencies *LatencyTracker
@@ -730,7 +659,6 @@ type LatencyTracker struct {
 // QuantileEstimator provides efficient real-time quantile estimation.
 
 type QuantileEstimator struct {
-
 	// P2 algorithm or similar for real-time quantile estimation.
 
 	p50Estimator *P2Estimator
@@ -757,18 +685,14 @@ type P2Estimator struct {
 // NewP2Estimator creates a new P² quantile estimator.
 
 func NewP2Estimator(quantile float64) *P2Estimator {
-
 	p2 := &P2Estimator{
-
 		quantile: quantile,
 	}
 
 	// Initialize positions.
 
 	for i := range 5 {
-
 		p2.positions[i] = i
-
 	}
 
 	// Initialize increments.
@@ -784,13 +708,11 @@ func NewP2Estimator(quantile float64) *P2Estimator {
 	p2.increments[4] = 1
 
 	return p2
-
 }
 
 // Add adds a new observation to the quantile estimator.
 
 func (p2 *P2Estimator) Add(value float64) {
-
 	if p2.count < 5 {
 
 		// Initialization phase.
@@ -800,23 +722,15 @@ func (p2 *P2Estimator) Add(value float64) {
 		p2.count++
 
 		if p2.count == 5 {
-
 			// Sort markers.
 
 			for i := range 4 {
-
 				for j := i + 1; j < 5; j++ {
-
 					if p2.markers[i] > p2.markers[j] {
-
 						p2.markers[i], p2.markers[j] = p2.markers[j], p2.markers[i]
-
 					}
-
 				}
-
 			}
-
 		}
 
 		return
@@ -840,9 +754,7 @@ func (p2 *P2Estimator) Add(value float64) {
 		k = 3
 
 	} else {
-
 		for i := 1; i < 4; i++ {
-
 			if value < p2.markers[i] {
 
 				k = i - 1
@@ -850,17 +762,13 @@ func (p2 *P2Estimator) Add(value float64) {
 				break
 
 			}
-
 		}
-
 	}
 
 	// Increment positions.
 
 	for i := k + 1; i < 5; i++ {
-
 		p2.positions[i]++
-
 	}
 
 	p2.count++
@@ -868,9 +776,7 @@ func (p2 *P2Estimator) Add(value float64) {
 	// Update desired positions.
 
 	for i := range 5 {
-
 		p2.increments[i] = float64(p2.count-1) * p2.getDesiredPosition(i)
-
 	}
 
 	// Adjust heights of markers if necessary.
@@ -886,9 +792,7 @@ func (p2 *P2Estimator) Add(value float64) {
 			d := 1.0
 
 			if diff < 0 {
-
 				d = -1.0
-
 			}
 
 			// Parabolic formula.
@@ -896,15 +800,11 @@ func (p2 *P2Estimator) Add(value float64) {
 			newHeight := p2.parabolic(i, d)
 
 			if p2.markers[i-1] < newHeight && newHeight < p2.markers[i+1] {
-
 				p2.markers[i] = newHeight
-
 			} else {
-
 				// Linear formula.
 
 				p2.markers[i] = p2.linear(i, d)
-
 			}
 
 			p2.positions[i] += int(d)
@@ -912,21 +812,17 @@ func (p2 *P2Estimator) Add(value float64) {
 		}
 
 	}
-
 }
 
 // GetQuantile returns the current quantile estimate.
 
 func (p2 *P2Estimator) GetQuantile() float64 {
-
 	if p2.count < 5 {
 
 		// Not enough samples, return approximate.
 
 		if p2.count == 0 {
-
 			return 0
-
 		}
 
 		// Simple approximation for small samples.
@@ -936,13 +832,11 @@ func (p2 *P2Estimator) GetQuantile() float64 {
 	}
 
 	return p2.markers[2] // Middle marker contains the quantile estimate
-
 }
 
 // getDesiredPosition calculates desired position for marker i.
 
 func (p2 *P2Estimator) getDesiredPosition(i int) float64 {
-
 	switch i {
 
 	case 0:
@@ -968,29 +862,22 @@ func (p2 *P2Estimator) getDesiredPosition(i int) float64 {
 	}
 
 	return 0
-
 }
 
 // parabolic calculates new height using parabolic formula.
 
 func (p2 *P2Estimator) parabolic(i int, d float64) float64 {
-
 	return p2.markers[i] + d*(p2.markers[i+1]-p2.markers[i-1])/(float64(p2.positions[i+1]-p2.positions[i-1]))
-
 }
 
 // linear calculates new height using linear formula.
 
 func (p2 *P2Estimator) linear(i int, d float64) float64 {
-
 	if d > 0 {
-
 		return p2.markers[i] + d*(p2.markers[i+1]-p2.markers[i])/float64(p2.positions[i+1]-p2.positions[i])
-
 	}
 
 	return p2.markers[i] - d*(p2.markers[i]-p2.markers[i-1])/float64(p2.positions[i]-p2.positions[i-1])
-
 }
 
 // CircularBuffer provides efficient ring buffer for time series data.
@@ -1014,22 +901,18 @@ type CircularBuffer struct {
 // NewCircularBuffer creates a new circular buffer.
 
 func NewCircularBuffer(capacity int) *CircularBuffer {
-
 	return &CircularBuffer{
-
 		data: make([]float64, capacity),
 
 		times: make([]time.Time, capacity),
 
 		capacity: capacity,
 	}
-
 }
 
 // Add adds a new value to the circular buffer.
 
 func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
-
 	cb.mu.Lock()
 
 	defer cb.mu.Unlock()
@@ -1041,29 +924,21 @@ func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
 	cb.head = (cb.head + 1) % cb.capacity
 
 	if cb.size < cb.capacity {
-
 		cb.size++
-
 	} else {
-
 		cb.tail = (cb.tail + 1) % cb.capacity
-
 	}
-
 }
 
 // GetRecent returns the most recent n values.
 
 func (cb *CircularBuffer) GetRecent(n int) ([]time.Time, []float64) {
-
 	cb.mu.RLock()
 
 	defer cb.mu.RUnlock()
 
 	if n > cb.size {
-
 		n = cb.size
-
 	}
 
 	times := make([]time.Time, n)
@@ -1081,21 +956,17 @@ func (cb *CircularBuffer) GetRecent(n int) ([]time.Time, []float64) {
 	}
 
 	return times, values
-
 }
 
 // Range iterates over all values in the circular buffer.
 
 func (cb *CircularBuffer) Range(fn func(float64) bool) {
-
 	cb.mu.RLock()
 
 	defer cb.mu.RUnlock()
 
 	if cb.size == 0 {
-
 		return
-
 	}
 
 	// Iterate from tail to head (oldest to newest).
@@ -1105,27 +976,21 @@ func (cb *CircularBuffer) Range(fn func(float64) bool) {
 		idx := (cb.tail + i) % cb.capacity
 
 		if !fn(cb.data[idx]) {
-
 			break
-
 		}
 
 	}
-
 }
 
 // RangeWithTime iterates over all timestamp-value pairs in the circular buffer.
 
 func (cb *CircularBuffer) RangeWithTime(fn func(time.Time, float64) bool) {
-
 	cb.mu.RLock()
 
 	defer cb.mu.RUnlock()
 
 	if cb.size == 0 {
-
 		return
-
 	}
 
 	// Iterate from tail to head (oldest to newest).
@@ -1135,23 +1000,17 @@ func (cb *CircularBuffer) RangeWithTime(fn func(time.Time, float64) bool) {
 		idx := (cb.tail + i) % cb.capacity
 
 		if !fn(cb.times[idx], cb.data[idx]) {
-
 			break
-
 		}
 
 	}
-
 }
 
 // Common errors.
 
-var (
+// ErrBufferFull holds errbufferfull value.
 
-	// ErrBufferFull holds errbufferfull value.
-
-	ErrBufferFull = fmt.Errorf("metrics buffer is full")
-)
+var ErrBufferFull = fmt.Errorf("metrics buffer is full")
 
 // TimeSeries represents a time series for historical data tracking.
 
@@ -1174,26 +1033,21 @@ type TimePoint struct {
 // NewTimeSeries creates a new time series.
 
 func NewTimeSeries(maxPoints int) *TimeSeries {
-
 	return &TimeSeries{
-
 		points: make([]TimePoint, 0, maxPoints),
 
 		maxPoints: maxPoints,
 	}
-
 }
 
 // Add adds a new point to the time series.
 
 func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
-
 	ts.mu.Lock()
 
 	defer ts.mu.Unlock()
 
 	point := TimePoint{
-
 		Timestamp: timestamp,
 
 		Value: value,
@@ -1204,31 +1058,23 @@ func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 	// Remove old points if exceeding maximum.
 
 	if len(ts.points) > ts.maxPoints {
-
 		ts.points = ts.points[1:]
-
 	}
-
 }
 
 // GetRecent returns the most recent n time points.
 
 func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
-
 	ts.mu.RLock()
 
 	defer ts.mu.RUnlock()
 
 	if n > len(ts.points) {
-
 		n = len(ts.points)
-
 	}
 
 	if n == 0 {
-
 		return []time.Time{}, []float64{}
-
 	}
 
 	// Get the last n points.
@@ -1250,21 +1096,17 @@ func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
 	}
 
 	return times, values
-
 }
 
 // GetTrend calculates the trend over the specified duration.
 
 func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
-
 	ts.mu.RLock()
 
 	defer ts.mu.RUnlock()
 
 	if len(ts.points) < 2 {
-
 		return 0
-
 	}
 
 	cutoff := time.Now().Add(-duration)
@@ -1274,31 +1116,23 @@ func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
 	var relevantPoints []TimePoint
 
 	for _, point := range ts.points {
-
 		if point.Timestamp.After(cutoff) {
-
 			relevantPoints = append(relevantPoints, point)
-
 		}
-
 	}
 
 	if len(relevantPoints) < 2 {
-
 		return 0
-
 	}
 
 	// Calculate linear regression slope.
 
 	return ts.calculateSlope(relevantPoints)
-
 }
 
 // calculateSlope calculates the slope using linear regression.
 
 func (ts *TimeSeries) calculateSlope(points []TimePoint) float64 {
-
 	n := float64(len(points))
 
 	// Convert timestamps to seconds for calculation.
@@ -1328,13 +1162,10 @@ func (ts *TimeSeries) calculateSlope(points []TimePoint) float64 {
 	denominator := n*sumXX - sumX*sumX
 
 	if math.Abs(denominator) < 1e-10 {
-
 		return 0
-
 	}
 
 	return (n*sumXY - sumX*sumY) / denominator
-
 }
 
 // ThroughputCalculator calculates throughput metrics.
@@ -1350,32 +1181,26 @@ type ThroughputCalculator struct {
 // NewThroughputCalculator creates a new throughput calculator.
 
 func NewThroughputCalculator(windowSize time.Duration) *ThroughputCalculator {
-
 	return &ThroughputCalculator{
-
 		windowSize: windowSize,
 
 		requests: NewCircularBuffer(1000),
 	}
-
 }
 
 // RecordRequest records a new request for throughput calculation.
 
 func (tc *ThroughputCalculator) RecordRequest(timestamp time.Time) {
-
 	tc.mu.Lock()
 
 	defer tc.mu.Unlock()
 
 	tc.requests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
-
 }
 
 // Calculate calculates current throughput (requests per second).
 
 func (tc *ThroughputCalculator) Calculate() float64 {
-
 	tc.mu.RLock()
 
 	defer tc.mu.RUnlock()
@@ -1387,19 +1212,14 @@ func (tc *ThroughputCalculator) Calculate() float64 {
 	count := 0
 
 	tc.requests.RangeWithTime(func(timestamp time.Time, value float64) bool {
-
 		if timestamp.After(cutoff) {
-
 			count++
-
 		}
 
 		return true
-
 	})
 
 	return float64(count) / tc.windowSize.Seconds()
-
 }
 
 // ErrorRateCalculator calculates error rate metrics.
@@ -1417,22 +1237,18 @@ type ErrorRateCalculator struct {
 // NewErrorRateCalculator creates a new error rate calculator.
 
 func NewErrorRateCalculator(windowSize time.Duration) *ErrorRateCalculator {
-
 	return &ErrorRateCalculator{
-
 		windowSize: windowSize,
 
 		totalRequests: NewCircularBuffer(1000),
 
 		errorRequests: NewCircularBuffer(1000),
 	}
-
 }
 
 // RecordRequest records a request (total and error status).
 
 func (erc *ErrorRateCalculator) RecordRequest(timestamp time.Time, isError bool) {
-
 	erc.mu.Lock()
 
 	defer erc.mu.Unlock()
@@ -1440,17 +1256,13 @@ func (erc *ErrorRateCalculator) RecordRequest(timestamp time.Time, isError bool)
 	erc.totalRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
 
 	if isError {
-
 		erc.errorRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent an error
-
 	}
-
 }
 
 // Calculate calculates current error rate (0.0 to 1.0).
 
 func (erc *ErrorRateCalculator) Calculate() float64 {
-
 	erc.mu.RLock()
 
 	defer erc.mu.RUnlock()
@@ -1464,37 +1276,26 @@ func (erc *ErrorRateCalculator) Calculate() float64 {
 	errorCount := 0
 
 	erc.totalRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
-
 		if timestamp.After(cutoff) {
-
 			totalCount++
-
 		}
 
 		return true
-
 	})
 
 	erc.errorRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
-
 		if timestamp.After(cutoff) {
-
 			errorCount++
-
 		}
 
 		return true
-
 	})
 
 	if totalCount == 0 {
-
 		return 0.0
-
 	}
 
 	return float64(errorCount) / float64(totalCount)
-
 }
 
 // PercentileCalculator calculates percentile metrics for latency.
@@ -1510,32 +1311,26 @@ type PercentileCalculator struct {
 // NewPercentileCalculator creates a new percentile calculator.
 
 func NewPercentileCalculator(windowSize time.Duration) *PercentileCalculator {
-
 	return &PercentileCalculator{
-
 		windowSize: windowSize,
 
 		values: NewCircularBuffer(1000),
 	}
-
 }
 
 // RecordValue records a latency value.
 
 func (pc *PercentileCalculator) RecordValue(value float64) {
-
 	pc.mu.Lock()
 
 	defer pc.mu.Unlock()
 
 	pc.values.Add(time.Now(), value)
-
 }
 
 // Calculate calculates the specified percentile.
 
 func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
-
 	pc.mu.RLock()
 
 	defer pc.mu.RUnlock()
@@ -1543,17 +1338,13 @@ func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
 	var values []float64
 
 	pc.values.Range(func(value float64) bool {
-
 		values = append(values, value)
 
 		return true
-
 	})
 
 	if len(values) == 0 {
-
 		return 0.0
-
 	}
 
 	// Sort values.
@@ -1565,9 +1356,7 @@ func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
 	index := percentile / 100.0 * float64(len(values)-1)
 
 	if index == float64(int(index)) {
-
 		return values[int(index)]
-
 	}
 
 	// Linear interpolation.
@@ -1577,15 +1366,12 @@ func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
 	upper := lower + 1
 
 	if upper >= len(values) {
-
 		return values[len(values)-1]
-
 	}
 
 	weight := index - float64(lower)
 
 	return values[lower]*(1-weight) + values[upper]*weight
-
 }
 
 // SLAComplianceTracker tracks SLA compliance over time.
@@ -1601,32 +1387,26 @@ type SLAComplianceTracker struct {
 // NewSLAComplianceTracker creates a new SLA compliance tracker.
 
 func NewSLAComplianceTracker(windowSize time.Duration) *SLAComplianceTracker {
-
 	return &SLAComplianceTracker{
-
 		violations: NewCircularBuffer(1000),
 
 		windowSize: windowSize,
 	}
-
 }
 
 // RecordViolation records an SLA violation.
 
 func (sct *SLAComplianceTracker) RecordViolation(timestamp time.Time, severity float64) {
-
 	sct.mu.Lock()
 
 	defer sct.mu.Unlock()
 
 	sct.violations.Add(timestamp, severity)
-
 }
 
 // GetComplianceRate returns the current compliance rate (0.0 to 1.0).
 
 func (sct *SLAComplianceTracker) GetComplianceRate() float64 {
-
 	sct.mu.RLock()
 
 	defer sct.mu.RUnlock()
@@ -1640,29 +1420,22 @@ func (sct *SLAComplianceTracker) GetComplianceRate() float64 {
 	totalMeasurements := 0
 
 	sct.violations.RangeWithTime(func(timestamp time.Time, value float64) bool {
-
 		if timestamp.After(cutoff) {
 
 			totalMeasurements++
 
 			if value > 0 {
-
 				violationCount++
-
 			}
 
 		}
 
 		return true
-
 	})
 
 	if totalMeasurements == 0 {
-
 		return 1.0 // 100% compliance when no measurements
-
 	}
 
 	return 1.0 - (float64(violationCount) / float64(totalMeasurements))
-
 }

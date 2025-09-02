@@ -149,4 +149,3 @@ func (in *ManagedElementList) DeepCopyObject() runtime.Object {
 	}
 	return nil
 }
-

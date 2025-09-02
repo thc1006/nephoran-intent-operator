@@ -771,7 +771,7 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 	isBlacklisted1, err := manager.IsTokenBlacklisted(context.Background(), token1)
 	assert.NoError(t, err)
 	assert.True(t, isBlacklisted1)
-	
+
 	isBlacklisted2, err := manager.IsTokenBlacklisted(context.Background(), token2)
 	assert.NoError(t, err)
 	assert.True(t, isBlacklisted2)
@@ -787,10 +787,10 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 	isBlacklisted1After, err := manager.IsTokenBlacklisted(context.Background(), token1)
 	assert.NoError(t, err)
 	assert.False(t, isBlacklisted1After) // Expired, should be cleaned up
-	
+
 	isBlacklisted2After, err := manager.IsTokenBlacklisted(context.Background(), token2)
 	assert.NoError(t, err)
-	assert.True(t, isBlacklisted2After)  // Still valid, should remain
+	assert.True(t, isBlacklisted2After) // Still valid, should remain
 }
 
 // Benchmark tests

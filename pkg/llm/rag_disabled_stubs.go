@@ -16,9 +16,7 @@ type StubMetricsIntegrator struct{}
 // NewMetricsIntegrator performs newmetricsintegrator operation.
 
 func NewStubMetricsIntegrator(collector interface{}) *StubMetricsIntegrator {
-
 	return &StubMetricsIntegrator{}
-
 }
 
 // MetricsCollector stub.
@@ -28,9 +26,7 @@ type MetricsCollector struct{}
 // NewMetricsCollector performs newmetricscollector operation.
 
 func NewMetricsCollector() *MetricsCollector {
-
 	return &MetricsCollector{}
-
 }
 
 // Priority stub for batch processing.
@@ -103,9 +99,7 @@ type EmbeddingService struct{}
 // GenerateEmbedding performs generateembedding operation.
 
 func (e *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
-
 	return nil, nil
-
 }
 
 // WeaviateClient stub.
@@ -217,9 +211,7 @@ type StubSimpleTokenTracker struct{}
 // NewSimpleTokenTracker performs newsimpletokentracker operation.
 
 func NewStubSimpleTokenTracker() *StubSimpleTokenTracker {
-
 	return &StubSimpleTokenTracker{}
-
 }
 
 // CircuitBreaker stub.
@@ -229,9 +221,7 @@ type CircuitBreaker struct{}
 // Execute performs execute operation.
 
 func (cb *CircuitBreaker) Execute(fn func() error) error {
-
 	return fn()
-
 }
 
 // CircuitBreakerConfig stub.
@@ -245,9 +235,7 @@ type CircuitBreakerConfig struct {
 // NewCircuitBreaker performs newcircuitbreaker operation.
 
 func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
-
 	return &CircuitBreaker{}
-
 }
 
 // ResponseCache stub.
@@ -257,17 +245,13 @@ type ResponseCache struct{}
 // NewResponseCache performs newresponsecache operation.
 
 func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
-
 	return &ResponseCache{}
-
 }
 
 // Get performs get operation.
 
 func (rc *ResponseCache) Get(key string) (string, bool) {
-
 	return "", false
-
 }
 
 // Set performs set operation.
@@ -308,15 +292,11 @@ type CircuitBreakerError struct {
 // Error performs error operation.
 
 func (e *CircuitBreakerError) Error() string {
-
 	if e.Err != nil {
-
 		return e.Err.Error()
-
 	}
 
 	return "circuit breaker error"
-
 }
 
 // Additional stub types for handlers compatibility.
@@ -338,17 +318,13 @@ type CircuitBreakerManager struct{}
 // GetAllStats performs getallstats operation.
 
 func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
-
 	return make(map[string]interface{})
-
 }
 
 // Get performs get operation.
 
 func (cbm *CircuitBreakerManager) Get(name string) *CircuitBreaker {
-
 	return &CircuitBreaker{}
-
 }
 
 // TokenManager represents a tokenmanager.
@@ -408,9 +384,7 @@ func (tm *TokenManager) ValidateModel(model string) error {
 // GetSupportedModels performs getsupportedmodels operation.
 
 func (tm *TokenManager) GetSupportedModels() []string {
-
 	return []string{}
-
 }
 
 // StubContextBuilder represents a contextbuilder.
@@ -420,9 +394,7 @@ type StubContextBuilder struct{}
 // GetMetrics performs getmetrics operation.
 
 func (cb *StubContextBuilder) GetMetrics() map[string]interface{} {
-
 	return make(map[string]interface{})
-
 }
 
 // RelevanceScorer represents a relevancescorer.
@@ -432,9 +404,7 @@ type StubRelevanceScorer struct{}
 // GetMetrics performs getmetrics operation.
 
 func (rs *StubRelevanceScorer) GetMetrics() map[string]interface{} {
-
 	return make(map[string]interface{})
-
 }
 
 // RAGAwarePromptBuilder represents a ragawarepromptbuilder.
@@ -444,9 +414,7 @@ type RAGAwarePromptBuilder struct{}
 // GetMetrics performs getmetrics operation.
 
 func (pb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-
 	return make(map[string]interface{})
-
 }
 
 // RAGEnhancedProcessor represents a ragenhancedprocessor.
@@ -456,56 +424,42 @@ type RAGEnhancedProcessor struct{}
 // ProcessIntent performs processintent operation.
 
 func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
-
 	return "RAG is disabled", nil
-
 }
 
 // Stub constructors.
 
 func NewCircuitBreakerManager() *CircuitBreakerManager {
-
 	return &CircuitBreakerManager{}
-
 }
 
 // NewTokenManagerStub creates a stub token manager
 // Note: The main NewTokenManager is provided by token_manager_default.go
 
 func NewTokenManagerStub() TokenManager {
-
 	return NewTokenManager()
-
 }
 
 // NewContextBuilder performs newcontextbuilder operation.
 
 func NewContextBuilder() *ContextBuilder {
-
 	return &ContextBuilder{}
-
 }
 
 // NewRelevanceScorer performs newrelevancescorer operation.
 
 func NewRelevanceScorer() *RelevanceScorer {
-
 	return &RelevanceScorer{}
-
 }
 
 // NewRAGAwarePromptBuilder performs newragawarepromptbuilder operation.
 
 func NewRAGAwarePromptBuilder(tokenManager TokenManager, config interface{}) *RAGAwarePromptBuilder {
-
 	return &RAGAwarePromptBuilder{}
-
 }
 
 // NewRAGEnhancedProcessor performs newragenhancedprocessor operation.
 
 func NewRAGEnhancedProcessor(client *Client, weaviateClient interface{}, ragService interface{}, config interface{}) *RAGEnhancedProcessor {
-
 	return &RAGEnhancedProcessor{}
-
 }

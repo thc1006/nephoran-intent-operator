@@ -31,9 +31,7 @@ const (
 // String returns the string representation of ErrorSeverity.
 
 func (es ErrorSeverity) String() string {
-
 	return string(es)
-
 }
 
 // ErrorCategory represents the category of an error.
@@ -149,7 +147,6 @@ const (
 // ProcessingError represents an error that occurred during processing.
 
 type ProcessingError struct {
-
 	// Basic error information.
 
 	ID string `json:"id"`
@@ -212,23 +209,17 @@ type ProcessingError struct {
 // Error implements the error interface.
 
 func (pe *ProcessingError) Error() string {
-
 	if pe.Details != "" {
-
 		return fmt.Sprintf("[%s:%s:%s] %s: %s", pe.Component, pe.Operation, pe.Phase, pe.Message, pe.Details)
-
 	}
 
 	return fmt.Sprintf("[%s:%s:%s] %s", pe.Component, pe.Operation, pe.Phase, pe.Message)
-
 }
 
 // Unwrap implements the error unwrapping interface.
 
 func (pe *ProcessingError) Unwrap() error {
-
 	return pe.Cause
-
 }
 
 // This file contains type aliases and imports for backward compatibility.
@@ -283,9 +274,7 @@ type StackFrame struct {
 // String returns a formatted string representation of the stack frame.
 
 func (sf StackFrame) String() string {
-
 	return fmt.Sprintf("%s:%d %s", sf.File, sf.Line, sf.Function)
-
 }
 
 // ErrorContextFunc is a function that can add context to an error.
@@ -351,9 +340,7 @@ type ErrorConfiguration struct {
 // DefaultErrorConfiguration returns sensible defaults.
 
 func DefaultErrorConfiguration() *ErrorConfiguration {
-
 	return &ErrorConfiguration{
-
 		StackTraceEnabled: true,
 
 		StackTraceDepth: 10,
@@ -371,7 +358,6 @@ func DefaultErrorConfiguration() *ErrorConfiguration {
 		MetricsEnabled: true,
 
 		RetryableTypes: []ErrorType{
-
 			ErrorTypeNetwork,
 
 			ErrorTypeTimeout,
@@ -384,7 +370,6 @@ func DefaultErrorConfiguration() *ErrorConfiguration {
 		},
 
 		TemporaryTypes: []ErrorType{
-
 			ErrorTypeTimeout,
 
 			ErrorTypeRateLimit,
@@ -394,5 +379,4 @@ func DefaultErrorConfiguration() *ErrorConfiguration {
 			ErrorTypeResource,
 		},
 	}
-
 }

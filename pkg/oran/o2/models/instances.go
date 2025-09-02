@@ -192,7 +192,6 @@ type ResourceInstanceFilter struct {
 	SortBy string `json:"sortBy,omitempty"`
 
 	SortOrder string `json:"sortOrder,omitempty"` // ASC, DESC
-
 }
 
 // Constants for resource instance states and statuses.

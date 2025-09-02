@@ -1934,8 +1934,10 @@ func (s *SLAComplianceTestSuite) validateISO27001Control18(report *SLACompliance
 // Report validation methods
 func (s *SLAComplianceTestSuite) validateReportAccuracy(ctx context.Context, framework RegulatoryFramework, report *SLAComplianceReport, evidence *ComplianceEvidence) {
 }
+
 func (s *SLAComplianceTestSuite) crossValidateReports(reports map[RegulatoryFramework]*SLAComplianceReport) {
 }
+
 func (s *SLAComplianceTestSuite) testExecutiveDashboard(ctx context.Context, reports map[RegulatoryFramework]*SLAComplianceReport) {
 }
 

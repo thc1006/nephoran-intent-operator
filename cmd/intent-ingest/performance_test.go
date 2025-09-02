@@ -257,7 +257,7 @@ func BenchmarkResponseTime(b *testing.B) {
 
 	var totalDuration time.Duration
 	var maxDuration time.Duration
-	var minDuration time.Duration = time.Hour // Initialize to high value
+	minDuration := time.Hour // Initialize to high value
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

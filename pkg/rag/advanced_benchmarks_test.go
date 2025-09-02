@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"sync/atomic"
-	
 	"testing"
 	"time"
 
@@ -907,11 +906,9 @@ type EnhancedRAGSystem struct {
 	metrics        RAGMetrics
 }
 
-
 // Document type is already defined in embedding_support.go
 
 // RetrievalConfig type is already defined in enhanced_retrieval_service.go
-
 
 type SearchConfig struct {
 	TopK             int
@@ -928,7 +925,6 @@ type ContextConfig struct {
 	UseTemplating   bool
 	Template        string
 }
-
 
 // ChunkingConfig type is already defined in chunking_service.go
 // EmbeddingConfig type is already defined in embedding_service.go
@@ -951,7 +947,6 @@ type VectorDBConfig struct {
 	Dimensions int
 }
 
-
 type EmbeddingConfigTest struct {
 	Provider string
 	Model    string
@@ -969,7 +964,6 @@ type ConnectionPoolConfigTest struct {
 	IdleTimeout    time.Duration
 }
 
-
 // Placeholder implementations
 func NewEnhancedRAGSystem(config RAGSystemConfig) *EnhancedRAGSystem {
 	return &EnhancedRAGSystem{}
@@ -983,6 +977,7 @@ func (r *EnhancedRAGSystem) IsFromCache(query string) bool { return false }
 func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc sharedtypes.Document) (*IngestionResult, error) {
 	return &IngestionResult{ChunksCreated: 5, TokensProcessed: 1000}, nil
 }
+
 func (r *EnhancedRAGSystem) AdvancedSearch(ctx context.Context, query string, config SearchConfig) ([]SearchResult, error) {
 	return []SearchResult{{Confidence: 0.8, Score: 0.8}}, nil
 }
@@ -990,6 +985,7 @@ func (r *EnhancedRAGSystem) RerankResults(results []SearchResult, query string) 
 func (r *EnhancedRAGSystem) GenerateContext(ctx context.Context, query string, config ContextConfig) (*GeneratedContext, error) {
 	return &GeneratedContext{Content: "context", TokenCount: 100}, nil
 }
+
 func (r *EnhancedRAGSystem) GenerateEmbeddings(ctx context.Context, texts []string, model string) ([][]float64, error) {
 	embeddings := make([][]float64, len(texts))
 	for i := range embeddings {
@@ -1002,9 +998,7 @@ func (r *EnhancedRAGSystem) ChunkDocument(doc sharedtypes.Document, config *Chun
 	return []*DocumentChunk{{Content: "chunk", CharacterCount: 100, WordCount: 20}}, nil
 }
 
-
 // SearchResult type is already defined in enhanced_rag_integration.go
-
 
 // IngestionResult type (see line 1031 for the full definition)
 
@@ -1013,24 +1007,24 @@ type GeneratedContext struct {
 	TokenCount int
 }
 
-
 // DocumentChunk type is already defined in chunking_service.go
 // EmbeddingService type is already defined in embedding_service.go
 
-
 // Interface placeholders
-type VectorDB interface{}
-type DocumentChunker interface{}
-type SearchCache interface{}
-type ConnectionPoolInterface interface{}
+type (
+	VectorDB                interface{}
+	DocumentChunker         interface{}
+	SearchCache             interface{}
+	ConnectionPoolInterface interface{}
+)
 
 // Missing result types
 type IngestionResult struct {
-	ChunksCreated    int           `json:"chunks_created"`
-	TokensProcessed  int           `json:"tokens_processed"`
-	ProcessingTime   time.Duration `json:"processing_time"`
-	DocumentID       string        `json:"document_id"`
-	Status           string        `json:"status"`
+	ChunksCreated   int           `json:"chunks_created"`
+	TokensProcessed int           `json:"tokens_processed"`
+	ProcessingTime  time.Duration `json:"processing_time"`
+	DocumentID      string        `json:"document_id"`
+	Status          string        `json:"status"`
 }
 
 // DocumentChunk type is already defined in chunking_service.go

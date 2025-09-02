@@ -80,7 +80,6 @@ type OptimizedTransport struct {
 // ConnectionPool manages HTTP connection reuse and optimization.
 
 type ConnectionPool struct {
-
 	// Per-host connection pools.
 
 	hostPools map[string]*HostConnectionPool
@@ -149,7 +148,6 @@ type PooledConnection struct {
 // OptimizedClientConfig holds configuration for the optimized client.
 
 type OptimizedClientConfig struct {
-
 	// Connection pooling.
 
 	MaxConnsPerHost int `json:"max_conns_per_host"`
@@ -260,17 +258,13 @@ type HTTPClientStats struct {
 // NewOptimizedHTTPClient creates a new optimized HTTP client.
 
 func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient, error) {
-
 	if config == nil {
-
 		config = getDefaultOptimizedClientConfig()
-
 	}
 
 	// Create connection pool.
 
 	pool := &ConnectionPool{
-
 		hostPools: make(map[string]*HostConnectionPool),
 
 		maxConnsPerHost: config.MaxConnsPerHost,
@@ -285,11 +279,8 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 	// Create optimized transport.
 
 	transport := &OptimizedTransport{
-
 		Transport: &http.Transport{
-
 			DialContext: (&net.Dialer{
-
 				Timeout: config.ConnectTimeout,
 
 				KeepAlive: config.KeepAliveTimeout,
@@ -330,7 +321,6 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 			// TLS optimization.
 
 			TLSClientConfig: &tls.Config{
-
 				MinVersion: config.TLSOptimization.MinVersion,
 
 				ClientSessionCache: tls.NewLRUClientSessionCache(
@@ -350,14 +340,12 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 	// Create HTTP client.
 
 	httpClient := &http.Client{
-
 		Transport: transport,
 
 		Timeout: config.RequestTimeout,
 	}
 
 	client := &OptimizedHTTPClient{
-
 		client: httpClient,
 
 		pool: pool,
@@ -371,44 +359,31 @@ func NewOptimizedHTTPClient(config *OptimizedClientConfig) (*OptimizedHTTPClient
 		// Initialize object pools.
 
 		requestPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return &OptimizedRequest{}
-
 			},
 		},
 
 		responsePool: sync.Pool{
-
 			New: func() interface{} {
-
 				return &OptimizedResponse{}
-
 			},
 		},
 
 		bufferPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return make([]byte, 0, 4096) // 4KB initial capacity
-
 			},
 		},
 
 		parserPool: sync.Pool{
-
 			New: func() interface{} {
-
 				return &fastjson.Parser{}
-
 			},
 		},
 	}
 
 	return client, nil
-
 }
 
 // OptimizedRequest represents a pooled HTTP request.
@@ -460,7 +435,6 @@ type OptimizedResponse struct {
 // ProcessLLMRequest processes an LLM request with all optimizations.
 
 func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error) {
-
 	ctx, span := c.tracer.Start(ctx, "optimized_http_client.process_llm_request")
 
 	defer span.End()
@@ -504,7 +478,6 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 	// Parse response with fast JSON parsing.
 
 	llmResp, err := c.parseResponse(optResp)
-
 	if err != nil {
 
 		span.SetAttributes(attribute.String("error", err.Error()))
@@ -531,13 +504,11 @@ func (c *OptimizedHTTPClient) ProcessLLMRequest(ctx context.Context, request *LL
 	)
 
 	return llmResp, nil
-
 }
 
 // prepareRequest optimizes request preparation with zero-copy techniques.
 
 func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMRequest) error {
-
 	// Reset request object.
 
 	optReq.Method = "POST"
@@ -559,11 +530,8 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 	// Fast JSON encoding using unsafe operations where appropriate.
 
 	jsonData, err := c.fastJSONEncode(req.Payload)
-
 	if err != nil {
-
 		return fmt.Errorf("JSON encoding failed: %w", err)
-
 	}
 
 	// Copy to request body (avoiding extra allocations).
@@ -575,9 +543,7 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 	// Prepare headers.
 
 	if optReq.Headers == nil {
-
 		optReq.Headers = make(map[string]string)
-
 	}
 
 	optReq.Headers["Content-Type"] = "application/json"
@@ -585,45 +551,33 @@ func (c *OptimizedHTTPClient) prepareRequest(optReq *OptimizedRequest, req *LLMR
 	optReq.Headers["User-Agent"] = "nephoran-intent-operator/v2.0.0-optimized"
 
 	if req.APIKey != "" {
-
 		optReq.Headers["Authorization"] = "Bearer " + req.APIKey
-
 	}
 
 	return nil
-
 }
 
 // executeRequest executes the HTTP request with connection reuse optimization.
 
 func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *OptimizedRequest, resp *OptimizedResponse) error {
-
 	// Create HTTP request.
 
 	httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewReader(req.Body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create HTTP request: %w", err)
-
 	}
 
 	// Set headers efficiently.
 
 	for key, value := range req.Headers {
-
 		httpReq.Header.Set(key, value)
-
 	}
 
 	// Execute with optimized transport.
 
 	httpResp, err := c.client.Do(httpReq)
-
 	if err != nil {
-
 		return fmt.Errorf("HTTP request failed: %w", err)
-
 	}
 
 	defer httpResp.Body.Close()
@@ -641,11 +595,8 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 	// Use pre-allocated buffer with growth strategy.
 
 	bodyData, err := c.readResponseBody(httpResp.Body, buf)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read response body: %w", err)
-
 	}
 
 	// Populate response.
@@ -661,37 +612,27 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 	// Copy headers if needed.
 
 	if resp.Headers == nil {
-
 		resp.Headers = make(map[string]string)
-
 	}
 
 	for key, values := range httpResp.Header {
-
 		if len(values) > 0 {
-
 			resp.Headers[key] = values[0]
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // readResponseBody optimized response body reading with buffer management.
 
 func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) ([]byte, error) {
-
 	// Use buffer pool for reading.
 
 	const maxResponseSize = 10 * 1024 * 1024 // 10MB limit
 
 	if cap(buf) < 1024 {
-
 		buf = make([]byte, 0, 4096)
-
 	}
 
 	buf = buf[:0]
@@ -701,9 +642,7 @@ func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) (
 		if len(buf) == cap(buf) {
 
 			if len(buf) > maxResponseSize {
-
 				return nil, fmt.Errorf("response too large: %d bytes", len(buf))
-
 			}
 
 			// Grow buffer.
@@ -723,9 +662,7 @@ func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) (
 		if err != nil {
 
 			if err == io.EOF {
-
 				break
-
 			}
 
 			return nil, err
@@ -735,17 +672,13 @@ func (c *OptimizedHTTPClient) readResponseBody(body io.ReadCloser, buf []byte) (
 	}
 
 	return buf, nil
-
 }
 
 // parseResponse parses LLM response with fast JSON parsing.
 
 func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMResponse, error) {
-
 	if resp.StatusCode != http.StatusOK {
-
 		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(resp.Body))
-
 	}
 
 	// Get parser from pool.
@@ -757,11 +690,8 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 	// Parse JSON efficiently.
 
 	value, err := parser.ParseBytes(resp.Body)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("JSON parse error: %w", err)
-
 	}
 
 	// Extract response content based on backend type.
@@ -781,11 +711,9 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 			contentBytes := message.GetStringBytes("content")
 
 			if contentBytes != nil {
-
 				// Use unsafe conversion to avoid allocation.
 
 				content = *(*string)(unsafe.Pointer(&contentBytes))
-
 			}
 
 		}
@@ -797,21 +725,16 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 		contentBytes := value.GetStringBytes("content")
 
 		if contentBytes != nil {
-
 			content = *(*string)(unsafe.Pointer(&contentBytes))
-
 		} else {
-
 			// Fallback: convert entire response.
 
 			content = string(resp.Body)
-
 		}
 
 	}
 
 	return &LLMResponse{
-
 		Content: content,
 
 		StatusCode: resp.StatusCode,
@@ -824,25 +747,21 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 
 		Metadata: resp.Metadata,
 	}, nil
-
 }
 
 // fastJSONEncode performs optimized JSON encoding.
 
 func (c *OptimizedHTTPClient) fastJSONEncode(payload interface{}) ([]byte, error) {
-
 	// Use standard library for now, but could be replaced with faster alternatives.
 
 	// like jsoniter or easyjson for production use.
 
 	return json.Marshal(payload)
-
 }
 
 // updateStats updates client statistics.
 
 func (c *OptimizedHTTPClient) updateStats(success bool, latency time.Duration) {
-
 	c.stats.mutex.Lock()
 
 	defer c.stats.mutex.Unlock()
@@ -850,25 +769,19 @@ func (c *OptimizedHTTPClient) updateStats(success bool, latency time.Duration) {
 	c.stats.RequestsTotal++
 
 	if success {
-
 		c.stats.RequestsSuccessful++
-
 	} else {
-
 		c.stats.RequestsFailed++
-
 	}
 
 	c.stats.TotalLatency += latency
 
 	c.stats.AverageLatency = time.Duration(int64(c.stats.TotalLatency) / c.stats.RequestsTotal)
-
 }
 
 // putRequest returns request to pool.
 
 func (c *OptimizedHTTPClient) putRequest(req *OptimizedRequest) {
-
 	// Reset request for reuse.
 
 	req.Method = ""
@@ -884,25 +797,19 @@ func (c *OptimizedHTTPClient) putRequest(req *OptimizedRequest) {
 	// Clear maps but keep allocated.
 
 	for k := range req.Headers {
-
 		delete(req.Headers, k)
-
 	}
 
 	for k := range req.Metadata {
-
 		delete(req.Metadata, k)
-
 	}
 
 	c.requestPool.Put(req)
-
 }
 
 // putResponse returns response to pool.
 
 func (c *OptimizedHTTPClient) putResponse(resp *OptimizedResponse) {
-
 	// Reset response for reuse.
 
 	resp.StatusCode = 0
@@ -918,25 +825,19 @@ func (c *OptimizedHTTPClient) putResponse(resp *OptimizedResponse) {
 	// Clear maps but keep allocated.
 
 	for k := range resp.Headers {
-
 		delete(resp.Headers, k)
-
 	}
 
 	for k := range resp.Metadata {
-
 		delete(resp.Metadata, k)
-
 	}
 
 	c.responsePool.Put(resp)
-
 }
 
 // GetStats returns current HTTP client statistics.
 
 func (c *OptimizedHTTPClient) GetStats() *HTTPClientStats {
-
 	c.stats.mutex.RLock()
 
 	defer c.stats.mutex.RUnlock()
@@ -944,7 +845,6 @@ func (c *OptimizedHTTPClient) GetStats() *HTTPClientStats {
 	// Create a copy without the mutex.
 
 	stats := HTTPClientStats{
-
 		RequestsTotal: c.stats.RequestsTotal,
 
 		RequestsSuccessful: c.stats.RequestsSuccessful,
@@ -971,15 +871,12 @@ func (c *OptimizedHTTPClient) GetStats() *HTTPClientStats {
 	}
 
 	return &stats
-
 }
 
 // getDefaultOptimizedClientConfig returns default configuration.
 
 func getDefaultOptimizedClientConfig() *OptimizedClientConfig {
-
 	return &OptimizedClientConfig{
-
 		MaxConnsPerHost: 100,
 
 		MaxIdleConns: 50,
@@ -1013,7 +910,6 @@ func getDefaultOptimizedClientConfig() *OptimizedClientConfig {
 		LoadBalancingEnabled: false,
 
 		TLSOptimization: TLSConfig{
-
 			SessionCacheSize: 1000,
 
 			ReuseThreshold: 10,
@@ -1025,7 +921,6 @@ func getDefaultOptimizedClientConfig() *OptimizedClientConfig {
 			MinVersion: tls.VersionTLS12,
 		},
 	}
-
 }
 
 // Supporting types for the optimization.

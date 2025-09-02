@@ -63,7 +63,6 @@ type ExecutionTask struct {
 	// Internal fields.
 
 	index int // For heap implementation
-
 }
 
 // ExecutionQueue manages task execution with priority and ordering.
@@ -111,35 +110,28 @@ func (h TaskHeap) Len() int { return len(h) }
 // Less performs less operation.
 
 func (h TaskHeap) Less(i, j int) bool {
-
 	// Higher priority first, then older tasks first.
 
 	if h[i].Priority != h[j].Priority {
-
 		return h[i].Priority > h[j].Priority
-
 	}
 
 	return h[i].Timestamp.Before(h[j].Timestamp)
-
 }
 
 // Swap performs swap operation.
 
 func (h TaskHeap) Swap(i, j int) {
-
 	h[i], h[j] = h[j], h[i]
 
 	h[i].index = i
 
 	h[j].index = j
-
 }
 
 // Push performs push operation.
 
 func (h *TaskHeap) Push(x interface{}) {
-
 	n := len(*h)
 
 	task := x.(*ExecutionTask)
@@ -147,13 +139,11 @@ func (h *TaskHeap) Push(x interface{}) {
 	task.index = n
 
 	*h = append(*h, task)
-
 }
 
 // Pop performs pop operation.
 
 func (h *TaskHeap) Pop() interface{} {
-
 	old := *h
 
 	n := len(old)
@@ -167,15 +157,12 @@ func (h *TaskHeap) Pop() interface{} {
 	*h = old[0 : n-1]
 
 	return task
-
 }
 
 // NewExecutionQueue creates a new execution queue.
 
 func NewExecutionQueue(capacity int) *ExecutionQueue {
-
 	eq := &ExecutionQueue{
-
 		heap: &TaskHeap{},
 
 		channel: make(chan *ExecutionTask, capacity),
@@ -200,13 +187,11 @@ func NewExecutionQueue(capacity int) *ExecutionQueue {
 	go eq.processor()
 
 	return eq
-
 }
 
 // Enqueue adds a task to the execution queue.
 
 func (eq *ExecutionQueue) Enqueue(task *ExecutionTask) error {
-
 	eq.mutex.Lock()
 
 	defer eq.mutex.Unlock()
@@ -216,15 +201,11 @@ func (eq *ExecutionQueue) Enqueue(task *ExecutionTask) error {
 	// Check if task already exists.
 
 	if _, exists := eq.activeTasks[taskKey]; exists {
-
 		return fmt.Errorf("task already active: %s", taskKey)
-
 	}
 
 	if _, exists := eq.pendingTasks[taskKey]; exists {
-
 		return fmt.Errorf("task already pending: %s", taskKey)
-
 	}
 
 	// Check capacity.
@@ -248,21 +229,17 @@ func (eq *ExecutionQueue) Enqueue(task *ExecutionTask) error {
 	eq.enqueuedCount++
 
 	return nil
-
 }
 
 // Dequeue removes and returns the highest priority task.
 
 func (eq *ExecutionQueue) Dequeue() (*ExecutionTask, error) {
-
 	eq.mutex.Lock()
 
 	defer eq.mutex.Unlock()
 
 	if eq.heap.Len() == 0 {
-
 		return nil, fmt.Errorf("queue is empty")
-
 	}
 
 	// Get highest priority task.
@@ -280,13 +257,11 @@ func (eq *ExecutionQueue) Dequeue() (*ExecutionTask, error) {
 	eq.dequeuedCount++
 
 	return task, nil
-
 }
 
 // CompleteTask marks a task as completed.
 
 func (eq *ExecutionQueue) CompleteTask(task *ExecutionTask) {
-
 	eq.mutex.Lock()
 
 	defer eq.mutex.Unlock()
@@ -316,9 +291,7 @@ func (eq *ExecutionQueue) CompleteTask(task *ExecutionTask) {
 				count++
 
 				if count >= 100 {
-
 					break
-
 				}
 
 			}
@@ -326,13 +299,11 @@ func (eq *ExecutionQueue) CompleteTask(task *ExecutionTask) {
 		}
 
 	}
-
 }
 
 // FailTask marks a task as failed and potentially retries it.
 
 func (eq *ExecutionQueue) FailTask(task *ExecutionTask, err error) error {
-
 	eq.mutex.Lock()
 
 	defer eq.mutex.Unlock()
@@ -368,43 +339,36 @@ func (eq *ExecutionQueue) FailTask(task *ExecutionTask, err error) error {
 	eq.completedTasks[taskKey] = task
 
 	return fmt.Errorf("task failed after %d retries: %w", task.MaxRetries, err)
-
 }
 
 // GetPendingCount returns the number of pending tasks.
 
 func (eq *ExecutionQueue) GetPendingCount() int {
-
 	eq.mutex.RLock()
 
 	defer eq.mutex.RUnlock()
 
 	return len(eq.pendingTasks)
-
 }
 
 // GetActiveCount returns the number of active tasks.
 
 func (eq *ExecutionQueue) GetActiveCount() int {
-
 	eq.mutex.RLock()
 
 	defer eq.mutex.RUnlock()
 
 	return len(eq.activeTasks)
-
 }
 
 // GetStats returns queue statistics.
 
 func (eq *ExecutionQueue) GetStats() *QueueStats {
-
 	eq.mutex.RLock()
 
 	defer eq.mutex.RUnlock()
 
 	return &QueueStats{
-
 		PendingTasks: int64(len(eq.pendingTasks)),
 
 		ActiveTasks: int64(len(eq.activeTasks)),
@@ -421,13 +385,11 @@ func (eq *ExecutionQueue) GetStats() *QueueStats {
 
 		MaxPendingTasks: int64(eq.maxPendingTasks),
 	}
-
 }
 
 // ListActiveTasks returns all active tasks.
 
 func (eq *ExecutionQueue) ListActiveTasks() []*ExecutionTask {
-
 	eq.mutex.RLock()
 
 	defer eq.mutex.RUnlock()
@@ -435,19 +397,15 @@ func (eq *ExecutionQueue) ListActiveTasks() []*ExecutionTask {
 	tasks := make([]*ExecutionTask, 0, len(eq.activeTasks))
 
 	for _, task := range eq.activeTasks {
-
 		tasks = append(tasks, task)
-
 	}
 
 	return tasks
-
 }
 
 // ListPendingTasks returns all pending tasks.
 
 func (eq *ExecutionQueue) ListPendingTasks() []*ExecutionTask {
-
 	eq.mutex.RLock()
 
 	defer eq.mutex.RUnlock()
@@ -455,19 +413,15 @@ func (eq *ExecutionQueue) ListPendingTasks() []*ExecutionTask {
 	tasks := make([]*ExecutionTask, 0, len(eq.pendingTasks))
 
 	for _, task := range eq.pendingTasks {
-
 		tasks = append(tasks, task)
-
 	}
 
 	return tasks
-
 }
 
 // CancelTask cancels a pending or active task.
 
 func (eq *ExecutionQueue) CancelTask(intentName types.NamespacedName, phase interfaces.ProcessingPhase) error {
-
 	eq.mutex.Lock()
 
 	defer eq.mutex.Unlock()
@@ -495,9 +449,7 @@ func (eq *ExecutionQueue) CancelTask(intentName types.NamespacedName, phase inte
 		// Add cancellation flag to context.
 
 		if task.Context == nil {
-
 			task.Context = make(map[string]interface{})
-
 		}
 
 		task.Context["cancelled"] = true
@@ -507,13 +459,11 @@ func (eq *ExecutionQueue) CancelTask(intentName types.NamespacedName, phase inte
 	}
 
 	return fmt.Errorf("task not found: %s", taskKey)
-
 }
 
 // CleanupExpiredTasks removes expired tasks.
 
 func (eq *ExecutionQueue) CleanupExpiredTasks() int {
-
 	eq.mutex.Lock()
 
 	defer eq.mutex.Unlock()
@@ -525,7 +475,6 @@ func (eq *ExecutionQueue) CleanupExpiredTasks() int {
 	// Check active tasks for expiration.
 
 	for taskKey, task := range eq.activeTasks {
-
 		if task.Timestamp.Before(cutoff) {
 
 			delete(eq.activeTasks, taskKey)
@@ -533,7 +482,6 @@ func (eq *ExecutionQueue) CleanupExpiredTasks() int {
 			expiredCount++
 
 		}
-
 	}
 
 	// Check pending tasks for expiration.
@@ -541,7 +489,6 @@ func (eq *ExecutionQueue) CleanupExpiredTasks() int {
 	expiredPending := make([]*ExecutionTask, 0)
 
 	for taskKey, task := range eq.pendingTasks {
-
 		if task.Timestamp.Before(cutoff) {
 
 			delete(eq.pendingTasks, taskKey)
@@ -551,55 +498,41 @@ func (eq *ExecutionQueue) CleanupExpiredTasks() int {
 			expiredCount++
 
 		}
-
 	}
 
 	// Remove expired pending tasks from heap.
 
 	for _, task := range expiredPending {
-
 		eq.removeFromHeap(task)
-
 	}
 
 	return expiredCount
-
 }
 
 // Internal methods.
 
 func (eq *ExecutionQueue) processor() {
-
 	ticker := time.NewTicker(100 * time.Millisecond) // Process queue 10 times per second
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		eq.processQueue()
-
 	}
-
 }
 
 func (eq *ExecutionQueue) processQueue() {
-
 	// Check if we can process more tasks.
 
 	if len(eq.channel) >= eq.capacity {
-
 		return // Channel is full
-
 	}
 
 	// Try to dequeue a task.
 
 	task, err := eq.Dequeue()
-
 	if err != nil {
-
 		return // No tasks available
-
 	}
 
 	// Check dependencies.
@@ -649,51 +582,36 @@ func (eq *ExecutionQueue) processQueue() {
 		eq.mutex.Unlock()
 
 	}
-
 }
 
 func (eq *ExecutionQueue) getTaskKey(task *ExecutionTask) string {
-
 	return fmt.Sprintf("%s/%s:%s", task.IntentName.Namespace, task.IntentName.Name, task.Phase)
-
 }
 
 func (eq *ExecutionQueue) removeFromHeap(target *ExecutionTask) {
-
 	if target.index < 0 || target.index >= eq.heap.Len() {
-
 		return // Task not in heap
-
 	}
 
 	// Move target to end and remove.
 
 	heap.Remove(eq.heap, target.index)
-
 }
 
 func (eq *ExecutionQueue) checkTaskDependencies(task *ExecutionTask) bool {
-
 	if len(task.Dependencies) == 0 {
-
 		return true // No dependencies
-
 	}
 
 	// Check if all dependencies are completed.
 
 	for _, depKey := range task.Dependencies {
-
 		if _, exists := eq.completedTasks[depKey]; !exists {
-
 			return false // Dependency not completed
-
 		}
-
 	}
 
 	return true
-
 }
 
 // QueueStats provides statistics about the execution queue.
@@ -737,7 +655,6 @@ type TaskFilter struct {
 // FilterTasks filters tasks based on criteria.
 
 func (eq *ExecutionQueue) FilterTasks(filter *TaskFilter, includeActive, includePending, includeCompleted bool) []*ExecutionTask {
-
 	eq.mutex.RLock()
 
 	defer eq.mutex.RUnlock()
@@ -745,33 +662,21 @@ func (eq *ExecutionQueue) FilterTasks(filter *TaskFilter, includeActive, include
 	var allTasks []*ExecutionTask
 
 	if includeActive {
-
 		for _, task := range eq.activeTasks {
-
 			allTasks = append(allTasks, task)
-
 		}
-
 	}
 
 	if includePending {
-
 		for _, task := range eq.pendingTasks {
-
 			allTasks = append(allTasks, task)
-
 		}
-
 	}
 
 	if includeCompleted {
-
 		for _, task := range eq.completedTasks {
-
 			allTasks = append(allTasks, task)
-
 		}
-
 	}
 
 	// Apply filter.
@@ -779,63 +684,42 @@ func (eq *ExecutionQueue) FilterTasks(filter *TaskFilter, includeActive, include
 	var filtered []*ExecutionTask
 
 	for _, task := range allTasks {
-
 		if eq.matchesFilter(task, filter) {
-
 			filtered = append(filtered, task)
-
 		}
-
 	}
 
 	return filtered
-
 }
 
 func (eq *ExecutionQueue) matchesFilter(task *ExecutionTask, filter *TaskFilter) bool {
-
 	if filter.IntentNamespace != "" && task.IntentName.Namespace != filter.IntentNamespace {
-
 		return false
-
 	}
 
 	if filter.IntentName != "" && task.IntentName.Name != filter.IntentName {
-
 		return false
-
 	}
 
 	if filter.Phase != "" && task.Phase != filter.Phase {
-
 		return false
-
 	}
 
 	if filter.MinPriority != nil && task.Priority < *filter.MinPriority {
-
 		return false
-
 	}
 
 	if filter.MaxPriority != nil && task.Priority > *filter.MaxPriority {
-
 		return false
-
 	}
 
 	if filter.CreatedAfter != nil && task.Timestamp.Before(*filter.CreatedAfter) {
-
 		return false
-
 	}
 
 	if filter.CreatedBefore != nil && task.Timestamp.After(*filter.CreatedBefore) {
-
 		return false
-
 	}
 
 	return true
-
 }

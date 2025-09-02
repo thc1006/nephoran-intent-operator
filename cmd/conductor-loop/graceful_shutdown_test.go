@@ -17,12 +17,12 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
 
-	err := os.MkdirAll(handoffDir, 0755)
+	err := os.MkdirAll(handoffDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create handoff directory: %v", err)
 	}
 
-	err = os.MkdirAll(outDir, 0755)
+	err = os.MkdirAll(outDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create output directory: %v", err)
 	}
@@ -32,11 +32,11 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		mockPorchPath = filepath.Join(tempDir, "mock-porch.bat")
 		mockScript := "@echo off\necho Mock porch processing...\ntimeout /t 1 >nul 2>&1\necho Mock porch completed\nexit /b 0\n"
-		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
 	} else {
 		mockPorchPath = filepath.Join(tempDir, "mock-porch.sh")
 		mockScript := "#!/bin/bash\necho 'Mock porch processing...'\nsleep 1\necho 'Mock porch completed'\nexit 0\n"
-		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
+		err = os.WriteFile(mockPorchPath, []byte(mockScript), 0o755)
 	}
 	if err != nil {
 		t.Fatalf("Failed to create mock porch: %v", err)
@@ -75,7 +75,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	for _, filename := range intentFiles {
 		filePath := filepath.Join(handoffDir, filename)
-		err := os.WriteFile(filePath, []byte(intentContent), 0644)
+		err := os.WriteFile(filePath, []byte(intentContent), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create intent file %s: %v", filename, err)
 		}
@@ -151,7 +151,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 
-	err := os.MkdirAll(handoffDir, 0755)
+	err := os.MkdirAll(handoffDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create handoff directory: %v", err)
 	}

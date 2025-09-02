@@ -444,7 +444,6 @@ type TrendAnalysis struct {
 	PerformanceCorrelation float64 `json:"performance_correlation"` // With availability
 
 	LoadCorrelation float64 `json:"load_correlation"` // With availability
-
 }
 
 // SeasonalPattern represents seasonal availability patterns.
@@ -459,7 +458,6 @@ type SeasonalPattern struct {
 	Variation float64 `json:"variation"` // Availability variation %
 
 	Confidence float64 `json:"confidence"` // Pattern confidence 0-1
-
 }
 
 // PredictiveInsights represents predictive availability insights.
@@ -490,7 +488,6 @@ type RiskFactor struct {
 	Impact string `json:"impact"` // Description
 
 	Mitigation string `json:"mitigation"` // Suggested mitigation
-
 }
 
 // CapacityForecast represents capacity planning forecasts.
@@ -526,7 +523,6 @@ type FailureProbability struct {
 // ReporterConfig holds configuration for the availability reporter.
 
 type ReporterConfig struct {
-
 	// Report generation.
 
 	DefaultTimeWindow TimeWindow `json:"default_time_window"`
@@ -614,7 +610,6 @@ type AlertThresholds struct {
 	ResponseTime float64 `json:"response_time"` // milliseconds
 
 	ErrorRate float64 `json:"error_rate"` // percentage
-
 }
 
 // AvailabilityReporter provides comprehensive availability reporting capabilities.
@@ -750,7 +745,6 @@ type LiveDashboardUpdater struct {
 // NewAvailabilityReporter creates a new availability reporter.
 
 func NewAvailabilityReporter(
-
 	config *ReporterConfig,
 
 	tracker *MultiDimensionalTracker,
@@ -762,13 +756,9 @@ func NewAvailabilityReporter(
 	syntheticMonitor *SyntheticMonitor,
 
 	promClient api.Client,
-
 ) (*AvailabilityReporter, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config cannot be nil")
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -776,13 +766,10 @@ func NewAvailabilityReporter(
 	var promAPI v1.API
 
 	if promClient != nil {
-
 		promAPI = v1.NewAPI(promClient)
-
 	}
 
 	reporter := &AvailabilityReporter{
-
 		config: config,
 
 		tracker: tracker,
@@ -811,20 +798,17 @@ func NewAvailabilityReporter(
 	// Initialize live updater.
 
 	reporter.liveUpdater = &LiveDashboardUpdater{
-
 		reporter: reporter,
 
 		subscribers: make(map[string]chan *Dashboard),
 	}
 
 	return reporter, nil
-
 }
 
 // Start begins availability reporting.
 
 func (ar *AvailabilityReporter) Start() error {
-
 	ctx, span := ar.tracer.Start(ar.ctx, "availability-reporter-start")
 
 	defer span.End()
@@ -848,25 +832,21 @@ func (ar *AvailabilityReporter) Start() error {
 	go ar.runCleanup(ctx)
 
 	return nil
-
 }
 
 // Stop stops availability reporting.
 
 func (ar *AvailabilityReporter) Stop() error {
-
 	ar.cancel()
 
 	close(ar.stopCh)
 
 	return nil
-
 }
 
 // GenerateReport generates an availability report.
 
 func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType ReportType, timeWindow TimeWindow, format ReportFormat) (*AvailabilityReport, error) {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-report",
 
 		trace.WithAttributes(
@@ -888,7 +868,6 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 	startTime := ar.calculateStartTime(endTime, timeWindow)
 
 	report := &AvailabilityReport{
-
 		ID: fmt.Sprintf("%s-%s-%d", reportType, timeWindow, endTime.Unix()),
 
 		Type: reportType,
@@ -911,49 +890,37 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 	case ReportTypeLive:
 
 		if err := ar.generateLiveReport(ctx, report); err != nil {
-
 			return nil, fmt.Errorf("failed to generate live report: %w", err)
-
 		}
 
 	case ReportTypeHistorical:
 
 		if err := ar.generateHistoricalReport(ctx, report); err != nil {
-
 			return nil, fmt.Errorf("failed to generate historical report: %w", err)
-
 		}
 
 	case ReportTypeSLA:
 
 		if err := ar.generateSLAReport(ctx, report); err != nil {
-
 			return nil, fmt.Errorf("failed to generate SLA report: %w", err)
-
 		}
 
 	case ReportTypeIncident:
 
 		if err := ar.generateIncidentReport(ctx, report); err != nil {
-
 			return nil, fmt.Errorf("failed to generate incident report: %w", err)
-
 		}
 
 	case ReportTypeCompliance:
 
 		if err := ar.generateComplianceReport(ctx, report); err != nil {
-
 			return nil, fmt.Errorf("failed to generate compliance report: %w", err)
-
 		}
 
 	case ReportTypeTrend:
 
 		if err := ar.generateTrendReport(ctx, report); err != nil {
-
 			return nil, fmt.Errorf("failed to generate trend report: %w", err)
-
 		}
 
 	default:
@@ -979,13 +946,11 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 	)
 
 	return report, nil
-
 }
 
 // generateLiveReport generates a real-time availability report.
 
 func (ar *AvailabilityReporter) generateLiveReport(ctx context.Context, report *AvailabilityReport) error {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-live-report")
 
 	defer span.End()
@@ -1035,13 +1000,11 @@ func (ar *AvailabilityReporter) generateLiveReport(ctx context.Context, report *
 	report.AlertHistory = alerts
 
 	return nil
-
 }
 
 // generateHistoricalReport generates a historical availability report.
 
 func (ar *AvailabilityReporter) generateHistoricalReport(ctx context.Context, report *AvailabilityReport) error {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-historical-report")
 
 	defer span.End()
@@ -1079,13 +1042,11 @@ func (ar *AvailabilityReporter) generateHistoricalReport(ctx context.Context, re
 	report.Incidents = incidents
 
 	return nil
-
 }
 
 // generateSLAReport generates an SLA compliance report.
 
 func (ar *AvailabilityReporter) generateSLAReport(ctx context.Context, report *AvailabilityReport) error {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-sla-report")
 
 	defer span.End()
@@ -1105,9 +1066,7 @@ func (ar *AvailabilityReporter) generateSLAReport(ctx context.Context, report *A
 		// Determine overall compliance status.
 
 		if len(errorBudgets) > 0 {
-
 			slaCompliance.Status = ar.determineComplianceStatus(errorBudgets)
-
 		}
 
 	}
@@ -1121,13 +1080,11 @@ func (ar *AvailabilityReporter) generateSLAReport(ctx context.Context, report *A
 	report.Summary = summary
 
 	return nil
-
 }
 
 // generateIncidentReport generates an incident correlation report.
 
 func (ar *AvailabilityReporter) generateIncidentReport(ctx context.Context, report *AvailabilityReport) error {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-incident-report")
 
 	defer span.End()
@@ -1153,13 +1110,11 @@ func (ar *AvailabilityReporter) generateIncidentReport(ctx context.Context, repo
 	ar.enrichIncidentsWithRootCause(ctx, incidents)
 
 	return nil
-
 }
 
 // generateComplianceReport generates a compliance audit report.
 
 func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, report *AvailabilityReport) error {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-compliance-report")
 
 	defer span.End()
@@ -1193,7 +1148,6 @@ func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, re
 	// Add audit trail metadata.
 
 	report.Metadata = map[string]interface{}{
-
 		"audit_trail": true,
 
 		"compliance_period": fmt.Sprintf("%s to %s", report.StartTime.Format(time.RFC3339), report.EndTime.Format(time.RFC3339)),
@@ -1204,13 +1158,11 @@ func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, re
 	}
 
 	return nil
-
 }
 
 // generateTrendReport generates a trend analysis report.
 
 func (ar *AvailabilityReporter) generateTrendReport(ctx context.Context, report *AvailabilityReport) error {
-
 	ctx, span := ar.tracer.Start(ctx, "generate-trend-report")
 
 	defer span.End()
@@ -1238,19 +1190,16 @@ func (ar *AvailabilityReporter) generateTrendReport(ctx context.Context, report 
 	report.Summary = summary
 
 	return nil
-
 }
 
 // CreateDashboard creates a new live dashboard.
 
 func (ar *AvailabilityReporter) CreateDashboard(dashboardID, name string, reportType ReportType, refreshInterval time.Duration) (*Dashboard, error) {
-
 	ar.dashboardsMutex.Lock()
 
 	defer ar.dashboardsMutex.Unlock()
 
 	dashboard := &Dashboard{
-
 		ID: dashboardID,
 
 		Name: name,
@@ -1273,13 +1222,11 @@ func (ar *AvailabilityReporter) CreateDashboard(dashboardID, name string, report
 	go ar.updateDashboardLoop(ar.ctx, dashboard)
 
 	return dashboard, nil
-
 }
 
 // SubscribeToDashboard subscribes to dashboard updates.
 
 func (ar *AvailabilityReporter) SubscribeToDashboard(dashboardID string) (<-chan *Dashboard, error) {
-
 	ar.liveUpdater.subsMutex.Lock()
 
 	defer ar.liveUpdater.subsMutex.Unlock()
@@ -1291,9 +1238,7 @@ func (ar *AvailabilityReporter) SubscribeToDashboard(dashboardID string) (<-chan
 	ar.dashboardsMutex.RUnlock()
 
 	if !exists {
-
 		return nil, fmt.Errorf("dashboard %s not found", dashboardID)
-
 	}
 
 	updateChan := make(chan *Dashboard, 10) // Buffer for updates
@@ -1301,13 +1246,11 @@ func (ar *AvailabilityReporter) SubscribeToDashboard(dashboardID string) (<-chan
 	ar.liveUpdater.subscribers[dashboardID] = updateChan
 
 	return updateChan, nil
-
 }
 
 // GetReports returns stored reports.
 
 func (ar *AvailabilityReporter) GetReports() []*AvailabilityReport {
-
 	ar.reportsMutex.RLock()
 
 	defer ar.reportsMutex.RUnlock()
@@ -1315,27 +1258,21 @@ func (ar *AvailabilityReporter) GetReports() []*AvailabilityReport {
 	reports := make([]*AvailabilityReport, 0, len(ar.reports))
 
 	for _, report := range ar.reports {
-
 		reports = append(reports, report)
-
 	}
 
 	// Sort by generation time (newest first).
 
 	sort.Slice(reports, func(i, j int) bool {
-
 		return reports[i].GeneratedAt.After(reports[j].GeneratedAt)
-
 	})
 
 	return reports
-
 }
 
 // GetReport returns a specific report by ID.
 
 func (ar *AvailabilityReporter) GetReport(reportID string) (*AvailabilityReport, error) {
-
 	ar.reportsMutex.RLock()
 
 	defer ar.reportsMutex.RUnlock()
@@ -1343,19 +1280,15 @@ func (ar *AvailabilityReporter) GetReport(reportID string) (*AvailabilityReport,
 	report, exists := ar.reports[reportID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("report %s not found", reportID)
-
 	}
 
 	return report, nil
-
 }
 
 // GetDashboard returns a dashboard by ID.
 
 func (ar *AvailabilityReporter) GetDashboard(dashboardID string) (*Dashboard, error) {
-
 	ar.dashboardsMutex.RLock()
 
 	defer ar.dashboardsMutex.RUnlock()
@@ -1363,25 +1296,18 @@ func (ar *AvailabilityReporter) GetDashboard(dashboardID string) (*Dashboard, er
 	dashboard, exists := ar.dashboards[dashboardID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("dashboard %s not found", dashboardID)
-
 	}
 
 	return dashboard, nil
-
 }
 
 // ExportReport exports a report in the specified format.
 
 func (ar *AvailabilityReporter) ExportReport(ctx context.Context, reportID string, format ReportFormat) ([]byte, error) {
-
 	report, err := ar.GetReport(reportID)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	switch format {
@@ -1411,13 +1337,11 @@ func (ar *AvailabilityReporter) ExportReport(ctx context.Context, reportID strin
 		return nil, fmt.Errorf("unsupported export format: %s", format)
 
 	}
-
 }
 
 // Helper methods for report generation.
 
 func (ar *AvailabilityReporter) calculateStartTime(endTime time.Time, window TimeWindow) time.Time {
-
 	switch window {
 
 	case Window1Minute:
@@ -1449,29 +1373,24 @@ func (ar *AvailabilityReporter) calculateStartTime(endTime time.Time, window Tim
 		return endTime.Add(-time.Hour)
 
 	}
-
 }
 
 func (ar *AvailabilityReporter) storeReport(report *AvailabilityReport) {
-
 	ar.reportsMutex.Lock()
 
 	defer ar.reportsMutex.Unlock()
 
 	ar.reports[report.ID] = report
-
 }
 
 // Background routines.
 
 func (ar *AvailabilityReporter) runReportGeneration(ctx context.Context) {
-
 	ticker := time.NewTicker(ar.config.RefreshInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1485,19 +1404,15 @@ func (ar *AvailabilityReporter) runReportGeneration(ctx context.Context) {
 			ar.generateScheduledReports(ctx)
 
 		}
-
 	}
-
 }
 
 func (ar *AvailabilityReporter) runDashboardUpdates(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second) // Update dashboards every 30 seconds
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1509,19 +1424,15 @@ func (ar *AvailabilityReporter) runDashboardUpdates(ctx context.Context) {
 			ar.updateAllDashboards(ctx)
 
 		}
-
 	}
-
 }
 
 func (ar *AvailabilityReporter) runComplianceMonitoring(ctx context.Context) {
-
 	ticker := time.NewTicker(5 * time.Minute) // Check compliance every 5 minutes
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1533,19 +1444,15 @@ func (ar *AvailabilityReporter) runComplianceMonitoring(ctx context.Context) {
 			ar.checkComplianceThresholds(ctx)
 
 		}
-
 	}
-
 }
 
 func (ar *AvailabilityReporter) runCleanup(ctx context.Context) {
-
 	ticker := time.NewTicker(time.Hour) // Cleanup every hour
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1557,9 +1464,7 @@ func (ar *AvailabilityReporter) runCleanup(ctx context.Context) {
 			ar.cleanupOldReports(ctx)
 
 		}
-
 	}
-
 }
 
 // Placeholder implementations for helper methods.
@@ -1567,11 +1472,9 @@ func (ar *AvailabilityReporter) runCleanup(ctx context.Context) {
 // These would need to be implemented based on specific requirements.
 
 func (ar *AvailabilityReporter) calculateSummaryMetrics(ctx context.Context, metrics map[string]*AvailabilityMetric, startTime, endTime time.Time) *AvailabilitySummary {
-
 	// Implementation would calculate comprehensive summary metrics.
 
 	return &AvailabilitySummary{
-
 		OverallAvailability: 0.9995, // 99.95%
 
 		WeightedAvailability: 0.9993,
@@ -1606,55 +1509,42 @@ func (ar *AvailabilityReporter) calculateSummaryMetrics(ctx context.Context, met
 
 		UnhealthyPercentage: 0.0,
 	}
-
 }
 
 func (ar *AvailabilityReporter) generateServiceMetrics(ctx context.Context, startTime, endTime time.Time) []ServiceAvailability {
-
 	// Implementation would generate service-specific availability metrics.
 
 	return []ServiceAvailability{}
-
 }
 
 func (ar *AvailabilityReporter) generateComponentMetrics(ctx context.Context, startTime, endTime time.Time) []ComponentAvailability {
-
 	// Implementation would generate component-specific availability metrics.
 
 	return []ComponentAvailability{}
-
 }
 
 func (ar *AvailabilityReporter) generateDependencyMetrics(ctx context.Context, startTime, endTime time.Time) []DependencyAvailability {
-
 	// Implementation would generate dependency-specific availability metrics.
 
 	return []DependencyAvailability{}
-
 }
 
 func (ar *AvailabilityReporter) generateUserJourneyMetrics(ctx context.Context, startTime, endTime time.Time) []UserJourneyAvailability {
-
 	// Implementation would generate user journey availability metrics.
 
 	return []UserJourneyAvailability{}
-
 }
 
 func (ar *AvailabilityReporter) calculateHistoricalSummary(ctx context.Context, metrics []AvailabilityMetric, startTime, endTime time.Time) *AvailabilitySummary {
-
 	// Implementation would calculate historical summary from metrics.
 
 	return ar.calculateSummaryMetrics(ctx, nil, startTime, endTime)
-
 }
 
 func (ar *AvailabilityReporter) generateTrendAnalysis(ctx context.Context, metrics []AvailabilityMetric, timeWindow TimeWindow) *TrendAnalysis {
-
 	// Implementation would analyze trends in the metrics.
 
 	return &TrendAnalysis{
-
 		TimeWindow: timeWindow,
 
 		AvailabilityTrend: 0.001, // Slight improvement
@@ -1666,80 +1556,57 @@ func (ar *AvailabilityReporter) generateTrendAnalysis(ctx context.Context, metri
 		ErrorRateTrend: -0.001, // Lower error rate
 
 	}
-
 }
 
 func (ar *AvailabilityReporter) generatePredictiveInsights(ctx context.Context, metrics []AvailabilityMetric, trends *TrendAnalysis) *PredictiveInsights {
-
 	// Implementation would generate ML-based predictive insights.
 
 	return &PredictiveInsights{
-
 		PredictedAvailability: 0.9996,
 
 		PredictionConfidence: 0.85,
 	}
-
 }
 
 // Additional placeholder methods would be implemented here...
 
 func (ar *AvailabilityReporter) getActiveAlerts(ctx context.Context) []AlertSummary {
-
 	return []AlertSummary{}
-
 }
 
 func (ar *AvailabilityReporter) getIncidentHistory(ctx context.Context, startTime, endTime time.Time) []IncidentSummary {
-
 	return []IncidentSummary{}
-
 }
 
 func (ar *AvailabilityReporter) calculateErrorBudgets(ctx context.Context, startTime, endTime time.Time) []ErrorBudgetStatus {
-
 	return []ErrorBudgetStatus{}
-
 }
 
 func (ar *AvailabilityReporter) determineComplianceStatus(budgets []ErrorBudgetStatus) ComplianceStatus {
-
 	return ComplianceHealthy
-
 }
 
 func (ar *AvailabilityReporter) generateComplianceSummary(ctx context.Context, startTime, endTime time.Time) *AvailabilitySummary {
-
 	return ar.calculateSummaryMetrics(ctx, nil, startTime, endTime)
-
 }
 
 func (ar *AvailabilityReporter) calculateIncidentSummary(ctx context.Context, incidents []IncidentSummary, startTime, endTime time.Time) *AvailabilitySummary {
-
 	return ar.calculateSummaryMetrics(ctx, nil, startTime, endTime)
-
 }
 
 func (ar *AvailabilityReporter) enrichIncidentsWithRootCause(ctx context.Context, incidents []IncidentSummary) {
-
 }
 
 func (ar *AvailabilityReporter) generateSLAComplianceReport(ctx context.Context, startTime, endTime time.Time) *SLAComplianceReport {
-
 	return &SLAComplianceReport{}
-
 }
 
 func (ar *AvailabilityReporter) calculateTrendSummary(ctx context.Context, metrics []AvailabilityMetric, trends *TrendAnalysis) *AvailabilitySummary {
-
 	return ar.calculateSummaryMetrics(ctx, nil, time.Now(), time.Now())
-
 }
 
 func (ar *AvailabilityReporter) createDefaultPanels(reportType ReportType) []DashboardPanel {
-
 	return []DashboardPanel{}
-
 }
 
 func (ar *AvailabilityReporter) updateDashboardLoop(ctx context.Context, dashboard *Dashboard) {}
@@ -1753,25 +1620,17 @@ func (ar *AvailabilityReporter) checkComplianceThresholds(ctx context.Context) {
 func (ar *AvailabilityReporter) cleanupOldReports(ctx context.Context) {}
 
 func (ar *AvailabilityReporter) exportReportAsCSV(report *AvailabilityReport) ([]byte, error) {
-
 	return []byte{}, nil
-
 }
 
 func (ar *AvailabilityReporter) exportReportAsHTML(report *AvailabilityReport) ([]byte, error) {
-
 	return []byte{}, nil
-
 }
 
 func (ar *AvailabilityReporter) exportReportAsPDF(report *AvailabilityReport) ([]byte, error) {
-
 	return []byte{}, nil
-
 }
 
 func (ar *AvailabilityReporter) exportReportAsPrometheusMetrics(report *AvailabilityReport) ([]byte, error) {
-
 	return []byte{}, nil
-
 }

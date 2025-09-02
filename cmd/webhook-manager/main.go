@@ -23,15 +23,12 @@ var (
 )
 
 func init() {
-
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(intentv1alpha1.AddToScheme(scheme))
-
 }
 
 func main() {
-
 	var (
 		metricsAddr string
 
@@ -61,7 +58,6 @@ func main() {
 	cfg := ctrl.GetConfigOrDie()
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-
 		Scheme: scheme,
 
 		// New-style metrics server options (replaces MetricsBindAddress).
@@ -74,7 +70,6 @@ func main() {
 
 		LeaderElection: false,
 	})
-
 	if err != nil {
 
 		setupLog.Error(err, "unable to start manager")
@@ -86,7 +81,6 @@ func main() {
 	// Create and register webhook server (new API; Port/CertDir set here)
 
 	hookServer := webhook.NewServer(webhook.Options{
-
 		Port: webhookPort,
 
 		CertDir: certDir, // If empty, controller-runtime uses default location
@@ -138,5 +132,4 @@ func main() {
 		os.Exit(1)
 
 	}
-
 }

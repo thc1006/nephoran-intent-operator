@@ -13,15 +13,11 @@ type PorchError struct {
 // Error performs error operation.
 
 func (e *PorchError) Error() string {
-
 	if e.Details != "" {
-
 		return e.Message + ": " + e.Details
-
 	}
 
 	return e.Message
-
 }
 
 // PackageSpec represents the specification of a package.

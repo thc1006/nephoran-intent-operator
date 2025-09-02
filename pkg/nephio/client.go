@@ -182,7 +182,7 @@ func (c *clientImpl) makeHTTPRequest(ctx context.Context, method, endpoint strin
 		}
 	}
 
-	var bodyReader = bytes.NewReader(reqBody)
+	bodyReader := bytes.NewReader(reqBody)
 	req, err := http.NewRequestWithContext(ctx, method, c.config.PorchEndpoint+endpoint, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)

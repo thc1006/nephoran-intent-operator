@@ -18,7 +18,6 @@ import (
 )
 
 func main() {
-
 	fmt.Println("LLM Client Security Usage Examples")
 
 	fmt.Println("==================================")
@@ -46,13 +45,11 @@ func main() {
 	fmt.Println("\n4. Security Violation Example (Will Panic)")
 
 	securityViolationExample()
-
 }
 
 // productionExample shows the simplest secure usage.
 
 func productionExample() {
-
 	// This is the simplest and most secure way to create an LLM client.
 
 	// It uses secure defaults with TLS verification enabled.
@@ -78,15 +75,12 @@ func productionExample() {
 	_ = ctx
 
 	_ = client
-
 }
 
 // secureConfigExample shows explicit secure configuration.
 
 func secureConfigExample() {
-
 	config := llm.ClientConfig{
-
 		APIKey: os.Getenv("OPENAI_API_KEY"), // Load from environment
 
 		ModelName: "gpt-4",
@@ -112,13 +106,11 @@ func secureConfigExample() {
 	fmt.Println("  - Timeout: 60 seconds")
 
 	_ = client
-
 }
 
 // developmentExample shows how to safely disable TLS for development.
 
 func developmentExample() {
-
 	// SECURITY WARNING: This is for development environments only!.
 
 	// Never use this in production!.
@@ -126,9 +118,7 @@ func developmentExample() {
 	// Step 1: Check if we're in a development environment.
 
 	if os.Getenv("ENVIRONMENT") == "production" {
-
 		log.Fatal("ERROR: Cannot use insecure TLS in production environment")
-
 	}
 
 	// Step 2: Set the environment variable to allow insecure connections.
@@ -142,7 +132,6 @@ func developmentExample() {
 	// Step 3: Configure the client with insecure TLS.
 
 	config := llm.ClientConfig{
-
 		APIKey: "dev-key",
 
 		ModelName: "gpt-4",
@@ -170,17 +159,14 @@ func developmentExample() {
 	fmt.Println("  - With self-signed certificates or internal CAs")
 
 	_ = client
-
 }
 
 // securityViolationExample demonstrates what happens when security is violated.
 
 func securityViolationExample() {
-
 	// This will demonstrate the security protection in action.
 
 	defer func() {
-
 		if r := recover(); r != nil {
 
 			fmt.Println("✓ Security violation correctly prevented!")
@@ -190,7 +176,6 @@ func securityViolationExample() {
 			fmt.Println("  - This protects against accidental insecure configuration")
 
 		}
-
 	}()
 
 	// Ensure the environment variable is NOT set.
@@ -200,7 +185,6 @@ func securityViolationExample() {
 	// Try to create an insecure client without permission.
 
 	config := llm.ClientConfig{
-
 		APIKey: "test-key",
 
 		ModelName: "test-model",
@@ -222,7 +206,6 @@ func securityViolationExample() {
 	// We should never reach this line.
 
 	fmt.Println("✗ ERROR: Security violation was not caught!")
-
 }
 
 // Additional utility functions for production usage.
@@ -230,19 +213,15 @@ func securityViolationExample() {
 // CreateProductionClient creates a properly configured production client.
 
 func CreateProductionClient(endpoint string) *llm.Client {
-
 	// Validate environment.
 
 	if os.Getenv("OPENAI_API_KEY") == "" {
-
 		log.Fatal("OPENAI_API_KEY environment variable is required")
-
 	}
 
 	// Create secure configuration.
 
 	config := llm.ClientConfig{
-
 		APIKey: os.Getenv("OPENAI_API_KEY"),
 
 		ModelName: getModelFromEnv(),
@@ -258,47 +237,34 @@ func CreateProductionClient(endpoint string) *llm.Client {
 	}
 
 	return llm.NewClientWithConfig(endpoint, config)
-
 }
 
 // Utility functions to load configuration from environment.
 
 func getModelFromEnv() string {
-
 	if model := os.Getenv("LLM_MODEL"); model != "" {
-
 		return model
-
 	}
 
 	return "gpt-4" // Secure default
-
 }
 
 func getMaxTokensFromEnv() int {
-
 	// In a real application, you'd parse this from environment.
 
 	return 2048
-
 }
 
 func getBackendFromEnv() string {
-
 	if backend := os.Getenv("LLM_BACKEND"); backend != "" {
-
 		return backend
-
 	}
 
 	return "openai" // Secure default
-
 }
 
 func getTimeoutFromEnv() time.Duration {
-
 	// In a real application, you'd parse this from environment.
 
 	return 60 * time.Second
-
 }

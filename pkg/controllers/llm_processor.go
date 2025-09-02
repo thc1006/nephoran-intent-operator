@@ -34,18 +34,14 @@ var (
 // NewLLMProcessor creates a new LLM processor.
 
 func NewLLMProcessor(r *NetworkIntentReconciler) *LLMProcessor {
-
 	return &LLMProcessor{
-
 		NetworkIntentReconciler: r,
 	}
-
 }
 
 // ProcessLLMPhase implements Phase 1: LLM Processing with RAG context retrieval.
 
 func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx).WithValues("phase", "llm-processing")
 
 	startTime := time.Now()
@@ -65,7 +61,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		// Set both Processed and Ready conditions to False.
 
 		condition := metav1.Condition{
-
 			Type: "Processed",
 
 			Status: metav1.ConditionFalse,
@@ -98,7 +93,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		logger.Error(err, "LLM client validation failed")
 
 		condition := metav1.Condition{
-
 			Type: "Processed",
 
 			Status: metav1.ConditionFalse,
@@ -123,13 +117,11 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	// First, sanitize the user input to prevent injection attacks.
 
 	sanitizedIntent, err := p.llmSanitizer.SanitizeInput(ctx, networkIntent.Spec.Intent)
-
 	if err != nil {
 
 		logger.Error(err, "Intent sanitization failed - potential security threat detected")
 
 		condition := metav1.Condition{
-
 			Type: "Processed",
 
 			Status: metav1.ConditionFalse,
@@ -154,7 +146,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	// Build telecom-enhanced prompt with 3GPP context using sanitized input.
 
 	enhancedPrompt, err := p.buildTelecomEnhancedPrompt(ctx, sanitizedIntent, processingCtx)
-
 	if err != nil {
 
 		logger.Error(err, "failed to build telecom-enhanced prompt")
@@ -186,21 +177,16 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		// Primary operation: LLM processing with timeout.
 
 		func(ctx context.Context) (interface{}, error) {
-
 			return p.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeLLM,
 
 				func(timeoutCtx context.Context) (interface{}, error) {
-
 					return llmClient.ProcessIntent(timeoutCtx, securePrompt)
-
 				})
-
 		},
 
 		// Fallback operation when circuit is open.
 
 		func(ctx context.Context, circuitErr error) (interface{}, error) {
-
 			logger.Info("LLM circuit breaker is open, using fallback response", "error", circuitErr)
 
 			// Provide a basic fallback response for simple intents.
@@ -218,7 +204,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 			// If no fallback possible, return circuit breaker error.
 
 			return nil, fmt.Errorf("LLM service unavailable and no fallback possible: %w", circuitErr)
-
 		})
 
 	if err != nil {
@@ -230,7 +215,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 			logger.Error(err, "LLM circuit breaker is open", "retry", retryCount+1)
 
 			condition := metav1.Condition{
-
 				Type: "Processed",
 
 				Status: metav1.ConditionFalse,
@@ -259,9 +243,7 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		processedResult = ""
 
 	} else {
-
 		processedResult = result.(string)
-
 	}
 
 	if err != nil {
@@ -271,7 +253,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		setNetworkIntentRetryCount(networkIntent, "llm-processing", retryCount+1)
 
 		condition := metav1.Condition{
-
 			Type: "Processed",
 
 			Status: metav1.ConditionFalse,
@@ -310,13 +291,11 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	// Validate LLM output for malicious content before parsing.
 
 	validatedOutput, err := p.llmSanitizer.ValidateOutput(ctx, processedResult)
-
 	if err != nil {
 
 		logger.Error(err, "LLM output validation failed - potential malicious content detected")
 
 		condition := metav1.Condition{
-
 			Type: "Processed",
 
 			Status: metav1.ConditionFalse,
@@ -349,7 +328,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		setNetworkIntentRetryCount(networkIntent, "llm-processing", retryCount+1)
 
 		condition := metav1.Condition{
-
 			Type: "Processed",
 
 			Status: metav1.ConditionFalse,
@@ -382,27 +360,20 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	// Update NetworkIntent with processed parameters.
 
 	parametersRaw, err := json.Marshal(parameters)
-
 	if err != nil {
-
 		return ctrl.Result{RequeueAfter: p.config.RetryDelay}, fmt.Errorf("failed to marshal parameters: %w", err)
-
 	}
 
 	// Store parameters in status extensions.
 
 	if networkIntent.Status.Extensions == nil {
-
 		networkIntent.Status.Extensions = make(map[string]runtime.RawExtension)
-
 	}
 
 	networkIntent.Status.Extensions["parameters"] = runtime.RawExtension{Raw: parametersRaw}
 
 	if err := p.safeStatusUpdate(ctx, networkIntent); err != nil {
-
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update NetworkIntent with parameters: %w", err)
-
 	}
 
 	// Clear retry count and update success condition.
@@ -420,7 +391,6 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	networkIntent.Status.Extensions["processingCompletionTime"] = runtime.RawExtension{Raw: processingTime}
 
 	condition := metav1.Condition{
-
 		Type: "Processed",
 
 		Status: metav1.ConditionTrue,
@@ -439,17 +409,13 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	// Note: Overall Ready status will be managed by the full pipeline.
 
 	if err := p.safeStatusUpdate(ctx, networkIntent); err != nil {
-
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
-
 	}
 
 	// Record metrics.
 
 	if metricsCollector := p.deps.GetMetricsCollector(); metricsCollector != nil {
-
 		metricsCollector.RecordLLMRequest("gpt-4o-mini", "success", processingDuration, len(processedResult))
-
 	}
 
 	processingCtx.Metrics["llm_processing_duration"] = processingDuration.Seconds()
@@ -461,13 +427,11 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 	logger.Info("LLM processing phase completed successfully", "duration", processingDuration, "parameters_count", len(parameters))
 
 	return ctrl.Result{}, nil
-
 }
 
 // buildTelecomEnhancedPrompt builds a telecom-enhanced prompt with 3GPP context and O-RAN knowledge.
 
 func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent string, processingCtx *ProcessingContext) (string, error) {
-
 	logger := log.FromContext(ctx).WithValues("function", "buildTelecomEnhancedPrompt")
 
 	_ = logger // Suppress unused warning
@@ -477,9 +441,7 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 	kb := p.deps.GetTelecomKnowledgeBase()
 
 	if kb == nil {
-
 		return "", fmt.Errorf("telecom knowledge base not available")
-
 	}
 
 	// Extract telecom entities and context from intent.
@@ -509,7 +471,6 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 		promptBuilder.WriteString("### Relevant Network Functions:\n")
 
 		for _, nfType := range nfTypes {
-
 			if nf, exists := kb.GetNetworkFunction(nfType); exists {
 
 				promptBuilder.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", nf.Name, nf.Type, nf.Description))
@@ -523,7 +484,6 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 					nf.Performance.MaxThroughputRPS, nf.Performance.AvgLatencyMs))
 
 			}
-
 		}
 
 		promptBuilder.WriteString("\n")
@@ -533,7 +493,6 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 	// Add slice type information if detected.
 
 	if sliceType, ok := telecomContext["detected_slice_type"].(string); ok && sliceType != "" {
-
 		if slice, exists := kb.GetSliceType(sliceType); exists {
 
 			promptBuilder.WriteString(fmt.Sprintf("### Network Slice Type: %s (SST=%d)\n", slice.Description, slice.SST))
@@ -555,13 +514,11 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 			promptBuilder.WriteString("\n")
 
 		}
-
 	}
 
 	// Add deployment pattern context.
 
 	if pattern, ok := telecomContext["detected_deployment_pattern"].(string); ok && pattern != "" {
-
 		if dp, exists := kb.GetDeploymentPattern(pattern); exists {
 
 			promptBuilder.WriteString(fmt.Sprintf("### Deployment Pattern: %s\n", dp.Name))
@@ -579,7 +536,6 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 			promptBuilder.WriteString("\n")
 
 		}
-
 	}
 
 	// Add the user intent.
@@ -611,13 +567,11 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 	promptBuilder.WriteString("Use appropriate resource sizing based on the deployment pattern and expected load.\n")
 
 	return promptBuilder.String(), nil
-
 }
 
 // extractTelecomContext extracts telecommunications-specific entities and context from the intent.
 
 func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomKnowledgeBase) map[string]interface{} {
-
 	context := make(map[string]interface{})
 
 	intentLower := strings.ToLower(intent)
@@ -643,9 +597,7 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 		nfTypeLower := strings.ToLower(nf.Type)
 
 		if strings.Contains(intentLower, nfNameLower) || strings.Contains(intentLower, nfTypeLower) {
-
 			detectedNFs = append(detectedNFs, nf.Type)
-
 		}
 
 	}
@@ -717,53 +669,36 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 	// Detect performance requirements.
 
 	if strings.Contains(intentLower, "high performance") || strings.Contains(intentLower, "high throughput") {
-
 		context["performance_requirement"] = "high"
-
 	} else if strings.Contains(intentLower, "low latency") || strings.Contains(intentLower, "ultra") {
-
 		context["performance_requirement"] = "ultra_low_latency"
-
 	} else if strings.Contains(intentLower, "massive") || strings.Contains(intentLower, "iot") {
-
 		context["performance_requirement"] = "massive_iot"
-
 	}
 
 	// Detect scale requirements.
 
 	if strings.Contains(intentLower, "scale") || strings.Contains(intentLower, "auto") {
-
 		context["auto_scaling"] = true
-
 	}
 
 	// Detect environment.
 
 	if strings.Contains(intentLower, "production") || strings.Contains(intentLower, "prod") {
-
 		context["environment"] = "production"
-
 	} else if strings.Contains(intentLower, "development") || strings.Contains(intentLower, "dev") {
-
 		context["environment"] = "development"
-
 	} else if strings.Contains(intentLower, "staging") || strings.Contains(intentLower, "stage") {
-
 		context["environment"] = "staging"
-
 	}
 
 	// Detect security requirements.
 
 	if strings.Contains(intentLower, "secure") || strings.Contains(intentLower, "security") {
-
 		context["security_required"] = true
-
 	}
 
 	return context
-
 }
 
 // Interface implementation methods.
@@ -771,47 +706,35 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 // ProcessPhase implements PhaseProcessor interface.
 
 func (p *LLMProcessor) ProcessPhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
-
 	return p.ProcessLLMPhase(ctx, networkIntent, processingCtx)
-
 }
 
 // GetPhaseName implements PhaseProcessor interface.
 
 func (p *LLMProcessor) GetPhaseName() ProcessingPhase {
-
 	return PhaseLLMProcessing
-
 }
 
 // IsPhaseComplete implements PhaseProcessor interface.
 
 func (p *LLMProcessor) IsPhaseComplete(networkIntent *nephoranv1.NetworkIntent) bool {
-
 	return isConditionTrue(networkIntent.Status.Conditions, "Processed")
-
 }
 
 // BuildTelecomEnhancedPrompt implements LLMProcessorInterface (expose existing method).
 
 func (p *LLMProcessor) BuildTelecomEnhancedPrompt(ctx context.Context, intent string, processingCtx *ProcessingContext) (string, error) {
-
 	return p.buildTelecomEnhancedPrompt(ctx, intent, processingCtx)
-
 }
 
 // ExtractTelecomContext implements LLMProcessorInterface (expose existing method).
 
 func (p *LLMProcessor) ExtractTelecomContext(intent string) map[string]interface{} {
-
 	kb := p.deps.GetTelecomKnowledgeBase()
 
 	if kb == nil {
-
 		return make(map[string]interface{})
-
 	}
 
 	return p.extractTelecomContext(intent, kb)
-
 }

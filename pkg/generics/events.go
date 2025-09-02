@@ -26,9 +26,7 @@ type Event[T any] struct {
 // NewEvent creates a new typed event.
 
 func NewEvent[T any](id, eventType string, data T) Event[T] {
-
 	return Event[T]{
-
 		ID: id,
 
 		Type: eventType,
@@ -39,17 +37,14 @@ func NewEvent[T any](id, eventType string, data T) Event[T] {
 
 		Metadata: make(map[string]any),
 	}
-
 }
 
 // WithMetadata adds metadata to the event.
 
 func (e Event[T]) WithMetadata(key string, value any) Event[T] {
-
 	e.Metadata[key] = value
 
 	return e
-
 }
 
 // EventHandler defines a function that handles events of type T.
@@ -101,29 +96,21 @@ type EventBusConfig struct {
 // NewEventBus creates a new type-safe event bus.
 
 func NewEventBus[T any](config EventBusConfig) *EventBus[T] {
-
 	if config.BufferSize == 0 {
-
 		config.BufferSize = 100
-
 	}
 
 	if config.WorkerCount == 0 {
-
 		config.WorkerCount = 3
-
 	}
 
 	if config.Timeout == 0 {
-
 		config.Timeout = 30 * time.Second
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	bus := &EventBus[T]{
-
 		buffer: make(chan Event[T], config.BufferSize),
 
 		ctx: ctx,
@@ -142,25 +129,21 @@ func NewEventBus[T any](config EventBusConfig) *EventBus[T] {
 	}
 
 	return bus
-
 }
 
 // Subscribe adds an event handler.
 
 func (eb *EventBus[T]) Subscribe(handler EventHandler[T]) {
-
 	eb.mu.Lock()
 
 	defer eb.mu.Unlock()
 
 	eb.handlers = append(eb.handlers, handler)
-
 }
 
 // SubscribeWithFilter adds an event handler with a filter.
 
 func (eb *EventBus[T]) SubscribeWithFilter(handler EventHandler[T], filter EventFilter[T]) {
-
 	eb.mu.Lock()
 
 	defer eb.mu.Unlock()
@@ -168,49 +151,39 @@ func (eb *EventBus[T]) SubscribeWithFilter(handler EventHandler[T], filter Event
 	// Wrap handler with filter.
 
 	wrappedHandler := func(ctx context.Context, event Event[T]) Result[bool, error] {
-
 		if !filter(event) {
-
 			return Ok[bool, error](true) // Skip this event
-
 		}
 
 		return handler(ctx, event)
-
 	}
 
 	eb.handlers = append(eb.handlers, wrappedHandler)
-
 }
 
 // AddFilter adds a global event filter.
 
 func (eb *EventBus[T]) AddFilter(filter EventFilter[T]) {
-
 	eb.mu.Lock()
 
 	defer eb.mu.Unlock()
 
 	eb.filters = append(eb.filters, filter)
-
 }
 
 // AddMiddleware adds middleware to the event processing pipeline.
 
 func (eb *EventBus[T]) AddMiddleware(middleware EventMiddleware[T]) {
-
 	eb.mu.Lock()
 
 	defer eb.mu.Unlock()
 
 	eb.middlewares = append(eb.middlewares, middleware)
-
 }
 
 // Publish publishes an event to all subscribers.
 
 func (eb *EventBus[T]) Publish(event Event[T]) Result[bool, error] {
-
 	select {
 
 	case eb.buffer <- event:
@@ -226,19 +199,16 @@ func (eb *EventBus[T]) Publish(event Event[T]) Result[bool, error] {
 		return Err[bool, error](fmt.Errorf("event buffer is full"))
 
 	}
-
 }
 
 // PublishSync publishes an event synchronously to all subscribers.
 
 func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[]bool, error] {
-
 	// Apply global filters.
 
 	eb.mu.RLock()
 
 	for _, filter := range eb.filters {
-
 		if !filter(event) {
 
 			eb.mu.RUnlock()
@@ -246,7 +216,6 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 			return Ok[[]bool, error]([]bool{}) // Event filtered out
 
 		}
-
 	}
 
 	handlers := make([]EventHandler[T], len(eb.handlers))
@@ -268,9 +237,7 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 		result := middleware.Process(ctx, processedEvent)
 
 		if result.IsErr() {
-
 			return Err[[]bool, error](result.Error())
-
 		}
 
 		processedEvent = result.Value()
@@ -286,9 +253,7 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 		result := handler(ctx, processedEvent)
 
 		if result.IsErr() {
-
 			return Err[[]bool, error](result.Error())
-
 		}
 
 		results[i] = result.Value()
@@ -296,17 +261,14 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 	}
 
 	return Ok[[]bool, error](results)
-
 }
 
 // worker processes events from the buffer.
 
 func (eb *EventBus[T]) worker(timeout time.Duration) {
-
 	defer eb.wg.Done()
 
 	for {
-
 		select {
 
 		case event := <-eb.buffer:
@@ -322,15 +284,12 @@ func (eb *EventBus[T]) worker(timeout time.Duration) {
 			return
 
 		}
-
 	}
-
 }
 
 // Close gracefully shuts down the event bus.
 
 func (eb *EventBus[T]) Close() error {
-
 	eb.cancel()
 
 	eb.wg.Wait()
@@ -338,7 +297,6 @@ func (eb *EventBus[T]) Close() error {
 	close(eb.buffer)
 
 	return nil
-
 }
 
 // EventMiddleware defines middleware for event processing.
@@ -356,11 +314,9 @@ type EventLoggingMiddleware[T any] struct {
 // Process performs process operation.
 
 func (m EventLoggingMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
-
 	m.Logger(event)
 
 	return Ok[Event[T], error](event)
-
 }
 
 // EventMetricsMiddleware collects metrics on events.
@@ -376,25 +332,19 @@ type EventMetricsMiddleware[T any] struct {
 // Process performs process operation.
 
 func (m EventMetricsMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
-
 	start := time.Now()
 
 	m.Counter(event.Type)
 
 	defer func() {
-
 		m.Latency(event.Type, time.Since(start))
-
 	}()
 
 	if m.recorder != nil {
-
 		m.recorder(event)
-
 	}
 
 	return Ok[Event[T], error](event)
-
 }
 
 // EventRouter routes events to different buses based on criteria.
@@ -410,32 +360,26 @@ type EventRouter[T any] struct {
 // NewEventRouter creates a new event router.
 
 func NewEventRouter[T any](routerFunc func(Event[T]) string) *EventRouter[T] {
-
 	return &EventRouter[T]{
-
 		routes: make(map[string]*EventBus[T]),
 
 		router: routerFunc,
 	}
-
 }
 
 // AddRoute adds a route to a specific event bus.
 
 func (er *EventRouter[T]) AddRoute(name string, bus *EventBus[T]) {
-
 	er.mu.Lock()
 
 	defer er.mu.Unlock()
 
 	er.routes[name] = bus
-
 }
 
 // Route routes an event to the appropriate bus.
 
 func (er *EventRouter[T]) Route(event Event[T]) Result[bool, error] {
-
 	routeName := er.router(event)
 
 	er.mu.RLock()
@@ -445,13 +389,10 @@ func (er *EventRouter[T]) Route(event Event[T]) Result[bool, error] {
 	er.mu.RUnlock()
 
 	if !exists {
-
 		return Err[bool, error](fmt.Errorf("no route found for: %s", routeName))
-
 	}
 
 	return bus.Publish(event)
-
 }
 
 // EventAggregator aggregates events and publishes summary events.
@@ -479,7 +420,6 @@ type EventAggregator[TInput, TOutput any] struct {
 // NewEventAggregator creates a new event aggregator.
 
 func NewEventAggregator[TInput, TOutput any](
-
 	inputBus *EventBus[TInput],
 
 	outputBus *EventBus[TOutput],
@@ -487,13 +427,10 @@ func NewEventAggregator[TInput, TOutput any](
 	aggregator func([]Event[TInput]) Result[Event[TOutput], error],
 
 	window time.Duration,
-
 ) *EventAggregator[TInput, TOutput] {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	ea := &EventAggregator[TInput, TOutput]{
-
 		inputBus: inputBus,
 
 		outputBus: outputBus,
@@ -520,13 +457,11 @@ func NewEventAggregator[TInput, TOutput any](
 	go ea.aggregateWorker()
 
 	return ea
-
 }
 
 // handleInputEvent collects input events.
 
 func (ea *EventAggregator[TInput, TOutput]) handleInputEvent(ctx context.Context, event Event[TInput]) Result[bool, error] {
-
 	ea.mu.Lock()
 
 	defer ea.mu.Unlock()
@@ -534,15 +469,12 @@ func (ea *EventAggregator[TInput, TOutput]) handleInputEvent(ctx context.Context
 	ea.buffer = append(ea.buffer, event)
 
 	return Ok[bool, error](true)
-
 }
 
 // aggregateWorker periodically aggregates buffered events.
 
 func (ea *EventAggregator[TInput, TOutput]) aggregateWorker() {
-
 	for {
-
 		select {
 
 		case <-ea.ticker.C:
@@ -556,15 +488,12 @@ func (ea *EventAggregator[TInput, TOutput]) aggregateWorker() {
 			return
 
 		}
-
 	}
-
 }
 
 // processBuffer processes the current buffer of events.
 
 func (ea *EventAggregator[TInput, TOutput]) processBuffer() {
-
 	ea.mu.Lock()
 
 	if len(ea.buffer) == 0 {
@@ -588,21 +517,16 @@ func (ea *EventAggregator[TInput, TOutput]) processBuffer() {
 	result := ea.aggregator(events)
 
 	if result.IsOk() {
-
 		_ = ea.outputBus.Publish(result.Value())
-
 	}
-
 }
 
 // Close shuts down the aggregator.
 
 func (ea *EventAggregator[TInput, TOutput]) Close() error {
-
 	ea.cancel()
 
 	return nil
-
 }
 
 // EventStore provides event sourcing capabilities.
@@ -628,18 +552,14 @@ type MemoryEventStore[T any] struct {
 // NewMemoryEventStore creates a new in-memory event store.
 
 func NewMemoryEventStore[T any]() *MemoryEventStore[T] {
-
 	return &MemoryEventStore[T]{
-
 		events: make([]Event[T], 0),
 	}
-
 }
 
 // Store stores an event.
 
 func (mes *MemoryEventStore[T]) Store(ctx context.Context, event Event[T]) Result[bool, error] {
-
 	mes.mu.Lock()
 
 	defer mes.mu.Unlock()
@@ -647,13 +567,11 @@ func (mes *MemoryEventStore[T]) Store(ctx context.Context, event Event[T]) Resul
 	mes.events = append(mes.events, event)
 
 	return Ok[bool, error](true)
-
 }
 
 // LoadByID loads events by ID.
 
 func (mes *MemoryEventStore[T]) LoadByID(ctx context.Context, id string) Result[[]Event[T], error] {
-
 	mes.mu.RLock()
 
 	defer mes.mu.RUnlock()
@@ -661,23 +579,17 @@ func (mes *MemoryEventStore[T]) LoadByID(ctx context.Context, id string) Result[
 	var matching []Event[T]
 
 	for _, event := range mes.events {
-
 		if event.ID == id {
-
 			matching = append(matching, event)
-
 		}
-
 	}
 
 	return Ok[[]Event[T], error](matching)
-
 }
 
 // LoadByType loads events by type.
 
 func (mes *MemoryEventStore[T]) LoadByType(ctx context.Context, eventType string) Result[[]Event[T], error] {
-
 	mes.mu.RLock()
 
 	defer mes.mu.RUnlock()
@@ -685,23 +597,17 @@ func (mes *MemoryEventStore[T]) LoadByType(ctx context.Context, eventType string
 	var matching []Event[T]
 
 	for _, event := range mes.events {
-
 		if event.Type == eventType {
-
 			matching = append(matching, event)
-
 		}
-
 	}
 
 	return Ok[[]Event[T], error](matching)
-
 }
 
 // LoadSince loads events since a timestamp.
 
 func (mes *MemoryEventStore[T]) LoadSince(ctx context.Context, timestamp time.Time) Result[[]Event[T], error] {
-
 	mes.mu.RLock()
 
 	defer mes.mu.RUnlock()
@@ -709,17 +615,12 @@ func (mes *MemoryEventStore[T]) LoadSince(ctx context.Context, timestamp time.Ti
 	var matching []Event[T]
 
 	for _, event := range mes.events {
-
 		if event.Timestamp.After(timestamp) {
-
 			matching = append(matching, event)
-
 		}
-
 	}
 
 	return Ok[[]Event[T], error](matching)
-
 }
 
 // EventStream provides streaming event capabilities.
@@ -739,11 +640,9 @@ type EventStream[T any] struct {
 // NewEventStream creates a new event stream.
 
 func NewEventStream[T any](bus *EventBus[T], bufferSize int) *EventStream[T] {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	stream := &EventStream[T]{
-
 		bus: bus,
 
 		subscriber: make(chan Event[T], bufferSize),
@@ -758,31 +657,23 @@ func NewEventStream[T any](bus *EventBus[T], bufferSize int) *EventStream[T] {
 	bus.Subscribe(stream.handleEvent)
 
 	return stream
-
 }
 
 // AddFilter adds a filter to the stream.
 
 func (es *EventStream[T]) AddFilter(filter EventFilter[T]) {
-
 	es.filters = append(es.filters, filter)
-
 }
 
 // handleEvent handles events from the bus.
 
 func (es *EventStream[T]) handleEvent(ctx context.Context, event Event[T]) Result[bool, error] {
-
 	// Apply filters.
 
 	for _, filter := range es.filters {
-
 		if !filter(event) {
-
 			return Ok[bool, error](true) // Skip filtered events
-
 		}
-
 	}
 
 	select {
@@ -800,27 +691,22 @@ func (es *EventStream[T]) handleEvent(ctx context.Context, event Event[T]) Resul
 		return Err[bool, error](fmt.Errorf("stream buffer is full"))
 
 	}
-
 }
 
 // Subscribe returns a channel for receiving events.
 
 func (es *EventStream[T]) Subscribe() <-chan Event[T] {
-
 	return es.subscriber
-
 }
 
 // Close closes the event stream.
 
 func (es *EventStream[T]) Close() error {
-
 	es.cancel()
 
 	close(es.subscriber)
 
 	return nil
-
 }
 
 // Predefined event filters.
@@ -828,43 +714,29 @@ func (es *EventStream[T]) Close() error {
 // TypeFilter creates a filter for specific event types.
 
 func TypeFilter[T any](eventTypes ...string) EventFilter[T] {
-
 	typeSet := NewSet(eventTypes...)
 
 	return func(event Event[T]) bool {
-
 		return typeSet.Contains(event.Type)
-
 	}
-
 }
 
 // TimeRangeFilter creates a filter for events within a time range.
 
 func TimeRangeFilter[T any](start, end time.Time) EventFilter[T] {
-
 	return func(event Event[T]) bool {
-
 		return event.Timestamp.After(start) && event.Timestamp.Before(end)
-
 	}
-
 }
 
 // MetadataFilter creates a filter based on metadata.
 
 func MetadataFilter[T any](key string, value any) EventFilter[T] {
-
 	return func(event Event[T]) bool {
-
 		if v, exists := event.Metadata[key]; exists {
-
 			return v == value
-
 		}
 
 		return false
-
 	}
-
 }

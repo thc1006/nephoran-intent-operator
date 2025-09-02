@@ -127,7 +127,7 @@ func BenchmarkAsyncIO(b *testing.B) {
 				b.RunParallel(func(pb *testing.PB) {
 					for pb.Next() {
 						path := filepath.Join(tempDir, fmt.Sprintf("file_%d.dat", rand.Int()))
-						manager.WriteFileAsync(path, testData, 0644, func(err error) {
+						manager.WriteFileAsync(path, testData, 0o644, func(err error) {
 							if err == nil {
 								completed.Add(1)
 							}
@@ -149,7 +149,7 @@ func BenchmarkAsyncIO(b *testing.B) {
 				testFiles := make([]string, 100)
 				for i := range testFiles {
 					path := filepath.Join(tempDir, fmt.Sprintf("read_test_%d.dat", i))
-					os.WriteFile(path, testData, 0644)
+					os.WriteFile(path, testData, 0o644)
 					testFiles[i] = path
 				}
 
@@ -321,7 +321,7 @@ func BenchmarkConcurrentLoad(b *testing.B) {
 				}
 
 				// Async write
-				ioManager.WriteFileAsync(item.FilePath, testData, 0644, func(err error) {
+				ioManager.WriteFileAsync(item.FilePath, testData, 0o644, func(err error) {
 					if err != nil {
 						stats.RecordFailure(item.FilePath, "write_failed")
 					} else {

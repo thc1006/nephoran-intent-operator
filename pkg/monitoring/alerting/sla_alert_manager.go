@@ -279,7 +279,6 @@ type BusinessImpactInfo struct {
 // early warning, noise reduction, and rapid incident response capabilities.
 
 type SLAAlertManager struct {
-
 	// Core components.
 
 	logger *logging.StructuredLogger
@@ -330,7 +329,6 @@ type SLAAlertManager struct {
 // SLAAlertConfig holds configuration for the SLA alert manager.
 
 type SLAAlertConfig struct {
-
 	// Evaluation intervals.
 
 	EvaluationInterval time.Duration `yaml:"evaluation_interval"`
@@ -390,7 +388,6 @@ type SLATarget struct {
 	BusinessTier string `yaml:"business_tier"` // Business criticality
 
 	CustomerFacing bool `yaml:"customer_facing"` // Customer impact
-
 }
 
 // AlertWindow defines a specific alerting window with thresholds.
@@ -428,7 +425,6 @@ type MaintenanceWindow struct {
 // SLAAlertMetrics contains Prometheus metrics for the SLA alert manager.
 
 type SLAAlertMetrics struct {
-
 	// Alert generation metrics.
 
 	AlertsGenerated *prometheus.CounterVec
@@ -479,9 +475,7 @@ type SLAAlertMetrics struct {
 // DefaultSLAAlertConfig returns production-ready configuration.
 
 func DefaultSLAAlertConfig() *SLAAlertConfig {
-
 	return &SLAAlertConfig{
-
 		// Evaluation intervals optimized for rapid detection.
 
 		EvaluationInterval: 30 * time.Second,
@@ -520,17 +514,13 @@ func DefaultSLAAlertConfig() *SLAAlertConfig {
 
 		QueryTimeout: 10 * time.Second,
 	}
-
 }
 
 // DefaultSLATargets returns production SLA targets for Nephoran Intent Operator.
 
 func DefaultSLATargets() map[SLAType]SLATarget {
-
 	return map[SLAType]SLATarget{
-
 		SLATypeAvailability: {
-
 			Target: 99.95,
 
 			ErrorBudget: 4.32, // minutes per month for 99.95%
@@ -540,9 +530,7 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 			CustomerFacing: true,
 
 			Windows: []AlertWindow{
-
 				{
-
 					ShortWindow: 1 * time.Hour,
 
 					LongWindow: 5 * time.Minute,
@@ -553,7 +541,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 				},
 
 				{
-
 					ShortWindow: 6 * time.Hour,
 
 					LongWindow: 30 * time.Minute,
@@ -564,7 +551,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 				},
 
 				{
-
 					ShortWindow: 24 * time.Hour,
 
 					LongWindow: 2 * time.Hour,
@@ -577,7 +563,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 		},
 
 		SLATypeLatency: {
-
 			Target: 2000, // 2 seconds P95
 
 			ErrorBudget: 5.0, // 5% budget for latency violations
@@ -587,9 +572,7 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 			CustomerFacing: true,
 
 			Windows: []AlertWindow{
-
 				{
-
 					ShortWindow: 15 * time.Minute,
 
 					LongWindow: 2 * time.Minute,
@@ -600,7 +583,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 				},
 
 				{
-
 					ShortWindow: 1 * time.Hour,
 
 					LongWindow: 10 * time.Minute,
@@ -613,7 +595,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 		},
 
 		SLAThroughput: {
-
 			Target: 45, // 45 intents per minute
 
 			ErrorBudget: 10.0,
@@ -623,9 +604,7 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 			CustomerFacing: false,
 
 			Windows: []AlertWindow{
-
 				{
-
 					ShortWindow: 10 * time.Minute,
 
 					LongWindow: 2 * time.Minute,
@@ -636,7 +615,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 				},
 
 				{
-
 					ShortWindow: 30 * time.Minute,
 
 					LongWindow: 10 * time.Minute,
@@ -649,7 +627,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 		},
 
 		SLAErrorRate: {
-
 			Target: 0.1, // 0.1% error rate
 
 			ErrorBudget: 2.0,
@@ -659,9 +636,7 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 			CustomerFacing: true,
 
 			Windows: []AlertWindow{
-
 				{
-
 					ShortWindow: 5 * time.Minute,
 
 					LongWindow: 1 * time.Minute,
@@ -672,7 +647,6 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 				},
 
 				{
-
 					ShortWindow: 30 * time.Minute,
 
 					LongWindow: 5 * time.Minute,
@@ -684,23 +658,17 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 			},
 		},
 	}
-
 }
 
 // NewSLAAlertManager creates a new SLA alert manager with comprehensive monitoring capabilities.
 
 func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger) (*SLAAlertManager, error) {
-
 	if config == nil {
-
 		config = DefaultSLAAlertConfig()
-
 	}
 
 	if logger == nil {
-
 		return nil, fmt.Errorf("logger is required")
-
 	}
 
 	// Initialize Prometheus client.
@@ -710,14 +678,10 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	if config.PrometheusURL != "" {
 
 		client, err := api.NewClient(api.Config{
-
 			Address: config.PrometheusURL,
 		})
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
-
 		}
 
 		prometheusClient = v1.NewAPI(client)
@@ -727,7 +691,6 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	// Initialize circuit breaker for external dependencies.
 
 	cb := gobreaker.NewCircuitBreaker(gobreaker.Settings{
-
 		Name: "sla-alert-manager",
 
 		MaxRequests: 10,
@@ -737,69 +700,58 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		Timeout: 30 * time.Second,
 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
-
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 
 			return counts.Requests >= 3 && failureRatio >= 0.6
-
 		},
 	})
 
 	// Initialize metrics.
 
 	metrics := &SLAAlertMetrics{
-
 		AlertsGenerated: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "sla_alerts_generated_total",
 
 			Help: "Total number of SLA alerts generated",
 		}, []string{"sla_type", "severity", "component"}),
 
 		AlertsResolved: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "sla_alerts_resolved_total",
 
 			Help: "Total number of SLA alerts resolved",
 		}, []string{"sla_type", "severity", "duration_bucket"}),
 
 		AlertsFalsePositive: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "sla_alerts_false_positive_total",
 
 			Help: "Total number of false positive SLA alerts",
 		}, []string{"sla_type", "reason"}),
 
 		SLACompliance: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "sla_compliance_percentage",
 
 			Help: "Current SLA compliance percentage",
 		}, []string{"sla_type", "component"}),
 
 		ErrorBudgetBurn: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "sla_error_budget_burn_rate",
 
 			Help: "Current error budget burn rate",
 		}, []string{"sla_type", "window"}),
 
 		ActiveAlerts: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "sla_active_alerts",
 
 			Help: "Number of active SLA alerts",
 		}, []string{"sla_type", "severity", "state"}),
 
 		BusinessImpactScore: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "sla_business_impact_score",
 
 			Help: "Business impact score for SLA violations",
 		}, []string{"sla_type", "tier"}),
 
 		RevenueAtRisk: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "sla_revenue_at_risk_dollars",
 
 			Help: "Revenue at risk due to SLA violations",
@@ -809,7 +761,6 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	// Register metrics with duplicate handling.
 
 	metricsToRegister := []prometheus.Collector{
-
 		metrics.AlertsGenerated,
 
 		metrics.AlertsResolved,
@@ -830,24 +781,19 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	// Register each metric, ignoring duplicate registration errors.
 
 	for _, metric := range metricsToRegister {
-
 		if err := prometheus.Register(metric); err != nil {
 
 			var alreadyRegisteredErr prometheus.AlreadyRegisteredError
 			if !errors.As(err, &alreadyRegisteredErr) {
-
 				// Only propagate non-duplicate errors.
 
 				logger.Error("Failed to register metric", "error", err)
-
 			}
 
 		}
-
 	}
 
 	sam := &SLAAlertManager{
-
 		logger: logger.WithComponent("sla-alert-manager"),
 
 		config: config,
@@ -878,7 +824,6 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	sam.burnRateCalculator, err = NewBurnRateCalculator(
 
 		&BurnRateConfig{
-
 			SLATargets: sam.slaTargets,
 
 			EvaluationWindows: []time.Duration{5 * time.Minute, 30 * time.Minute, 2 * time.Hour},
@@ -888,11 +833,8 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 
 		logger.WithComponent("burn-rate-calculator"),
 	)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize burn rate calculator: %w", err)
-
 	}
 
 	sam.predictiveAlerting, err = NewPredictiveAlerting(
@@ -901,17 +843,13 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 
 		logger.WithComponent("predictive-alerting"),
 	)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize predictive alerting: %w", err)
-
 	}
 
 	sam.alertRouter, err = NewAlertRouter(
 
 		&AlertRouterConfig{
-
 			MaxConcurrentAlerts: config.MaxActiveAlerts,
 
 			DeduplicationWindow: config.DeduplicationWindow,
@@ -921,17 +859,13 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 
 		logger.WithComponent("alert-router"),
 	)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize alert router: %w", err)
-
 	}
 
 	sam.escalationEngine, err = NewEscalationEngine(
 
 		&EscalationConfig{
-
 			DefaultEscalationDelay: 15 * time.Minute,
 
 			MaxEscalationLevels: 4,
@@ -941,29 +875,22 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 
 		logger.WithComponent("escalation-engine"),
 	)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to initialize escalation engine: %w", err)
-
 	}
 
 	return sam, nil
-
 }
 
 // Start begins the SLA alert manager with all monitoring capabilities.
 
 func (sam *SLAAlertManager) Start(ctx context.Context) error {
-
 	sam.mu.Lock()
 
 	defer sam.mu.Unlock()
 
 	if sam.started {
-
 		return fmt.Errorf("SLA alert manager already started")
-
 	}
 
 	sam.logger.InfoWithContext("Starting SLA alert manager",
@@ -978,27 +905,19 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 	// Start sub-components.
 
 	if err := sam.burnRateCalculator.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start burn rate calculator: %w", err)
-
 	}
 
 	if err := sam.predictiveAlerting.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start predictive alerting: %w", err)
-
 	}
 
 	if err := sam.alertRouter.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start alert router: %w", err)
-
 	}
 
 	if err := sam.escalationEngine.Start(ctx); err != nil {
-
 		return fmt.Errorf("failed to start escalation engine: %w", err)
-
 	}
 
 	// Start monitoring loops.
@@ -1016,21 +935,17 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 	sam.logger.InfoWithContext("SLA alert manager started successfully")
 
 	return nil
-
 }
 
 // Stop gracefully shuts down the SLA alert manager.
 
 func (sam *SLAAlertManager) Stop(ctx context.Context) error {
-
 	sam.mu.Lock()
 
 	defer sam.mu.Unlock()
 
 	if !sam.started {
-
 		return nil
-
 	}
 
 	sam.logger.InfoWithContext("Stopping SLA alert manager")
@@ -1042,27 +957,19 @@ func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 	// Stop sub-components.
 
 	if err := sam.escalationEngine.Stop(ctx); err != nil {
-
 		sam.logger.ErrorWithContext("Failed to stop escalation engine", err)
-
 	}
 
 	if err := sam.alertRouter.Stop(ctx); err != nil {
-
 		sam.logger.ErrorWithContext("Failed to stop alert router", err)
-
 	}
 
 	if err := sam.predictiveAlerting.Stop(ctx); err != nil {
-
 		sam.logger.ErrorWithContext("Failed to stop predictive alerting", err)
-
 	}
 
 	if err := sam.burnRateCalculator.Stop(ctx); err != nil {
-
 		sam.logger.ErrorWithContext("Failed to stop burn rate calculator", err)
-
 	}
 
 	sam.started = false
@@ -1070,19 +977,16 @@ func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 	sam.logger.InfoWithContext("SLA alert manager stopped")
 
 	return nil
-
 }
 
 // evaluationLoop runs the main alert evaluation loop.
 
 func (sam *SLAAlertManager) evaluationLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(sam.config.EvaluationInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1098,31 +1002,23 @@ func (sam *SLAAlertManager) evaluationLoop(ctx context.Context) {
 			sam.evaluateAllSLAs(ctx)
 
 		}
-
 	}
-
 }
 
 // evaluateAllSLAs evaluates all configured SLAs for violations.
 
 func (sam *SLAAlertManager) evaluateAllSLAs(ctx context.Context) {
-
 	for slaType, target := range sam.slaTargets {
-
 		sam.evaluateSLA(ctx, slaType, target)
-
 	}
-
 }
 
 // evaluateSLA evaluates a specific SLA for violations.
 
 func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, target SLATarget) {
-
 	// Get current SLA metrics.
 
 	currentValue, err := sam.getCurrentSLAValue(ctx, slaType)
-
 	if err != nil {
 
 		sam.logger.ErrorWithContext("Failed to get current SLA value", err,
@@ -1137,7 +1033,6 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 	// Calculate burn rates for all windows.
 
 	burnRates, err := sam.burnRateCalculator.Calculate(ctx, slaType)
-
 	if err != nil {
 
 		sam.logger.ErrorWithContext("Failed to calculate burn rates", err,
@@ -1170,7 +1065,6 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 	compliance := sam.calculateCompliance(currentValue, target)
 
 	sam.metrics.SLACompliance.WithLabelValues(string(slaType), "overall").Set(compliance)
-
 }
 
 // createAlert creates a new SLA alert with full context.
@@ -1178,9 +1072,7 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, target SLATarget,
 
 	window AlertWindow, currentValue float64, burnRates BurnRateInfo,
-
 ) *SLAAlert {
-
 	now := time.Now()
 
 	alertID := sam.generateAlertID(slaType, window, now)
@@ -1198,7 +1090,6 @@ func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, ta
 	businessImpact := sam.calculateBusinessImpact(slaType, target, currentValue, errorBudget)
 
 	alert := &SLAAlert{
-
 		ID: alertID,
 
 		SLAType: slaType,
@@ -1243,13 +1134,11 @@ func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, ta
 	}
 
 	return alert
-
 }
 
 // processAlert processes a new alert through the routing and escalation pipeline.
 
 func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
-
 	sam.mu.Lock()
 
 	// Check for existing alert.
@@ -1326,23 +1215,19 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 	// Route alert for notifications.
 
 	if err := sam.alertRouter.Route(ctx, alert); err != nil {
-
 		sam.logger.ErrorWithContext("Failed to route alert", err,
 
 			slog.String("alert_id", alert.ID),
 		)
-
 	}
 
 	// Start escalation process.
 
 	if err := sam.escalationEngine.StartEscalation(ctx, alert); err != nil {
-
 		sam.logger.ErrorWithContext("Failed to start escalation", err,
 
 			slog.String("alert_id", alert.ID),
 		)
-
 	}
 
 	sam.logger.WarnWithContext("SLA alert fired",
@@ -1359,13 +1244,11 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 
 		slog.Float64("error_budget_remaining", alert.ErrorBudget.Remaining),
 	)
-
 }
 
 // generateAlertID creates a unique identifier for the alert.
 
 func (sam *SLAAlertManager) generateAlertID(slaType SLAType, window AlertWindow, timestamp time.Time) string {
-
 	return fmt.Sprintf("sla-%s-%s-%d",
 
 		string(slaType),
@@ -1373,13 +1256,11 @@ func (sam *SLAAlertManager) generateAlertID(slaType SLAType, window AlertWindow,
 		string(window.Severity),
 
 		timestamp.Unix())
-
 }
 
 // generateFingerprint creates a fingerprint for alert deduplication.
 
 func (sam *SLAAlertManager) generateFingerprint(slaType SLAType, window AlertWindow) string {
-
 	data := fmt.Sprintf("%s-%s-%s",
 
 		string(slaType),
@@ -1389,17 +1270,14 @@ func (sam *SLAAlertManager) generateFingerprint(slaType SLAType, window AlertWin
 		window.ShortWindow.String())
 
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
-
 }
 
 // generateHash creates a unique hash for the alert.
 
 func (sam *SLAAlertManager) generateHash(alertID string, timestamp time.Time) string {
-
 	data := fmt.Sprintf("%s-%d", alertID, timestamp.UnixNano())
 
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(data)))[:8]
-
 }
 
 // Helper functions for alert generation and management continue in the next section...
@@ -1411,13 +1289,11 @@ func (sam *SLAAlertManager) generateHash(alertID string, timestamp time.Time) st
 // maintenanceWindowCheck checks for active maintenance windows.
 
 func (sam *SLAAlertManager) maintenanceWindowCheck(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1433,21 +1309,17 @@ func (sam *SLAAlertManager) maintenanceWindowCheck(ctx context.Context) {
 			sam.updateMaintenanceWindows()
 
 		}
-
 	}
-
 }
 
 // metricsUpdateLoop periodically updates metrics.
 
 func (sam *SLAAlertManager) metricsUpdateLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1463,21 +1335,17 @@ func (sam *SLAAlertManager) metricsUpdateLoop(ctx context.Context) {
 			sam.updateMetrics()
 
 		}
-
 	}
-
 }
 
 // alertCleanupLoop cleans up old resolved alerts.
 
 func (sam *SLAAlertManager) alertCleanupLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1493,17 +1361,13 @@ func (sam *SLAAlertManager) alertCleanupLoop(ctx context.Context) {
 			sam.cleanupOldAlerts()
 
 		}
-
 	}
-
 }
 
 // getCurrentSLAValue retrieves the current value for the specified SLA type.
 
 func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAType) (float64, error) {
-
 	if sam.prometheusClient == nil {
-
 		// Return mock values for testing.
 
 		switch slaType {
@@ -1529,7 +1393,6 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 			return 0, fmt.Errorf("unknown SLA type: %s", slaType)
 
 		}
-
 	}
 
 	// Get metric name for SLA type.
@@ -1537,11 +1400,8 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 	metricName := sam.getMetricNameForSLAType(slaType)
 
 	_, _, err := sam.prometheusClient.Query(ctx, metricName, time.Now())
-
 	if err != nil {
-
 		return 0, fmt.Errorf("failed to query Prometheus for %s: %w", slaType, err)
-
 	}
 
 	// Parse result and return value.
@@ -1551,13 +1411,11 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 	// For now, return mock value.
 
 	return sam.getMockValueForSLAType(slaType), nil
-
 }
 
 // getMockValueForSLAType returns mock values for testing.
 
 func (sam *SLAAlertManager) getMockValueForSLAType(slaType SLAType) float64 {
-
 	switch slaType {
 
 	case SLATypeAvailability:
@@ -1581,13 +1439,11 @@ func (sam *SLAAlertManager) getMockValueForSLAType(slaType SLAType) float64 {
 		return 0
 
 	}
-
 }
 
 // isWindowViolating checks if burn rates violate the specified window thresholds.
 
 func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window AlertWindow) bool {
-
 	// Check if any window burn rate exceeds threshold.
 
 	shortWindowViolating := burnRates.ShortWindow.BurnRate > window.BurnRate
@@ -1599,13 +1455,11 @@ func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window Ale
 	// Return true if any window is violating.
 
 	return shortWindowViolating || mediumWindowViolating || longWindowViolating
-
 }
 
 // calculateCompliance calculates SLA compliance percentage.
 
 func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLATarget) float64 {
-
 	switch {
 
 	case target.Target >= 90: // Availability or similar metrics
@@ -1615,29 +1469,23 @@ func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLA
 	default: // Latency or error rate metrics (lower is better)
 
 		if target.Target == 0 {
-
 			return 100 // Perfect score if target is 0
-
 		}
 
 		compliance := (1 - (currentValue / target.Target)) * 100
 
 		if compliance < 0 {
-
 			return 0
-
 		}
 
 		return compliance
 
 	}
-
 }
 
 // calculateErrorBudget calculates error budget information.
 
 func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) ErrorBudgetInfo {
-
 	// Calculate total error budget for the period (monthly).
 
 	totalBudget := target.ErrorBudget
@@ -1651,7 +1499,6 @@ func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SL
 	consumedPercent := (consumed / totalBudget) * 100
 
 	errorBudget := ErrorBudgetInfo{
-
 		Total: totalBudget,
 
 		Remaining: remaining,
@@ -1674,15 +1521,12 @@ func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SL
 	}
 
 	return errorBudget
-
 }
 
 // enrichAlertContext enriches alert with additional context information.
 
 func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAType, currentValue float64) AlertContext {
-
 	context := AlertContext{
-
 		Component: "nephoran-intent-operator",
 
 		Service: string(slaType),
@@ -1703,7 +1547,6 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 	// Add related metrics.
 
 	context.RelatedMetrics = append(context.RelatedMetrics, MetricSnapshot{
-
 		Name: string(slaType) + "_current_value",
 
 		Value: currentValue,
@@ -1722,7 +1565,6 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 	// Add log queries.
 
 	context.LogQueries = append(context.LogQueries, LogQuery{
-
 		Description: fmt.Sprintf("Recent %s errors", slaType),
 
 		Query: fmt.Sprintf("level=error component=%s", context.Component),
@@ -1731,15 +1573,12 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 	})
 
 	return context
-
 }
 
 // calculateBusinessImpact calculates business impact for the alert.
 
 func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLATarget, currentValue float64, errorBudget ErrorBudgetInfo) BusinessImpactInfo {
-
 	businessImpact := BusinessImpactInfo{
-
 		ServiceTier: target.BusinessTier,
 
 		CustomerFacing: target.CustomerFacing,
@@ -1776,9 +1615,7 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 		businessImpact.AffectedUsers = 1000 // Base user count
 
 		if errorBudget.ConsumedPercent > 75 {
-
 			businessImpact.AffectedUsers *= int64(errorBudget.ConsumedPercent / 25)
-
 		}
 
 	}
@@ -1786,43 +1623,34 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 	// Calculate revenue impact if business impact tracking is enabled.
 
 	if sam.config.EnableBusinessImpact && businessImpact.AffectedUsers > 0 {
-
 		businessImpact.RevenueImpact = float64(businessImpact.AffectedUsers) * sam.config.RevenuePerUser
-
 	}
 
 	return businessImpact
-
 }
 
 // generateAlertName generates a descriptive name for the alert.
 
 func (sam *SLAAlertManager) generateAlertName(slaType SLAType, severity AlertSeverity) string {
-
 	return fmt.Sprintf("%s SLA %s Alert",
 
 		sam.capitalizeFirst(string(slaType)),
 
 		sam.capitalizeFirst(string(severity)))
-
 }
 
 // generateAlertDescription generates a detailed description for the alert.
 
 func (sam *SLAAlertManager) generateAlertDescription(slaType SLAType, currentValue float64, target SLATarget, window AlertWindow) string {
-
 	return fmt.Sprintf("SLA violation detected for %s. Current value: %.2f, Target: %.2f, Burn rate threshold: %.2f exceeded over %v window.",
 
 		slaType, currentValue, target.Target, window.BurnRate, window.ShortWindow)
-
 }
 
 // generateAlertLabels generates labels for the alert.
 
 func (sam *SLAAlertManager) generateAlertLabels(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
-
 	return map[string]string{
-
 		"sla_type": string(slaType),
 
 		"severity": string(window.Severity),
@@ -1835,34 +1663,26 @@ func (sam *SLAAlertManager) generateAlertLabels(slaType SLAType, target SLATarge
 
 		"alert_type": "sla_violation",
 	}
-
 }
 
 // generateAlertAnnotations generates annotations for the alert.
 
 func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
-
 	annotations := map[string]string{
-
 		"summary": fmt.Sprintf("SLA violation for %s", slaType),
 
 		"description": fmt.Sprintf("Burn rate threshold %.2f exceeded for %v", window.BurnRate, window.ShortWindow),
 	}
 
 	if sam.config.GrafanaURL != "" {
-
 		annotations["dashboard"] = fmt.Sprintf("%s/d/nephoran-sla/nephoran-sla-dashboard", sam.config.GrafanaURL)
-
 	}
 
 	if sam.config.RunbookBaseURL != "" {
-
 		annotations["runbook"] = fmt.Sprintf("%s/sla-%s", sam.config.RunbookBaseURL, slaType)
-
 	}
 
 	return annotations
-
 }
 
 // Helper methods.
@@ -1870,7 +1690,6 @@ func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLA
 // getMetricNameForSLAType returns the Prometheus metric name for an SLA type.
 
 func (sam *SLAAlertManager) getMetricNameForSLAType(slaType SLAType) string {
-
 	switch slaType {
 
 	case SLATypeAvailability:
@@ -1894,13 +1713,11 @@ func (sam *SLAAlertManager) getMetricNameForSLAType(slaType SLAType) string {
 		return "unknown_metric"
 
 	}
-
 }
 
 // getUnitForSLAType returns the unit for an SLA type.
 
 func (sam *SLAAlertManager) getUnitForSLAType(slaType SLAType) string {
-
 	switch slaType {
 
 	case SLATypeAvailability:
@@ -1924,43 +1741,32 @@ func (sam *SLAAlertManager) getUnitForSLAType(slaType SLAType) string {
 		return "unknown"
 
 	}
-
 }
 
 // capitalizeFirst capitalizes the first letter of a string.
 
 func (sam *SLAAlertManager) capitalizeFirst(s string) string {
-
 	if len(s) == 0 {
-
 		return s
-
 	}
 
 	return fmt.Sprintf("%c%s", s[0]-32, s[1:])
-
 }
 
 // generateRunbookURL generates runbook URL for the alert.
 
 func (sam *SLAAlertManager) generateRunbookURL(slaType SLAType, severity AlertSeverity) string {
-
 	if sam.config.RunbookBaseURL == "" {
-
 		return ""
-
 	}
 
 	return fmt.Sprintf("%s/sla-%s-%s", sam.config.RunbookBaseURL, slaType, severity)
-
 }
 
 // generateRunbookSteps generates runbook steps for the alert.
 
 func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity AlertSeverity) []string {
-
 	steps := []string{
-
 		"1. Check system health dashboard",
 
 		"2. Review recent deployments and changes",
@@ -1989,101 +1795,73 @@ func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity Alert
 	}
 
 	if severity == AlertSeverityUrgent || severity == AlertSeverityCritical {
-
 		steps = append(steps, "6. Escalate to on-call engineer", "7. Consider emergency rollback if needed")
-
 	}
 
 	return steps
-
 }
 
 // shouldSuppressAlert checks if an alert should be suppressed.
 
 func (sam *SLAAlertManager) shouldSuppressAlert(alert *SLAAlert) bool {
-
 	// Check for active maintenance windows.
 
 	now := time.Now()
 
 	for _, window := range sam.maintenanceWindows {
-
 		if now.After(window.StartTime) && now.Before(window.EndTime) {
-
 			// Check if alert matches maintenance window criteria.
 
 			if sam.alertMatchesMaintenanceWindow(alert, window) {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	// Check suppression rules based on alert characteristics.
 
 	if alert.ErrorBudget.ConsumedPercent < 10.0 {
-
 		// Suppress minor alerts when error budget consumption is low.
 
 		return true
-
 	}
 
 	return false
-
 }
 
 // alertMatchesMaintenanceWindow checks if an alert matches maintenance window criteria.
 
 func (sam *SLAAlertManager) alertMatchesMaintenanceWindow(alert *SLAAlert, window *MaintenanceWindow) bool {
-
 	// Check if alert's component is in maintenance.
 
 	for _, component := range window.Components {
-
 		if alert.Context.Component == component {
-
 			return true
-
 		}
-
 	}
 
 	// Check if alert's service is in maintenance.
 
 	for _, service := range window.Services {
-
 		if alert.Context.Service == service {
-
 			return true
-
 		}
-
 	}
 
 	// Check labels matching.
 
 	for key, value := range window.Labels {
-
 		if alertValue, exists := alert.Labels[key]; exists && alertValue == value {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // updateMaintenanceWindows updates active maintenance windows.
 
 func (sam *SLAAlertManager) updateMaintenanceWindows() {
-
 	sam.mu.Lock()
 
 	defer sam.mu.Unlock()
@@ -2095,22 +1873,16 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 	// Filter out expired maintenance windows.
 
 	for _, window := range sam.maintenanceWindows {
-
 		if now.Before(window.EndTime) {
-
 			activeWindows = append(activeWindows, window)
-
 		} else {
-
 			sam.logger.InfoWithContext("Maintenance window expired",
 
 				slog.String("window_id", window.ID),
 
 				slog.String("name", window.Name),
 			)
-
 		}
-
 	}
 
 	sam.maintenanceWindows = activeWindows
@@ -2119,13 +1891,11 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 
 		slog.Int("active_windows", len(sam.maintenanceWindows)),
 	)
-
 }
 
 // updateMetrics updates internal metrics.
 
 func (sam *SLAAlertManager) updateMetrics() {
-
 	sam.mu.RLock()
 
 	defer sam.mu.RUnlock()
@@ -2133,7 +1903,6 @@ func (sam *SLAAlertManager) updateMetrics() {
 	// Update active alerts count.
 
 	for slaType, severity := range map[SLAType]AlertSeverity{
-
 		SLATypeAvailability: AlertSeverityCritical,
 
 		SLATypeLatency: AlertSeverityMajor,
@@ -2146,13 +1915,9 @@ func (sam *SLAAlertManager) updateMetrics() {
 		count := 0
 
 		for _, alert := range sam.activeAlerts {
-
 			if alert.SLAType == slaType && alert.Severity == severity {
-
 				count++
-
 			}
-
 		}
 
 		sam.metrics.ActiveAlerts.WithLabelValues(
@@ -2173,9 +1938,7 @@ func (sam *SLAAlertManager) updateMetrics() {
 	for _, alert := range sam.activeAlerts {
 
 		if alert.BusinessImpact.RevenueImpact > 0 {
-
 			totalRevenue += alert.BusinessImpact.RevenueImpact
-
 		}
 
 		sam.metrics.BusinessImpactScore.WithLabelValues(
@@ -2186,14 +1949,12 @@ func (sam *SLAAlertManager) updateMetrics() {
 		).Set(alert.BusinessImpact.RevenueImpact)
 
 		if alert.BusinessImpact.CustomerFacing {
-
 			sam.metrics.CustomerImpact.WithLabelValues(
 
 				string(alert.SLAType),
 
 				"customer_facing",
 			).Set(float64(alert.BusinessImpact.AffectedUsers))
-
 		}
 
 	}
@@ -2206,13 +1967,11 @@ func (sam *SLAAlertManager) updateMetrics() {
 
 		slog.Float64("total_revenue_at_risk", totalRevenue),
 	)
-
 }
 
 // cleanupOldAlerts removes old resolved alerts from history.
 
 func (sam *SLAAlertManager) cleanupOldAlerts() {
-
 	sam.mu.Lock()
 
 	defer sam.mu.Unlock()
@@ -2226,13 +1985,9 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	var recentHistory []*SLAAlert
 
 	for _, alert := range sam.alertHistory {
-
 		if alert.UpdatedAt.After(cutoff) {
-
 			recentHistory = append(recentHistory, alert)
-
 		}
-
 	}
 
 	removedCount := len(sam.alertHistory) - len(recentHistory)
@@ -2244,13 +1999,9 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	activeSuppressed := make(map[string]*SLAAlert)
 
 	for id, alert := range sam.suppressedAlerts {
-
 		if alert.UpdatedAt.After(cutoff) {
-
 			activeSuppressed[id] = alert
-
 		}
-
 	}
 
 	removedSuppressedCount := len(sam.suppressedAlerts) - len(activeSuppressed)
@@ -2258,7 +2009,6 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	sam.suppressedAlerts = activeSuppressed
 
 	if removedCount > 0 || removedSuppressedCount > 0 {
-
 		sam.logger.InfoWithContext("Cleaned up old alerts",
 
 			slog.Int("removed_from_history", removedCount),
@@ -2269,46 +2019,44 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 
 			slog.Int("remaining_suppressed", len(sam.suppressedAlerts)),
 		)
-
 	}
-
 }
 
 // GetActiveAlerts returns a slice of all currently active alerts.
 func (sam *SLAAlertManager) GetActiveAlerts() []*SLAAlert {
 	sam.mu.RLock()
 	defer sam.mu.RUnlock()
-	
+
 	alerts := make([]*SLAAlert, 0, len(sam.activeAlerts))
 	for _, alert := range sam.activeAlerts {
 		alerts = append(alerts, alert)
 	}
-	
+
 	return alerts
 }
 
 // ServiceMetrics contains metrics for the alert manager service.
 type ServiceMetrics struct {
-	ProcessingRate   float64 `json:"processing_rate"`
-	MemoryUsageMB    float64 `json:"memory_usage_mb"`
-	CPUUsagePercent  float64 `json:"cpu_usage_percent"`
-	ActiveAlerts     int     `json:"active_alerts"`
-	AlertsGenerated  int64   `json:"alerts_generated"`
-	AlertsResolved   int64   `json:"alerts_resolved"`
+	ProcessingRate  float64 `json:"processing_rate"`
+	MemoryUsageMB   float64 `json:"memory_usage_mb"`
+	CPUUsagePercent float64 `json:"cpu_usage_percent"`
+	ActiveAlerts    int     `json:"active_alerts"`
+	AlertsGenerated int64   `json:"alerts_generated"`
+	AlertsResolved  int64   `json:"alerts_resolved"`
 }
 
 // GetMetrics returns service-level metrics for the alert manager.
 func (sam *SLAAlertManager) GetMetrics() ServiceMetrics {
 	sam.mu.RLock()
 	defer sam.mu.RUnlock()
-	
+
 	return ServiceMetrics{
-		ProcessingRate:   100.0, // Mock processing rate
-		MemoryUsageMB:    50.0,  // Mock memory usage
-		CPUUsagePercent:  25.0,  // Mock CPU usage
-		ActiveAlerts:     len(sam.activeAlerts),
-		AlertsGenerated:  sam.getTotalAlertsGenerated(),
-		AlertsResolved:   sam.getTotalAlertsResolved(),
+		ProcessingRate:  100.0, // Mock processing rate
+		MemoryUsageMB:   50.0,  // Mock memory usage
+		CPUUsagePercent: 25.0,  // Mock CPU usage
+		ActiveAlerts:    len(sam.activeAlerts),
+		AlertsGenerated: sam.getTotalAlertsGenerated(),
+		AlertsResolved:  sam.getTotalAlertsResolved(),
 	}
 }
 

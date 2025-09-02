@@ -8,7 +8,7 @@ import (
 // ScannerConfig extends SecurityScannerConfig with test-specific fields
 type ScannerConfig struct {
 	SecurityScannerConfig
-	
+
 	// Additional fields expected by tests
 	BaseURL                string        `json:"base_url"`
 	Timeout                time.Duration `json:"timeout"`
@@ -19,8 +19,8 @@ type ScannerConfig struct {
 	EnableAuthTesting      bool          `json:"enable_auth_testing"`
 	EnableInjectionTesting bool          `json:"enable_injection_testing"`
 	TestCredentials        []Credential  `json:"test_credentials"`
-	UserAgents            []string      `json:"user_agents"`
-	Wordlists             *Wordlists    `json:"wordlists"`
+	UserAgents             []string      `json:"user_agents"`
+	Wordlists              *Wordlists    `json:"wordlists"`
 }
 
 // Credential represents login credentials for testing
@@ -50,7 +50,7 @@ func NewSecurityScannerForTest(config *ScannerConfig) *SecurityScanner {
 		EnableVulnScan: config.EnableVulnScanning,
 		EnableTLSScan:  config.SkipTLSVerification,
 	}
-	
+
 	return &SecurityScanner{
 		Client: nil, // Test will not use client
 		logger: slog.Default(),

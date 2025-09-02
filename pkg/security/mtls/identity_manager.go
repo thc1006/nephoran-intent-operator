@@ -170,79 +170,55 @@ type IdentityManager struct {
 // NewIdentityManager creates a new service identity manager.
 
 func NewIdentityManager(config *IdentityManagerConfig, logger *logging.StructuredLogger) (*IdentityManager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("identity manager config is required")
-
 	}
 
 	if config.CAManager == nil {
-
 		return nil, fmt.Errorf("CA manager is required")
-
 	}
 
 	if logger == nil {
-
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-identity", "1.0.0", "production"))
-
 	}
 
 	// Set defaults.
 
 	if config.BaseDir == "" {
-
 		config.BaseDir = "/etc/nephoran/certs"
-
 	}
 
 	if config.DefaultTenantID == "" {
-
 		config.DefaultTenantID = "default"
-
 	}
 
 	if config.DefaultPolicyTemplate == "" {
-
 		config.DefaultPolicyTemplate = "service-auth"
-
 	}
 
 	if config.DefaultValidityDuration == 0 {
-
 		config.DefaultValidityDuration = 24 * time.Hour
-
 	}
 
 	if config.RenewalThreshold == 0 {
-
 		config.RenewalThreshold = 6 * time.Hour
-
 	}
 
 	if config.RotationInterval == 0 {
-
 		config.RotationInterval = 30 * time.Minute
-
 	}
 
 	if config.CleanupInterval == 0 {
-
 		config.CleanupInterval = 1 * time.Hour
-
 	}
 
 	if config.MaxIdentities == 0 {
-
 		config.MaxIdentities = 1000
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &IdentityManager{
-
 		config: config,
 
 		logger: logger,
@@ -269,23 +245,17 @@ func NewIdentityManager(config *IdentityManagerConfig, logger *logging.Structure
 		"rotation_interval", config.RotationInterval)
 
 	return manager, nil
-
 }
 
 // CreateServiceIdentity creates a new service identity.
 
 func (im *IdentityManager) CreateServiceIdentity(serviceName string, role ServiceRole, tenantID string) (*ServiceIdentity, error) {
-
 	if serviceName == "" {
-
 		return nil, fmt.Errorf("service name is required")
-
 	}
 
 	if tenantID == "" {
-
 		tenantID = im.config.DefaultTenantID
-
 	}
 
 	identityKey := fmt.Sprintf("%s-%s-%s", serviceName, string(role), tenantID)
@@ -297,21 +267,15 @@ func (im *IdentityManager) CreateServiceIdentity(serviceName string, role Servic
 	// Check if identity already exists.
 
 	if existing, exists := im.identities[identityKey]; exists {
-
 		if existing.Status == StatusActive {
-
 			return existing, nil
-
 		}
-
 	}
 
 	// Check identity limit.
 
 	if len(im.identities) >= im.config.MaxIdentities {
-
 		return nil, fmt.Errorf("maximum number of identities reached: %d", im.config.MaxIdentities)
-
 	}
 
 	im.logger.Info("creating service identity",
@@ -339,17 +303,13 @@ func (im *IdentityManager) CreateServiceIdentity(serviceName string, role Servic
 	// Issue certificate.
 
 	resp, err := im.caManager.IssueCertificate(context.Background(), req)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to issue certificate for service identity: %w", err)
-
 	}
 
 	// Create service identity.
 
 	identity := &ServiceIdentity{
-
 		ServiceName: serviceName,
 
 		TenantID: tenantID,
@@ -377,7 +337,6 @@ func (im *IdentityManager) CreateServiceIdentity(serviceName string, role Servic
 		RotationCount: 0,
 
 		Metadata: map[string]string{
-
 			"role": string(role),
 
 			"issuer": resp.IssuedBy,
@@ -389,9 +348,7 @@ func (im *IdentityManager) CreateServiceIdentity(serviceName string, role Servic
 	// Store certificate files.
 
 	if err := im.storeCertificateFiles(identity, resp); err != nil {
-
 		return nil, fmt.Errorf("failed to store certificate files: %w", err)
-
 	}
 
 	// Add to tracking.
@@ -409,17 +366,13 @@ func (im *IdentityManager) CreateServiceIdentity(serviceName string, role Servic
 		"expires_at", resp.ExpiresAt)
 
 	return identity, nil
-
 }
 
 // GetServiceIdentity retrieves a service identity.
 
 func (im *IdentityManager) GetServiceIdentity(serviceName string, role ServiceRole, tenantID string) (*ServiceIdentity, error) {
-
 	if tenantID == "" {
-
 		tenantID = im.config.DefaultTenantID
-
 	}
 
 	identityKey := fmt.Sprintf("%s-%s-%s", serviceName, string(role), tenantID)
@@ -431,19 +384,15 @@ func (im *IdentityManager) GetServiceIdentity(serviceName string, role ServiceRo
 	im.mu.RUnlock()
 
 	if !exists {
-
 		return nil, fmt.Errorf("service identity not found: %s", identityKey)
-
 	}
 
 	return identity, nil
-
 }
 
 // ListServiceIdentities lists all service identities.
 
 func (im *IdentityManager) ListServiceIdentities() []*ServiceIdentity {
-
 	im.mu.RLock()
 
 	defer im.mu.RUnlock()
@@ -451,23 +400,17 @@ func (im *IdentityManager) ListServiceIdentities() []*ServiceIdentity {
 	identities := make([]*ServiceIdentity, 0, len(im.identities))
 
 	for _, identity := range im.identities {
-
 		identities = append(identities, identity)
-
 	}
 
 	return identities
-
 }
 
 // RevokeServiceIdentity revokes a service identity.
 
 func (im *IdentityManager) RevokeServiceIdentity(serviceName string, role ServiceRole, tenantID string, reason int) error {
-
 	if tenantID == "" {
-
 		tenantID = im.config.DefaultTenantID
-
 	}
 
 	identityKey := fmt.Sprintf("%s-%s-%s", serviceName, string(role), tenantID)
@@ -479,17 +422,13 @@ func (im *IdentityManager) RevokeServiceIdentity(serviceName string, role Servic
 	identity, exists := im.identities[identityKey]
 
 	if !exists {
-
 		return fmt.Errorf("service identity not found: %s", identityKey)
-
 	}
 
 	// Revoke certificate.
 
 	if err := im.caManager.RevokeCertificate(context.Background(), identity.SerialNumber, reason, tenantID); err != nil {
-
 		return fmt.Errorf("failed to revoke certificate: %w", err)
-
 	}
 
 	// Update status.
@@ -507,17 +446,13 @@ func (im *IdentityManager) RevokeServiceIdentity(serviceName string, role Servic
 		"reason", reason)
 
 	return nil
-
 }
 
 // RotateServiceIdentity rotates the certificate for a service identity.
 
 func (im *IdentityManager) RotateServiceIdentity(serviceName string, role ServiceRole, tenantID string) error {
-
 	if tenantID == "" {
-
 		tenantID = im.config.DefaultTenantID
-
 	}
 
 	identityKey := fmt.Sprintf("%s-%s-%s", serviceName, string(role), tenantID)
@@ -529,9 +464,7 @@ func (im *IdentityManager) RotateServiceIdentity(serviceName string, role Servic
 	identity, exists := im.identities[identityKey]
 
 	if !exists {
-
 		return fmt.Errorf("service identity not found: %s", identityKey)
-
 	}
 
 	im.logger.Info("rotating service identity certificate",
@@ -545,19 +478,14 @@ func (im *IdentityManager) RotateServiceIdentity(serviceName string, role Servic
 	// Renew certificate.
 
 	resp, err := im.caManager.RenewCertificate(context.Background(), identity.SerialNumber)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to renew certificate: %w", err)
-
 	}
 
 	// Store new certificate files.
 
 	if err := im.storeCertificateFiles(identity, resp); err != nil {
-
 		return fmt.Errorf("failed to store rotated certificate files: %w", err)
-
 	}
 
 	// Update identity.
@@ -585,15 +513,12 @@ func (im *IdentityManager) RotateServiceIdentity(serviceName string, role Servic
 		"rotation_count", identity.RotationCount)
 
 	return nil
-
 }
 
 // createCertificateRequest creates a certificate request based on service role.
 
 func (im *IdentityManager) createCertificateRequest(serviceName string, role ServiceRole, tenantID string) *ca.CertificateRequest {
-
 	req := &ca.CertificateRequest{
-
 		ID: generateRequestID(),
 
 		TenantID: tenantID,
@@ -607,7 +532,6 @@ func (im *IdentityManager) createCertificateRequest(serviceName string, role Ser
 		AutoRenew: true,
 
 		Metadata: map[string]string{
-
 			"service_name": serviceName,
 
 			"role": string(role),
@@ -623,7 +547,6 @@ func (im *IdentityManager) createCertificateRequest(serviceName string, role Ser
 	case RoleController:
 
 		req.DNSNames = []string{
-
 			serviceName,
 
 			fmt.Sprintf("%s.%s", serviceName, tenantID),
@@ -638,7 +561,6 @@ func (im *IdentityManager) createCertificateRequest(serviceName string, role Ser
 	case RoleLLMService, RoleRAGService, RoleNephioBridge, RoleORANAdaptor:
 
 		req.DNSNames = []string{
-
 			serviceName,
 
 			fmt.Sprintf("%s.%s", serviceName, tenantID),
@@ -671,13 +593,11 @@ func (im *IdentityManager) createCertificateRequest(serviceName string, role Ser
 	}
 
 	return req
-
 }
 
 // startBackgroundProcesses starts background maintenance processes.
 
 func (im *IdentityManager) startBackgroundProcesses() {
-
 	// Certificate rotation checker.
 
 	im.rotationTicker = time.NewTicker(im.config.RotationInterval)
@@ -689,17 +609,14 @@ func (im *IdentityManager) startBackgroundProcesses() {
 	im.cleanupTicker = time.NewTicker(im.config.CleanupInterval)
 
 	go im.cleanupLoop()
-
 }
 
 // rotationLoop handles automatic certificate rotation.
 
 func (im *IdentityManager) rotationLoop() {
-
 	defer im.rotationTicker.Stop()
 
 	for {
-
 		select {
 
 		case <-im.ctx.Done():
@@ -711,21 +628,17 @@ func (im *IdentityManager) rotationLoop() {
 			im.checkAndRotateExpiring()
 
 		}
-
 	}
-
 }
 
 // checkAndRotateExpiring checks for expiring certificates and rotates them.
 
 func (im *IdentityManager) checkAndRotateExpiring() {
-
 	im.mu.RLock()
 
 	expiring := make([]*ServiceIdentity, 0)
 
 	for _, identity := range im.identities {
-
 		if identity.Status == StatusActive {
 
 			timeUntilExpiry := time.Until(identity.ExpiresAt)
@@ -739,7 +652,6 @@ func (im *IdentityManager) checkAndRotateExpiring() {
 			}
 
 		}
-
 	}
 
 	im.mu.RUnlock()
@@ -747,7 +659,6 @@ func (im *IdentityManager) checkAndRotateExpiring() {
 	// Rotate expiring certificates.
 
 	for _, identity := range expiring {
-
 		if err := im.RotateServiceIdentity(identity.ServiceName, identity.Role, identity.TenantID); err != nil {
 
 			im.logger.Error("failed to rotate expiring certificate",
@@ -761,23 +672,17 @@ func (im *IdentityManager) checkAndRotateExpiring() {
 			identity.Status = StatusFailed
 
 		} else {
-
 			identity.Status = StatusActive
-
 		}
-
 	}
-
 }
 
 // cleanupLoop handles periodic cleanup of expired identities.
 
 func (im *IdentityManager) cleanupLoop() {
-
 	defer im.cleanupTicker.Stop()
 
 	for {
-
 		select {
 
 		case <-im.ctx.Done():
@@ -789,15 +694,12 @@ func (im *IdentityManager) cleanupLoop() {
 			im.cleanupExpiredIdentities()
 
 		}
-
 	}
-
 }
 
 // cleanupExpiredIdentities removes expired identities.
 
 func (im *IdentityManager) cleanupExpiredIdentities() {
-
 	im.mu.Lock()
 
 	defer im.mu.Unlock()
@@ -807,9 +709,7 @@ func (im *IdentityManager) cleanupExpiredIdentities() {
 	cleanupThreshold := 24 * time.Hour // Keep expired identities for 24 hours
 
 	for key, identity := range im.identities {
-
 		if identity.Status == StatusExpired || identity.Status == StatusRevoked {
-
 			if now.Sub(identity.ExpiresAt) > cleanupThreshold {
 
 				// Remove from tracking.
@@ -825,47 +725,36 @@ func (im *IdentityManager) cleanupExpiredIdentities() {
 					"expired_at", identity.ExpiresAt)
 
 			}
-
 		}
-
 	}
-
 }
 
 // Close gracefully shuts down the identity manager.
 
 func (im *IdentityManager) Close() error {
-
 	im.logger.Info("shutting down identity manager")
 
 	im.cancel()
 
 	if im.rotationTicker != nil {
-
 		im.rotationTicker.Stop()
-
 	}
 
 	if im.cleanupTicker != nil {
-
 		im.cleanupTicker.Stop()
-
 	}
 
 	return nil
-
 }
 
 // GetStats returns statistics about managed identities.
 
 func (im *IdentityManager) GetStats() *IdentityStats {
-
 	im.mu.RLock()
 
 	defer im.mu.RUnlock()
 
 	stats := &IdentityStats{
-
 		TotalIdentities: len(im.identities),
 
 		StatusCounts: make(map[IdentityStatus]int),
@@ -882,7 +771,6 @@ func (im *IdentityManager) GetStats() *IdentityStats {
 	}
 
 	return stats
-
 }
 
 // IdentityStats holds statistics about managed identities.
@@ -898,45 +786,33 @@ type IdentityStats struct {
 // storeCertificateFiles stores certificate files for a service identity.
 
 func (im *IdentityManager) storeCertificateFiles(identity *ServiceIdentity, resp *ca.CertificateResponse) error {
-
 	// Ensure directory exists.
 
 	certDir := filepath.Dir(identity.CertPath)
 
 	if err := ensureDirectory(certDir, 0o750); err != nil {
-
 		return fmt.Errorf("failed to create certificate directory: %w", err)
-
 	}
 
 	// Store certificate.
 
 	if err := writeSecureFile(identity.CertPath, []byte(resp.CertificatePEM), 0o640); err != nil {
-
 		return fmt.Errorf("failed to store certificate: %w", err)
-
 	}
 
 	// Store private key.
 
 	if err := writeSecureFile(identity.KeyPath, []byte(resp.PrivateKeyPEM), 0o600); err != nil {
-
 		return fmt.Errorf("failed to store private key: %w", err)
-
 	}
 
 	// Store CA certificate.
 
 	if resp.CACertificatePEM != "" {
-
 		if err := writeSecureFile(identity.CACertPath, []byte(resp.CACertificatePEM), 0o644); err != nil {
-
 			return fmt.Errorf("failed to store CA certificate: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }

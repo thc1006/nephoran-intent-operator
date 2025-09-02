@@ -39,7 +39,6 @@ type EnhancedRetrievalService struct {
 // RetrievalConfig holds configuration for the enhanced retrieval service.
 
 type RetrievalConfig struct {
-
 	// Search configuration.
 
 	DefaultLimit int `json:"default_limit"`
@@ -112,7 +111,6 @@ type RetrievalConfig struct {
 // EnhancedSearchRequest extends the basic search with advanced features.
 
 type EnhancedSearchRequest struct {
-
 	// Basic search parameters.
 
 	Query string `json:"query"`
@@ -167,7 +165,6 @@ type EnhancedSearchRequest struct {
 // EnhancedSearchResponse extends the basic response with additional metadata.
 
 type EnhancedSearchResponse struct {
-
 	// Basic response data.
 
 	Results []*EnhancedSearchResult `json:"results"`
@@ -224,7 +221,6 @@ type EnhancedSearchResponse struct {
 // EnhancedSearchResult extends SearchResult with additional information.
 
 type EnhancedSearchResult struct {
-
 	// Basic result information.
 
 	*shared.SearchResult
@@ -299,7 +295,6 @@ type ContextMetadata struct {
 // RetrievalMetrics tracks advanced retrieval performance.
 
 type RetrievalMetrics struct {
-
 	// Basic metrics.
 
 	TotalQueries int64 `json:"total_queries"`
@@ -360,23 +355,17 @@ type IntentTypeMetrics struct {
 // NewEnhancedRetrievalService creates a new enhanced retrieval service.
 
 func NewEnhancedRetrievalService(
-
 	weaviateClient WeaviateClient,
 
 	embeddingService *EmbeddingService,
 
 	config *RetrievalConfig,
-
 ) *EnhancedRetrievalService {
-
 	if config == nil {
-
 		config = getDefaultRetrievalConfig()
-
 	}
 
 	service := &EnhancedRetrievalService{
-
 		weaviateClient: weaviateClient,
 
 		embeddingService: embeddingService,
@@ -386,7 +375,6 @@ func NewEnhancedRetrievalService(
 		logger: slog.Default().With("component", "enhanced-retrieval-service"),
 
 		metrics: &RetrievalMetrics{
-
 			IntentTypeMetrics: make(map[string]IntentTypeMetrics),
 
 			LastUpdated: time.Now(),
@@ -402,25 +390,19 @@ func NewEnhancedRetrievalService(
 	service.contextAssembler = NewContextAssembler(config)
 
 	return service
-
 }
 
 // SearchEnhanced performs an enhanced search with query processing and reranking.
 
 func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request *EnhancedSearchRequest) (*EnhancedSearchResponse, error) {
-
 	startTime := time.Now()
 
 	if request == nil {
-
 		return nil, fmt.Errorf("search request cannot be nil")
-
 	}
 
 	if request.Query == "" {
-
 		return nil, fmt.Errorf("query cannot be empty")
-
 	}
 
 	ers.logger.Info("Processing enhanced search request",
@@ -439,19 +421,14 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	// Set defaults.
 
 	if request.Limit == 0 {
-
 		request.Limit = ers.config.DefaultLimit
-
 	}
 
 	if request.Limit > ers.config.MaxLimit {
-
 		request.Limit = ers.config.MaxLimit
-
 	}
 
 	response := &EnhancedSearchResponse{
-
 		Query: request.Query,
 
 		ProcessedAt: time.Now(),
@@ -472,13 +449,10 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 		var err error
 
 		processedQuery, queryEnhancements, err = ers.queryEnhancer.EnhanceQuery(ctx, request)
-
 		if err != nil {
-
 			ers.logger.Warn("Query enhancement failed", "error", err)
 
 			// Continue with original query.
-
 		}
 
 		enhancementTime = time.Since(enhancementStart)
@@ -494,7 +468,6 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	retrievalStart := time.Now()
 
 	searchQuery := &SearchQuery{
-
 		Query: processedQuery,
 
 		Limit: ers.calculateInitialLimit(request),
@@ -514,13 +487,10 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	}
 
 	searchResponse, err := ers.weaviateClient.Search(ctx, searchQuery)
-
 	if err != nil {
 
 		ers.updateMetrics(func(m *RetrievalMetrics) {
-
 			m.FailedQueries++
-
 		})
 
 		return nil, fmt.Errorf("initial retrieval failed: %w", err)
@@ -542,15 +512,11 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 		results, err = ers.reranker.RerankResults(ctx, request.Query, results)
 
 		if err != nil {
-
 			ers.logger.Warn("Reranking failed", "error", err)
 
 			// Continue with original results.
-
 		} else {
-
 			response.RerankingApplied = true
-
 		}
 
 		rerankingTime = time.Since(rerankingStart)
@@ -566,9 +532,7 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	// Step 5: Limit results to requested size.
 
 	if len(results) > request.Limit {
-
 		results = results[:request.Limit]
-
 	}
 
 	// Step 6: Context assembly.
@@ -610,27 +574,20 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	// Add debug information if needed.
 
 	if ers.logger.Enabled(ctx, slog.LevelDebug) {
-
 		response.DebugInfo = ers.buildDebugInfo(request, searchQuery, searchResponse)
-
 	}
 
 	// Update metrics.
 
 	ers.updateMetrics(func(m *RetrievalMetrics) {
-
 		m.TotalQueries++
 
 		m.SuccessfulQueries++
 
 		if m.SuccessfulQueries > 0 {
-
 			m.AverageResponseTime = (m.AverageResponseTime*time.Duration(m.SuccessfulQueries-1) + response.ProcessingTime) / time.Duration(m.SuccessfulQueries)
-
 		} else {
-
 			m.AverageResponseTime = response.ProcessingTime
-
 		}
 
 		if request.EnableQueryEnhancement {
@@ -638,13 +595,9 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 			m.QueriesWithEnhancement++
 
 			if m.QueriesWithEnhancement > 0 {
-
 				m.AverageEnhancementTime = (m.AverageEnhancementTime*time.Duration(m.QueriesWithEnhancement-1) + enhancementTime) / time.Duration(m.QueriesWithEnhancement)
-
 			} else {
-
 				m.AverageEnhancementTime = enhancementTime
-
 			}
 
 		}
@@ -654,13 +607,9 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 			m.QueriesWithReranking++
 
 			if m.QueriesWithReranking > 0 {
-
 				m.AverageRerankingTime = (m.AverageRerankingTime*time.Duration(m.QueriesWithReranking-1) + rerankingTime) / time.Duration(m.QueriesWithReranking)
-
 			} else {
-
 				m.AverageRerankingTime = rerankingTime
-
 			}
 
 		}
@@ -692,7 +641,6 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 		}
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	ers.logger.Info("Enhanced search completed",
@@ -707,13 +655,11 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	)
 
 	return response, nil
-
 }
 
 // calculateInitialLimit determines how many results to fetch initially.
 
 func (ers *EnhancedRetrievalService) calculateInitialLimit(request *EnhancedSearchRequest) int {
-
 	initialLimit := request.Limit
 
 	// Fetch more if we're going to rerank.
@@ -723,9 +669,7 @@ func (ers *EnhancedRetrievalService) calculateInitialLimit(request *EnhancedSear
 		initialLimit = ers.config.RerankingTopK
 
 		if initialLimit < request.Limit*2 {
-
 			initialLimit = request.Limit * 2
-
 		}
 
 	}
@@ -733,111 +677,84 @@ func (ers *EnhancedRetrievalService) calculateInitialLimit(request *EnhancedSear
 	// Fetch more if diversity filtering is enabled.
 
 	if ers.config.EnableDiversityFiltering {
-
 		initialLimit = int(float64(initialLimit) * 1.5)
-
 	}
 
 	if initialLimit > ers.config.MaxLimit*2 {
-
 		initialLimit = ers.config.MaxLimit * 2
-
 	}
 
 	return initialLimit
-
 }
 
 // buildEnhancedFilters creates comprehensive filters for the search.
 
 func (ers *EnhancedRetrievalService) buildEnhancedFilters(request *EnhancedSearchRequest) map[string]interface{} {
-
 	filters := make(map[string]interface{})
 
 	// Copy user-provided filters.
 
 	for k, v := range request.Filters {
-
 		filters[k] = v
-
 	}
 
 	// Add intent-based filters.
 
 	if request.IntentType != "" {
-
 		filters["intent_category"] = request.IntentType
-
 	}
 
 	// Add network domain filters.
 
 	if request.NetworkDomain != "" {
-
 		filters["network_domain"] = request.NetworkDomain
-
 	}
 
 	// Add source preferences.
 
 	if len(request.PreferredSources) > 0 {
-
 		filters["preferred_sources"] = request.PreferredSources
-
 	}
 
 	// Add source exclusions.
 
 	if len(request.ExcludedSources) > 0 {
-
 		filters["excluded_sources"] = request.ExcludedSources
-
 	}
 
 	// Add document type preferences.
 
 	if len(request.PreferredDocumentTypes) > 0 {
-
 		filters["preferred_document_types"] = request.PreferredDocumentTypes
-
 	}
 
 	// Add age restrictions.
 
 	if request.MaxDocumentAge != nil {
-
 		filters["max_age"] = request.MaxDocumentAge.String()
-
 	}
 
 	// Add quality requirements.
 
 	if request.RequireHierarchyInfo {
-
 		filters["require_hierarchy"] = true
-
 	}
 
 	if request.RequireTechnicalTerms {
-
 		filters["require_technical_terms"] = true
-
 	}
 
 	return filters
-
 }
 
 // convertToEnhancedResults converts basic search results to enhanced results.
 
 func (ers *EnhancedRetrievalService) convertToEnhancedResults(basicResults []*SearchResult) []*EnhancedSearchResult {
-
 	enhanced := make([]*EnhancedSearchResult, len(basicResults))
 
 	for i, result := range basicResults {
 
 		enhanced[i] = &EnhancedSearchResult{
-
 			SearchResult: result,
 
 			RelevanceScore: result.Score,
@@ -859,17 +776,13 @@ func (ers *EnhancedRetrievalService) convertToEnhancedResults(basicResults []*Se
 	}
 
 	return enhanced
-
 }
 
 // calculateQualityScore calculates a quality score for a result.
 
 func (ers *EnhancedRetrievalService) calculateQualityScore(result *SearchResult) float32 {
-
 	if result.Document == nil {
-
 		return 0.0
-
 	}
 
 	score := float32(0.0)
@@ -879,75 +792,53 @@ func (ers *EnhancedRetrievalService) calculateQualityScore(result *SearchResult)
 	contentLength := len(result.Document.Content)
 
 	if contentLength > 100 {
-
 		score += 0.2
-
 	}
 
 	if contentLength > 500 {
-
 		score += 0.2
-
 	}
 
 	if contentLength > 1000 {
-
 		score += 0.1
-
 	}
 
 	// Metadata completeness.
 
 	if result.Document.Title != "" {
-
 		score += 0.1
-
 	}
 
 	if result.Document.Source != "" {
-
 		score += 0.1
-
 	}
 
 	if result.Document.Version != "" {
-
 		score += 0.1
-
 	}
 
 	if len(result.Document.Keywords) > 0 {
-
 		score += 0.1
-
 	}
 
 	if len(result.Document.Technology) > 0 {
-
 		score += 0.1
-
 	}
 
 	// Confidence from document metadata.
 
 	if result.Document.Confidence > 0 {
-
 		score += float32(result.Document.Confidence) * 0.3
-
 	}
 
 	return score
-
 }
 
 // calculateFreshnessScore calculates a freshness score based on document age.
 
 func (ers *EnhancedRetrievalService) calculateFreshnessScore(result *SearchResult) float32 {
-
 	if result.Document == nil {
-
 		return 0.5 // Neutral score for documents without timestamp
-
 	}
 
 	// Since Timestamp field is not available in TelecomDocument, use a neutral score.
@@ -955,41 +846,32 @@ func (ers *EnhancedRetrievalService) calculateFreshnessScore(result *SearchResul
 	// In a full implementation, could check document version or other metadata for freshness.
 
 	return 0.5
-
 }
 
 // calculateAuthorityScore calculates an authority score based on source.
 
 func (ers *EnhancedRetrievalService) calculateAuthorityScore(result *SearchResult) float32 {
-
 	if result.Document == nil {
-
 		return 0.5
-
 	}
 
 	source := result.Document.Source
 
 	if weight, exists := ers.config.SourcePriorityWeights[source]; exists {
-
 		return float32(weight)
-
 	}
 
 	// Default authority score.
 
 	return 0.7
-
 }
 
 // calculateCombinedScore calculates a combined relevance score.
 
 func (ers *EnhancedRetrievalService) calculateCombinedScore(result *EnhancedSearchResult) float32 {
-
 	// Weighted combination of different scores.
 
 	weights := map[string]float32{
-
 		"relevance": 0.4,
 
 		"quality": 0.25,
@@ -1008,13 +890,11 @@ func (ers *EnhancedRetrievalService) calculateCombinedScore(result *EnhancedSear
 		result.AuthorityScore*weights["authority"]
 
 	return score
-
 }
 
 // applyPostProcessingFilters applies various filters to the results.
 
 func (ers *EnhancedRetrievalService) applyPostProcessingFilters(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*EnhancedSearchResult {
-
 	var filtered []*EnhancedSearchResult
 
 	for _, result := range results {
@@ -1022,17 +902,13 @@ func (ers *EnhancedRetrievalService) applyPostProcessingFilters(results []*Enhan
 		// Quality threshold filter.
 
 		if result.QualityScore < request.MinQualityScore {
-
 			continue
-
 		}
 
 		// Confidence threshold filter.
 
 		if result.RelevanceScore < ers.config.MinConfidenceThreshold {
-
 			continue
-
 		}
 
 		filtered = append(filtered, result)
@@ -1042,23 +918,17 @@ func (ers *EnhancedRetrievalService) applyPostProcessingFilters(results []*Enhan
 	// Apply diversity filtering if enabled.
 
 	if ers.config.EnableDiversityFiltering {
-
 		filtered = ers.applyDiversityFiltering(filtered)
-
 	}
 
 	return filtered
-
 }
 
 // applyDiversityFiltering removes results that are too similar to each other.
 
 func (ers *EnhancedRetrievalService) applyDiversityFiltering(results []*EnhancedSearchResult) []*EnhancedSearchResult {
-
 	if len(results) <= 1 {
-
 		return results
-
 	}
 
 	var diverse []*EnhancedSearchResult
@@ -1088,27 +958,21 @@ func (ers *EnhancedRetrievalService) applyDiversityFiltering(results []*Enhanced
 		}
 
 		if isDiverse {
-
 			diverse = append(diverse, candidate)
-
 		}
 
 	}
 
 	return diverse
-
 }
 
 // calculateContentSimilarity calculates similarity between two results.
 
 func (ers *EnhancedRetrievalService) calculateContentSimilarity(result1, result2 *EnhancedSearchResult) float32 {
-
 	// Simple content similarity based on overlapping words.
 
 	if result1.Document == nil || result2.Document == nil {
-
 		return 0.0
-
 	}
 
 	content1 := strings.ToLower(result1.Document.Content)
@@ -1126,23 +990,16 @@ func (ers *EnhancedRetrievalService) calculateContentSimilarity(result1, result2
 	wordSet2 := make(map[string]bool)
 
 	for _, word := range words1 {
-
 		if len(word) > 3 { // Only consider meaningful words
 
 			wordSet1[word] = true
-
 		}
-
 	}
 
 	for _, word := range words2 {
-
 		if len(word) > 3 {
-
 			wordSet2[word] = true
-
 		}
-
 	}
 
 	// Calculate Jaccard similarity.
@@ -1150,75 +1007,53 @@ func (ers *EnhancedRetrievalService) calculateContentSimilarity(result1, result2
 	intersection := 0
 
 	for word := range wordSet1 {
-
 		if wordSet2[word] {
-
 			intersection++
-
 		}
-
 	}
 
 	union := len(wordSet1) + len(wordSet2) - intersection
 
 	if union == 0 {
-
 		return 0.0
-
 	}
 
 	return float32(intersection) / float32(union)
-
 }
 
 // applyScoreBoosts applies various scoring boosts.
 
 func (ers *EnhancedRetrievalService) applyScoreBoosts(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*EnhancedSearchResult {
-
 	for _, result := range results {
 
 		// Intent type boost.
 
 		if request.IntentType != "" {
-
 			if boost, exists := ers.config.IntentTypeWeights[request.IntentType]; exists {
-
 				result.CombinedScore *= float32(boost)
-
 			}
-
 		}
 
 		// Technical domain boost.
 
 		if request.NetworkDomain != "" && result.Document != nil {
-
 			if boost, exists := ers.config.TechnicalDomainBoosts[request.NetworkDomain]; exists {
-
 				result.CombinedScore *= float32(boost)
-
 			}
-
 		}
 
 		// Source priority boost.
 
 		if result.Document != nil && result.Document.Source != "" {
-
 			if boost, exists := ers.config.SourcePriorityWeights[result.Document.Source]; exists {
-
 				result.CombinedScore *= float32(boost)
-
 			}
-
 		}
 
 		// Recency boost.
 
 		if ers.config.BoostRecentDocuments {
-
 			result.CombinedScore *= result.FreshnessScore * float32(ers.config.RecencyBoostFactor)
-
 		}
 
 	}
@@ -1226,49 +1061,37 @@ func (ers *EnhancedRetrievalService) applyScoreBoosts(results []*EnhancedSearchR
 	// Re-sort by combined score.
 
 	sort.Slice(results, func(i, j int) bool {
-
 		return results[i].CombinedScore > results[j].CombinedScore
-
 	})
 
 	return results
-
 }
 
 // calculateAverageRelevance calculates the average relevance score.
 
 func (ers *EnhancedRetrievalService) calculateAverageRelevance(results []*EnhancedSearchResult) float32 {
-
 	if len(results) == 0 {
-
 		return 0.0
-
 	}
 
 	total := float32(0.0)
 
 	for _, result := range results {
-
 		total += result.RelevanceScore
-
 	}
 
 	return total / float32(len(results))
-
 }
 
 // calculateCoverageScore calculates how well the results cover the query.
 
 func (ers *EnhancedRetrievalService) calculateCoverageScore(results []*EnhancedSearchResult, request *EnhancedSearchRequest) float32 {
-
 	// Simple coverage metric based on query term coverage.
 
 	queryTerms := strings.Fields(strings.ToLower(request.Query))
 
 	if len(queryTerms) == 0 {
-
 		return 1.0
-
 	}
 
 	coveredTerms := make(map[string]bool)
@@ -1276,37 +1099,27 @@ func (ers *EnhancedRetrievalService) calculateCoverageScore(results []*EnhancedS
 	for _, result := range results {
 
 		if result.Document == nil {
-
 			continue
-
 		}
 
 		content := strings.ToLower(result.Document.Content)
 
 		for _, term := range queryTerms {
-
 			if strings.Contains(content, term) {
-
 				coveredTerms[term] = true
-
 			}
-
 		}
 
 	}
 
 	return float32(len(coveredTerms)) / float32(len(queryTerms))
-
 }
 
 // calculateDiversityScore calculates the diversity of the result set.
 
 func (ers *EnhancedRetrievalService) calculateDiversityScore(results []*EnhancedSearchResult) float32 {
-
 	if len(results) <= 1 {
-
 		return 1.0
-
 	}
 
 	// Calculate average pairwise similarity.
@@ -1316,7 +1129,6 @@ func (ers *EnhancedRetrievalService) calculateDiversityScore(results []*Enhanced
 	pairCount := 0
 
 	for i := 0; i < len(results); i++ {
-
 		for j := i + 1; j < len(results); j++ {
 
 			similarity := ers.calculateContentSimilarity(results[i], results[j])
@@ -1326,35 +1138,27 @@ func (ers *EnhancedRetrievalService) calculateDiversityScore(results []*Enhanced
 			pairCount++
 
 		}
-
 	}
 
 	if pairCount == 0 {
-
 		return 1.0
-
 	}
 
 	avgSimilarity := totalSimilarity / float32(pairCount)
 
 	return 1.0 - avgSimilarity // Higher diversity = lower average similarity
-
 }
 
 // buildDebugInfo creates debug information for the response.
 
 func (ers *EnhancedRetrievalService) buildDebugInfo(
-
 	request *EnhancedSearchRequest,
 
 	searchQuery *SearchQuery,
 
 	searchResponse *SearchResponse,
-
 ) map[string]interface{} {
-
 	return map[string]interface{}{
-
 		"original_query": request.Query,
 
 		"processed_query": searchQuery.Query,
@@ -1369,25 +1173,21 @@ func (ers *EnhancedRetrievalService) buildDebugInfo(
 
 		"min_confidence": searchQuery.MinConfidence,
 	}
-
 }
 
 // updateMetrics safely updates the retrieval metrics.
 
 func (ers *EnhancedRetrievalService) updateMetrics(updater func(*RetrievalMetrics)) {
-
 	ers.metrics.mutex.Lock()
 
 	defer ers.metrics.mutex.Unlock()
 
 	updater(ers.metrics)
-
 }
 
 // GetMetrics returns the current retrieval metrics.
 
 func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
-
 	ers.metrics.mutex.RLock()
 
 	defer ers.metrics.mutex.RUnlock()
@@ -1395,7 +1195,6 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	// Return a copy without the mutex.
 
 	metrics := &RetrievalMetrics{
-
 		TotalQueries: ers.metrics.TotalQueries,
 
 		SuccessfulQueries: ers.metrics.SuccessfulQueries,
@@ -1430,7 +1229,6 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	}
 
 	return metrics
-
 }
 
 // RetrievalHealthStatus represents the health status of the retrieval service.
@@ -1478,11 +1276,8 @@ type HealthMetrics struct {
 // GetHealthStatus returns the health status of the retrieval service.
 
 func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*RetrievalHealthStatus, error) {
-
 	if ctx == nil {
-
 		ctx = context.Background()
-
 	}
 
 	// Create timeout context for health checks.
@@ -1500,13 +1295,9 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 	var successRate float64
 
 	if metrics.TotalQueries > 0 {
-
 		successRate = float64(metrics.SuccessfulQueries) / float64(metrics.TotalQueries)
-
 	} else {
-
 		successRate = 1.0 // Default to 100% when no queries processed yet
-
 	}
 
 	// Check component health.
@@ -1516,8 +1307,8 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 	// Check Weaviate/Vector Store health.
 
 	weaviateHealth := &WeaviateHealthStatus{
-		IsHealthy:  true,
-		LastCheck:  time.Now(),
+		IsHealthy: true,
+		LastCheck: time.Now(),
 	}
 
 	weaviateStatus := "healthy"
@@ -1533,7 +1324,6 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 	}
 
 	components["vector_store"] = ComponentStatus{
-
 		Status: weaviateStatus,
 
 		Message: weaviateMessage,
@@ -1541,7 +1331,6 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 		LastCheck: weaviateHealth.LastCheck,
 
 		Details: map[string]interface{}{
-
 			"healthy": weaviateHealth.IsHealthy,
 		},
 	}
@@ -1557,7 +1346,6 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 	overallStatus := ers.determineOverallHealth(components, successRate)
 
 	healthStatus := &RetrievalHealthStatus{
-
 		Status: overallStatus,
 
 		Timestamp: time.Now(),
@@ -1569,7 +1357,6 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 		SuccessRate: successRate,
 
 		Metrics: HealthMetrics{
-
 			TotalQueries: metrics.TotalQueries,
 
 			SuccessfulQueries: metrics.SuccessfulQueries,
@@ -1583,58 +1370,45 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 	}
 
 	return healthStatus, nil
-
 }
 
 // checkEmbeddingServiceHealth checks the health of the embedding service.
 
 func (ers *EnhancedRetrievalService) checkEmbeddingServiceHealth(ctx context.Context) ComponentStatus {
-
 	if ers.embeddingService == nil {
-
 		return ComponentStatus{
-
 			Status: "unhealthy",
 
 			Message: "Embedding service not initialized",
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	// Call the embedding service's CheckStatus method.
 
 	status, err := ers.embeddingService.CheckStatus(ctx)
-
 	if err != nil {
-
 		return ComponentStatus{
-
 			Status: "unhealthy",
 
 			Message: fmt.Sprintf("Health check failed: %v", err),
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	if status == nil {
-
 		return ComponentStatus{
-
 			Status: "unhealthy",
 
 			Message: "Health check returned nil status",
 
 			LastCheck: time.Now(),
 		}
-
 	}
 
 	return ComponentStatus{
-
 		Status: status.Status,
 
 		Message: status.Message,
@@ -1643,23 +1417,17 @@ func (ers *EnhancedRetrievalService) checkEmbeddingServiceHealth(ctx context.Con
 
 		Details: status.Details,
 	}
-
 }
 
 // determineOverallHealth determines the overall health status based on components and metrics.
 
 func (ers *EnhancedRetrievalService) determineOverallHealth(components map[string]ComponentStatus, successRate float64) string {
-
 	// Check if any component is unhealthy.
 
 	for _, component := range components {
-
 		if component.Status == "unhealthy" {
-
 			return "unhealthy"
-
 		}
-
 	}
 
 	// Check success rate thresholds.
@@ -1667,47 +1435,34 @@ func (ers *EnhancedRetrievalService) determineOverallHealth(components map[strin
 	if successRate < 0.5 { // Less than 50% success rate
 
 		return "unhealthy"
-
 	} else if successRate < 0.8 { // Less than 80% success rate
 
 		return "degraded"
-
 	}
 
 	// Check if any component is degraded.
 
 	for _, component := range components {
-
 		if component.Status == "degraded" {
-
 			return "degraded"
-
 		}
-
 	}
 
 	return "healthy"
-
 }
 
 // copyIntentTypeMetrics creates a deep copy of IntentTypeMetrics map.
 
 func copyIntentTypeMetrics(original map[string]IntentTypeMetrics) map[string]IntentTypeMetrics {
-
 	if original == nil {
-
 		return nil
-
 	}
 
 	copy := make(map[string]IntentTypeMetrics, len(original))
 
 	for k, v := range original {
-
 		copy[k] = v
-
 	}
 
 	return copy
-
 }

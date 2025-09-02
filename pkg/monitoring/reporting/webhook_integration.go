@@ -46,7 +46,6 @@ type WebhookManager struct {
 // WebhookPayload represents the standard webhook payload structure.
 
 type WebhookPayload struct {
-
 	// Standard fields.
 
 	EventType string `json:"event_type"`
@@ -251,25 +250,21 @@ type WebhookEvent struct {
 // NewWebhookManager creates a new webhook manager.
 
 func NewWebhookManager(logger *zap.Logger, webhooks map[string]WebhookConfig) *WebhookManager {
-
 	// Initialize metrics.
 
 	webhookRequests := promauto.NewCounter(prometheus.CounterOpts{
-
 		Name: "nephoran_webhook_requests_total",
 
 		Help: "Total number of webhook requests sent",
 	})
 
 	webhookFailures := promauto.NewCounter(prometheus.CounterOpts{
-
 		Name: "nephoran_webhook_failures_total",
 
 		Help: "Total number of webhook failures",
 	})
 
 	webhookLatency := promauto.NewHistogram(prometheus.HistogramOpts{
-
 		Name: "nephoran_webhook_duration_seconds",
 
 		Help: "Webhook request duration in seconds",
@@ -278,14 +273,12 @@ func NewWebhookManager(logger *zap.Logger, webhooks map[string]WebhookConfig) *W
 	})
 
 	webhookRetries := promauto.NewCounter(prometheus.CounterOpts{
-
 		Name: "nephoran_webhook_retries_total",
 
 		Help: "Total number of webhook retries",
 	})
 
 	return &WebhookManager{
-
 		logger: logger,
 
 		client: &http.Client{Timeout: 30 * time.Second},
@@ -300,15 +293,12 @@ func NewWebhookManager(logger *zap.Logger, webhooks map[string]WebhookConfig) *W
 
 		webhookRetries: webhookRetries,
 	}
-
 }
 
 // SendPerformanceReport sends performance report to all configured webhooks.
 
 func (wm *WebhookManager) SendPerformanceReport(ctx context.Context, report *PerformanceReport) error {
-
 	event := WebhookEvent{
-
 		Type: "performance_report",
 
 		Report: report,
@@ -319,9 +309,7 @@ func (wm *WebhookManager) SendPerformanceReport(ctx context.Context, report *Per
 	for name, webhook := range wm.webhooks {
 
 		if !webhook.Enabled {
-
 			continue
-
 		}
 
 		if err := wm.sendWebhook(ctx, name, webhook, event); err != nil {
@@ -339,21 +327,16 @@ func (wm *WebhookManager) SendPerformanceReport(ctx context.Context, report *Per
 	}
 
 	if len(allErrors) > 0 {
-
 		return fmt.Errorf("failed to send %d webhooks: %v", len(allErrors), allErrors)
-
 	}
 
 	return nil
-
 }
 
 // SendAlert sends alert notification to configured webhooks.
 
 func (wm *WebhookManager) SendAlert(ctx context.Context, alert *AlertInfo) error {
-
 	event := WebhookEvent{
-
 		Type: "alert",
 
 		Alert: alert,
@@ -364,17 +347,13 @@ func (wm *WebhookManager) SendAlert(ctx context.Context, alert *AlertInfo) error
 	for name, webhook := range wm.webhooks {
 
 		if !webhook.Enabled {
-
 			continue
-
 		}
 
 		// Check if webhook should receive alerts.
 
 		if !wm.shouldSendAlert(webhook, alert) {
-
 			continue
-
 		}
 
 		if err := wm.sendWebhook(ctx, name, webhook, event); err != nil {
@@ -394,27 +373,20 @@ func (wm *WebhookManager) SendAlert(ctx context.Context, alert *AlertInfo) error
 	}
 
 	if len(allErrors) > 0 {
-
 		return fmt.Errorf("failed to send alert webhooks: %v", allErrors)
-
 	}
 
 	return nil
-
 }
 
 // SendRegressionAlert sends regression detection notification.
 
 func (wm *WebhookManager) SendRegressionAlert(ctx context.Context, regression *RegressionAnalysis) error {
-
 	if !regression.RegressionDetected {
-
 		return nil // No regression to report
-
 	}
 
 	event := WebhookEvent{
-
 		Type: "regression_detected",
 
 		Regression: regression,
@@ -425,9 +397,7 @@ func (wm *WebhookManager) SendRegressionAlert(ctx context.Context, regression *R
 	for name, webhook := range wm.webhooks {
 
 		if !webhook.Enabled {
-
 			continue
-
 		}
 
 		if err := wm.sendWebhook(ctx, name, webhook, event); err != nil {
@@ -445,19 +415,15 @@ func (wm *WebhookManager) SendRegressionAlert(ctx context.Context, regression *R
 	}
 
 	if len(allErrors) > 0 {
-
 		return fmt.Errorf("failed to send regression webhooks: %v", allErrors)
-
 	}
 
 	return nil
-
 }
 
 // sendWebhook sends a webhook with retry logic.
 
 func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook WebhookConfig, event WebhookEvent) error {
-
 	timer := prometheus.NewTimer(wm.webhookLatency)
 
 	defer timer.ObserveDuration()
@@ -467,9 +433,7 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 	maxRetries := webhook.Retries
 
 	if maxRetries == 0 {
-
 		maxRetries = 3 // Default retry count
-
 	}
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
@@ -499,7 +463,6 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 		// Create payload based on webhook format.
 
 		payload, contentType, err := wm.createPayload(webhook, event)
-
 		if err != nil {
 
 			lastErr = fmt.Errorf("failed to create payload: %w", err)
@@ -511,7 +474,6 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 		// Create HTTP request.
 
 		req, err := http.NewRequestWithContext(ctx, webhook.Method, webhook.URL, bytes.NewReader(payload))
-
 		if err != nil {
 
 			lastErr = fmt.Errorf("failed to create request: %w", err)
@@ -529,9 +491,7 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 		// Add custom headers.
 
 		for key, value := range webhook.Headers {
-
 			req.Header.Set(key, value)
-
 		}
 
 		// Add authentication if configured.
@@ -549,13 +509,10 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 		client := wm.client
 
 		if webhook.Timeout > 0 {
-
 			client = &http.Client{Timeout: webhook.Timeout}
-
 		}
 
 		resp, err := client.Do(req)
-
 		if err != nil {
 
 			lastErr = fmt.Errorf("failed to send request: %w", err)
@@ -605,13 +562,11 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 	wm.webhookFailures.Inc()
 
 	return fmt.Errorf("webhook failed after %d attempts: %w", maxRetries+1, lastErr)
-
 }
 
 // createPayload creates the appropriate payload format for the webhook.
 
 func (wm *WebhookManager) createPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
-
 	switch strings.ToLower(webhook.Format) {
 
 	case "slack":
@@ -639,13 +594,11 @@ func (wm *WebhookManager) createPayload(webhook WebhookConfig, event WebhookEven
 		return wm.createJSONPayload(webhook, event)
 
 	}
-
 }
 
 // createSlackPayload creates Slack-formatted webhook payload.
 
 func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
-
 	var payload SlackPayload
 
 	var color string
@@ -655,9 +608,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 	case "performance_report":
 
 		if event.Report == nil {
-
 			return nil, "", fmt.Errorf("missing performance report")
-
 		}
 
 		// Determine color based on performance score.
@@ -665,21 +616,14 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 		score := event.Report.ExecutiveSummary.OverallScore
 
 		if score >= 90 {
-
 			color = "good"
-
 		} else if score >= 70 {
-
 			color = "warning"
-
 		} else {
-
 			color = "danger"
-
 		}
 
 		payload = SlackPayload{
-
 			Channel: "#performance-alerts",
 
 			Username: "Nephoran Performance Monitor",
@@ -689,17 +633,13 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			Text: "📊 Performance Report Generated",
 
 			Attachments: []SlackAttachment{
-
 				{
-
 					Color: color,
 
 					Title: fmt.Sprintf("Performance Report - %s", event.Report.Period),
 
 					Fields: []SlackField{
-
 						{
-
 							Title: "Overall Score",
 
 							Value: fmt.Sprintf("%.1f%% (%s)", score, event.Report.ExecutiveSummary.PerformanceGrade),
@@ -708,7 +648,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "System Health",
 
 							Value: event.Report.ExecutiveSummary.SystemHealth,
@@ -717,7 +656,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "SLA Compliance",
 
 							Value: fmt.Sprintf("%.2f%%", event.Report.ExecutiveSummary.SLACompliance),
@@ -726,7 +664,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "Trend",
 
 							Value: event.Report.ExecutiveSummary.TrendDirection,
@@ -736,9 +673,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 					},
 
 					Actions: []SlackAction{
-
 						{
-
 							Type: "button",
 
 							Text: "View Dashboard",
@@ -767,9 +702,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 				status := "✅"
 
 				if claim.Status == "FAIL" {
-
 					status = "❌"
-
 				}
 
 				claimsText += fmt.Sprintf("%s %s: %s (Target: %s)\n",
@@ -779,7 +712,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			}
 
 			payload.Attachments = append(payload.Attachments, SlackAttachment{
-
 				Color: color,
 
 				Title: "Performance Claims Validation",
@@ -792,9 +724,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 	case "alert":
 
 		if event.Alert == nil {
-
 			return nil, "", fmt.Errorf("missing alert")
-
 		}
 
 		// Determine color based on severity.
@@ -816,7 +746,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 		}
 
 		payload = SlackPayload{
-
 			Channel: "#performance-alerts",
 
 			Username: "Nephoran Alert Manager",
@@ -826,9 +755,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			Text: fmt.Sprintf("🚨 %s Alert: %s", strings.ToUpper(event.Alert.Severity), event.Alert.Name),
 
 			Attachments: []SlackAttachment{
-
 				{
-
 					Color: color,
 
 					Title: event.Alert.Name,
@@ -836,9 +763,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 					Text: event.Alert.Description,
 
 					Fields: []SlackField{
-
 						{
-
 							Title: "Severity",
 
 							Value: event.Alert.Severity,
@@ -847,7 +772,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "Component",
 
 							Value: event.Alert.Component,
@@ -856,7 +780,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "Count",
 
 							Value: fmt.Sprintf("%d", event.Alert.Count),
@@ -865,7 +788,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "Duration",
 
 							Value: event.Alert.Duration.String(),
@@ -884,15 +806,12 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 	case "regression_detected":
 
 		if event.Regression == nil {
-
 			return nil, "", fmt.Errorf("missing regression analysis")
-
 		}
 
 		color = "danger" // Regressions are always critical
 
 		payload = SlackPayload{
-
 			Channel: "#performance-alerts",
 
 			Username: "Nephoran Regression Detector",
@@ -902,9 +821,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			Text: "🔴 Performance Regression Detected",
 
 			Attachments: []SlackAttachment{
-
 				{
-
 					Color: color,
 
 					Title: "Performance Regression Alert",
@@ -912,9 +829,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 					Text: fmt.Sprintf("Regression severity: %s", event.Regression.RegressionSeverity),
 
 					Fields: []SlackField{
-
 						{
-
 							Title: "Regression Detected",
 
 							Value: fmt.Sprintf("%t", event.Regression.RegressionDetected),
@@ -923,7 +838,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 						},
 
 						{
-
 							Title: "Severity",
 
 							Value: event.Regression.RegressionSeverity,
@@ -944,9 +858,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			changesText := "*Performance Changes:*\n"
 
 			for metric, change := range event.Regression.PerformanceChange {
-
 				changesText += fmt.Sprintf("• %s: %+.2f%%\n", metric, change)
-
 			}
 
 			payload.Attachments[0].Text += "\n" + changesText
@@ -956,21 +868,16 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 	}
 
 	data, err := json.Marshal(payload)
-
 	if err != nil {
-
 		return nil, "", fmt.Errorf("failed to marshal Slack payload: %w", err)
-
 	}
 
 	return data, "application/json", nil
-
 }
 
 // createTeamsPayload creates Microsoft Teams webhook payload.
 
 func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
-
 	var payload TeamsPayload
 
 	var themeColor string
@@ -980,29 +887,20 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 	case "performance_report":
 
 		if event.Report == nil {
-
 			return nil, "", fmt.Errorf("missing performance report")
-
 		}
 
 		score := event.Report.ExecutiveSummary.OverallScore
 
 		if score >= 90 {
-
 			themeColor = "0078D4" // Blue
-
 		} else if score >= 70 {
-
 			themeColor = "FF8C00" // Orange
-
 		} else {
-
 			themeColor = "D13438" // Red
-
 		}
 
 		payload = TeamsPayload{
-
 			Type: "MessageCard",
 
 			Context: "https://schema.org/extensions",
@@ -1012,38 +910,31 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 			Summary: "Nephoran Performance Report",
 
 			Sections: []TeamsSection{
-
 				{
-
 					ActivityTitle: "📊 Performance Report Generated",
 
 					ActivitySubtitle: fmt.Sprintf("Report Period: %s", event.Report.Period),
 
 					Facts: []TeamsFact{
-
 						{
-
 							Name: "Overall Score",
 
 							Value: fmt.Sprintf("%.1f%% (%s)", score, event.Report.ExecutiveSummary.PerformanceGrade),
 						},
 
 						{
-
 							Name: "System Health",
 
 							Value: event.Report.ExecutiveSummary.SystemHealth,
 						},
 
 						{
-
 							Name: "SLA Compliance",
 
 							Value: fmt.Sprintf("%.2f%%", event.Report.ExecutiveSummary.SLACompliance),
 						},
 
 						{
-
 							Name: "Trend Direction",
 
 							Value: event.Report.ExecutiveSummary.TrendDirection,
@@ -1055,17 +946,13 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 			},
 
 			Actions: []TeamsAction{
-
 				{
-
 					Type: "OpenUri",
 
 					Name: "View Dashboard",
 
 					Targets: []map[string]string{
-
 						{
-
 							"os": "default",
 
 							"uri": "https://grafana.nephoran.com/d/nephoran-executive-perf",
@@ -1078,9 +965,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 	case "alert":
 
 		if event.Alert == nil {
-
 			return nil, "", fmt.Errorf("missing alert")
-
 		}
 
 		switch strings.ToLower(event.Alert.Severity) {
@@ -1100,7 +985,6 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 		}
 
 		payload = TeamsPayload{
-
 			Type: "MessageCard",
 
 			Context: "https://schema.org/extensions",
@@ -1110,9 +994,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 			Summary: fmt.Sprintf("Nephoran Alert: %s", event.Alert.Name),
 
 			Sections: []TeamsSection{
-
 				{
-
 					ActivityTitle: fmt.Sprintf("🚨 %s Alert", strings.ToUpper(event.Alert.Severity)),
 
 					ActivitySubtitle: event.Alert.Name,
@@ -1120,30 +1002,25 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 					ActivityText: event.Alert.Description,
 
 					Facts: []TeamsFact{
-
 						{
-
 							Name: "Severity",
 
 							Value: event.Alert.Severity,
 						},
 
 						{
-
 							Name: "Component",
 
 							Value: event.Alert.Component,
 						},
 
 						{
-
 							Name: "Count",
 
 							Value: fmt.Sprintf("%d", event.Alert.Count),
 						},
 
 						{
-
 							Name: "Duration",
 
 							Value: event.Alert.Duration.String(),
@@ -1158,13 +1035,10 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 	case "regression_detected":
 
 		if event.Regression == nil {
-
 			return nil, "", fmt.Errorf("missing regression analysis")
-
 		}
 
 		payload = TeamsPayload{
-
 			Type: "MessageCard",
 
 			Context: "https://schema.org/extensions",
@@ -1174,24 +1048,19 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 			Summary: "Performance Regression Detected",
 
 			Sections: []TeamsSection{
-
 				{
-
 					ActivityTitle: "🔴 Performance Regression Detected",
 
 					ActivitySubtitle: fmt.Sprintf("Severity: %s", event.Regression.RegressionSeverity),
 
 					Facts: []TeamsFact{
-
 						{
-
 							Name: "Regression Status",
 
 							Value: fmt.Sprintf("%t", event.Regression.RegressionDetected),
 						},
 
 						{
-
 							Name: "Severity Level",
 
 							Value: event.Regression.RegressionSeverity,
@@ -1206,21 +1075,16 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 	}
 
 	data, err := json.Marshal(payload)
-
 	if err != nil {
-
 		return nil, "", fmt.Errorf("failed to marshal Teams payload: %w", err)
-
 	}
 
 	return data, "application/json", nil
-
 }
 
 // createPagerDutyPayload creates PagerDuty webhook payload.
 
 func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
-
 	var payload PagerDutyPayload
 
 	// PagerDuty routing key should be in webhook headers or config.
@@ -1228,9 +1092,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 	routingKey, ok := webhook.Headers["X-Routing-Key"]
 
 	if !ok {
-
 		return nil, "", fmt.Errorf("PagerDuty routing key not configured")
-
 	}
 
 	switch event.Type {
@@ -1238,9 +1100,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 	case "alert":
 
 		if event.Alert == nil {
-
 			return nil, "", fmt.Errorf("missing alert")
-
 		}
 
 		// Map severity levels.
@@ -1260,7 +1120,6 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 		}
 
 		payload = PagerDutyPayload{
-
 			RoutingKey: routingKey,
 
 			EventAction: "trigger",
@@ -1268,7 +1127,6 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 			DedupKey: fmt.Sprintf("nephoran-%s-%s", event.Alert.Component, event.Alert.Name),
 
 			Payload: PagerDutyEventPayload{
-
 				Summary: fmt.Sprintf("Nephoran: %s - %s", event.Alert.Name, event.Alert.Component),
 
 				Source: "nephoran-performance-monitor",
@@ -1284,7 +1142,6 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 				Class: "performance-monitoring",
 
 				Details: map[string]interface{}{
-
 					"alert_name": event.Alert.Name,
 
 					"alert_count": event.Alert.Count,
@@ -1298,9 +1155,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 			},
 
 			Links: []PagerDutyLink{
-
 				{
-
 					Href: "https://grafana.nephoran.com/d/nephoran-executive-perf",
 
 					Text: "View Performance Dashboard",
@@ -1311,13 +1166,10 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 	case "regression_detected":
 
 		if event.Regression == nil {
-
 			return nil, "", fmt.Errorf("missing regression analysis")
-
 		}
 
 		payload = PagerDutyPayload{
-
 			RoutingKey: routingKey,
 
 			EventAction: "trigger",
@@ -1325,7 +1177,6 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 			DedupKey: "nephoran-regression-detected",
 
 			Payload: PagerDutyEventPayload{
-
 				Summary: "Nephoran: Performance Regression Detected",
 
 				Source: "nephoran-performance-monitor",
@@ -1341,7 +1192,6 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 				Class: "performance-regression",
 
 				Details: map[string]interface{}{
-
 					"regression_severity": event.Regression.RegressionSeverity,
 
 					"performance_changes": event.Regression.PerformanceChange,
@@ -1353,9 +1203,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 			},
 
 			Links: []PagerDutyLink{
-
 				{
-
 					Href: "https://grafana.nephoran.com/d/nephoran-regression-analysis",
 
 					Text: "View Regression Analysis Dashboard",
@@ -1370,23 +1218,17 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 	}
 
 	data, err := json.Marshal(payload)
-
 	if err != nil {
-
 		return nil, "", fmt.Errorf("failed to marshal PagerDuty payload: %w", err)
-
 	}
 
 	return data, "application/json", nil
-
 }
 
 // createJSONPayload creates standard JSON webhook payload.
 
 func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
-
 	payload := WebhookPayload{
-
 		EventType: event.Type,
 
 		Timestamp: time.Now(),
@@ -1425,23 +1267,15 @@ func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event Webhook
 			failedClaims := 0
 
 			for _, claim := range event.Report.PerformanceClaims {
-
 				if claim.Status == "FAIL" {
-
 					failedClaims++
-
 				}
-
 			}
 
 			if failedClaims > 0 {
-
 				payload.Severity = "warning"
-
 			} else {
-
 				payload.Severity = "info"
-
 			}
 
 			payload.Summary = &event.Report.ExecutiveSummary
@@ -1453,27 +1287,20 @@ func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event Webhook
 	}
 
 	data, err := json.Marshal(payload)
-
 	if err != nil {
-
 		return nil, "", fmt.Errorf("failed to marshal JSON payload: %w", err)
-
 	}
 
 	return data, "application/json", nil
-
 }
 
 // createCustomPayload creates custom webhook payload using templates.
 
 func (wm *WebhookManager) createCustomPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
-
 	templateName := webhook.Templates[event.Type]
 
 	if templateName == "" {
-
 		return nil, "", fmt.Errorf("no template configured for event type: %s", event.Type)
-
 	}
 
 	// Load and execute template.
@@ -1511,29 +1338,22 @@ func (wm *WebhookManager) createCustomPayload(webhook WebhookConfig, event Webho
 	}`
 
 	tmpl, err := tmpl.Parse(templateContent)
-
 	if err != nil {
-
 		return nil, "", fmt.Errorf("failed to parse template: %w", err)
-
 	}
 
 	var buf bytes.Buffer
 
 	if err := tmpl.Execute(&buf, event); err != nil {
-
 		return nil, "", fmt.Errorf("failed to execute template: %w", err)
-
 	}
 
 	return buf.Bytes(), "application/json", nil
-
 }
 
 // addAuthentication adds authentication to the webhook request.
 
 func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookConfig, payload []byte) error {
-
 	// HMAC signature for webhook verification.
 
 	if secret, ok := webhook.Headers["X-Webhook-Secret"]; ok && secret != "" {
@@ -1553,9 +1373,7 @@ func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookCo
 	if token, ok := webhook.Headers["Authorization"]; ok && token != "" {
 
 		if !strings.HasPrefix(token, "Bearer ") {
-
 			token = "Bearer " + token
-
 		}
 
 		req.Header.Set("Authorization", token)
@@ -1565,19 +1383,15 @@ func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookCo
 	// API key authentication.
 
 	if apiKey, ok := webhook.Headers["X-API-Key"]; ok && apiKey != "" {
-
 		req.Header.Set("X-API-Key", apiKey)
-
 	}
 
 	return nil
-
 }
 
 // shouldSendAlert determines if an alert should be sent to a specific webhook.
 
 func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInfo) bool {
-
 	// Check severity filter.
 
 	if severityFilter, ok := webhook.Headers["X-Min-Severity"]; ok {
@@ -1587,9 +1401,7 @@ func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInf
 		alertSeverity := parseSeverity(alert.Severity)
 
 		if alertSeverity < minSeverity {
-
 			return false
-
 		}
 
 	}
@@ -1603,7 +1415,6 @@ func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInf
 		found := false
 
 		for _, component := range components {
-
 			if strings.TrimSpace(component) == alert.Component {
 
 				found = true
@@ -1611,25 +1422,20 @@ func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInf
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return false
-
 		}
 
 	}
 
 	return true
-
 }
 
 // parseSeverity converts severity string to numeric value for comparison.
 
 func parseSeverity(severity string) int {
-
 	switch strings.ToLower(strings.TrimSpace(severity)) {
 
 	case "critical":
@@ -1649,5 +1455,4 @@ func parseSeverity(severity string) int {
 		return 0
 
 	}
-
 }

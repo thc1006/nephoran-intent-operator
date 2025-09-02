@@ -147,7 +147,6 @@ type workerMetrics struct {
 	totalDuration atomic.Int64 // nanoseconds
 
 	lastActive atomic.Int64 // unix timestamp
-
 }
 
 // ParallelConfig holds configuration for parallel processing.
@@ -169,55 +168,40 @@ type ParallelConfig struct {
 // NewParallelChunkProcessor creates a new parallel chunk processor.
 
 func NewParallelChunkProcessor(
-
 	logger *zap.Logger,
 
 	config ParallelConfig,
-
 ) *ParallelChunkProcessor {
-
 	if config.MaxWorkers == 0 {
-
 		config.MaxWorkers = 8
-
 	}
 
 	if config.QueueSize == 0 {
-
 		config.QueueSize = config.MaxWorkers * 10
-
 	}
 
 	if config.MaxRetries == 0 {
-
 		config.MaxRetries = 3
-
 	}
 
 	if config.RetryDelay == 0 {
-
 		config.RetryDelay = time.Second
-
 	}
 
 	metrics := &parallelMetrics{
-
 		tasksProcessed: prometheus.NewCounter(prometheus.CounterOpts{
-
 			Name: "rag_parallel_tasks_processed_total",
 
 			Help: "Total number of chunk tasks processed",
 		}),
 
 		tasksFailed: prometheus.NewCounter(prometheus.CounterOpts{
-
 			Name: "rag_parallel_tasks_failed_total",
 
 			Help: "Total number of chunk tasks failed",
 		}),
 
 		processingDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "rag_parallel_processing_duration_seconds",
 
 			Help: "Duration of chunk processing operations",
@@ -226,21 +210,18 @@ func NewParallelChunkProcessor(
 		}),
 
 		queueDepth: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "rag_parallel_queue_depth",
 
 			Help: "Current depth of the task queue",
 		}),
 
 		activeWorkers: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "rag_parallel_active_workers",
 
 			Help: "Number of active workers",
 		}),
 
 		workStealing: prometheus.NewCounter(prometheus.CounterOpts{
-
 			Name: "rag_parallel_work_stealing_total",
 
 			Help: "Total number of work stealing events",
@@ -265,7 +246,6 @@ func NewParallelChunkProcessor(
 	)
 
 	pool := &ChunkWorkerPool{
-
 		workers: make([]*ChunkWorker, 0, config.MaxWorkers),
 
 		taskQueue: make(chan *ChunkTask, config.QueueSize),
@@ -296,7 +276,6 @@ func NewParallelChunkProcessor(
 	}
 
 	processor := &ParallelChunkProcessor{
-
 		logger: logger,
 
 		workerPool: pool,
@@ -304,11 +283,8 @@ func NewParallelChunkProcessor(
 		loadBalancer: balancer,
 
 		memoryPool: &sync.Pool{
-
 			New: func() interface{} {
-
 				return &ChunkTask{}
-
 			},
 		},
 
@@ -328,21 +304,17 @@ func NewParallelChunkProcessor(
 	go processor.monitorQueues()
 
 	return processor
-
 }
 
 // ProcessChunks processes multiple chunks in parallel.
 
 func (p *ParallelChunkProcessor) ProcessChunks(
-
 	ctx context.Context,
 
 	chunks []ProcessedChunk,
 
 	processor func(ProcessedChunk) error,
-
 ) error {
-
 	tasks := make([]*ChunkTask, len(chunks))
 
 	for i, chunk := range chunks {
@@ -366,19 +338,15 @@ func (p *ParallelChunkProcessor) ProcessChunks(
 	}
 
 	return p.ProcessTasks(ctx, tasks)
-
 }
 
 // ProcessTasks processes a batch of tasks.
 
 func (p *ParallelChunkProcessor) ProcessTasks(
-
 	ctx context.Context,
 
 	tasks []*ChunkTask,
-
 ) error {
-
 	resultChan := make(chan *ChunkResult, len(tasks))
 
 	var wg sync.WaitGroup
@@ -390,13 +358,11 @@ func (p *ParallelChunkProcessor) ProcessTasks(
 		wg.Add(1)
 
 		go func(t *ChunkTask) {
-
 			defer wg.Done()
 
 			result := p.processTask(ctx, t)
 
 			resultChan <- result
-
 		}(task)
 
 	}
@@ -404,11 +370,9 @@ func (p *ParallelChunkProcessor) ProcessTasks(
 	// Wait for completion.
 
 	go func() {
-
 		wg.Wait()
 
 		close(resultChan)
-
 	}()
 
 	// Collect results.
@@ -418,9 +382,7 @@ func (p *ParallelChunkProcessor) ProcessTasks(
 	for result := range resultChan {
 
 		if result.Error != nil {
-
 			errors = append(errors, fmt.Errorf("task %s failed: %w", result.TaskID, result.Error))
-
 		}
 
 		// Return task to pool.
@@ -432,21 +394,16 @@ func (p *ParallelChunkProcessor) ProcessTasks(
 	}
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("parallel processing failed with %d errors: %v", len(errors), errors)
-
 	}
 
 	return nil
-
 }
 
 // processTask processes a single task with retry logic.
 
 func (p *ParallelChunkProcessor) processTask(ctx context.Context, task *ChunkTask) *ChunkResult {
-
 	result := &ChunkResult{
-
 		TaskID: task.ID,
 	}
 
@@ -517,17 +474,14 @@ func (p *ParallelChunkProcessor) processTask(ctx context.Context, task *ChunkTas
 		return result
 
 	}
-
 }
 
 // startWorkers initializes and starts worker goroutines.
 
 func (p *ParallelChunkProcessor) startWorkers() {
-
 	for i := 0; i < p.workerPool.maxWorkers; i++ {
 
 		worker := &ChunkWorker{
-
 			id: i,
 
 			pool: p.workerPool,
@@ -544,13 +498,11 @@ func (p *ParallelChunkProcessor) startWorkers() {
 		go worker.start(p)
 
 	}
-
 }
 
 // start runs the worker loop.
 
 func (w *ChunkWorker) start(processor *ParallelChunkProcessor) {
-
 	w.pool.wg.Add(1)
 
 	defer w.pool.wg.Done()
@@ -564,7 +516,6 @@ func (w *ChunkWorker) start(processor *ParallelChunkProcessor) {
 	defer processor.metrics.activeWorkers.Dec()
 
 	for {
-
 		select {
 
 		case task := <-w.taskChannel:
@@ -580,21 +531,17 @@ func (w *ChunkWorker) start(processor *ParallelChunkProcessor) {
 			return
 
 		}
-
 	}
-
 }
 
 // processTask handles a single task.
 
 func (w *ChunkWorker) processTask(processor *ParallelChunkProcessor, task *ChunkTask) {
-
 	start := time.Now()
 
 	w.metrics.lastActive.Store(time.Now().Unix())
 
 	result := &ChunkResult{
-
 		TaskID: task.ID,
 
 		WorkerID: w.id,
@@ -607,21 +554,16 @@ func (w *ChunkWorker) processTask(processor *ParallelChunkProcessor, task *Chunk
 	for attempt := 0; attempt <= task.Retries; attempt++ {
 
 		if attempt > 0 {
-
 			time.Sleep(processor.retryDelay * time.Duration(attempt))
-
 		}
 
 		err = task.Processor(task.Chunk)
 
 		if err == nil {
-
 			break
-
 		}
 
 		if attempt < task.Retries {
-
 			processor.logger.Warn("Chunk processing failed, retrying",
 
 				zap.String("task_id", task.ID),
@@ -629,7 +571,6 @@ func (w *ChunkWorker) processTask(processor *ParallelChunkProcessor, task *Chunk
 				zap.Int("attempt", attempt+1),
 
 				zap.Error(err))
-
 		}
 
 	}
@@ -675,13 +616,11 @@ func (w *ChunkWorker) processTask(processor *ParallelChunkProcessor, task *Chunk
 			zap.String("task_id", task.ID))
 
 	}
-
 }
 
 // monitorQueues monitors queue depths and performance.
 
 func (p *ParallelChunkProcessor) monitorQueues() {
-
 	ticker := time.NewTicker(5 * time.Second)
 
 	defer ticker.Stop()
@@ -697,29 +636,23 @@ func (p *ParallelChunkProcessor) monitorQueues() {
 		queueUtilization := float64(len(p.workerPool.taskQueue)) / float64(cap(p.workerPool.taskQueue))
 
 		if queueUtilization > 0.8 {
-
 			p.logger.Warn("Task queue high utilization",
 
 				zap.Float64("utilization", queueUtilization),
 
 				zap.Int("queue_depth", len(p.workerPool.taskQueue)))
-
 		}
 
 	}
-
 }
 
 // Shutdown gracefully shuts down the processor.
 
 func (p *ParallelChunkProcessor) Shutdown() {
-
 	// Stop all workers.
 
 	for _, worker := range p.workerPool.workers {
-
 		close(worker.quit)
-
 	}
 
 	p.workerPool.wg.Wait()
@@ -727,7 +660,6 @@ func (p *ParallelChunkProcessor) Shutdown() {
 	close(p.workerPool.taskQueue)
 
 	close(p.workerPool.resultQueue)
-
 }
 
 // Load balancer implementations.
@@ -735,54 +667,40 @@ func (p *ParallelChunkProcessor) Shutdown() {
 // SelectWorker performs selectworker operation.
 
 func (b *RoundRobinBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkTask) *ChunkWorker {
-
 	if len(workers) == 0 {
-
 		return nil
-
 	}
 
 	index := atomic.AddUint64(&b.current, 1) % uint64(len(workers))
 
 	return workers[index]
-
 }
 
 // UpdateStats performs updatestats operation.
 
 func (b *RoundRobinBalancer) UpdateStats(workerID int, duration time.Duration, success bool) {
-
 	// Round-robin doesn't need stats.
-
 }
 
 // NewLeastLoadedBalancer performs newleastloadedbalancer operation.
 
 func NewLeastLoadedBalancer(maxWorkers int) *LeastLoadedBalancer {
-
 	loads := make(map[int]*atomic.Int64)
 
 	for i := 0; i < maxWorkers; i++ {
-
 		loads[i] = &atomic.Int64{}
-
 	}
 
 	return &LeastLoadedBalancer{
-
 		workerLoads: loads,
 	}
-
 }
 
 // SelectWorker performs selectworker operation.
 
 func (b *LeastLoadedBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkTask) *ChunkWorker {
-
 	if len(workers) == 0 {
-
 		return nil
-
 	}
 
 	b.mu.RLock()
@@ -808,54 +726,41 @@ func (b *LeastLoadedBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkTa
 	}
 
 	if selected != nil {
-
 		b.workerLoads[selected.id].Add(1)
-
 	}
 
 	return selected
-
 }
 
 // UpdateStats performs updatestats operation.
 
 func (b *LeastLoadedBalancer) UpdateStats(workerID int, duration time.Duration, success bool) {
-
 	b.mu.RLock()
 
 	defer b.mu.RUnlock()
 
 	if load, ok := b.workerLoads[workerID]; ok {
-
 		load.Add(-1)
-
 	}
-
 }
 
 // NewWorkStealingBalancer performs newworkstealingbalancer operation.
 
 func NewWorkStealingBalancer(maxWorkers int) *WorkStealingBalancer {
-
 	queues := make(map[int]chan *ChunkTask)
 
 	for i := 0; i < maxWorkers; i++ {
-
 		queues[i] = make(chan *ChunkTask, 10)
-
 	}
 
 	return &WorkStealingBalancer{
-
 		queues: queues,
 	}
-
 }
 
 // SelectWorker performs selectworker operation.
 
 func (b *WorkStealingBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkTask) *ChunkWorker {
-
 	// Try to find worker with smallest queue.
 
 	b.mu.RLock()
@@ -867,7 +772,6 @@ func (b *WorkStealingBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkT
 	minQueueSize := int(^uint(0) >> 1)
 
 	for _, worker := range workers {
-
 		if queue, ok := b.queues[worker.id]; ok {
 
 			queueSize := len(queue)
@@ -881,25 +785,20 @@ func (b *WorkStealingBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkT
 			}
 
 		}
-
 	}
 
 	return selected
-
 }
 
 // UpdateStats performs updatestats operation.
 
 func (b *WorkStealingBalancer) UpdateStats(workerID int, duration time.Duration, success bool) {
-
 	// Work stealing uses queue sizes, not duration stats.
-
 }
 
 // ProcessDocumentChunks processes chunks for a loaded document.
 
 func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, doc *LoadedDocument) ([]*DocumentChunk, error) {
-
 	// Convert document to chunks (simplified implementation).
 
 	chunkSize := 1000 // Default chunk size
@@ -913,13 +812,10 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 		end := i + chunkSize
 
 		if end > len(content) {
-
 			end = len(content)
-
 		}
 
 		chunk := &DocumentChunk{
-
 			ID: fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
 
 			DocumentID: doc.ID,
@@ -936,15 +832,12 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 	}
 
 	return chunks, nil
-
 }
 
 // GetMetrics returns processor metrics.
 
 func (pcp *ParallelChunkProcessor) GetMetrics() interface{} {
-
 	return map[string]interface{}{
-
 		"processed_tasks": pcp.metrics.tasksProcessed,
 
 		"failed_tasks": pcp.metrics.tasksFailed,
@@ -953,5 +846,4 @@ func (pcp *ParallelChunkProcessor) GetMetrics() interface{} {
 
 		"queue_depth": pcp.metrics.queueDepth,
 	}
-
 }

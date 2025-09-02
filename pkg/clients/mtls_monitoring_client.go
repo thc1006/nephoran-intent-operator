@@ -107,17 +107,12 @@ type QueryResponse struct {
 // SendMetrics sends metrics to the monitoring system using mTLS.
 
 func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*MetricData, endpoint string) error {
-
 	if len(metrics) == 0 {
-
 		return fmt.Errorf("no metrics provided")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = "/api/v1/metrics"
-
 	}
 
 	c.logger.Debug("sending metrics via mTLS monitoring client",
@@ -129,7 +124,6 @@ func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*Metri
 	// Prepare metrics payload.
 
 	payload := map[string]interface{}{
-
 		"metrics": metrics,
 
 		"timestamp": time.Now(),
@@ -138,23 +132,17 @@ func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*Metri
 	}
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
-
 }
 
 // SendAlert sends an alert to the monitoring system.
 
 func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, endpoint string) error {
-
 	if alert == nil {
-
 		return fmt.Errorf("alert data cannot be nil")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = "/api/v1/alerts"
-
 	}
 
 	c.logger.Debug("sending alert via mTLS monitoring client",
@@ -170,30 +158,23 @@ func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, 
 	// Prepare alert payload.
 
 	payload := map[string]interface{}{
-
 		"alerts": []*AlertData{alert},
 
 		"source": "nephoran-intent-operator",
 	}
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
-
 }
 
 // SendLogs sends logs to the monitoring system.
 
 func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, endpoint string) error {
-
 	if len(logs) == 0 {
-
 		return fmt.Errorf("no logs provided")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = "/api/v1/logs"
-
 	}
 
 	c.logger.Debug("sending logs via mTLS monitoring client",
@@ -205,30 +186,23 @@ func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, en
 	// Prepare logs payload.
 
 	payload := map[string]interface{}{
-
 		"logs": logs,
 
 		"source": "nephoran-intent-operator",
 	}
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
-
 }
 
 // QueryMetrics queries metrics from the monitoring system.
 
 func (c *MTLSMonitoringClient) QueryMetrics(ctx context.Context, query *QueryRequest, endpoint string) (*QueryResponse, error) {
-
 	if query == nil || query.Query == "" {
-
 		return nil, fmt.Errorf("query cannot be empty")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = "/api/v1/query"
-
 	}
 
 	c.logger.Debug("querying metrics via mTLS monitoring client",
@@ -240,29 +214,21 @@ func (c *MTLSMonitoringClient) QueryMetrics(ctx context.Context, query *QueryReq
 	var response QueryResponse
 
 	if err := c.makeRequest(ctx, "POST", endpoint, query, &response); err != nil {
-
 		return nil, fmt.Errorf("failed to query metrics: %w", err)
-
 	}
 
 	return &response, nil
-
 }
 
 // QueryRangeMetrics queries range metrics from the monitoring system.
 
 func (c *MTLSMonitoringClient) QueryRangeMetrics(ctx context.Context, query *QueryRequest, endpoint string) (*QueryResponse, error) {
-
 	if query == nil || query.Query == "" {
-
 		return nil, fmt.Errorf("query cannot be empty")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = "/api/v1/query_range"
-
 	}
 
 	c.logger.Debug("querying range metrics via mTLS monitoring client",
@@ -278,23 +244,17 @@ func (c *MTLSMonitoringClient) QueryRangeMetrics(ctx context.Context, query *Que
 	var response QueryResponse
 
 	if err := c.makeRequest(ctx, "POST", endpoint, query, &response); err != nil {
-
 		return nil, fmt.Errorf("failed to query range metrics: %w", err)
-
 	}
 
 	return &response, nil
-
 }
 
 // GetAlerts retrieves active alerts from the monitoring system.
 
 func (c *MTLSMonitoringClient) GetAlerts(ctx context.Context, labels map[string]string, endpoint string) ([]*AlertData, error) {
-
 	if endpoint == "" {
-
 		endpoint = "/api/v1/alerts"
-
 	}
 
 	c.logger.Debug("retrieving alerts via mTLS monitoring client",
@@ -308,9 +268,7 @@ func (c *MTLSMonitoringClient) GetAlerts(ctx context.Context, labels map[string]
 	queryParams := make(map[string]interface{})
 
 	if len(labels) > 0 {
-
 		queryParams["labels"] = labels
-
 	}
 
 	var response struct {
@@ -322,35 +280,25 @@ func (c *MTLSMonitoringClient) GetAlerts(ctx context.Context, labels map[string]
 	}
 
 	if err := c.makeRequest(ctx, "GET", endpoint, queryParams, &response); err != nil {
-
 		return nil, fmt.Errorf("failed to get alerts: %w", err)
-
 	}
 
 	if response.Status != "success" {
-
 		return nil, fmt.Errorf("alerts query failed: %s", response.Error)
-
 	}
 
 	return response.Alerts, nil
-
 }
 
 // CreateSilence creates an alert silence.
 
 func (c *MTLSMonitoringClient) CreateSilence(ctx context.Context, silence *SilenceData, endpoint string) (*SilenceResponse, error) {
-
 	if silence == nil {
-
 		return nil, fmt.Errorf("silence data cannot be nil")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = "/api/v1/silences"
-
 	}
 
 	c.logger.Debug("creating silence via mTLS monitoring client",
@@ -366,31 +314,23 @@ func (c *MTLSMonitoringClient) CreateSilence(ctx context.Context, silence *Silen
 	var response SilenceResponse
 
 	if err := c.makeRequest(ctx, "POST", endpoint, silence, &response); err != nil {
-
 		return nil, fmt.Errorf("failed to create silence: %w", err)
-
 	}
 
 	c.logger.Info("silence created successfully", "silence_id", response.SilenceID)
 
 	return &response, nil
-
 }
 
 // DeleteSilence deletes an alert silence.
 
 func (c *MTLSMonitoringClient) DeleteSilence(ctx context.Context, silenceID, endpoint string) error {
-
 	if silenceID == "" {
-
 		return fmt.Errorf("silence ID cannot be empty")
-
 	}
 
 	if endpoint == "" {
-
 		endpoint = fmt.Sprintf("/api/v1/silences/%s", silenceID)
-
 	}
 
 	c.logger.Debug("deleting silence via mTLS monitoring client",
@@ -400,39 +340,30 @@ func (c *MTLSMonitoringClient) DeleteSilence(ctx context.Context, silenceID, end
 		"endpoint", endpoint)
 
 	if err := c.makeRequest(ctx, "DELETE", endpoint, nil, nil); err != nil {
-
 		return fmt.Errorf("failed to delete silence: %w", err)
-
 	}
 
 	c.logger.Info("silence deleted successfully", "silence_id", silenceID)
 
 	return nil
-
 }
 
 // sendPayload sends a payload to the specified endpoint.
 
 func (c *MTLSMonitoringClient) sendPayload(ctx context.Context, method, endpoint string, payload interface{}) error {
-
 	return c.makeRequest(ctx, method, endpoint, payload, nil)
-
 }
 
 // makeRequest makes an HTTP request to a monitoring endpoint.
 
 func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint string, requestBody, responseBody interface{}) error {
-
 	var reqBody io.Reader
 
 	if requestBody != nil {
 
 		jsonBody, err := json.Marshal(requestBody)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to marshal request body: %w", err)
-
 		}
 
 		reqBody = bytes.NewBuffer(jsonBody)
@@ -442,17 +373,12 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 	// Create HTTP request.
 
 	httpReq, err := http.NewRequestWithContext(ctx, method, endpoint, reqBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create HTTP request: %w", err)
-
 	}
 
 	if requestBody != nil {
-
 		httpReq.Header.Set("Content-Type", "application/json")
-
 	}
 
 	httpReq.Header.Set("Accept", "application/json")
@@ -470,11 +396,8 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 	// Make request.
 
 	resp, err := c.httpClient.Do(httpReq)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to make HTTP request: %w", err)
-
 	}
 
 	defer resp.Body.Close()
@@ -498,23 +421,17 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 	// Decode response if needed.
 
 	if responseBody != nil && resp.ContentLength != 0 {
-
 		if err := json.NewDecoder(resp.Body).Decode(responseBody); err != nil {
-
 			return fmt.Errorf("failed to decode response: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetHealth returns the health status of the monitoring service.
 
 func (c *MTLSMonitoringClient) GetHealth() (*HealthStatus, error) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
@@ -522,38 +439,30 @@ func (c *MTLSMonitoringClient) GetHealth() (*HealthStatus, error) {
 	var health HealthStatus
 
 	if err := c.makeRequest(ctx, "GET", "/health", nil, &health); err != nil {
-
 		return &HealthStatus{
-
 			Status: "unhealthy",
 
 			Message: fmt.Sprintf("failed to connect: %v", err),
 
 			Timestamp: time.Now(),
 		}, nil
-
 	}
 
 	return &health, nil
-
 }
 
 // Close closes the monitoring client and cleans up resources.
 
 func (c *MTLSMonitoringClient) Close() error {
-
 	c.logger.Debug("closing mTLS monitoring client")
 
 	// Close idle connections in HTTP client.
 
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
-
 		transport.CloseIdleConnections()
-
 	}
 
 	return nil
-
 }
 
 // SilenceData represents alert silence data.

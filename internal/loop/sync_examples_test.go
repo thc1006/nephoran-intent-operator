@@ -15,7 +15,6 @@ import (
 // TestFixedOnceMode demonstrates how to fix race conditions in once mode tests.
 
 func TestFixedOnceMode(t *testing.T) {
-
 	// Create test synchronization helper.
 
 	syncHelper := NewTestSyncHelper(t)
@@ -27,7 +26,6 @@ func TestFixedOnceMode(t *testing.T) {
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-deployment"}, "count": 3}}`
 
 	expectedFiles := []string{
-
 		"intent-test-1.json",
 
 		"intent-test-2.json",
@@ -56,7 +54,6 @@ func TestFixedOnceMode(t *testing.T) {
 	// Step 3: Create mock porch with tracking.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Processing completed successfully",
@@ -72,7 +69,6 @@ func TestFixedOnceMode(t *testing.T) {
 	// Step 4: Configure watcher with once mode.
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -111,13 +107,11 @@ func TestFixedOnceMode(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Logf("Successfully processed %d files in once mode", len(expectedFiles))
-
 }
 
 // TestConcurrentFileProcessing demonstrates race condition-free concurrent testing.
 
 func TestConcurrentFileProcessing(t *testing.T) {
-
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -143,7 +137,6 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	// Create mock porch with processing delay.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Processed successfully",
@@ -157,7 +150,6 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	// Configure watcher.
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -189,11 +181,9 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	startTime := time.Now()
 
 	go func() {
-
 		err := watcher.Start()
 
 		assert.NoError(t, err)
-
 	}()
 
 	// Wait for completion.
@@ -211,13 +201,11 @@ func TestConcurrentFileProcessing(t *testing.T) {
 	err = syncHelper.VerifyProcessingResults(0, numFiles)
 
 	require.NoError(t, err)
-
 }
 
 // TestFailureHandling demonstrates proper failure handling synchronization.
 
 func TestFailureHandling(t *testing.T) {
-
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -241,7 +229,6 @@ func TestFailureHandling(t *testing.T) {
 	// Create mock porch that will succeed for valid files.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Success",
@@ -254,7 +241,6 @@ func TestFailureHandling(t *testing.T) {
 	// Configure watcher.
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -293,13 +279,11 @@ func TestFailureHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Successfully handled mixed valid/invalid files")
-
 }
 
 // TestCrossPlatformTiming demonstrates cross-platform timing considerations.
 
 func TestCrossPlatformTiming(t *testing.T) {
-
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -329,7 +313,6 @@ func TestCrossPlatformTiming(t *testing.T) {
 	// Create mock porch.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Cross-platform success",
@@ -342,7 +325,6 @@ func TestCrossPlatformTiming(t *testing.T) {
 	// Configure with platform-appropriate timeouts.
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -379,13 +361,11 @@ func TestCrossPlatformTiming(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Cross-platform timing test completed successfully")
-
 }
 
 // TestFilePatternValidation demonstrates fixing filename pattern issues.
 
 func TestFilePatternValidation(t *testing.T) {
-
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -397,7 +377,6 @@ func TestFilePatternValidation(t *testing.T) {
 	// These will be automatically converted to intent-*.json pattern.
 
 	testFiles := []string{
-
 		"concurrent-1.json", // Will become intent-concurrent-1.json
 
 		"test-file.json", // Will become intent-test-file.json
@@ -435,7 +414,6 @@ func TestFilePatternValidation(t *testing.T) {
 	// Create mock porch.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Pattern validation success",
@@ -446,7 +424,6 @@ func TestFilePatternValidation(t *testing.T) {
 	// Configure watcher.
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -481,13 +458,11 @@ func TestFilePatternValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Filename pattern validation test completed successfully")
-
 }
 
 // TestDebugTracking demonstrates comprehensive debug tracking.
 
 func TestDebugTracking(t *testing.T) {
-
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -517,7 +492,6 @@ func TestDebugTracking(t *testing.T) {
 	// Create mock porch with tracking.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Debug tracking success",
@@ -530,7 +504,6 @@ func TestDebugTracking(t *testing.T) {
 	// Configure watcher.
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -584,15 +557,12 @@ func TestDebugTracking(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Debug tracking test completed successfully")
-
 }
 
 // TestSynchronizationTimeoutError tests the custom timeout error.
 
 func TestSynchronizationTimeoutError(t *testing.T) {
-
 	err := &SynchronizationTimeoutError{
-
 		Operation: "test operation",
 
 		Expected: 5,
@@ -605,13 +575,11 @@ func TestSynchronizationTimeoutError(t *testing.T) {
 	expectedMsg := "synchronization timeout for test operation: expected 5, got 3 after 2s"
 
 	assert.Equal(t, expectedMsg, err.Error())
-
 }
 
 // BenchmarkSynchronizedProcessing benchmarks the synchronized processing approach.
 
 func BenchmarkSynchronizedProcessing(b *testing.B) {
-
 	syncHelper := NewTestSyncHelper(b)
 
 	defer syncHelper.Cleanup()
@@ -621,7 +589,6 @@ func BenchmarkSynchronizedProcessing(b *testing.B) {
 	// Create mock porch.
 
 	mockConfig := MockPorchConfig{
-
 		ExitCode: 0,
 
 		Stdout: "Benchmark success",
@@ -633,7 +600,6 @@ func BenchmarkSynchronizedProcessing(b *testing.B) {
 	mockPorchPath, _ := syncHelper.CreateMockPorch(mockConfig)
 
 	config := Config{
-
 		PorchPath: mockPorchPath,
 
 		Mode: "direct",
@@ -680,5 +646,4 @@ func BenchmarkSynchronizedProcessing(b *testing.B) {
 		enhancedWatcher.Close()
 
 	}
-
 }

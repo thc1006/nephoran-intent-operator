@@ -118,9 +118,7 @@ type RemediationAction struct {
 // NewSOC2Tracker creates a new SOC 2 tracker.
 
 func NewSOC2Tracker() *SOC2Tracker {
-
 	tracker := &SOC2Tracker{
-
 		securityControls: make(map[string]ControlStatus),
 
 		availabilityControls: make(map[string]ControlStatus),
@@ -137,15 +135,12 @@ func NewSOC2Tracker() *SOC2Tracker {
 	tracker.initializeSOC2Controls()
 
 	return tracker
-
 }
 
 // NewISO27001Tracker creates a new ISO 27001 tracker.
 
 func NewISO27001Tracker() *ISO27001Tracker {
-
 	tracker := &ISO27001Tracker{
-
 		annexAControls: make(map[string]ControlStatus),
 	}
 
@@ -154,15 +149,12 @@ func NewISO27001Tracker() *ISO27001Tracker {
 	tracker.initializeISO27001Controls()
 
 	return tracker
-
 }
 
 // NewPCIDSSTracker creates a new PCI DSS tracker.
 
 func NewPCIDSSTracker() *PCIDSSTracker {
-
 	tracker := &PCIDSSTracker{
-
 		requirements: make(map[string]ControlStatus),
 	}
 
@@ -171,7 +163,6 @@ func NewPCIDSSTracker() *PCIDSSTracker {
 	tracker.initializePCIDSSRequirements()
 
 	return tracker
-
 }
 
 // SOC2Tracker methods.
@@ -179,7 +170,6 @@ func NewPCIDSSTracker() *PCIDSSTracker {
 // ProcessEvent performs processevent operation.
 
 func (st *SOC2Tracker) ProcessEvent(event *types.AuditEvent) {
-
 	st.mutex.Lock()
 
 	defer st.mutex.Unlock()
@@ -221,19 +211,16 @@ func (st *SOC2Tracker) ProcessEvent(event *types.AuditEvent) {
 		st.updateControlStatus("CC7.1", event)
 
 	}
-
 }
 
 // GetStatus performs getstatus operation.
 
 func (st *SOC2Tracker) GetStatus() map[string]interface{} {
-
 	st.mutex.RLock()
 
 	defer st.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"standard": "SOC2",
 
 		"authentication_events": st.authenticationEvents,
@@ -258,15 +245,12 @@ func (st *SOC2Tracker) GetStatus() map[string]interface{} {
 
 		"privacy": st.privacyControls,
 	}
-
 }
 
 func (st *SOC2Tracker) initializeSOC2Controls() {
-
 	// Common Criteria (CC) - Security.
 
 	st.securityControls["CC6.1"] = ControlStatus{
-
 		ControlID: "CC6.1",
 
 		Status: "compliant",
@@ -280,7 +264,6 @@ func (st *SOC2Tracker) initializeSOC2Controls() {
 	}
 
 	st.securityControls["CC6.2"] = ControlStatus{
-
 		ControlID: "CC6.2",
 
 		Status: "compliant",
@@ -293,7 +276,6 @@ func (st *SOC2Tracker) initializeSOC2Controls() {
 	}
 
 	st.securityControls["CC6.7"] = ControlStatus{
-
 		ControlID: "CC6.7",
 
 		Status: "compliant",
@@ -308,7 +290,6 @@ func (st *SOC2Tracker) initializeSOC2Controls() {
 	// Additional controls for Availability, Processing Integrity, etc.
 
 	st.availabilityControls["A1.1"] = ControlStatus{
-
 		ControlID: "A1.1",
 
 		Status: "compliant",
@@ -319,11 +300,9 @@ func (st *SOC2Tracker) initializeSOC2Controls() {
 
 		NextReview: time.Now().AddDate(0, 3, 0),
 	}
-
 }
 
 func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditEvent) {
-
 	// Update control status based on event.
 
 	if control, exists := st.securityControls[controlID]; exists {
@@ -349,7 +328,6 @@ func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditE
 		st.securityControls[controlID] = control
 
 	}
-
 }
 
 // ISO27001Tracker methods.
@@ -357,7 +335,6 @@ func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditE
 // ProcessEvent performs processevent operation.
 
 func (it *ISO27001Tracker) ProcessEvent(event *types.AuditEvent) {
-
 	it.mutex.Lock()
 
 	defer it.mutex.Unlock()
@@ -397,19 +374,16 @@ func (it *ISO27001Tracker) ProcessEvent(event *types.AuditEvent) {
 		it.updateControlStatus("A.12.1.2", event)
 
 	}
-
 }
 
 // GetStatus performs getstatus operation.
 
 func (it *ISO27001Tracker) GetStatus() map[string]interface{} {
-
 	it.mutex.RLock()
 
 	defer it.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"standard": "ISO27001",
 
 		"information_security": it.informationSecurity,
@@ -424,15 +398,12 @@ func (it *ISO27001Tracker) GetStatus() map[string]interface{} {
 
 		"annex_a_controls": it.annexAControls,
 	}
-
 }
 
 func (it *ISO27001Tracker) initializeISO27001Controls() {
-
 	// A.9 - Access Control.
 
 	it.annexAControls["A.9.2.1"] = ControlStatus{
-
 		ControlID: "A.9.2.1",
 
 		Status: "compliant",
@@ -446,7 +417,6 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 	}
 
 	it.annexAControls["A.9.2.2"] = ControlStatus{
-
 		ControlID: "A.9.2.2",
 
 		Status: "compliant",
@@ -461,7 +431,6 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 	// A.12 - Operations Security.
 
 	it.annexAControls["A.12.4.1"] = ControlStatus{
-
 		ControlID: "A.12.4.1",
 
 		Status: "compliant",
@@ -476,7 +445,6 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 	// A.16 - Information Security Incident Management.
 
 	it.annexAControls["A.16.1.1"] = ControlStatus{
-
 		ControlID: "A.16.1.1",
 
 		Status: "compliant",
@@ -487,11 +455,9 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 
 		NextReview: time.Now().AddDate(1, 0, 0),
 	}
-
 }
 
 func (it *ISO27001Tracker) updateControlStatus(controlID string, event *types.AuditEvent) {
-
 	if control, exists := it.annexAControls[controlID]; exists {
 
 		control.EvidenceCount++
@@ -515,7 +481,6 @@ func (it *ISO27001Tracker) updateControlStatus(controlID string, event *types.Au
 		it.annexAControls[controlID] = control
 
 	}
-
 }
 
 // PCIDSSTracker methods.
@@ -523,7 +488,6 @@ func (it *ISO27001Tracker) updateControlStatus(controlID string, event *types.Au
 // ProcessEvent performs processevent operation.
 
 func (pt *PCIDSSTracker) ProcessEvent(event *types.AuditEvent) {
-
 	pt.mutex.Lock()
 
 	defer pt.mutex.Unlock()
@@ -559,19 +523,16 @@ func (pt *PCIDSSTracker) ProcessEvent(event *types.AuditEvent) {
 		pt.updateControlStatus("6.1.1", event)
 
 	}
-
 }
 
 // GetStatus performs getstatus operation.
 
 func (pt *PCIDSSTracker) GetStatus() map[string]interface{} {
-
 	pt.mutex.RLock()
 
 	defer pt.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"standard": "PCI_DSS",
 
 		"cardholder_data_access": pt.cardholderDataAccess,
@@ -586,15 +547,12 @@ func (pt *PCIDSSTracker) GetStatus() map[string]interface{} {
 
 		"requirements": pt.requirements,
 	}
-
 }
 
 func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
-
 	// Requirement 1: Install and maintain a firewall configuration.
 
 	pt.requirements["1.1.1"] = ControlStatus{
-
 		ControlID: "1.1.1",
 
 		Status: "compliant",
@@ -610,7 +568,6 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 	// Requirement 6: Develop and maintain secure systems and applications.
 
 	pt.requirements["6.1.1"] = ControlStatus{
-
 		ControlID: "6.1.1",
 
 		Status: "compliant",
@@ -626,7 +583,6 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 	// Requirement 7: Restrict access to cardholder data by business need-to-know.
 
 	pt.requirements["7.1.1"] = ControlStatus{
-
 		ControlID: "7.1.1",
 
 		Status: "compliant",
@@ -641,7 +597,6 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 	// Requirement 8: Identify and authenticate access to system components.
 
 	pt.requirements["8.1.1"] = ControlStatus{
-
 		ControlID: "8.1.1",
 
 		Status: "compliant",
@@ -656,7 +611,6 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 	// Requirement 10: Track and monitor all access to network resources and cardholder data.
 
 	pt.requirements["10.2.1"] = ControlStatus{
-
 		ControlID: "10.2.1",
 
 		Status: "compliant",
@@ -667,11 +621,9 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 
 		NextReview: time.Now().AddDate(0, 3, 0),
 	}
-
 }
 
 func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *types.AuditEvent) {
-
 	if control, exists := pt.requirements[controlID]; exists {
 
 		control.EvidenceCount++
@@ -697,7 +649,6 @@ func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *types.Audi
 		pt.requirements[controlID] = control
 
 	}
-
 }
 
 // Utility functions for all trackers.
@@ -705,53 +656,35 @@ func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *types.Audi
 // AddRemediation performs addremediation operation.
 
 func (cs *ControlStatus) AddRemediation(action RemediationAction) {
-
 	if cs.Remediation == nil {
-
 		cs.Remediation = make([]RemediationAction, 0)
-
 	}
 
 	cs.Remediation = append(cs.Remediation, action)
-
 }
 
 // UpdateRiskLevel performs updaterisklevel operation.
 
 func (cs *ControlStatus) UpdateRiskLevel() {
-
 	if cs.ViolationCount == 0 {
-
 		cs.RiskLevel = "low"
-
 	} else if cs.ViolationCount <= 3 {
-
 		cs.RiskLevel = "medium"
-
 	} else if cs.ViolationCount <= 10 {
-
 		cs.RiskLevel = "high"
-
 	} else {
-
 		cs.RiskLevel = "critical"
-
 	}
-
 }
 
 // IsCompliant performs iscompliant operation.
 
 func (cs *ControlStatus) IsCompliant() bool {
-
 	return cs.Status == "compliant"
-
 }
 
 // NeedsReview performs needsreview operation.
 
 func (cs *ControlStatus) NeedsReview() bool {
-
 	return time.Now().After(cs.NextReview)
-
 }

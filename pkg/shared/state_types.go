@@ -41,7 +41,6 @@ import (
 // IntentState represents the complete state of a network intent.
 
 type IntentState struct {
-
 	// Basic identification.
 
 	NamespacedName types.NamespacedName `json:"namespacedName"`

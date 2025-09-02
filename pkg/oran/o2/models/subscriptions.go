@@ -53,7 +53,6 @@ type Subscription struct {
 // SubscriptionFilter defines filters for event subscriptions.
 
 type SubscriptionFilter struct {
-
 	// Resource filters.
 
 	ResourceTypes []string `json:"resourceTypes,omitempty"`
@@ -109,13 +108,11 @@ type TimeOfDayWindow struct {
 	EndHour int `json:"endHour"` // 0-23
 
 	EndMinute int `json:"endMinute"` // 0-59
-
 }
 
 // EventConfiguration defines event delivery configuration.
 
 type EventConfiguration struct {
-
 	// Delivery options.
 
 	DeliveryMethod string `json:"deliveryMethod"` // webhook, queue, stream
@@ -209,7 +206,6 @@ type OAuth2Config struct {
 	Scope []string `json:"scope,omitempty"`
 
 	GrantType string `json:"grantType"` // client_credentials, authorization_code
-
 }
 
 // CertificateConfig defines certificate-based authentication.

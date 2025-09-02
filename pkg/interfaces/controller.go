@@ -7,8 +7,10 @@ import (
 )
 
 // Type aliases for backward compatibility
-type ComponentType = contracts.ComponentType
-type ProcessingPhase = contracts.ProcessingPhase
+type (
+	ComponentType   = contracts.ComponentType
+	ProcessingPhase = contracts.ProcessingPhase
+)
 
 // Component type constants
 const (

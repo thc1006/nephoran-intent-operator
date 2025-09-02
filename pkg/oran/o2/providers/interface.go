@@ -12,7 +12,6 @@ import (
 // consistent O2 IMS operations across different infrastructure layers.
 
 type CloudProvider interface {
-
 	// Provider identification and metadata.
 
 	GetProviderInfo() *ProviderInfo
@@ -131,7 +130,6 @@ type ProviderInfo struct {
 // ProviderCapabilities describes the capabilities of a cloud provider.
 
 type ProviderCapabilities struct {
-
 	// Supported resource types.
 
 	ComputeTypes []string `json:"computeTypes"`
@@ -531,7 +529,6 @@ type NetworkRule struct {
 	Ports []*NetworkPort `json:"ports,omitempty"`
 
 	Action string `json:"action"` // allow, deny
-
 }
 
 // NetworkRuleSelector represents a selector for network rules.

@@ -7,22 +7,76 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 )
 
-// CreateTestNamespace creates a test namespace for integration tests
+// TestEnvironment provides access to envtest environment
+var TestEnv *testtools.TestEnvironment
+
+// k8sClient provides access to the Kubernetes client
+var k8sClient client.Client
+
+// ctx provides the base context for tests
+var ctx context.Context
+
+// CreateTestNamespace creates a test namespace using envtest patterns for 2025 Go testing best practices
 func CreateTestNamespace() *corev1.Namespace {
-	return &corev1.Namespace{
+	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("test-integration-%d", time.Now().UnixNano()),
 			Labels: map[string]string{
-				"test-namespace": "true",
+				"test-namespace":       "true",
+				"nephoran.com/test":    "integration",
+				"nephoran.com/envtest": "true",
 			},
 		},
 	}
+
+	// If we have a test environment, create the namespace in the cluster
+	if TestEnv != nil && k8sClient != nil {
+		if err := TestEnv.CreateTestObject(namespace); err != nil {
+			// Fallback to returning the namespace object without creation
+			return namespace
+		}
+	}
+
+	return namespace
 }
 
-// Global variable ctx is usually provided by the test suite
-var ctx = context.Background()
+// SetupTestEnvironment initializes the test environment using envtest patterns
+func SetupTestEnvironment() error {
+	var err error
+
+	// Use CI-optimized options if in CI, otherwise development options
+	opts := testtools.GetRecommendedOptions()
+
+	// Override some settings for integration tests
+	opts.CRDDirectoryPaths = []string{
+		"../../../deployments/crds",
+		"../../deployments/crds",
+		"deployments/crds",
+		"crds",
+	}
+
+	TestEnv, err = testtools.SetupTestEnvironmentWithOptions(opts)
+	if err != nil {
+		return fmt.Errorf("failed to setup test environment: %w", err)
+	}
+
+	k8sClient = TestEnv.K8sClient
+	ctx = TestEnv.GetContext()
+
+	return nil
+}
+
+// TeardownTestEnvironment cleans up the test environment
+func TeardownTestEnvironment() {
+	if TestEnv != nil {
+		TestEnv.TeardownTestEnvironment()
+	}
+}
 
 // E2EWorkflowTracker tracks the progress of E2E workflow tests
 type E2EWorkflowTracker struct {

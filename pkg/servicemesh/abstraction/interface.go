@@ -37,7 +37,6 @@ const (
 // ServiceMeshInterface defines the universal interface for service mesh operations.
 
 type ServiceMeshInterface interface {
-
 	// Initialize sets up the service mesh provider.
 
 	Initialize(ctx context.Context, config *ServiceMeshConfig) error
@@ -127,7 +126,6 @@ type CertificateConfig struct {
 	SPIREServerURL string `json:"spireServerUrl,omitempty"`
 
 	CertStorage string `json:"certStorage"` // "secret", "configmap", "external"
-
 }
 
 // PolicyDefaults defines default policy configurations.
@@ -220,7 +218,6 @@ type MTLSPolicySpec struct {
 	PortLevelMTLS []PortMTLS `json:"portLevelMtls,omitempty"`
 
 	Exceptions []string `json:"exceptions,omitempty"` // Service names exempt from policy
-
 }
 
 // PortMTLS defines port-specific mTLS configuration.
@@ -479,7 +476,6 @@ type PolicyCompliance struct {
 	NetworkSegmented bool `json:"networkSegmented"`
 
 	ComplianceScore float64 `json:"complianceScore"` // 0-100
-
 }
 
 // DependencyGraph represents service dependencies.
@@ -524,7 +520,6 @@ type ServiceEdge struct {
 	Latency float64 `json:"latency"` // milliseconds
 
 	ErrorRate float64 `json:"errorRate"` // percentage
-
 }
 
 // MTLSStatusReport provides comprehensive mTLS status.
@@ -619,7 +614,6 @@ const (
 // CertificateProvider manages certificates for the service mesh.
 
 type CertificateProvider interface {
-
 	// IssueCertificate issues a new certificate for a service.
 
 	IssueCertificate(ctx context.Context, service, namespace string) (*x509.Certificate, error)

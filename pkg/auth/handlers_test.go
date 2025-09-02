@@ -3,15 +3,12 @@ package auth_test
 import (
 	"bytes"
 	"context"
-	"crypto/rsa"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
@@ -25,7 +22,7 @@ func createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager interf
 	sm := sessionManager.(*auth.SessionManager)
 	jm := jwtManager.(*auth.JWTManager)
 	rm := rbacManager.(*auth.RBACManager)
-	
+
 	// Use the strongly typed version from handlers.go
 	return auth.NewAuthHandlers(sm, jm, rm, config)
 }

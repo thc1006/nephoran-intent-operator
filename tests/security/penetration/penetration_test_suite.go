@@ -748,8 +748,8 @@ func (s *PenetrationTestSuite) generatePenetrationReport() {
 	// Save report to file
 	reportData, _ := json.MarshalIndent(s.testResults, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/penetration-test-report-%s.json", s.testResults.TestID)
-	os.MkdirAll("test-results/security", 0755)
-	os.WriteFile(reportFile, reportData, 0644)
+	os.MkdirAll("test-results/security", 0o755)
+	os.WriteFile(reportFile, reportData, 0o644)
 
 	// Generate HTML report
 	s.generateHTMLReport()
@@ -840,5 +840,5 @@ func (s *PenetrationTestSuite) generateHTMLReport() {
 	)
 
 	htmlFile := fmt.Sprintf("test-results/security/penetration-test-report-%s.html", s.testResults.TestID)
-	os.WriteFile(htmlFile, []byte(htmlContent), 0644)
+	os.WriteFile(htmlFile, []byte(htmlContent), 0o644)
 }

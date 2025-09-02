@@ -46,7 +46,6 @@ import (
 // when converting from string to int32 (G109/G115 security fix)
 
 func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
-
 	r := &E2NodeSetReconciler{}
 
 	tests := []struct {
@@ -58,9 +57,7 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 
 		description string
 	}{
-
 		{
-
 			name: "valid small positive index",
 
 			indexValue: "5",
@@ -71,7 +68,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "valid large positive index",
 
 			indexValue: "2147483647", // MaxInt32
@@ -82,7 +78,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "negative index",
 
 			indexValue: "-1",
@@ -93,7 +88,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "overflow beyond int32 max",
 
 			indexValue: "2147483648", // MaxInt32 + 1
@@ -104,7 +98,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "very large overflow",
 
 			indexValue: "9223372036854775807", // MaxInt64
@@ -115,7 +108,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "invalid non-numeric",
 
 			indexValue: "abc",
@@ -126,7 +118,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "empty string",
 
 			indexValue: "",
@@ -137,7 +128,6 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 		},
 
 		{
-
 			name: "zero index",
 
 			indexValue: "0",
@@ -149,15 +139,11 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
-
 			// Create a ConfigMap with the test index value
 
 			cm := &corev1.ConfigMap{
-
 				ObjectMeta: metav1.ObjectMeta{
-
 					Name: "test-config",
 
 					Namespace: "default",
@@ -167,9 +153,7 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 			}
 
 			if tt.indexValue != "" {
-
 				cm.Labels[E2NodeIndexLabelKey] = tt.indexValue
-
 			}
 
 			// Call the function under test
@@ -179,17 +163,12 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 			// Verify the result
 
 			if result != tt.expectedIndex {
-
 				t.Errorf("%s: Expected index %d, got %d",
 
 					tt.description, tt.expectedIndex, result)
-
 			}
-
 		})
-
 	}
-
 }
 
 // TestGetNodeIndexFromConfigMapMissingLabel verifies behavior when
@@ -197,19 +176,15 @@ func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 // the index label is missing from the ConfigMap
 
 func TestGetNodeIndexFromConfigMapMissingLabel(t *testing.T) {
-
 	r := &E2NodeSetReconciler{}
 
 	cm := &corev1.ConfigMap{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: "test-config",
 
 			Namespace: "default",
 
 			Labels: map[string]string{
-
 				"other-label": "value",
 			},
 		},
@@ -218,11 +193,8 @@ func TestGetNodeIndexFromConfigMapMissingLabel(t *testing.T) {
 	result := r.getNodeIndexFromConfigMap(cm)
 
 	if result != 0 {
-
 		t.Errorf("Expected 0 for missing label, got %d", result)
-
 	}
-
 }
 
 // TestIntegerBoundsValidation verifies that our integer conversion
@@ -230,7 +202,6 @@ func TestGetNodeIndexFromConfigMapMissingLabel(t *testing.T) {
 // bounds checking works correctly for edge cases
 
 func TestIntegerBoundsValidation(t *testing.T) {
-
 	tests := []struct {
 		name string
 
@@ -238,9 +209,7 @@ func TestIntegerBoundsValidation(t *testing.T) {
 
 		expected int32
 	}{
-
 		{
-
 			name: "within bounds positive",
 
 			input: 1000,
@@ -249,7 +218,6 @@ func TestIntegerBoundsValidation(t *testing.T) {
 		},
 
 		{
-
 			name: "max int32",
 
 			input: math.MaxInt32,
@@ -258,7 +226,6 @@ func TestIntegerBoundsValidation(t *testing.T) {
 		},
 
 		{
-
 			name: "min int32",
 
 			input: 0,
@@ -268,31 +235,22 @@ func TestIntegerBoundsValidation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
-
 			// Simulate the bounds checking logic
 
 			value := tt.input
 
 			if value < 0 || value > math.MaxInt32 {
-
 				value = 0 // Default for out of bounds
-
 			}
 
 			result := int32(value)
 
 			if result != tt.expected {
-
 				t.Errorf("Expected %d, got %d", tt.expected, result)
-
 			}
-
 		})
-
 	}
-
 }
 
 // BenchmarkGetNodeIndexFromConfigMap benchmarks the performance
@@ -300,19 +258,15 @@ func TestIntegerBoundsValidation(t *testing.T) {
 // of the integer conversion with bounds checking
 
 func BenchmarkGetNodeIndexFromConfigMap(b *testing.B) {
-
 	r := &E2NodeSetReconciler{}
 
 	cm := &corev1.ConfigMap{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: "bench-config",
 
 			Namespace: "default",
 
 			Labels: map[string]string{
-
 				E2NodeIndexLabelKey: fmt.Sprintf("%d", math.MaxInt32),
 			},
 		},
@@ -321,9 +275,6 @@ func BenchmarkGetNodeIndexFromConfigMap(b *testing.B) {
 	b.ResetTimer()
 
 	for range b.N {
-
 		_ = r.getNodeIndexFromConfigMap(cm)
-
 	}
-
 }

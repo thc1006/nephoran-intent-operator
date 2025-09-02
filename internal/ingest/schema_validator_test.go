@@ -91,7 +91,7 @@ func createTestSchemaFile(t TestingT) string {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(schemaFile, schemaData, 0644)
+	err = ioutil.WriteFile(schemaFile, schemaData, 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestNewIntentSchemaValidator(t *testing.T) {
 		tempDir := t.TempDir()
 		invalidSchemaFile := filepath.Join(tempDir, "invalid-schema.json")
 
-		err := ioutil.WriteFile(invalidSchemaFile, []byte("invalid json {"), 0644)
+		err := ioutil.WriteFile(invalidSchemaFile, []byte("invalid json {"), 0o644)
 		require.NoError(t, err)
 
 		_, err = NewIntentSchemaValidator(invalidSchemaFile)
@@ -132,13 +132,13 @@ func TestNewIntentSchemaValidator(t *testing.T) {
 		// Create default schema directory and file
 		tempDir := t.TempDir()
 		docsDir := filepath.Join(tempDir, "docs", "contracts")
-		err := os.MkdirAll(docsDir, 0755)
+		err := os.MkdirAll(docsDir, 0o755)
 		require.NoError(t, err)
 
 		defaultSchemaFile := filepath.Join(docsDir, "intent.schema.json")
 		schemaData, err := json.Marshal(testSchema)
 		require.NoError(t, err)
-		err = ioutil.WriteFile(defaultSchemaFile, schemaData, 0644)
+		err = ioutil.WriteFile(defaultSchemaFile, schemaData, 0o644)
 		require.NoError(t, err)
 
 		// Change working directory temporarily
@@ -402,7 +402,7 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 		// Write updated schema to file
 		schemaData, err := json.Marshal(updatedSchema)
 		require.NoError(t, err)
-		err = ioutil.WriteFile(schemaFile, schemaData, 0644)
+		err = ioutil.WriteFile(schemaFile, schemaData, 0o644)
 		require.NoError(t, err)
 
 		// Update the validator

@@ -13,7 +13,6 @@ import (
 // TimeoutConfig holds timeout configuration for different operation types.
 
 type TimeoutConfig struct {
-
 	// LLM processing timeout.
 
 	LLMTimeout time.Duration `json:"llm_timeout" yaml:"llm_timeout"`
@@ -46,9 +45,7 @@ type TimeoutConfig struct {
 // DefaultTimeoutConfig returns the default timeout configuration.
 
 func DefaultTimeoutConfig() *TimeoutConfig {
-
 	return &TimeoutConfig{
-
 		LLMTimeout: 30 * time.Second,
 
 		GitTimeout: 60 * time.Second,
@@ -63,7 +60,6 @@ func DefaultTimeoutConfig() *TimeoutConfig {
 
 		DefaultTimeout: 30 * time.Second,
 	}
-
 }
 
 // OperationType represents different types of operations that can timeout.
@@ -116,28 +112,22 @@ type TimeoutManager struct {
 // NewTimeoutManager creates a new timeout manager.
 
 func NewTimeoutManager(config *TimeoutConfig, metricsCollector monitoring.MetricsCollector) *TimeoutManager {
-
 	if config == nil {
-
 		config = DefaultTimeoutConfig()
-
 	}
 
 	return &TimeoutManager{
-
 		config: config,
 
 		metricsCollector: metricsCollector,
 
 		activeContexts: make(map[string]context.CancelFunc),
 	}
-
 }
 
 // GetTimeoutForOperation returns the configured timeout for a specific operation type.
 
 func (tm *TimeoutManager) GetTimeoutForOperation(operationType OperationType) time.Duration {
-
 	switch operationType {
 
 	case OperationTypeLLM:
@@ -169,23 +159,19 @@ func (tm *TimeoutManager) GetTimeoutForOperation(operationType OperationType) ti
 		return tm.config.DefaultTimeout
 
 	}
-
 }
 
 // CreateTimeoutContext creates a context with timeout for the specified operation type.
 
 func (tm *TimeoutManager) CreateTimeoutContext(parent context.Context, operationType OperationType) (context.Context, context.CancelFunc) {
-
 	timeout := tm.GetTimeoutForOperation(operationType)
 
 	return context.WithTimeout(parent, timeout)
-
 }
 
 // CreateTimeoutContextWithID creates a context with timeout and tracks it with an ID.
 
 func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, operationType OperationType, contextID string) (context.Context, context.CancelFunc) {
-
 	timeout := tm.GetTimeoutForOperation(operationType)
 
 	ctx, cancel := context.WithTimeout(parent, timeout)
@@ -201,7 +187,6 @@ func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, ope
 	// Return a cancel function that also removes tracking.
 
 	wrappedCancel := func() {
-
 		tm.mutex.Lock()
 
 		delete(tm.activeContexts, contextID)
@@ -209,25 +194,20 @@ func (tm *TimeoutManager) CreateTimeoutContextWithID(parent context.Context, ope
 		tm.mutex.Unlock()
 
 		cancel()
-
 	}
 
 	return ctx, wrappedCancel
-
 }
 
 // ExecuteWithTimeout executes a function with timeout for the specified operation type.
 
 func (tm *TimeoutManager) ExecuteWithTimeout(
-
 	ctx context.Context,
 
 	operationType OperationType,
 
 	operation func(context.Context) (interface{}, error),
-
 ) (interface{}, error) {
-
 	startTime := time.Now()
 
 	// Create timeout context.
@@ -245,29 +225,19 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 	// Execute operation in goroutine.
 
 	go func() {
-
 		defer func() {
-
 			if r := recover(); r != nil {
-
 				errorChan <- fmt.Errorf("operation panicked: %v", r)
-
 			}
-
 		}()
 
 		result, err := operation(timeoutCtx)
 
 		if err != nil {
-
 			errorChan <- err
-
 		} else {
-
 			resultChan <- result
-
 		}
-
 	}()
 
 	// Wait for result or timeout.
@@ -301,21 +271,17 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 		return nil, timeoutErr
 
 	}
-
 }
 
 // ExecuteWithCustomTimeout executes a function with a custom timeout.
 
 func (tm *TimeoutManager) ExecuteWithCustomTimeout(
-
 	ctx context.Context,
 
 	timeout time.Duration,
 
 	operation func(context.Context) (interface{}, error),
-
 ) (interface{}, error) {
-
 	startTime := time.Now()
 
 	// Create timeout context.
@@ -333,29 +299,19 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 	// Execute operation in goroutine.
 
 	go func() {
-
 		defer func() {
-
 			if r := recover(); r != nil {
-
 				errorChan <- fmt.Errorf("operation panicked: %v", r)
-
 			}
-
 		}()
 
 		result, err := operation(timeoutCtx)
 
 		if err != nil {
-
 			errorChan <- err
-
 		} else {
-
 			resultChan <- result
-
 		}
-
 	}()
 
 	// Wait for result or timeout.
@@ -389,13 +345,11 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 		return nil, timeoutErr
 
 	}
-
 }
 
 // ExecuteWithGracefulDegradation executes an operation with graceful degradation on timeout.
 
 func (tm *TimeoutManager) ExecuteWithGracefulDegradation(
-
 	ctx context.Context,
 
 	operationType OperationType,
@@ -403,27 +357,21 @@ func (tm *TimeoutManager) ExecuteWithGracefulDegradation(
 	operation func(context.Context) (interface{}, error),
 
 	fallback func(context.Context, error) (interface{}, error),
-
 ) (interface{}, error) {
-
 	result, err := tm.ExecuteWithTimeout(ctx, operationType, operation)
 
 	// If timeout occurred and fallback is provided, use fallback.
 
 	if err != nil && isTimeoutError(err) && fallback != nil {
-
 		return fallback(ctx, err)
-
 	}
 
 	return result, err
-
 }
 
 // CancelContext cancels a tracked context by ID.
 
 func (tm *TimeoutManager) CancelContext(contextID string) bool {
-
 	tm.mutex.Lock()
 
 	defer tm.mutex.Unlock()
@@ -439,25 +387,21 @@ func (tm *TimeoutManager) CancelContext(contextID string) bool {
 	}
 
 	return false
-
 }
 
 // GetActiveContextCount returns the number of active tracked contexts.
 
 func (tm *TimeoutManager) GetActiveContextCount() int {
-
 	tm.mutex.RLock()
 
 	defer tm.mutex.RUnlock()
 
 	return len(tm.activeContexts)
-
 }
 
 // CancelAllContexts cancels all tracked contexts.
 
 func (tm *TimeoutManager) CancelAllContexts() {
-
 	tm.mutex.Lock()
 
 	defer tm.mutex.Unlock()
@@ -469,25 +413,21 @@ func (tm *TimeoutManager) CancelAllContexts() {
 		delete(tm.activeContexts, contextID)
 
 	}
-
 }
 
 // UpdateConfig updates the timeout configuration.
 
 func (tm *TimeoutManager) UpdateConfig(config *TimeoutConfig) {
-
 	tm.mutex.Lock()
 
 	defer tm.mutex.Unlock()
 
 	tm.config = config
-
 }
 
 // GetConfig returns the current timeout configuration.
 
 func (tm *TimeoutManager) GetConfig() *TimeoutConfig {
-
 	tm.mutex.RLock()
 
 	defer tm.mutex.RUnlock()
@@ -495,7 +435,6 @@ func (tm *TimeoutManager) GetConfig() *TimeoutConfig {
 	// Return a copy to prevent external modification.
 
 	return &TimeoutConfig{
-
 		LLMTimeout: tm.config.LLMTimeout,
 
 		GitTimeout: tm.config.GitTimeout,
@@ -510,17 +449,13 @@ func (tm *TimeoutManager) GetConfig() *TimeoutConfig {
 
 		DefaultTimeout: tm.config.DefaultTimeout,
 	}
-
 }
 
 // recordSuccess records a successful operation.
 
 func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration time.Duration) {
-
 	if tm.metricsCollector == nil {
-
 		return
-
 	}
 
 	_ = operationType // avoid unused variable
@@ -535,17 +470,13 @@ func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration ti
 		// For now, we don't have a direct interface method for generic operation metrics
 		// This would need to be added to the MetricsCollector interface if needed
 	}
-
 }
 
 // recordError records a failed operation.
 
 func (tm *TimeoutManager) recordError(operationType OperationType, duration time.Duration, err error) {
-
 	if tm.metricsCollector == nil {
-
 		return
-
 	}
 
 	_ = operationType // avoid unused variable
@@ -560,17 +491,13 @@ func (tm *TimeoutManager) recordError(operationType OperationType, duration time
 		// For now, we don't have a direct interface method for generic operation metrics
 		// This would need to be added to the MetricsCollector interface if needed
 	}
-
 }
 
 // recordTimeout records a timed out operation.
 
 func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration time.Duration) {
-
 	if tm.metricsCollector == nil {
-
 		return
-
 	}
 
 	_ = operationType // avoid unused variable
@@ -584,25 +511,19 @@ func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration ti
 		// For now, we don't have a direct interface method for generic operation metrics
 		// This would need to be added to the MetricsCollector interface if needed
 	}
-
 }
 
 // isTimeoutError checks if an error is a timeout error.
 
 func isTimeoutError(err error) bool {
-
 	if err == nil {
-
 		return false
-
 	}
 
 	// Check for context timeout.
 
 	if errors.Is(err, context.DeadlineExceeded) {
-
 		return true
-
 	}
 
 	// Check if error message contains timeout information.
@@ -610,33 +531,24 @@ func isTimeoutError(err error) bool {
 	errStr := err.Error()
 
 	return contains(errStr, "timeout") || contains(errStr, "deadline exceeded") || contains(errStr, "context deadline exceeded")
-
 }
 
 // contains is a helper function to check if a string contains a substring.
 
 func contains(str, substr string) bool {
-
 	return len(str) >= len(substr) && (str == substr || (len(str) > len(substr) &&
 
 		(indexOf(str, substr) >= 0)))
-
 }
 
 // indexOf is a helper function to find the index of a substring.
 
 func indexOf(str, substr string) int {
-
 	for i := 0; i <= len(str)-len(substr); i++ {
-
 		if str[i:i+len(substr)] == substr {
-
 			return i
-
 		}
-
 	}
 
 	return -1
-
 }

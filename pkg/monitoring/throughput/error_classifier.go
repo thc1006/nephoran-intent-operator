@@ -125,9 +125,7 @@ type ErrorEvent struct {
 // NewErrorClassifier creates a new error classifier.
 
 func NewErrorClassifier() *ErrorClassifier {
-
 	return &ErrorClassifier{
-
 		errorCounts: make(map[ErrorCategory]int),
 
 		errorHistory: make([]ErrorEvent, 0, 1000),
@@ -135,41 +133,34 @@ func NewErrorClassifier() *ErrorClassifier {
 		categoryCounts: make(map[ErrorCategory]map[ErrorType]int),
 
 		errorRateMetric: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "nephoran_error_rate",
 
 			Help: "Total number of errors by category",
 		}, []string{"category", "type"}),
 
 		errorTypeMetric: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "nephoran_error_type_count",
 
 			Help: "Detailed error type counts",
 		}, []string{"category", "type"}),
 
 		slaImpactMetric: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "nephoran_sla_impact",
 
 			Help: "Business impact of errors",
 		}, []string{"category", "type"}),
 	}
-
 }
 
 // RecordError logs and classifies an error.
 
 func (ec *ErrorClassifier) RecordError(
-
 	category ErrorCategory,
 
 	errorType ErrorType,
 
 	message string,
-
 ) ErrorEvent {
-
 	ec.mu.Lock()
 
 	defer ec.mu.Unlock()
@@ -181,7 +172,6 @@ func (ec *ErrorClassifier) RecordError(
 	// Create error event.
 
 	errorEvent := ErrorEvent{
-
 		Timestamp: time.Now(),
 
 		Category: category,
@@ -198,9 +188,7 @@ func (ec *ErrorClassifier) RecordError(
 	ec.errorCounts[category]++
 
 	if ec.categoryCounts[category] == nil {
-
 		ec.categoryCounts[category] = make(map[ErrorType]int)
-
 	}
 
 	ec.categoryCounts[category][errorType]++
@@ -210,9 +198,7 @@ func (ec *ErrorClassifier) RecordError(
 	ec.errorHistory = append(ec.errorHistory, errorEvent)
 
 	if len(ec.errorHistory) > 1000 {
-
 		ec.errorHistory = ec.errorHistory[1:]
-
 	}
 
 	// Update Prometheus metrics.
@@ -224,25 +210,19 @@ func (ec *ErrorClassifier) RecordError(
 	ec.slaImpactMetric.WithLabelValues(string(category), string(errorType)).Set(businessImpact)
 
 	return errorEvent
-
 }
 
 // calculateBusinessImpact determines the severity of an error.
 
 func (ec *ErrorClassifier) calculateBusinessImpact(
-
 	category ErrorCategory,
 
 	errorType ErrorType,
-
 ) float64 {
-
 	// Impact scoring matrix.
 
 	impactScores := map[ErrorCategory]map[ErrorType]float64{
-
 		CategorySystem: {
-
 			ErrorTypeInternalServerError: 0.9,
 
 			ErrorTypeResourceExhaustion: 0.8,
@@ -251,7 +231,6 @@ func (ec *ErrorClassifier) calculateBusinessImpact(
 		},
 
 		CategoryUser: {
-
 			ErrorTypeInvalidIntent: 0.3,
 
 			ErrorTypeAuthorizationFailed: 0.6,
@@ -260,7 +239,6 @@ func (ec *ErrorClassifier) calculateBusinessImpact(
 		},
 
 		CategoryExternal: {
-
 			ErrorTypeLLMServiceFailure: 0.7,
 
 			ErrorTypeNetworkConnectivity: 0.8,
@@ -269,7 +247,6 @@ func (ec *ErrorClassifier) calculateBusinessImpact(
 		},
 
 		CategoryTransient: {
-
 			ErrorTypeTimeout: 0.5,
 
 			ErrorTypeRateLimitExceeded: 0.4,
@@ -281,35 +258,27 @@ func (ec *ErrorClassifier) calculateBusinessImpact(
 	// Default to low impact if not found.
 
 	if categoryScores, exists := impactScores[category]; exists {
-
 		if score, typeExists := categoryScores[errorType]; typeExists {
-
 			return score
-
 		}
-
 	}
 
 	return 0.1 // Minimal default impact
-
 }
 
 // GetErrorSummary provides an overview of error occurrences.
 
 func (ec *ErrorClassifier) GetErrorSummary() map[ErrorCategory]int {
-
 	ec.mu.RLock()
 
 	defer ec.mu.RUnlock()
 
 	return ec.errorCounts
-
 }
 
 // GetDetailedErrorBreakdown provides granular error type distribution.
 
 func (ec *ErrorClassifier) GetDetailedErrorBreakdown() map[ErrorCategory]map[ErrorType]int {
-
 	ec.mu.RLock()
 
 	defer ec.mu.RUnlock()
@@ -323,21 +292,17 @@ func (ec *ErrorClassifier) GetDetailedErrorBreakdown() map[ErrorCategory]map[Err
 		breakdown[category] = make(map[ErrorType]int)
 
 		for errorType, count := range typeMap {
-
 			breakdown[category][errorType] = count
-
 		}
 
 	}
 
 	return breakdown
-
 }
 
 // AnalyzeErrorTrends identifies emerging error patterns.
 
 func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
-
 	ec.mu.RLock()
 
 	defer ec.mu.RUnlock()
@@ -349,9 +314,7 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 	totalErrors := 0
 
 	for _, count := range ec.errorCounts {
-
 		totalErrors += count
-
 	}
 
 	// Identify dominant error categories.
@@ -359,13 +322,9 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 	dominantCategories := make([]string, 0)
 
 	for category, count := range ec.errorCounts {
-
 		if float64(count)/float64(totalErrors) > 0.2 {
-
 			dominantCategories = append(dominantCategories, string(category))
-
 		}
-
 	}
 
 	// Analyze business impact.
@@ -373,9 +332,7 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 	totalBusinessImpact := 0.0
 
 	for _, event := range ec.errorHistory {
-
 		totalBusinessImpact += event.BusinessImpact
-
 	}
 
 	trends["total_errors"] = totalErrors
@@ -387,7 +344,6 @@ func (ec *ErrorClassifier) AnalyzeErrorTrends() map[string]interface{} {
 	trends["avg_business_impact"] = totalBusinessImpact / float64(len(ec.errorHistory))
 
 	return trends
-
 }
 
 // RetryStrategy provides intelligent retry recommendations.
@@ -409,33 +365,26 @@ type RetryStrategy struct {
 // NewRetryStrategy creates a new retry strategy.
 
 func NewRetryStrategy() *RetryStrategy {
-
 	return &RetryStrategy{
-
 		retryAttempts: make(map[ErrorType]int),
 
 		successfulRetries: make(map[ErrorType]int),
 
 		retryMetric: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "nephoran_retry_attempts",
 
 			Help: "Number of retry attempts by error type",
 		}, []string{"error_type", "status"}),
 	}
-
 }
 
 // ShouldRetry determines if an error should be retried.
 
 func (rs *RetryStrategy) ShouldRetry(
-
 	errorType ErrorType,
 
 	currentAttempt int,
-
 ) bool {
-
 	rs.mu.Lock()
 
 	defer rs.mu.Unlock()
@@ -443,7 +392,6 @@ func (rs *RetryStrategy) ShouldRetry(
 	// Retry configuration based on error type.
 
 	retryConfig := map[ErrorType]int{
-
 		ErrorTypeTimeout: 3,
 
 		ErrorTypeRateLimitExceeded: 2,
@@ -460,9 +408,7 @@ func (rs *RetryStrategy) ShouldRetry(
 	maxRetries, configured := retryConfig[errorType]
 
 	if !configured {
-
 		return false
-
 	}
 
 	// Track retry attempts.
@@ -472,19 +418,15 @@ func (rs *RetryStrategy) ShouldRetry(
 	rs.retryMetric.WithLabelValues(string(errorType), "attempt").Inc()
 
 	return currentAttempt < maxRetries
-
 }
 
 // RecordRetryOutcome logs the result of a retry attempt.
 
 func (rs *RetryStrategy) RecordRetryOutcome(
-
 	errorType ErrorType,
 
 	successful bool,
-
 ) {
-
 	rs.mu.Lock()
 
 	defer rs.mu.Unlock()
@@ -496,17 +438,13 @@ func (rs *RetryStrategy) RecordRetryOutcome(
 		rs.retryMetric.WithLabelValues(string(errorType), "success").Inc()
 
 	} else {
-
 		rs.retryMetric.WithLabelValues(string(errorType), "failure").Inc()
-
 	}
-
 }
 
 // GetRetryEffectiveness calculates retry success rates.
 
 func (rs *RetryStrategy) GetRetryEffectiveness() map[ErrorType]float64 {
-
 	rs.mu.Lock()
 
 	defer rs.mu.Unlock()
@@ -522,5 +460,4 @@ func (rs *RetryStrategy) GetRetryEffectiveness() map[ErrorType]float64 {
 	}
 
 	return effectiveness
-
 }

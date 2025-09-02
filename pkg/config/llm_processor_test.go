@@ -1437,11 +1437,11 @@ OGZhoQQiCjRGD5mPjDfSKt9vq6ZV2V3xm1qhU8lXJ8kYgZLB0+9q1m9tQ9qx
 -----END PRIVATE KEY-----`
 
 	// Write certificate file
-	err := os.WriteFile(certPath, []byte(certContent), 0644)
+	err := os.WriteFile(certPath, []byte(certContent), 0o644)
 	require.NoError(t, err)
 
 	// Write key file
-	err = os.WriteFile(keyPath, []byte(keyContent), 0600)
+	err = os.WriteFile(keyPath, []byte(keyContent), 0o600)
 	require.NoError(t, err)
 
 	cleanup = func() {

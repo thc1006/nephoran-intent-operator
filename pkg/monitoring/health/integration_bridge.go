@@ -16,7 +16,6 @@ import (
 // SLAIntegrationBridge provides seamless integration between health monitoring and SLA tracking.
 
 type SLAIntegrationBridge struct {
-
 	// Core configuration.
 
 	logger *slog.Logger
@@ -73,7 +72,6 @@ type SLAIntegrationBridge struct {
 // SLAIntegrationConfig holds configuration for SLA integration.
 
 type SLAIntegrationConfig struct {
-
 	// Integration settings.
 
 	Enabled bool `json:"enabled"`
@@ -1024,15 +1022,11 @@ type SLABridgeMetrics struct {
 // NewSLAIntegrationBridge creates a new SLA integration bridge.
 
 func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealthChecker, aggregator *HealthAggregator, predictor *HealthPredictor, dependencyTracker *DependencyHealthTracker, logger *slog.Logger) *SLAIntegrationBridge {
-
 	if logger == nil {
-
 		logger = slog.Default()
-
 	}
 
 	bridge := &SLAIntegrationBridge{
-
 		logger: logger.With("component", "sla_integration_bridge"),
 
 		serviceName: serviceName,
@@ -1055,7 +1049,6 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	// Initialize correlation engine.
 
 	bridge.correlationEngine = &HealthSLACorrelationEngine{
-
 		logger: logger.With("component", "correlation_engine"),
 
 		correlationModels: make(map[string]*CorrelationModel),
@@ -1066,7 +1059,6 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	// Initialize availability calculator.
 
 	bridge.availabilityCalc = &HealthBasedAvailabilityCalculator{
-
 		logger: logger.With("component", "availability_calculator"),
 
 		calculationMethod: bridge.slaConfig.AvailabilityCalculation,
@@ -1079,7 +1071,6 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	// Initialize performance impact tracker.
 
 	bridge.performanceImpact = &HealthPerformanceImpactTracker{
-
 		logger: logger.With("component", "performance_impact_tracker"),
 
 		performanceModels: make(map[string]*PerformanceImpactModel),
@@ -1090,7 +1081,6 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	// Initialize composite scorer.
 
 	bridge.compositeScorer = &CompositeHealthSLAScorer{
-
 		logger: logger.With("component", "composite_scorer"),
 
 		scoringModels: make(map[string]*CompositeScoringModel),
@@ -1101,7 +1091,6 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	// Initialize alert integration.
 
 	bridge.alertIntegration = &HealthSLAAlertIntegration{
-
 		logger: logger.With("component", "alert_integration"),
 
 		alertRules: make(map[string]*HealthSLAAlertRule),
@@ -1112,7 +1101,6 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	// Initialize dashboard bridge.
 
 	bridge.dashboardBridge = &HealthSLADashboardBridge{
-
 		logger: logger.With("component", "dashboard_bridge"),
 
 		dashboardConfig: defaultDashboardIntegrationConfig(),
@@ -1135,15 +1123,12 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	bridge.configureDefaultAlertRules()
 
 	return bridge
-
 }
 
 // defaultSLAIntegrationConfig returns default SLA integration configuration.
 
 func defaultSLAIntegrationConfig() *SLAIntegrationConfig {
-
 	return &SLAIntegrationConfig{
-
 		Enabled: true,
 
 		UpdateInterval: 30 * time.Second,
@@ -1176,15 +1161,12 @@ func defaultSLAIntegrationConfig() *SLAIntegrationConfig {
 
 		SLAViolationHealthThreshold: 0.6,
 	}
-
 }
 
 // defaultDashboardIntegrationConfig returns default dashboard integration configuration.
 
 func defaultDashboardIntegrationConfig() *DashboardIntegrationConfig {
-
 	return &DashboardIntegrationConfig{
-
 		Enabled: true,
 
 		RefreshInterval: 30 * time.Second,
@@ -1203,59 +1185,49 @@ func defaultDashboardIntegrationConfig() *DashboardIntegrationConfig {
 
 		AllowedRoles: []string{"admin", "operator", "viewer"},
 	}
-
 }
 
 // initializeSLABridgeMetrics initializes Prometheus metrics.
 
 func initializeSLABridgeMetrics() *SLABridgeMetrics {
-
 	return &SLABridgeMetrics{
-
 		HealthSLACorrelation: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "health_sla_correlation_coefficient",
 
 			Help: "Correlation coefficient between health and SLA metrics",
 		}, []string{"component", "sla_metric", "correlation_type"}),
 
 		SLAComplianceStatus: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "sla_compliance_status",
 
 			Help: "SLA compliance status (0=breach, 1=warning, 2=good)",
 		}, []string{"sla_target", "metric_type"}),
 
 		HealthBasedAvailability: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "health_based_availability_percentage",
 
 			Help: "Availability percentage incorporating health metrics",
 		}, []string{"component", "calculation_method"}),
 
 		CompositeScores: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "composite_health_sla_score",
 
 			Help: "Composite score combining health and SLA metrics",
 		}, []string{"component", "scoring_model"}),
 
 		IntegratedAlerts: prometheus.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "integrated_health_sla_alerts_total",
 
 			Help: "Total number of integrated health-SLA alerts",
 		}, []string{"alert_type", "severity", "sla_metric"}),
 
 		CorrelationAccuracy: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "correlation_model_accuracy",
 
 			Help: "Accuracy of health-SLA correlation models",
 		}, []string{"component", "model_type"}),
 
 		BridgeOperationLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "sla_bridge_operation_latency_seconds",
 
 			Help: "Latency of SLA bridge operations",
@@ -1263,29 +1235,22 @@ func initializeSLABridgeMetrics() *SLABridgeMetrics {
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 8),
 		}),
 	}
-
 }
 
 // UpdateSLATargets updates SLA targets with current health correlation.
 
 func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
-
 	start := time.Now()
 
 	if !sib.slaConfig.Enabled {
-
 		return nil
-
 	}
 
 	// Get current health data.
 
 	healthData, err := sib.aggregator.AggregateHealth(ctx)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to get health data: %w", err)
-
 	}
 
 	// Get current dependency health.
@@ -1303,7 +1268,6 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 		// Calculate health-adjusted SLA value.
 
 		adjustedValue, err := sib.calculateHealthAdjustedSLA(target, healthData, dependencyHealth)
-
 		if err != nil {
 
 			sib.logger.Error("Failed to calculate health-adjusted SLA",
@@ -1327,7 +1291,6 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 		// Add to compliance history.
 
 		dataPoint := ComplianceDataPoint{
-
 			Timestamp: time.Now(),
 
 			Value: target.CurrentValue,
@@ -1346,9 +1309,7 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 		// Keep only last 1000 points.
 
 		if len(target.ComplianceHistory) > 1000 {
-
 			target.ComplianceHistory = target.ComplianceHistory[len(target.ComplianceHistory)-1000:]
-
 		}
 
 		// Update metrics.
@@ -1360,7 +1321,6 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 		// Update correlation metrics if available.
 
 		if target.HealthCorrelation != nil {
-
 			sib.bridgeMetrics.HealthSLACorrelation.WithLabelValues(
 
 				target.Name,
@@ -1369,7 +1329,6 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 
 				string(target.HealthCorrelation.CorrelationType),
 			).Set(target.HealthCorrelation.CorrelationStrength)
-
 		}
 
 		sib.logger.Debug("Updated SLA target",
@@ -1391,17 +1350,13 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 	sib.bridgeMetrics.BridgeOperationLatency.Observe(duration.Seconds())
 
 	return nil
-
 }
 
 // calculateHealthAdjustedSLA calculates SLA value adjusted for health impact.
 
 func (sib *SLAIntegrationBridge) calculateHealthAdjustedSLA(target *SLATarget, healthData *AggregatedHealthResult, dependencyHealth map[string]*DependencyHealth) (float64, error) {
-
 	if !sib.slaConfig.HealthBasedAdjustments || target.HealthCorrelation == nil {
-
 		return target.CurrentValue, nil
-
 	}
 
 	// Calculate effective health score for components affecting this SLA.
@@ -1433,17 +1388,13 @@ func (sib *SLAIntegrationBridge) calculateHealthAdjustedSLA(target *SLATarget, h
 		return target.CurrentValue, nil
 
 	}
-
 }
 
 // calculateEffectiveHealthScore calculates effective health score for specified components.
 
 func (sib *SLAIntegrationBridge) calculateEffectiveHealthScore(components []string, healthData *AggregatedHealthResult, dependencyHealth map[string]*DependencyHealth) float64 {
-
 	if len(components) == 0 {
-
 		return healthData.OverallScore
-
 	}
 
 	totalScore := 0.0
@@ -1465,7 +1416,6 @@ func (sib *SLAIntegrationBridge) calculateEffectiveHealthScore(components []stri
 			weight = componentResult.BusinessWeight
 
 		} else if dependencyResult, exists := dependencyHealth[component]; exists {
-
 			// Convert dependency health to score.
 
 			switch dependencyResult.Status {
@@ -1487,7 +1437,6 @@ func (sib *SLAIntegrationBridge) calculateEffectiveHealthScore(components []stri
 				score = 0.3
 
 			}
-
 		} else {
 
 			// Component not found, use overall score with reduced weight.
@@ -1505,19 +1454,15 @@ func (sib *SLAIntegrationBridge) calculateEffectiveHealthScore(components []stri
 	}
 
 	if totalWeight == 0 {
-
 		return healthData.OverallScore
-
 	}
 
 	return totalScore / totalWeight
-
 }
 
 // applyDirectCorrelation applies direct correlation between health and SLA.
 
 func (sib *SLAIntegrationBridge) applyDirectCorrelation(target *SLATarget, healthScore float64) (float64, error) {
-
 	// Direct correlation: higher health score improves SLA metric.
 
 	healthImpact := (healthScore - 0.5) * sib.slaConfig.AdjustmentFactor * target.HealthImpactWeight
@@ -1525,13 +1470,11 @@ func (sib *SLAIntegrationBridge) applyDirectCorrelation(target *SLATarget, healt
 	adjustedValue := target.CurrentValue * (1 + healthImpact)
 
 	return math.Max(0, adjustedValue), nil
-
 }
 
 // applyInverseCorrelation applies inverse correlation between health and SLA.
 
 func (sib *SLAIntegrationBridge) applyInverseCorrelation(target *SLATarget, healthScore float64) (float64, error) {
-
 	// Inverse correlation: lower health score degrades SLA metric.
 
 	healthImpact := (0.5 - healthScore) * sib.slaConfig.AdjustmentFactor * target.HealthImpactWeight
@@ -1539,23 +1482,17 @@ func (sib *SLAIntegrationBridge) applyInverseCorrelation(target *SLATarget, heal
 	adjustedValue := target.CurrentValue * (1 + healthImpact)
 
 	return math.Max(0, adjustedValue), nil
-
 }
 
 // applyThresholdCorrelation applies threshold-based correlation.
 
 func (sib *SLAIntegrationBridge) applyThresholdCorrelation(target *SLATarget, healthScore float64) (float64, error) {
-
 	// Apply threshold mappings if configured.
 
 	for _, mapping := range target.HealthCorrelation.ThresholdMapping {
-
 		if sib.isHealthScoreInRange(healthScore, mapping.HealthRange) {
-
 			return target.CurrentValue * (1 + mapping.SLAImpact), nil
-
 		}
-
 	}
 
 	// Default behavior if no threshold mapping matches.
@@ -1569,13 +1506,11 @@ func (sib *SLAIntegrationBridge) applyThresholdCorrelation(target *SLATarget, he
 	}
 
 	return target.CurrentValue, nil
-
 }
 
 // applyWeightedCorrelation applies weighted correlation.
 
 func (sib *SLAIntegrationBridge) applyWeightedCorrelation(target *SLATarget, healthScore float64) (float64, error) {
-
 	// Weighted correlation combines multiple factors.
 
 	correlationStrength := target.HealthCorrelation.CorrelationStrength
@@ -1587,27 +1522,21 @@ func (sib *SLAIntegrationBridge) applyWeightedCorrelation(target *SLATarget, hea
 	adjustedValue := target.CurrentValue * (1 + weightedImpact)
 
 	return math.Max(0, adjustedValue), nil
-
 }
 
 // isHealthScoreInRange checks if health score falls within specified range.
 
 func (sib *SLAIntegrationBridge) isHealthScoreInRange(score float64, healthRange HealthRange) bool {
-
 	if healthRange.Inclusive {
-
 		return score >= healthRange.Min && score <= healthRange.Max
-
 	}
 
 	return score > healthRange.Min && score < healthRange.Max
-
 }
 
 // determineComplianceStatus determines SLA compliance status based on adjusted value.
 
 func (sib *SLAIntegrationBridge) determineComplianceStatus(target *SLATarget, adjustedValue float64) SLAComplianceStatus {
-
 	// Calculate distance from target.
 
 	distance := math.Abs(adjustedValue - target.Target)
@@ -1615,37 +1544,25 @@ func (sib *SLAIntegrationBridge) determineComplianceStatus(target *SLATarget, ad
 	thresholdDistance := math.Abs(target.Threshold - target.Target)
 
 	if thresholdDistance == 0 {
-
 		return ComplianceGood
-
 	}
 
 	ratio := distance / thresholdDistance
 
 	if ratio <= 0.1 {
-
 		return ComplianceGood
-
 	} else if ratio <= 0.5 {
-
 		return ComplianceWarning
-
 	} else if ratio <= 1.0 {
-
 		return ComplianceBreach
-
 	} else {
-
 		return ComplianceCritical
-
 	}
-
 }
 
 // complianceStatusToFloat converts compliance status to float for metrics.
 
 func (sib *SLAIntegrationBridge) complianceStatusToFloat(status SLAComplianceStatus) float64 {
-
 	switch status {
 
 	case ComplianceGood:
@@ -1669,29 +1586,22 @@ func (sib *SLAIntegrationBridge) complianceStatusToFloat(status SLAComplianceSta
 		return -2.0 // Unknown
 
 	}
-
 }
 
 // CalculateCompositeScore calculates composite health-SLA score.
 
 func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, modelID string) (*CompositeScore, error) {
-
 	scoringModel, exists := sib.compositeScorer.scoringModels[modelID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("scoring model %s not found", modelID)
-
 	}
 
 	// Get current health data.
 
 	healthData, err := sib.aggregator.AggregateHealth(ctx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get health data: %w", err)
-
 	}
 
 	// Calculate availability.
@@ -1705,7 +1615,6 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 	// Calculate composite score.
 
 	score := &CompositeScore{
-
 		HealthScore: healthData.OverallScore,
 
 		SLAScore: slaScore,
@@ -1723,7 +1632,6 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 		ConfidenceLevel: 0.8, // Simplified
 
 		DataQuality: DataQualityMetrics{
-
 			Completeness: 1.0,
 
 			Consistency: 1.0,
@@ -1795,9 +1703,7 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 	// Calculate component scores.
 
 	for component, componentHealth := range healthData.ComponentScores {
-
 		score.ComponentScores[component] = componentHealth.Score
-
 	}
 
 	// Record metrics.
@@ -1809,15 +1715,12 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 	sib.bridgeMetrics.CompositeScores.WithLabelValues("sla", modelID).Set(score.SLAScore)
 
 	return score, nil
-
 }
 
 // CalculateHealthBasedAvailability calculates availability incorporating health metrics.
 
 func (hbac *HealthBasedAvailabilityCalculator) CalculateHealthBasedAvailability(ctx context.Context, timeWindow time.Duration) *AvailabilityResult {
-
 	result := &AvailabilityResult{
-
 		TimeWindow: timeWindow,
 
 		CalculationTimestamp: time.Now(),
@@ -1851,11 +1754,8 @@ func (hbac *HealthBasedAvailabilityCalculator) CalculateHealthBasedAvailability(
 		if result.HealthBasedAvailability < 95.0 { // Health gate
 
 			result.CompositeAvailability = result.HealthBasedAvailability
-
 		} else {
-
 			result.CompositeAvailability = result.TraditionalAvailability
-
 		}
 
 	case AvailabilityHealthAdjusted:
@@ -1873,19 +1773,15 @@ func (hbac *HealthBasedAvailabilityCalculator) CalculateHealthBasedAvailability(
 	result.HealthContribution = result.CompositeAvailability - result.TraditionalAvailability
 
 	return result
-
 }
 
 // Helper methods.
 
 func (sib *SLAIntegrationBridge) calculateWeightedAverage(health, sla, performance, availability float64, model *CompositeScoringModel) float64 {
-
 	totalWeight := model.HealthWeight + model.SLAWeight + model.PerformanceWeight + model.AvailabilityWeight
 
 	if totalWeight == 0 {
-
 		return 0
-
 	}
 
 	return (health*model.HealthWeight +
@@ -1895,25 +1791,19 @@ func (sib *SLAIntegrationBridge) calculateWeightedAverage(health, sla, performan
 		performance*model.PerformanceWeight +
 
 		availability*model.AvailabilityWeight) / totalWeight
-
 }
 
 func (sib *SLAIntegrationBridge) calculateGeometricMean(health, sla, performance, availability float64) float64 {
-
 	product := health * sla * performance * availability
 
 	if product <= 0 {
-
 		return 0
-
 	}
 
 	return math.Pow(product, 0.25) // 4th root for 4 values
-
 }
 
 func (sib *SLAIntegrationBridge) calculateCurrentSLAScore() float64 {
-
 	// Simplified SLA score calculation.
 
 	// In practice, this would integrate with actual SLA monitoring.
@@ -1963,23 +1853,18 @@ func (sib *SLAIntegrationBridge) calculateCurrentSLAScore() float64 {
 	}
 
 	if totalWeight == 0 {
-
 		return 0.5
-
 	}
 
 	return totalScore / totalWeight
-
 }
 
 // configureDefaultSLATargets configures default SLA targets.
 
 func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
-
 	// Availability SLA.
 
 	sib.slaTargets["availability"] = &SLATarget{
-
 		ID: "availability",
 
 		Name: "System Availability",
@@ -1991,7 +1876,6 @@ func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
 		Threshold: 99.9,
 
 		HealthCorrelation: &HealthCorrelation{
-
 			Components: []string{"llm-processor", "kubernetes-api"},
 
 			CorrelationStrength: 0.8,
@@ -2013,7 +1897,6 @@ func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
 	// Latency SLA.
 
 	sib.slaTargets["latency"] = &SLATarget{
-
 		ID: "latency",
 
 		Name: "P95 Response Latency",
@@ -2025,7 +1908,6 @@ func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
 		Threshold: 3.0, // 3 seconds
 
 		HealthCorrelation: &HealthCorrelation{
-
 			Components: []string{"llm-processor", "rag-api"},
 
 			CorrelationStrength: 0.6,
@@ -2043,17 +1925,14 @@ func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
 
 		ComplianceHistory: []ComplianceDataPoint{},
 	}
-
 }
 
 // configureDefaultScoringModels configures default composite scoring models.
 
 func (sib *SLAIntegrationBridge) configureDefaultScoringModels() {
-
 	// Balanced scoring model.
 
 	sib.compositeScorer.scoringModels["balanced"] = &CompositeScoringModel{
-
 		ID: "balanced",
 
 		Name: "Balanced Health-SLA Score",
@@ -2074,7 +1953,6 @@ func (sib *SLAIntegrationBridge) configureDefaultScoringModels() {
 	// Business-focused scoring model.
 
 	sib.compositeScorer.scoringModels["business"] = &CompositeScoringModel{
-
 		ID: "business",
 
 		Name: "Business-Focused Score",
@@ -2091,17 +1969,14 @@ func (sib *SLAIntegrationBridge) configureDefaultScoringModels() {
 
 		NormalizationMethod: NormalizationMinMax,
 	}
-
 }
 
 // configureDefaultAlertRules configures default integrated alert rules.
 
 func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
-
 	// Critical health and SLA violation.
 
 	sib.alertIntegration.alertRules["critical_violation"] = &HealthSLAAlertRule{
-
 		ID: "critical_violation",
 
 		Name: "Critical Health and SLA Violation",
@@ -2121,7 +1996,6 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 		NotificationChannels: []string{"pagerduty", "slack", "email"},
 
 		Condition: AlertCondition{
-
 			HealthCondition: "health_score < 0.5",
 
 			SLACondition: "availability < 95.0",
@@ -2135,7 +2009,6 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 	// Health degradation warning.
 
 	sib.alertIntegration.alertRules["health_degradation"] = &HealthSLAAlertRule{
-
 		ID: "health_degradation",
 
 		Name: "Health Degradation Warning",
@@ -2155,7 +2028,6 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 		NotificationChannels: []string{"slack", "email"},
 
 		Condition: AlertCondition{
-
 			HealthCondition: "health_score < 0.7",
 
 			SLACondition: "availability < 99.0",
@@ -2165,13 +2037,11 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 			TimeWindow: 5 * time.Minute,
 		},
 	}
-
 }
 
 // GetSLATargets returns all configured SLA targets.
 
 func (sib *SLAIntegrationBridge) GetSLATargets() map[string]*SLATarget {
-
 	sib.slaTargetsMu.RLock()
 
 	defer sib.slaTargetsMu.RUnlock()
@@ -2189,13 +2059,11 @@ func (sib *SLAIntegrationBridge) GetSLATargets() map[string]*SLATarget {
 	}
 
 	return result
-
 }
 
 // GetActiveIntegratedAlerts returns all active integrated alerts.
 
 func (sib *SLAIntegrationBridge) GetActiveIntegratedAlerts() []IntegratedAlert {
-
 	sib.alertIntegration.mu.RLock()
 
 	defer sib.alertIntegration.mu.RUnlock()
@@ -2203,15 +2071,10 @@ func (sib *SLAIntegrationBridge) GetActiveIntegratedAlerts() []IntegratedAlert {
 	var alerts []IntegratedAlert
 
 	for _, alert := range sib.alertIntegration.activeAlerts {
-
 		if alert.Status == IntegratedAlertStatusFiring {
-
 			alerts = append(alerts, *alert)
-
 		}
-
 	}
 
 	return alerts
-
 }

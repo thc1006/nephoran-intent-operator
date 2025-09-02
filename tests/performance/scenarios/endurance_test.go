@@ -367,8 +367,8 @@ func runEnduranceTest(ctx context.Context, suite *performance.BenchmarkSuite, co
 	MaxMemGrowth  float64
 	MaxGoroutines int
 	MaxErrorRate  float64
-}) EnduranceTestResult {
-
+},
+) EnduranceTestResult {
 	result := EnduranceTestResult{
 		CheckpointMetrics: []CheckpointMetric{},
 	}
@@ -550,8 +550,8 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 	ExhaustFunc  func(context.Context) error
 	RecoverFunc  func() error
 	MaxRecovery  time.Duration
-}) ResourceExhaustionResult {
-
+},
+) ResourceExhaustionResult {
 	result := ResourceExhaustionResult{
 		Survived:         true,
 		DegradedServices: []string{},

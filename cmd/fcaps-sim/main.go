@@ -44,39 +44,28 @@ type Config struct {
 	NFName string
 
 	OutHandoff string // Local handoff directory for reducer mode
-
 }
 
 func main() {
-
 	config := parseFlags()
 
 	if config.Verbose {
-
 		log.Printf("FCAPS Simulator starting with config: %+v", config)
-
 	}
 
 	// Ensure handoff directory exists if specified.
 
 	if config.OutHandoff != "" {
-
 		if err := os.MkdirAll(config.OutHandoff, 0o750); err != nil {
-
 			log.Fatalf("Failed to create handoff directory: %v", err)
-
 		}
-
 	}
 
 	// Read FCAPS events from file.
 
 	events, err := loadFCAPSEvents(config.InputFile)
-
 	if err != nil {
-
 		log.Fatalf("Failed to load FCAPS events: %v", err)
-
 	}
 
 	log.Printf("Loaded %d FCAPS events from %s", len(events), config.InputFile)
@@ -100,9 +89,7 @@ func main() {
 	// If collector URL is provided, send VES events there as well.
 
 	if config.CollectorURL != "" {
-
 		log.Printf("VES collector enabled at %s", config.CollectorURL)
-
 	}
 
 	// Process events with configurable delay.
@@ -114,23 +101,16 @@ func main() {
 		// Send to VES collector if configured.
 
 		if config.CollectorURL != "" {
-
 			if err := sendVESEvent(config.CollectorURL, event, config.Verbose); err != nil {
-
 				log.Printf("Failed to send VES event to collector: %v", err)
-
 			} else if config.Verbose {
-
 				log.Printf("Sent VES event to collector %s", config.CollectorURL)
-
 			}
-
 		}
 
 		// Process with local reducer if enabled.
 
 		if reducer != nil {
-
 			if intent := reducer.ProcessEvent(event); intent != nil {
 
 				filename := writeReducerIntent(config.OutHandoff, intent)
@@ -142,7 +122,6 @@ func main() {
 					intent.Target, intent.Replicas, intent.Reason)
 
 			}
-
 		}
 
 		// Process the event.
@@ -158,7 +137,6 @@ func main() {
 			// Generate intent.
 
 			intent, err := processor.GenerateIntent(decision)
-
 			if err != nil {
 
 				log.Printf("Failed to generate intent: %v", err)
@@ -170,23 +148,15 @@ func main() {
 			// Send intent to the intent-ingest service if not in local-only mode.
 
 			if config.IntentURL != "" && config.OutHandoff == "" {
-
 				if err := sendIntent(config.IntentURL, intent); err != nil {
-
 					log.Printf("Failed to send intent: %v", err)
-
 				} else {
-
 					log.Printf("Successfully sent scaling intent to %s", config.IntentURL)
-
 				}
-
 			}
 
 		} else if config.Verbose {
-
 			log.Printf("No scaling action needed")
-
 		}
 
 		// Wait before processing next event (except for the last one).
@@ -202,21 +172,16 @@ func main() {
 	}
 
 	log.Printf("\nFCAPS simulation completed. Final replica count: %d", processor.GetCurrentReplicas())
-
 }
 
 func parseFlags() Config {
-
 	var config Config
 
 	// Get default input file path relative to repo root.
 
 	repoRoot, err := os.Getwd()
-
 	if err != nil {
-
 		log.Fatalf("failed to get working directory: %v", err)
-
 	}
 
 	defaultInputFile := filepath.Join(repoRoot, "docs", "contracts", "fcaps.ves.examples.json")
@@ -248,19 +213,14 @@ func parseFlags() Config {
 	flag.Parse()
 
 	return config
-
 }
 
 func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
-
 	// Read the JSON file.
 
 	data, err := os.ReadFile(inputFile)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to read file %s: %w", inputFile, err)
-
 	}
 
 	// Parse JSON structure - the file contains examples as a map.
@@ -268,9 +228,7 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 	var examples map[string]fcaps.FCAPSEvent
 
 	if err := json.Unmarshal(data, &examples); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
-
 	}
 
 	// Convert map to slice for processing order.
@@ -281,13 +239,9 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 	// Process in a predictable order: fault, measurement, heartbeat.
 
 	for _, key := range orderedKeys {
-
 		if event, exists := examples[key]; exists {
-
 			events = append(events, event)
-
 		}
-
 	}
 
 	// Add any remaining events not in the ordered list.
@@ -297,7 +251,6 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 		found := false
 
 		for _, orderedKey := range orderedKeys {
-
 			if key == orderedKey {
 
 				found = true
@@ -305,53 +258,38 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			events = append(events, event)
-
 		}
 
 	}
 
 	if len(events) == 0 {
-
 		return nil, fmt.Errorf("no valid FCAPS events found in file")
-
 	}
 
 	return events, nil
-
 }
 
 func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) error {
-
 	// Convert event to JSON.
 
 	eventJSON, err := json.Marshal(event)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal VES event: %w", err)
-
 	}
 
 	if verbose {
-
 		log.Printf("Sending VES event: %s", string(eventJSON))
-
 	}
 
 	// Create HTTP request with context.
 
 	req, err := http.NewRequestWithContext(context.Background(), "POST", collectorURL, bytes.NewBuffer(eventJSON))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create VES request: %w", err)
-
 	}
 
 	// Set headers according to VES specification.
@@ -369,16 +307,12 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 	// Send request.
 
 	client := &http.Client{
-
 		Timeout: 10 * time.Second,
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send VES request: %w", err)
-
 	}
 
 	defer func() { _ = resp.Body.Close() }()
@@ -386,39 +320,29 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 	// Read response.
 
 	responseBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read VES response: %w", err)
-
 	}
 
 	// Check response status (VES typically returns 202 Accepted).
 
 	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {
-
 		return fmt.Errorf("VES collector request failed with status %d: %s", resp.StatusCode, string(responseBody))
-
 	}
 
 	if verbose {
-
 		log.Printf("VES collector response: %s", strings.TrimSpace(string(responseBody)))
-
 	}
 
 	return nil
-
 }
 
 func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
-
 	timestamp := time.Now().UTC().Format("20060102T150405Z")
 
 	filename := filepath.Join(outDir, fmt.Sprintf("intent-%s.json", timestamp))
 
 	data, err := json.MarshalIndent(intent, "", "  ")
-
 	if err != nil {
 
 		log.Printf("Failed to marshal reducer intent: %v", err)
@@ -436,29 +360,21 @@ func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
 	}
 
 	return filename
-
 }
 
 func sendIntent(intentURL string, intent *ingest.Intent) error {
-
 	// Convert intent to JSON.
 
 	intentJSON, err := json.Marshal(intent)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to marshal intent: %w", err)
-
 	}
 
 	// Create HTTP request with context.
 
 	req, err := http.NewRequestWithContext(context.Background(), "POST", intentURL, bytes.NewBuffer(intentJSON))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	// Set headers.
@@ -470,16 +386,12 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 	// Send request.
 
 	client := &http.Client{
-
 		Timeout: 10 * time.Second,
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
 	defer func() { _ = resp.Body.Close() }()
@@ -487,19 +399,14 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 	// Read response.
 
 	responseBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read response: %w", err)
-
 	}
 
 	// Check response status.
 
 	if resp.StatusCode != http.StatusAccepted {
-
 		return fmt.Errorf("intent request failed with status %d: %s", resp.StatusCode, string(responseBody))
-
 	}
 
 	// Log successful response.
@@ -507,5 +414,4 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 	log.Printf("Intent accepted by server: %s", strings.TrimSpace(string(responseBody)))
 
 	return nil
-
 }

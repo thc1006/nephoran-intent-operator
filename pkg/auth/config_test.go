@@ -241,7 +241,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 				// Create temporary directory structure for testing
 				tempDir := t.TempDir()
 				secretsDir := filepath.Join(tempDir, "secrets", "oauth2")
-				if err := os.MkdirAll(secretsDir, 0755); err != nil {
+				if err := os.MkdirAll(secretsDir, 0o755); err != nil {
 					t.Fatalf("Failed to create test directory: %v", err)
 				}
 				// Don't create the file to simulate loading failure
@@ -474,7 +474,6 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			cleanup := tt.setupEnvironment(t)
 			defer cleanup()
 
@@ -1029,7 +1028,6 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			cleanup := tt.setupEnvironment(t)
 			defer cleanup()
 
@@ -1116,12 +1114,12 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				}`
 
 				// Write custom config file
-				if err := os.WriteFile(customFile, []byte(customContent), 0644); err != nil {
+				if err := os.WriteFile(customFile, []byte(customContent), 0o644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
 
 				// Write env config file
-				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+				if err := os.WriteFile(envFile, []byte(envContent), 0o644); err != nil {
 					t.Fatalf("Failed to create env config file: %v", err)
 				}
 
@@ -1172,7 +1170,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					}
 				}`
 
-				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+				if err := os.WriteFile(envFile, []byte(envContent), 0o644); err != nil {
 					t.Fatalf("Failed to create env config file: %v", err)
 				}
 
@@ -1232,7 +1230,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					// Missing closing brace
 				}`
 
-				if err := os.WriteFile(customFile, []byte(invalidContent), 0644); err != nil {
+				if err := os.WriteFile(customFile, []byte(invalidContent), 0o644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
 
@@ -1315,7 +1313,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					"operator_users": ["operator@example.com"]
 				}`
 
-				if err := os.WriteFile(customFile, []byte(overrideContent), 0644); err != nil {
+				if err := os.WriteFile(customFile, []byte(overrideContent), 0o644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
 

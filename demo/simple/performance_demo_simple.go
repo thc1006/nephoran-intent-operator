@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -20,7 +21,7 @@ func main() {
 
 	// Run a simple benchmark
 	suite := performance.NewBenchmarkSuite()
-	duration := suite.Run(nil, "demo-test", func() {
+	duration := suite.Run(context.TODO(), "demo-test", func() {
 		// Simulate some work
 		time.Sleep(10 * time.Millisecond)
 		fmt.Printf(".")

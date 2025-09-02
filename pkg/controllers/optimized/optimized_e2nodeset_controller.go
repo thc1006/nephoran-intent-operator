@@ -109,7 +109,6 @@ type E2NodeSetReconcileContext struct {
 // Reset resets the context for reuse.
 
 func (ctx *E2NodeSetReconcileContext) Reset() {
-
 	ctx.StartTime = time.Time{}
 
 	ctx.E2NodeSet = nil
@@ -117,9 +116,7 @@ func (ctx *E2NodeSetReconcileContext) Reset() {
 	ctx.ExistingConfigMaps = ctx.ExistingConfigMaps[:0]
 
 	for k := range ctx.ProcessingMetrics {
-
 		delete(ctx.ProcessingMetrics, k)
-
 	}
 
 	ctx.NodesCreated = 0
@@ -129,21 +126,17 @@ func (ctx *E2NodeSetReconcileContext) Reset() {
 	ctx.NodesDeleted = 0
 
 	ctx.ErrorCount = 0
-
 }
 
 // NewOptimizedE2NodeSetReconciler creates a new optimized E2NodeSet reconciler.
 
 func NewOptimizedE2NodeSetReconciler(
-
 	client client.Client,
 
 	scheme *runtime.Scheme,
 
 	recorder record.EventRecorder,
-
 ) *OptimizedE2NodeSetReconciler {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize optimization components.
@@ -155,7 +148,6 @@ func NewOptimizedE2NodeSetReconciler(
 	metrics := NewControllerMetrics()
 
 	reconciler := &OptimizedE2NodeSetReconciler{
-
 		Client: client,
 
 		Scheme: scheme,
@@ -176,16 +168,12 @@ func NewOptimizedE2NodeSetReconciler(
 	// Initialize object pool.
 
 	reconciler.reconcilePool = sync.Pool{
-
 		New: func() interface{} {
-
 			return &E2NodeSetReconcileContext{
-
 				ProcessingMetrics: make(map[string]float64),
 
 				ExistingConfigMaps: make([]*corev1.ConfigMap, 0, 10),
 			}
-
 		},
 	}
 
@@ -200,15 +188,12 @@ func NewOptimizedE2NodeSetReconciler(
 	reconciler.wg.Add(1)
 
 	go func() {
-
 		defer reconciler.wg.Done()
 
 		backoffManager.CleanupStaleEntries(ctx, 30*time.Minute)
-
 	}()
 
 	return reconciler
-
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
@@ -222,7 +207,6 @@ func NewOptimizedE2NodeSetReconciler(
 // Reconcile implements the optimized reconcile loop.
 
 func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	// Track active reconcilers.
@@ -238,11 +222,9 @@ func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	reconcileCtx := r.reconcilePool.Get().(*E2NodeSetReconcileContext)
 
 	defer func() {
-
 		reconcileCtx.Reset()
 
 		r.reconcilePool.Put(reconcileCtx)
-
 	}()
 
 	reconcileCtx.StartTime = time.Now()
@@ -260,7 +242,6 @@ func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Optimized object retrieval.
 
 	e2nodeSet, err := r.getE2NodeSetOptimized(ctx, req.NamespacedName)
-
 	if err != nil {
 
 		if errors.IsNotFound(err) {
@@ -294,9 +275,7 @@ func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Handle deletion.
 
 	if e2nodeSet.DeletionTimestamp != nil {
-
 		return r.handleDeletionOptimized(ctx, e2nodeSet, reconcileCtx, resourceKey)
-
 	}
 
 	// Ensure finalizer exists.
@@ -348,13 +327,11 @@ func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	return result, err
-
 }
 
 // getE2NodeSetOptimized retrieves E2NodeSet using optimized API calls.
 
 func (r *OptimizedE2NodeSetReconciler) getE2NodeSetOptimized(ctx context.Context, key types.NamespacedName) (*nephoranv1.E2NodeSet, error) {
-
 	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "get", "E2NodeSet")
 
 	var e2nodeSet nephoranv1.E2NodeSet
@@ -364,19 +341,15 @@ func (r *OptimizedE2NodeSetReconciler) getE2NodeSetOptimized(ctx context.Context
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	return &e2nodeSet, nil
-
 }
 
 // reconcileNodesOptimized performs optimized node reconciliation.
 
 func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
-
 	ctx context.Context,
 
 	e2nodeSet *nephoranv1.E2NodeSet,
@@ -384,9 +357,7 @@ func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
 	reconcileCtx *E2NodeSetReconcileContext,
 
 	resourceKey string,
-
 ) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx).WithValues("phase", "node-reconciliation")
 
 	// Queue initial status update.
@@ -396,7 +367,6 @@ func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
 	// Get existing ConfigMaps efficiently.
 
 	existingConfigMaps, err := r.getExistingConfigMapsOptimized(ctx, e2nodeSet)
-
 	if err != nil {
 
 		errorType := r.backoffManager.ClassifyError(err)
@@ -424,23 +394,17 @@ func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
 	var reconcileErr error
 
 	if existingCount < desiredReplicas {
-
 		// Need to create more nodes.
 
 		result, reconcileErr = r.scaleUpOptimized(ctx, e2nodeSet, reconcileCtx, desiredReplicas-existingCount)
-
 	} else if existingCount > desiredReplicas {
-
 		// Need to delete excess nodes.
 
 		result, reconcileErr = r.scaleDownOptimized(ctx, e2nodeSet, reconcileCtx, existingCount-desiredReplicas)
-
 	} else {
-
 		// Update existing nodes if needed.
 
 		result, reconcileErr = r.updateExistingNodesOptimized(ctx, e2nodeSet, reconcileCtx)
-
 	}
 
 	reconcileDuration := time.Since(reconcileStart)
@@ -448,9 +412,7 @@ func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
 	reconcileCtx.ProcessingMetrics["node_reconciliation_duration"] = reconcileDuration.Seconds()
 
 	if reconcileErr != nil {
-
 		return result, reconcileErr
-
 	}
 
 	// Update final status with batched operation.
@@ -458,9 +420,7 @@ func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
 	readyReplicas := int32(len(reconcileCtx.ExistingConfigMaps) - reconcileCtx.ErrorCount)
 
 	conditions := []metav1.Condition{
-
 		{
-
 			Type: "Ready",
 
 			Status: metav1.ConditionTrue,
@@ -505,29 +465,21 @@ func (r *OptimizedE2NodeSetReconciler) reconcileNodesOptimized(
 		"requeue_interval", requeueInterval)
 
 	return ctrl.Result{RequeueAfter: requeueInterval}, nil
-
 }
 
 // getExistingConfigMapsOptimized efficiently retrieves existing ConfigMaps.
 
 func (r *OptimizedE2NodeSetReconciler) getExistingConfigMapsOptimized(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) ([]*corev1.ConfigMap, error) {
-
 	// Check cache first.
 
 	cacheKey := fmt.Sprintf("%s/%s", e2nodeSet.Namespace, e2nodeSet.Name)
 
 	if cached, ok := r.configMapCache.Load(cacheKey); ok {
-
 		if cacheEntry, ok := cached.(configMapCacheEntry); ok {
-
 			if time.Since(cacheEntry.timestamp) < 30*time.Second {
-
 				return cacheEntry.configMaps, nil
-
 			}
-
 		}
-
 	}
 
 	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "list", "ConfigMap")
@@ -539,7 +491,6 @@ func (r *OptimizedE2NodeSetReconciler) getExistingConfigMapsOptimized(ctx contex
 		client.InNamespace(e2nodeSet.Namespace),
 
 		client.MatchingLabels{
-
 			E2NodeSetLabelKey: e2nodeSet.Name,
 
 			E2NodeAppLabelKey: E2NodeAppLabelValue,
@@ -548,9 +499,7 @@ func (r *OptimizedE2NodeSetReconciler) getExistingConfigMapsOptimized(ctx contex
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Convert to slice of pointers.
@@ -558,28 +507,23 @@ func (r *OptimizedE2NodeSetReconciler) getExistingConfigMapsOptimized(ctx contex
 	configMaps := make([]*corev1.ConfigMap, len(configMapList.Items))
 
 	for i := range configMapList.Items {
-
 		configMaps[i] = &configMapList.Items[i]
-
 	}
 
 	// Update cache.
 
 	r.configMapCache.Store(cacheKey, configMapCacheEntry{
-
 		configMaps: configMaps,
 
 		timestamp: time.Now(),
 	})
 
 	return configMaps, nil
-
 }
 
 // scaleUpOptimized creates new E2 nodes efficiently.
 
 func (r *OptimizedE2NodeSetReconciler) scaleUpOptimized(
-
 	ctx context.Context,
 
 	e2nodeSet *nephoranv1.E2NodeSet,
@@ -587,9 +531,7 @@ func (r *OptimizedE2NodeSetReconciler) scaleUpOptimized(
 	reconcileCtx *E2NodeSetReconcileContext,
 
 	nodesToCreate int,
-
 ) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx).WithValues("phase", "scale-up", "nodes_to_create", nodesToCreate)
 
 	// Update status to show scaling in progress.
@@ -609,9 +551,7 @@ func (r *OptimizedE2NodeSetReconciler) scaleUpOptimized(
 		end := i + batchSize
 
 		if end > nodesToCreate {
-
 			end = nodesToCreate
-
 		}
 
 		// Create batch of nodes.
@@ -667,13 +607,11 @@ func (r *OptimizedE2NodeSetReconciler) scaleUpOptimized(
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // scaleDownOptimized removes excess E2 nodes efficiently.
 
 func (r *OptimizedE2NodeSetReconciler) scaleDownOptimized(
-
 	ctx context.Context,
 
 	e2nodeSet *nephoranv1.E2NodeSet,
@@ -681,9 +619,7 @@ func (r *OptimizedE2NodeSetReconciler) scaleDownOptimized(
 	reconcileCtx *E2NodeSetReconcileContext,
 
 	nodesToDelete int,
-
 ) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx).WithValues("phase", "scale-down", "nodes_to_delete", nodesToDelete)
 
 	// Update status to show scaling in progress.
@@ -709,9 +645,7 @@ func (r *OptimizedE2NodeSetReconciler) scaleDownOptimized(
 		end := i + batchSize
 
 		if end > len(nodesToDeleteSlice) {
-
 			end = len(nodesToDeleteSlice)
-
 		}
 
 		// Delete batch.
@@ -761,21 +695,17 @@ func (r *OptimizedE2NodeSetReconciler) scaleDownOptimized(
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // updateExistingNodesOptimized updates existing nodes if needed.
 
 func (r *OptimizedE2NodeSetReconciler) updateExistingNodesOptimized(
-
 	ctx context.Context,
 
 	e2nodeSet *nephoranv1.E2NodeSet,
 
 	reconcileCtx *E2NodeSetReconcileContext,
-
 ) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx).WithValues("phase", "update-nodes")
 
 	// For now, this is a placeholder - in a real implementation,.
@@ -787,25 +717,20 @@ func (r *OptimizedE2NodeSetReconciler) updateExistingNodesOptimized(
 	logger.V(1).Info("Node update phase completed", "nodes_checked", len(reconcileCtx.ExistingConfigMaps))
 
 	return ctrl.Result{}, nil
-
 }
 
 // createE2NodeOptimized creates a single E2 node ConfigMap.
 
 func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, nodeIndex int) error {
-
 	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "create", "ConfigMap")
 
 	configMap := &corev1.ConfigMap{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("e2node-%s-%d", e2nodeSet.Name, nodeIndex),
 
 			Namespace: e2nodeSet.Namespace,
 
 			Labels: map[string]string{
-
 				E2NodeSetLabelKey: e2nodeSet.Name,
 
 				E2NodeAppLabelKey: E2NodeAppLabelValue,
@@ -816,9 +741,7 @@ func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context
 			},
 
 			OwnerReferences: []metav1.OwnerReference{
-
 				{
-
 					APIVersion: e2nodeSet.APIVersion,
 
 					Kind: e2nodeSet.Kind,
@@ -833,7 +756,6 @@ func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context
 		},
 
 		Data: map[string]string{
-
 			"node-config.json": fmt.Sprintf(`{
 
 				"nodeId": "e2node-%d",
@@ -853,13 +775,11 @@ func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
 	return err
-
 }
 
 // deleteE2NodeOptimized deletes a single E2 node ConfigMap.
 
 func (r *OptimizedE2NodeSetReconciler) deleteE2NodeOptimized(ctx context.Context, configMap *corev1.ConfigMap) error {
-
 	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "delete", "ConfigMap")
 
 	err := r.Delete(ctx, configMap)
@@ -867,22 +787,18 @@ func (r *OptimizedE2NodeSetReconciler) deleteE2NodeOptimized(ctx context.Context
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
 	return err
-
 }
 
 // Helper methods.
 
 func (r *OptimizedE2NodeSetReconciler) queueE2NodeSetStatusUpdate(e2nodeSet *nephoranv1.E2NodeSet, readyReplicas, totalReplicas int32, phase string, priority UpdatePriority) {
-
 	key := types.NamespacedName{
-
 		Namespace: e2nodeSet.Namespace,
 
 		Name: e2nodeSet.Name,
 	}
 
 	condition := metav1.Condition{
-
 		Type: "Phase",
 
 		Status: metav1.ConditionTrue,
@@ -897,27 +813,19 @@ func (r *OptimizedE2NodeSetReconciler) queueE2NodeSetStatusUpdate(e2nodeSet *nep
 	r.statusBatcher.QueueE2NodeSetUpdate(key, readyReplicas, totalReplicas, []metav1.Condition{condition}, priority)
 
 	r.metrics.RecordStatusUpdate(OptimizedE2NodeSetController, priority.String(), "E2NodeSet", "queued")
-
 }
 
 func (r *OptimizedE2NodeSetReconciler) hasFinalizer(e2nodeSet *nephoranv1.E2NodeSet, finalizer string) bool {
-
 	for _, f := range e2nodeSet.Finalizers {
-
 		if f == finalizer {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (r *OptimizedE2NodeSetReconciler) addFinalizerOptimized(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) error {
-
 	e2nodeSet.Finalizers = append(e2nodeSet.Finalizers, E2NodeSetFinalizer)
 
 	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "update", "E2NodeSet")
@@ -927,11 +835,9 @@ func (r *OptimizedE2NodeSetReconciler) addFinalizerOptimized(ctx context.Context
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
 	return err
-
 }
 
 func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
-
 	ctx context.Context,
 
 	e2nodeSet *nephoranv1.E2NodeSet,
@@ -939,9 +845,7 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 	reconcileCtx *E2NodeSetReconcileContext,
 
 	resourceKey string,
-
 ) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx).WithValues("phase", "deletion")
 
 	// Queue deletion status update.
@@ -951,7 +855,6 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 	// Get existing ConfigMaps for cleanup.
 
 	existingConfigMaps, err := r.getExistingConfigMapsOptimized(ctx, e2nodeSet)
-
 	if err != nil {
 
 		errorType := r.backoffManager.ClassifyError(err)
@@ -971,7 +874,6 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 	errorCount := 0
 
 	for _, configMap := range existingConfigMaps {
-
 		if err := r.deleteE2NodeOptimized(ctx, configMap); err != nil {
 
 			logger.Error(err, "Failed to delete ConfigMap during cleanup", "name", configMap.Name)
@@ -979,11 +881,8 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 			errorCount++
 
 		} else {
-
 			successCount++
-
 		}
-
 	}
 
 	// If cleanup failed, requeue with backoff.
@@ -1005,13 +904,9 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 	finalizers := make([]string, 0)
 
 	for _, f := range e2nodeSet.Finalizers {
-
 		if f != E2NodeSetFinalizer {
-
 			finalizers = append(finalizers, f)
-
 		}
-
 	}
 
 	e2nodeSet.Finalizers = finalizers
@@ -1043,11 +938,9 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 	r.metrics.RecordReconcileResult(OptimizedE2NodeSetController, "deleted")
 
 	return ctrl.Result{}, nil
-
 }
 
 func (r *OptimizedE2NodeSetReconciler) calculateOptimalRequeueInterval(e2nodeSet *nephoranv1.E2NodeSet, reconcileCtx *E2NodeSetReconcileContext) time.Duration {
-
 	// Base interval depends on current state.
 
 	var baseInterval time.Duration
@@ -1073,9 +966,7 @@ func (r *OptimizedE2NodeSetReconciler) calculateOptimalRequeueInterval(e2nodeSet
 	processingTime := time.Since(reconcileCtx.StartTime)
 
 	if processingTime > 5*time.Second {
-
 		baseInterval = time.Duration(float64(baseInterval) * 1.2)
-
 	}
 
 	// Cap the interval.
@@ -1083,17 +974,13 @@ func (r *OptimizedE2NodeSetReconciler) calculateOptimalRequeueInterval(e2nodeSet
 	maxInterval := 10 * time.Minute
 
 	if baseInterval > maxInterval {
-
 		baseInterval = maxInterval
-
 	}
 
 	return baseInterval
-
 }
 
 func (r *OptimizedE2NodeSetReconciler) cleanupCache() {
-
 	defer r.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Minute)
@@ -1101,7 +988,6 @@ func (r *OptimizedE2NodeSetReconciler) cleanupCache() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-r.ctx.Done():
@@ -1113,36 +999,26 @@ func (r *OptimizedE2NodeSetReconciler) cleanupCache() {
 			// Clean up stale cache entries.
 
 			r.configMapCache.Range(func(key, value interface{}) bool {
-
 				if cacheEntry, ok := value.(configMapCacheEntry); ok {
-
 					if time.Since(cacheEntry.timestamp) > 10*time.Minute {
-
 						r.configMapCache.Delete(key)
-
 					}
-
 				}
 
 				return true
-
 			})
 
 		}
-
 	}
-
 }
 
 // SetupWithManager sets up the controller with optimized configuration.
 
 func (r *OptimizedE2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.E2NodeSet{}).
 		Owns(&corev1.ConfigMap{}).
 		WithOptions(controller.Options{
-
 			MaxConcurrentReconciles: 3, // Moderate concurrency for E2NodeSet
 
 		}).
@@ -1150,21 +1026,17 @@ func (r *OptimizedE2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		// Removed Watches - redundant with For() in controller-runtime v0.18+.
 
 		Complete(r)
-
 }
 
 // Shutdown gracefully shuts down the optimized controller.
 
 func (r *OptimizedE2NodeSetReconciler) Shutdown() error {
-
 	r.cancel()
 
 	// Stop status batcher.
 
 	if err := r.statusBatcher.Stop(); err != nil {
-
 		return fmt.Errorf("failed to stop status batcher: %w", err)
-
 	}
 
 	// Wait for background goroutines.
@@ -1172,7 +1044,6 @@ func (r *OptimizedE2NodeSetReconciler) Shutdown() error {
 	r.wg.Wait()
 
 	return nil
-
 }
 
 // Cache entry structure.
@@ -1186,7 +1057,5 @@ type configMapCacheEntry struct {
 // Helper function.
 
 func boolPtr(b bool) *bool {
-
 	return &b
-
 }

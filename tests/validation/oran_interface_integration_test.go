@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/tests/framework"
-	"github.com/thc1006/nephoran-intent-operator/tests/validation"
 )
 
 var _ = Describe("O-RAN Interface Integration Tests", func() {

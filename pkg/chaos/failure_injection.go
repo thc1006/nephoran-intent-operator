@@ -138,15 +138,12 @@ type FailureInjector struct {
 	activeInjections sync.Map
 
 	tcImage string // Traffic control sidecar image
-
 }
 
 // NewFailureInjector creates a new failure injector.
 
 func NewFailureInjector(client client.Client, kubeClient kubernetes.Interface, logger *zap.Logger) *FailureInjector {
-
 	return &FailureInjector{
-
 		client: client,
 
 		kubeClient: kubeClient,
@@ -155,13 +152,11 @@ func NewFailureInjector(client client.Client, kubeClient kubernetes.Interface, l
 
 		tcImage: "gaiadocker/iproute2:latest",
 	}
-
 }
 
 // InjectFailure injects a failure based on experiment configuration.
 
 func (f *FailureInjector) InjectFailure(ctx context.Context, experiment *Experiment) (*InjectionResult, error) {
-
 	f.logger.Info("Injecting failure",
 
 		zap.String("type", string(experiment.Type)),
@@ -171,17 +166,13 @@ func (f *FailureInjector) InjectFailure(ctx context.Context, experiment *Experim
 	// Get target resources.
 
 	target, err := f.getInjectionTarget(ctx, experiment)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to get injection target: %w", err)
-
 	}
 
 	// Create injection result.
 
 	result := &InjectionResult{
-
 		InjectionID: fmt.Sprintf("inj-%s-%d", experiment.ID, time.Now().Unix()),
 
 		Type: f.mapExperimentTypeToInjection(experiment.Type),
@@ -250,15 +241,12 @@ func (f *FailureInjector) InjectFailure(ctx context.Context, experiment *Experim
 	f.registerActiveInjection(result.InjectionID, experiment, target)
 
 	return result, nil
-
 }
 
 // getInjectionTarget identifies target resources for injection.
 
 func (f *FailureInjector) getInjectionTarget(ctx context.Context, experiment *Experiment) (*InjectionTarget, error) {
-
 	target := &InjectionTarget{
-
 		Namespace: experiment.Target.Namespace,
 	}
 
@@ -275,9 +263,7 @@ func (f *FailureInjector) getInjectionTarget(ctx context.Context, experiment *Ex
 			client.InNamespace(experiment.Target.Namespace),
 
 			client.MatchingLabelsSelector{Selector: labelSelector}); err != nil {
-
 			return nil, fmt.Errorf("failed to list pods: %w", err)
-
 		}
 
 		// Apply blast radius limits.
@@ -289,17 +275,13 @@ func (f *FailureInjector) getInjectionTarget(ctx context.Context, experiment *Ex
 			// Randomly select pods up to the limit.
 
 			rand.Shuffle(len(podList.Items), func(i, j int) {
-
 				podList.Items[i], podList.Items[j] = podList.Items[j], podList.Items[i]
-
 			})
 
 			target.Pods = podList.Items[:maxPods]
 
 		} else {
-
 			target.Pods = podList.Items
-
 		}
 
 	}
@@ -311,14 +293,11 @@ func (f *FailureInjector) getInjectionTarget(ctx context.Context, experiment *Ex
 		pod := &corev1.Pod{}
 
 		if err := f.client.Get(ctx, client.ObjectKey{
-
 			Namespace: experiment.Target.Namespace,
 
 			Name: podName,
 		}, pod); err == nil {
-
 			target.Pods = append(target.Pods, *pod)
-
 		}
 
 	}
@@ -330,14 +309,11 @@ func (f *FailureInjector) getInjectionTarget(ctx context.Context, experiment *Ex
 		svc := &corev1.Service{}
 
 		if err := f.client.Get(ctx, client.ObjectKey{
-
 			Namespace: experiment.Target.Namespace,
 
 			Name: svcName,
 		}, svc); err == nil {
-
 			target.Services = append(target.Services, *svc)
-
 		}
 
 	}
@@ -345,29 +321,23 @@ func (f *FailureInjector) getInjectionTarget(ctx context.Context, experiment *Ex
 	// Get nodes if specified.
 
 	if len(experiment.Target.Nodes) > 0 {
-
 		for _, nodeName := range experiment.Target.Nodes {
 
 			node := &corev1.Node{}
 
 			if err := f.client.Get(ctx, client.ObjectKey{Name: nodeName}, node); err == nil {
-
 				target.Nodes = append(target.Nodes, *node)
-
 			}
 
 		}
-
 	}
 
 	return target, nil
-
 }
 
 // injectNetworkChaos injects network-related failures.
 
 func (f *FailureInjector) injectNetworkChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	params := experiment.Parameters
 
 	switch params["latency"] {
@@ -377,17 +347,13 @@ func (f *FailureInjector) injectNetworkChaos(ctx context.Context, experiment *Ex
 		// Packet loss injection.
 
 		if lossStr, exists := params["loss"]; exists {
-
 			return f.injectPacketLoss(ctx, target, lossStr, result)
-
 		}
 
 		// Network partition.
 
 		if _, exists := params["target_namespace"]; exists {
-
 			return f.injectNetworkPartition(ctx, target, params, result)
-
 		}
 
 	default:
@@ -399,13 +365,11 @@ func (f *FailureInjector) injectNetworkChaos(ctx context.Context, experiment *Ex
 	}
 
 	return fmt.Errorf("no network chaos parameters specified")
-
 }
 
 // injectNetworkLatency injects network latency using tc (traffic control).
 
 func (f *FailureInjector) injectNetworkLatency(ctx context.Context, target *InjectionTarget, params map[string]string, result *InjectionResult) error {
-
 	latency := params["latency"]
 
 	jitter := params["jitter"]
@@ -417,15 +381,12 @@ func (f *FailureInjector) injectNetworkLatency(ctx context.Context, target *Inje
 		// Skip if pod is not running.
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		// Execute tc commands to add latency.
 
 		commands := []string{
-
 			// Add root qdisc.
 
 			"tc qdisc add dev eth0 root handle 1: prio",
@@ -442,9 +403,7 @@ func (f *FailureInjector) injectNetworkLatency(ctx context.Context, target *Inje
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject latency in pod",
 
 					zap.String("pod", pod.Name),
@@ -452,9 +411,7 @@ func (f *FailureInjector) injectNetworkLatency(ctx context.Context, target *Inje
 					zap.Error(err))
 
 				// Continue with other pods.
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -466,23 +423,18 @@ func (f *FailureInjector) injectNetworkLatency(ctx context.Context, target *Inje
 	result.Metadata["jitter"] = jitter
 
 	return nil
-
 }
 
 // injectPacketLoss injects packet loss using tc.
 
 func (f *FailureInjector) injectPacketLoss(ctx context.Context, target *InjectionTarget, lossPercent string, result *InjectionResult) error {
-
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		commands := []string{
-
 			"tc qdisc add dev eth0 root handle 1: prio",
 
 			fmt.Sprintf("tc qdisc add dev eth0 parent 1:3 handle 30: netem loss %s%%", lossPercent),
@@ -491,17 +443,13 @@ func (f *FailureInjector) injectPacketLoss(ctx context.Context, target *Injectio
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject packet loss in pod",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -511,13 +459,11 @@ func (f *FailureInjector) injectPacketLoss(ctx context.Context, target *Injectio
 	result.Metadata["packet_loss"] = lossPercent
 
 	return nil
-
 }
 
 // injectNetworkPartition creates network partition between namespaces.
 
 func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *InjectionTarget, params map[string]string, result *InjectionResult) error {
-
 	targetNamespace := params["target_namespace"]
 
 	direction := params["direction"] // in, out, both
@@ -525,15 +471,12 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 	// Create NetworkPolicy to block traffic.
 
 	networkPolicy := &networkingv1.NetworkPolicy{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("chaos-partition-%s", result.InjectionID),
 
 			Namespace: target.Namespace,
 
 			Labels: map[string]string{
-
 				"chaos.injection": "network-partition",
 
 				"chaos.id": result.InjectionID,
@@ -541,9 +484,7 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 		},
 
 		Spec: networkingv1.NetworkPolicySpec{
-
 			PodSelector: metav1.LabelSelector{
-
 				MatchLabels: map[string]string{},
 			},
 
@@ -560,19 +501,12 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 		networkPolicy.Spec.PolicyTypes = append(networkPolicy.Spec.PolicyTypes, networkingv1.PolicyTypeIngress)
 
 		networkPolicy.Spec.Ingress = []networkingv1.NetworkPolicyIngressRule{
-
 			{
-
 				From: []networkingv1.NetworkPolicyPeer{
-
 					{
-
 						NamespaceSelector: &metav1.LabelSelector{
-
 							MatchExpressions: []metav1.LabelSelectorRequirement{
-
 								{
-
 									Key: "name",
 
 									Operator: metav1.LabelSelectorOpNotIn,
@@ -591,19 +525,12 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 		networkPolicy.Spec.PolicyTypes = append(networkPolicy.Spec.PolicyTypes, networkingv1.PolicyTypeEgress)
 
 		networkPolicy.Spec.Egress = []networkingv1.NetworkPolicyEgressRule{
-
 			{
-
 				To: []networkingv1.NetworkPolicyPeer{
-
 					{
-
 						NamespaceSelector: &metav1.LabelSelector{
-
 							MatchExpressions: []metav1.LabelSelectorRequirement{
-
 								{
-
 									Key: "name",
 
 									Operator: metav1.LabelSelectorOpNotIn,
@@ -628,9 +555,7 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 	// Create the network policy.
 
 	if err := f.client.Create(ctx, networkPolicy); err != nil {
-
 		return fmt.Errorf("failed to create network policy: %w", err)
-
 	}
 
 	result.Metadata["partition_type"] = "network-policy"
@@ -642,19 +567,15 @@ func (f *FailureInjector) injectNetworkPartition(ctx context.Context, target *In
 	// Store cleanup function.
 
 	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
-
 		return f.client.Delete(ctx, networkPolicy)
-
 	})
 
 	return nil
-
 }
 
 // injectPodChaos injects pod-related failures.
 
 func (f *FailureInjector) injectPodChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	mode := experiment.Parameters["mode"]
 
 	switch mode {
@@ -686,17 +607,13 @@ func (f *FailureInjector) injectPodChaos(ctx context.Context, experiment *Experi
 		return f.killRandomPods(ctx, target, result)
 
 	}
-
 }
 
 // killRandomPods randomly kills pods.
 
 func (f *FailureInjector) killRandomPods(ctx context.Context, target *InjectionTarget, result *InjectionResult) error {
-
 	if len(target.Pods) == 0 {
-
 		return fmt.Errorf("no pods to kill")
-
 	}
 
 	// Select a random pod.
@@ -706,9 +623,7 @@ func (f *FailureInjector) killRandomPods(ctx context.Context, target *InjectionT
 	// Delete the pod.
 
 	if err := f.client.Delete(ctx, &pod); err != nil {
-
 		return fmt.Errorf("failed to delete pod %s: %w", pod.Name, err)
-
 	}
 
 	result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -716,25 +631,19 @@ func (f *FailureInjector) killRandomPods(ctx context.Context, target *InjectionT
 	f.logger.Info("Killed pod", zap.String("pod", pod.Name))
 
 	return nil
-
 }
 
 // killFixedPods kills a fixed number of pods.
 
 func (f *FailureInjector) killFixedPods(ctx context.Context, target *InjectionTarget, count int, result *InjectionResult) error {
-
 	if count > len(target.Pods) {
-
 		count = len(target.Pods)
-
 	}
 
 	// Randomly select pods to kill.
 
 	rand.Shuffle(len(target.Pods), func(i, j int) {
-
 		target.Pods[i], target.Pods[j] = target.Pods[j], target.Pods[i]
-
 	})
 
 	for i := range count {
@@ -758,13 +667,11 @@ func (f *FailureInjector) killFixedPods(ctx context.Context, target *InjectionTa
 	}
 
 	return nil
-
 }
 
 // killPercentagePods kills a percentage of pods.
 
 func (f *FailureInjector) killPercentagePods(ctx context.Context, target *InjectionTarget, percent float64, result *InjectionResult) error {
-
 	// Safe integer conversion with bounds checking
 
 	countFloat := float64(len(target.Pods)) * percent / 100
@@ -772,45 +679,33 @@ func (f *FailureInjector) killPercentagePods(ctx context.Context, target *Inject
 	count := safeFloatToInt(countFloat)
 
 	if count == 0 && len(target.Pods) > 0 {
-
 		count = 1
-
 	}
 
 	return f.killFixedPods(ctx, target, count, result)
-
 }
 
 // injectResourceChaos injects resource-related stress.
 
 func (f *FailureInjector) injectResourceChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	if cpuPercent, exists := experiment.Parameters["cpu_percent"]; exists {
-
 		return f.injectCPUStress(ctx, target, cpuPercent, result)
-
 	}
 
 	if memoryMB, exists := experiment.Parameters["memory_mb"]; exists {
-
 		return f.injectMemoryStress(ctx, target, memoryMB, result)
-
 	}
 
 	if ioWorkers, exists := experiment.Parameters["io_workers"]; exists {
-
 		return f.injectDiskIOStress(ctx, target, ioWorkers, result)
-
 	}
 
 	return fmt.Errorf("no resource chaos parameters specified")
-
 }
 
 // injectCPUStress injects CPU stress using stress-ng.
 
 func (f *FailureInjector) injectCPUStress(ctx context.Context, target *InjectionTarget, cpuPercent string, result *InjectionResult) error {
-
 	workers := "2"
 
 	timeout := "60s"
@@ -818,32 +713,25 @@ func (f *FailureInjector) injectCPUStress(ctx context.Context, target *Injection
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		// Install stress-ng if not present and run CPU stress.
 
 		commands := []string{
-
 			"apt-get update && apt-get install -y stress-ng || yum install -y stress-ng",
 
 			fmt.Sprintf("stress-ng --cpu %s --cpu-load %s --timeout %s &", workers, cpuPercent, timeout),
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject CPU stress in pod",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -853,13 +741,11 @@ func (f *FailureInjector) injectCPUStress(ctx context.Context, target *Injection
 	result.Metadata["cpu_stress"] = cpuPercent
 
 	return nil
-
 }
 
 // injectMemoryStress injects memory stress.
 
 func (f *FailureInjector) injectMemoryStress(ctx context.Context, target *InjectionTarget, memoryMB string, result *InjectionResult) error {
-
 	workers := "1"
 
 	timeout := "60s"
@@ -867,30 +753,23 @@ func (f *FailureInjector) injectMemoryStress(ctx context.Context, target *Inject
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		commands := []string{
-
 			"apt-get update && apt-get install -y stress-ng || yum install -y stress-ng",
 
 			fmt.Sprintf("stress-ng --vm %s --vm-bytes %sM --timeout %s &", workers, memoryMB, timeout),
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject memory stress in pod",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -900,42 +779,33 @@ func (f *FailureInjector) injectMemoryStress(ctx context.Context, target *Inject
 	result.Metadata["memory_stress"] = memoryMB
 
 	return nil
-
 }
 
 // injectDiskIOStress injects disk I/O stress.
 
 func (f *FailureInjector) injectDiskIOStress(ctx context.Context, target *InjectionTarget, ioWorkers string, result *InjectionResult) error {
-
 	timeout := "60s"
 
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		commands := []string{
-
 			"apt-get update && apt-get install -y stress-ng || yum install -y stress-ng",
 
 			fmt.Sprintf("stress-ng --io %s --timeout %s &", ioWorkers, timeout),
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject I/O stress in pod",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -945,13 +815,11 @@ func (f *FailureInjector) injectDiskIOStress(ctx context.Context, target *Inject
 	result.Metadata["io_stress"] = ioWorkers
 
 	return nil
-
 }
 
 // injectDatabaseChaos injects database-related failures.
 
 func (f *FailureInjector) injectDatabaseChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	failureType := experiment.Parameters["failure_type"]
 
 	switch failureType {
@@ -969,13 +837,11 @@ func (f *FailureInjector) injectDatabaseChaos(ctx context.Context, experiment *E
 		return fmt.Errorf("unsupported database failure type: %s", failureType)
 
 	}
-
 }
 
 // injectDatabaseConnectionDrop simulates database connection drops.
 
 func (f *FailureInjector) injectDatabaseConnectionDrop(ctx context.Context, target *InjectionTarget, params map[string]string, result *InjectionResult) error {
-
 	dbPort := params["port"]
 
 	failureRate := params["failure_rate"]
@@ -983,32 +849,25 @@ func (f *FailureInjector) injectDatabaseConnectionDrop(ctx context.Context, targ
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		// Use iptables to randomly drop database connections.
 
 		commands := []string{
-
 			fmt.Sprintf("iptables -A OUTPUT -p tcp --dport %s -m statistic --mode random --probability 0.%s -j DROP",
 
 				dbPort, failureRate),
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject database connection drop",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -1022,7 +881,6 @@ func (f *FailureInjector) injectDatabaseConnectionDrop(ctx context.Context, targ
 	// Store cleanup function.
 
 	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
-
 		for _, pod := range target.Pods {
 
 			cmd := fmt.Sprintf("iptables -D OUTPUT -p tcp --dport %s -m statistic --mode random --probability 0.%s -j DROP",
@@ -1036,17 +894,14 @@ func (f *FailureInjector) injectDatabaseConnectionDrop(ctx context.Context, targ
 		}
 
 		return nil
-
 	})
 
 	return nil
-
 }
 
 // injectDatabaseSlowQuery simulates slow database queries.
 
 func (f *FailureInjector) injectDatabaseSlowQuery(ctx context.Context, target *InjectionTarget, params map[string]string, result *InjectionResult) error {
-
 	delayMS := params["query_delay_ms"]
 
 	// This would typically be implemented using a database proxy or middleware.
@@ -1056,13 +911,10 @@ func (f *FailureInjector) injectDatabaseSlowQuery(ctx context.Context, target *I
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		commands := []string{
-
 			"tc qdisc add dev eth0 root handle 1: prio",
 
 			fmt.Sprintf("tc qdisc add dev eth0 parent 1:3 handle 30: netem delay %sms", delayMS),
@@ -1071,17 +923,13 @@ func (f *FailureInjector) injectDatabaseSlowQuery(ctx context.Context, target *I
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject database slow query",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -1091,13 +939,11 @@ func (f *FailureInjector) injectDatabaseSlowQuery(ctx context.Context, target *I
 	result.Metadata["query_delay"] = delayMS
 
 	return nil
-
 }
 
 // injectExternalServiceChaos injects external service failures.
 
 func (f *FailureInjector) injectExternalServiceChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	apiEndpoint := experiment.Parameters["api_endpoint"]
 
 	failureType := experiment.Parameters["failure_type"]
@@ -1117,19 +963,16 @@ func (f *FailureInjector) injectExternalServiceChaos(ctx context.Context, experi
 		return fmt.Errorf("unsupported external service failure type: %s", failureType)
 
 	}
-
 }
 
 // injectAPITimeout simulates API timeouts.
 
 func (f *FailureInjector) injectAPITimeout(ctx context.Context, target *InjectionTarget, endpoint string, params map[string]string, result *InjectionResult) error {
-
 	timeoutMS := params["timeout_ms"]
 
 	// Map endpoint to IP/domain.
 
 	endpointMap := map[string]string{
-
 		"openai": "api.openai.com",
 
 		"weaviate": "weaviate.svc.cluster.local",
@@ -1138,23 +981,18 @@ func (f *FailureInjector) injectAPITimeout(ctx context.Context, target *Injectio
 	domain, exists := endpointMap[endpoint]
 
 	if !exists {
-
 		domain = endpoint
-
 	}
 
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		// Add latency to simulate timeout.
 
 		commands := []string{
-
 			"tc qdisc add dev eth0 root handle 1: prio",
 
 			fmt.Sprintf("tc qdisc add dev eth0 parent 1:3 handle 30: netem delay %sms", timeoutMS),
@@ -1163,17 +1001,13 @@ func (f *FailureInjector) injectAPITimeout(ctx context.Context, target *Injectio
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject API timeout",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -1185,13 +1019,11 @@ func (f *FailureInjector) injectAPITimeout(ctx context.Context, target *Injectio
 	result.Metadata["timeout"] = timeoutMS
 
 	return nil
-
 }
 
 // injectAPIError simulates API errors.
 
 func (f *FailureInjector) injectAPIError(ctx context.Context, target *InjectionTarget, endpoint string, params map[string]string, result *InjectionResult) error {
-
 	errorRate := params["failure_rate"]
 
 	// This would typically be implemented using a service mesh or proxy.
@@ -1199,7 +1031,6 @@ func (f *FailureInjector) injectAPIError(ctx context.Context, target *InjectionT
 	// For demonstration, we'll drop packets to simulate errors.
 
 	endpointMap := map[string]string{
-
 		"openai": "api.openai.com",
 
 		"weaviate": "weaviate.svc.cluster.local",
@@ -1208,38 +1039,29 @@ func (f *FailureInjector) injectAPIError(ctx context.Context, target *InjectionT
 	domain, exists := endpointMap[endpoint]
 
 	if !exists {
-
 		domain = endpoint
-
 	}
 
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		commands := []string{
-
 			fmt.Sprintf("iptables -A OUTPUT -d $(dig +short %s | head -1) -m statistic --mode random --probability 0.%s -j DROP",
 
 				domain, errorRate),
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject API error",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -1251,13 +1073,11 @@ func (f *FailureInjector) injectAPIError(ctx context.Context, target *InjectionT
 	result.Metadata["error_rate"] = errorRate
 
 	return nil
-
 }
 
 // injectLoadChaos injects high load.
 
 func (f *FailureInjector) injectLoadChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	intentsPerMinute := experiment.Parameters["intents_per_minute"]
 
 	// Create a job to generate load.
@@ -1265,9 +1085,7 @@ func (f *FailureInjector) injectLoadChaos(ctx context.Context, experiment *Exper
 	job := f.createLoadGeneratorJob(experiment.Target.Namespace, intentsPerMinute, experiment.Duration)
 
 	if err := f.client.Create(ctx, job); err != nil {
-
 		return fmt.Errorf("failed to create load generator job: %w", err)
-
 	}
 
 	result.Metadata["load_generator"] = job.Name
@@ -1277,47 +1095,36 @@ func (f *FailureInjector) injectLoadChaos(ctx context.Context, experiment *Exper
 	// Store cleanup function.
 
 	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
-
 		return f.client.Delete(ctx, job)
-
 	})
 
 	return nil
-
 }
 
 // createLoadGeneratorJob creates a job to generate load.
 
 func (f *FailureInjector) createLoadGeneratorJob(namespace, intentsPerMinute string, duration time.Duration) *corev1.Pod {
-
 	return &corev1.Pod{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			GenerateName: "load-generator-",
 
 			Namespace: namespace,
 
 			Labels: map[string]string{
-
 				"chaos.injection": "load-generator",
 			},
 		},
 
 		Spec: corev1.PodSpec{
-
 			RestartPolicy: corev1.RestartPolicyNever,
 
 			Containers: []corev1.Container{
-
 				{
-
 					Name: "load-generator",
 
 					Image: "curlimages/curl:latest",
 
 					Command: []string{
-
 						"/bin/sh",
 
 						"-c",
@@ -1346,9 +1153,7 @@ func (f *FailureInjector) createLoadGeneratorJob(namespace, intentsPerMinute str
 					},
 
 					Resources: corev1.ResourceRequirements{
-
 						Limits: corev1.ResourceList{
-
 							corev1.ResourceCPU: resource.MustParse("100m"),
 
 							corev1.ResourceMemory: resource.MustParse("128Mi"),
@@ -1358,47 +1163,36 @@ func (f *FailureInjector) createLoadGeneratorJob(namespace, intentsPerMinute str
 			},
 		},
 	}
-
 }
 
 // injectDependencyChaos injects dependency failures.
 
 func (f *FailureInjector) injectDependencyChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	// Implement based on specific dependency type.
 
 	if strings.Contains(experiment.Name, "kubernetes-api") {
-
 		return f.injectKubernetesAPIFailure(ctx, target, experiment.Parameters, result)
-
 	}
 
 	if strings.Contains(experiment.Name, "dns") {
-
 		return f.injectDNSFailure(ctx, target, experiment.Parameters, result)
-
 	}
 
 	return fmt.Errorf("unsupported dependency type")
-
 }
 
 // injectKubernetesAPIFailure simulates Kubernetes API failures.
 
 func (f *FailureInjector) injectKubernetesAPIFailure(ctx context.Context, target *InjectionTarget, params map[string]string, result *InjectionResult) error {
-
 	// Add network latency to Kubernetes API server.
 
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		commands := []string{
-
 			"tc qdisc add dev eth0 root handle 1: prio",
 
 			fmt.Sprintf("tc qdisc add dev eth0 parent 1:3 handle 30: netem delay %sms", params["delay_ms"]),
@@ -1407,17 +1201,13 @@ func (f *FailureInjector) injectKubernetesAPIFailure(ctx context.Context, target
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject Kubernetes API failure",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -1425,42 +1215,33 @@ func (f *FailureInjector) injectKubernetesAPIFailure(ctx context.Context, target
 	}
 
 	return nil
-
 }
 
 // injectDNSFailure simulates DNS failures.
 
 func (f *FailureInjector) injectDNSFailure(ctx context.Context, target *InjectionTarget, params map[string]string, result *InjectionResult) error {
-
 	failureRate := params["failure_rate"]
 
 	for _, pod := range target.Pods {
 
 		if pod.Status.Phase != corev1.PodPhase("Running") {
-
 			continue
-
 		}
 
 		// Drop DNS packets randomly.
 
 		commands := []string{
-
 			fmt.Sprintf("iptables -A OUTPUT -p udp --dport 53 -m statistic --mode random --probability 0.%s -j DROP", failureRate),
 		}
 
 		for _, cmd := range commands {
-
 			if err := f.execInPod(ctx, &pod, cmd); err != nil {
-
 				f.logger.Warn("Failed to inject DNS failure",
 
 					zap.String("pod", pod.Name),
 
 					zap.Error(err))
-
 			}
-
 		}
 
 		result.AffectedPods = append(result.AffectedPods, pod.Name)
@@ -1472,7 +1253,6 @@ func (f *FailureInjector) injectDNSFailure(ctx context.Context, target *Injectio
 	// Store cleanup function.
 
 	f.storeCleanupFunc(result.InjectionID, func(ctx context.Context) error {
-
 		for _, pod := range target.Pods {
 
 			cmd := fmt.Sprintf("iptables -D OUTPUT -p udp --dport 53 -m statistic --mode random --probability 0.%s -j DROP", failureRate)
@@ -1484,17 +1264,14 @@ func (f *FailureInjector) injectDNSFailure(ctx context.Context, target *Injectio
 		}
 
 		return nil
-
 	})
 
 	return nil
-
 }
 
 // injectCompositeChaos injects multiple failures simultaneously.
 
 func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *Experiment, target *InjectionTarget, result *InjectionResult) error {
-
 	scenarios := strings.Split(experiment.Parameters["scenarios"], ",")
 
 	staggerStart := experiment.Parameters["stagger_start"] == "true"
@@ -1516,13 +1293,10 @@ func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *
 		wg.Add(1)
 
 		go func(index int, scenarioName string) {
-
 			defer wg.Done()
 
 			if staggerStart && index > 0 {
-
 				time.Sleep(time.Duration(index) * staggerDelay)
-
 			}
 
 			// Create sub-experiment for each scenario.
@@ -1542,7 +1316,6 @@ func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *
 				subExp.Type = ExperimentTypeNetwork
 
 				subExp.Parameters = map[string]string{
-
 					"latency": "100ms",
 
 					"jitter": "10ms",
@@ -1553,7 +1326,6 @@ func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *
 				subExp.Type = ExperimentTypePod
 
 				subExp.Parameters = map[string]string{
-
 					"mode": "random",
 				}
 
@@ -1562,7 +1334,6 @@ func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *
 				subExp.Type = ExperimentTypeResource
 
 				subExp.Parameters = map[string]string{
-
 					"cpu_percent": "80",
 				}
 
@@ -1579,11 +1350,8 @@ func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *
 				errorsMu.Unlock()
 
 			} else {
-
 				result.AffectedPods = append(result.AffectedPods, subResult.AffectedPods...)
-
 			}
-
 		}(i, strings.TrimSpace(scenario))
 
 	}
@@ -1591,28 +1359,23 @@ func (f *FailureInjector) injectCompositeChaos(ctx context.Context, experiment *
 	wg.Wait()
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("some composite injections failed: %v", errors)
-
 	}
 
 	result.Metadata["scenarios"] = scenarios
 
 	return nil
-
 }
 
 // execInPod executes a command in a pod.
 
 func (f *FailureInjector) execInPod(ctx context.Context, pod *corev1.Pod, command string) error {
-
 	req := f.kubeClient.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(pod.Name).
 		Namespace(pod.Namespace).
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
-
 			Container: pod.Spec.Containers[0].Name,
 
 			Command: []string{"/bin/sh", "-c", command},
@@ -1627,106 +1390,76 @@ func (f *FailureInjector) execInPod(ctx context.Context, pod *corev1.Pod, comman
 		}, metav1.ParameterCodec)
 
 	exec, err := remotecommand.NewSPDYExecutor(nil, "POST", req.URL())
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create executor: %w", err)
-
 	}
 
 	var stdout, stderr bytes.Buffer
 
 	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-
 		Stdout: &stdout,
 
 		Stderr: &stderr,
 	})
-
 	if err != nil {
-
 		return fmt.Errorf("command failed: %w, stderr: %s", err, stderr.String())
-
 	}
 
 	return nil
-
 }
 
 // StopFailure stops a specific failure injection.
 
 func (f *FailureInjector) StopFailure(ctx context.Context, injectionID string) error {
-
 	f.logger.Info("Stopping failure injection", zap.String("id", injectionID))
 
 	if injection, exists := f.activeInjections.Load(injectionID); exists {
-
 		if activeInj, ok := injection.(*ActiveInjection); ok {
 
 			if activeInj.StopFunc != nil {
-
 				if err := activeInj.StopFunc(ctx); err != nil {
-
 					return fmt.Errorf("failed to stop injection: %w", err)
-
 				}
-
 			}
 
 			f.activeInjections.Delete(injectionID)
 
 		}
-
 	}
 
 	return nil
-
 }
 
 // StopAllFailures stops all active failure injections for an experiment.
 
 func (f *FailureInjector) StopAllFailures(ctx context.Context, experimentID string) error {
-
 	f.logger.Info("Stopping all failures for experiment", zap.String("experiment", experimentID))
 
 	var errors []error
 
 	f.activeInjections.Range(func(key, value interface{}) bool {
-
 		if activeInj, ok := value.(*ActiveInjection); ok {
-
 			if activeInj.Experiment != nil && activeInj.Experiment.ID == experimentID {
-
 				if err := f.StopFailure(ctx, key.(string)); err != nil {
-
 					errors = append(errors, err)
-
 				}
-
 			}
-
 		}
 
 		return true
-
 	})
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("failed to stop some injections: %v", errors)
-
 	}
 
 	return nil
-
 }
 
 // registerActiveInjection registers an active injection.
 
 func (f *FailureInjector) registerActiveInjection(id string, experiment *Experiment, target *InjectionTarget) {
-
 	f.activeInjections.Store(id, &ActiveInjection{
-
 		ID: id,
 
 		Type: f.mapExperimentTypeToInjection(experiment.Type),
@@ -1734,7 +1467,6 @@ func (f *FailureInjector) registerActiveInjection(id string, experiment *Experim
 		Experiment: experiment,
 
 		Target: InjectionTarget{
-
 			Namespace: target.Namespace,
 
 			Pods: target.Pods,
@@ -1748,29 +1480,21 @@ func (f *FailureInjector) registerActiveInjection(id string, experiment *Experim
 
 		Metadata: make(map[string]interface{}),
 	})
-
 }
 
 // storeCleanupFunc stores a cleanup function for an injection.
 
 func (f *FailureInjector) storeCleanupFunc(injectionID string, cleanupFunc func(context.Context) error) {
-
 	if injection, exists := f.activeInjections.Load(injectionID); exists {
-
 		if activeInj, ok := injection.(*ActiveInjection); ok {
-
 			activeInj.StopFunc = cleanupFunc
-
 		}
-
 	}
-
 }
 
 // mapExperimentTypeToInjection maps experiment type to injection type.
 
 func (f *FailureInjector) mapExperimentTypeToInjection(expType ExperimentType) InjectionType {
-
 	switch expType {
 
 	case ExperimentTypeNetwork:
@@ -1802,57 +1526,42 @@ func (f *FailureInjector) mapExperimentTypeToInjection(expType ExperimentType) I
 		return InjectionTypeNetworkLatency
 
 	}
-
 }
 
 // GetActiveInjections returns all active injections.
 
 func (f *FailureInjector) GetActiveInjections() []*ActiveInjection {
-
 	var injections []*ActiveInjection
 
 	f.activeInjections.Range(func(key, value interface{}) bool {
-
 		if inj, ok := value.(*ActiveInjection); ok {
-
 			injections = append(injections, inj)
-
 		}
 
 		return true
-
 	})
 
 	return injections
-
 }
 
 // CleanupAllInjections cleans up all active injections.
 
 func (f *FailureInjector) CleanupAllInjections(ctx context.Context) error {
-
 	f.logger.Info("Cleaning up all active injections")
 
 	var errors []error
 
 	f.activeInjections.Range(func(key, value interface{}) bool {
-
 		if err := f.StopFailure(ctx, key.(string)); err != nil {
-
 			errors = append(errors, err)
-
 		}
 
 		return true
-
 	})
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("failed to cleanup some injections: %v", errors)
-
 	}
 
 	return nil
-
 }

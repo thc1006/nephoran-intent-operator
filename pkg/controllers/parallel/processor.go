@@ -123,7 +123,17 @@ func (pp *ParallelProcessor) WaitForAllTasksWithTimeout(timeout time.Duration) e
 func (pp *ParallelProcessor) GetMetrics() ProcessorMetrics {
 	pp.metrics.mutex.RLock()
 	defer pp.metrics.mutex.RUnlock()
-	return *pp.metrics
+
+	// Create a safe copy without copying the mutex to avoid lock copying violation
+	return ProcessorMetrics{
+		TotalTasks:     pp.metrics.TotalTasks,
+		CompletedTasks: pp.metrics.CompletedTasks,
+		FailedTasks:    pp.metrics.FailedTasks,
+		AverageTime:    pp.metrics.AverageTime,
+		MaxTime:        pp.metrics.MaxTime,
+		MinTime:        pp.metrics.MinTime,
+		// Note: mutex is not copied to avoid lock copying violation
+	}
 }
 
 // Shutdown gracefully shuts down the processor

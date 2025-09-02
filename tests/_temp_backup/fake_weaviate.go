@@ -92,9 +92,7 @@ type SearchObject struct {
 // NewFakeWeaviateServer creates a new fake Weaviate server.
 
 func NewFakeWeaviateServer() *FakeWeaviateServer {
-
 	server := &FakeWeaviateServer{
-
 		classes: make(map[string]*WeaviateClass),
 
 		objects: make(map[string]map[string]*WeaviateObject),
@@ -107,13 +105,11 @@ func NewFakeWeaviateServer() *FakeWeaviateServer {
 	server.initializeWithTelecomSchema()
 
 	return server
-
 }
 
 // initializeWithTelecomSchema sets up the telecommunications domain schema.
 
 func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
@@ -121,15 +117,12 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 	// Create TelecomDocument class.
 
 	telecomDocClass := &WeaviateClass{
-
 		Name: "TelecomDocument",
 
 		Description: "Telecommunications domain documents and specifications",
 
 		Properties: []WeaviateProperty{
-
 			{
-
 				Name: "title",
 
 				DataType: []string{"text"},
@@ -138,7 +131,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "content",
 
 				DataType: []string{"text"},
@@ -147,7 +139,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "documentType",
 
 				DataType: []string{"text"},
@@ -156,7 +147,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "category",
 
 				DataType: []string{"text"},
@@ -165,7 +155,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "tags",
 
 				DataType: []string{"text[]"},
@@ -174,7 +163,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "version",
 
 				DataType: []string{"text"},
@@ -183,7 +171,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "releaseDate",
 
 				DataType: []string{"date"},
@@ -195,9 +182,7 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 		Vectorizer: "text2vec-openai",
 
 		ModuleConfig: map[string]interface{}{
-
 			"text2vec-openai": map[string]interface{}{
-
 				"model": "text-embedding-3-small",
 			},
 		},
@@ -206,15 +191,12 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 	// Create NetworkFunction class.
 
 	networkFunctionClass := &WeaviateClass{
-
 		Name: "NetworkFunction",
 
 		Description: "5G Core and O-RAN network function definitions",
 
 		Properties: []WeaviateProperty{
-
 			{
-
 				Name: "name",
 
 				DataType: []string{"text"},
@@ -223,7 +205,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "description",
 
 				DataType: []string{"text"},
@@ -232,7 +213,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "type",
 
 				DataType: []string{"text"},
@@ -241,7 +221,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "interfaces",
 
 				DataType: []string{"text[]"},
@@ -250,7 +229,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "deploymentRequirements",
 
 				DataType: []string{"text"},
@@ -259,7 +237,6 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 			},
 
 			{
-
 				Name: "scalingPolicy",
 
 				DataType: []string{"text"},
@@ -284,13 +261,11 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 	f.populateSampleData()
 
 	f.initialized = true
-
 }
 
 // populateSampleData adds sample telecommunications knowledge to the database.
 
 func (f *FakeWeaviateServer) populateSampleData() {
-
 	// Sample 5G Core network function documents.
 
 	sampleDocuments := []struct {
@@ -304,9 +279,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 
 		tags []string
 	}{
-
 		{
-
 			title: "3GPP TS 23.501 - System architecture for the 5G System",
 
 			content: "This specification defines the Stage 2 system architecture for the 5G System (5GS). The 5GS consists of the 5G Access Network (5G-AN), 5G Core Network (5GC), and UE. The AMF provides UE-based authentication, authorization, mobility management, etc.",
@@ -319,7 +292,6 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		},
 
 		{
-
 			title: "O-RAN Architecture Description",
 
 			content: "The O-RAN ALLIANCE aims to re-shape the RAN industry towards more intelligent, open, virtualized and fully interoperable mobile networks. The O-RAN architecture includes O-DU, O-CU-CP, O-CU-UP, Near-RT RIC, and Non-RT RIC components.",
@@ -332,7 +304,6 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		},
 
 		{
-
 			title: "AMF Deployment Guide for High Availability",
 
 			content: "Access and Mobility Management Function (AMF) deployment requires careful consideration of high availability, scalability, and security. Recommended deployment includes multiple replicas, proper load balancing, and comprehensive monitoring.",
@@ -345,7 +316,6 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		},
 
 		{
-
 			title: "SMF Auto-scaling Configuration",
 
 			content: "Session Management Function (SMF) auto-scaling based on PDU session load. Configure HPA with CPU and memory metrics, with scale-out threshold at 70% CPU utilization and scale-in at 30%.",
@@ -358,7 +328,6 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		},
 
 		{
-
 			title: "UPF Performance Optimization",
 
 			content: "User Plane Function (UPF) performance optimization focuses on packet processing throughput, DPDK usage, and CPU affinity. Edge deployment patterns for low-latency applications.",
@@ -376,13 +345,11 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		objID := uuid.New().String()
 
 		obj := &WeaviateObject{
-
 			ID: objID,
 
 			Class: "TelecomDocument",
 
 			Properties: map[string]interface{}{
-
 				"title": doc.title,
 
 				"content": doc.content,
@@ -426,9 +393,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 
 		scalingPolicy string
 	}{
-
 		{
-
 			name: "AMF",
 
 			description: "Access and Mobility Management Function handles UE registration, authentication, and mobility management in 5G networks",
@@ -443,7 +408,6 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		},
 
 		{
-
 			name: "SMF",
 
 			description: "Session Management Function manages PDU sessions and performs IP address allocation",
@@ -458,7 +422,6 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		},
 
 		{
-
 			name: "Near-RT RIC",
 
 			description: "Near Real-Time RAN Intelligent Controller provides sub-second control loop for RAN optimization",
@@ -478,13 +441,11 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		objID := uuid.New().String()
 
 		obj := &WeaviateObject{
-
 			ID: objID,
 
 			Class: "NetworkFunction",
 
 			Properties: map[string]interface{}{
-
 				"name": nf.name,
 
 				"description": nf.description,
@@ -510,13 +471,11 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		f.embeddings[objID] = obj.Vector
 
 	}
-
 }
 
 // generateMockEmbedding creates a mock embedding vector based on text content.
 
 func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
-
 	// Simple mock embedding based on text characteristics.
 
 	text = strings.ToLower(text)
@@ -530,9 +489,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 	for i, word := range words {
 
 		if i >= len(embedding) {
-
 			break
-
 		}
 
 		// Simple hash-based mock embedding.
@@ -540,9 +497,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 		hash := 0
 
 		for _, char := range word {
-
 			hash = hash*31 + int(char)
-
 		}
 
 		embedding[i] = float32(hash%1000-500) / 1000.0 // Normalize to [-0.5, 0.5]
@@ -552,24 +507,17 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 	// Add some telecommunications domain-specific patterns.
 
 	telecomKeywords := map[string]float32{
-
 		"amf": 0.8, "smf": 0.7, "upf": 0.6, "5g": 0.9, "core": 0.5,
 
 		"oran": 0.8, "ric": 0.7, "ran": 0.6, "deployment": 0.4, "scaling": 0.3,
 	}
 
 	for keyword, weight := range telecomKeywords {
-
 		if strings.Contains(text, keyword) {
-
 			for i := range embedding[:10] {
-
 				embedding[i] += weight * 0.1
-
 			}
-
 		}
-
 	}
 
 	// Normalize vector.
@@ -577,43 +525,33 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 	norm := float32(0)
 
 	for _, val := range embedding {
-
 		norm += val * val
-
 	}
 
 	norm = float32(math.Sqrt(float64(norm)))
 
 	if norm > 0 {
-
 		for i := range embedding {
-
 			embedding[i] /= norm
-
 		}
-
 	}
 
 	return embedding
-
 }
 
 // IsReady checks if the fake Weaviate server is ready.
 
 func (f *FakeWeaviateServer) IsReady() bool {
-
 	f.mu.RLock()
 
 	defer f.mu.RUnlock()
 
 	return f.initialized
-
 }
 
 // GetSchema returns the schema of all classes.
 
 func (f *FakeWeaviateServer) GetSchema() map[string]*WeaviateClass {
-
 	f.mu.RLock()
 
 	defer f.mu.RUnlock()
@@ -621,33 +559,25 @@ func (f *FakeWeaviateServer) GetSchema() map[string]*WeaviateClass {
 	result := make(map[string]*WeaviateClass)
 
 	for k, v := range f.classes {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // AddObject adds a new object to the specified class.
 
 func (f *FakeWeaviateServer) AddObject(className string, obj *WeaviateObject) error {
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
 
 	if _, exists := f.classes[className]; !exists {
-
 		return fmt.Errorf("class %s does not exist", className)
-
 	}
 
 	if obj.ID == "" {
-
 		obj.ID = uuid.New().String()
-
 	}
 
 	obj.Class = className
@@ -657,49 +587,37 @@ func (f *FakeWeaviateServer) AddObject(className string, obj *WeaviateObject) er
 	obj.UpdatedAt = time.Now()
 
 	if f.objects[className] == nil {
-
 		f.objects[className] = make(map[string]*WeaviateObject)
-
 	}
 
 	f.objects[className][obj.ID] = obj
 
 	if len(obj.Vector) > 0 {
-
 		f.embeddings[obj.ID] = obj.Vector
-
 	}
 
 	return nil
-
 }
 
 // GetObject retrieves an object by ID and class.
 
 func (f *FakeWeaviateServer) GetObject(className, objectID string) (*WeaviateObject, error) {
-
 	f.mu.RLock()
 
 	defer f.mu.RUnlock()
 
 	if classObjects, exists := f.objects[className]; exists {
-
 		if obj, exists := classObjects[objectID]; exists {
-
 			return obj, nil
-
 		}
-
 	}
 
 	return nil, fmt.Errorf("object %s not found in class %s", objectID, className)
-
 }
 
 // DeleteObject removes an object from the specified class.
 
 func (f *FakeWeaviateServer) DeleteObject(className, objectID string) error {
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
@@ -715,21 +633,17 @@ func (f *FakeWeaviateServer) DeleteObject(className, objectID string) error {
 	}
 
 	return fmt.Errorf("object %s not found in class %s", objectID, className)
-
 }
 
 // VectorSearch performs vector similarity search.
 
 func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, limit int, certainty float32) (*SearchResult, error) {
-
 	f.mu.RLock()
 
 	defer f.mu.RUnlock()
 
 	if _, exists := f.classes[className]; !exists {
-
 		return nil, fmt.Errorf("class %s does not exist", className)
-
 	}
 
 	var results []SearchObject
@@ -737,15 +651,12 @@ func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, li
 	classObjects := f.objects[className]
 
 	for objectID, obj := range classObjects {
-
 		if embedding, exists := f.embeddings[objectID]; exists {
 
 			similarity := f.cosineSimilarity(vector, embedding)
 
 			if similarity >= certainty {
-
 				results = append(results, SearchObject{
-
 					ID: obj.ID,
 
 					Class: obj.Class,
@@ -760,45 +671,35 @@ func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, li
 
 					Score: similarity,
 				})
-
 			}
 
 		}
-
 	}
 
 	// Sort by similarity score (descending).
 
 	sort.Slice(results, func(i, j int) bool {
-
 		return results[i].Score > results[j].Score
-
 	})
 
 	// Apply limit.
 
 	if len(results) > limit {
-
 		results = results[:limit]
-
 	}
 
 	return &SearchResult{Objects: results}, nil
-
 }
 
 // HybridSearch performs hybrid search combining vector and keyword search.
 
 func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector []float32, limit int) (*SearchResult, error) {
-
 	f.mu.RLock()
 
 	defer f.mu.RUnlock()
 
 	if _, exists := f.classes[className]; !exists {
-
 		return nil, fmt.Errorf("class %s does not exist", className)
-
 	}
 
 	var results []SearchObject
@@ -832,7 +733,6 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 		if score > 0.1 { // Minimum threshold
 
 			results = append(results, SearchObject{
-
 				ID: obj.ID,
 
 				Class: obj.Class,
@@ -847,7 +747,6 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 
 				Distance: 1.0 - score,
 			})
-
 		}
 
 	}
@@ -855,31 +754,23 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 	// Sort by combined score (descending).
 
 	sort.Slice(results, func(i, j int) bool {
-
 		return results[i].Score > results[j].Score
-
 	})
 
 	// Apply limit.
 
 	if len(results) > limit {
-
 		results = results[:limit]
-
 	}
 
 	return &SearchResult{Objects: results}, nil
-
 }
 
 // cosineSimilarity calculates cosine similarity between two vectors.
 
 func (f *FakeWeaviateServer) cosineSimilarity(a, b []float32) float32 {
-
 	if len(a) != len(b) {
-
 		return 0
-
 	}
 
 	var dotProduct, normA, normB float32
@@ -895,23 +786,17 @@ func (f *FakeWeaviateServer) cosineSimilarity(a, b []float32) float32 {
 	}
 
 	if normA == 0 || normB == 0 {
-
 		return 0
-
 	}
 
 	return dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
-
 }
 
 // calculateKeywordScore calculates keyword matching score for an object.
 
 func (f *FakeWeaviateServer) calculateKeywordScore(obj *WeaviateObject, queryTerms []string) float32 {
-
 	if len(queryTerms) == 0 {
-
 		return 0
-
 	}
 
 	// Convert object properties to searchable text.
@@ -923,27 +808,20 @@ func (f *FakeWeaviateServer) calculateKeywordScore(obj *WeaviateObject, queryTer
 	matchedTerms := 0
 
 	for _, term := range queryTerms {
-
 		if strings.Contains(searchableTextLower, term) {
-
 			matchedTerms++
-
 		}
-
 	}
 
 	return float32(matchedTerms) / float32(len(queryTerms))
-
 }
 
 // extractSearchableText extracts searchable text from object properties.
 
 func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
-
 	var textParts []string
 
 	for _, value := range obj.Properties {
-
 		switch v := value.(type) {
 
 		case string:
@@ -957,45 +835,34 @@ func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
 		case []interface{}:
 
 			for _, item := range v {
-
 				if str, ok := item.(string); ok {
-
 					textParts = append(textParts, str)
-
 				}
-
 			}
 
 		}
-
 	}
 
 	return strings.Join(textParts, " ")
-
 }
 
 // GetObjectCount returns the number of objects in a class.
 
 func (f *FakeWeaviateServer) GetObjectCount(className string) int {
-
 	f.mu.RLock()
 
 	defer f.mu.RUnlock()
 
 	if classObjects, exists := f.objects[className]; exists {
-
 		return len(classObjects)
-
 	}
 
 	return 0
-
 }
 
 // Reset clears all data and reinitializes the server.
 
 func (f *FakeWeaviateServer) Reset() {
-
 	f.mu.Lock()
 
 	defer f.mu.Unlock()
@@ -1009,5 +876,4 @@ func (f *FakeWeaviateServer) Reset() {
 	f.initialized = false
 
 	f.initializeWithTelecomSchema()
-
 }

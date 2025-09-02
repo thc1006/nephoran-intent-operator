@@ -27,13 +27,11 @@ type ValidationSuite struct {
 	mu sync.RWMutex
 
 	// prometheusClient  v1.API // TODO: Re-enable when Prometheus integration is needed.
-
 }
 
 // ValidationConfig defines all validation parameters and statistical requirements.
 
 type ValidationConfig struct {
-
 	// Performance Claims to Validate.
 
 	Claims PerformanceClaims `json:"claims"`
@@ -65,7 +63,6 @@ type PerformanceClaims struct {
 	RAGRetrievalLatencyP95 time.Duration `json:"rag_retrieval_latency_p95"` // Sub-200ms P95 retrieval
 
 	CacheHitRate float64 `json:"cache_hit_rate"` // 87% cache hit rate
-
 }
 
 // StatisticalConfig defines statistical validation parameters.
@@ -82,7 +79,6 @@ type StatisticalConfig struct {
 	EffectSizeThreshold float64 `json:"effect_size_threshold"` // Minimum meaningful effect
 
 	MultipleComparisons string `json:"multiple_comparisons"` // Correction method
-
 }
 
 // TestConfiguration defines test execution parameters.
@@ -117,7 +113,6 @@ type EvidenceRequirements struct {
 	ConfidenceIntervals bool `json:"confidence_intervals"` // Include CIs in results
 
 	HypothesisTests bool `json:"hypothesis_tests"` // Formal hypothesis testing
-
 }
 
 // LoadPattern defines different load testing patterns.
@@ -367,9 +362,7 @@ type TimeSeriesPoint struct {
 // NewValidationSuite creates a new validation suite instance.
 
 func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
-
 	return &ValidationSuite{
-
 		config: config,
 
 		statisticalTests: NewStatisticalValidator(&config.Statistics),
@@ -379,19 +372,16 @@ func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 		testRunner: NewTestRunner(&config.TestConfig),
 
 		results: &ValidationResults{
-
 			ClaimResults: make(map[string]*ClaimResult),
 
 			StatisticalTests: make(map[string]*HypothesisTest),
 		},
 	}
-
 }
 
 // ValidateAllClaims performs comprehensive validation of all performance claims.
 
 func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationResults, error) {
-
 	vs.mu.Lock()
 
 	defer vs.mu.Unlock()
@@ -401,7 +391,6 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	// Initialize results.
 
 	vs.results.Metadata = &ValidationMetadata{
-
 		StartTime: startTime,
 
 		Environment: vs.gatherEnvironmentInfo(),
@@ -416,7 +405,6 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 
 		validator func(ctx context.Context) (*ClaimResult, error)
 	}{
-
 		{"intent_latency_p95", vs.validateIntentLatencyP95},
 
 		{"concurrent_capacity", vs.validateConcurrentCapacity},
@@ -437,19 +425,14 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	for _, claim := range claims {
 
 		result, err := claim.validator(ctx)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to validate claim %s: %w", claim.name, err)
-
 		}
 
 		vs.results.ClaimResults[claim.name] = result
 
 		if result.Status == "validated" {
-
 			validatedClaims++
-
 		}
 
 	}
@@ -457,7 +440,6 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	// Calculate overall summary.
 
 	vs.results.Summary = ValidationSummary{
-
 		TotalClaims: totalClaims,
 
 		ValidatedClaims: validatedClaims,
@@ -484,23 +466,18 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	vs.results.Metadata.EndTime = time.Now()
 
 	return vs.results, nil
-
 }
 
 // validateIntentLatencyP95 validates the claim of sub-2-second P95 latency for intent processing.
 
 func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*ClaimResult, error) {
-
 	target := vs.config.Claims.IntentLatencyP95
 
 	// Run comprehensive latency test.
 
 	measurements, err := vs.testRunner.RunIntentLatencyTest(ctx)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Calculate P95 latency.
@@ -533,17 +510,12 @@ func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*Claim
 	status := "failed"
 
 	if p95Latency <= target.Seconds() && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
-
 		status = "validated"
-
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
-
 		status = "inconclusive"
-
 	}
 
 	return &ClaimResult{
-
 		Claim: "Intent processing P95 latency < 2 seconds",
 
 		Target: target,
@@ -555,7 +527,6 @@ func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*Claim
 		Confidence: vs.config.Statistics.ConfidenceLevel,
 
 		Evidence: &ClaimEvidence{
-
 			SampleSize: len(measurements),
 
 			MeasurementUnit: "seconds",
@@ -563,7 +534,6 @@ func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*Claim
 			RawData: measurements,
 
 			Percentiles: map[string]float64{
-
 				"p50": vs.calculatePercentile(measurements, 50.0),
 
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -580,23 +550,18 @@ func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*Claim
 
 		HypothesisTest: hypothesisTest,
 	}, nil
-
 }
 
 // validateConcurrentCapacity validates the claim of handling 200+ concurrent intents.
 
 func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*ClaimResult, error) {
-
 	target := vs.config.Claims.ConcurrentCapacity
 
 	// Run concurrent capacity test.
 
 	maxConcurrent, measurements, err := vs.testRunner.RunConcurrentCapacityTest(ctx)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Generate statistics.
@@ -625,17 +590,12 @@ func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*Cla
 	status := "failed"
 
 	if maxConcurrent >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
-
 		status = "validated"
-
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
-
 		status = "inconclusive"
-
 	}
 
 	return &ClaimResult{
-
 		Claim: fmt.Sprintf("System handles %d+ concurrent intents", target),
 
 		Target: target,
@@ -647,7 +607,6 @@ func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*Cla
 		Confidence: vs.config.Statistics.ConfidenceLevel,
 
 		Evidence: &ClaimEvidence{
-
 			SampleSize: len(measurements),
 
 			MeasurementUnit: "concurrent_intents",
@@ -655,7 +614,6 @@ func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*Cla
 			RawData: measurements,
 
 			Percentiles: map[string]float64{
-
 				"p50": vs.calculatePercentile(measurements, 50.0),
 
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -672,23 +630,18 @@ func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*Cla
 
 		HypothesisTest: hypothesisTest,
 	}, nil
-
 }
 
 // validateThroughputRate validates the claim of 45 intents per minute throughput.
 
 func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimResult, error) {
-
 	target := float64(vs.config.Claims.ThroughputRate)
 
 	// Run throughput test.
 
 	measurements, err := vs.testRunner.RunThroughputTest(ctx)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Calculate average throughput.
@@ -721,17 +674,12 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 	status := "failed"
 
 	if avgThroughput >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
-
 		status = "validated"
-
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
-
 		status = "inconclusive"
-
 	}
 
 	return &ClaimResult{
-
 		Claim: fmt.Sprintf("System processes %.0f+ intents per minute", target),
 
 		Target: target,
@@ -743,7 +691,6 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 		Confidence: vs.config.Statistics.ConfidenceLevel,
 
 		Evidence: &ClaimEvidence{
-
 			SampleSize: len(measurements),
 
 			MeasurementUnit: "intents_per_minute",
@@ -751,7 +698,6 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 			RawData: measurements,
 
 			Percentiles: map[string]float64{
-
 				"p50": vs.calculatePercentile(measurements, 50.0),
 
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -768,7 +714,6 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 
 		HypothesisTest: hypothesisTest,
 	}, nil
-
 }
 
 // Utility methods for statistical calculations.
@@ -776,11 +721,8 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 // calculatePercentile calculates the specified percentile of a dataset.
 
 func (vs *ValidationSuite) calculatePercentile(data []float64, percentile float64) float64 {
-
 	if len(data) == 0 {
-
 		return 0
-
 	}
 
 	sorted := make([]float64, len(data))
@@ -790,31 +732,23 @@ func (vs *ValidationSuite) calculatePercentile(data []float64, percentile float6
 	sort.Float64s(sorted)
 
 	return stat.Quantile(percentile/100.0, stat.Empirical, sorted, nil)
-
 }
 
 // calculateMean calculates the arithmetic mean of a dataset.
 
 func (vs *ValidationSuite) calculateMean(data []float64) float64 {
-
 	if len(data) == 0 {
-
 		return 0
-
 	}
 
 	return stat.Mean(data, nil)
-
 }
 
 // calculateDescriptiveStats generates comprehensive descriptive statistics.
 
 func (vs *ValidationSuite) calculateDescriptiveStats(data []float64) *DescriptiveStats {
-
 	if len(data) == 0 {
-
 		return &DescriptiveStats{}
-
 	}
 
 	sorted := make([]float64, len(data))
@@ -830,7 +764,6 @@ func (vs *ValidationSuite) calculateDescriptiveStats(data []float64) *Descriptiv
 	stddev := math.Sqrt(variance)
 
 	return &DescriptiveStats{
-
 		Mean: mean,
 
 		Median: stat.Quantile(0.5, stat.Empirical, sorted, nil),
@@ -849,25 +782,19 @@ func (vs *ValidationSuite) calculateDescriptiveStats(data []float64) *Descriptiv
 
 		CoeffVariation: stddev / mean,
 	}
-
 }
 
 // analyzeDistribution performs comprehensive distribution analysis.
 
 func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnalysis {
-
 	if len(data) < 3 {
-
 		return &DistributionAnalysis{
-
 			Type: "insufficient_data",
 
 			Parameters: map[string]float64{
-
 				"sample_size": float64(len(data)),
 			},
 		}
-
 	}
 
 	// Perform normality test.
@@ -889,7 +816,6 @@ func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnal
 	goodnessOfFit := vs.performGoodnessOfFitTest(data, distributionType, parameters)
 
 	return &DistributionAnalysis{
-
 		Type: distributionType,
 
 		Parameters: parameters,
@@ -900,49 +826,37 @@ func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnal
 
 		QQPlotData: vs.generateQQPlotData(data, distributionType),
 	}
-
 }
 
 // inferDistributionType infers the most likely distribution type.
 
 func (vs *ValidationSuite) inferDistributionType(stats *DescriptiveStats, normalityTest *NormalityTest) string {
-
 	// Simple heuristics for distribution identification.
 
 	// Check for normality first.
 
 	if normalityTest.ShapiroWilk != nil && normalityTest.ShapiroWilk.PValue > 0.05 {
-
 		return "normal"
-
 	}
 
 	// Check skewness and kurtosis.
 
 	if abs(stats.Skewness) < 0.5 {
-
 		return "normal"
-
 	} else if stats.Skewness > 1.0 {
-
 		return "exponential"
-
 	} else if stats.Skewness < -1.0 {
-
 		return "beta"
-
 	}
 
 	// Default to empirical distribution.
 
 	return "empirical"
-
 }
 
 // calculateDistributionParameters calculates parameters for the identified distribution.
 
 func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distType string) map[string]float64 {
-
 	params := make(map[string]float64)
 
 	stats := vs.calculateDescriptiveStats(data)
@@ -988,17 +902,14 @@ func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distT
 	}
 
 	return params
-
 }
 
 // performGoodnessOfFitTest performs goodness of fit testing.
 
 func (vs *ValidationSuite) performGoodnessOfFitTest(data []float64, distType string, params map[string]float64) *GoodnessOfFitTest {
-
 	// Simplified implementation - would use proper statistical libraries in practice.
 
 	return &GoodnessOfFitTest{
-
 		TestName: "Kolmogorov-Smirnov",
 
 		TestStatistic: 0.08, // Placeholder
@@ -1009,17 +920,13 @@ func (vs *ValidationSuite) performGoodnessOfFitTest(data []float64, distType str
 
 		Conclusion: "Data fits the hypothesized distribution",
 	}
-
 }
 
 // generateQQPlotData generates Q-Q plot data for distribution analysis.
 
 func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) []QQPoint {
-
 	if len(data) < 2 {
-
 		return []QQPoint{}
-
 	}
 
 	// Sort the data.
@@ -1035,28 +942,22 @@ func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) [
 	points := make([]QQPoint, min(len(data), 100)) // Limit to 100 points for visualization
 
 	for i := range points {
-
 		// This would calculate actual theoretical vs sample quantiles.
 
 		points[i] = QQPoint{
-
 			Theoretical: float64(i) / float64(len(points)),
 
 			Sample: sortedData[i*len(sortedData)/len(points)],
 		}
-
 	}
 
 	return points
-
 }
 
 // gatherEnvironmentInfo collects environment information for metadata.
 
 func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
-
 	return &EnvironmentInfo{
-
 		Platform: "linux",
 
 		Architecture: "amd64",
@@ -1066,39 +967,33 @@ func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
 		NodeCount: 3, // Would be retrieved from cluster
 
 		ResourceLimits: map[string]string{
-
 			"cpu": "4000m",
 
 			"memory": "8Gi",
 		},
 
 		NetworkConfig: map[string]string{
-
 			"cni": "cilium",
 
 			"service": "clusterip",
 		},
 
 		StorageConfig: map[string]string{
-
 			"class": "fast-ssd",
 
 			"driver": "csi-driver",
 		},
 	}
-
 }
 
 // generateRecommendations generates recommendations based on validation results.
 
 func (vs *ValidationSuite) generateRecommendations() []Recommendation {
-
 	var recommendations []Recommendation
 
 	// This would analyze validation results and generate specific recommendations.
 
 	recommendations = append(recommendations, Recommendation{
-
 		Type: "performance",
 
 		Priority: "medium",
@@ -1113,33 +1008,24 @@ func (vs *ValidationSuite) generateRecommendations() []Recommendation {
 	})
 
 	return recommendations
-
 }
 
 // Helper functions.
 
 func abs(x float64) float64 {
-
 	if x < 0 {
-
 		return -x
-
 	}
 
 	return x
-
 }
 
 func min(a, b int) int {
-
 	if a < b {
-
 		return a
-
 	}
 
 	return b
-
 }
 
 // Recommendation represents a recommendation based on validation results.
@@ -1197,17 +1083,13 @@ type MetricComparison struct {
 // validateSystemAvailability validates the claim of 99.95% system availability.
 
 func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*ClaimResult, error) {
-
 	target := vs.config.Claims.SystemAvailability
 
 	// Run availability monitoring test.
 
 	measurements, err := vs.testRunner.RunSystemAvailabilityTest(ctx)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Calculate average availability.
@@ -1240,17 +1122,12 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 	status := "failed"
 
 	if avgAvailability >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
-
 		status = "validated"
-
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
-
 		status = "inconclusive"
-
 	}
 
 	return &ClaimResult{
-
 		Claim: fmt.Sprintf("System availability >= %.3f%%", target),
 
 		Target: target,
@@ -1262,7 +1139,6 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 		Confidence: vs.config.Statistics.ConfidenceLevel,
 
 		Evidence: &ClaimEvidence{
-
 			SampleSize: len(measurements),
 
 			MeasurementUnit: "percentage",
@@ -1270,7 +1146,6 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 			RawData: measurements,
 
 			Percentiles: map[string]float64{
-
 				"p50": vs.calculatePercentile(measurements, 50.0),
 
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -1287,23 +1162,18 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 
 		HypothesisTest: hypothesisTest,
 	}, nil
-
 }
 
 // validateRAGRetrievalLatencyP95 validates the claim of sub-200ms P95 RAG retrieval latency.
 
 func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (*ClaimResult, error) {
-
 	target := vs.config.Claims.RAGRetrievalLatencyP95
 
 	// Run RAG retrieval latency test.
 
 	measurements, err := vs.testRunner.RunRAGRetrievalLatencyTest(ctx)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Calculate P95 latency.
@@ -1336,17 +1206,12 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 	status := "failed"
 
 	if p95Latency <= target.Seconds() && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
-
 		status = "validated"
-
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
-
 		status = "inconclusive"
-
 	}
 
 	return &ClaimResult{
-
 		Claim: fmt.Sprintf("RAG retrieval P95 latency < %v", target),
 
 		Target: target,
@@ -1358,7 +1223,6 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 		Confidence: vs.config.Statistics.ConfidenceLevel,
 
 		Evidence: &ClaimEvidence{
-
 			SampleSize: len(measurements),
 
 			MeasurementUnit: "seconds",
@@ -1366,7 +1230,6 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 			RawData: measurements,
 
 			Percentiles: map[string]float64{
-
 				"p50": vs.calculatePercentile(measurements, 50.0),
 
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -1383,23 +1246,18 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 
 		HypothesisTest: hypothesisTest,
 	}, nil
-
 }
 
 // validateCacheHitRate validates the claim of 87% cache hit rate.
 
 func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResult, error) {
-
 	target := vs.config.Claims.CacheHitRate
 
 	// Run cache hit rate test.
 
 	measurements, err := vs.testRunner.RunCacheHitRateTest(ctx)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Calculate average hit rate.
@@ -1432,17 +1290,12 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 	status := "failed"
 
 	if avgHitRate >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
-
 		status = "validated"
-
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
-
 		status = "inconclusive"
-
 	}
 
 	return &ClaimResult{
-
 		Claim: fmt.Sprintf("Cache hit rate >= %.1f%%", target),
 
 		Target: target,
@@ -1454,7 +1307,6 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 		Confidence: vs.config.Statistics.ConfidenceLevel,
 
 		Evidence: &ClaimEvidence{
-
 			SampleSize: len(measurements),
 
 			MeasurementUnit: "percentage",
@@ -1462,7 +1314,6 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 			RawData: measurements,
 
 			Percentiles: map[string]float64{
-
 				"p50": vs.calculatePercentile(measurements, 50.0),
 
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -1479,5 +1330,4 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 
 		HypothesisTest: hypothesisTest,
 	}, nil
-
 }

@@ -107,13 +107,10 @@ type ConfigSyncMetrics struct {
 // NewConfigSyncMetrics creates new Config Sync metrics.
 
 func NewConfigSyncMetrics() *ConfigSyncMetrics {
-
 	return &ConfigSyncMetrics{
-
 		SyncOperations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "configsync_operations_total",
 
 				Help: "Total number of Config Sync operations",
@@ -125,7 +122,6 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 		SyncDuration: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "configsync_operation_duration_seconds",
 
 				Help: "Duration of Config Sync operations",
@@ -139,7 +135,6 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 		SyncErrors: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "configsync_errors_total",
 
 				Help: "Total number of Config Sync errors",
@@ -151,7 +146,6 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 		GitOperations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "configsync_git_operations_total",
 
 				Help: "Total number of Git operations",
@@ -163,7 +157,6 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 		RepositoryHealth: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "configsync_repository_health",
 
 				Help: "Health status of Git repositories (1=healthy, 0=unhealthy)",
@@ -175,7 +168,6 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 		PackageDeployments: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "configsync_package_deployments_total",
 
 				Help: "Total number of package deployments",
@@ -184,7 +176,6 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 			[]string{"package", "cluster", "status"},
 		),
 	}
-
 }
 
 // ConfigSyncClient manages Config Sync operations.
@@ -218,15 +209,11 @@ type SyncResult struct {
 // NewConfigSyncClient creates a new Config Sync client.
 
 func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*ConfigSyncClient, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config cannot be nil")
-
 	}
 
 	gitConfig := GitConfig{
-
 		URL: config.Repository,
 
 		Branch: config.Branch,
@@ -239,7 +226,6 @@ func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*Confi
 	}
 
 	return &ConfigSyncClient{
-
 		client: client,
 
 		logger: log.Log.WithName("configsync"),
@@ -252,13 +238,11 @@ func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*Confi
 
 		gitConfig: gitConfig,
 	}, nil
-
 }
 
 // DeployPackage deploys a package using Config Sync.
 
 func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (*SyncResult, error) {
-
 	ctx, span := csc.tracer.Start(ctx, "deploy-package")
 
 	defer span.End()
@@ -279,7 +263,6 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 	// Prepare package content for Git repository.
 
 	content, err := csc.preparePackageContent(ctx, pkg, cluster)
-
 	if err != nil {
 
 		csc.metrics.SyncErrors.WithLabelValues(csc.gitConfig.URL, "prepare_content").Inc()
@@ -349,7 +332,6 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 	csc.metrics.PackageDeployments.WithLabelValues(pkg.Spec.PackageName, cluster.Name, "success").Inc()
 
 	syncResult := &SyncResult{
-
 		Status: "Success",
 
 		Resources: resources,
@@ -378,7 +360,6 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 	)
 
 	return syncResult, nil
-
 }
 
 // KrmResource represents a KRM resource structure.
@@ -400,7 +381,6 @@ type KrmResource struct {
 // preparePackageContent prepares package content for Config Sync deployment.
 
 func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (map[string][]byte, error) {
-
 	_, span := csc.tracer.Start(ctx, "prepare-package-content")
 
 	defer span.End()
@@ -420,7 +400,6 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 			// Try to marshal and unmarshal to get a map.
 
 			resourceData, err := yaml.Marshal(resourceInterface)
-
 			if err != nil {
 
 				span.RecordError(err)
@@ -444,23 +423,17 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		kind, _ := resourceMap["kind"].(string)
 
 		if kind == "" {
-
 			kind = "Resource"
-
 		}
 
 		var name string
 
 		if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
-
 			name, _ = metadata["name"].(string)
-
 		}
 
 		if name == "" {
-
 			name = fmt.Sprintf("resource-%d", i)
-
 		}
 
 		// Generate filename.
@@ -470,7 +443,6 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		// Convert resource content to YAML.
 
 		yamlContent, err := yaml.Marshal(resourceMap)
-
 		if err != nil {
 
 			span.RecordError(err)
@@ -486,17 +458,14 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	// Generate Kustomization file.
 
 	kustomization := map[string]interface{}{
-
 		"apiVersion": "kustomize.config.k8s.io/v1beta1",
 
 		"kind": "Kustomization",
 
 		"metadata": map[string]interface{}{
-
 			"name": pkg.Spec.PackageName,
 
 			"annotations": map[string]interface{}{
-
 				"config.k8s.io/local-config": "true",
 			},
 		},
@@ -504,7 +473,6 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		"resources": csc.getResourceFileNames(content),
 
 		"commonLabels": map[string]interface{}{
-
 			"app.kubernetes.io/name": pkg.Spec.PackageName,
 
 			"app.kubernetes.io/version": pkg.Spec.Revision,
@@ -517,7 +485,6 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		},
 
 		"commonAnnotations": map[string]interface{}{
-
 			"nephoran.io/deployed-at": time.Now().Format(time.RFC3339),
 
 			"nephoran.io/source-repo": pkg.Spec.Repository,
@@ -527,7 +494,6 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	}
 
 	kustomizationYAML, err := yaml.Marshal(kustomization)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -543,17 +509,14 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	if !csc.hasNamespaceResource(content) {
 
 		namespace := map[string]interface{}{
-
 			"apiVersion": "v1",
 
 			"kind": "Namespace",
 
 			"metadata": map[string]interface{}{
-
 				"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
 
 				"labels": map[string]interface{}{
-
 					"nephoran.io/managed": "true",
 
 					"nephoran.io/cluster": cluster.Name,
@@ -564,7 +527,6 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		}
 
 		namespaceYAML, err := yaml.Marshal(namespace)
-
 		if err != nil {
 
 			span.RecordError(err)
@@ -585,51 +547,37 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	)
 
 	return content, nil
-
 }
 
 // getResourceFileNames extracts resource file names from content map.
 
 func (csc *ConfigSyncClient) getResourceFileNames(content map[string][]byte) []string {
-
 	var files []string
 
 	for filename := range content {
-
 		if filename != "kustomization.yaml" {
-
 			files = append(files, filename)
-
 		}
-
 	}
 
 	return files
-
 }
 
 // hasNamespaceResource checks if the content contains a namespace resource.
 
 func (csc *ConfigSyncClient) hasNamespaceResource(content map[string][]byte) bool {
-
 	for filename := range content {
-
 		if strings.Contains(strings.ToLower(filename), "namespace") {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // setupRepository clones or updates the Git repository.
 
 func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
-
 	ctx, span := csc.tracer.Start(ctx, "setup-repository")
 
 	defer span.End()
@@ -693,13 +641,11 @@ func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
 	}
 
 	return nil
-
 }
 
 // commitAndPush commits and pushes changes to the Git repository.
 
 func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) error {
-
 	ctx, span := csc.tracer.Start(ctx, "commit-and-push")
 
 	defer span.End()
@@ -721,7 +667,6 @@ func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.Packa
 	statusCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "status", "--porcelain")
 
 	output, err := statusCmd.CombinedOutput()
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -772,13 +717,11 @@ func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.Packa
 	)
 
 	return nil
-
 }
 
 // ValidateRepository validates the Git repository configuration.
 
 func (csc *ConfigSyncClient) ValidateRepository(ctx context.Context) error {
-
 	ctx, span := csc.tracer.Start(ctx, "validate-repository")
 
 	defer span.End()
@@ -800,13 +743,11 @@ func (csc *ConfigSyncClient) ValidateRepository(ctx context.Context) error {
 	csc.metrics.RepositoryHealth.WithLabelValues(csc.gitConfig.URL, csc.gitConfig.Branch).Set(1)
 
 	return nil
-
 }
 
 // GetSyncStatus returns the current sync status for a package.
 
 func (csc *ConfigSyncClient) GetSyncStatus(ctx context.Context, packageName, clusterName string) (*SyncResult, error) {
-
 	_, span := csc.tracer.Start(ctx, "get-sync-status")
 
 	defer span.End()
@@ -816,20 +757,17 @@ func (csc *ConfigSyncClient) GetSyncStatus(ctx context.Context, packageName, clu
 	// In a real scenario, you would query the Config Sync API or Git repository.
 
 	return &SyncResult{
-
 		Status: "Unknown",
 
 		Resources: []string{},
 
 		Duration: 0,
 	}, nil
-
 }
 
 // CleanupPackage removes a package from the Config Sync repository.
 
 func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, clusterName string) error {
-
 	ctx, span := csc.tracer.Start(ctx, "cleanup-package")
 
 	defer span.End()
@@ -907,5 +845,4 @@ func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, cl
 	logger.Info("Package cleanup completed successfully")
 
 	return nil
-
 }

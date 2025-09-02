@@ -79,7 +79,6 @@ type Registry struct {
 // RegistryConfig defines configuration for the function registry.
 
 type RegistryConfig struct {
-
 	// Repository settings.
 
 	DefaultRepositories []RepositoryConfig `json:"defaultRepositories" yaml:"defaultRepositories"`
@@ -190,7 +189,6 @@ type AuthConfig struct {
 // FunctionMetadata contains comprehensive metadata about a KRM function.
 
 type FunctionMetadata struct {
-
 	// Basic information.
 
 	Name string `json:"name" yaml:"name"`
@@ -272,7 +270,6 @@ type ResourceTypeSupport struct {
 	Kind string `json:"kind" yaml:"kind"`
 
 	Operations []string `json:"operations" yaml:"operations"` // create, update, delete, patch
-
 }
 
 // FunctionConfigSchema defines the configuration schema for a function.
@@ -482,11 +479,8 @@ type RegistryMetrics struct {
 // Default registry configuration.
 
 var DefaultRegistryConfig = &RegistryConfig{
-
 	DefaultRepositories: []RepositoryConfig{
-
 		{
-
 			Name: "nephoran-functions",
 
 			URL: "https://github.com/nephoran/krm-functions",
@@ -501,7 +495,6 @@ var DefaultRegistryConfig = &RegistryConfig{
 		},
 
 		{
-
 			Name: "kpt-functions",
 
 			URL: "https://catalog.kpt.dev/functions",
@@ -550,62 +543,50 @@ var DefaultRegistryConfig = &RegistryConfig{
 // NewRegistry creates a new function registry with comprehensive capabilities.
 
 func NewRegistry(config *RegistryConfig) (*Registry, error) {
-
 	if config == nil {
-
 		config = DefaultRegistryConfig
-
 	}
 
 	// Validate configuration.
 
 	if err := validateRegistryConfig(config); err != nil {
-
 		return nil, fmt.Errorf("invalid registry configuration: %w", err)
-
 	}
 
 	// Initialize metrics.
 
 	registryMetrics := &RegistryMetrics{
-
 		RepositoryCount: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "krm_registry_repositories_total",
 
 			Help: "Total number of configured repositories",
 		}),
 
 		FunctionCount: promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 			Name: "krm_registry_functions_total",
 
 			Help: "Total number of functions by repository",
 		}, []string{"repository"}),
 
 		DiscoveryDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 			Name: "krm_registry_discovery_duration_seconds",
 
 			Help: "Duration of function discovery operations",
 		}, []string{"repository"}),
 
 		CacheHitRate: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "krm_registry_cache_hits_total",
 
 			Help: "Total number of cache hits",
 		}),
 
 		CacheMissRate: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "krm_registry_cache_misses_total",
 
 			Help: "Total number of cache misses",
 		}),
 
 		HealthCheckFailures: promauto.NewCounterVec(prometheus.CounterOpts{
-
 			Name: "krm_registry_health_check_failures_total",
 
 			Help: "Total number of health check failures",
@@ -615,37 +596,31 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	// Initialize cache.
 
 	cacheMetrics := &CacheMetrics{
-
 		Hits: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "krm_registry_cache_operations_total",
 
 			Help: "Total number of cache operations",
 		}),
 
 		Misses: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "krm_registry_cache_misses_total",
 
 			Help: "Total number of cache misses",
 		}),
 
 		Evictions: promauto.NewCounter(prometheus.CounterOpts{
-
 			Name: "krm_registry_cache_evictions_total",
 
 			Help: "Total number of cache evictions",
 		}),
 
 		Size: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "krm_registry_cache_size_bytes",
 
 			Help: "Current cache size in bytes",
 		}),
 
 		ItemCount: promauto.NewGauge(prometheus.GaugeOpts{
-
 			Name: "krm_registry_cache_items_total",
 
 			Help: "Current number of cached items",
@@ -653,7 +628,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	}
 
 	cache := &FunctionCache{
-
 		cacheDir: config.CacheDir,
 
 		ttl: config.CacheTTL,
@@ -668,7 +642,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	// Initialize health monitor.
 
 	healthMonitor := &HealthMonitor{
-
 		checkInterval: config.HealthCheckInterval,
 
 		unhealthyThreshold: config.UnhealthyThreshold,
@@ -681,14 +654,12 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	// Create HTTP client with timeout.
 
 	httpClient := &http.Client{
-
 		Timeout: config.RepositoryTimeout,
 	}
 
 	// Create registry.
 
 	registry := &Registry{
-
 		config: config,
 
 		repositories: make(map[string]*Repository),
@@ -715,23 +686,18 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	// Initialize cache directory.
 
 	if err := os.MkdirAll(config.CacheDir, 0o755); err != nil {
-
 		return nil, fmt.Errorf("failed to create cache directory: %w", err)
-
 	}
 
 	// Initialize default repositories.
 
 	for _, repoConfig := range config.DefaultRepositories {
-
 		if repoConfig.Enabled {
 
 			repo := &Repository{
-
 				Config: repoConfig,
 
 				Health: RepositoryHealth{
-
 					Status: "unknown",
 
 					LastCheck: time.Time{},
@@ -745,7 +711,6 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			registry.repositories[repoConfig.Name] = repo
 
 		}
-
 	}
 
 	// Start background processes.
@@ -757,13 +722,11 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	go registry.cacheCleanupWorker()
 
 	return registry, nil
-
 }
 
 // DiscoverFunctions discovers functions from all configured repositories.
 
 func (r *Registry) DiscoverFunctions(ctx context.Context) error {
-
 	ctx, span := r.tracer.Start(ctx, "krm-registry-discover-functions")
 
 	defer span.End()
@@ -775,13 +738,9 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 	repositories := make([]*Repository, 0, len(r.repositories))
 
 	for _, repo := range r.repositories {
-
 		if repo.Config.Enabled {
-
 			repositories = append(repositories, repo)
-
 		}
-
 	}
 
 	r.mu.RUnlock()
@@ -805,7 +764,6 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 		wg.Add(1)
 
 		go func(repository *Repository) {
-
 			defer wg.Done()
 
 			// Acquire semaphore.
@@ -819,9 +777,7 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 				errMu.Lock()
 
 				if discoverErr == nil {
-
 					discoverErr = fmt.Errorf("discovery failed")
-
 				}
 
 				discoverErr = fmt.Errorf("%w; %s: %w", discoverErr, repository.Config.Name, err)
@@ -829,7 +785,6 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 				errMu.Unlock()
 
 			}
-
 		}(repo)
 
 	}
@@ -857,13 +812,11 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 	logger.Info("Function discovery completed successfully")
 
 	return nil
-
 }
 
 // GetFunction retrieves function metadata by name.
 
 func (r *Registry) GetFunction(ctx context.Context, name string) (*FunctionMetadata, error) {
-
 	_, span := r.tracer.Start(ctx, "krm-registry-get-function")
 
 	defer span.End()
@@ -887,13 +840,11 @@ func (r *Registry) GetFunction(ctx context.Context, name string) (*FunctionMetad
 	span.SetStatus(codes.Ok, "function found")
 
 	return function.deepCopy(), nil
-
 }
 
 // ListFunctions returns all available functions with optional filtering.
 
 func (r *Registry) ListFunctions(ctx context.Context, filter *FunctionFilter) ([]*FunctionMetadata, error) {
-
 	_, span := r.tracer.Start(ctx, "krm-registry-list-functions")
 
 	defer span.End()
@@ -903,9 +854,7 @@ func (r *Registry) ListFunctions(ctx context.Context, filter *FunctionFilter) ([
 	allFunctions := make([]*FunctionMetadata, 0, len(r.functions))
 
 	for _, function := range r.functions {
-
 		allFunctions = append(allFunctions, function)
-
 	}
 
 	r.mu.RUnlock()
@@ -924,13 +873,11 @@ func (r *Registry) ListFunctions(ctx context.Context, filter *FunctionFilter) ([
 	span.SetStatus(codes.Ok, "functions listed")
 
 	return filteredFunctions, nil
-
 }
 
 // SearchFunctions searches for functions using various criteria.
 
 func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*SearchResult, error) {
-
 	ctx, span := r.tracer.Start(ctx, "krm-registry-search-functions")
 
 	defer span.End()
@@ -938,7 +885,6 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 	span.SetAttributes(attribute.String("search.query", query.Terms))
 
 	functions, err := r.ListFunctions(ctx, nil)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -954,7 +900,6 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 	matches := r.performSearch(functions, query)
 
 	result := &SearchResult{
-
 		Query: query,
 
 		Matches: matches,
@@ -976,13 +921,11 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 	span.SetStatus(codes.Ok, "search completed")
 
 	return result, nil
-
 }
 
 // AddRepository adds a new repository to the registry.
 
 func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) error {
-
 	_, span := r.tracer.Start(ctx, "krm-registry-add-repository")
 
 	defer span.End()
@@ -1016,11 +959,9 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 	}
 
 	repo := &Repository{
-
 		Config: config,
 
 		Health: RepositoryHealth{
-
 			Status: "unknown",
 
 			LastCheck: time.Time{},
@@ -1038,13 +979,11 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 	span.SetStatus(codes.Ok, "repository added")
 
 	return nil
-
 }
 
 // RemoveRepository removes a repository from the registry.
 
 func (r *Registry) RemoveRepository(ctx context.Context, name string) error {
-
 	_, span := r.tracer.Start(ctx, "krm-registry-remove-repository")
 
 	defer span.End()
@@ -1086,13 +1025,11 @@ func (r *Registry) RemoveRepository(ctx context.Context, name string) error {
 	span.SetStatus(codes.Ok, "repository removed")
 
 	return nil
-
 }
 
 // GetRepositoryHealth returns health status of a repository.
 
 func (r *Registry) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
-
 	r.mu.RLock()
 
 	repo, exists := r.repositories[name]
@@ -1100,9 +1037,7 @@ func (r *Registry) GetRepositoryHealth(ctx context.Context, name string) (*Repos
 	r.mu.RUnlock()
 
 	if !exists {
-
 		return nil, fmt.Errorf("repository %s not found", name)
-
 	}
 
 	repo.mu.RLock()
@@ -1112,19 +1047,16 @@ func (r *Registry) GetRepositoryHealth(ctx context.Context, name string) (*Repos
 	repo.mu.RUnlock()
 
 	return &health, nil
-
 }
 
 // GetHealth returns overall registry health.
 
 func (r *Registry) GetHealth() *RegistryHealth {
-
 	r.mu.RLock()
 
 	defer r.mu.RUnlock()
 
 	health := &RegistryHealth{
-
 		Status: "healthy",
 
 		Repositories: len(r.repositories),
@@ -1145,15 +1077,11 @@ func (r *Registry) GetHealth() *RegistryHealth {
 		repo.mu.RLock()
 
 		if repo.Health.Status != "healthy" {
-
 			unhealthyRepos++
-
 		}
 
 		if repo.LastSyncTime.After(health.LastDiscovery) {
-
 			health.LastDiscovery = repo.LastSyncTime
-
 		}
 
 		repo.mu.RUnlock()
@@ -1165,21 +1093,17 @@ func (r *Registry) GetHealth() *RegistryHealth {
 		health.Status = "degraded"
 
 		if unhealthyRepos >= len(r.repositories) {
-
 			health.Status = "unhealthy"
-
 		}
 
 	}
 
 	return health
-
 }
 
 // Shutdown gracefully shuts down the registry.
 
 func (r *Registry) Shutdown(ctx context.Context) error {
-
 	logger := log.FromContext(ctx).WithName("krm-registry")
 
 	logger.Info("Shutting down KRM registry")
@@ -1191,29 +1115,23 @@ func (r *Registry) Shutdown(ctx context.Context) error {
 	// Save cache.
 
 	if err := r.cache.save(); err != nil {
-
 		logger.Error(err, "Failed to save cache during shutdown")
-
 	}
 
 	logger.Info("KRM registry shutdown complete")
 
 	return nil
-
 }
 
 // Private helper methods.
 
 func (r *Registry) discoverRepository(ctx context.Context, repo *Repository) error {
-
 	startTime := time.Now()
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		r.metrics.DiscoveryDuration.WithLabelValues(repo.Config.Name).Observe(duration.Seconds())
-
 	}()
 
 	logger := log.FromContext(ctx).WithName("krm-registry").WithValues("repository", repo.Config.Name)
@@ -1241,57 +1159,41 @@ func (r *Registry) discoverRepository(ctx context.Context, repo *Repository) err
 		return err
 
 	}
-
 }
 
 func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository) error {
-
 	req, err := http.NewRequestWithContext(ctx, "GET", repo.Config.URL, http.NoBody)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	// Add authentication if configured.
 
 	if repo.Config.Auth != nil {
-
 		r.addAuthentication(req, repo.Config.Auth)
-
 	}
 
 	// Add custom headers.
 
 	for key, value := range repo.Config.Headers {
-
 		req.Header.Set(key, value)
-
 	}
 
 	resp, err := r.httpClient.Do(req)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
-
 	}
 
 	var catalog FunctionCatalog
 
 	if err := json.NewDecoder(resp.Body).Decode(&catalog); err != nil {
-
 		return err
-
 	}
 
 	// Update repository with discovered functions.
@@ -1309,31 +1211,25 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 	repo.mu.Unlock()
 
 	return nil
-
 }
 
 func (r *Registry) discoverGitRepository(ctx context.Context, repo *Repository) error {
-
 	// Git repository discovery would be implemented here.
 
 	// For now, return a placeholder implementation.
 
 	return fmt.Errorf("git repository discovery not yet implemented")
-
 }
 
 func (r *Registry) discoverOCIRepository(ctx context.Context, repo *Repository) error {
-
 	// OCI repository discovery would be implemented here.
 
 	// For now, return a placeholder implementation.
 
 	return fmt.Errorf("OCI repository discovery not yet implemented")
-
 }
 
 func (r *Registry) addAuthentication(req *http.Request, auth *AuthConfig) {
-
 	switch auth.Type {
 
 	case "basic":
@@ -1349,11 +1245,9 @@ func (r *Registry) addAuthentication(req *http.Request, auth *AuthConfig) {
 		req.Header.Set("X-API-Key", auth.Token)
 
 	}
-
 }
 
 func (r *Registry) updateFunctionIndex() {
-
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
@@ -1381,17 +1275,14 @@ func (r *Registry) updateFunctionIndex() {
 		r.metrics.FunctionCount.WithLabelValues(repoName).Set(float64(len(repo.Functions)))
 
 	}
-
 }
 
 func (r *Registry) discoveryWorker() {
-
 	ticker := time.NewTicker(r.config.DiscoveryInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1399,9 +1290,7 @@ func (r *Registry) discoveryWorker() {
 			ctx := context.Background()
 
 			if err := r.DiscoverFunctions(ctx); err != nil {
-
 				log.Log.Error(err, "Background function discovery failed")
-
 			}
 
 		case <-r.shutdownChan:
@@ -1409,19 +1298,15 @@ func (r *Registry) discoveryWorker() {
 			return
 
 		}
-
 	}
-
 }
 
 func (r *Registry) healthMonitorWorker() {
-
 	ticker := time.NewTicker(r.healthMonitor.checkInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1433,19 +1318,15 @@ func (r *Registry) healthMonitorWorker() {
 			return
 
 		}
-
 	}
-
 }
 
 func (r *Registry) cacheCleanupWorker() {
-
 	ticker := time.NewTicker(1 * time.Hour)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1457,9 +1338,7 @@ func (r *Registry) cacheCleanupWorker() {
 			return
 
 		}
-
 	}
-
 }
 
 // Supporting types and helper functions.
@@ -1555,7 +1434,6 @@ type CacheStatus struct {
 // Helper methods.
 
 func (f *FunctionMetadata) deepCopy() *FunctionMetadata {
-
 	data, _ := json.Marshal(f)
 
 	var copy FunctionMetadata
@@ -1563,65 +1441,45 @@ func (f *FunctionMetadata) deepCopy() *FunctionMetadata {
 	json.Unmarshal(data, &copy)
 
 	return &copy
-
 }
 
 func (r *Registry) applyFilter(functions []*FunctionMetadata, filter *FunctionFilter) []*FunctionMetadata {
-
 	if filter == nil {
-
 		return functions
-
 	}
 
 	var filtered []*FunctionMetadata
 
 	for _, function := range functions {
-
 		if r.matchesFilter(function, filter) {
-
 			filtered = append(filtered, function)
-
 		}
-
 	}
 
 	return filtered
-
 }
 
 func (r *Registry) matchesFilter(function *FunctionMetadata, filter *FunctionFilter) bool {
-
 	if filter.Type != "" && function.Type != filter.Type {
-
 		return false
-
 	}
 
 	if filter.Repository != "" && function.Repository != filter.Repository {
-
 		return false
-
 	}
 
 	if filter.Deprecated != nil && function.Deprecated != *filter.Deprecated {
-
 		return false
-
 	}
 
 	// Add more filter logic as needed.
 
 	return true
-
 }
 
 func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQuery) []*FunctionMetadata {
-
 	if query.Terms == "" {
-
 		return functions
-
 	}
 
 	terms := strings.ToLower(query.Terms)
@@ -1633,9 +1491,7 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 		score := r.calculateSearchScore(function, terms)
 
 		if score > 0 {
-
 			matches = append(matches, function)
-
 		}
 
 	}
@@ -1647,17 +1503,13 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 		start := query.Offset
 
 		if start > len(matches) {
-
 			start = len(matches)
-
 		}
 
 		end := start + query.Limit
 
 		if end > len(matches) {
-
 			end = len(matches)
-
 		}
 
 		matches = matches[start:end]
@@ -1665,59 +1517,43 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 	}
 
 	return matches
-
 }
 
 func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string) float64 {
-
 	score := 0.0
 
 	// Check name (highest weight).
 
 	if strings.Contains(strings.ToLower(function.Name), terms) {
-
 		score += 10.0
-
 	}
 
 	// Check description.
 
 	if strings.Contains(strings.ToLower(function.Description), terms) {
-
 		score += 5.0
-
 	}
 
 	// Check keywords.
 
 	for _, keyword := range function.Keywords {
-
 		if strings.Contains(strings.ToLower(keyword), terms) {
-
 			score += 3.0
-
 		}
-
 	}
 
 	// Check categories.
 
 	for _, category := range function.Categories {
-
 		if strings.Contains(strings.ToLower(category), terms) {
-
 			score += 2.0
-
 		}
-
 	}
 
 	return score
-
 }
 
 func (c *FunctionCache) getStatus() *CacheStatus {
-
 	c.mu.RLock()
 
 	defer c.mu.RUnlock()
@@ -1725,13 +1561,10 @@ func (c *FunctionCache) getStatus() *CacheStatus {
 	totalSize := int64(0)
 
 	for _, item := range c.items {
-
 		totalSize += item.Size
-
 	}
 
 	return &CacheStatus{
-
 		Size: totalSize,
 
 		Items: len(c.items),
@@ -1740,11 +1573,9 @@ func (c *FunctionCache) getStatus() *CacheStatus {
 
 		LastClean: time.Now(),
 	}
-
 }
 
 func (c *FunctionCache) cleanup() {
-
 	c.mu.Lock()
 
 	defer c.mu.Unlock()
@@ -1752,7 +1583,6 @@ func (c *FunctionCache) cleanup() {
 	now := time.Now()
 
 	for key, item := range c.items {
-
 		if now.After(item.ExpiresAt) {
 
 			delete(c.items, key)
@@ -1760,21 +1590,16 @@ func (c *FunctionCache) cleanup() {
 			c.metrics.Evictions.Inc()
 
 		}
-
 	}
-
 }
 
 func (c *FunctionCache) save() error {
-
 	// Implementation to save cache to disk.
 
 	return nil
-
 }
 
 func (hm *HealthMonitor) checkHealth() {
-
 	hm.mu.Lock()
 
 	defer hm.mu.Unlock()
@@ -1786,7 +1611,6 @@ func (hm *HealthMonitor) checkHealth() {
 		if check == nil {
 
 			check = &HealthCheck{
-
 				Name: name,
 
 				Status: "unknown",
@@ -1807,9 +1631,7 @@ func (hm *HealthMonitor) checkHealth() {
 			check.ConsecutiveFails = 0
 
 			if check.Status != "healthy" && check.ConsecutiveFails <= -hm.healthyThreshold {
-
 				check.Status = "healthy"
-
 			}
 
 		} else {
@@ -1817,19 +1639,15 @@ func (hm *HealthMonitor) checkHealth() {
 			check.ConsecutiveFails++
 
 			if check.ConsecutiveFails >= hm.unhealthyThreshold {
-
 				check.Status = "unhealthy"
-
 			}
 
 		}
 
 	}
-
 }
 
 func (hm *HealthMonitor) checkRepositoryHealth(repo *Repository) bool {
-
 	// Simple health check - could be more sophisticated.
 
 	repo.mu.RLock()
@@ -1843,61 +1661,42 @@ func (hm *HealthMonitor) checkRepositoryHealth(repo *Repository) bool {
 	// Consider healthy if synced recently and no errors.
 
 	return time.Since(lastSync) < 2*hm.checkInterval && lastError == ""
-
 }
 
 func validateRegistryConfig(config *RegistryConfig) error {
-
 	if config.CacheDir == "" {
-
 		return fmt.Errorf("cacheDir is required")
-
 	}
 
 	if config.DiscoveryInterval <= 0 {
-
 		return fmt.Errorf("discoveryInterval must be positive")
-
 	}
 
 	if config.HealthCheckInterval <= 0 {
-
 		return fmt.Errorf("healthCheckInterval must be positive")
-
 	}
 
 	return nil
-
 }
 
 func (r *Registry) validateRepositoryConfig(config *RepositoryConfig) error {
-
 	if config.Name == "" {
-
 		return fmt.Errorf("repository name is required")
-
 	}
 
 	if config.URL == "" {
-
 		return fmt.Errorf("repository URL is required")
-
 	}
 
 	if config.Type == "" {
-
 		return fmt.Errorf("repository type is required")
-
 	}
 
 	// Validate URL.
 
 	if _, err := url.Parse(config.URL); err != nil {
-
 		return fmt.Errorf("invalid repository URL: %w", err)
-
 	}
 
 	return nil
-
 }

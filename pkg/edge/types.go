@@ -31,8 +31,8 @@ type EdgeServiceInterface interface {
 
 // EdgeCompute represents computational resources at the edge
 type EdgeCompute struct {
-	CPU    ResourceSpec `json:"cpu"`
-	Memory ResourceSpec `json:"memory"`
+	CPU     ResourceSpec `json:"cpu"`
+	Memory  ResourceSpec `json:"memory"`
 	Storage ResourceSpec `json:"storage"`
 }
 

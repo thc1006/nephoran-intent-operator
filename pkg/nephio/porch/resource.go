@@ -37,12 +37,9 @@ import (
 // Resource returns a resource for the given resource name.
 
 func Resource(resource string) schema.GroupResource {
-
 	return schema.GroupResource{
-
 		Group: "porch.nephoran.com",
 
 		Resource: resource,
 	}
-
 }

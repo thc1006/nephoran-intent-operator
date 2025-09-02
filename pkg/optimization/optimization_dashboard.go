@@ -101,7 +101,6 @@ type OptimizationDashboard struct {
 // DashboardConfig defines dashboard configuration.
 
 type DashboardConfig struct {
-
 	// Server configuration.
 
 	ListenAddress string `json:"listenAddress"`
@@ -164,7 +163,6 @@ type DashboardConfig struct {
 // DashboardData contains all dashboard data.
 
 type DashboardData struct {
-
 	// Overview metrics.
 
 	Overview *DashboardOverview `json:"overview"`
@@ -205,7 +203,6 @@ type DashboardData struct {
 // DashboardOverview provides high-level system overview.
 
 type DashboardOverview struct {
-
 	// System health.
 
 	OverallHealth string `json:"overallHealth"`
@@ -250,7 +247,6 @@ type DashboardOverview struct {
 // DashboardPerformanceMetrics contains detailed performance metrics.
 
 type DashboardPerformanceMetrics struct {
-
 	// Latency metrics.
 
 	LatencyMetrics *LatencyMetrics `json:"latencyMetrics"`
@@ -365,7 +361,6 @@ type TrendData struct {
 // OptimizationStatusData contains optimization process status.
 
 type OptimizationStatusData struct {
-
 	// Current state.
 
 	PipelineStatus string `json:"pipelineStatus"`
@@ -452,7 +447,6 @@ type ComponentHealth struct {
 // ChartsData contains data for dashboard charts.
 
 type ChartsData struct {
-
 	// Time series data.
 
 	LatencyChart *ChartDataSeries `json:"latencyChart"`
@@ -535,7 +529,6 @@ type DashboardRecommendation struct {
 // HistoricalData contains historical performance and optimization data.
 
 type HistoricalData struct {
-
 	// Historical performance trends.
 
 	PerformanceTrends map[string][]*DataPoint `json:"performanceTrends"`
@@ -634,7 +627,6 @@ type MetricsCache struct {
 // NewOptimizationDashboard creates a new optimization dashboard.
 
 func NewOptimizationDashboard(
-
 	config *DashboardConfig,
 
 	pipeline *AutomatedOptimizationPipeline,
@@ -642,11 +634,8 @@ func NewOptimizationDashboard(
 	analysisEngine *PerformanceAnalysisEngine,
 
 	logger logr.Logger,
-
 ) *OptimizationDashboard {
-
 	dashboard := &OptimizationDashboard{
-
 		logger: logger.WithName("optimization-dashboard"),
 
 		config: config,
@@ -675,27 +664,22 @@ func NewOptimizationDashboard(
 	dashboard.setupWebSocketUpgrader()
 
 	return dashboard
-
 }
 
 // Start starts the dashboard server.
 
 func (dashboard *OptimizationDashboard) Start(ctx context.Context) error {
-
 	dashboard.mutex.Lock()
 
 	defer dashboard.mutex.Unlock()
 
 	if dashboard.started {
-
 		return fmt.Errorf("dashboard already started")
-
 	}
 
 	address := fmt.Sprintf("%s:%d", dashboard.config.ListenAddress, dashboard.config.ListenPort)
 
 	dashboard.httpServer = &http.Server{
-
 		Addr: address,
 
 		Handler: dashboard.router,
@@ -712,27 +696,19 @@ func (dashboard *OptimizationDashboard) Start(ctx context.Context) error {
 	// Start HTTP server.
 
 	go func() {
-
 		dashboard.logger.Info("Starting dashboard server", "address", address)
 
 		var err error
 
 		if dashboard.config.TLSEnabled {
-
 			err = dashboard.httpServer.ListenAndServeTLS(dashboard.config.CertFile, dashboard.config.KeyFile)
-
 		} else {
-
 			err = dashboard.httpServer.ListenAndServe()
-
 		}
 
 		if err != nil && err != http.ErrServerClosed {
-
 			dashboard.logger.Error(err, "Dashboard server error")
-
 		}
-
 	}()
 
 	dashboard.started = true
@@ -740,21 +716,17 @@ func (dashboard *OptimizationDashboard) Start(ctx context.Context) error {
 	dashboard.logger.Info("Dashboard started successfully", "address", address)
 
 	return nil
-
 }
 
 // Stop stops the dashboard server.
 
 func (dashboard *OptimizationDashboard) Stop(ctx context.Context) error {
-
 	dashboard.mutex.Lock()
 
 	defer dashboard.mutex.Unlock()
 
 	if !dashboard.started {
-
 		return nil
-
 	}
 
 	dashboard.logger.Info("Stopping dashboard server")
@@ -786,13 +758,11 @@ func (dashboard *OptimizationDashboard) Stop(ctx context.Context) error {
 	dashboard.logger.Info("Dashboard stopped successfully")
 
 	return nil
-
 }
 
 // setupRouter sets up the HTTP router.
 
 func (dashboard *OptimizationDashboard) setupRouter() {
-
 	dashboard.router = mux.NewRouter()
 
 	// Add CORS middleware.
@@ -800,21 +770,15 @@ func (dashboard *OptimizationDashboard) setupRouter() {
 	dashboard.router.Use(dashboard.corsMiddleware)
 
 	if dashboard.config.EnableAPI {
-
 		dashboard.setupAPIRoutes()
-
 	}
 
 	if dashboard.config.EnableWebUI {
-
 		dashboard.setupWebUIRoutes()
-
 	}
 
 	if dashboard.config.EnableWebSocket {
-
 		dashboard.setupWebSocketRoutes()
-
 	}
 
 	// Prometheus metrics endpoint.
@@ -824,13 +788,11 @@ func (dashboard *OptimizationDashboard) setupRouter() {
 	// Health check endpoint.
 
 	dashboard.router.HandleFunc("/health", dashboard.healthHandler).Methods("GET")
-
 }
 
 // setupAPIRoutes sets up API routes.
 
 func (dashboard *OptimizationDashboard) setupAPIRoutes() {
-
 	apiRouter := dashboard.router.PathPrefix(dashboard.config.APIPrefix).Subrouter()
 
 	// Dashboard data endpoints.
@@ -866,92 +828,70 @@ func (dashboard *OptimizationDashboard) setupAPIRoutes() {
 	apiRouter.HandleFunc("/config", dashboard.configHandler).Methods("GET")
 
 	apiRouter.HandleFunc("/config", dashboard.updateConfigHandler).Methods("PUT")
-
 }
 
 // setupWebUIRoutes sets up Web UI routes.
 
 func (dashboard *OptimizationDashboard) setupWebUIRoutes() {
-
 	// Serve static assets.
 
 	if dashboard.config.StaticAssetsPath != "" {
-
 		dashboard.router.PathPrefix("/static/").Handler(
 
 			http.StripPrefix("/static/", http.FileServer(http.Dir(dashboard.config.StaticAssetsPath))),
 		)
-
 	}
 
 	// Serve UI.
 
 	dashboard.router.PathPrefix(dashboard.config.UIPath).HandlerFunc(dashboard.uiHandler)
-
 }
 
 // setupWebSocketRoutes sets up WebSocket routes.
 
 func (dashboard *OptimizationDashboard) setupWebSocketRoutes() {
-
 	dashboard.router.HandleFunc(dashboard.config.WSPath, dashboard.websocketHandler)
-
 }
 
 // setupWebSocketUpgrader configures the WebSocket upgrader.
 
 func (dashboard *OptimizationDashboard) setupWebSocketUpgrader() {
-
 	dashboard.wsUpgrader = websocket.Upgrader{
-
 		CheckOrigin: func(r *http.Request) bool {
-
 			if len(dashboard.config.AllowedOrigins) == 0 {
-
 				return true
-
 			}
 
 			origin := r.Header.Get("Origin")
 
 			for _, allowed := range dashboard.config.AllowedOrigins {
-
 				if origin == allowed {
-
 					return true
-
 				}
-
 			}
 
 			return false
-
 		},
 	}
-
 }
 
 // HTTP Handlers.
 
 func (dashboard *OptimizationDashboard) healthHandler(w http.ResponseWriter, r *http.Request) {
-
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-
 		"status": "healthy",
 
 		"timestamp": time.Now(),
 
 		"version": "1.0.0",
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) overviewHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	overview := dashboard.dashboardData.Overview
@@ -959,11 +899,9 @@ func (dashboard *OptimizationDashboard) overviewHandler(w http.ResponseWriter, r
 	dashboard.dataMutex.RUnlock()
 
 	dashboard.writeJSONResponse(w, overview)
-
 }
 
 func (dashboard *OptimizationDashboard) performanceHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	performance := dashboard.dashboardData.PerformanceMetrics
@@ -971,11 +909,9 @@ func (dashboard *OptimizationDashboard) performanceHandler(w http.ResponseWriter
 	dashboard.dataMutex.RUnlock()
 
 	dashboard.writeJSONResponse(w, performance)
-
 }
 
 func (dashboard *OptimizationDashboard) optimizationsHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	optimizations := dashboard.dashboardData.OptimizationStatus
@@ -983,11 +919,9 @@ func (dashboard *OptimizationDashboard) optimizationsHandler(w http.ResponseWrit
 	dashboard.dataMutex.RUnlock()
 
 	dashboard.writeJSONResponse(w, optimizations)
-
 }
 
 func (dashboard *OptimizationDashboard) recommendationsHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	recommendations := dashboard.dashboardData.ActiveRecommendations
@@ -995,11 +929,9 @@ func (dashboard *OptimizationDashboard) recommendationsHandler(w http.ResponseWr
 	dashboard.dataMutex.RUnlock()
 
 	dashboard.writeJSONResponse(w, recommendations)
-
 }
 
 func (dashboard *OptimizationDashboard) componentsHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	components := dashboard.dashboardData.ComponentHealth
@@ -1007,11 +939,9 @@ func (dashboard *OptimizationDashboard) componentsHandler(w http.ResponseWriter,
 	dashboard.dataMutex.RUnlock()
 
 	dashboard.writeJSONResponse(w, components)
-
 }
 
 func (dashboard *OptimizationDashboard) historyHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	history := dashboard.dashboardData.HistoricalData
@@ -1023,21 +953,15 @@ func (dashboard *OptimizationDashboard) historyHandler(w http.ResponseWriter, r 
 	days := r.URL.Query().Get("days")
 
 	if days != "" {
-
 		if d, err := strconv.Atoi(days); err == nil && d > 0 {
-
 			history = dashboard.filterHistoricalData(history, time.Duration(d)*24*time.Hour)
-
 		}
-
 	}
 
 	dashboard.writeJSONResponse(w, history)
-
 }
 
 func (dashboard *OptimizationDashboard) chartsHandler(w http.ResponseWriter, r *http.Request) {
-
 	dashboard.dataMutex.RLock()
 
 	charts := dashboard.dashboardData.ChartsData
@@ -1045,26 +969,21 @@ func (dashboard *OptimizationDashboard) chartsHandler(w http.ResponseWriter, r *
 	dashboard.dataMutex.RUnlock()
 
 	dashboard.writeJSONResponse(w, charts)
-
 }
 
 func (dashboard *OptimizationDashboard) requestOptimizationHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation for requesting optimization.
 
 	w.WriteHeader(http.StatusAccepted)
 
 	json.NewEncoder(w).Encode(map[string]string{
-
 		"message": "Optimization request accepted",
 
 		"id": fmt.Sprintf("opt-%d", time.Now().Unix()),
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) optimizationStatusHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	id := vars["id"]
@@ -1072,7 +991,6 @@ func (dashboard *OptimizationDashboard) optimizationStatusHandler(w http.Respons
 	// Implementation for getting optimization status.
 
 	status, err := dashboard.pipeline.GetOptimizationStatus(id)
-
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -1082,11 +1000,9 @@ func (dashboard *OptimizationDashboard) optimizationStatusHandler(w http.Respons
 	}
 
 	dashboard.writeJSONResponse(w, status)
-
 }
 
 func (dashboard *OptimizationDashboard) cancelOptimizationHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	id := vars["id"]
@@ -1098,16 +1014,13 @@ func (dashboard *OptimizationDashboard) cancelOptimizationHandler(w http.Respons
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]string{
-
 		"message": "Optimization canceled",
 
 		"id": id,
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) approveRecommendationHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	id := vars["id"]
@@ -1119,16 +1032,13 @@ func (dashboard *OptimizationDashboard) approveRecommendationHandler(w http.Resp
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]string{
-
 		"message": "Recommendation approved",
 
 		"id": id,
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) rejectRecommendationHandler(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 
 	id := vars["id"]
@@ -1140,37 +1050,29 @@ func (dashboard *OptimizationDashboard) rejectRecommendationHandler(w http.Respo
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]string{
-
 		"message": "Recommendation rejected",
 
 		"id": id,
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) configHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Return dashboard configuration.
 
 	dashboard.writeJSONResponse(w, dashboard.config)
-
 }
 
 func (dashboard *OptimizationDashboard) updateConfigHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation for updating configuration.
 
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]string{
-
 		"message": "Configuration updated",
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) uiHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Serve the main UI page (would typically serve an HTML file).
 
 	w.Header().Set("Content-Type", "text/html")
@@ -1330,13 +1232,10 @@ func (dashboard *OptimizationDashboard) uiHandler(w http.ResponseWriter, r *http
 </html>
 
     `))
-
 }
 
 func (dashboard *OptimizationDashboard) websocketHandler(w http.ResponseWriter, r *http.Request) {
-
 	conn, err := dashboard.wsUpgrader.Upgrade(w, r, nil)
-
 	if err != nil {
 
 		dashboard.logger.Error(err, "WebSocket upgrade failed")
@@ -1384,15 +1283,12 @@ func (dashboard *OptimizationDashboard) websocketHandler(w http.ResponseWriter, 
 	dashboard.dataMutex.RUnlock()
 
 	if err := conn.WriteJSON(initialData); err != nil {
-
 		dashboard.logger.Error(err, "Failed to send initial WebSocket data")
-
 	}
 
 	// Handle connection cleanup.
 
 	defer func() {
-
 		dashboard.wsMutex.Lock()
 
 		delete(dashboard.wsConnections, connID)
@@ -1402,7 +1298,6 @@ func (dashboard *OptimizationDashboard) websocketHandler(w http.ResponseWriter, 
 		conn.Close()
 
 		dashboard.logger.Info("WebSocket connection closed", "connId", connID)
-
 	}()
 
 	// Keep connection alive and handle client messages.
@@ -1410,13 +1305,10 @@ func (dashboard *OptimizationDashboard) websocketHandler(w http.ResponseWriter, 
 	for {
 
 		_, _, err := conn.ReadMessage()
-
 		if err != nil {
 
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-
 				dashboard.logger.Error(err, "WebSocket error", "connId", connID)
-
 			}
 
 			break
@@ -1424,13 +1316,11 @@ func (dashboard *OptimizationDashboard) websocketHandler(w http.ResponseWriter, 
 		}
 
 	}
-
 }
 
 // Background update loops.
 
 func (dashboard *OptimizationDashboard) dataUpdateLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(dashboard.config.DataUpdateInterval)
 
 	defer ticker.Stop()
@@ -1438,7 +1328,6 @@ func (dashboard *OptimizationDashboard) dataUpdateLoop(ctx context.Context) {
 	dashboard.logger.Info("Starting dashboard data update loop")
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1454,13 +1343,10 @@ func (dashboard *OptimizationDashboard) dataUpdateLoop(ctx context.Context) {
 			dashboard.updateDashboardData(ctx)
 
 		}
-
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) metricsUpdateLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(dashboard.config.MetricsUpdateInterval)
 
 	defer ticker.Stop()
@@ -1468,7 +1354,6 @@ func (dashboard *OptimizationDashboard) metricsUpdateLoop(ctx context.Context) {
 	dashboard.logger.Info("Starting metrics update loop")
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1484,13 +1369,10 @@ func (dashboard *OptimizationDashboard) metricsUpdateLoop(ctx context.Context) {
 			dashboard.updateMetrics(ctx)
 
 		}
-
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) websocketBroadcastLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(2 * time.Second)
 
 	defer ticker.Stop()
@@ -1498,7 +1380,6 @@ func (dashboard *OptimizationDashboard) websocketBroadcastLoop(ctx context.Conte
 	dashboard.logger.Info("Starting WebSocket broadcast loop")
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1514,15 +1395,12 @@ func (dashboard *OptimizationDashboard) websocketBroadcastLoop(ctx context.Conte
 			dashboard.broadcastToWebSockets()
 
 		}
-
 	}
-
 }
 
 // Update methods.
 
 func (dashboard *OptimizationDashboard) updateDashboardData(ctx context.Context) {
-
 	dashboard.logger.V(1).Info("Updating dashboard data")
 
 	// Update overview.
@@ -1562,7 +1440,6 @@ func (dashboard *OptimizationDashboard) updateDashboardData(ctx context.Context)
 	dashboard.dataMutex.Lock()
 
 	dashboard.dashboardData = &DashboardData{
-
 		Overview: overview,
 
 		PerformanceMetrics: performanceMetrics,
@@ -1585,37 +1462,29 @@ func (dashboard *OptimizationDashboard) updateDashboardData(ctx context.Context)
 	dashboard.dataMutex.Unlock()
 
 	dashboard.lastUpdate = time.Now()
-
 }
 
 func (dashboard *OptimizationDashboard) updateMetrics(ctx context.Context) {
-
 	dashboard.logger.V(1).Info("Updating Prometheus metrics")
 
 	// Update Prometheus metrics based on current system state.
 
 	dashboard.metricsCollector.UpdateMetrics(ctx)
-
 }
 
 func (dashboard *OptimizationDashboard) broadcastToWebSockets() {
-
 	dashboard.wsMutex.RLock()
 
 	connections := make(map[string]*websocket.Conn)
 
 	for id, conn := range dashboard.wsConnections {
-
 		connections[id] = conn
-
 	}
 
 	dashboard.wsMutex.RUnlock()
 
 	if len(connections) == 0 {
-
 		return
-
 	}
 
 	dashboard.dataMutex.RLock()
@@ -1627,7 +1496,6 @@ func (dashboard *OptimizationDashboard) broadcastToWebSockets() {
 	// Broadcast to all WebSocket connections.
 
 	for connID, conn := range connections {
-
 		if err := conn.WriteJSON(data); err != nil {
 
 			dashboard.logger.Error(err, "Failed to send WebSocket update", "connId", connID)
@@ -1643,15 +1511,12 @@ func (dashboard *OptimizationDashboard) broadcastToWebSockets() {
 			conn.Close()
 
 		}
-
 	}
-
 }
 
 // Helper methods.
 
 func (dashboard *OptimizationDashboard) writeJSONResponse(w http.ResponseWriter, data interface{}) {
-
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -1661,13 +1526,10 @@ func (dashboard *OptimizationDashboard) writeJSONResponse(w http.ResponseWriter,
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) corsMiddleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -1683,13 +1545,10 @@ func (dashboard *OptimizationDashboard) corsMiddleware(next http.Handler) http.H
 		}
 
 		next.ServeHTTP(w, r)
-
 	})
-
 }
 
 func (dashboard *OptimizationDashboard) closeWebSocketConnections() {
-
 	dashboard.wsMutex.Lock()
 
 	defer dashboard.wsMutex.Unlock()
@@ -1705,17 +1564,14 @@ func (dashboard *OptimizationDashboard) closeWebSocketConnections() {
 	}
 
 	dashboard.wsConnections = make(map[string]*websocket.Conn)
-
 }
 
 // Data generation methods (simplified implementations).
 
 func (dashboard *OptimizationDashboard) generateOverview(ctx context.Context) *DashboardOverview {
-
 	// Generate overview data (simplified).
 
 	return &DashboardOverview{
-
 		OverallHealth: "Healthy",
 
 		HealthScore: 95.5,
@@ -1746,7 +1602,6 @@ func (dashboard *OptimizationDashboard) generateOverview(ctx context.Context) *D
 
 		EfficiencyGain: 28.0,
 	}
-
 }
 
 // Additional data generation methods would be implemented here...
@@ -1754,11 +1609,8 @@ func (dashboard *OptimizationDashboard) generateOverview(ctx context.Context) *D
 // (Simplified for brevity).
 
 func (dashboard *OptimizationDashboard) generatePerformanceMetrics(ctx context.Context) *DashboardPerformanceMetrics {
-
 	return &DashboardPerformanceMetrics{
-
 		LatencyMetrics: &LatencyMetrics{
-
 			P50: 80 * time.Millisecond,
 
 			P95: 110 * time.Millisecond,
@@ -1777,13 +1629,10 @@ func (dashboard *OptimizationDashboard) generatePerformanceMetrics(ctx context.C
 		// ... other metrics.
 
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) generateOptimizationStatus(ctx context.Context) *OptimizationStatusData {
-
 	return &OptimizationStatusData{
-
 		PipelineStatus: "Running",
 
 		QueuedOptimizations: 2,
@@ -1796,15 +1645,11 @@ func (dashboard *OptimizationDashboard) generateOptimizationStatus(ctx context.C
 
 		NextAnalysis: time.Now().Add(5 * time.Minute),
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) generateComponentHealth(ctx context.Context) map[shared.ComponentType]*ComponentHealth {
-
 	return map[shared.ComponentType]*ComponentHealth{
-
 		shared.ComponentTypeLLMProcessor: {
-
 			Name: "LLM Processor",
 
 			Status: "Healthy",
@@ -1817,15 +1662,11 @@ func (dashboard *OptimizationDashboard) generateComponentHealth(ctx context.Cont
 		// ... other components.
 
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) generateChartsData(ctx context.Context) *ChartsData {
-
 	return &ChartsData{
-
 		LatencyChart: &ChartDataSeries{
-
 			Labels: []string{"00:00", "00:05", "00:10", "00:15", "00:20"},
 
 			Values: []float64{120, 118, 115, 122, 119},
@@ -1834,15 +1675,11 @@ func (dashboard *OptimizationDashboard) generateChartsData(ctx context.Context) 
 		// ... other charts.
 
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) generateRecommendations(ctx context.Context) []*DashboardRecommendation {
-
 	return []*DashboardRecommendation{
-
 		{
-
 			ID: "rec-1",
 
 			Title: "Optimize LLM Token Usage",
@@ -1854,7 +1691,6 @@ func (dashboard *OptimizationDashboard) generateRecommendations(ctx context.Cont
 			Category: "Performance",
 
 			ExpectedImprovement: &ExpectedImpact{
-
 				LatencyReduction: 15.0,
 
 				CostSavings: 200.0,
@@ -1874,17 +1710,12 @@ func (dashboard *OptimizationDashboard) generateRecommendations(ctx context.Cont
 		// ... other recommendations.
 
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) generateHistoricalData(ctx context.Context) *HistoricalData {
-
 	return &HistoricalData{
-
 		PerformanceTrends: map[string][]*DataPoint{
-
 			"latency": {
-
 				{Timestamp: time.Now().Add(-24 * time.Hour), Value: 150.0},
 
 				{Timestamp: time.Now().Add(-18 * time.Hour), Value: 140.0},
@@ -1900,13 +1731,10 @@ func (dashboard *OptimizationDashboard) generateHistoricalData(ctx context.Conte
 		// ... other historical data.
 
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) generateSystemInfo(ctx context.Context) *SystemInfo {
-
 	return &SystemInfo{
-
 		Version: "1.0.0",
 
 		BuildTime: time.Now().Add(-30 * 24 * time.Hour),
@@ -1918,7 +1746,6 @@ func (dashboard *OptimizationDashboard) generateSystemInfo(ctx context.Context) 
 		PodCount: 25,
 
 		ComponentVersions: map[string]string{
-
 			"kubernetes": "1.28.0",
 
 			"prometheus": "2.45.0",
@@ -1926,17 +1753,14 @@ func (dashboard *OptimizationDashboard) generateSystemInfo(ctx context.Context) 
 
 		ConfigurationHash: "abc123def456",
 	}
-
 }
 
 func (dashboard *OptimizationDashboard) filterHistoricalData(data *HistoricalData, duration time.Duration) *HistoricalData {
-
 	// Filter historical data based on duration.
 
 	cutoff := time.Now().Add(-duration)
 
 	filteredData := &HistoricalData{
-
 		PerformanceTrends: make(map[string][]*DataPoint),
 	}
 
@@ -1945,13 +1769,9 @@ func (dashboard *OptimizationDashboard) filterHistoricalData(data *HistoricalDat
 		var filtered []*DataPoint
 
 		for _, point := range points {
-
 			if point.Timestamp.After(cutoff) {
-
 				filtered = append(filtered, point)
-
 			}
-
 		}
 
 		filteredData.PerformanceTrends[metric] = filtered
@@ -1959,7 +1779,6 @@ func (dashboard *OptimizationDashboard) filterHistoricalData(data *HistoricalDat
 	}
 
 	return filteredData
-
 }
 
 // Component constructors and placeholder implementations.
@@ -1967,45 +1786,35 @@ func (dashboard *OptimizationDashboard) filterHistoricalData(data *HistoricalDat
 // NewOptimizationMetricsCollector performs newoptimizationmetricscollector operation.
 
 func NewOptimizationMetricsCollector(pipeline *AutomatedOptimizationPipeline, logger logr.Logger) *OptimizationMetricsCollector {
-
 	return &OptimizationMetricsCollector{
-
 		logger: logger.WithName("metrics-collector"),
 
 		pipeline: pipeline,
 
 		performanceGauges: make(map[string]prometheus.Gauge),
 	}
-
 }
 
 // NewMetricsCache performs newmetricscache operation.
 
 func NewMetricsCache(ttl time.Duration) *MetricsCache {
-
 	return &MetricsCache{
-
 		data: make(map[string]interface{}),
 
 		ttl: ttl,
 	}
-
 }
 
 // UpdateMetrics performs updatemetrics operation.
 
 func (collector *OptimizationMetricsCollector) UpdateMetrics(ctx context.Context) {
-
 	// Update Prometheus metrics.
-
 }
 
 // GetDefaultDashboardConfig returns default dashboard configuration.
 
 func GetDefaultDashboardConfig() *DashboardConfig {
-
 	return &DashboardConfig{
-
 		ListenAddress: "0.0.0.0",
 
 		ListenPort: 8080,
@@ -2040,5 +1849,4 @@ func GetDefaultDashboardConfig() *DashboardConfig {
 
 		AlertingEnabled: false,
 	}
-
 }

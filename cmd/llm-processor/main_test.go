@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
@@ -22,8 +23,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"log/slog"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
@@ -772,12 +771,12 @@ func TestTLSCertificateValidation(t *testing.T) {
 				keyPath := filepath.Join(tmpDir, "key.pem")
 
 				// Create empty cert file
-				os.WriteFile(certPath, []byte(""), 0644)
+				os.WriteFile(certPath, []byte(""), 0o644)
 
 				// Create valid key file
 				_, keyContent, cleanup := createTestTLSCertificates(t)
 				keyData, _ := os.ReadFile(keyContent)
-				os.WriteFile(keyPath, keyData, 0644)
+				os.WriteFile(keyPath, keyData, 0o644)
 				cleanup() // Clean up the temp certs
 
 				return certPath, keyPath, func() { os.RemoveAll(tmpDir) }
@@ -799,11 +798,11 @@ func TestTLSCertificateValidation(t *testing.T) {
 				// Create valid cert file
 				certContent, _, cleanup := createTestTLSCertificates(t)
 				certData, _ := os.ReadFile(certContent)
-				os.WriteFile(certPath, certData, 0644)
+				os.WriteFile(certPath, certData, 0o644)
 				cleanup() // Clean up the temp certs
 
 				// Create empty key file
-				os.WriteFile(keyPath, []byte(""), 0644)
+				os.WriteFile(keyPath, []byte(""), 0o644)
 
 				return certPath, keyPath, func() { os.RemoveAll(tmpDir) }
 			},

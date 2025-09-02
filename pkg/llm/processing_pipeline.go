@@ -311,7 +311,6 @@ type ValidationRule struct {
 	ErrorMessage string
 
 	Severity string // "error", "warning", "info"
-
 }
 
 // PipelineValidationResult represents a pipelinevalidationresult.
@@ -383,11 +382,9 @@ type ProcessingContext struct {
 // NewProcessingPipeline creates a new processing pipeline.
 
 func NewProcessingPipeline(config PipelineConfig) *ProcessingPipeline {
-
 	logger := slog.Default().With("component", "processing-pipeline")
 
 	return &ProcessingPipeline{
-
 		preprocessor: NewIntentPreprocessor(),
 
 		classifier: NewIntentClassifier(),
@@ -406,27 +403,22 @@ func NewProcessingPipeline(config PipelineConfig) *ProcessingPipeline {
 
 		config: config,
 	}
-
 }
 
 // NewPipelineMetrics creates new pipeline metrics.
 
 func NewPipelineMetrics() *PipelineMetrics {
-
 	return &PipelineMetrics{}
-
 }
 
 // ProcessIntent processes an intent through the complete pipeline.
 
 func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*PipelineProcessingResult, error) {
-
 	start := time.Now()
 
 	// Create processing context.
 
 	processingCtx := &ProcessingContext{
-
 		RequestID: fmt.Sprintf("req_%d", time.Now().UnixNano()),
 
 		Intent: intent,
@@ -444,9 +436,7 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 	)
 
 	defer func() {
-
 		pp.updateMetrics(time.Since(start), true)
-
 	}()
 
 	// Step 1: Preprocessing.
@@ -456,11 +446,8 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 		preprocessStart := time.Now()
 
 		preprocessedIntent, err := pp.preprocessor.Preprocess(intent)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("preprocessing failed: %w", err)
-
 		}
 
 		processingCtx.Intent = preprocessedIntent
@@ -474,11 +461,8 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 	classifyStart := time.Now()
 
 	classification, err := pp.classifier.Classify(processingCtx.Intent)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("classification failed: %w", err)
-
 	}
 
 	processingCtx.Classification = classification
@@ -508,13 +492,9 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 		enrichmentData, err := pp.enricher.Enrich(ctx, processingCtx)
 
 		if err != nil {
-
 			pp.logger.Warn("Context enrichment failed", slog.String("error", err.Error()))
-
 		} else {
-
 			processingCtx.EnrichmentData = enrichmentData
-
 		}
 
 		pp.metrics.EnrichmentTime += time.Since(enrichStart)
@@ -522,7 +502,6 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 	}
 
 	result := &PipelineProcessingResult{
-
 		ProcessingContext: processingCtx,
 
 		ProcessingTime: time.Since(start),
@@ -542,7 +521,6 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 	)
 
 	return result, nil
-
 }
 
 // PipelineProcessingResult represents a pipelineprocessingresult.
@@ -560,51 +538,38 @@ type PipelineProcessingResult struct {
 // TransformResponse applies transformations to an LLM response.
 
 func (pp *ProcessingPipeline) TransformResponse(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-
 	if !pp.config.EnableResponseTransformation {
-
 		return response, nil
-
 	}
 
 	transformStart := time.Now()
 
 	defer func() {
-
 		pp.metrics.TransformationTime += time.Since(transformStart)
-
 	}()
 
 	return pp.transformer.Transform(response, context.Classification.IntentType)
-
 }
 
 // PostprocessResponse applies final postprocessing to the response.
 
 func (pp *ProcessingPipeline) PostprocessResponse(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-
 	if !pp.config.EnablePostprocessing {
-
 		return response, nil
-
 	}
 
 	postprocessStart := time.Now()
 
 	defer func() {
-
 		pp.metrics.PostprocessingTime += time.Since(postprocessStart)
-
 	}()
 
 	return pp.postprocessor.Postprocess(response, context)
-
 }
 
 // updateMetrics updates pipeline metrics.
 
 func (pp *ProcessingPipeline) updateMetrics(processingTime time.Duration, success bool) {
-
 	pp.metrics.mutex.Lock()
 
 	defer pp.metrics.mutex.Unlock()
@@ -612,21 +577,15 @@ func (pp *ProcessingPipeline) updateMetrics(processingTime time.Duration, succes
 	pp.metrics.TotalRequests++
 
 	if success {
-
 		pp.metrics.SuccessfulRequests++
-
 	} else {
-
 		pp.metrics.FailedRequests++
-
 	}
-
 }
 
 // GetMetrics returns current pipeline metrics.
 
 func (pp *ProcessingPipeline) GetMetrics() *PipelineMetrics {
-
 	pp.metrics.mutex.RLock()
 
 	defer pp.metrics.mutex.RUnlock()
@@ -634,7 +593,6 @@ func (pp *ProcessingPipeline) GetMetrics() *PipelineMetrics {
 	// Create a copy without the mutex.
 
 	metrics := PipelineMetrics{
-
 		TotalRequests: pp.metrics.TotalRequests,
 
 		SuccessfulRequests: pp.metrics.SuccessfulRequests,
@@ -655,17 +613,13 @@ func (pp *ProcessingPipeline) GetMetrics() *PipelineMetrics {
 	}
 
 	return &metrics
-
 }
 
 // NewIntentPreprocessor creates a new intent preprocessor.
 
 func NewIntentPreprocessor() *IntentPreprocessor {
-
 	return &IntentPreprocessor{
-
 		normalizationRules: map[string]string{
-
 			"(?i)\\bupf\\b": "User Plane Function",
 
 			"(?i)\\bamf\\b": "Access and Mobility Management Function",
@@ -681,17 +635,13 @@ func NewIntentPreprocessor() *IntentPreprocessor {
 
 		logger: slog.Default().With("component", "preprocessor"),
 	}
-
 }
 
 // Preprocess cleans and normalizes intent text.
 
 func (ip *IntentPreprocessor) Preprocess(intent string) (string, error) {
-
 	if strings.TrimSpace(intent) == "" {
-
 		return "", fmt.Errorf("empty intent")
-
 	}
 
 	// Apply normalization rules.
@@ -720,15 +670,12 @@ func (ip *IntentPreprocessor) Preprocess(intent string) (string, error) {
 	)
 
 	return result, nil
-
 }
 
 // NewIntentClassifier creates a new intent classifier.
 
 func NewIntentClassifier() *IntentClassifier {
-
 	classifier := &IntentClassifier{
-
 		logger: slog.Default().With("component", "classifier"),
 	}
 
@@ -737,17 +684,13 @@ func NewIntentClassifier() *IntentClassifier {
 	classifier.initializeRules()
 
 	return classifier
-
 }
 
 // initializeRules sets up classification rules.
 
 func (ic *IntentClassifier) initializeRules() {
-
 	ic.rules = []ClassificationRule{
-
 		{
-
 			Pattern: regexp.MustCompile(`(?i)\b(deploy|create|install|setup|provision)\b`),
 
 			IntentType: "NetworkFunctionDeployment",
@@ -758,7 +701,6 @@ func (ic *IntentClassifier) initializeRules() {
 		},
 
 		{
-
 			Pattern: regexp.MustCompile(`(?i)\b(scale|resize|increase|decrease|replicas?)\b`),
 
 			IntentType: "NetworkFunctionScale",
@@ -769,7 +711,6 @@ func (ic *IntentClassifier) initializeRules() {
 		},
 
 		{
-
 			Pattern: regexp.MustCompile(`(?i)\b(update|modify|change|configure)\b`),
 
 			IntentType: "NetworkFunctionUpdate",
@@ -780,7 +721,6 @@ func (ic *IntentClassifier) initializeRules() {
 		},
 
 		{
-
 			Pattern: regexp.MustCompile(`(?i)\b(delete|remove|terminate|destroy)\b`),
 
 			IntentType: "NetworkFunctionDeletion",
@@ -790,17 +730,14 @@ func (ic *IntentClassifier) initializeRules() {
 			Priority: 1,
 		},
 	}
-
 }
 
 // Classify determines the intent type and confidence.
 
 func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error) {
-
 	lowerIntent := strings.ToLower(intent)
 
 	result := ClassificationResult{
-
 		IntentType: "Unknown",
 
 		Confidence: 0.0,
@@ -811,9 +748,7 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 	maxConfidence := 0.0
 
 	for _, rule := range ic.rules {
-
 		if rule.Pattern.MatchString(intent) {
-
 			if rule.Confidence > maxConfidence {
 
 				result.IntentType = rule.IntentType
@@ -823,15 +758,12 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 				maxConfidence = rule.Confidence
 
 			}
-
 		}
-
 	}
 
 	// Detect network function.
 
 	nfPatterns := map[string]string{
-
 		"upf|user plane function": "UPF",
 
 		"amf|access and mobility management": "AMF",
@@ -848,7 +780,6 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 	}
 
 	for pattern, nf := range nfPatterns {
-
 		if matched, _ := regexp.MatchString("(?i)"+pattern, lowerIntent); matched {
 
 			result.NetworkFunction = nf
@@ -856,39 +787,26 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 			break
 
 		}
-
 	}
 
 	// Detect operation type.
 
 	if regexp.MustCompile(`(?i)\b(high availability|ha|redundan)\b`).MatchString(lowerIntent) {
-
 		result.OperationType = "HighAvailability"
-
 	} else if regexp.MustCompile(`(?i)\b(edge|mec|local)\b`).MatchString(lowerIntent) {
-
 		result.OperationType = "EdgeDeployment"
-
 	} else if regexp.MustCompile(`(?i)\b(core|central)\b`).MatchString(lowerIntent) {
-
 		result.OperationType = "CoreDeployment"
-
 	}
 
 	// Determine priority.
 
 	if regexp.MustCompile(`(?i)\b(urgent|critical|emergency)\b`).MatchString(lowerIntent) {
-
 		result.Priority = "High"
-
 	} else if regexp.MustCompile(`(?i)\b(low|background)\b`).MatchString(lowerIntent) {
-
 		result.Priority = "Low"
-
 	} else {
-
 		result.Priority = "Medium"
-
 	}
 
 	ic.logger.Debug("Intent classified",
@@ -903,28 +821,23 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 	)
 
 	return result, nil
-
 }
 
 // NewContextEnricher creates a new context enricher.
 
 func NewContextEnricher() *ContextEnricher {
-
 	return &ContextEnricher{
-
 		knowledgeBase: NewTelecomKnowledgeBase(),
 
 		contextCache: make(map[string]*EnrichmentContext),
 
 		logger: slog.Default().With("component", "enricher"),
 	}
-
 }
 
 // Enrich adds context information to the processing.
 
 func (ce *ContextEnricher) Enrich(_ context.Context, processingCtx *ProcessingContext) (*EnrichmentContext, error) {
-
 	// Check cache first.
 	// TODO: Use ctx parameter for request context and cancellation when making external API calls
 
@@ -937,7 +850,6 @@ func (ce *ContextEnricher) Enrich(_ context.Context, processingCtx *ProcessingCo
 		// Create a copy of the cached enrichment context to avoid sharing.
 
 		cachedCopy := &EnrichmentContext{
-
 			NetworkTopology: cached.NetworkTopology,
 
 			DeploymentContext: cached.DeploymentContext,
@@ -960,7 +872,6 @@ func (ce *ContextEnricher) Enrich(_ context.Context, processingCtx *ProcessingCo
 	// Build enrichment context.
 
 	enrichment := &EnrichmentContext{
-
 		Timestamp: time.Now(),
 	}
 
@@ -989,46 +900,38 @@ func (ce *ContextEnricher) Enrich(_ context.Context, processingCtx *ProcessingCo
 	ce.mutex.Unlock()
 
 	return enrichment, nil
-
 }
 
 // buildNetworkTopology creates network topology context.
 
 func (ce *ContextEnricher) buildNetworkTopology(ctx *ProcessingContext) *PipelineNetworkTopology {
-
 	// This would typically query actual network topology.
 
 	return &PipelineNetworkTopology{
-
 		Region: "us-west-2",
 
 		AvailabilityZone: "us-west-2a",
 
 		NetworkSlices: []PipelineNetworkSlice{
-
 			{ID: "slice-embb-001", Type: "eMBB", Status: "active", Capacity: 1000, Utilization: 0.65},
 
 			{ID: "slice-urllc-001", Type: "URLLC", Status: "active", Capacity: 500, Utilization: 0.30},
 		},
 
 		Constraints: map[string]string{
-
 			"latency": "< 10ms",
 
 			"bandwidth": "> 1Gbps",
 		},
 	}
-
 }
 
 // buildDeploymentContext creates deployment context.
 
 func (ce *ContextEnricher) buildDeploymentContext(ctx *ProcessingContext) *DeploymentContext {
-
 	// This would typically query Kubernetes API.
 
 	return &DeploymentContext{
-
 		Environment: "production",
 
 		Cluster: "5g-core-cluster",
@@ -1036,75 +939,59 @@ func (ce *ContextEnricher) buildDeploymentContext(ctx *ProcessingContext) *Deplo
 		Namespace: "5g-core",
 
 		ExistingWorkloads: []WorkloadInfo{
-
 			{Name: "amf-deployment", Type: "Deployment", Status: "Running", Resources: map[string]string{"cpu": "500m", "memory": "1Gi"}},
 		},
 
 		ResourceQuotas: map[string]string{
-
 			"cpu": "10",
 
 			"memory": "20Gi",
 		},
 	}
-
 }
 
 // buildPolicyContext creates policy context.
 
 func (ce *ContextEnricher) buildPolicyContext(ctx *ProcessingContext) *PolicyContext {
-
 	return &PolicyContext{
-
 		SecurityPolicies: []Policy{
-
 			{ID: "sec-001", Name: "Network Isolation", Type: "security", Enabled: true},
 		},
 
 		ResourcePolicies: []Policy{
-
 			{ID: "res-001", Name: "Resource Limits", Type: "resource", Enabled: true},
 		},
 
 		ComplianceRequirements: []string{"GDPR", "SOC2", "FedRAMP"},
 	}
-
 }
 
 // buildHistoricalData creates historical context.
 
 func (ce *ContextEnricher) buildHistoricalData(ctx *ProcessingContext) *HistoricalData {
-
 	return &HistoricalData{
-
 		SimilarIntents: []HistoricalIntent{
-
 			{Intent: "Deploy UPF with 3 replicas", Outcome: "success", Timestamp: time.Now().Add(-24 * time.Hour)},
 		},
 
 		PerformanceMetrics: map[string]float64{
-
 			"average_deployment_time": 45.5,
 
 			"success_rate": 0.95,
 		},
 
 		SuccessRates: map[string]float64{
-
 			"UPF_deployment": 0.98,
 
 			"AMF_deployment": 0.92,
 		},
 	}
-
 }
 
 // NewInputValidator creates a new input validator.
 
 func NewInputValidator(strictness string) *InputValidator {
-
 	validator := &InputValidator{
-
 		customValidators: make(map[string]func(string) error),
 
 		strictMode: strictness == "strict",
@@ -1115,17 +1002,13 @@ func NewInputValidator(strictness string) *InputValidator {
 	validator.initializeRules()
 
 	return validator
-
 }
 
 // initializeRules sets up validation rules.
 
 func (iv *InputValidator) initializeRules() {
-
 	iv.rules = []ValidationRule{
-
 		{
-
 			Name: "MinLength",
 
 			Pattern: regexp.MustCompile(`.{10,}`),
@@ -1138,7 +1021,6 @@ func (iv *InputValidator) initializeRules() {
 		},
 
 		{
-
 			Name: "MaxLength",
 
 			Pattern: regexp.MustCompile(`^.{1,1000}$`),
@@ -1151,7 +1033,6 @@ func (iv *InputValidator) initializeRules() {
 		},
 
 		{
-
 			Name: "NoSQLInjection",
 
 			Pattern: regexp.MustCompile(`(?i)(select|insert|update|delete|drop|union|script)`),
@@ -1163,26 +1044,21 @@ func (iv *InputValidator) initializeRules() {
 			Severity: "error",
 		},
 	}
-
 }
 
 // Validate performs comprehensive input validation.
 
 func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
-
 	result := PipelineValidationResult{
-
 		Valid: true,
 
 		Score: 1.0,
 	}
 
 	for _, rule := range iv.rules {
-
 		if rule.Required && !rule.Pattern.MatchString(intent) {
 
 			validationError := PipelineValidationError{
-
 				Field: "intent",
 
 				Message: rule.ErrorMessage,
@@ -1209,19 +1085,15 @@ func (iv *InputValidator) Validate(intent string) PipelineValidationResult {
 			}
 
 		}
-
 	}
 
 	return result
-
 }
 
 // NewResponseTransformer creates a new response transformer.
 
 func NewResponseTransformer() *ResponseTransformer {
-
 	transformer := &ResponseTransformer{
-
 		transformers: make(map[string]TransformationFunc),
 
 		logger: slog.Default().With("component", "transformer"),
@@ -1230,37 +1102,29 @@ func NewResponseTransformer() *ResponseTransformer {
 	transformer.initializeTransformers()
 
 	return transformer
-
 }
 
 // initializeTransformers sets up transformation functions.
 
 func (rt *ResponseTransformer) initializeTransformers() {
-
 	rt.transformers["NetworkFunctionDeployment"] = rt.transformDeploymentResponse
 
 	rt.transformers["NetworkFunctionScale"] = rt.transformScaleResponse
-
 }
 
 // Transform applies transformations to a response.
 
 func (rt *ResponseTransformer) Transform(response map[string]interface{}, intentType string) (map[string]interface{}, error) {
-
 	if transformer, exists := rt.transformers[intentType]; exists {
-
 		return transformer(response)
-
 	}
 
 	return response, nil
-
 }
 
 // transformDeploymentResponse transforms deployment responses.
 
 func (rt *ResponseTransformer) transformDeploymentResponse(response map[string]interface{}) (map[string]interface{}, error) {
-
 	// Add deployment-specific metadata.
 
 	if metadata, ok := response["metadata"].(map[string]interface{}); ok {
@@ -1272,17 +1136,14 @@ func (rt *ResponseTransformer) transformDeploymentResponse(response map[string]i
 	}
 
 	return response, nil
-
 }
 
 // transformScaleResponse transforms scaling responses.
 
 func (rt *ResponseTransformer) transformScaleResponse(response map[string]interface{}) (map[string]interface{}, error) {
-
 	// Add scaling-specific metadata.
 
 	if spec, ok := response["spec"].(map[string]interface{}); ok {
-
 		if scaling, ok := spec["scaling"].(map[string]interface{}); ok {
 
 			scaling["strategy"] = "gradual"
@@ -1290,19 +1151,15 @@ func (rt *ResponseTransformer) transformScaleResponse(response map[string]interf
 			scaling["cooldown_period"] = "5m"
 
 		}
-
 	}
 
 	return response, nil
-
 }
 
 // NewResponsePostprocessor creates a new response postprocessor.
 
 func NewResponsePostprocessor() *ResponsePostprocessor {
-
 	postprocessor := &ResponsePostprocessor{
-
 		enrichers: make(map[string]PostprocessingFunc),
 
 		logger: slog.Default().With("component", "postprocessor"),
@@ -1311,49 +1168,39 @@ func NewResponsePostprocessor() *ResponsePostprocessor {
 	postprocessor.initializeEnrichers()
 
 	return postprocessor
-
 }
 
 // initializeEnrichers sets up postprocessing functions.
 
 func (rp *ResponsePostprocessor) initializeEnrichers() {
-
 	rp.enrichers["metadata"] = rp.addMetadataEnrichment
 
 	rp.enrichers["validation"] = rp.addValidationEnrichment
 
 	rp.enrichers["tracking"] = rp.addTrackingEnrichment
-
 }
 
 // Postprocess applies final processing to responses.
 
 func (rp *ResponsePostprocessor) Postprocess(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-
 	for _, enricher := range rp.enrichers {
 
 		var err error
 
 		response, err = enricher(response, context)
-
 		if err != nil {
-
 			return response, err
-
 		}
 
 	}
 
 	return response, nil
-
 }
 
 // addMetadataEnrichment adds processing metadata.
 
 func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-
 	processingMetadata := map[string]interface{}{
-
 		"request_id": context.RequestID,
 
 		"processing_time": time.Since(context.ProcessingStart).Milliseconds(),
@@ -1370,34 +1217,26 @@ func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]inter
 	response["processing_metadata"] = processingMetadata
 
 	return response, nil
-
 }
 
 // addValidationEnrichment adds validation results.
 
 func (rp *ResponsePostprocessor) addValidationEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-
 	if context.ValidationResult != nil {
-
 		response["validation_result"] = map[string]interface{}{
-
 			"valid": context.ValidationResult.Valid,
 
 			"score": context.ValidationResult.Score,
 		}
-
 	}
 
 	return response, nil
-
 }
 
 // addTrackingEnrichment adds tracking information.
 
 func (rp *ResponsePostprocessor) addTrackingEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-
 	response["tracking"] = map[string]interface{}{
-
 		"trace_id": context.RequestID,
 
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -1406,7 +1245,6 @@ func (rp *ResponsePostprocessor) addTrackingEnrichment(response map[string]inter
 	}
 
 	return response, nil
-
 }
 
 // TelecomKnowledgeBase provides domain-specific knowledge.
@@ -1462,9 +1300,7 @@ type DeploymentPattern struct {
 // NewTelecomKnowledgeBase creates a new knowledge base.
 
 func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
-
 	kb := &TelecomKnowledgeBase{
-
 		networkFunctions: make(map[string]NetworkFunctionSpec),
 
 		deploymentPatterns: make(map[string]DeploymentPattern),
@@ -1473,30 +1309,25 @@ func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 	kb.initializeKnowledgeBase()
 
 	return kb
-
 }
 
 // initializeKnowledgeBase populates the knowledge base.
 
 func (kb *TelecomKnowledgeBase) initializeKnowledgeBase() {
-
 	// Initialize network function specifications.
 
 	kb.networkFunctions["UPF"] = NetworkFunctionSpec{
-
 		Name: "User Plane Function",
 
 		Type: "5G Core",
 
 		DefaultResources: map[string]string{
-
 			"cpu": "2000m",
 
 			"memory": "4Gi",
 		},
 
 		RequiredPorts: []PortSpec{
-
 			{Name: "n3", Port: 2152, Protocol: "UDP", Required: true},
 
 			{Name: "n4", Port: 8805, Protocol: "UDP", Required: true},
@@ -1508,20 +1339,17 @@ func (kb *TelecomKnowledgeBase) initializeKnowledgeBase() {
 	}
 
 	kb.networkFunctions["AMF"] = NetworkFunctionSpec{
-
 		Name: "Access and Mobility Management Function",
 
 		Type: "5G Core",
 
 		DefaultResources: map[string]string{
-
 			"cpu": "500m",
 
 			"memory": "1Gi",
 		},
 
 		RequiredPorts: []PortSpec{
-
 			{Name: "sbi", Port: 8080, Protocol: "TCP", Required: true},
 		},
 
@@ -1529,13 +1357,11 @@ func (kb *TelecomKnowledgeBase) initializeKnowledgeBase() {
 
 		Constraints: []string{"stateless"},
 	}
-
 }
 
 // GetNetworkFunctionSpec retrieves network function specification.
 
 func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunctionSpec, bool) {
-
 	kb.mutex.RLock()
 
 	defer kb.mutex.RUnlock()
@@ -1543,15 +1369,12 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 	spec, exists := kb.networkFunctions[name]
 
 	if !exists {
-
 		return NetworkFunctionSpec{}, false
-
 	}
 
 	// Create a copy to avoid returning a reference to internal data.
 
 	specCopy := NetworkFunctionSpec{
-
 		Name: spec.Name,
 
 		Type: spec.Type,
@@ -1568,9 +1391,7 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 	// Copy maps and slices.
 
 	for k, v := range spec.DefaultResources {
-
 		specCopy.DefaultResources[k] = v
-
 	}
 
 	copy(specCopy.RequiredPorts, spec.RequiredPorts)
@@ -1580,5 +1401,4 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 	copy(specCopy.Constraints, spec.Constraints)
 
 	return specCopy, true
-
 }

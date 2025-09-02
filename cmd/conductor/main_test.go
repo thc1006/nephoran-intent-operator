@@ -96,7 +96,7 @@ func TestExtractCorrelationID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test file
 			testFile := filepath.Join(tempDir, "test-intent.json")
-			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0644)
+			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0o644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}

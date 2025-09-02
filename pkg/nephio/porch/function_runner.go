@@ -48,7 +48,6 @@ import (
 // functionRunner implements the FunctionRunner interface.
 
 type functionRunner struct {
-
 	// Parent client for API operations.
 
 	client *Client
@@ -506,17 +505,13 @@ type CacheStats struct {
 // NewFunctionRunner creates a new function runner.
 
 func NewFunctionRunner(client *Client) FunctionRunner {
-
 	maxConcurrent := 5
 
 	if client.config.PorchConfig != nil && client.config.PorchConfig.FunctionExecution != nil {
-
 		maxConcurrent = client.config.PorchConfig.FunctionExecution.MaxConcurrency
-
 	}
 
 	return &functionRunner{
-
 		client: client,
 
 		logger: log.Log.WithName("function-runner"),
@@ -527,13 +522,11 @@ func NewFunctionRunner(client *Client) FunctionRunner {
 
 		semaphore: make(chan struct{}, maxConcurrent),
 	}
-
 }
 
 // ExecuteFunction executes a single KRM function.
 
 func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
-
 	start := time.Now()
 
 	executionID := fmt.Sprintf("exec-%d", time.Now().UnixNano())
@@ -541,13 +534,9 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	fr.logger.Info("Executing function", "function", req.FunctionConfig.Image, "executionID", executionID)
 
 	defer func() {
-
 		if fr.metrics != nil {
-
 			fr.metrics.executionDuration.WithLabelValues(req.FunctionConfig.Image, "single").Observe(time.Since(start).Seconds())
-
 		}
-
 	}()
 
 	// Check cache first.
@@ -561,9 +550,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			fr.logger.V(1).Info("Function result found in cache", "executionID", executionID)
 
 			if fr.metrics != nil {
-
 				fr.metrics.cacheHitRate.WithLabelValues("hit").Inc()
-
 			}
 
 			return cached, nil
@@ -571,9 +558,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 		}
 
 		if fr.metrics != nil {
-
 			fr.metrics.cacheHitRate.WithLabelValues("miss").Inc()
-
 		}
 
 	}
@@ -581,7 +566,6 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	// Create execution request.
 
 	execReq := &FunctionExecutionRequest{
-
 		FunctionRequest: req,
 
 		ExecutionID: executionID,
@@ -598,7 +582,6 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	// Validate security requirements.
 
 	if fr.securityValidator != nil {
-
 		if err := fr.securityValidator.ValidateFunction(ctx, execReq); err != nil {
 
 			fr.recordError(executionID, "security_validation", err)
@@ -606,13 +589,11 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			return nil, fmt.Errorf("security validation failed: %w", err)
 
 		}
-
 	}
 
 	// Check resource quotas.
 
 	if fr.quotaManager != nil {
-
 		if err := fr.quotaManager.CheckQuota(ctx, execReq); err != nil {
 
 			fr.recordError(executionID, "quota_exceeded", err)
@@ -620,7 +601,6 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			return nil, fmt.Errorf("resource quota exceeded: %w", err)
 
 		}
-
 	}
 
 	// Acquire semaphore for concurrent execution control.
@@ -644,7 +624,6 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	defer cancel()
 
 	execution := &executionContext{
-
 		id: executionID,
 
 		functionName: req.FunctionConfig.Image,
@@ -663,13 +642,11 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	fr.executionMutex.Unlock()
 
 	defer func() {
-
 		fr.executionMutex.Lock()
 
 		delete(fr.activeExecutions, executionID)
 
 		fr.executionMutex.Unlock()
-
 	}()
 
 	// Update metrics.
@@ -689,7 +666,6 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	if fr.quotaManager != nil {
 
 		resourceReq := &ResourceRequirement{
-
 			CPU: fr.parseCPULimit(execReq.ResourceLimits.CPU),
 
 			Memory: fr.parseMemoryLimit(execReq.ResourceLimits.Memory),
@@ -730,7 +706,6 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	// Execute function.
 
 	result, err := fr.executionEngine.ExecuteFunction(execCtx, execReq)
-
 	if err != nil {
 
 		execution.mutex.Lock()
@@ -758,23 +733,17 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	// Validate O-RAN compliance if configured.
 
 	if fr.oranValidator != nil && len(result.Resources) > 0 {
-
 		if compliance, err := fr.oranValidator.ValidateCompliance(ctx, result.Resources); err != nil {
-
 			fr.logger.Error(err, "O-RAN compliance validation failed", "executionID", executionID)
-
 		} else if !compliance.Compliant {
 
 			fr.logger.Info("Function result is not O-RAN compliant", "executionID", executionID, "violations", len(compliance.Violations))
 
 			if fr.metrics != nil {
-
 				fr.metrics.validationResults.WithLabelValues("oran_compliance", "failed").Inc()
-
 			}
 
 		}
-
 	}
 
 	// Cache result if applicable.
@@ -786,9 +755,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 		cacheTTL := 5 * time.Minute
 
 		if err := fr.cache.Set(ctx, cacheKey, result.FunctionResponse, cacheTTL); err != nil {
-
 			fr.logger.Error(err, "Failed to cache function result", "executionID", executionID)
-
 		}
 
 	}
@@ -812,13 +779,11 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	fr.logger.Info("Function execution completed", "executionID", executionID, "duration", time.Since(start))
 
 	return result.FunctionResponse, nil
-
 }
 
 // ExecutePipeline executes a pipeline of KRM functions.
 
 func (fr *functionRunner) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
-
 	start := time.Now()
 
 	pipelineID := fmt.Sprintf("pipeline-%d", time.Now().UnixNano())
@@ -826,7 +791,6 @@ func (fr *functionRunner) ExecutePipeline(ctx context.Context, req *PipelineRequ
 	fr.logger.Info("Executing function pipeline", "pipelineID", pipelineID, "stages", len(req.Pipeline.Mutators)+len(req.Pipeline.Validators))
 
 	defer func() {
-
 		if fr.metrics != nil {
 
 			fr.metrics.pipelineExecutions.WithLabelValues("completed").Inc()
@@ -834,53 +798,41 @@ func (fr *functionRunner) ExecutePipeline(ctx context.Context, req *PipelineRequ
 			fr.metrics.executionDuration.WithLabelValues("pipeline", "pipeline").Observe(time.Since(start).Seconds())
 
 		}
-
 	}()
 
 	// Validate pipeline.
 
 	if fr.pipelineOrchestrator != nil {
-
 		if err := fr.pipelineOrchestrator.ValidatePipeline(ctx, &req.Pipeline); err != nil {
-
 			return nil, fmt.Errorf("pipeline validation failed: %w", err)
-
 		}
-
 	}
 
 	// Use pipeline orchestrator if available.
 
 	if fr.pipelineOrchestrator != nil {
-
 		return fr.pipelineOrchestrator.ExecutePipeline(ctx, req)
-
 	}
 
 	// Fallback to sequential execution.
 
 	return fr.executeSequentialPipeline(ctx, req)
-
 }
 
 // ValidateFunction validates a function's availability and configuration.
 
 func (fr *functionRunner) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
-
 	fr.logger.V(1).Info("Validating function", "function", functionName)
 
 	// Check function registry.
 
 	if fr.registry != nil {
-
 		return fr.registry.ValidateFunction(ctx, functionName)
-
 	}
 
 	// Basic validation.
 
 	validation := &FunctionValidation{
-
 		Valid: true,
 	}
 
@@ -891,7 +843,6 @@ func (fr *functionRunner) ValidateFunction(ctx context.Context, functionName str
 		validation.Valid = false
 
 		validation.Errors = append(validation.Errors, ValidationError{
-
 			Message: "Function image must include a tag",
 
 			Severity: "error",
@@ -902,25 +853,19 @@ func (fr *functionRunner) ValidateFunction(ctx context.Context, functionName str
 	}
 
 	return validation, nil
-
 }
 
 // ListFunctions lists all available functions.
 
 func (fr *functionRunner) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
-
 	if fr.registry != nil {
-
 		return fr.registry.ListFunctions(ctx)
-
 	}
 
 	// Return default functions if no registry.
 
 	return []*FunctionInfo{
-
 		{
-
 			Name: "gcr.io/kpt-fn/apply-setters",
 
 			Description: "Apply setters to configuration",
@@ -929,7 +874,6 @@ func (fr *functionRunner) ListFunctions(ctx context.Context) ([]*FunctionInfo, e
 		},
 
 		{
-
 			Name: "gcr.io/kpt-fn/set-namespace",
 
 			Description: "Set namespace for resources",
@@ -938,7 +882,6 @@ func (fr *functionRunner) ListFunctions(ctx context.Context) ([]*FunctionInfo, e
 		},
 
 		{
-
 			Name: "gcr.io/kpt-fn/kubeval",
 
 			Description: "Validate Kubernetes resources",
@@ -946,37 +889,28 @@ func (fr *functionRunner) ListFunctions(ctx context.Context) ([]*FunctionInfo, e
 			Types: []string{"validator"},
 		},
 	}, nil
-
 }
 
 // GetFunctionSchema returns the schema for a function's configuration.
 
 func (fr *functionRunner) GetFunctionSchema(ctx context.Context, functionName string) (*FunctionSchema, error) {
-
 	if fr.registry != nil {
-
 		return fr.registry.GetFunctionSchema(ctx, functionName)
-
 	}
 
 	// Return empty schema if no registry.
 
 	return &FunctionSchema{}, nil
-
 }
 
 // RegisterFunction registers a new function in the registry.
 
 func (fr *functionRunner) RegisterFunction(ctx context.Context, info *FunctionInfo) error {
-
 	if fr.registry != nil {
-
 		return fr.registry.RegisterFunction(ctx, info)
-
 	}
 
 	return fmt.Errorf("function registry not available")
-
 }
 
 // Private helper methods.
@@ -984,7 +918,6 @@ func (fr *functionRunner) RegisterFunction(ctx context.Context, info *FunctionIn
 // executeSequentialPipeline executes a pipeline sequentially.
 
 func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
-
 	resources := make([]KRMResource, len(req.Resources))
 
 	copy(resources, req.Resources)
@@ -998,7 +931,6 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 		fr.logger.V(1).Info("Executing mutator", "index", i, "image", mutator.Image)
 
 		funcReq := &FunctionRequest{
-
 			FunctionConfig: mutator,
 
 			Resources: resources,
@@ -1007,23 +939,18 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 		}
 
 		response, err := fr.ExecuteFunction(ctx, funcReq)
-
 		if err != nil {
-
 			return &PipelineResponse{
-
 				Resources: resources,
 
 				Results: allResults,
 
 				Error: &FunctionError{
-
 					Message: fmt.Sprintf("Mutator %d failed: %v", i, err),
 
 					Code: "MUTATOR_FAILED",
 				},
 			}, nil
-
 		}
 
 		resources = response.Resources
@@ -1039,7 +966,6 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 		fr.logger.V(1).Info("Executing validator", "index", i, "image", validator.Image)
 
 		funcReq := &FunctionRequest{
-
 			FunctionConfig: validator,
 
 			Resources: resources,
@@ -1048,23 +974,18 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 		}
 
 		response, err := fr.ExecuteFunction(ctx, funcReq)
-
 		if err != nil {
-
 			return &PipelineResponse{
-
 				Resources: resources,
 
 				Results: allResults,
 
 				Error: &FunctionError{
-
 					Message: fmt.Sprintf("Validator %d failed: %v", i, err),
 
 					Code: "VALIDATOR_FAILED",
 				},
 			}, nil
-
 		}
 
 		allResults = append(allResults, response.Results...)
@@ -1072,99 +993,73 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 		// Check for validation errors.
 
 		for _, result := range response.Results {
-
 			if result.Severity == "error" {
-
 				return &PipelineResponse{
-
 					Resources: resources,
 
 					Results: allResults,
 
 					Error: &FunctionError{
-
 						Message: result.Message,
 
 						Code: "VALIDATION_FAILED",
 					},
 				}, nil
-
 			}
-
 		}
 
 	}
 
 	return &PipelineResponse{
-
 		Resources: resources,
 
 		Results: allResults,
 	}, nil
-
 }
 
 // getRuntime determines the runtime for function execution.
 
 func (fr *functionRunner) getRuntime(req *FunctionRequest) string {
-
 	if fr.client.config.PorchConfig != nil && fr.client.config.PorchConfig.FunctionExecution != nil {
-
 		// For now, always return docker as runtime - can be configured later.
 
 		return "docker"
-
 	}
 
 	return "docker"
-
 }
 
 // getTimeout determines the timeout for function execution.
 
 func (fr *functionRunner) getTimeout(req *FunctionRequest) time.Duration {
-
 	if fr.client.config.PorchConfig != nil && fr.client.config.PorchConfig.FunctionExecution != nil {
-
 		return fr.client.config.PorchConfig.FunctionExecution.DefaultTimeout
-
 	}
 
 	return 5 * time.Minute
-
 }
 
 // getResourceLimits determines resource limits for function execution.
 
 func (fr *functionRunner) getResourceLimits(req *FunctionRequest) *FunctionResourceLimits {
-
 	if fr.client.config.PorchConfig != nil && fr.client.config.PorchConfig.FunctionExecution != nil {
 
 		// Convert from map[string]string to FunctionResourceLimits.
 
 		limits := &FunctionResourceLimits{
-
 			Timeout: 5 * time.Minute,
 		}
 
 		if cpu, exists := fr.client.config.PorchConfig.FunctionExecution.ResourceLimits["cpu"]; exists {
-
 			limits.CPU = cpu
-
 		} else {
-
 			limits.CPU = "1000m"
-
 		}
 
 		if memory, exists := fr.client.config.PorchConfig.FunctionExecution.ResourceLimits["memory"]; exists {
-
 			limits.Memory = memory
-
 		} else {
-
 			limits.Memory = "1Gi"
-
 		}
 
 		return limits
@@ -1172,20 +1067,17 @@ func (fr *functionRunner) getResourceLimits(req *FunctionRequest) *FunctionResou
 	}
 
 	return &FunctionResourceLimits{
-
 		CPU: "1000m",
 
 		Memory: "1Gi",
 
 		Timeout: 5 * time.Minute,
 	}
-
 }
 
 // getEnvironment determines environment variables for function execution.
 
 func (fr *functionRunner) getEnvironment(req *FunctionRequest) map[string]string {
-
 	env := make(map[string]string)
 
 	// Note: ClientFunctionExecutionConfig doesn't have EnvironmentVars field.
@@ -1195,23 +1087,17 @@ func (fr *functionRunner) getEnvironment(req *FunctionRequest) map[string]string
 	// Add context-specific environment variables.
 
 	if req.Context != nil && req.Context.Environment != nil {
-
 		for k, v := range req.Context.Environment {
-
 			env[k] = v
-
 		}
-
 	}
 
 	return env
-
 }
 
 // generateCacheKey generates a cache key for function request.
 
 func (fr *functionRunner) generateCacheKey(req *FunctionRequest) string {
-
 	// Simple cache key based on function config and resource hash.
 
 	configJSON, _ := json.Marshal(req.FunctionConfig)
@@ -1219,55 +1105,41 @@ func (fr *functionRunner) generateCacheKey(req *FunctionRequest) string {
 	resourceJSON, _ := json.Marshal(req.Resources)
 
 	return fmt.Sprintf("%x-%x", configJSON, resourceJSON)
-
 }
 
 // shouldCacheResult determines if a result should be cached.
 
 func (fr *functionRunner) shouldCacheResult(req *FunctionRequest, resp *FunctionResponse) bool {
-
 	// Cache successful results with no errors.
 
 	if resp.Error != nil {
-
 		return false
-
 	}
 
 	// Don't cache if there are error-level results.
 
 	for _, result := range resp.Results {
-
 		if result.Severity == "error" {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 // recordError records function execution errors.
 
 func (fr *functionRunner) recordError(executionID, errorType string, err error) {
-
 	fr.logger.Error(err, "Function execution error", "executionID", executionID, "errorType", errorType)
 
 	if fr.metrics != nil {
-
 		fr.metrics.executionErrors.WithLabelValues(errorType).Inc()
-
 	}
-
 }
 
 // parseCPULimit parses CPU limit string to float64.
 
 func (fr *functionRunner) parseCPULimit(cpu string) float64 {
-
 	// Simple parsing - in production would use k8s resource parsing.
 
 	if strings.HasSuffix(cpu, "m") {
@@ -1285,13 +1157,11 @@ func (fr *functionRunner) parseCPULimit(cpu string) float64 {
 	fmt.Sscanf(cpu, "%f", &cores)
 
 	return cores
-
 }
 
 // parseMemoryLimit parses memory limit string to int64 bytes.
 
 func (fr *functionRunner) parseMemoryLimit(memory string) int64 {
-
 	// Simple parsing - in production would use k8s resource parsing.
 
 	memory = strings.ToUpper(memory)
@@ -1321,27 +1191,21 @@ func (fr *functionRunner) parseMemoryLimit(memory string) int64 {
 		return value
 
 	}
-
 }
 
 // parseStorageLimit parses storage limit string to int64 bytes.
 
 func (fr *functionRunner) parseStorageLimit(storage string) int64 {
-
 	return fr.parseMemoryLimit(storage) // Same parsing logic
-
 }
 
 // initFunctionRunnerMetrics initializes Prometheus metrics.
 
 func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
-
 	return &FunctionRunnerMetrics{
-
 		functionExecutions: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_function_executions_total",
 
 				Help: "Total number of function executions",
@@ -1353,7 +1217,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		executionDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "porch_function_execution_duration_seconds",
 
 				Help: "Duration of function executions",
@@ -1367,7 +1230,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		executionErrors: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_function_execution_errors_total",
 
 				Help: "Total number of function execution errors",
@@ -1379,7 +1241,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		activeExecutions: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_function_active_executions",
 
 				Help: "Number of currently active function executions",
@@ -1391,7 +1252,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		resourceUsage: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "porch_function_resource_usage",
 
 				Help: "Resource usage during function execution",
@@ -1403,7 +1263,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		cacheHitRate: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_function_cache_operations_total",
 
 				Help: "Total number of function cache operations",
@@ -1415,7 +1274,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		pipelineExecutions: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_function_pipeline_executions_total",
 
 				Help: "Total number of function pipeline executions",
@@ -1427,7 +1285,6 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 		validationResults: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "porch_function_validation_results_total",
 
 				Help: "Total number of function validation results",
@@ -1436,85 +1293,65 @@ func initFunctionRunnerMetrics() *FunctionRunnerMetrics {
 			[]string{"validator", "result"},
 		),
 	}
-
 }
 
 // GetFunctionRunnerMetrics returns function runner metrics.
 
 func (fr *functionRunner) GetFunctionRunnerMetrics() *FunctionRunnerMetrics {
-
 	return fr.metrics
-
 }
 
 // SetFunctionRegistry sets the function registry.
 
 func (fr *functionRunner) SetFunctionRegistry(registry FunctionRegistry) {
-
 	fr.registry = registry
-
 }
 
 // SetExecutionEngine sets the execution engine.
 
 func (fr *functionRunner) SetExecutionEngine(engine ExecutionEngine) {
-
 	fr.executionEngine = engine
-
 }
 
 // SetQuotaManager sets the resource quota manager.
 
 func (fr *functionRunner) SetQuotaManager(manager ResourceQuotaManager) {
-
 	fr.quotaManager = manager
-
 }
 
 // SetSecurityValidator sets the security validator.
 
 func (fr *functionRunner) SetSecurityValidator(validator FunctionSecurityValidator) {
-
 	fr.securityValidator = validator
-
 }
 
 // SetPipelineOrchestrator sets the pipeline orchestrator.
 
 func (fr *functionRunner) SetPipelineOrchestrator(orchestrator PipelineOrchestrator) {
-
 	fr.pipelineOrchestrator = orchestrator
-
 }
 
 // SetORANValidator sets the O-RAN compliance validator.
 
 func (fr *functionRunner) SetORANValidator(validator ORANComplianceValidator) {
-
 	fr.oranValidator = validator
-
 }
 
 // SetPerformanceProfiler sets the performance profiler.
 
 func (fr *functionRunner) SetPerformanceProfiler(profiler PerformanceProfiler) {
-
 	fr.profiler = profiler
-
 }
 
 // SetFunctionCache sets the function cache.
 
 func (fr *functionRunner) SetFunctionCache(cache FunctionCache) {
-
 	fr.cache = cache
-
 }
 
 // GetActiveExecutions returns currently active executions.
 
 func (fr *functionRunner) GetActiveExecutions() map[string]*executionContext {
-
 	fr.executionMutex.RLock()
 
 	defer fr.executionMutex.RUnlock()
@@ -1522,19 +1359,15 @@ func (fr *functionRunner) GetActiveExecutions() map[string]*executionContext {
 	result := make(map[string]*executionContext)
 
 	for k, v := range fr.activeExecutions {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // CancelExecution cancels an active execution.
 
 func (fr *functionRunner) CancelExecution(executionID string) error {
-
 	fr.executionMutex.RLock()
 
 	execution, exists := fr.activeExecutions[executionID]
@@ -1542,9 +1375,7 @@ func (fr *functionRunner) CancelExecution(executionID string) error {
 	fr.executionMutex.RUnlock()
 
 	if !exists {
-
 		return fmt.Errorf("execution %s not found", executionID)
-
 	}
 
 	execution.mutex.Lock()
@@ -1560,13 +1391,11 @@ func (fr *functionRunner) CancelExecution(executionID string) error {
 	execution.mutex.Unlock()
 
 	return nil
-
 }
 
 // Close gracefully shuts down the function runner.
 
 func (fr *functionRunner) Close() error {
-
 	fr.logger.Info("Shutting down function runner")
 
 	// Cancel all active executions.
@@ -1574,13 +1403,9 @@ func (fr *functionRunner) Close() error {
 	fr.executionMutex.RLock()
 
 	for _, execution := range fr.activeExecutions {
-
 		if execution.cancel != nil {
-
 			execution.cancel()
-
 		}
-
 	}
 
 	fr.executionMutex.RUnlock()
@@ -1596,5 +1421,4 @@ func (fr *functionRunner) Close() error {
 	fr.logger.Info("Function runner shut down complete")
 
 	return nil
-
 }

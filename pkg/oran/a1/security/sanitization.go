@@ -322,15 +322,11 @@ var (
 // NewSanitizationManager creates a new sanitization manager.
 
 func NewSanitizationManager(config *SanitizationConfig, logger *logging.StructuredLogger) (*SanitizationManager, error) {
-
 	if config == nil {
-
 		return nil, errors.New("sanitization config is required")
-
 	}
 
 	sm := &SanitizationManager{
-
 		config: config,
 
 		logger: logger,
@@ -340,7 +336,6 @@ func NewSanitizationManager(config *SanitizationConfig, logger *logging.Structur
 		schemas: make(map[string]*gojsonschema.Schema),
 
 		stats: &SanitizationStats{
-
 			Violations: make(map[string]int64),
 		},
 	}
@@ -356,33 +351,24 @@ func NewSanitizationManager(config *SanitizationConfig, logger *logging.Structur
 	// Load sanitization policies.
 
 	if err := sm.loadPolicies(); err != nil {
-
 		return nil, fmt.Errorf("failed to load sanitization policies: %w", err)
-
 	}
 
 	// Load JSON schemas if enabled.
 
 	if config.EnforceJSONSchema && config.SchemaPath != "" {
-
 		if err := sm.loadSchemas(); err != nil {
-
 			return nil, fmt.Errorf("failed to load JSON schemas: %w", err)
-
 		}
-
 	}
 
 	return sm, nil
-
 }
 
 // initializeMaliciousPatterns initializes patterns for detecting malicious input.
 
 func (sm *SanitizationManager) initializeMaliciousPatterns() {
-
 	sm.maliciousPatterns = []*regexp.Regexp{
-
 		sqlInjectionPattern,
 
 		xssPattern,
@@ -397,29 +383,21 @@ func (sm *SanitizationManager) initializeMaliciousPatterns() {
 
 		noSQLInjectionPattern,
 	}
-
 }
 
 // loadPolicies loads sanitization policies.
 
 func (sm *SanitizationManager) loadPolicies() error {
-
 	for name, policy := range sm.config.Policies {
 
 		// Compile regex patterns.
 
 		for _, rule := range policy.Rules {
-
 			if rule.Pattern != "" {
-
 				if _, err := regexp.Compile(rule.Pattern); err != nil {
-
 					return fmt.Errorf("invalid pattern in rule for field %s: %w", rule.Field, err)
-
 				}
-
 			}
-
 		}
 
 		sm.policies[name] = policy
@@ -427,25 +405,21 @@ func (sm *SanitizationManager) loadPolicies() error {
 	}
 
 	return nil
-
 }
 
 // loadSchemas loads JSON schemas for validation.
 
 func (sm *SanitizationManager) loadSchemas() error {
-
 	// Load schemas from configured path.
 
 	// This is a simplified implementation.
 
 	return nil
-
 }
 
 // SanitizePolicyInput sanitizes policy input data.
 
 func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input map[string]interface{}) (*SanitizationResult, error) {
-
 	sm.stats.mu.Lock()
 
 	sm.stats.TotalRequests++
@@ -453,7 +427,6 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 	sm.stats.mu.Unlock()
 
 	result := &SanitizationResult{
-
 		OriginalValue: input,
 
 		SanitizedValue: make(map[string]interface{}),
@@ -468,7 +441,6 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 	if err := sm.checkInputSize(input); err != nil {
 
 		result.Violations = append(result.Violations, Violation{
-
 			Field: "_root",
 
 			Rule: "max_size",
@@ -479,9 +451,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 		})
 
 		if sm.config.RejectOnViolation {
-
 			return result, err
-
 		}
 
 	}
@@ -491,7 +461,6 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 	if len(input) > sm.config.MaxFieldCount {
 
 		result.Violations = append(result.Violations, Violation{
-
 			Field: "_root",
 
 			Rule: "max_fields",
@@ -502,9 +471,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 		})
 
 		if sm.config.RejectOnViolation {
-
 			return result, errors.New("field count exceeded")
-
 		}
 
 	}
@@ -514,9 +481,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 	policy := sm.getPolicy(sm.config.DefaultPolicy)
 
 	if policy == nil {
-
 		return result, errors.New("no sanitization policy found")
-
 	}
 
 	// Sanitize each field.
@@ -532,9 +497,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 		result.Violations = append(result.Violations, violations...)
 
 		if sanitizedValue != value {
-
 			result.Modified = true
-
 		}
 
 	}
@@ -542,7 +505,6 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 	// Check for malicious patterns if enabled.
 
 	if sm.config.DetectMaliciousPatterns {
-
 		if violations := sm.detectMaliciousPatterns(sanitized); len(violations) > 0 {
 
 			result.Violations = append(result.Violations, violations...)
@@ -554,19 +516,15 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 			sm.stats.mu.Unlock()
 
 			if sm.config.RejectOnViolation {
-
 				return result, errors.New("malicious patterns detected")
-
 			}
 
 		}
-
 	}
 
 	// Validate against JSON schema if enabled.
 
 	if sm.config.EnforceJSONSchema {
-
 		if violations := sm.validateSchema(sanitized); len(violations) > 0 {
 
 			result.Violations = append(result.Violations, violations...)
@@ -578,13 +536,10 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 			sm.stats.mu.Unlock()
 
 			if sm.config.RejectOnViolation {
-
 				return result, errors.New("schema validation failed")
-
 			}
 
 		}
-
 	}
 
 	result.Sanitized = true
@@ -604,23 +559,19 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 	}
 
 	if len(result.Violations) > 0 && sm.config.LogSanitizationEvents {
-
 		sm.logger.Warn("input sanitization violations detected",
 
 			slog.Int("violation_count", len(result.Violations)),
 
 			slog.Any("violations", result.Violations))
-
 	}
 
 	return result, nil
-
 }
 
 // sanitizeField sanitizes a single field.
 
 func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, value interface{}, policy *SanitizationPolicy) (interface{}, []Violation) {
-
 	var violations []Violation
 
 	// Find matching rule.
@@ -628,7 +579,6 @@ func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, 
 	var rule *SanitizationRule
 
 	for _, r := range policy.Rules {
-
 		if r.Field == field || r.Field == "*" {
 
 			rule = r
@@ -636,15 +586,12 @@ func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, 
 			break
 
 		}
-
 	}
 
 	if rule == nil {
-
 		// No specific rule, apply default sanitization.
 
 		return sm.defaultSanitize(value), violations
-
 	}
 
 	// Type validation.
@@ -652,7 +599,6 @@ func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, 
 	if !sm.validateType(value, rule.Type) {
 
 		violations = append(violations, Violation{
-
 			Field: field,
 
 			Rule: "type",
@@ -707,13 +653,11 @@ func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, 
 		return value, violations
 
 	}
-
 }
 
 // sanitizeString sanitizes string input.
 
 func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRule) (string, []Violation) {
-
 	var violations []Violation
 
 	sanitized := value
@@ -721,9 +665,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 	// Check length constraints.
 
 	if rule.MinLength > 0 && len(sanitized) < rule.MinLength {
-
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "min_length",
@@ -732,7 +674,6 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 
 			Severity: ViolationSeverityWarning,
 		})
-
 	}
 
 	if rule.MaxLength > 0 && len(sanitized) > rule.MaxLength {
@@ -740,7 +681,6 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 		sanitized = sanitized[:rule.MaxLength]
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "max_length",
@@ -755,33 +695,23 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 	// Trim whitespace.
 
 	if rule.TrimWhitespace {
-
 		sanitized = strings.TrimSpace(sanitized)
-
 	}
 
 	// Case transformation.
 
 	if rule.Lowercase {
-
 		sanitized = strings.ToLower(sanitized)
-
 	} else if rule.Uppercase {
-
 		sanitized = strings.ToUpper(sanitized)
-
 	}
 
 	// HTML handling.
 
 	if rule.StripTags {
-
 		sanitized = sm.htmlPolicy.Sanitize(sanitized)
-
 	} else if rule.EscapeHTML {
-
 		sanitized = html.EscapeString(sanitized)
-
 	} else if rule.AllowHTML {
 
 		// Create custom policy for allowed tags.
@@ -789,9 +719,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 		policy := bluemonday.NewPolicy()
 
 		for _, tag := range rule.AllowedTags {
-
 			policy.AllowElements(tag)
-
 		}
 
 		sanitized = policy.Sanitize(sanitized)
@@ -801,11 +729,8 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 	// Pattern validation.
 
 	if rule.Pattern != "" {
-
 		if matched, _ := regexp.MatchString(rule.Pattern, sanitized); !matched {
-
 			violations = append(violations, Violation{
-
 				Field: rule.Field,
 
 				Rule: "pattern",
@@ -814,9 +739,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 
 				Severity: ViolationSeverityError,
 			})
-
 		}
-
 	}
 
 	// Check for control characters.
@@ -826,7 +749,6 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 		sanitized = removeControlCharacters(sanitized)
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "control_chars",
@@ -845,7 +767,6 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 		sanitized = strings.ToValidUTF8(sanitized, "")
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "utf8",
@@ -858,13 +779,11 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 	}
 
 	return sanitized, violations
-
 }
 
 // sanitizeNumber sanitizes numeric input.
 
 func (sm *SanitizationManager) sanitizeNumber(value interface{}, rule *SanitizationRule) interface{} {
-
 	// Convert to float64 for processing.
 
 	var num float64
@@ -892,13 +811,9 @@ func (sm *SanitizationManager) sanitizeNumber(value interface{}, rule *Sanitizat
 		// Try to parse string as number.
 
 		if parsed, err := parseNumber(v); err == nil {
-
 			num = parsed
-
 		} else {
-
 			return 0
-
 		}
 
 	default:
@@ -912,13 +827,11 @@ func (sm *SanitizationManager) sanitizeNumber(value interface{}, rule *Sanitizat
 	// This could include min/max values, precision, etc.
 
 	return num
-
 }
 
 // sanitizeEmail sanitizes email input.
 
 func (sm *SanitizationManager) sanitizeEmail(value string, rule *SanitizationRule) (string, []Violation) {
-
 	var violations []Violation
 
 	// Basic email sanitization.
@@ -930,9 +843,7 @@ func (sm *SanitizationManager) sanitizeEmail(value string, rule *SanitizationRul
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 	if !emailRegex.MatchString(email) {
-
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "email_format",
@@ -941,7 +852,6 @@ func (sm *SanitizationManager) sanitizeEmail(value string, rule *SanitizationRul
 
 			Severity: ViolationSeverityError,
 		})
-
 	}
 
 	// Remove any potentially dangerous characters.
@@ -953,23 +863,19 @@ func (sm *SanitizationManager) sanitizeEmail(value string, rule *SanitizationRul
 	email = strings.ReplaceAll(email, ";", "")
 
 	return email, violations
-
 }
 
 // sanitizeURL sanitizes URL input.
 
 func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule) (string, []Violation) {
-
 	var violations []Violation
 
 	// Parse and validate URL.
 
 	u, err := url.Parse(value)
-
 	if err != nil {
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "url_format",
@@ -990,7 +896,6 @@ func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule)
 	schemeAllowed := false
 
 	for _, scheme := range allowedSchemes {
-
 		if u.Scheme == scheme {
 
 			schemeAllowed = true
@@ -998,13 +903,11 @@ func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule)
 			break
 
 		}
-
 	}
 
 	if !schemeAllowed {
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "url_scheme",
@@ -1025,21 +928,17 @@ func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule)
 	// Encode the URL properly.
 
 	return u.String(), violations
-
 }
 
 // sanitizeArray sanitizes array input.
 
 func (sm *SanitizationManager) sanitizeArray(ctx context.Context, value interface{}, rule *SanitizationRule, policy *SanitizationPolicy) (interface{}, []Violation) {
-
 	var violations []Violation
 
 	arr, ok := value.([]interface{})
 
 	if !ok {
-
 		return []interface{}{}, violations
-
 	}
 
 	// Check array length.
@@ -1049,7 +948,6 @@ func (sm *SanitizationManager) sanitizeArray(ctx context.Context, value interfac
 		arr = arr[:sm.config.MaxArrayLength]
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "max_array_length",
@@ -1078,21 +976,17 @@ func (sm *SanitizationManager) sanitizeArray(ctx context.Context, value interfac
 	}
 
 	return sanitized, violations
-
 }
 
 // sanitizeObject sanitizes object input.
 
 func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interface{}, rule *SanitizationRule, policy *SanitizationPolicy) (interface{}, []Violation) {
-
 	var violations []Violation
 
 	obj, ok := value.(map[string]interface{})
 
 	if !ok {
-
 		return map[string]interface{}{}, violations
-
 	}
 
 	// Check nesting depth.
@@ -1100,7 +994,6 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 	if depth := getObjectDepth(obj); depth > sm.config.MaxNestingDepth {
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "max_nesting",
@@ -1131,23 +1024,19 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 	}
 
 	return sanitized, violations
-
 }
 
 // sanitizeJSON sanitizes JSON input.
 
 func (sm *SanitizationManager) sanitizeJSON(value interface{}, rule *SanitizationRule) (interface{}, []Violation) {
-
 	var violations []Violation
 
 	// Validate JSON structure.
 
 	jsonBytes, err := json.Marshal(value)
-
 	if err != nil {
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "json_format",
@@ -1168,7 +1057,6 @@ func (sm *SanitizationManager) sanitizeJSON(value interface{}, rule *Sanitizatio
 	if err := json.Unmarshal(jsonBytes, &parsed); err != nil {
 
 		violations = append(violations, Violation{
-
 			Field: rule.Field,
 
 			Rule: "json_parse",
@@ -1183,13 +1071,11 @@ func (sm *SanitizationManager) sanitizeJSON(value interface{}, rule *Sanitizatio
 	}
 
 	return parsed, violations
-
 }
 
 // detectMaliciousPatterns detects malicious patterns in input.
 
 func (sm *SanitizationManager) detectMaliciousPatterns(data interface{}) []Violation {
-
 	var violations []Violation
 
 	// Convert to string for pattern matching.
@@ -1197,11 +1083,8 @@ func (sm *SanitizationManager) detectMaliciousPatterns(data interface{}) []Viola
 	str := fmt.Sprintf("%v", data)
 
 	for _, pattern := range sm.maliciousPatterns {
-
 		if pattern.MatchString(str) {
-
 			violations = append(violations, Violation{
-
 				Field: "_content",
 
 				Rule: "malicious_pattern",
@@ -1210,67 +1093,52 @@ func (sm *SanitizationManager) detectMaliciousPatterns(data interface{}) []Viola
 
 				Severity: ViolationSeverityCritical,
 			})
-
 		}
-
 	}
 
 	return violations
-
 }
 
 // validateSchema validates input against JSON schema.
 
 func (sm *SanitizationManager) validateSchema(data interface{}) []Violation {
-
 	// This would validate against loaded JSON schemas.
 
 	// Simplified implementation.
 
 	return []Violation{}
-
 }
 
 // checkInputSize checks if input size is within limits.
 
 func (sm *SanitizationManager) checkInputSize(input interface{}) error {
-
 	// Serialize to check size.
 
 	data, err := json.Marshal(input)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	if int64(len(data)) > sm.config.MaxInputSize {
-
 		return fmt.Errorf("input size exceeds limit: %d > %d", len(data), sm.config.MaxInputSize)
-
 	}
 
 	return nil
-
 }
 
 // getPolicy retrieves a sanitization policy.
 
 func (sm *SanitizationManager) getPolicy(name string) *SanitizationPolicy {
-
 	sm.mu.RLock()
 
 	defer sm.mu.RUnlock()
 
 	return sm.policies[name]
-
 }
 
 // defaultSanitize applies default sanitization.
 
 func (sm *SanitizationManager) defaultSanitize(value interface{}) interface{} {
-
 	switch v := value.(type) {
 
 	case string:
@@ -1284,13 +1152,11 @@ func (sm *SanitizationManager) defaultSanitize(value interface{}) interface{} {
 		return value
 
 	}
-
 }
 
 // validateType validates if value matches expected type.
 
 func (sm *SanitizationManager) validateType(value interface{}, expectedType InputType) bool {
-
 	switch expectedType {
 
 	case TypeString:
@@ -1302,11 +1168,9 @@ func (sm *SanitizationManager) validateType(value interface{}, expectedType Inpu
 	case TypeNumber:
 
 		switch value.(type) {
-
 		case int, int64, float32, float64:
 
 			return true
-
 		}
 
 		return false
@@ -1334,13 +1198,11 @@ func (sm *SanitizationManager) validateType(value interface{}, expectedType Inpu
 		return true
 
 	}
-
 }
 
 // coerceType attempts to coerce value to expected type.
 
 func (sm *SanitizationManager) coerceType(value interface{}, targetType InputType) interface{} {
-
 	switch targetType {
 
 	case TypeString:
@@ -1352,9 +1214,7 @@ func (sm *SanitizationManager) coerceType(value interface{}, targetType InputTyp
 		// Try to convert to number.
 
 		if num, err := parseNumber(fmt.Sprintf("%v", value)); err == nil {
-
 			return num
-
 		}
 
 		return 0
@@ -1384,57 +1244,40 @@ func (sm *SanitizationManager) coerceType(value interface{}, targetType InputTyp
 		return value
 
 	}
-
 }
 
 // Helper functions.
 
 func containsControlCharacters(s string) bool {
-
 	for _, r := range s {
-
 		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func removeControlCharacters(s string) string {
-
 	var result strings.Builder
 
 	for _, r := range s {
-
 		if r >= 32 || r == '\t' || r == '\n' || r == '\r' {
-
 			result.WriteRune(r)
-
 		}
-
 	}
 
 	return result.String()
-
 }
 
 func getObjectDepth(obj interface{}) int {
-
 	return getDepthRecursive(obj, 0)
-
 }
 
 func getDepthRecursive(obj interface{}, currentDepth int) int {
-
 	if currentDepth > 100 { // Prevent stack overflow
 
 		return currentDepth
-
 	}
 
 	maxDepth := currentDepth
@@ -1448,9 +1291,7 @@ func getDepthRecursive(obj interface{}, currentDepth int) int {
 			depth := getDepthRecursive(val, currentDepth+1)
 
 			if depth > maxDepth {
-
 				maxDepth = depth
-
 			}
 
 		}
@@ -1462,9 +1303,7 @@ func getDepthRecursive(obj interface{}, currentDepth int) int {
 			depth := getDepthRecursive(val, currentDepth+1)
 
 			if depth > maxDepth {
-
 				maxDepth = depth
-
 			}
 
 		}
@@ -1472,21 +1311,17 @@ func getDepthRecursive(obj interface{}, currentDepth int) int {
 	}
 
 	return maxDepth
-
 }
 
 func parseNumber(s string) (float64, error) {
-
 	// Implementation would parse string to number.
 
 	return 0, nil
-
 }
 
 // GetStats returns sanitization statistics.
 
 func (sm *SanitizationManager) GetStats() *SanitizationStats {
-
 	sm.stats.mu.RLock()
 
 	defer sm.stats.mu.RUnlock()
@@ -1494,7 +1329,6 @@ func (sm *SanitizationManager) GetStats() *SanitizationStats {
 	// Return a copy of stats.
 
 	return &SanitizationStats{
-
 		TotalRequests: sm.stats.TotalRequests,
 
 		SanitizedInputs: sm.stats.SanitizedInputs,
@@ -1507,5 +1341,4 @@ func (sm *SanitizationManager) GetStats() *SanitizationStats {
 
 		Violations: sm.stats.Violations,
 	}
-
 }

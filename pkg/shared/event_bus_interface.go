@@ -38,7 +38,6 @@ import (
 // EventBus defines the interface for event communication.
 
 type EventBus interface {
-
 	// Core event operations.
 
 	PublishStateChange(ctx context.Context, event StateChangeEvent) error

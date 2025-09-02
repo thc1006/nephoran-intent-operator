@@ -138,7 +138,6 @@ type CNFDeploymentRequest struct {
 // move the current state of the cluster closer to the desired state.
 
 func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Starting CNF deployment reconciliation", "cnfdeployment", req.NamespacedName)
@@ -166,9 +165,7 @@ func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Handle deletion.
 
 	if cnfDeployment.DeletionTimestamp != nil {
-
 		return r.handleCNFDeploymentDeletion(ctx, cnfDeployment)
-
 	}
 
 	// Add finalizer if not present.
@@ -236,13 +233,11 @@ func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
 
 	}
-
 }
 
 // handlePendingCNF handles CNF deployments in pending state.
 
 func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Handling pending CNF deployment", "cnf", cnfDeployment.Name)
@@ -254,7 +249,6 @@ func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeplo
 	// Create deployment request.
 
 	deployReq := &cnf.DeployRequest{
-
 		CNFDeployment: cnfDeployment,
 
 		Context: ctx,
@@ -275,7 +269,6 @@ func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeplo
 	// Deploy the CNF.
 
 	result, err := r.CNFOrchestrator.Deploy(ctx, deployReq)
-
 	if err != nil {
 
 		logger.Error(err, "CNF deployment failed")
@@ -305,19 +298,15 @@ func (r *CNFDeploymentReconciler) handlePendingCNF(ctx context.Context, cnfDeplo
 	// Record metrics.
 
 	if r.MetricsCollector != nil {
-
 		(*r.MetricsCollector).RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
-
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
-
 }
 
 // handleDeployingCNF handles CNF deployments in deploying state.
 
 func (r *CNFDeploymentReconciler) handleDeployingCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Checking CNF deployment progress", "cnf", cnfDeployment.Name)
@@ -325,7 +314,6 @@ func (r *CNFDeploymentReconciler) handleDeployingCNF(ctx context.Context, cnfDep
 	// Check deployment status by examining underlying resources.
 
 	ready, err := r.checkDeploymentReadiness(ctx, cnfDeployment)
-
 	if err != nil {
 
 		logger.Error(err, "Failed to check deployment readiness")
@@ -343,29 +331,23 @@ func (r *CNFDeploymentReconciler) handleDeployingCNF(ctx context.Context, cnfDep
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
-
 }
 
 // handleRunningCNF handles CNF deployments in running state.
 
 func (r *CNFDeploymentReconciler) handleRunningCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	// Update resource utilization metrics.
 
 	if err := r.updateResourceMetrics(ctx, cnfDeployment); err != nil {
-
 		logger.Error(err, "Failed to update resource metrics")
-
 	}
 
 	// Check if scaling is needed.
 
 	if r.shouldScale(cnfDeployment) {
-
 		return r.initiateScaling(ctx, cnfDeployment)
-
 	}
 
 	// Perform health checks.
@@ -381,13 +363,11 @@ func (r *CNFDeploymentReconciler) handleRunningCNF(ctx context.Context, cnfDeplo
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
-
 }
 
 // handleScalingCNF handles CNF deployments in scaling state.
 
 func (r *CNFDeploymentReconciler) handleScalingCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Checking CNF scaling progress", "cnf", cnfDeployment.Name)
@@ -403,13 +383,11 @@ func (r *CNFDeploymentReconciler) handleScalingCNF(ctx context.Context, cnfDeplo
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
-
 }
 
 // handleUpgradingCNF handles CNF deployments in upgrading state.
 
 func (r *CNFDeploymentReconciler) handleUpgradingCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Checking CNF upgrade progress", "cnf", cnfDeployment.Name)
@@ -421,13 +399,11 @@ func (r *CNFDeploymentReconciler) handleUpgradingCNF(ctx context.Context, cnfDep
 	r.updateCNFDeploymentStatus(ctx, cnfDeployment, "Running", "CNF upgrade completed")
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
-
 }
 
 // handleFailedCNF handles CNF deployments in failed state.
 
 func (r *CNFDeploymentReconciler) handleFailedCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Handling failed CNF deployment", "cnf", cnfDeployment.Name)
@@ -437,13 +413,11 @@ func (r *CNFDeploymentReconciler) handleFailedCNF(ctx context.Context, cnfDeploy
 	// For now, just log and requeue for manual intervention.
 
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
-
 }
 
 // handleCNFDeploymentDeletion handles the deletion of a CNF deployment.
 
 func (r *CNFDeploymentReconciler) handleCNFDeploymentDeletion(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Handling CNF deployment deletion", "cnf", cnfDeployment.Name)
@@ -475,38 +449,30 @@ func (r *CNFDeploymentReconciler) handleCNFDeploymentDeletion(ctx context.Contex
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 // findAssociatedNetworkIntent finds the NetworkIntent that created this CNF deployment.
 
 func (r *CNFDeploymentReconciler) findAssociatedNetworkIntent(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (*nephoranv1.NetworkIntent, error) {
-
 	// Check owner references.
 
 	for _, owner := range cnfDeployment.GetOwnerReferences() {
-
 		if owner.Kind == "NetworkIntent" && owner.APIVersion == "nephoran.com/v1" {
 
 			intent := &nephoranv1.NetworkIntent{}
 
 			err := r.Get(ctx, types.NamespacedName{
-
 				Name: owner.Name,
 
 				Namespace: cnfDeployment.Namespace,
 			}, intent)
-
 			if err != nil {
-
 				return nil, err
-
 			}
 
 			return intent, nil
 
 		}
-
 	}
 
 	// Check labels.
@@ -516,16 +482,12 @@ func (r *CNFDeploymentReconciler) findAssociatedNetworkIntent(ctx context.Contex
 		intent := &nephoranv1.NetworkIntent{}
 
 		err := r.Get(ctx, types.NamespacedName{
-
 			Name: intentName,
 
 			Namespace: cnfDeployment.Namespace,
 		}, intent)
-
 		if err != nil {
-
 			return nil, err
-
 		}
 
 		return intent, nil
@@ -533,13 +495,11 @@ func (r *CNFDeploymentReconciler) findAssociatedNetworkIntent(ctx context.Contex
 	}
 
 	return nil, fmt.Errorf("no associated network intent found")
-
 }
 
 // updateCNFDeploymentStatus updates the status of a CNF deployment.
 
 func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment, phase, message string) error {
-
 	cnfDeployment.Status.Phase = phase
 
 	cnfDeployment.Status.LastUpdatedTime = &metav1.Time{Time: time.Now()}
@@ -549,7 +509,6 @@ func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context,
 	// Update conditions.
 
 	condition := metav1.Condition{
-
 		Type: "Ready",
 
 		Status: metav1.ConditionTrue,
@@ -562,9 +521,7 @@ func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context,
 	}
 
 	if phase == "Failed" {
-
 		condition.Status = metav1.ConditionFalse
-
 	}
 
 	// Update or add condition.
@@ -582,19 +539,15 @@ func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context,
 		existingCondition.Message = condition.Message
 
 	} else {
-
 		cnfDeployment.Status.Conditions = append(cnfDeployment.Status.Conditions, condition)
-
 	}
 
 	return r.Status().Update(ctx, cnfDeployment)
-
 }
 
 // checkDeploymentReadiness checks if the CNF deployment is ready.
 
 func (r *CNFDeploymentReconciler) checkDeploymentReadiness(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (bool, error) {
-
 	// Check deployment readiness based on deployment strategy.
 
 	switch cnfDeployment.Spec.DeploymentStrategy {
@@ -620,37 +573,29 @@ func (r *CNFDeploymentReconciler) checkDeploymentReadiness(ctx context.Context, 
 		return false, fmt.Errorf("unsupported deployment strategy: %s", cnfDeployment.Spec.DeploymentStrategy)
 
 	}
-
 }
 
 // checkHelmDeploymentReadiness checks readiness for Helm deployments.
 
 func (r *CNFDeploymentReconciler) checkHelmDeploymentReadiness(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (bool, error) {
-
 	// Look for deployments with labels matching the Helm release.
 
 	deploymentList := &appsv1.DeploymentList{}
 
 	listOpts := []client.ListOption{
-
 		client.InNamespace(cnfDeployment.Namespace),
 
 		client.MatchingLabels{
-
 			"app.kubernetes.io/instance": cnfDeployment.Status.HelmRelease,
 		},
 	}
 
 	if err := r.List(ctx, deploymentList, listOpts...); err != nil {
-
 		return false, err
-
 	}
 
 	if len(deploymentList.Items) == 0 {
-
 		return false, nil
-
 	}
 
 	// Check if all deployments are ready.
@@ -672,73 +617,59 @@ func (r *CNFDeploymentReconciler) checkHelmDeploymentReadiness(ctx context.Conte
 	cnfDeployment.Status.AvailableReplicas = readyReplicas
 
 	return readyReplicas == totalReplicas && totalReplicas > 0, nil
-
 }
 
 // checkOperatorDeploymentReadiness checks readiness for operator-based deployments.
 
 func (r *CNFDeploymentReconciler) checkOperatorDeploymentReadiness(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (bool, error) {
-
 	// This would check the status of the custom resource managed by the operator.
 
 	// For now, return true as a placeholder.
 
 	return true, nil
-
 }
 
 // checkDirectDeploymentReadiness checks readiness for direct deployments.
 
 func (r *CNFDeploymentReconciler) checkDirectDeploymentReadiness(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (bool, error) {
-
 	// Check deployments created directly by the controller.
 
 	deploymentList := &appsv1.DeploymentList{}
 
 	listOpts := []client.ListOption{
-
 		client.InNamespace(cnfDeployment.Namespace),
 
 		client.MatchingLabels{
-
 			"nephoran.com/cnf-deployment": cnfDeployment.Name,
 		},
 	}
 
 	if err := r.List(ctx, deploymentList, listOpts...); err != nil {
-
 		return false, err
-
 	}
 
 	return len(deploymentList.Items) > 0 && deploymentList.Items[0].Status.ReadyReplicas > 0, nil
-
 }
 
 // checkGitOpsDeploymentReadiness checks readiness for GitOps deployments.
 
 func (r *CNFDeploymentReconciler) checkGitOpsDeploymentReadiness(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (bool, error) {
-
 	// This would check the status via GitOps tools like ArgoCD or Flux.
 
 	// For now, return true as a placeholder.
 
 	return true, nil
-
 }
 
 // updateResourceMetrics updates resource utilization metrics.
 
 func (r *CNFDeploymentReconciler) updateResourceMetrics(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
-
 	// Collect resource metrics from underlying pods.
 
 	// This is a placeholder for actual metrics collection.
 
 	if cnfDeployment.Status.ResourceUtilization == nil {
-
 		cnfDeployment.Status.ResourceUtilization = make(map[string]string)
-
 	}
 
 	cnfDeployment.Status.ResourceUtilization["cpu"] = "50%"
@@ -748,17 +679,13 @@ func (r *CNFDeploymentReconciler) updateResourceMetrics(ctx context.Context, cnf
 	cnfDeployment.Status.ResourceUtilization["lastUpdated"] = time.Now().Format(time.RFC3339)
 
 	return r.Status().Update(ctx, cnfDeployment)
-
 }
 
 // shouldScale determines if the CNF should be scaled.
 
 func (r *CNFDeploymentReconciler) shouldScale(cnfDeployment *nephoranv1.CNFDeployment) bool {
-
 	if cnfDeployment.Spec.AutoScaling == nil || !cnfDeployment.Spec.AutoScaling.Enabled {
-
 		return false
-
 	}
 
 	// Check if current replicas are within bounds.
@@ -770,13 +697,11 @@ func (r *CNFDeploymentReconciler) shouldScale(cnfDeployment *nephoranv1.CNFDeplo
 	maxReplicas := cnfDeployment.Spec.AutoScaling.MaxReplicas
 
 	return currentReplicas < minReplicas || currentReplicas > maxReplicas
-
 }
 
 // initiateScaling initiates scaling for the CNF.
 
 func (r *CNFDeploymentReconciler) initiateScaling(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Initiating CNF scaling", "cnf", cnfDeployment.Name)
@@ -796,13 +721,11 @@ func (r *CNFDeploymentReconciler) initiateScaling(ctx context.Context, cnfDeploy
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
-
 }
 
 // isScalingComplete checks if scaling is complete.
 
 func (r *CNFDeploymentReconciler) isScalingComplete(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) bool {
-
 	// Check if HPA has stabilized.
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
@@ -810,28 +733,22 @@ func (r *CNFDeploymentReconciler) isScalingComplete(ctx context.Context, cnfDepl
 	hpaName := fmt.Sprintf("%s-hpa", cnfDeployment.Name)
 
 	err := r.Get(ctx, types.NamespacedName{
-
 		Name: hpaName,
 
 		Namespace: cnfDeployment.Namespace,
 	}, hpa)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	// Check if current replicas match desired replicas.
 
 	return hpa.Status.CurrentReplicas == hpa.Status.DesiredReplicas
-
 }
 
 // performHealthChecks performs health checks on the CNF.
 
 func (r *CNFDeploymentReconciler) performHealthChecks(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
-
 	// Implement health checks based on CNF function type.
 
 	// This is a placeholder for actual health check implementation.
@@ -839,9 +756,7 @@ func (r *CNFDeploymentReconciler) performHealthChecks(ctx context.Context, cnfDe
 	// Update health status.
 
 	if cnfDeployment.Status.Health == nil {
-
 		cnfDeployment.Status.Health = &nephoranv1.CNFHealthStatus{}
-
 	}
 
 	cnfDeployment.Status.Health.Status = "Healthy"
@@ -849,36 +764,28 @@ func (r *CNFDeploymentReconciler) performHealthChecks(ctx context.Context, cnfDe
 	cnfDeployment.Status.Health.LastCheckTime = &metav1.Time{Time: time.Now()}
 
 	cnfDeployment.Status.Health.Details = map[string]string{
-
 		"overall": "healthy",
 
 		"lastCheck": time.Now().Format(time.RFC3339),
 	}
 
 	return r.Status().Update(ctx, cnfDeployment)
-
 }
 
 // createOrUpdateHPA creates or updates the HorizontalPodAutoscaler for the CNF.
 
 func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
-
 	if cnfDeployment.Spec.AutoScaling == nil || !cnfDeployment.Spec.AutoScaling.Enabled {
-
 		return nil
-
 	}
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-hpa", cnfDeployment.Name),
 
 			Namespace: cnfDeployment.Namespace,
 
 			Labels: map[string]string{
-
 				"nephoran.com/cnf-deployment": cnfDeployment.Name,
 
 				"nephoran.com/component": "autoscaler",
@@ -886,9 +793,7 @@ func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDepl
 		},
 
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
-
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
-
 				APIVersion: "apps/v1",
 
 				Kind: "Deployment",
@@ -909,15 +814,12 @@ func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDepl
 	if cnfDeployment.Spec.AutoScaling.CPUUtilization != nil {
 
 		cpuMetric := autoscalingv2.MetricSpec{
-
 			Type: autoscalingv2.ResourceMetricSourceType,
 
 			Resource: &autoscalingv2.ResourceMetricSource{
-
 				Name: corev1.ResourceCPU,
 
 				Target: autoscalingv2.MetricTarget{
-
 					Type: autoscalingv2.UtilizationMetricType,
 
 					AverageUtilization: cnfDeployment.Spec.AutoScaling.CPUUtilization,
@@ -934,15 +836,12 @@ func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDepl
 	if cnfDeployment.Spec.AutoScaling.MemoryUtilization != nil {
 
 		memoryMetric := autoscalingv2.MetricSpec{
-
 			Type: autoscalingv2.ResourceMetricSourceType,
 
 			Resource: &autoscalingv2.ResourceMetricSource{
-
 				Name: corev1.ResourceMemory,
 
 				Target: autoscalingv2.MetricTarget{
-
 					Type: autoscalingv2.UtilizationMetricType,
 
 					AverageUtilization: cnfDeployment.Spec.AutoScaling.MemoryUtilization,
@@ -957,9 +856,7 @@ func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDepl
 	// Set owner reference.
 
 	if err := controllerutil.SetControllerReference(cnfDeployment, hpa, r.Scheme); err != nil {
-
 		return err
-
 	}
 
 	// Create or update HPA.
@@ -969,13 +866,9 @@ func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDepl
 	err := r.Get(ctx, types.NamespacedName{Name: hpa.Name, Namespace: hpa.Namespace}, existingHPA)
 
 	if err != nil && errors.IsNotFound(err) {
-
 		return r.Create(ctx, hpa)
-
 	} else if err != nil {
-
 		return err
-
 	}
 
 	// Update existing HPA.
@@ -983,13 +876,11 @@ func (r *CNFDeploymentReconciler) createOrUpdateHPA(ctx context.Context, cnfDepl
 	existingHPA.Spec = hpa.Spec
 
 	return r.Update(ctx, existingHPA)
-
 }
 
 // cleanupCNFResources cleans up resources associated with a CNF deployment.
 
 func (r *CNFDeploymentReconciler) cleanupCNFResources(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("Cleaning up CNF resources", "cnf", cnfDeployment.Name)
@@ -997,9 +888,7 @@ func (r *CNFDeploymentReconciler) cleanupCNFResources(ctx context.Context, cnfDe
 	// Delete HPA.
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-hpa", cnfDeployment.Name),
 
 			Namespace: cnfDeployment.Namespace,
@@ -1007,9 +896,7 @@ func (r *CNFDeploymentReconciler) cleanupCNFResources(ctx context.Context, cnfDe
 	}
 
 	if err := r.Delete(ctx, hpa); err != nil && !errors.IsNotFound(err) {
-
 		logger.Error(err, "Failed to delete HPA")
-
 	}
 
 	// Additional cleanup based on deployment strategy.
@@ -1027,9 +914,7 @@ func (r *CNFDeploymentReconciler) cleanupCNFResources(ctx context.Context, cnfDe
 		// Clean up directly created resources.
 
 		if err := r.cleanupDirectResources(ctx, cnfDeployment); err != nil {
-
 			return err
-
 		}
 
 	}
@@ -1037,41 +922,31 @@ func (r *CNFDeploymentReconciler) cleanupCNFResources(ctx context.Context, cnfDe
 	r.Recorder.Event(cnfDeployment, "Normal", "ResourcesCleanedUp", "CNF resources cleaned up successfully")
 
 	return nil
-
 }
 
 // cleanupDirectResources cleans up directly created resources.
 
 func (r *CNFDeploymentReconciler) cleanupDirectResources(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
-
 	// Delete deployments.
 
 	deploymentList := &appsv1.DeploymentList{}
 
 	listOpts := []client.ListOption{
-
 		client.InNamespace(cnfDeployment.Namespace),
 
 		client.MatchingLabels{
-
 			"nephoran.com/cnf-deployment": cnfDeployment.Name,
 		},
 	}
 
 	if err := r.List(ctx, deploymentList, listOpts...); err != nil {
-
 		return err
-
 	}
 
 	for _, deployment := range deploymentList.Items {
-
 		if err := r.Delete(ctx, &deployment); err != nil && !errors.IsNotFound(err) {
-
 			return err
-
 		}
-
 	}
 
 	// Delete services.
@@ -1079,67 +954,49 @@ func (r *CNFDeploymentReconciler) cleanupDirectResources(ctx context.Context, cn
 	serviceList := &corev1.ServiceList{}
 
 	if err := r.List(ctx, serviceList, listOpts...); err != nil {
-
 		return err
-
 	}
 
 	for _, service := range serviceList.Items {
-
 		if err := r.Delete(ctx, &service); err != nil && !errors.IsNotFound(err) {
-
 			return err
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // findCondition finds a condition by type in the conditions slice.
 
 func findCondition(conditions []metav1.Condition, conditionType string) *metav1.Condition {
-
 	for i, condition := range conditions {
-
 		if condition.Type == conditionType {
-
 			return &conditions[i]
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *CNFDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.CNFDeployment{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		WithOptions(controller.Options{
-
 			MaxConcurrentReconciles: r.Config.MaxConcurrentReconciles,
 		}).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
-
 }
 
 // NewCNFDeploymentReconciler creates a new CNFDeploymentReconciler.
 
 func NewCNFDeploymentReconciler(mgr ctrl.Manager, cnfOrchestrator *cnf.CNFOrchestrator) *CNFDeploymentReconciler {
-
 	return &CNFDeploymentReconciler{
-
 		Client: mgr.GetClient(),
 
 		Scheme: mgr.GetScheme(),
@@ -1149,7 +1006,6 @@ func NewCNFDeploymentReconciler(mgr ctrl.Manager, cnfOrchestrator *cnf.CNFOrches
 		CNFOrchestrator: cnfOrchestrator,
 
 		Config: &CNFControllerConfig{
-
 			ReconcileTimeout: 10 * time.Minute,
 
 			MaxConcurrentReconciles: 5,
@@ -1163,5 +1019,4 @@ func NewCNFDeploymentReconciler(mgr ctrl.Manager, cnfOrchestrator *cnf.CNFOrches
 			EnableEvents: true,
 		},
 	}
-
 }

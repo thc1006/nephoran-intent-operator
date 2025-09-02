@@ -143,7 +143,6 @@ const (
 // GitOpsDeploymentSpec defines the desired state of GitOpsDeployment.
 
 type GitOpsDeploymentSpec struct {
-
 	// ParentIntentRef references the parent NetworkIntent.
 
 	// +kubebuilder:validation:Required
@@ -226,7 +225,6 @@ type GitOpsDeploymentSpec struct {
 // GitRepositoryConfig defines Git repository configuration.
 
 type GitRepositoryConfig struct {
-
 	// URL of the Git repository.
 
 	// +kubebuilder:validation:Required
@@ -297,7 +295,6 @@ type GitRepositoryConfig struct {
 // TargetCluster defines a target cluster for deployment.
 
 type TargetCluster struct {
-
 	// Name of the cluster.
 
 	// +kubebuilder:validation:Required
@@ -350,7 +347,6 @@ type TargetCluster struct {
 // DeploymentConfig contains deployment-specific configuration.
 
 type DeploymentConfig struct {
-
 	// Timeout for deployment operations.
 
 	// +optional
@@ -409,7 +405,6 @@ type DeploymentConfig struct {
 // RetryBackoffConfig defines retry backoff configuration.
 
 type RetryBackoffConfig struct {
-
 	// InitialInterval for first retry.
 
 	// +optional
@@ -439,7 +434,6 @@ type RetryBackoffConfig struct {
 // DependencyCheckConfig defines dependency validation configuration.
 
 type DependencyCheckConfig struct {
-
 	// Enabled determines if dependency checks are enabled.
 
 	// +optional
@@ -466,7 +460,6 @@ type DependencyCheckConfig struct {
 // ResourceDependency defines a resource dependency.
 
 type ResourceDependency struct {
-
 	// Name of the dependency.
 
 	Name string `json:"name"`
@@ -495,7 +488,6 @@ type ResourceDependency struct {
 // DeploymentHook defines a deployment hook.
 
 type DeploymentHook struct {
-
 	// Name of the hook.
 
 	Name string `json:"name"`
@@ -532,7 +524,6 @@ type DeploymentHook struct {
 // SyncPolicy defines synchronization policy.
 
 type SyncPolicy struct {
-
 	// Automated enables automated synchronization.
 
 	// +optional
@@ -555,7 +546,6 @@ type SyncPolicy struct {
 // AutomatedSyncPolicy defines automated synchronization policy.
 
 type AutomatedSyncPolicy struct {
-
 	// Prune enables pruning of resources.
 
 	// +optional
@@ -584,7 +574,6 @@ type AutomatedSyncPolicy struct {
 // RetryPolicy defines retry policy for sync operations.
 
 type RetryPolicy struct {
-
 	// Limit is the maximum number of retries.
 
 	// +optional
@@ -607,7 +596,6 @@ type RetryPolicy struct {
 // RetryBackoff defines retry backoff strategy.
 
 type RetryBackoff struct {
-
 	// Duration is the initial backoff duration.
 
 	// +optional
@@ -635,11 +623,9 @@ type RetryBackoff struct {
 	MaxDuration string `json:"maxDuration,omitempty"`
 }
 
-
 // RollbackConfig defines rollback configuration.
 
 type RollbackConfig struct {
-
 	// Enabled determines if rollback is enabled.
 
 	// +optional
@@ -684,7 +670,6 @@ type RollbackConfig struct {
 // RollbackTrigger defines rollback triggers.
 
 type RollbackTrigger struct {
-
 	// OnFailure triggers rollback on deployment failure.
 
 	// +optional
@@ -723,7 +708,6 @@ type RollbackTrigger struct {
 // GitOpsDeploymentStatus defines the observed state of GitOpsDeployment.
 
 type GitOpsDeploymentStatus struct {
-
 	// Phase represents the current deployment phase.
 
 	// +optional
@@ -813,7 +797,6 @@ type GitOpsDeploymentStatus struct {
 // GitCommitInfo contains Git commit information.
 
 type GitCommitInfo struct {
-
 	// Hash is the Git commit hash.
 
 	Hash string `json:"hash"`
@@ -850,7 +833,6 @@ type GitCommitInfo struct {
 // SyncStatus contains synchronization status.
 
 type SyncStatus struct {
-
 	// Status is the overall sync status.
 
 	Status string `json:"status"`
@@ -883,7 +865,6 @@ type SyncStatus struct {
 // ComparedToInfo contains comparison information.
 
 type ComparedToInfo struct {
-
 	// Source contains source information.
 
 	Source SourceInfo `json:"source"`
@@ -896,7 +877,6 @@ type ComparedToInfo struct {
 // SourceInfo contains source information.
 
 type SourceInfo struct {
-
 	// RepoURL is the repository URL.
 
 	RepoURL string `json:"repoURL"`
@@ -913,7 +893,6 @@ type SourceInfo struct {
 // DestinationInfo contains destination information.
 
 type DestinationInfo struct {
-
 	// Server is the cluster server.
 
 	Server string `json:"server"`
@@ -926,7 +905,6 @@ type DestinationInfo struct {
 // ResourceSyncStatus contains resource sync status.
 
 type ResourceSyncStatus struct {
-
 	// Name of the resource.
 
 	Name string `json:"name"`
@@ -961,7 +939,6 @@ type ResourceSyncStatus struct {
 // ClusterDeploymentStatus contains deployment status for a cluster.
 
 type ClusterDeploymentStatus struct {
-
 	// ClusterName is the name of the cluster.
 
 	ClusterName string `json:"clusterName"`
@@ -998,7 +975,6 @@ type ClusterDeploymentStatus struct {
 // HealthStatus contains health check results.
 
 type HealthStatus struct {
-
 	// OverallStatus is the overall health status.
 
 	OverallStatus string `json:"overallStatus"`
@@ -1026,7 +1002,6 @@ type HealthStatus struct {
 // HealthCheckResult contains result of a health check.
 
 type HealthCheckResult struct {
-
 	// Name of the health check.
 
 	Name string `json:"name"`
@@ -1057,7 +1032,6 @@ type HealthCheckResult struct {
 // DeployedResourceStatus contains status of a deployed resource.
 
 type DeployedResourceStatus struct {
-
 	// ResourceReference identifies the resource.
 
 	ResourceReference `json:",inline"`
@@ -1094,7 +1068,6 @@ type DeployedResourceStatus struct {
 // RollbackInfo contains rollback information.
 
 type RollbackInfo struct {
-
 	// Initiated indicates if rollback was initiated.
 
 	Initiated bool `json:"initiated"`
@@ -1139,7 +1112,6 @@ type RollbackInfo struct {
 // ResourceReference represents a reference to a Kubernetes resource.
 
 type ResourceReference struct {
-
 	// APIVersion of the resource.
 
 	APIVersion string `json:"apiVersion"`
@@ -1214,151 +1186,109 @@ type GitOpsDeploymentList struct {
 // GetParentIntentName returns the name of the parent NetworkIntent.
 
 func (gd *GitOpsDeployment) GetParentIntentName() string {
-
 	return gd.Spec.ParentIntentRef.Name
-
 }
 
 // GetNamespace returns the namespace of the resource.
 
 func (gd *GitOpsDeployment) GetNamespace() string {
-
 	return gd.ObjectMeta.Namespace
-
 }
 
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent.
 
 func (gd *GitOpsDeployment) GetParentIntentNamespace() string {
-
 	if gd.Spec.ParentIntentRef.Namespace != "" {
-
 		return gd.Spec.ParentIntentRef.Namespace
-
 	}
 
 	return gd.GetNamespace()
-
 }
 
 // IsDeploymentComplete returns true if deployment is complete.
 
 func (gd *GitOpsDeployment) IsDeploymentComplete() bool {
-
 	return gd.Status.Phase == GitOpsDeploymentPhaseCompleted
-
 }
 
 // IsDeploymentFailed returns true if deployment has failed.
 
 func (gd *GitOpsDeployment) IsDeploymentFailed() bool {
-
 	return gd.Status.Phase == GitOpsDeploymentPhaseFailed
-
 }
 
 // GetCommitHash returns the Git commit hash.
 
 func (gd *GitOpsDeployment) GetCommitHash() string {
-
 	if gd.Status.GitCommit != nil {
-
 		return gd.Status.GitCommit.Hash
-
 	}
 
 	return ""
-
 }
 
 // GetSyncStatus returns the synchronization status.
 
 func (gd *GitOpsDeployment) GetSyncStatus() string {
-
 	if gd.Status.SyncStatus != nil {
-
 		return gd.Status.SyncStatus.Status
-
 	}
 
 	return "Unknown"
-
 }
 
 // GetHealthStatus returns the overall health status.
 
 func (gd *GitOpsDeployment) GetHealthStatus() string {
-
 	if gd.Status.HealthStatus != nil {
-
 		return gd.Status.HealthStatus.OverallStatus
-
 	}
 
 	return "Unknown"
-
 }
 
 // IsAutoSyncEnabled returns true if auto-sync is enabled.
 
 func (gd *GitOpsDeployment) IsAutoSyncEnabled() bool {
-
 	if gd.Spec.AutoSync == nil {
-
 		return true
-
 	}
 
 	return *gd.Spec.AutoSync
-
 }
 
 // IsHealthCheckEnabled returns true if health checks are enabled.
 
 func (gd *GitOpsDeployment) IsHealthCheckEnabled() bool {
-
 	if gd.Spec.HealthChecks == nil || gd.Spec.HealthChecks.Enabled == nil {
-
 		return true
-
 	}
 
 	return *gd.Spec.HealthChecks.Enabled
-
 }
 
 // IsRollbackEnabled returns true if rollback is enabled.
 
 func (gd *GitOpsDeployment) IsRollbackEnabled() bool {
-
 	if gd.Spec.RollbackConfig == nil || gd.Spec.RollbackConfig.Enabled == nil {
-
 		return true
-
 	}
 
 	return *gd.Spec.RollbackConfig.Enabled
-
 }
 
 // GetTargetClusterCount returns the number of target clusters.
 
 func (gd *GitOpsDeployment) GetTargetClusterCount() int {
-
 	return len(gd.Spec.TargetClusters)
-
 }
 
 // GetDeployedResourceCount returns the number of deployed resources.
 
 func (gd *GitOpsDeployment) GetDeployedResourceCount() int {
-
 	return len(gd.Status.ResourceStatus)
-
 }
 
 func init() {
-
 	SchemeBuilder.Register(&GitOpsDeployment{}, &GitOpsDeploymentList{})
-
 }

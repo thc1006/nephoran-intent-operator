@@ -283,7 +283,6 @@ type EncryptionConfig struct {
 // CloudProviderInterface defines the common interface for all cloud providers.
 
 type CloudProviderInterface interface {
-
 	// Provider identification.
 
 	GetProviderType() string

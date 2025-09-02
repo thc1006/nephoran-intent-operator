@@ -109,7 +109,7 @@ func TestOWASPValidator(t *testing.T) {
 		}`
 
 		validFile := filepath.Join(tempDir, "valid-intent.json")
-		err := os.WriteFile(validFile, []byte(validIntent), 0644)
+		err := os.WriteFile(validFile, []byte(validIntent), 0o644)
 		require.NoError(t, err)
 
 		result, err := validator.ValidateIntentFile(validFile)
@@ -126,7 +126,7 @@ func TestOWASPValidator(t *testing.T) {
 		}`
 
 		maliciousFile := filepath.Join(tempDir, "malicious-intent.json")
-		err = os.WriteFile(maliciousFile, []byte(maliciousIntent), 0644)
+		err = os.WriteFile(maliciousFile, []byte(maliciousIntent), 0o644)
 		require.NoError(t, err)
 
 		result, err = validator.ValidateIntentFile(maliciousFile)

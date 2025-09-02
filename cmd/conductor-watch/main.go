@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-
 	// Parse command-line flags.
 
 	handoffDir := flag.String("handoff", "./handoff", "Directory to watch for intent files")
@@ -42,21 +41,15 @@ func main() {
 	if *postURL != "" {
 
 		if _, err := url.Parse(*postURL); err != nil {
-
 			log.Fatalf("Invalid POST URL '%s': %v", *postURL, err)
-
 		}
 
 		// Ensure it's HTTP or HTTPS.
 
 		if parsedURL, err := url.Parse(*postURL); err != nil {
-
 			log.Fatalf("Failed to re-parse POST URL '%s': %v", *postURL, err)
-
 		} else if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-
 			log.Fatalf("POST URL must use HTTP or HTTPS scheme, got: %s", *postURL)
-
 		}
 
 	}
@@ -70,35 +63,25 @@ func main() {
 	// Convert to absolute paths for Windows compatibility.
 
 	absHandoffDir, err := filepath.Abs(*handoffDir)
-
 	if err != nil {
-
 		log.Fatalf("Failed to get absolute path for handoff dir: %v", err)
-
 	}
 
 	absSchemaPath, err := filepath.Abs(*schemaPath)
-
 	if err != nil {
-
 		log.Fatalf("Failed to get absolute path for schema: %v", err)
-
 	}
 
 	// Ensure handoff directory exists.
 
 	if err := os.MkdirAll(absHandoffDir, 0o750); err != nil {
-
 		log.Fatalf("Failed to create handoff directory %s: %v", absHandoffDir, err)
-
 	}
 
 	// Verify schema file exists.
 
 	if _, err := os.Stat(absSchemaPath); err != nil {
-
 		log.Fatalf("Schema file not found at %s: %v", absSchemaPath, err)
-
 	}
 
 	log.Printf("Starting conductor-watch:")
@@ -114,21 +97,15 @@ func main() {
 		log.Printf("  POST URL: %s", *postURL)
 
 		if *bearerToken != "" {
-
 			log.Printf("  Auth: Bearer token configured")
-
 		}
 
 		if *apiKey != "" {
-
 			log.Printf("  Auth: API key configured (header: %s)", *apiKeyHeader)
-
 		}
 
 		if *insecureSkipVerify {
-
 			log.Printf("  TLS: Certificate verification DISABLED (development only)")
-
 		}
 
 	}
@@ -136,7 +113,6 @@ func main() {
 	// Create watcher configuration.
 
 	config := &watch.Config{
-
 		HandoffDir: absHandoffDir,
 
 		SchemaPath: absSchemaPath,
@@ -157,11 +133,8 @@ func main() {
 	// Create and start watcher.
 
 	watcher, err := watch.NewWatcher(config)
-
 	if err != nil {
-
 		log.Fatalf("Failed to create watcher: %v", err)
-
 	}
 
 	// Setup signal handling for graceful shutdown.
@@ -175,9 +148,7 @@ func main() {
 	done := make(chan error, 1)
 
 	go func() {
-
 		done <- watcher.Start()
-
 	}()
 
 	// Wait for either error or interrupt signal.
@@ -187,9 +158,7 @@ func main() {
 	case err := <-done:
 
 		if err != nil {
-
 			log.Fatalf("Watcher error: %v", err)
-
 		}
 
 	case sig := <-sigChan:
@@ -197,13 +166,10 @@ func main() {
 		log.Printf("Received signal %v, shutting down gracefully", sig)
 
 		if err := watcher.Stop(); err != nil {
-
 			log.Printf("Error stopping watcher: %v", err)
-
 		}
 
 	}
 
 	log.Println("Conductor-watch stopped")
-
 }

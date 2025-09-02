@@ -44,11 +44,8 @@ import (
 // DeepCopy performs deepcopy operation.
 
 func (r *RepositoryList) DeepCopy() *RepositoryList {
-
 	if r == nil {
-
 		return nil
-
 	}
 
 	out := new(RepositoryList)
@@ -56,13 +53,11 @@ func (r *RepositoryList) DeepCopy() *RepositoryList {
 	r.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (r *RepositoryList) DeepCopyInto(out *RepositoryList) {
-
 	*out = *r
 
 	out.TypeMeta = r.TypeMeta
@@ -74,23 +69,17 @@ func (r *RepositoryList) DeepCopyInto(out *RepositoryList) {
 		out.Items = make([]Repository, len(r.Items))
 
 		for i := range r.Items {
-
 			r.Items[i].DeepCopyInto(&out.Items[i])
-
 		}
 
 	}
-
 }
 
 // DeepCopy performs deepcopy operation.
 
 func (ac *AuthConfig) DeepCopy() *AuthConfig {
-
 	if ac == nil {
-
 		return nil
-
 	}
 
 	out := new(AuthConfig)
@@ -98,13 +87,11 @@ func (ac *AuthConfig) DeepCopy() *AuthConfig {
 	ac.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ac *AuthConfig) DeepCopyInto(out *AuthConfig) {
-
 	*out = *ac
 
 	if ac.SecretRef != nil {
@@ -120,23 +107,17 @@ func (ac *AuthConfig) DeepCopyInto(out *AuthConfig) {
 		out.Headers = make(map[string]string, len(ac.Headers))
 
 		for k, v := range ac.Headers {
-
 			out.Headers[k] = v
-
 		}
 
 	}
-
 }
 
 // DeepCopy performs deepcopy operation.
 
 func (sc *SyncConfig) DeepCopy() *SyncConfig {
-
 	if sc == nil {
-
 		return nil
-
 	}
 
 	out := new(SyncConfig)
@@ -144,13 +125,11 @@ func (sc *SyncConfig) DeepCopy() *SyncConfig {
 	sc.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
-
 	*out = *sc
 
 	if sc.Interval != nil {
@@ -168,7 +147,6 @@ func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 		*out.BackoffLimit = *sc.BackoffLimit
 
 	}
-
 }
 
 // PackageRevision DeepCopy methods.
@@ -186,7 +164,6 @@ func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 // DeepCopyInto performs deepcopyinto operation.
 
 func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
-
 	*out = *kr
 
 	if kr.Metadata != nil {
@@ -194,9 +171,7 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 		out.Metadata = make(map[string]interface{}, len(kr.Metadata))
 
 		for k, v := range kr.Metadata {
-
 			out.Metadata[k] = deepCopyInterface(v)
-
 		}
 
 	}
@@ -206,9 +181,7 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 		out.Spec = make(map[string]interface{}, len(kr.Spec))
 
 		for k, v := range kr.Spec {
-
 			out.Spec[k] = deepCopyInterface(v)
-
 		}
 
 	}
@@ -218,9 +191,7 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 		out.Status = make(map[string]interface{}, len(kr.Status))
 
 		for k, v := range kr.Status {
-
 			out.Status[k] = deepCopyInterface(v)
-
 		}
 
 	}
@@ -230,13 +201,10 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 		out.Data = make(map[string]interface{}, len(kr.Data))
 
 		for k, v := range kr.Data {
-
 			out.Data[k] = deepCopyInterface(v)
-
 		}
 
 	}
-
 }
 
 // FunctionConfig DeepCopy methods.
@@ -244,7 +212,6 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 // DeepCopyInto performs deepcopyinto operation.
 
 func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
-
 	*out = *fc
 
 	if fc.ConfigMap != nil {
@@ -252,9 +219,7 @@ func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 		out.ConfigMap = make(map[string]interface{}, len(fc.ConfigMap))
 
 		for k, v := range fc.ConfigMap {
-
 			out.ConfigMap[k] = deepCopyInterface(v)
-
 		}
 
 	}
@@ -264,9 +229,7 @@ func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 		out.Selectors = make([]ResourceSelector, len(fc.Selectors))
 
 		for i := range fc.Selectors {
-
 			fc.Selectors[i].DeepCopyInto(&out.Selectors[i])
-
 		}
 
 	}
@@ -278,13 +241,11 @@ func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 		fc.Exec.DeepCopyInto(out.Exec)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rs *ResourceSelector) DeepCopyInto(out *ResourceSelector) {
-
 	*out = *rs
 
 	if rs.Labels != nil {
@@ -292,19 +253,15 @@ func (rs *ResourceSelector) DeepCopyInto(out *ResourceSelector) {
 		out.Labels = make(map[string]string, len(rs.Labels))
 
 		for k, v := range rs.Labels {
-
 			out.Labels[k] = v
-
 		}
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ec *ExecConfig) DeepCopyInto(out *ExecConfig) {
-
 	*out = *ec
 
 	if ec.Args != nil {
@@ -320,13 +277,10 @@ func (ec *ExecConfig) DeepCopyInto(out *ExecConfig) {
 		out.Env = make(map[string]string, len(ec.Env))
 
 		for k, v := range ec.Env {
-
 			out.Env[k] = v
-
 		}
 
 	}
-
 }
 
 // Workflow DeepCopy methods.
@@ -334,11 +288,8 @@ func (ec *ExecConfig) DeepCopyInto(out *ExecConfig) {
 // DeepCopy performs deepcopy operation.
 
 func (w *Workflow) DeepCopy() *Workflow {
-
 	if w == nil {
-
 		return nil
-
 	}
 
 	out := new(Workflow)
@@ -346,13 +297,11 @@ func (w *Workflow) DeepCopy() *Workflow {
 	w.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (w *Workflow) DeepCopyInto(out *Workflow) {
-
 	*out = *w
 
 	out.TypeMeta = w.TypeMeta
@@ -362,13 +311,11 @@ func (w *Workflow) DeepCopyInto(out *Workflow) {
 	w.Spec.DeepCopyInto(&out.Spec)
 
 	w.Status.DeepCopyInto(&out.Status)
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
-
 	*out = *ws
 
 	if ws.Stages != nil {
@@ -376,9 +323,7 @@ func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 		out.Stages = make([]WorkflowStage, len(ws.Stages))
 
 		for i := range ws.Stages {
-
 			ws.Stages[i].DeepCopyInto(&out.Stages[i])
-
 		}
 
 	}
@@ -388,9 +333,7 @@ func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 		out.Triggers = make([]WorkflowTrigger, len(ws.Triggers))
 
 		for i := range ws.Triggers {
-
 			ws.Triggers[i].DeepCopyInto(&out.Triggers[i])
-
 		}
 
 	}
@@ -418,13 +361,11 @@ func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 		ws.RetryPolicy.DeepCopyInto(out.RetryPolicy)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
-
 	*out = *ws
 
 	if ws.Conditions != nil {
@@ -432,9 +373,7 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 		out.Conditions = make([]metav1.Condition, len(ws.Conditions))
 
 		for i := range ws.Conditions {
-
 			ws.Conditions[i].DeepCopyInto(&out.Conditions[i])
-
 		}
 
 	}
@@ -460,23 +399,17 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 		out.Results = make([]WorkflowResult, len(ws.Results))
 
 		for i := range ws.Results {
-
 			ws.Results[i].DeepCopyInto(&out.Results[i])
-
 		}
 
 	}
-
 }
 
 // DeepCopy performs deepcopy operation.
 
 func (wl *WorkflowList) DeepCopy() *WorkflowList {
-
 	if wl == nil {
-
 		return nil
-
 	}
 
 	out := new(WorkflowList)
@@ -484,13 +417,11 @@ func (wl *WorkflowList) DeepCopy() *WorkflowList {
 	wl.DeepCopyInto(out)
 
 	return out
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wl *WorkflowList) DeepCopyInto(out *WorkflowList) {
-
 	*out = *wl
 
 	out.TypeMeta = wl.TypeMeta
@@ -502,13 +433,10 @@ func (wl *WorkflowList) DeepCopyInto(out *WorkflowList) {
 		out.Items = make([]Workflow, len(wl.Items))
 
 		for i := range wl.Items {
-
 			wl.Items[i].DeepCopyInto(&out.Items[i])
-
 		}
 
 	}
-
 }
 
 // Supporting types DeepCopy methods.
@@ -516,7 +444,6 @@ func (wl *WorkflowList) DeepCopyInto(out *WorkflowList) {
 // DeepCopyInto performs deepcopyinto operation.
 
 func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
-
 	*out = *pm
 
 	if pm.Keywords != nil {
@@ -532,9 +459,7 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 		out.Labels = make(map[string]string, len(pm.Labels))
 
 		for k, v := range pm.Labels {
-
 			out.Labels[k] = v
-
 		}
 
 	}
@@ -544,19 +469,15 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 		out.Annotations = make(map[string]string, len(pm.Annotations))
 
 		for k, v := range pm.Annotations {
-
 			out.Annotations[k] = v
-
 		}
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wl *WorkflowLock) DeepCopyInto(out *WorkflowLock) {
-
 	*out = *wl
 
 	if wl.LockedAt != nil {
@@ -566,13 +487,11 @@ func (wl *WorkflowLock) DeepCopyInto(out *WorkflowLock) {
 		wl.LockedAt.DeepCopyInto(out.LockedAt)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
-
 	*out = *ds
 
 	if ds.Conditions != nil {
@@ -580,9 +499,7 @@ func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
 		out.Conditions = make([]metav1.Condition, len(ds.Conditions))
 
 		for i := range ds.Conditions {
-
 			ds.Conditions[i].DeepCopyInto(&out.Conditions[i])
-
 		}
 
 	}
@@ -592,9 +509,7 @@ func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
 		out.Targets = make([]DeploymentTarget, len(ds.Targets))
 
 		for i := range ds.Targets {
-
 			ds.Targets[i].DeepCopyInto(&out.Targets[i])
-
 		}
 
 	}
@@ -614,13 +529,11 @@ func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
 		ds.EndTime.DeepCopyInto(out.EndTime)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (dt *DeploymentTarget) DeepCopyInto(out *DeploymentTarget) {
-
 	*out = *dt
 
 	if dt.Resources != nil {
@@ -630,13 +543,11 @@ func (dt *DeploymentTarget) DeepCopyInto(out *DeploymentTarget) {
 		copy(out.Resources, dt.Resources)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (vr *ValidationResult) DeepCopyInto(out *ValidationResult) {
-
 	*out = *vr
 
 	if vr.Errors != nil {
@@ -654,13 +565,11 @@ func (vr *ValidationResult) DeepCopyInto(out *ValidationResult) {
 		copy(out.Warnings, vr.Warnings)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
-
 	*out = *rr
 
 	if rr.Resources != nil {
@@ -668,9 +577,7 @@ func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 		out.Resources = make([]KRMResource, len(rr.Resources))
 
 		for i := range rr.Resources {
-
 			rr.Resources[i].DeepCopyInto(&out.Resources[i])
-
 		}
 
 	}
@@ -680,7 +587,6 @@ func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 		out.Results = make([]*FunctionResult, len(rr.Results))
 
 		for i := range rr.Results {
-
 			if rr.Results[i] != nil {
 
 				out.Results[i] = new(FunctionResult)
@@ -692,15 +598,12 @@ func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 					out.Results[i].Tags = make(map[string]string, len(rr.Results[i].Tags))
 
 					for k, v := range rr.Results[i].Tags {
-
 						out.Results[i].Tags[k] = v
-
 					}
 
 				}
 
 			}
-
 		}
 
 	}
@@ -712,13 +615,11 @@ func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 		*out.Error = *rr.Error
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
-
 	*out = *ws
 
 	if ws.Conditions != nil {
@@ -726,9 +627,7 @@ func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
 		out.Conditions = make([]WorkflowCondition, len(ws.Conditions))
 
 		for i := range ws.Conditions {
-
 			ws.Conditions[i].DeepCopyInto(&out.Conditions[i])
-
 		}
 
 	}
@@ -738,9 +637,7 @@ func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
 		out.Actions = make([]WorkflowAction, len(ws.Actions))
 
 		for i := range ws.Actions {
-
 			ws.Actions[i].DeepCopyInto(&out.Actions[i])
-
 		}
 
 	}
@@ -768,13 +665,11 @@ func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
 		ws.OnFailure.DeepCopyInto(out.OnFailure)
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
-
 	*out = *wt
 
 	if wt.Condition != nil {
@@ -782,19 +677,15 @@ func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
 		out.Condition = make(map[string]interface{}, len(wt.Condition))
 
 		for k, v := range wt.Condition {
-
 			out.Condition[k] = deepCopyInterface(v)
-
 		}
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rp *RetryPolicy) DeepCopyInto(out *RetryPolicy) {
-
 	*out = *rp
 
 	if rp.BackoffDelay != nil {
@@ -804,13 +695,11 @@ func (rp *RetryPolicy) DeepCopyInto(out *RetryPolicy) {
 		*out.BackoffDelay = *rp.BackoffDelay
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wc *WorkflowCondition) DeepCopyInto(out *WorkflowCondition) {
-
 	*out = *wc
 
 	if wc.Condition != nil {
@@ -818,19 +707,15 @@ func (wc *WorkflowCondition) DeepCopyInto(out *WorkflowCondition) {
 		out.Condition = make(map[string]interface{}, len(wc.Condition))
 
 		for k, v := range wc.Condition {
-
 			out.Condition[k] = deepCopyInterface(v)
-
 		}
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
-
 	*out = *wa
 
 	if wa.Config != nil {
@@ -838,19 +723,15 @@ func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
 		out.Config = make(map[string]interface{}, len(wa.Config))
 
 		for k, v := range wa.Config {
-
 			out.Config[k] = deepCopyInterface(v)
-
 		}
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
-
 	*out = *fa
 
 	if fa.Config != nil {
@@ -858,19 +739,15 @@ func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
 		out.Config = make(map[string]interface{}, len(fa.Config))
 
 		for k, v := range fa.Config {
-
 			out.Config[k] = deepCopyInterface(v)
-
 		}
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
-
 	*out = *wr
 
 	if wr.Timestamp != nil {
@@ -886,13 +763,10 @@ func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
 		out.Data = make(map[string]interface{}, len(wr.Data))
 
 		for k, v := range wr.Data {
-
 			out.Data[k] = deepCopyInterface(v)
-
 		}
 
 	}
-
 }
 
 // Network slice types DeepCopy methods.
@@ -900,7 +774,6 @@ func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
 // DeepCopyInto performs deepcopyinto operation.
 
 func (sr *SliceResources) DeepCopyInto(out *SliceResources) {
-
 	*out = *sr
 
 	if sr.CPU != nil {
@@ -934,13 +807,11 @@ func (sr *SliceResources) DeepCopyInto(out *SliceResources) {
 		*out.Bandwidth = sr.Bandwidth.DeepCopy()
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (lr *LatencyRequirement) DeepCopyInto(out *LatencyRequirement) {
-
 	*out = *lr
 
 	if lr.MaxLatency != nil {
@@ -958,13 +829,11 @@ func (lr *LatencyRequirement) DeepCopyInto(out *LatencyRequirement) {
 		*out.TypicalLatency = *lr.TypicalLatency
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (tr *ThroughputRequirement) DeepCopyInto(out *ThroughputRequirement) {
-
 	*out = *tr
 
 	if tr.MinDownlink != nil {
@@ -998,13 +867,11 @@ func (tr *ThroughputRequirement) DeepCopyInto(out *ThroughputRequirement) {
 		*out.MaxUplink = tr.MaxUplink.DeepCopy()
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (ar *AvailabilityRequirement) DeepCopyInto(out *AvailabilityRequirement) {
-
 	*out = *ar
 
 	if ar.Downtime != nil {
@@ -1014,13 +881,11 @@ func (ar *AvailabilityRequirement) DeepCopyInto(out *AvailabilityRequirement) {
 		*out.Downtime = *ar.Downtime
 
 	}
-
 }
 
 // DeepCopyInto performs deepcopyinto operation.
 
 func (rr *ReliabilityRequirement) DeepCopyInto(out *ReliabilityRequirement) {
-
 	*out = *rr
 
 	if rr.MeanTimeBetweenFailures != nil {
@@ -1038,17 +903,13 @@ func (rr *ReliabilityRequirement) DeepCopyInto(out *ReliabilityRequirement) {
 		*out.MeanTimeToRepair = *rr.MeanTimeToRepair
 
 	}
-
 }
 
 // deepCopyInterface provides deep copying for interface{} values.
 
 func deepCopyInterface(v interface{}) interface{} {
-
 	if v == nil {
-
 		return nil
-
 	}
 
 	switch val := v.(type) {
@@ -1058,9 +919,7 @@ func deepCopyInterface(v interface{}) interface{} {
 		copy := make(map[string]interface{}, len(val))
 
 		for k, v := range val {
-
 			copy[k] = deepCopyInterface(v)
-
 		}
 
 		return copy
@@ -1070,9 +929,7 @@ func deepCopyInterface(v interface{}) interface{} {
 		copy := make([]interface{}, len(val))
 
 		for i, v := range val {
-
 			copy[i] = deepCopyInterface(v)
-
 		}
 
 		return copy
@@ -1088,5 +945,4 @@ func deepCopyInterface(v interface{}) interface{} {
 		return val
 
 	}
-
 }

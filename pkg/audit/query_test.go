@@ -445,7 +445,7 @@ func (suite *QueryEngineTestSuite) TestTextSearch() {
 	suite.Run("search by query text", func() {
 		query := &Query{
 			TextSearch: "login",
-			Limit: 100,
+			Limit:      100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")
@@ -456,7 +456,7 @@ func (suite *QueryEngineTestSuite) TestTextSearch() {
 	suite.Run("search in event data", func() {
 		query := &Query{
 			TextSearch: "session_123",
-			Limit: 100,
+			Limit:      100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")
@@ -468,7 +468,7 @@ func (suite *QueryEngineTestSuite) TestTextSearch() {
 	suite.Run("search case insensitive", func() {
 		query := &Query{
 			TextSearch: "ALICE",
-			Limit: 100,
+			Limit:      100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")
@@ -479,7 +479,7 @@ func (suite *QueryEngineTestSuite) TestTextSearch() {
 	suite.Run("search with wildcards", func() {
 		query := &Query{
 			TextSearch: "user*",
-			Limit: 100,
+			Limit:      100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")
@@ -493,9 +493,9 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 	suite.Run("multiple filters with time range", func() {
 		now := time.Now()
 		query := &Query{
-			TextSearch:     "auth",
-			StartTime: now.Add(-24 * time.Hour),
-			EndTime:   now.Add(-1 * time.Hour),
+			TextSearch: "auth",
+			StartTime:  now.Add(-24 * time.Hour),
+			EndTime:    now.Add(-1 * time.Hour),
 			Filters: map[string]interface{}{
 				"severity": []string{"info", "warning"},
 				"result":   "success",
@@ -566,7 +566,7 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 	suite.Run("include specific fields", func() {
 		query := &Query{
 			// IncludeFields not supported in Query type []string{"id", "timestamp", "event_type", "severity"},
-			Limit:         100,
+			Limit: 100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")
@@ -584,7 +584,7 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 	suite.Run("exclude specific fields", func() {
 		query := &Query{
 			// ExcludeFields not supported in Query type []string{"data", "stack_trace"},
-			Limit:         100,
+			Limit: 100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")
@@ -851,10 +851,10 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 	// Create mock backends map
 	mockBackends := make(map[string]backends.Backend)
-	
+
 	// Create logger
 	logger := slog.Default()
-	
+
 	queryEngine := NewQueryEngine(auditSystem, mockBackends, logger)
 
 	// Generate test data
@@ -903,7 +903,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 	b.Run("text search", func(b *testing.B) {
 		query := &Query{
 			TextSearch: "comp_1",
-			Limit: 100,
+			Limit:      100,
 		}
 
 		b.ResetTimer()

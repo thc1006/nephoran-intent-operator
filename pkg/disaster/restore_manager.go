@@ -235,7 +235,6 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 	ctx, cancel := context.WithCancel(context.Background())
 
 	rm := &RestoreManager{
-
 		Client:    fakeClient,
 		k8sClient: k8sClient,
 
@@ -265,7 +264,6 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 	// Initialize AWS client if needed
 
 	if config.StorageType == "s3" {
-
 		if err := rm.initAWSClient(); err != nil {
 
 			logger.Error("Failed to initialize AWS client", "error", err)
@@ -273,21 +271,17 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 			return nil, fmt.Errorf("failed to initialize AWS client: %w", err)
 
 		}
-
 	}
 
 	// Fill rate limiter
 
 	for range config.Workers {
-
 		rm.rateLimiter <- struct{}{}
-
 	}
 
 	logger.Info("Restore manager initialized", "workers", config.Workers, "storage", config.StorageType)
 
 	return rm, nil
-
 }
 
 // limitedReader prevents decompression bombs by limiting the number of bytes read.
@@ -316,30 +310,24 @@ func (lr *limitedReader) Read(p []byte) (int, error) {
 // initAWSClient initializes the AWS S3 client
 
 func (rm *RestoreManager) initAWSClient() error {
-
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 
 		config.WithRegion(rm.config.S3Region),
 
 		config.WithEC2IMDSClientEnableState(imds.ClientDefaultEnableState),
 	)
-
 	if err != nil {
-
 		return fmt.Errorf("unable to load AWS config: %w", err)
-
 	}
 
 	rm.s3Client = s3.NewFromConfig(cfg)
 
 	return nil
-
 }
 
 // RestoreFromBackup restores from a backup archive
 
 func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
-
 	rm.logger.Info("Starting restore from backup", "path", backupPath)
 
 	// Acquire rate limiter token
@@ -347,9 +335,7 @@ func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
 	<-rm.rateLimiter
 
 	defer func() {
-
 		rm.rateLimiter <- struct{}{}
-
 	}()
 
 	// Track metrics
@@ -359,7 +345,6 @@ func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
 	// Initialize progress
 
 	progress := &RestoreProgress{
-
 		Type:        "full",
 		StartTime:   time.Now(),
 		Status:      "running",
@@ -375,13 +360,10 @@ func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
 	rm.mu.Unlock()
 
 	defer func() {
-
 		rm.mu.Lock()
 
 		if progress.Status == "running" {
-
 			progress.Status = "failed"
-
 		}
 
 		progress.EndTime = time.Now()
@@ -389,7 +371,6 @@ func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
 		restoreProgress.WithLabelValues("full").Set(float64(progress.Progress))
 
 		rm.mu.Unlock()
-
 	}()
 
 	// Step 1: Validate backup
@@ -489,29 +470,22 @@ func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
 	rm.logger.Info("Restore completed successfully", "duration", time.Since(progress.StartTime))
 
 	return nil
-
 }
 
 // validateBackup validates a backup archive
 
 func (rm *RestoreManager) validateBackup(backupPath string) error {
-
 	// Check if backup file exists
 
 	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
-
 		return fmt.Errorf("backup file does not exist: %s", backupPath)
-
 	}
 
 	// Open backup file
 
 	file, err := os.Open(backupPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to open backup file: %w", err)
-
 	}
 
 	defer file.Close()
@@ -519,11 +493,8 @@ func (rm *RestoreManager) validateBackup(backupPath string) error {
 	// Check if it's a valid gzip file
 
 	gzr, err := gzip.NewReader(file)
-
 	if err != nil {
-
 		return fmt.Errorf("invalid gzip format: %w", err)
-
 	}
 
 	defer gzr.Close()
@@ -537,37 +508,27 @@ func (rm *RestoreManager) validateBackup(backupPath string) error {
 	_, err = tr.Next()
 
 	if err != nil && !errors.Is(err, io.EOF) {
-
 		return fmt.Errorf("invalid tar format: %w", err)
-
 	}
 
 	rm.logger.Info("Backup validation completed", "path", backupPath)
 
 	return nil
-
 }
 
 // extractBackup extracts a backup archive with security protection against decompression bombs
 
 func (rm *RestoreManager) extractBackup(backupPath string) error {
-
 	file, err := os.Open(backupPath)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to open backup file: %w", err)
-
 	}
 
 	defer file.Close()
 
 	gzr, err := gzip.NewReader(file)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create gzip reader: %w", err)
-
 	}
 
 	defer gzr.Close()
@@ -576,10 +537,8 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 
 	extractPath := "/tmp/restore"
 
-	if err := os.MkdirAll(extractPath, 0755); err != nil {
-
+	if err := os.MkdirAll(extractPath, 0o755); err != nil {
 		return fmt.Errorf("failed to create extract directory: %w", err)
-
 	}
 
 	var totalExtracted int64
@@ -590,15 +549,11 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 		header, err := tr.Next()
 
 		if err == io.EOF {
-
 			break
-
 		}
 
 		if err != nil {
-
 			return fmt.Errorf("failed to read tar header: %w", err)
-
 		}
 
 		// Security check: Prevent zip bomb by limiting file count
@@ -610,27 +565,21 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 		// Security check: Prevent directory traversal
 
 		if !strings.HasPrefix(header.Name, "./") && !strings.HasPrefix(header.Name, "/") {
-
 			header.Name = "./" + header.Name
-
 		}
 
 		target := filepath.Join(extractPath, header.Name)
 
 		if !strings.HasPrefix(target, filepath.Clean(extractPath)+string(os.PathSeparator)) {
-
 			return fmt.Errorf("invalid file path: %s", header.Name)
-
 		}
 
 		switch header.Typeflag {
 
 		case tar.TypeDir:
 
-			if err := os.MkdirAll(target, 0755); err != nil {
-
+			if err := os.MkdirAll(target, 0o755); err != nil {
 				return fmt.Errorf("failed to create directory: %w", err)
-
 			}
 
 		case tar.TypeReg:
@@ -649,16 +598,13 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 			// Security fix (G115): Validate file mode before conversion
 			// Unix file modes are typically 12 bits (0777 for permissions + special bits)
 			// tar.Header.Mode is int64 but should contain valid Unix mode values
-			if header.Mode < 0 || header.Mode > 0777777 { // Max octal mode with all special bits
+			if header.Mode < 0 || header.Mode > 0o777777 { // Max octal mode with all special bits
 				return fmt.Errorf("invalid file mode %o for %s", header.Mode, header.Name)
 			}
 
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode)) //nolint:gosec // G115: mode validated above
-
 			if err != nil {
-
 				return fmt.Errorf("failed to create file: %w", err)
-
 			}
 
 			// Security fix: Use limited reader to prevent decompression bomb (G110)
@@ -671,9 +617,7 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 			f.Close()
 
 			if err != nil {
-
 				return fmt.Errorf("failed to copy file content: %w", err)
-
 			}
 
 		}
@@ -683,13 +627,11 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 	rm.logger.Info("Backup extraction completed", "files", fileCount, "totalSize", totalExtracted, "path", extractPath)
 
 	return nil
-
 }
 
 // restoreConfigurations restores Kubernetes configurations
 
 func (rm *RestoreManager) restoreConfigurations() error {
-
 	// Implementation for restoring Kubernetes configurations
 
 	// This would restore ConfigMaps, Secrets, etc.
@@ -699,13 +641,11 @@ func (rm *RestoreManager) restoreConfigurations() error {
 	// Placeholder implementation
 
 	return nil
-
 }
 
 // restorePersistentData restores persistent volumes and data
 
 func (rm *RestoreManager) restorePersistentData() error {
-
 	// Implementation for restoring persistent data
 
 	// This would restore PVCs, databases, etc.
@@ -715,17 +655,13 @@ func (rm *RestoreManager) restorePersistentData() error {
 	// Placeholder implementation
 
 	return nil
-
 }
 
 // verifyRestore verifies that the restore was successful
 
 func (rm *RestoreManager) verifyRestore() error {
-
 	if !rm.config.VerifyBackup {
-
 		return nil
-
 	}
 
 	// Implementation for verifying restore
@@ -737,13 +673,11 @@ func (rm *RestoreManager) verifyRestore() error {
 	// Placeholder implementation
 
 	return nil
-
 }
 
 // GetRestoreProgress returns the current restore progress
 
 func (rm *RestoreManager) GetRestoreProgress(restoreType string) (*RestoreProgress, error) {
-
 	rm.mu.RLock()
 
 	defer rm.mu.RUnlock()
@@ -751,19 +685,15 @@ func (rm *RestoreManager) GetRestoreProgress(restoreType string) (*RestoreProgre
 	progress, exists := rm.progress[restoreType]
 
 	if !exists {
-
 		return nil, fmt.Errorf("no restore progress found for type: %s", restoreType)
-
 	}
 
 	return progress, nil
-
 }
 
 // ListBackups lists available backups
 
 func (rm *RestoreManager) ListBackups() ([]BackupMetadata, error) {
-
 	switch rm.config.StorageType {
 
 	case "local":
@@ -779,19 +709,14 @@ func (rm *RestoreManager) ListBackups() ([]BackupMetadata, error) {
 		return nil, fmt.Errorf("unsupported storage type: %s", rm.config.StorageType)
 
 	}
-
 }
 
 // listLocalBackups lists backups from local storage
 
 func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
-
 	files, err := filepath.Glob(filepath.Join(rm.config.LocalPath, "*.tar.gz"))
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to list backup files: %w", err)
-
 	}
 
 	// Preallocate slice with known capacity
@@ -800,21 +725,16 @@ func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 	for _, file := range files {
 
 		info, err := os.Stat(file)
-
 		if err != nil {
-
 			continue
-
 		}
 
 		backup := BackupMetadata{
-
 			Timestamp: info.ModTime(),
 
 			Size: info.Size(),
 
 			Metadata: map[string]interface{}{
-
 				"path": file,
 			},
 		}
@@ -824,17 +744,13 @@ func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 	}
 
 	return backups, nil
-
 }
 
 // listS3Backups lists backups from S3 storage
 
 func (rm *RestoreManager) listS3Backups() ([]BackupMetadata, error) {
-
 	if rm.s3Client == nil {
-
 		return nil, errors.New("S3 client not initialized")
-
 	}
 
 	// Implementation for listing S3 backups
@@ -846,23 +762,19 @@ func (rm *RestoreManager) listS3Backups() ([]BackupMetadata, error) {
 	// Placeholder implementation
 
 	return []BackupMetadata{}, nil
-
 }
 
 // Stop gracefully stops the restore manager
 
 func (rm *RestoreManager) Stop() {
-
 	rm.logger.Info("Stopping restore manager")
 
 	rm.cancel()
-
 }
 
 // GetStatus returns the current restore status
 
 func (rm *RestoreManager) GetStatus() RestoreStatus {
-
 	rm.mu.RLock()
 
 	defer rm.mu.RUnlock()
@@ -875,7 +787,6 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 	for _, progress := range rm.progress {
 
 		result := RestoreResult{
-
 			Type:      progress.Type,
 			Success:   progress.Status == "completed",
 			Message:   progress.CurrentStep,
@@ -884,9 +795,7 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 		}
 
 		if progress.ErrorMessage != "" {
-
 			result.Message = progress.ErrorMessage
-
 		}
 
 		operations = append(operations, result)
@@ -898,30 +807,21 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 	var succeeded, failed int
 
 	for _, op := range operations {
-
 		if op.Success {
-
 			succeeded++
-
 		} else {
-
 			failed++
-
 		}
-
 	}
 
 	return RestoreStatus{
-
 		Operations: operations,
 
 		Summary: RestoreSummary{
-
 			Total:     len(operations),
 			Succeeded: succeeded,
 			Failed:    failed,
 			Count:     len(operations),
 		},
 	}
-
 }

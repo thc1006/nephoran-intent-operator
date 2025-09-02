@@ -273,43 +273,31 @@ type ServiceError struct {
 // Error implements the error interface.
 
 func (e *ServiceError) Error() string {
-
 	if e.Details != "" {
-
 		return fmt.Sprintf("[%s:%s] %s: %s", e.Service, e.Operation, e.Message, e.Details)
-
 	}
 
 	return fmt.Sprintf("[%s:%s] %s", e.Service, e.Operation, e.Message)
-
 }
 
 // Unwrap implements the error unwrapping interface.
 
 func (e *ServiceError) Unwrap() error {
-
 	return e.Cause
-
 }
 
 // Is implements error comparison.
 
 func (e *ServiceError) Is(target error) bool {
-
 	if target == nil {
-
 		return false
-
 	}
 
 	if se, ok := target.(*ServiceError); ok {
-
 		return e.Type == se.Type && e.Code == se.Code
-
 	}
 
 	return errors.Is(e.Cause, target)
-
 }
 
 // ErrorBuilder helps build standardized errors.
@@ -325,82 +313,66 @@ type ErrorBuilder struct {
 // NewErrorBuilder creates a new error builder for a service.
 
 func NewErrorBuilder(service, operation string, logger *slog.Logger) *ErrorBuilder {
-
 	return &ErrorBuilder{
-
 		service: service,
 
 		operation: operation,
 
 		logger: logger,
 	}
-
 }
 
 // ValidationError creates a validation error.
 
 func (eb *ErrorBuilder) ValidationError(ctx context.Context, code, message string) *ServiceError {
-
 	return eb.newError(ctx, ErrorTypeValidation, code, message, 400, true)
-
 }
 
 // RequiredFieldError creates a required field error.
 
 func (eb *ErrorBuilder) RequiredFieldError(ctx context.Context, field string) *ServiceError {
-
 	return eb.newError(ctx, ErrorTypeRequired, "required_field",
 
 		fmt.Sprintf("Required field '%s' is missing", field), 400, false)
-
 }
 
 // InvalidFieldError creates an invalid field error.
 
 func (eb *ErrorBuilder) InvalidFieldError(ctx context.Context, field, reason string) *ServiceError {
-
 	return eb.newError(ctx, ErrorTypeInvalid, "invalid_field",
 
 		fmt.Sprintf("Field '%s' is invalid: %s", field, reason), 400, false)
-
 }
 
 // NetworkError creates a network-related error.
 
 func (eb *ErrorBuilder) NetworkError(ctx context.Context, code, message string, cause error) *ServiceError {
-
 	err := eb.newError(ctx, ErrorTypeNetwork, code, message, 502, true)
 
 	err.Cause = cause
 
 	return err
-
 }
 
 // TimeoutError creates a timeout error.
 
 func (eb *ErrorBuilder) TimeoutError(ctx context.Context, operation string, timeout time.Duration) *ServiceError {
-
 	return eb.newError(ctx, ErrorTypeTimeout, "operation_timeout",
 
 		fmt.Sprintf("Operation '%s' timed out after %v", operation, timeout), 504, true)
-
 }
 
 // NotFoundError creates a not found error.
 
 func (eb *ErrorBuilder) NotFoundError(ctx context.Context, resource, id string) *ServiceError {
-
 	return eb.newError(ctx, ErrorTypeNotFound, "resource_not_found",
 
 		fmt.Sprintf("%s with ID '%s' not found", resource, id), 404, false)
-
 }
 
 // InternalError creates an internal error.
 
 func (eb *ErrorBuilder) InternalError(ctx context.Context, message string, cause error) *ServiceError {
-
 	err := eb.newError(ctx, ErrorTypeInternal, "internal_error", message, 500, false)
 
 	err.Cause = cause
@@ -408,23 +380,19 @@ func (eb *ErrorBuilder) InternalError(ctx context.Context, message string, cause
 	err.StackTrace = getStackTrace(3)
 
 	return err
-
 }
 
 // ConfigError creates a configuration error.
 
 func (eb *ErrorBuilder) ConfigError(ctx context.Context, setting, reason string) *ServiceError {
-
 	return eb.newError(ctx, ErrorTypeConfig, "configuration_error",
 
 		fmt.Sprintf("Configuration error for '%s': %s", setting, reason), 500, false)
-
 }
 
 // ExternalServiceError creates an external service error.
 
 func (eb *ErrorBuilder) ExternalServiceError(ctx context.Context, service string, cause error) *ServiceError {
-
 	err := eb.newError(ctx, ErrorTypeExternal, "external_service_error",
 
 		fmt.Sprintf("External service '%s' failed", service), 502, true)
@@ -432,23 +400,17 @@ func (eb *ErrorBuilder) ExternalServiceError(ctx context.Context, service string
 	err.Cause = cause
 
 	return err
-
 }
 
 // ContextCancelledError creates a context cancellation error.
 
 func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError {
-
 	var message string
 
 	if ctx.Err() == context.DeadlineExceeded {
-
 		message = "Operation cancelled due to timeout"
-
 	} else {
-
 		message = "Operation cancelled by client"
-
 	}
 
 	err := eb.newError(ctx, ErrorTypeTimeout, "context_cancelled", message, 499, false)
@@ -456,13 +418,11 @@ func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError
 	err.Cause = ctx.Err()
 
 	return err
-
 }
 
 // WrapError wraps an external error with service context.
 
 func (eb *ErrorBuilder) WrapError(ctx context.Context, cause error, message string) *ServiceError {
-
 	errorType := categorizeError(cause)
 
 	httpStatus := getHTTPStatusForErrorType(errorType)
@@ -474,21 +434,16 @@ func (eb *ErrorBuilder) WrapError(ctx context.Context, cause error, message stri
 	err.Cause = cause
 
 	if errorType == ErrorTypeInternal {
-
 		err.StackTrace = getStackTrace(3)
-
 	}
 
 	return err
-
 }
 
 // newError creates a new ServiceError with common fields populated.
 
 func (eb *ErrorBuilder) newError(ctx context.Context, errType ErrorType, code, message string, httpStatus int, retryable bool) *ServiceError {
-
 	err := &ServiceError{
-
 		Type: errType,
 
 		Code: code,
@@ -515,9 +470,7 @@ func (eb *ErrorBuilder) newError(ctx context.Context, errType ErrorType, code, m
 		logLevel := slog.LevelError
 
 		if retryable || errType == ErrorTypeValidation {
-
 			logLevel = slog.LevelWarn
-
 		}
 
 		eb.logger.Log(context.Background(), logLevel, "Service error created",
@@ -538,7 +491,6 @@ func (eb *ErrorBuilder) newError(ctx context.Context, errType ErrorType, code, m
 	}
 
 	return err
-
 }
 
 // Helper functions.
@@ -546,11 +498,8 @@ func (eb *ErrorBuilder) newError(ctx context.Context, errType ErrorType, code, m
 // categorizeError attempts to categorize an unknown error.
 
 func categorizeError(err error) ErrorType {
-
 	if err == nil {
-
 		return ErrorTypeInternal
-
 	}
 
 	switch {
@@ -568,13 +517,11 @@ func categorizeError(err error) ErrorType {
 		return ErrorTypeInternal
 
 	}
-
 }
 
 // getHTTPStatusForErrorType returns appropriate HTTP status for error type.
 
 func getHTTPStatusForErrorType(errType ErrorType) int {
-
 	switch errType {
 
 	case ErrorTypeValidation, ErrorTypeRequired, ErrorTypeInvalid:
@@ -614,13 +561,11 @@ func getHTTPStatusForErrorType(errType ErrorType) int {
 		return 500
 
 	}
-
 }
 
 // isRetryableError determines if an error type is generally retryable.
 
 func isRetryableError(errType ErrorType, cause error) bool {
-
 	switch errType {
 
 	case ErrorTypeNetwork, ErrorTypeExternal, ErrorTypeTimeout:
@@ -644,13 +589,11 @@ func isRetryableError(errType ErrorType, cause error) bool {
 		return false
 
 	}
-
 }
 
 // getStackTrace captures the current stack trace.
 
 func getStackTrace(skip int) []StackFrame {
-
 	var stack []StackFrame
 
 	for i := skip; i < skip+10; i++ {
@@ -658,9 +601,7 @@ func getStackTrace(skip int) []StackFrame {
 		pc, file, line, ok := runtime.Caller(i)
 
 		if !ok {
-
 			break
-
 		}
 
 		fn := runtime.FuncForPC(pc)
@@ -668,9 +609,7 @@ func getStackTrace(skip int) []StackFrame {
 		funcName := getSafeFunctionName(fn)
 
 		if funcName == "" {
-
 			funcName = "<unknown>"
-
 		}
 
 		// Extract package name from function name.
@@ -678,7 +617,6 @@ func getStackTrace(skip int) []StackFrame {
 		packageName := extractPackageName(funcName)
 
 		stack = append(stack, StackFrame{
-
 			File: file,
 
 			Line: line,
@@ -691,83 +629,64 @@ func getStackTrace(skip int) []StackFrame {
 	}
 
 	return stack
-
 }
 
 // GetStackTraceStrings returns the stack trace as a slice of strings for backward compatibility.
 
 func (e *ServiceError) GetStackTraceStrings() []string {
-
 	if e.StackTrace == nil {
-
 		return nil
-
 	}
 
 	result := make([]string, len(e.StackTrace))
 
 	for i, frame := range e.StackTrace {
-
 		result[i] = frame.String()
-
 	}
 
 	return result
-
 }
 
 // WithRequestID adds a request ID to the error.
 
 func (e *ServiceError) WithRequestID(requestID string) *ServiceError {
-
 	e.RequestID = requestID
 
 	return e
-
 }
 
 // WithUserID adds a user ID to the error.
 
 func (e *ServiceError) WithUserID(userID string) *ServiceError {
-
 	e.UserID = userID
 
 	return e
-
 }
 
 // WithMetadata adds metadata to the error.
 
 func (e *ServiceError) WithMetadata(key string, value interface{}) *ServiceError {
-
 	if e.Metadata == nil {
-
 		e.Metadata = make(map[string]interface{})
-
 	}
 
 	e.Metadata[key] = value
 
 	return e
-
 }
 
 // WithDetails adds additional details to the error.
 
 func (e *ServiceError) WithDetails(details string) *ServiceError {
-
 	e.Details = details
 
 	return e
-
 }
 
 // ToLogAttributes converts the error to structured log attributes.
 
 func (e *ServiceError) ToLogAttributes() []slog.Attr {
-
 	attrs := []slog.Attr{
-
 		slog.String("error_type", string(e.Type)),
 
 		slog.String("error_code", e.Code),
@@ -780,99 +699,71 @@ func (e *ServiceError) ToLogAttributes() []slog.Attr {
 	}
 
 	if e.RequestID != "" {
-
 		attrs = append(attrs, slog.String("request_id", e.RequestID))
-
 	}
 
 	if e.UserID != "" {
-
 		attrs = append(attrs, slog.String("user_id", e.UserID))
-
 	}
 
 	if e.Cause != nil {
-
 		attrs = append(attrs, slog.String("cause", e.Cause.Error()))
-
 	}
 
 	return attrs
-
 }
 
 // IsRetryable returns whether this error is retryable.
 
 func (e *ServiceError) IsRetryable() bool {
-
 	return e.Retryable
-
 }
 
 // IsTemporary returns whether this error is temporary.
 
 func (e *ServiceError) IsTemporary() bool {
-
 	return e.Temporary
-
 }
 
 // AddTag adds a tag to the error.
 
 func (e *ServiceError) AddTag(tag string) {
-
 	// Check if tag already exists.
 
 	for _, t := range e.Tags {
-
 		if t == tag {
-
 			return
-
 		}
-
 	}
 
 	e.Tags = append(e.Tags, tag)
-
 }
 
 // GetHTTPStatus returns the appropriate HTTP status code for this error.
 
 func (e *ServiceError) GetHTTPStatus() int {
-
 	if e.HTTPStatus > 0 {
-
 		return e.HTTPStatus
-
 	}
 
 	return getHTTPStatusForErrorType(e.Type)
-
 }
 
 // Helper functions for system information.
 
 func getCurrentHostname() string {
-
 	if hostname, err := os.Hostname(); err == nil {
-
 		return hostname
-
 	}
 
 	return "unknown"
-
 }
 
 func getCurrentPID() int {
-
 	return os.Getpid()
-
 }
 
 func getCurrentGoroutineID() string {
-
 	buf := make([]byte, 64)
 
 	buf = buf[:runtime.Stack(buf, false)]
@@ -882,25 +773,18 @@ func getCurrentGoroutineID() string {
 	// Format: "goroutine 1 [running]:".
 
 	for i, b := range buf {
-
 		if b == ' ' {
-
 			return string(buf[10:i]) // Skip "goroutine "
-
 		}
-
 	}
 
 	return "unknown"
-
 }
 
 // NewProcessingError creates a processing-related error.
 
 func NewProcessingError(message string, category ErrorCategory) *ServiceError {
-
 	return &ServiceError{
-
 		Type: ErrorTypeExternal,
 
 		Code: string(category),
@@ -917,7 +801,6 @@ func NewProcessingError(message string, category ErrorCategory) *ServiceError {
 
 		Severity: SeverityHigh,
 	}
-
 }
 
 // WithContext wraps an error with additional context information

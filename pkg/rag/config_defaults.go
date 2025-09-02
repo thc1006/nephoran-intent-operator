@@ -9,9 +9,7 @@ import (
 // getDefaultLoaderConfig returns default configuration for document loader.
 
 func getDefaultLoaderConfig() *DocumentLoaderConfig {
-
 	return &DocumentLoaderConfig{
-
 		LocalPaths: []string{"./knowledge_base"},
 
 		RemoteURLs: []string{},
@@ -59,7 +57,6 @@ func getDefaultLoaderConfig() *DocumentLoaderConfig {
 		RetryDelay: 2 * time.Second,
 
 		PreferredSources: map[string]int{
-
 			"3GPP": 10,
 
 			"O-RAN": 9,
@@ -71,15 +68,12 @@ func getDefaultLoaderConfig() *DocumentLoaderConfig {
 
 		TechnicalDomains: []string{"RAN", "Core", "Transport", "Management", "O-RAN"},
 	}
-
 }
 
 // getDefaultChunkingConfig returns default configuration for chunking service.
 
 func getDefaultChunkingConfig() *ChunkingConfig {
-
 	return &ChunkingConfig{
-
 		ChunkSize: 2000,
 
 		ChunkOverlap: 200,
@@ -105,7 +99,6 @@ func getDefaultChunkingConfig() *ChunkingConfig {
 		PreserveTechnicalTerms: true,
 
 		TechnicalTermPatterns: []string{
-
 			`\b[A-Z]{2,}(?:-[A-Z]{2,})*\b`, // Acronyms
 
 			`\b\d+G\b`, // Technology generations
@@ -138,15 +131,12 @@ func getDefaultChunkingConfig() *ChunkingConfig {
 
 		AddChunkMetadata: true,
 	}
-
 }
 
 // getDefaultEmbeddingConfig returns default configuration for embedding service.
 
 func getDefaultEmbeddingConfig() *EmbeddingConfig {
-
 	return &EmbeddingConfig{
-
 		Provider: "openai",
 
 		APIEndpoint: "https://api.openai.com/v1/embeddings",
@@ -196,9 +186,7 @@ func getDefaultEmbeddingConfig() *EmbeddingConfig {
 		L2CacheEnabled: true,
 
 		Providers: []ProviderConfig{
-
 			{
-
 				Name: "openai",
 
 				APIEndpoint: "https://api.openai.com/v1/embeddings",
@@ -221,7 +209,6 @@ func getDefaultEmbeddingConfig() *EmbeddingConfig {
 			},
 
 			{
-
 				Name: "azure",
 
 				APIEndpoint: "https://your-resource.openai.azure.com/openai/deployments/your-deployment/embeddings",
@@ -244,7 +231,6 @@ func getDefaultEmbeddingConfig() *EmbeddingConfig {
 			},
 
 			{
-
 				Name: "huggingface",
 
 				APIEndpoint: "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
@@ -267,7 +253,6 @@ func getDefaultEmbeddingConfig() *EmbeddingConfig {
 			},
 
 			{
-
 				Name: "cohere",
 
 				APIEndpoint: "https://api.cohere.ai/v1/embed",
@@ -322,15 +307,12 @@ func getDefaultEmbeddingConfig() *EmbeddingConfig {
 
 		MetricsInterval: 5 * time.Minute,
 	}
-
 }
 
 // getDefaultRetrievalConfig returns default configuration for retrieval service.
 
 func getDefaultRetrievalConfig() *RetrievalConfig {
-
 	return &RetrievalConfig{
-
 		DefaultLimit: 20,
 
 		MaxLimit: 100,
@@ -380,7 +362,6 @@ func getDefaultRetrievalConfig() *RetrievalConfig {
 		QueryTimeout: 30 * time.Second,
 
 		IntentTypeWeights: map[string]float64{
-
 			"configuration": 1.2,
 
 			"troubleshooting": 1.1,
@@ -393,7 +374,6 @@ func getDefaultRetrievalConfig() *RetrievalConfig {
 		},
 
 		TechnicalDomainBoosts: map[string]float64{
-
 			"RAN": 1.2,
 
 			"Core": 1.1,
@@ -406,7 +386,6 @@ func getDefaultRetrievalConfig() *RetrievalConfig {
 		},
 
 		SourcePriorityWeights: map[string]float64{
-
 			"3GPP": 1.0,
 
 			"O-RAN": 1.1,
@@ -416,15 +395,12 @@ func getDefaultRetrievalConfig() *RetrievalConfig {
 			"ITU": 0.8,
 		},
 	}
-
 }
 
 // getDefaultRedisCacheConfig returns default configuration for Redis cache.
 
 func getDefaultRedisCacheConfig() *RedisCacheConfig {
-
 	return &RedisCacheConfig{
-
 		Address: "localhost:6379",
 
 		Password: "",
@@ -474,15 +450,12 @@ func getDefaultRedisCacheConfig() *RedisCacheConfig {
 		MaxMemoryThreshold: 0.8, // 80% memory threshold
 
 	}
-
 }
 
 // getDefaultMonitoringConfig returns default configuration for monitoring.
 
 func getDefaultMonitoringConfig() *MonitoringConfig {
-
 	return &MonitoringConfig{
-
 		MetricsPort: 8080,
 
 		MetricsPath: "/metrics",
@@ -511,15 +484,12 @@ func getDefaultMonitoringConfig() *MonitoringConfig {
 
 		ResourceMonitoringInterval: 60 * time.Second,
 	}
-
 }
 
 // DefaultPipelineConfiguration returns a complete default pipeline configuration.
 
 func DefaultPipelineConfiguration() *PipelineConfig {
-
 	return &PipelineConfig{
-
 		DocumentLoaderConfig: getDefaultLoaderConfig(),
 
 		ChunkingConfig: getDefaultChunkingConfig(),
@@ -527,7 +497,6 @@ func DefaultPipelineConfiguration() *PipelineConfig {
 		EmbeddingConfig: getDefaultEmbeddingConfig(),
 
 		WeaviateConfig: &WeaviateConfig{
-
 			Host: "localhost:8080",
 
 			Scheme: "http",
@@ -559,13 +528,11 @@ func DefaultPipelineConfiguration() *PipelineConfig {
 
 		KubernetesIntegration: true,
 	}
-
 }
 
 // ProductionPipelineConfiguration returns a production-optimized configuration.
 
 func ProductionPipelineConfiguration() *PipelineConfig {
-
 	config := DefaultPipelineConfiguration()
 
 	// Production optimizations.
@@ -609,13 +576,11 @@ func ProductionPipelineConfiguration() *PipelineConfig {
 	config.EmbeddingConfig.MonthlyCostLimit = 5000.0
 
 	return config
-
 }
 
 // DevelopmentPipelineConfiguration returns a development-optimized configuration.
 
 func DevelopmentPipelineConfiguration() *PipelineConfig {
-
 	config := DefaultPipelineConfiguration()
 
 	// Development optimizations.
@@ -649,7 +614,6 @@ func DevelopmentPipelineConfiguration() *PipelineConfig {
 	// Enable local provider for testing.
 
 	for i, provider := range config.EmbeddingConfig.Providers {
-
 		if provider.Name == "local" {
 
 			config.EmbeddingConfig.Providers[i].Enabled = true
@@ -657,17 +621,14 @@ func DevelopmentPipelineConfiguration() *PipelineConfig {
 			break
 
 		}
-
 	}
 
 	return config
-
 }
 
 // TestPipelineConfiguration returns a test-optimized configuration.
 
 func TestPipelineConfiguration() *PipelineConfig {
-
 	config := DefaultPipelineConfiguration()
 
 	// Test optimizations.
@@ -721,13 +682,10 @@ func TestPipelineConfiguration() *PipelineConfig {
 		config.EmbeddingConfig.Providers[i].Enabled = false
 
 		if provider.Name == "local" {
-
 			config.EmbeddingConfig.Providers[i].Enabled = true
-
 		}
 
 	}
 
 	return config
-
 }

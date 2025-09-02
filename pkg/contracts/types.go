@@ -151,6 +151,7 @@ func (si *ScalingIntent) GetUpdatedAt() time.Time {
 	}
 	return si.CreatedAt
 }
+
 func (si *ScalingIntent) SetStatus(status string) {
 	si.Status = status
 	now := time.Now()

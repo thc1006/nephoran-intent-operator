@@ -12,85 +12,60 @@ import (
 // GetRICMockService returns the RIC mock service for testing.
 
 func (oiv *ORANInterfaceValidator) GetRICMockService() *RICMockService {
-
 	return oiv.ricMockService
-
 }
 
 // GetSMOMockService returns the SMO mock service for testing.
 
 func (oiv *ORANInterfaceValidator) GetSMOMockService() *SMOMockService {
-
 	return oiv.smoMockService
-
 }
 
 // GetE2MockService returns the E2 mock service for testing.
 
 func (oiv *ORANInterfaceValidator) GetE2MockService() *E2MockService {
-
 	return oiv.e2MockService
-
 }
 
 // ValidateYANGModel validates YANG model structure for O1 testing.
 
 func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{}) bool {
-
 	// Check required fields.
 
 	requiredFields := []string{"module", "namespace", "prefix", "description"}
 
 	for _, field := range requiredFields {
-
 		if _, exists := model[field]; !exists {
-
 			return false
-
 		}
-
 	}
 
 	// Validate schema structure.
 
 	if schema, exists := model["schema"]; exists {
-
 		if schemaMap, ok := schema.(map[string]interface{}); ok {
-
 			if container, exists := schemaMap["container"]; exists {
-
 				if containerMap, ok := container.(map[string]interface{}); ok {
-
 					if _, exists := containerMap["name"]; !exists {
-
 						return false
-
 					}
-
 				}
-
 			}
-
 		}
-
 	}
 
 	return true
-
 }
 
 // TestNETCONFOperations tests NETCONF protocol operations for O1 testing.
 
 func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bool {
-
 	// Simulate NETCONF session establishment.
 
 	session := map[string]interface{}{
-
 		"sessionId": "netconf-session-001",
 
 		"capabilities": []string{
-
 			"urn:ietf:params:netconf:base:1.0",
 
 			"urn:ietf:params:netconf:base:1.1",
@@ -106,21 +81,17 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 	// Validate session establishment.
 
 	if session["status"] != "active" {
-
 		return false
-
 	}
 
 	// Test get operation.
 
 	getConfig := map[string]interface{}{
-
 		"operation": "get-config",
 
 		"source": "running",
 
 		"filter": map[string]interface{}{
-
 			"type": "xpath",
 
 			"xpath": "/ric-config",
@@ -130,15 +101,12 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 	// Test edit-config operation.
 
 	editConfig := map[string]interface{}{
-
 		"operation": "edit-config",
 
 		"target": "candidate",
 
 		"config": map[string]interface{}{
-
 			"ric-config": map[string]interface{}{
-
 				"ric-id": "ric-001",
 
 				"xapp-namespace": "ricxapp",
@@ -149,7 +117,6 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 	// Test commit operation.
 
 	commit := map[string]interface{}{
-
 		"operation": "commit",
 	}
 
@@ -158,9 +125,7 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 	operations := []map[string]interface{}{getConfig, editConfig, commit}
 
 	for _, op := range operations {
-
 		if operation, exists := op["operation"]; exists {
-
 			// Simulate processing time based on operation type.
 
 			switch operation {
@@ -178,85 +143,58 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 				time.Sleep(30 * time.Millisecond)
 
 			}
-
 		}
-
 	}
 
 	return true
-
 }
 
 // ValidateTerraformTemplate validates Terraform template structure for O2 testing.
 
 func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string]interface{}) bool {
-
 	// Check for required sections.
 
 	requiredSections := []string{"terraform", "resource"}
 
 	for _, section := range requiredSections {
-
 		if _, exists := template[section]; !exists {
-
 			return false
-
 		}
-
 	}
 
 	// Validate terraform section.
 
 	if terraform, exists := template["terraform"]; exists {
-
 		if tfMap, ok := terraform.(map[string]interface{}); ok {
-
 			if _, exists := tfMap["required_providers"]; !exists {
-
 				return false
-
 			}
-
 		}
-
 	}
 
 	return true
-
 }
 
 // ValidateCloudProviderConfig validates cloud provider configuration for O2 testing.
 
 func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string]interface{}) bool {
-
 	requiredFields := []string{"provider", "region", "resources"}
 
 	for _, field := range requiredFields {
-
 		if _, exists := config[field]; !exists {
-
 			return false
-
 		}
-
 	}
 
 	// Validate resources section.
 
 	if resources, exists := config["resources"]; exists {
-
 		if resourceMap, ok := resources.(map[string]interface{}); ok {
-
 			if len(resourceMap) == 0 {
-
 				return false
-
 			}
-
 		}
-
 	}
 
 	return true
-
 }

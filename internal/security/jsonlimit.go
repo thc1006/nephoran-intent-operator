@@ -56,27 +56,21 @@ var ErrMaxSizeExceeded = errors.New("exceeds maximum JSON size limit")
 //   - error: ErrMaxSizeExceeded if size limit exceeded, other errors for I/O issues.
 
 func ValidateAndLimitJSON(r io.Reader, max int64) ([]byte, error) {
-
 	// If reader is a file, use Stat() for fast size check before reading.
 
 	if file, ok := r.(*os.File); ok {
 
 		stat, err := file.Stat()
-
 		if err != nil {
-
 			return nil, fmt.Errorf("failed to stat file: %w", err)
-
 		}
 
 		// Fast rejection for oversized files.
 
 		if stat.Size() > max {
-
 			return nil, fmt.Errorf("file size %d bytes %w (%d bytes)",
 
 				stat.Size(), ErrMaxSizeExceeded, max)
-
 		}
 
 	}
@@ -88,15 +82,12 @@ func ValidateAndLimitJSON(r io.Reader, max int64) ([]byte, error) {
 	// Read all content with size limit enforcement.
 
 	data, err := io.ReadAll(counter)
-
 	if err != nil {
 
 		// Check if we hit the size limit.
 
 		if counter.exceeded {
-
 			return nil, fmt.Errorf("stream %w (%d bytes)", ErrMaxSizeExceeded, max)
-
 		}
 
 		return nil, fmt.Errorf("failed to read JSON content: %w", err)
@@ -104,7 +95,6 @@ func ValidateAndLimitJSON(r io.Reader, max int64) ([]byte, error) {
 	}
 
 	return data, nil
-
 }
 
 // countingReader wraps an io.Reader and tracks bytes read, enforcing a maximum limit.
@@ -124,7 +114,6 @@ type countingReader struct {
 // Read implements io.Reader interface with size limit enforcement.
 
 func (c *countingReader) Read(p []byte) (int, error) {
-
 	// Check if we would exceed the limit with this read.
 
 	remaining := c.max - c.count
@@ -140,9 +129,7 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	// Limit the read size to remaining capacity.
 
 	if int64(len(p)) > remaining {
-
 		p = p[:remaining]
-
 	}
 
 	n, err := c.r.Read(p)
@@ -160,5 +147,4 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	}
 
 	return n, err
-
 }

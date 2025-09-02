@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
-
-	"log/slog"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"

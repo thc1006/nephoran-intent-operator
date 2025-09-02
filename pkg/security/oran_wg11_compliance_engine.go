@@ -703,6 +703,7 @@ func (a *AuthenticationEngine) Stop()        {}
 func (a *AuthenticationEngine) ValidateCredentials(creds interface{}) (bool, map[string]interface{}, error) {
 	return true, map[string]interface{}{}, nil
 }
+
 func (a *AuthenticationEngine) GetNodeCertificate(nodeID string) (*x509.Certificate, error) {
 	// Stub implementation
 	return nil, fmt.Errorf("not implemented")

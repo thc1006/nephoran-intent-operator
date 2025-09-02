@@ -379,7 +379,6 @@ type Counts struct {
 // A1Service defines the core A1 service interface.
 
 type A1Service interface {
-
 	// A1-P Policy Interface Methods.
 
 	GetPolicyTypes(ctx context.Context) ([]int, error)
@@ -440,7 +439,6 @@ type A1Service interface {
 // A1Handler defines the HTTP handler interface for A1 endpoints.
 
 type A1Handler interface {
-
 	// A1-P Policy Handler Methods.
 
 	HandleGetPolicyTypes(w http.ResponseWriter, r *http.Request)
@@ -553,7 +551,6 @@ type A1Validator interface {
 // A1Storage defines the storage interface for A1 data persistence.
 
 type A1Storage interface {
-
 	// Policy Type Storage.
 
 	StorePolicyType(ctx context.Context, policyType *PolicyType) error
@@ -822,9 +819,7 @@ const (
 // DefaultA1ServerConfig returns a default configuration for the A1 server.
 
 func DefaultA1ServerConfig() *A1ServerConfig {
-
 	return &A1ServerConfig{
-
 		Port: 8080,
 
 		Host: "0.0.0.0",
@@ -846,7 +841,6 @@ func DefaultA1ServerConfig() *A1ServerConfig {
 		EnableA1EI: true,
 
 		CircuitBreakerConfig: &CircuitBreakerConfig{
-
 			MaxRequests: 10,
 
 			Interval: 60 * time.Second,
@@ -855,7 +849,6 @@ func DefaultA1ServerConfig() *A1ServerConfig {
 		},
 
 		ValidationConfig: &ValidationConfig{
-
 			EnableSchemaValidation: true,
 
 			StrictValidation: false,
@@ -864,14 +857,12 @@ func DefaultA1ServerConfig() *A1ServerConfig {
 		},
 
 		AuthenticationConfig: &AuthenticationConfig{
-
 			Enabled: false,
 
 			Method: "bearer",
 		},
 
 		RateLimitConfig: &RateLimitConfig{
-
 			Enabled: false,
 
 			RequestsPerMin: 1000,
@@ -882,7 +873,6 @@ func DefaultA1ServerConfig() *A1ServerConfig {
 		},
 
 		MetricsConfig: &MetricsConfig{
-
 			Enabled: true,
 
 			Endpoint: "/metrics",
@@ -892,13 +882,11 @@ func DefaultA1ServerConfig() *A1ServerConfig {
 			Subsystem: "a1",
 		},
 	}
-
 }
 
 // MarshalJSON provides custom JSON marshaling for PolicyType.
 
 func (pt *PolicyType) MarshalJSON() ([]byte, error) {
-
 	// Alias represents a alias.
 
 	type Alias PolicyType
@@ -910,20 +898,17 @@ func (pt *PolicyType) MarshalJSON() ([]byte, error) {
 
 		ModifiedAt string `json:"modified_at,omitempty"`
 	}{
-
 		Alias: (*Alias)(pt),
 
 		CreatedAt: pt.CreatedAt.Format(time.RFC3339),
 
 		ModifiedAt: pt.ModifiedAt.Format(time.RFC3339),
 	})
-
 }
 
 // UnmarshalJSON provides custom JSON unmarshaling for PolicyType.
 
 func (pt *PolicyType) UnmarshalJSON(data []byte) error {
-
 	// Alias represents a alias.
 
 	type Alias PolicyType
@@ -935,60 +920,43 @@ func (pt *PolicyType) UnmarshalJSON(data []byte) error {
 
 		ModifiedAt string `json:"modified_at,omitempty"`
 	}{
-
 		Alias: (*Alias)(pt),
 	}
 
 	if err := json.Unmarshal(data, &aux); err != nil {
-
 		return err
-
 	}
 
 	if aux.CreatedAt != "" {
-
 		if t, err := time.Parse(time.RFC3339, aux.CreatedAt); err == nil {
-
 			pt.CreatedAt = t
-
 		}
-
 	}
 
 	if aux.ModifiedAt != "" {
-
 		if t, err := time.Parse(time.RFC3339, aux.ModifiedAt); err == nil {
-
 			pt.ModifiedAt = t
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // String returns a string representation of A1Interface.
 
 func (ai A1Interface) String() string {
-
 	return string(ai)
-
 }
 
 // String returns a string representation of A1Version.
 
 func (av A1Version) String() string {
-
 	return string(av)
-
 }
 
 // String returns a string representation of State.
 
 func (s State) String() string {
-
 	switch s {
 
 	case StateClosed:
@@ -1008,21 +976,16 @@ func (s State) String() string {
 		return "UNKNOWN"
 
 	}
-
 }
 
 // IsHealthy returns true if the health check status is UP.
 
 func (hc *HealthCheck) IsHealthy() bool {
-
 	return hc.Status == "UP"
-
 }
 
 // IsDegraded returns true if the health check status is DEGRADED.
 
 func (hc *HealthCheck) IsDegraded() bool {
-
 	return hc.Status == "DEGRADED"
-
 }

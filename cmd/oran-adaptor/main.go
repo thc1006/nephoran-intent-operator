@@ -25,15 +25,12 @@ var (
 )
 
 func init() {
-
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(nephoranv1.AddToScheme(scheme))
-
 }
 
 func main() {
-
 	var metricsAddr string
 
 	var enableLeaderElection bool
@@ -47,7 +44,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for controller manager.")
 
 	opts := zap.Options{
-
 		Development: true,
 	}
 
@@ -58,7 +54,6 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-
 		Scheme: scheme,
 
 		HealthProbeBindAddress: probeAddr,
@@ -67,7 +62,6 @@ func main() {
 
 		LeaderElectionID: "oran-adaptor.nephoran.io",
 	})
-
 	if err != nil {
 
 		setupLog.Error(err, "unable to start manager")
@@ -77,7 +71,6 @@ func main() {
 	}
 
 	if err = (&controllers.OranAdaptorReconciler{
-
 		Client: mgr.GetClient(),
 
 		Scheme: mgr.GetScheme(),
@@ -98,5 +91,4 @@ func main() {
 		os.Exit(1)
 
 	}
-
 }

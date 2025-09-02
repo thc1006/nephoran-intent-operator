@@ -270,8 +270,8 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 	RampDownTime time.Duration
 	MaxLatency   time.Duration
 	RecoveryTime time.Duration
-}) SpikeTestResult {
-
+},
+) SpikeTestResult {
 	result := SpikeTestResult{
 		MetricsSnapshot: make(map[string]interface{}),
 	}
@@ -430,8 +430,8 @@ func testFailureResilience(ctx context.Context, failure struct {
 	FailureType string
 	Duration    time.Duration
 	Impact      func() error
-}) FailureTestResult {
-
+},
+) FailureTestResult {
 	result := FailureTestResult{
 		DegradedOperations: []string{},
 	}
@@ -517,8 +517,8 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 	BurstInterval time.Duration
 	BurstDuration time.Duration
 	TestDuration  time.Duration
-}) BurstTestResult {
-
+},
+) BurstTestResult {
 	result := BurstTestResult{}
 
 	var totalLatency int64

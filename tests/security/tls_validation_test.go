@@ -9,11 +9,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net"
-	"net/http"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"

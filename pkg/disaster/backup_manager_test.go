@@ -713,7 +713,6 @@ func (suite *BackupManagerTestSuite) TestCreateBackup_EdgeCases() {
 	}
 }
 
-
 // Benchmarks for performance testing
 func BenchmarkCreateFullBackup(b *testing.B) {
 	ctx := context.Background()

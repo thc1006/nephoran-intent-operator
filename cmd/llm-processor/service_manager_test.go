@@ -282,6 +282,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 				} else {
 					// For errors, the status might still be 200 if error handling is done within HandleStreamingRequest
 					// The important thing is that the error is logged
+					assert.True(t, w.Code == http.StatusOK || w.Code >= http.StatusBadRequest, "Status should be either OK or an error code")
 				}
 			} else {
 				assert.Equal(t, http.StatusOK, w.Code)

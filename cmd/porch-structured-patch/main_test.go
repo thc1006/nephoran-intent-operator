@@ -107,7 +107,7 @@ func TestMain(t *testing.T) {
 			// Setup test files
 			for filename, content := range tt.setupFiles {
 				filePath := filepath.Join(tempDir, filename)
-				require.NoError(t, os.WriteFile(filePath, []byte(content), 0644))
+				require.NoError(t, os.WriteFile(filePath, []byte(content), 0o644))
 			}
 
 			// Create logger for testing
@@ -140,7 +140,7 @@ func TestMain(t *testing.T) {
 
 			// Create output directory if it doesn't exist and test expects success
 			if !tt.expectError && outputDir != "examples/packages/structured" {
-				require.NoError(t, os.MkdirAll(outputDir, 0755))
+				require.NoError(t, os.MkdirAll(outputDir, 0o755))
 			}
 
 			// Test the run function
@@ -281,11 +281,11 @@ func TestRunFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create intent file
 			intentFile := filepath.Join(tempDir, fmt.Sprintf("intent_%s.json", strings.ReplaceAll(tt.name, " ", "_")))
-			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentJSON), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentJSON), 0o644))
 
 			// Create output directory if test expects success
 			if !tt.expectError {
-				require.NoError(t, os.MkdirAll(tt.outputDir, 0755))
+				require.NoError(t, os.MkdirAll(tt.outputDir, 0o755))
 			}
 
 			// Run the function
@@ -305,7 +305,6 @@ func TestRunFunction(t *testing.T) {
 }
 
 func TestFileIOErrors(t *testing.T) {
-
 	t.Run("invalid intent file path", func(t *testing.T) {
 		// Test with a path that doesn't exist
 		invalidPath := filepath.Join("nonexistent", "path", "intent.json")
@@ -432,10 +431,10 @@ func TestVerboseLogging(t *testing.T) {
 		"namespace": "default",
 		"replicas": 3
 	}`
-	require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
+	require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0o644))
 
 	outputDir := filepath.Join(tempDir, "output")
-	require.NoError(t, os.MkdirAll(outputDir, 0755))
+	require.NoError(t, os.MkdirAll(outputDir, 0o755))
 
 	// Test with verbose logging (this mainly tests that verbose flag doesn't break anything)
 	err := run(intentFile, outputDir, false)
@@ -477,10 +476,10 @@ func TestPackagePathGeneration(t *testing.T) {
 			}`, tt.target)
 
 			intentFile := filepath.Join(tempDir, "intent.json")
-			require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0o644))
 
 			outputDir := filepath.Join(tempDir, "output")
-			require.NoError(t, os.MkdirAll(outputDir, 0755))
+			require.NoError(t, os.MkdirAll(outputDir, 0o755))
 			err := run(intentFile, outputDir, false)
 			require.NoError(t, err)
 

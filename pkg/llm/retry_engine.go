@@ -234,15 +234,11 @@ type AdaptiveStrategy struct {
 // NewRetryEngine creates a new retry engine.
 
 func NewRetryEngine(config RetryEngineConfig, circuitBreaker *AdvancedCircuitBreaker) *RetryEngine {
-
 	if config.DefaultStrategy == "" {
-
 		config.DefaultStrategy = "exponential"
-
 	}
 
 	engine := &RetryEngine{
-
 		config: config,
 
 		logger: slog.Default().With("component", "retry-engine"),
@@ -254,14 +250,12 @@ func NewRetryEngine(config RetryEngineConfig, circuitBreaker *AdvancedCircuitBre
 		strategies: make(map[string]RetryStrategy),
 
 		metrics: &RetryMetrics{
-
 			strategyUsage: make(map[string]int64),
 
 			errorClassification: make(map[string]int64),
 		},
 
 		adaptiveConfig: AdaptiveRetryConfig{
-
 			LearningRate: 0.1,
 
 			SuccessThreshold: 0.8,
@@ -281,17 +275,14 @@ func NewRetryEngine(config RetryEngineConfig, circuitBreaker *AdvancedCircuitBre
 	engine.initializeStrategies()
 
 	return engine
-
 }
 
 // initializeStrategies sets up the available retry strategies.
 
 func (re *RetryEngine) initializeStrategies() {
-
 	// Exponential backoff strategy.
 
 	re.strategies["exponential"] = &ExponentialBackoffStrategy{
-
 		baseDelay: re.config.BaseDelay,
 
 		maxDelay: re.config.MaxDelay,
@@ -306,7 +297,6 @@ func (re *RetryEngine) initializeStrategies() {
 	// Linear backoff strategy.
 
 	re.strategies["linear"] = &LinearBackoffStrategy{
-
 		baseDelay: re.config.BaseDelay,
 
 		maxDelay: re.config.MaxDelay,
@@ -319,7 +309,6 @@ func (re *RetryEngine) initializeStrategies() {
 	// Fixed delay strategy.
 
 	re.strategies["fixed"] = &FixedDelayStrategy{
-
 		delay: re.config.BaseDelay,
 
 		maxRetries: re.config.MaxRetries,
@@ -328,9 +317,7 @@ func (re *RetryEngine) initializeStrategies() {
 	// Adaptive strategy.
 
 	if re.config.EnableAdaptive {
-
 		re.strategies["adaptive"] = &AdaptiveStrategy{
-
 			engine: re,
 
 			baseDelay: re.config.BaseDelay,
@@ -341,23 +328,18 @@ func (re *RetryEngine) initializeStrategies() {
 
 			successHistory: make([]bool, 0, re.adaptiveConfig.WindowSize),
 		}
-
 	}
-
 }
 
 // ExecuteWithRetry executes an operation with retry logic.
 
 func (re *RetryEngine) ExecuteWithRetry(ctx context.Context, operation func() error) (*RetryResult, error) {
-
 	return re.ExecuteWithRetryAndStrategy(ctx, operation, re.config.DefaultStrategy)
-
 }
 
 // ExecuteWithRetryAndStrategy executes an operation with a specific retry strategy.
 
 func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operation func() error, strategyName string) (*RetryResult, error) {
-
 	ctx, span := re.tracer.Start(ctx, "retry_engine.execute")
 
 	defer span.End()
@@ -365,13 +347,10 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 	strategy, exists := re.strategies[strategyName]
 
 	if !exists {
-
 		return nil, fmt.Errorf("unknown retry strategy: %s", strategyName)
-
 	}
 
 	retryCtx := &RetryContext{
-
 		OperationID: generateOperationID(),
 
 		StartTime: time.Now(),
@@ -410,7 +389,6 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 		if re.circuitBreaker != nil && !re.circuitBreaker.IsRequestAllowed() {
 
 			lastError = &CircuitBreakerError{
-
 				State: re.circuitBreaker.GetState(),
 
 				Message: "circuit breaker is open",
@@ -433,7 +411,6 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 			re.updateMetrics(strategyName, true, attempt, adaptiveAdjustments)
 
 			result := &RetryResult{
-
 				Success: true,
 
 				TotalAttempts: attempt + 1,
@@ -500,9 +477,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 		// Don't wait after the last attempt.
 
 		if attempt >= re.config.MaxRetries {
-
 			break
-
 		}
 
 		// Calculate delay.
@@ -518,9 +493,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 			delay = re.applyAdaptiveAdjustment(delay, errorClass, retryCtx)
 
 			if delay != originalDelay {
-
 				adaptiveAdjustments++
-
 			}
 
 		}
@@ -543,7 +516,6 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 		case <-ctx.Done():
 
 			return &RetryResult{
-
 				Success: false,
 
 				FinalError: ctx.Err(),
@@ -568,7 +540,6 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 	re.updateMetrics(strategyName, false, retryCtx.Attempts, adaptiveAdjustments)
 
 	result := &RetryResult{
-
 		Success: false,
 
 		FinalError: lastError,
@@ -601,17 +572,13 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 	)
 
 	return result, lastError
-
 }
 
 // classifyError classifies an error for retry decision making.
 
 func (re *RetryEngine) classifyError(err error) ErrorClass {
-
 	if err == nil {
-
 		return ErrorClassUnknown
-
 	}
 
 	errorStr := strings.ToLower(err.Error())
@@ -653,13 +620,11 @@ func (re *RetryEngine) classifyError(err error) ErrorClass {
 		return ErrorClassUnknown
 
 	}
-
 }
 
 // applyAdaptiveAdjustment applies adaptive adjustment to the delay.
 
 func (re *RetryEngine) applyAdaptiveAdjustment(baseDelay time.Duration, errorClass ErrorClass, ctx *RetryContext) time.Duration {
-
 	// Adjust delay based on error class.
 
 	multiplier := 1.0
@@ -689,25 +654,19 @@ func (re *RetryEngine) applyAdaptiveAdjustment(baseDelay time.Duration, errorCla
 	// Ensure bounds.
 
 	if adjustedDelay > re.config.MaxDelay {
-
 		adjustedDelay = re.config.MaxDelay
-
 	}
 
 	if adjustedDelay < time.Millisecond {
-
 		adjustedDelay = time.Millisecond
-
 	}
 
 	return adjustedDelay
-
 }
 
 // updateMetrics updates retry metrics.
 
 func (re *RetryEngine) updateMetrics(strategy string, success bool, attempts, adaptiveAdjustments int) {
-
 	re.metrics.mutex.Lock()
 
 	defer re.metrics.mutex.Unlock()
@@ -719,33 +678,25 @@ func (re *RetryEngine) updateMetrics(strategy string, success bool, attempts, ad
 	re.metrics.adaptiveAdjustments += int64(adaptiveAdjustments)
 
 	if success {
-
 		re.metrics.successfulRetries++
-
 	} else {
-
 		re.metrics.failedRetries++
-
 	}
-
 }
 
 // updateErrorClassification updates error classification metrics.
 
 func (re *RetryEngine) updateErrorClassification(errorClass ErrorClass) {
-
 	re.metrics.mutex.Lock()
 
 	defer re.metrics.mutex.Unlock()
 
 	re.metrics.errorClassification[string(errorClass)]++
-
 }
 
 // GetMetrics returns current retry metrics.
 
 func (re *RetryEngine) GetMetrics() RetryEngineMetrics {
-
 	re.metrics.mutex.RLock()
 
 	defer re.metrics.mutex.RUnlock()
@@ -753,21 +704,16 @@ func (re *RetryEngine) GetMetrics() RetryEngineMetrics {
 	strategyUsage := make(map[string]int64)
 
 	for k, v := range re.metrics.strategyUsage {
-
 		strategyUsage[k] = v
-
 	}
 
 	errorClassification := make(map[string]int64)
 
 	for k, v := range re.metrics.errorClassification {
-
 		errorClassification[k] = v
-
 	}
 
 	return RetryEngineMetrics{
-
 		TotalRetries: re.metrics.totalRetries,
 
 		SuccessfulRetries: re.metrics.successfulRetries,
@@ -780,7 +726,6 @@ func (re *RetryEngine) GetMetrics() RetryEngineMetrics {
 
 		ErrorClassification: errorClassification,
 	}
-
 }
 
 // RetryEngineMetrics holds retry engine metrics.
@@ -804,7 +749,6 @@ type RetryEngineMetrics struct {
 // ExponentialBackoffStrategy implementation.
 
 func (s *ExponentialBackoffStrategy) GetDelay(attempt int, lastError error) time.Duration {
-
 	delay := time.Duration(float64(s.baseDelay) * math.Pow(s.multiplier, float64(attempt)))
 
 	if s.jitterEnabled {
@@ -818,91 +762,69 @@ func (s *ExponentialBackoffStrategy) GetDelay(attempt int, lastError error) time
 	}
 
 	if delay > s.maxDelay {
-
 		delay = s.maxDelay
-
 	}
 
 	return delay
-
 }
 
 // ShouldRetry performs shouldretry operation.
 
 func (s *ExponentialBackoffStrategy) ShouldRetry(attempt int, err error) bool {
-
 	return attempt < s.maxRetries
-
 }
 
 // GetName performs getname operation.
 
 func (s *ExponentialBackoffStrategy) GetName() string {
-
 	return "exponential"
-
 }
 
 // LinearBackoffStrategy implementation.
 
 func (s *LinearBackoffStrategy) GetDelay(attempt int, lastError error) time.Duration {
-
 	delay := s.baseDelay + time.Duration(attempt)*s.increment
 
 	if delay > s.maxDelay {
-
 		delay = s.maxDelay
-
 	}
 
 	return delay
-
 }
 
 // ShouldRetry performs shouldretry operation.
 
 func (s *LinearBackoffStrategy) ShouldRetry(attempt int, err error) bool {
-
 	return attempt < s.maxRetries
-
 }
 
 // GetName performs getname operation.
 
 func (s *LinearBackoffStrategy) GetName() string {
-
 	return "linear"
-
 }
 
 // FixedDelayStrategy implementation.
 
 func (s *FixedDelayStrategy) GetDelay(attempt int, lastError error) time.Duration {
-
 	return s.delay
-
 }
 
 // ShouldRetry performs shouldretry operation.
 
 func (s *FixedDelayStrategy) ShouldRetry(attempt int, err error) bool {
-
 	return attempt < s.maxRetries
-
 }
 
 // GetName performs getname operation.
 
 func (s *FixedDelayStrategy) GetName() string {
-
 	return "fixed"
-
 }
 
 // AdaptiveStrategy implementation.
 
 func (s *AdaptiveStrategy) GetDelay(attempt int, lastError error) time.Duration {
-
 	s.mutex.RLock()
 
 	defer s.mutex.RUnlock()
@@ -916,73 +838,53 @@ func (s *AdaptiveStrategy) GetDelay(attempt int, lastError error) time.Duration 
 	multiplier := 1.0
 
 	if successRate < s.engine.adaptiveConfig.FailureThreshold {
-
 		// High failure rate - increase delay.
 
 		multiplier = 2.0
-
 	} else if successRate > s.engine.adaptiveConfig.SuccessThreshold {
-
 		// High success rate - decrease delay.
 
 		multiplier = 0.5
-
 	}
 
 	delay := time.Duration(float64(s.baseDelay) * math.Pow(multiplier, float64(attempt)))
 
 	if delay > s.maxDelay {
-
 		delay = s.maxDelay
-
 	}
 
 	return delay
-
 }
 
 // ShouldRetry performs shouldretry operation.
 
 func (s *AdaptiveStrategy) ShouldRetry(attempt int, err error) bool {
-
 	return attempt < s.maxRetries
-
 }
 
 // GetName performs getname operation.
 
 func (s *AdaptiveStrategy) GetName() string {
-
 	return "adaptive"
-
 }
 
 func (s *AdaptiveStrategy) calculateSuccessRate() float64 {
-
 	if len(s.successHistory) == 0 {
-
 		return 0.5 // Neutral assumption
-
 	}
 
 	successes := 0
 
 	for _, success := range s.successHistory {
-
 		if success {
-
 			successes++
-
 		}
-
 	}
 
 	return float64(successes) / float64(len(s.successHistory))
-
 }
 
 func (s *AdaptiveStrategy) recordResult(success bool) {
-
 	s.mutex.Lock()
 
 	defer s.mutex.Unlock()
@@ -992,17 +894,12 @@ func (s *AdaptiveStrategy) recordResult(success bool) {
 	// Maintain window size.
 
 	if len(s.successHistory) > s.engine.adaptiveConfig.WindowSize {
-
 		s.successHistory = s.successHistory[1:]
-
 	}
-
 }
 
 // Helper functions.
 
 func generateOperationID() string {
-
 	return fmt.Sprintf("op_%d", time.Now().UnixNano())
-
 }

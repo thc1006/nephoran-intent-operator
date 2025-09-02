@@ -44,7 +44,6 @@ import (
 // AdvancedRecoveryManager provides comprehensive error recovery with enhanced patterns.
 
 type AdvancedRecoveryManager struct {
-
 	// Core components.
 
 	errorAggregator *ErrorAggregator
@@ -89,7 +88,6 @@ type AdvancedRecoveryManager struct {
 // AdvancedRecoveryConfig holds comprehensive recovery configuration.
 
 type AdvancedRecoveryConfig struct {
-
 	// Global settings.
 
 	MaxConcurrentRecoveries int `json:"maxConcurrentRecoveries"`
@@ -138,7 +136,6 @@ type AdvancedRecoveryConfig struct {
 // AdvancedRecoveryRequest represents a comprehensive recovery request.
 
 type AdvancedRecoveryRequest struct {
-
 	// Basic information.
 
 	ID string `json:"id"`
@@ -197,7 +194,6 @@ type AdvancedRecoveryCallback func(request *AdvancedRecoveryRequest, result *Adv
 // AdvancedRecoveryResult contains comprehensive recovery results.
 
 type AdvancedRecoveryResult struct {
-
 	// Basic result information.
 
 	Success bool `json:"success"`
@@ -268,7 +264,6 @@ type RecoveryPerformanceMetrics struct {
 // AdvancedRecoveryMetrics tracks comprehensive recovery statistics.
 
 type AdvancedRecoveryMetrics struct {
-
 	// Basic statistics.
 
 	TotalRequests int64 `json:"totalRequests"`
@@ -311,9 +306,7 @@ type AdvancedRecoveryMetrics struct {
 // deepCopy creates a deep copy of AdvancedRecoveryMetrics without copying the mutex.
 
 func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
-
 	metricsCopy := &AdvancedRecoveryMetrics{
-
 		// Basic statistics.
 
 		TotalRequests: arm.TotalRequests,
@@ -346,11 +339,9 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 		metricsCopy.StrategyStats = make(map[RecoveryStrategy]*StrategyMetrics)
 
 		for k, v := range arm.StrategyStats {
-
 			if v != nil {
 
 				metricsCopy.StrategyStats[k] = &StrategyMetrics{
-
 					UsageCount: v.UsageCount,
 
 					SuccessRate: v.SuccessRate,
@@ -363,13 +354,10 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 				// Deep copy failure reasons map.
 
 				for reason, count := range v.FailureReasons {
-
 					metricsCopy.StrategyStats[k].FailureReasons[reason] = count
-
 				}
 
 			}
-
 		}
 
 	}
@@ -381,11 +369,9 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 		metricsCopy.ComponentStats = make(map[string]*ComponentRecoveryStats)
 
 		for k, v := range arm.ComponentStats {
-
 			if v != nil {
 
 				metricsCopy.ComponentStats[k] = &ComponentRecoveryStats{
-
 					RecoveryCount: v.RecoveryCount,
 
 					SuccessRate: v.SuccessRate,
@@ -400,13 +386,10 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 				// Deep copy common errors map.
 
 				for errType, count := range v.CommonErrors {
-
 					metricsCopy.ComponentStats[k].CommonErrors[errType] = count
-
 				}
 
 			}
-
 		}
 
 	}
@@ -416,7 +399,6 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 	if arm.CorrelationStats != nil {
 
 		metricsCopy.CorrelationStats = &CorrelationMetrics{
-
 			CorrelatedGroups: arm.CorrelationStats.CorrelatedGroups,
 
 			AverageGroupSize: arm.CorrelationStats.AverageGroupSize,
@@ -429,9 +411,7 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 		// Deep copy correlation patterns map.
 
 		for pattern, count := range arm.CorrelationStats.CorrelationPatterns {
-
 			metricsCopy.CorrelationStats.CorrelationPatterns[pattern] = count
-
 		}
 
 	}
@@ -439,9 +419,7 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 	// Deep copy resource stats.
 
 	if arm.ResourceStats != nil {
-
 		metricsCopy.ResourceStats = &ResourceUtilizationStats{
-
 			PeakMemoryUsage: arm.ResourceStats.PeakMemoryUsage,
 
 			AverageMemoryUsage: arm.ResourceStats.AverageMemoryUsage,
@@ -454,11 +432,9 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 
 			DiskIO: arm.ResourceStats.DiskIO,
 		}
-
 	}
 
 	return metricsCopy
-
 }
 
 // StrategyMetrics tracks metrics for each recovery strategy.
@@ -612,15 +588,11 @@ type FallbackHandler func(ctx context.Context, originalError error, originalData
 // NewAdvancedRecoveryManager creates a new advanced recovery manager.
 
 func NewAdvancedRecoveryManager(config *AdvancedRecoveryConfig, errorAggregator *ErrorAggregator, logger logr.Logger) *AdvancedRecoveryManager {
-
 	if config == nil {
-
 		config = getDefaultAdvancedRecoveryConfig()
-
 	}
 
 	manager := &AdvancedRecoveryManager{
-
 		errorAggregator: errorAggregator,
 
 		retryExecutors: make(map[string]*RetryExecutor),
@@ -649,7 +621,6 @@ func NewAdvancedRecoveryManager(config *AdvancedRecoveryConfig, errorAggregator 
 	// Initialize sub-managers.
 
 	manager.degradationManager = NewDegradationManager(&DegradationConfig{
-
 		EnableDegradation: true,
 
 		AutoDegradation: true,
@@ -664,21 +635,17 @@ func NewAdvancedRecoveryManager(config *AdvancedRecoveryConfig, errorAggregator 
 	manager.fallbackManager = NewFallbackManager(logger)
 
 	return manager
-
 }
 
 // Start starts the advanced recovery manager.
 
 func (arm *AdvancedRecoveryManager) Start(ctx context.Context) error {
-
 	arm.mutex.Lock()
 
 	defer arm.mutex.Unlock()
 
 	if arm.started {
-
 		return fmt.Errorf("advanced recovery manager already started")
-
 	}
 
 	arm.started = true
@@ -686,9 +653,7 @@ func (arm *AdvancedRecoveryManager) Start(ctx context.Context) error {
 	// Start worker goroutines.
 
 	for i := range arm.config.MaxConcurrentRecoveries {
-
 		go arm.recoveryWorker(ctx, i)
-
 	}
 
 	// Start monitoring.
@@ -706,21 +671,17 @@ func (arm *AdvancedRecoveryManager) Start(ctx context.Context) error {
 		"queueSize", arm.config.QueueSize)
 
 	return nil
-
 }
 
 // Stop stops the advanced recovery manager.
 
 func (arm *AdvancedRecoveryManager) Stop() error {
-
 	arm.mutex.Lock()
 
 	defer arm.mutex.Unlock()
 
 	if !arm.started {
-
 		return nil
-
 	}
 
 	close(arm.stopChan)
@@ -732,17 +693,13 @@ func (arm *AdvancedRecoveryManager) Stop() error {
 	arm.logger.Info("Advanced recovery manager stopped")
 
 	return nil
-
 }
 
 // RequestAdvancedRecovery requests advanced error recovery.
 
 func (arm *AdvancedRecoveryManager) RequestAdvancedRecovery(req *AdvancedRecoveryRequest) error {
-
 	if !arm.started {
-
 		return fmt.Errorf("advanced recovery manager not started")
-
 	}
 
 	req.CreatedAt = time.Now()
@@ -760,17 +717,14 @@ func (arm *AdvancedRecoveryManager) RequestAdvancedRecovery(req *AdvancedRecover
 		return fmt.Errorf("recovery queue full")
 
 	}
-
 }
 
 // recoveryWorker processes recovery requests.
 
 func (arm *AdvancedRecoveryManager) recoveryWorker(ctx context.Context, workerID int) {
-
 	arm.logger.Info("Advanced recovery worker started", "workerId", workerID)
 
 	for {
-
 		select {
 
 		case req := <-arm.recoveryQueue:
@@ -778,13 +732,10 @@ func (arm *AdvancedRecoveryManager) recoveryWorker(ctx context.Context, workerID
 			result := arm.processAdvancedRecoveryRequest(ctx, req)
 
 			if req.Callback != nil {
-
 				req.Callback(req, result)
-
 			}
 
 			if req.ResultChan != nil {
-
 				select {
 
 				case req.ResultChan <- result:
@@ -794,7 +745,6 @@ func (arm *AdvancedRecoveryManager) recoveryWorker(ctx context.Context, workerID
 					arm.logger.Info("Failed to send result to channel", "requestId", req.ID, "warning", true)
 
 				}
-
 			}
 
 			arm.updateAdvancedMetrics(result)
@@ -812,15 +762,12 @@ func (arm *AdvancedRecoveryManager) recoveryWorker(ctx context.Context, workerID
 			return
 
 		}
-
 	}
-
 }
 
 // processAdvancedRecoveryRequest processes a single advanced recovery request.
 
 func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.Context, req *AdvancedRecoveryRequest) *AdvancedRecoveryResult {
-
 	startTime := time.Now()
 
 	now := time.Now()
@@ -846,13 +793,11 @@ func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.C
 	// Initialize result.
 
 	result := &AdvancedRecoveryResult{
-
 		RequestID: req.ID,
 
 		Strategy: req.Strategy,
 
 		Metrics: &RecoveryPerformanceMetrics{
-
 			CustomMetrics: make(map[string]float64),
 		},
 
@@ -919,9 +864,7 @@ func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.C
 
 		var serviceErr *ServiceError
 		if errors.As(recoveryError, &serviceErr) {
-
 			result.ErrorCode = serviceErr.Code
-
 		}
 
 	}
@@ -941,13 +884,11 @@ func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.C
 		"strategy", req.Strategy)
 
 	return result
-
 }
 
 // executeRetryRecovery executes retry-based recovery.
 
 func (arm *AdvancedRecoveryManager) executeRetryRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	retryStart := time.Now()
 
 	// Get or create retry executor for this component.
@@ -957,7 +898,6 @@ func (arm *AdvancedRecoveryManager) executeRetryRecovery(ctx context.Context, re
 	// Create retry operation.
 
 	operation := func() error {
-
 		// Simulate the original operation that failed.
 
 		// In real implementation, this would re-execute the failed operation.
@@ -975,13 +915,10 @@ func (arm *AdvancedRecoveryManager) executeRetryRecovery(ctx context.Context, re
 		// For demonstration, succeed after a few attempts.
 
 		if result.AttemptsUsed >= 2 {
-
 			return nil
-
 		}
 
 		return fmt.Errorf("simulated retry failure")
-
 	}
 
 	// Execute with retry.
@@ -1003,13 +940,11 @@ func (arm *AdvancedRecoveryManager) executeRetryRecovery(ctx context.Context, re
 	}
 
 	return err
-
 }
 
 // executeCircuitBreakerRecovery executes circuit breaker recovery.
 
 func (arm *AdvancedRecoveryManager) executeCircuitBreakerRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	cbStart := time.Now()
 
 	// Get or create circuit breaker for this component.
@@ -1017,7 +952,6 @@ func (arm *AdvancedRecoveryManager) executeCircuitBreakerRecovery(ctx context.Co
 	cb := arm.getCircuitBreaker(req.Component)
 
 	err := cb.Execute(ctx, func() error {
-
 		// Simulate recovery operation.
 
 		time.Sleep(50 * time.Millisecond)
@@ -1025,7 +959,6 @@ func (arm *AdvancedRecoveryManager) executeCircuitBreakerRecovery(ctx context.Co
 		// Circuit breaker allows gradual recovery.
 
 		return nil
-
 	})
 
 	result.Metrics.CircuitBreakerTime = time.Since(cbStart)
@@ -1041,19 +974,15 @@ func (arm *AdvancedRecoveryManager) executeCircuitBreakerRecovery(ctx context.Co
 		result.ComponentHealth[req.Component] = "healthy"
 
 	} else {
-
 		result.ComponentHealth[req.Component] = "degraded"
-
 	}
 
 	return err
-
 }
 
 // executeFallbackRecovery executes fallback recovery.
 
 func (arm *AdvancedRecoveryManager) executeFallbackRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	fallbackStart := time.Now()
 
 	// Get fallback strategy for this component/operation.
@@ -1061,9 +990,7 @@ func (arm *AdvancedRecoveryManager) executeFallbackRecovery(ctx context.Context,
 	fallback := arm.fallbackManager.GetFallback(req.Component, req.Operation)
 
 	if fallback == nil {
-
 		return fmt.Errorf("no fallback strategy found for %s/%s", req.Component, req.Operation)
-
 	}
 
 	// Execute fallback.
@@ -1087,25 +1014,21 @@ func (arm *AdvancedRecoveryManager) executeFallbackRecovery(ctx context.Context,
 	}
 
 	return err
-
 }
 
 // executeBulkheadRecovery executes bulkhead isolation recovery.
 
 func (arm *AdvancedRecoveryManager) executeBulkheadRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	// Get or create bulkhead for this component.
 
 	bulkhead := arm.getBulkhead(req.Component)
 
 	err := bulkhead.Execute(ctx, func() error {
-
 		// Simulate recovery in isolated environment.
 
 		time.Sleep(200 * time.Millisecond)
 
 		return nil
-
 	})
 
 	result.RecoveryPath = append(result.RecoveryPath, "bulkhead")
@@ -1119,49 +1042,39 @@ func (arm *AdvancedRecoveryManager) executeBulkheadRecovery(ctx context.Context,
 	}
 
 	return err
-
 }
 
 // executeTimeoutRecovery executes timeout-based recovery.
 
 func (arm *AdvancedRecoveryManager) executeTimeoutRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	executor := arm.getTimeoutExecutor(req.Component)
 
 	err := executor.ExecuteWithTimeout(ctx, req.Timeout, func(timeoutCtx context.Context) error {
-
 		// Simulate recovery operation with timeout.
 
 		time.Sleep(500 * time.Millisecond)
 
 		return nil
-
 	})
 
 	result.RecoveryPath = append(result.RecoveryPath, "timeout")
 
 	if err == nil {
-
 		result.Data["timeout_recovery"] = true
-
 	}
 
 	return err
-
 }
 
 // executeRateLimitRecovery executes rate-limited recovery.
 
 func (arm *AdvancedRecoveryManager) executeRateLimitRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	rateLimiter := arm.getRateLimiter(req.Component)
 
 	// Check if we can proceed with recovery.
 
 	if !rateLimiter.Allow() {
-
 		return fmt.Errorf("rate limit exceeded for component: %s", req.Component)
-
 	}
 
 	// Simulate recovery operation.
@@ -1173,23 +1086,18 @@ func (arm *AdvancedRecoveryManager) executeRateLimitRecovery(ctx context.Context
 	result.Data["rate_limited"] = true
 
 	return nil
-
 }
 
 // executeDegradationRecovery executes graceful degradation recovery.
 
 func (arm *AdvancedRecoveryManager) executeDegradationRecovery(ctx context.Context, req *AdvancedRecoveryRequest, result *AdvancedRecoveryResult) error {
-
 	// Apply degradation level based on error severity.
 
 	level := arm.degradationManager.CalculateDegradationLevel(req.Error)
 
 	err := arm.degradationManager.ApplyDegradation(req.Component, level)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to apply degradation: %w", err)
-
 	}
 
 	result.RecoveryPath = append(result.RecoveryPath, "degradation")
@@ -1201,13 +1109,11 @@ func (arm *AdvancedRecoveryManager) executeDegradationRecovery(ctx context.Conte
 	result.RecoveredState["degradation_active"] = true
 
 	return nil
-
 }
 
 // Helper methods for getting/creating recovery components.
 
 func (arm *AdvancedRecoveryManager) getRetryExecutor(component string, strategy RecoveryStrategy) *RetryExecutor {
-
 	key := fmt.Sprintf("%s-%s", component, strategy)
 
 	arm.mutex.RLock()
@@ -1227,9 +1133,7 @@ func (arm *AdvancedRecoveryManager) getRetryExecutor(component string, strategy 
 	defer arm.mutex.Unlock()
 
 	if executor, exists := arm.retryExecutors[key]; exists {
-
 		return executor
-
 	}
 
 	// Create new retry executor.
@@ -1241,11 +1145,9 @@ func (arm *AdvancedRecoveryManager) getRetryExecutor(component string, strategy 
 	arm.retryExecutors[key] = executor
 
 	return executor
-
 }
 
 func (arm *AdvancedRecoveryManager) getCircuitBreaker(component string) *CircuitBreaker {
-
 	arm.mutex.RLock()
 
 	if cb, exists := arm.circuitBreakers[component]; exists {
@@ -1263,9 +1165,7 @@ func (arm *AdvancedRecoveryManager) getCircuitBreaker(component string) *Circuit
 	defer arm.mutex.Unlock()
 
 	if cb, exists := arm.circuitBreakers[component]; exists {
-
 		return cb
-
 	}
 
 	config := DefaultCircuitBreakerConfig(component)
@@ -1275,11 +1175,9 @@ func (arm *AdvancedRecoveryManager) getCircuitBreaker(component string) *Circuit
 	arm.circuitBreakers[component] = cb
 
 	return cb
-
 }
 
 func (arm *AdvancedRecoveryManager) getBulkhead(component string) *Bulkhead {
-
 	arm.mutex.RLock()
 
 	if bulkhead, exists := arm.bulkheads[component]; exists {
@@ -1297,9 +1195,7 @@ func (arm *AdvancedRecoveryManager) getBulkhead(component string) *Bulkhead {
 	defer arm.mutex.Unlock()
 
 	if bulkhead, exists := arm.bulkheads[component]; exists {
-
 		return bulkhead
-
 	}
 
 	config := DefaultBulkheadConfig(component)
@@ -1309,11 +1205,9 @@ func (arm *AdvancedRecoveryManager) getBulkhead(component string) *Bulkhead {
 	arm.bulkheads[component] = bulkhead
 
 	return bulkhead
-
 }
 
 func (arm *AdvancedRecoveryManager) getTimeoutExecutor(component string) *TimeoutExecutor {
-
 	arm.mutex.RLock()
 
 	if executor, exists := arm.timeoutExecutors[component]; exists {
@@ -1331,9 +1225,7 @@ func (arm *AdvancedRecoveryManager) getTimeoutExecutor(component string) *Timeou
 	defer arm.mutex.Unlock()
 
 	if executor, exists := arm.timeoutExecutors[component]; exists {
-
 		return executor
-
 	}
 
 	config := DefaultTimeoutConfig()
@@ -1343,11 +1235,9 @@ func (arm *AdvancedRecoveryManager) getTimeoutExecutor(component string) *Timeou
 	arm.timeoutExecutors[component] = executor
 
 	return executor
-
 }
 
 func (arm *AdvancedRecoveryManager) getRateLimiter(component string) *RateLimiter {
-
 	arm.mutex.RLock()
 
 	if limiter, exists := arm.rateLimiters[component]; exists {
@@ -1365,9 +1255,7 @@ func (arm *AdvancedRecoveryManager) getRateLimiter(component string) *RateLimite
 	defer arm.mutex.Unlock()
 
 	if limiter, exists := arm.rateLimiters[component]; exists {
-
 		return limiter
-
 	}
 
 	limiter := NewRateLimiter(component, 10, 20, arm.logger) // 10 tokens/sec, burst of 20
@@ -1375,15 +1263,12 @@ func (arm *AdvancedRecoveryManager) getRateLimiter(component string) *RateLimite
 	arm.rateLimiters[component] = limiter
 
 	return limiter
-
 }
 
 // monitor performs periodic monitoring and maintenance.
 
 func (arm *AdvancedRecoveryManager) monitor(ctx context.Context) {
-
 	for {
-
 		select {
 
 		case <-arm.monitoringTicker.C:
@@ -1399,21 +1284,17 @@ func (arm *AdvancedRecoveryManager) monitor(ctx context.Context) {
 			return
 
 		}
-
 	}
-
 }
 
 // healthChecker performs periodic health checks.
 
 func (arm *AdvancedRecoveryManager) healthChecker(ctx context.Context) {
-
 	ticker := time.NewTicker(arm.config.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -1429,15 +1310,12 @@ func (arm *AdvancedRecoveryManager) healthChecker(ctx context.Context) {
 			return
 
 		}
-
 	}
-
 }
 
 // performMaintenance performs periodic maintenance.
 
 func (arm *AdvancedRecoveryManager) performMaintenance() {
-
 	// Update metrics.
 
 	arm.updateSystemMetrics()
@@ -1449,9 +1327,7 @@ func (arm *AdvancedRecoveryManager) performMaintenance() {
 	// Check for cascading failures.
 
 	if arm.config.CascadeProtectionEnabled {
-
 		arm.checkCascadingFailures()
-
 	}
 
 	arm.logger.Info("Maintenance completed",
@@ -1459,13 +1335,11 @@ func (arm *AdvancedRecoveryManager) performMaintenance() {
 		"totalRequests", atomic.LoadInt64(&arm.metrics.TotalRequests),
 
 		"successfulRecoveries", atomic.LoadInt64(&arm.metrics.SuccessfulRecoveries))
-
 }
 
 // performHealthChecks performs health checks on components.
 
 func (arm *AdvancedRecoveryManager) performHealthChecks() {
-
 	// Check circuit breaker health.
 
 	arm.mutex.RLock()
@@ -1475,9 +1349,7 @@ func (arm *AdvancedRecoveryManager) performHealthChecks() {
 		state := cb.GetState()
 
 		if state == CircuitBreakerOpen {
-
 			arm.logger.Info("Circuit breaker is open", "component", name, "warning", true)
-
 		}
 
 	}
@@ -1493,44 +1365,33 @@ func (arm *AdvancedRecoveryManager) performHealthChecks() {
 		metrics := bulkhead.GetMetrics()
 
 		if active, ok := metrics["active"].(int64); ok && active > 0 {
-
 			arm.logger.Info("Bulkhead utilization", "component", name, "active", active)
-
 		}
 
 	}
 
 	arm.mutex.RUnlock()
-
 }
 
 // updateAdvancedMetrics updates recovery metrics.
 
 func (arm *AdvancedRecoveryManager) updateAdvancedMetrics(result *AdvancedRecoveryResult) {
-
 	arm.metrics.mutex.Lock()
 
 	defer arm.metrics.mutex.Unlock()
 
 	if result.Success {
-
 		atomic.AddInt64(&arm.metrics.SuccessfulRecoveries, 1)
-
 	} else {
-
 		atomic.AddInt64(&arm.metrics.FailedRecoveries, 1)
-
 	}
 
 	// Update strategy metrics.
 
 	if _, exists := arm.metrics.StrategyStats[result.Strategy]; !exists {
-
 		arm.metrics.StrategyStats[result.Strategy] = &StrategyMetrics{
-
 			FailureReasons: make(map[string]int64),
 		}
-
 	}
 
 	strategyMetrics := arm.metrics.StrategyStats[result.Strategy]
@@ -1538,11 +1399,9 @@ func (arm *AdvancedRecoveryManager) updateAdvancedMetrics(result *AdvancedRecove
 	strategyMetrics.UsageCount++
 
 	if result.Success {
-
 		strategyMetrics.SuccessRate = float64(atomic.LoadInt64(&arm.metrics.SuccessfulRecoveries)) /
 
 			float64(atomic.LoadInt64(&arm.metrics.TotalRequests))
-
 	}
 
 	// Update average latency.
@@ -1560,13 +1419,11 @@ func (arm *AdvancedRecoveryManager) updateAdvancedMetrics(result *AdvancedRecove
 	}
 
 	arm.metrics.LastUpdated = time.Now()
-
 }
 
 // updateSystemMetrics updates system-wide metrics.
 
 func (arm *AdvancedRecoveryManager) updateSystemMetrics() {
-
 	// This would collect system metrics like memory usage, CPU usage, etc.
 
 	// For demonstration purposes, we'll use placeholder values.
@@ -1576,9 +1433,7 @@ func (arm *AdvancedRecoveryManager) updateSystemMetrics() {
 	defer arm.metrics.mutex.Unlock()
 
 	if arm.metrics.ResourceStats == nil {
-
 		arm.metrics.ResourceStats = &ResourceUtilizationStats{}
-
 	}
 
 	// Simulate collecting resource metrics.
@@ -1586,37 +1441,31 @@ func (arm *AdvancedRecoveryManager) updateSystemMetrics() {
 	arm.metrics.ResourceStats.AverageMemoryUsage = 1024 * 1024 * 100 // 100MB
 
 	arm.metrics.ResourceStats.AverageCPUUsage = 0.15 // 15%
-
 }
 
 // cleanupExpiredResources cleans up expired recovery resources.
 
 func (arm *AdvancedRecoveryManager) cleanupExpiredResources() {
-
 	// Clean up old metrics, expired circuit breakers, etc.
 
 	// This is a placeholder for actual cleanup logic.
 
 	arm.logger.Info("Cleanup completed")
-
 }
 
 // checkCascadingFailures checks for cascading failure patterns.
 
 func (arm *AdvancedRecoveryManager) checkCascadingFailures() {
-
 	// Analyze error patterns to detect cascading failures.
 
 	// This would implement sophisticated correlation analysis.
 
 	arm.logger.Info("Cascade check completed")
-
 }
 
 // GetAdvancedMetrics returns comprehensive recovery metrics.
 
 func (arm *AdvancedRecoveryManager) GetAdvancedMetrics() *AdvancedRecoveryMetrics {
-
 	arm.metrics.mutex.RLock()
 
 	defer arm.metrics.mutex.RUnlock()
@@ -1624,7 +1473,6 @@ func (arm *AdvancedRecoveryManager) GetAdvancedMetrics() *AdvancedRecoveryMetric
 	// Return a copy of metrics without copying the mutex.
 
 	return arm.metrics.deepCopy()
-
 }
 
 // Helper functions and supporting types.
@@ -1632,9 +1480,7 @@ func (arm *AdvancedRecoveryManager) GetAdvancedMetrics() *AdvancedRecoveryMetric
 // NewRateLimiter creates a new token bucket rate limiter.
 
 func NewRateLimiter(name string, rate, capacity float64, logger logr.Logger) *RateLimiter {
-
 	return &RateLimiter{
-
 		name: name,
 
 		rate: rate,
@@ -1647,13 +1493,11 @@ func NewRateLimiter(name string, rate, capacity float64, logger logr.Logger) *Ra
 
 		logger: logger,
 	}
-
 }
 
 // Allow checks if a request can proceed.
 
 func (rl *RateLimiter) Allow() bool {
-
 	rl.mutex.Lock()
 
 	defer rl.mutex.Unlock()
@@ -1667,9 +1511,7 @@ func (rl *RateLimiter) Allow() bool {
 	rl.tokens += elapsed * rl.rate
 
 	if rl.tokens > rl.capacity {
-
 		rl.tokens = rl.capacity
-
 	}
 
 	rl.lastRefill = now
@@ -1683,15 +1525,12 @@ func (rl *RateLimiter) Allow() bool {
 	}
 
 	return false
-
 }
 
 // NewDegradationManager creates a new degradation manager.
 
 func NewDegradationManager(config *DegradationConfig, logger logr.Logger) *DegradationManager {
-
 	return &DegradationManager{
-
 		config: config,
 
 		degradationLevels: make(map[string]*DegradationLevel),
@@ -1700,13 +1539,11 @@ func NewDegradationManager(config *DegradationConfig, logger logr.Logger) *Degra
 
 		logger: logger,
 	}
-
 }
 
 // CalculateDegradationLevel calculates appropriate degradation level for an error.
 
 func (dm *DegradationManager) CalculateDegradationLevel(err *ProcessingError) int {
-
 	switch err.Severity {
 
 	case SeverityCritical:
@@ -1726,13 +1563,11 @@ func (dm *DegradationManager) CalculateDegradationLevel(err *ProcessingError) in
 		return 0 // No degradation
 
 	}
-
 }
 
 // ApplyDegradation applies degradation to a component.
 
 func (dm *DegradationManager) ApplyDegradation(component string, level int) error {
-
 	dm.mutex.Lock()
 
 	defer dm.mutex.Unlock()
@@ -1742,13 +1577,11 @@ func (dm *DegradationManager) ApplyDegradation(component string, level int) erro
 	dm.logger.Info("Applied degradation", "component", component, "level", level)
 
 	return nil
-
 }
 
 // GetDegradedFeatures returns features that are degraded for a component.
 
 func (dm *DegradationManager) GetDegradedFeatures(component string) []string {
-
 	dm.mutex.RLock()
 
 	defer dm.mutex.RUnlock()
@@ -1756,9 +1589,7 @@ func (dm *DegradationManager) GetDegradedFeatures(component string) []string {
 	level, exists := dm.currentLevels[component]
 
 	if !exists || level == 0 {
-
 		return []string{}
-
 	}
 
 	// Return features based on degradation level.
@@ -1782,15 +1613,12 @@ func (dm *DegradationManager) GetDegradedFeatures(component string) []string {
 		return []string{}
 
 	}
-
 }
 
 // NewFallbackManager creates a new fallback manager.
 
 func NewFallbackManager(logger logr.Logger) *FallbackManager {
-
 	manager := &FallbackManager{
-
 		fallbacks: make(map[string]*FallbackStrategy),
 
 		logger: logger,
@@ -1801,17 +1629,14 @@ func NewFallbackManager(logger logr.Logger) *FallbackManager {
 	manager.registerDefaultFallbacks()
 
 	return manager
-
 }
 
 // registerDefaultFallbacks registers default fallback strategies.
 
 func (fm *FallbackManager) registerDefaultFallbacks() {
-
 	// Default LLM fallback.
 
 	fm.RegisterFallback(&FallbackStrategy{
-
 		Name: "llm_simple_response",
 
 		Component: "llm_processor",
@@ -1819,14 +1644,11 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "process_intent",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-
 			return map[string]interface{}{
-
 				"fallback": true,
 
 				"message": "Using simplified processing due to service degradation",
 			}, nil
-
 		},
 
 		Priority: 1,
@@ -1837,7 +1659,6 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 	// Default RAG fallback.
 
 	fm.RegisterFallback(&FallbackStrategy{
-
 		Name: "rag_cached_response",
 
 		Component: "rag_service",
@@ -1845,27 +1666,22 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "query",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-
 			return map[string]interface{}{
-
 				"fallback": true,
 
 				"cached_data": "Using cached knowledge base results",
 			}, nil
-
 		},
 
 		Priority: 1,
 
 		Timeout: 3 * time.Second,
 	})
-
 }
 
 // RegisterFallback registers a fallback strategy.
 
 func (fm *FallbackManager) RegisterFallback(strategy *FallbackStrategy) {
-
 	fm.mutex.Lock()
 
 	defer fm.mutex.Unlock()
@@ -1881,13 +1697,11 @@ func (fm *FallbackManager) RegisterFallback(strategy *FallbackStrategy) {
 		"component", strategy.Component,
 
 		"operation", strategy.Operation)
-
 }
 
 // GetFallback gets a fallback strategy.
 
 func (fm *FallbackManager) GetFallback(component, operation string) *FallbackStrategy {
-
 	fm.mutex.RLock()
 
 	defer fm.mutex.RUnlock()
@@ -1895,15 +1709,12 @@ func (fm *FallbackManager) GetFallback(component, operation string) *FallbackStr
 	key := fmt.Sprintf("%s_%s", component, operation)
 
 	return fm.fallbacks[key]
-
 }
 
 // NewAdvancedRecoveryMetrics creates new advanced recovery metrics.
 
 func NewAdvancedRecoveryMetrics() *AdvancedRecoveryMetrics {
-
 	return &AdvancedRecoveryMetrics{
-
 		StrategyStats: make(map[RecoveryStrategy]*StrategyMetrics),
 
 		ComponentStats: make(map[string]*ComponentRecoveryStats),
@@ -1912,15 +1723,12 @@ func NewAdvancedRecoveryMetrics() *AdvancedRecoveryMetrics {
 
 		ResourceStats: &ResourceUtilizationStats{},
 	}
-
 }
 
 // getDefaultAdvancedRecoveryConfig returns default advanced recovery configuration.
 
 func getDefaultAdvancedRecoveryConfig() *AdvancedRecoveryConfig {
-
 	return &AdvancedRecoveryConfig{
-
 		MaxConcurrentRecoveries: 10,
 
 		RecoveryTimeout: 5 * time.Minute,
@@ -1954,5 +1762,4 @@ func getDefaultAdvancedRecoveryConfig() *AdvancedRecoveryConfig {
 		MaxCPUUsage: 0.8, // 80%
 
 	}
-
 }

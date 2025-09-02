@@ -278,7 +278,6 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow
 
 	// Process with potential for errors
 	_, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
-
 	// Even if some errors occurred, the system should handle them gracefully
 	if err != nil {
 		suite.T().Logf("Workflow completed with errors: %v", err)

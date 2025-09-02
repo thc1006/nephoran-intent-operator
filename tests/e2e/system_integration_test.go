@@ -44,7 +44,7 @@ func (s *E2ETestSuite) SetupSuite() {
 	s.tempDir = s.T().TempDir()
 	s.handoffDir = filepath.Join(s.tempDir, "handoff")
 
-	err := os.MkdirAll(s.handoffDir, 0755)
+	err := os.MkdirAll(s.handoffDir, 0o755)
 	s.Require().NoError(err)
 
 	// Setup schema file
@@ -312,7 +312,7 @@ func (s *E2ETestSuite) TestServiceRecovery() {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		// Simulate temporary file system issue by making handoff directory read-only
-		err = os.Chmod(s.handoffDir, 0444)
+		err = os.Chmod(s.handoffDir, 0o444)
 		require.NoError(t, err)
 
 		// Send request during "failure"
@@ -322,7 +322,7 @@ func (s *E2ETestSuite) TestServiceRecovery() {
 		// Should handle gracefully (may return error status)
 
 		// Restore directory permissions
-		err = os.Chmod(s.handoffDir, 0755)
+		err = os.Chmod(s.handoffDir, 0o755)
 		require.NoError(t, err)
 
 		// Verify service recovers
@@ -470,7 +470,7 @@ func (s *E2ETestSuite) createTestSchema() {
 	schemaData, err := json.MarshalIndent(schema, "", "  ")
 	s.Require().NoError(err)
 
-	err = os.WriteFile(schemaFile, schemaData, 0644)
+	err = os.WriteFile(schemaFile, schemaData, 0o644)
 	s.Require().NoError(err)
 }
 

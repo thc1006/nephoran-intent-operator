@@ -357,66 +357,48 @@ type LifecycleHook struct {
 // NewSMOManager creates a new SMO manager.
 
 func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("SMO configuration is required")
-
 	}
 
 	// Set defaults.
 
 	if config.APIVersion == "" {
-
 		config.APIVersion = "v1"
-
 	}
 
 	if config.RetryCount == 0 {
-
 		config.RetryCount = 3
-
 	}
 
 	if config.RetryDelay == 0 {
-
 		config.RetryDelay = 2 * time.Second
-
 	}
 
 	if config.Timeout == 0 {
-
 		config.Timeout = 30 * time.Second
-
 	}
 
 	if config.HealthCheckPath == "" {
-
 		config.HealthCheckPath = "/health"
-
 	}
 
 	httpClient := &http.Client{
-
 		Timeout: config.Timeout,
 	}
 
 	// Configure TLS if provided.
 
 	if config.TLSConfig != nil {
-
 		// TLS configuration would be applied here.
-
 	}
 
 	smoClient := &SMOClient{
-
 		baseURL: config.Endpoint,
 
 		httpClient: httpClient,
 
 		auth: &AuthConfig{
-
 			Type: "basic",
 
 			Username: config.Username,
@@ -428,13 +410,11 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 	}
 
 	manager := &SMOManager{
-
 		config: config,
 
 		httpClient: httpClient,
 
 		policyManager: &PolicyManager{
-
 			smoClient: smoClient,
 
 			policies: make(map[string]*A1Policy),
@@ -447,7 +427,6 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 		},
 
 		serviceRegistry: &ServiceRegistry{
-
 			smoClient: smoClient,
 
 			registeredServices: make(map[string]*ServiceInstance),
@@ -458,7 +437,6 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 		},
 
 		orchestrator: &ServiceOrchestrator{
-
 			smoClient: smoClient,
 
 			rApps: make(map[string]*RAppInstance),
@@ -470,13 +448,11 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 	}
 
 	return manager, nil
-
 }
 
 // Start starts the SMO manager.
 
 func (sm *SMOManager) Start(ctx context.Context) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("starting SMO manager", "endpoint", sm.config.Endpoint)
@@ -484,9 +460,7 @@ func (sm *SMOManager) Start(ctx context.Context) error {
 	// Test connection to SMO.
 
 	if err := sm.testConnection(ctx); err != nil {
-
 		return fmt.Errorf("failed to connect to SMO: %w", err)
-
 	}
 
 	sm.mu.Lock()
@@ -506,13 +480,11 @@ func (sm *SMOManager) Start(ctx context.Context) error {
 	logger.Info("SMO manager started successfully")
 
 	return nil
-
 }
 
 // Stop stops the SMO manager.
 
 func (sm *SMOManager) Stop() {
-
 	sm.mu.Lock()
 
 	defer sm.mu.Unlock()
@@ -522,73 +494,54 @@ func (sm *SMOManager) Stop() {
 	// Stop health checkers.
 
 	for _, checker := range sm.serviceRegistry.healthCheckers {
-
 		close(checker.stopCh)
-
 	}
-
 }
 
 // testConnection tests connection to SMO.
 
 func (sm *SMOManager) testConnection(ctx context.Context) error {
-
 	url := fmt.Sprintf("%s%s", sm.config.Endpoint, sm.config.HealthCheckPath)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	// Add authentication.
 
 	if sm.config.Username != "" && sm.config.Password != "" {
-
 		req.SetBasicAuth(sm.config.Username, sm.config.Password)
-
 	}
 
 	// Add extra headers.
 
 	for key, value := range sm.config.ExtraHeaders {
-
 		req.Header.Set(key, value)
-
 	}
 
 	resp, err := sm.httpClient.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("connection test failed: %w", err)
-
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-
 		return fmt.Errorf("SMO health check failed with status: %d", resp.StatusCode)
-
 	}
 
 	return nil
-
 }
 
 // IsConnected returns true if connected to SMO.
 
 func (sm *SMOManager) IsConnected() bool {
-
 	sm.mu.RLock()
 
 	defer sm.mu.RUnlock()
 
 	return sm.connected
-
 }
 
 // Policy Management Methods.
@@ -596,7 +549,6 @@ func (sm *SMOManager) IsConnected() bool {
 // CreatePolicy creates a new A1 policy.
 
 func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("creating A1 policy", "policyID", policy.ID, "typeID", policy.TypeID)
@@ -604,9 +556,7 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 	// Validate policy type exists.
 
 	if _, exists := pm.policyTypes[policy.TypeID]; !exists {
-
 		return fmt.Errorf("policy type %s not found", policy.TypeID)
-
 	}
 
 	// Set timestamps.
@@ -622,9 +572,7 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 	url := fmt.Sprintf("%s/api/%s/policies", pm.smoClient.baseURL, "v1")
 
 	if err := pm.smoClient.post(ctx, url, policy, nil); err != nil {
-
 		return fmt.Errorf("failed to create policy via SMO: %w", err)
-
 	}
 
 	pm.mu.Lock()
@@ -636,13 +584,11 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 	logger.Info("A1 policy created successfully", "policyID", policy.ID)
 
 	return nil
-
 }
 
 // UpdatePolicy updates an existing A1 policy.
 
 func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, updates map[string]interface{}) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("updating A1 policy", "policyID", policyID)
@@ -662,35 +608,27 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 	// Apply updates.
 
 	for key, value := range updates {
-
 		switch key {
 
 		case "data":
 
 			if data, ok := value.(map[string]interface{}); ok {
-
 				policy.Data = data
-
 			}
 
 		case "status":
 
 			if status, ok := value.(string); ok {
-
 				policy.Status = status
-
 			}
 
 		case "description":
 
 			if description, ok := value.(string); ok {
-
 				policy.Description = description
-
 			}
 
 		}
-
 	}
 
 	policy.UpdatedAt = time.Now()
@@ -702,21 +640,17 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 	url := fmt.Sprintf("%s/api/%s/policies/%s", pm.smoClient.baseURL, "v1", policyID)
 
 	if err := pm.smoClient.put(ctx, url, policy, nil); err != nil {
-
 		return fmt.Errorf("failed to update policy via SMO: %w", err)
-
 	}
 
 	logger.Info("A1 policy updated successfully", "policyID", policyID)
 
 	return nil
-
 }
 
 // DeletePolicy deletes an A1 policy.
 
 func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("deleting A1 policy", "policyID", policyID)
@@ -740,21 +674,17 @@ func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) erro
 	url := fmt.Sprintf("%s/api/%s/policies/%s", pm.smoClient.baseURL, "v1", policyID)
 
 	if err := pm.smoClient.delete(ctx, url); err != nil {
-
 		return fmt.Errorf("failed to delete policy via SMO: %w", err)
-
 	}
 
 	logger.Info("A1 policy deleted successfully", "policyID", policyID)
 
 	return nil
-
 }
 
 // GetPolicy retrieves an A1 policy.
 
 func (pm *PolicyManager) GetPolicy(policyID string) (*A1Policy, error) {
-
 	pm.mu.RLock()
 
 	defer pm.mu.RUnlock()
@@ -762,19 +692,15 @@ func (pm *PolicyManager) GetPolicy(policyID string) (*A1Policy, error) {
 	policy, exists := pm.policies[policyID]
 
 	if !exists {
-
 		return nil, fmt.Errorf("policy %s not found", policyID)
-
 	}
 
 	return policy, nil
-
 }
 
 // ListPolicies lists all A1 policies.
 
 func (pm *PolicyManager) ListPolicies() []*A1Policy {
-
 	pm.mu.RLock()
 
 	defer pm.mu.RUnlock()
@@ -782,21 +708,16 @@ func (pm *PolicyManager) ListPolicies() []*A1Policy {
 	policies := make([]*A1Policy, 0, len(pm.policies))
 
 	for _, policy := range pm.policies {
-
 		policies = append(policies, policy)
-
 	}
 
 	return policies
-
 }
 
 // SubscribeToPolicyEvents subscribes to policy events.
 
 func (pm *PolicyManager) SubscribeToPolicyEvents(ctx context.Context, policyID string, events []string, callback func(*PolicyEvent)) (*PolicySubscription, error) {
-
 	subscription := &PolicySubscription{
-
 		ID: fmt.Sprintf("sub-%s-%d", policyID, time.Now().Unix()),
 
 		PolicyID: policyID,
@@ -819,19 +740,16 @@ func (pm *PolicyManager) SubscribeToPolicyEvents(ctx context.Context, policyID s
 	pm.mu.Unlock()
 
 	return subscription, nil
-
 }
 
 // startEventMonitoring starts policy event monitoring.
 
 func (pm *PolicyManager) startEventMonitoring(ctx context.Context) {
-
 	ticker := time.NewTicker(10 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -845,15 +763,12 @@ func (pm *PolicyManager) startEventMonitoring(ctx context.Context) {
 			pm.pollPolicyEvents(ctx)
 
 		}
-
 	}
-
 }
 
 // pollPolicyEvents polls for policy events.
 
 func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
-
 	// This is a simplified implementation.
 
 	// In a real SMO integration, this would subscribe to actual events.
@@ -863,9 +778,7 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 	var events []*PolicyEvent
 
 	if err := pm.smoClient.get(ctx, url, &events); err != nil {
-
 		return // Silently continue on error
-
 	}
 
 	for _, event := range events {
@@ -873,33 +786,24 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 		pm.mu.RLock()
 
 		for _, subscription := range pm.subscriptions {
-
 			if subscription.PolicyID == event.PolicyID {
-
 				for _, eventType := range subscription.Events {
-
 					if eventType == event.Type || eventType == "*" {
 
 						if callback := pm.eventCallbacks[subscription.ID]; callback != nil {
-
 							go callback(event)
-
 						}
 
 						break
 
 					}
-
 				}
-
 			}
-
 		}
 
 		pm.mu.RUnlock()
 
 	}
-
 }
 
 // Service Registry Methods.
@@ -907,7 +811,6 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 // RegisterService registers a service with SMO.
 
 func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *ServiceInstance) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("registering service with SMO", "serviceID", service.ID, "name", service.Name)
@@ -923,9 +826,7 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 	url := fmt.Sprintf("%s/api/%s/services", sr.smoClient.baseURL, "v1")
 
 	if err := sr.smoClient.post(ctx, url, service, nil); err != nil {
-
 		return fmt.Errorf("failed to register service with SMO: %w", err)
-
 	}
 
 	sr.mu.Lock()
@@ -937,57 +838,44 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 	// Start health checking if enabled.
 
 	if service.HealthCheck != nil && service.HealthCheck.Enabled {
-
 		sr.startServiceHealthCheck(service)
-
 	}
 
 	logger.Info("service registered successfully", "serviceID", service.ID)
 
 	return nil
-
 }
 
 // DiscoverServices discovers services from SMO.
 
 func (sr *ServiceRegistry) DiscoverServices(ctx context.Context, serviceType string) ([]*ServiceInstance, error) {
-
 	url := fmt.Sprintf("%s/api/%s/services", sr.smoClient.baseURL, "v1")
 
 	if serviceType != "" {
-
 		url = fmt.Sprintf("%s?type=%s", url, serviceType)
-
 	}
 
 	var services []*ServiceInstance
 
 	if err := sr.smoClient.get(ctx, url, &services); err != nil {
-
 		return nil, fmt.Errorf("failed to discover services: %w", err)
-
 	}
 
 	sr.mu.Lock()
 
 	for _, service := range services {
-
 		sr.discoveredServices[service.ID] = service
-
 	}
 
 	sr.mu.Unlock()
 
 	return services, nil
-
 }
 
 // startServiceHealthCheck starts health checking for a service.
 
 func (sr *ServiceRegistry) startServiceHealthCheck(service *ServiceInstance) {
-
 	checker := &ServiceHealthChecker{
-
 		serviceID: service.ID,
 
 		config: service.HealthCheck,
@@ -1006,19 +894,16 @@ func (sr *ServiceRegistry) startServiceHealthCheck(service *ServiceInstance) {
 	sr.mu.Unlock()
 
 	go checker.start()
-
 }
 
 // startHealthChecking starts the health checking routine.
 
 func (sr *ServiceRegistry) startHealthChecking(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1032,15 +917,12 @@ func (sr *ServiceRegistry) startHealthChecking(ctx context.Context) {
 			sr.updateServiceHeartbeats(ctx)
 
 		}
-
 	}
-
 }
 
 // updateServiceHeartbeats updates service heartbeats.
 
 func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
-
 	sr.mu.Lock()
 
 	defer sr.mu.Unlock()
@@ -1058,25 +940,20 @@ func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 			service.Status = "ACTIVE"
 
 		} else {
-
 			service.Status = "INACTIVE"
-
 		}
 
 	}
-
 }
 
 // start starts the health checker.
 
 func (hc *ServiceHealthChecker) start() {
-
 	ticker := time.NewTicker(hc.config.Interval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-hc.stopCh:
@@ -1088,15 +965,12 @@ func (hc *ServiceHealthChecker) start() {
 			hc.performHealthCheck()
 
 		}
-
 	}
-
 }
 
 // performHealthCheck performs a health check.
 
 func (hc *ServiceHealthChecker) performHealthCheck() {
-
 	// This would implement actual health checking logic.
 
 	// For now, we'll simulate a successful check.
@@ -1104,7 +978,6 @@ func (hc *ServiceHealthChecker) performHealthCheck() {
 	hc.lastCheck = time.Now()
 
 	hc.status = "HEALTHY"
-
 }
 
 // Service Orchestrator Methods.
@@ -1112,7 +985,6 @@ func (hc *ServiceHealthChecker) performHealthCheck() {
 // DeployRApp deploys an rApp.
 
 func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstance) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("deploying rApp", "rAppID", rApp.ID, "name", rApp.Name)
@@ -1124,9 +996,7 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 	// Execute pre-start lifecycle hooks.
 
 	if rApp.Lifecycle != nil {
-
 		for _, hook := range rApp.Lifecycle.PreStart {
-
 			if err := so.executeLifecycleHook(ctx, &hook, rApp); err != nil {
 
 				logger.Error(err, "pre-start hook failed", "hook", hook.Name)
@@ -1136,9 +1006,7 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 				return fmt.Errorf("pre-start hook failed: %w", err)
 
 			}
-
 		}
-
 	}
 
 	// Call SMO API to deploy rApp.
@@ -1168,29 +1036,21 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 	// Execute post-start lifecycle hooks.
 
 	if rApp.Lifecycle != nil {
-
 		for _, hook := range rApp.Lifecycle.PostStart {
-
 			if err := so.executeLifecycleHook(ctx, &hook, rApp); err != nil {
-
 				logger.Error(err, "post-start hook failed", "hook", hook.Name)
-
 			}
-
 		}
-
 	}
 
 	logger.Info("rApp deployed successfully", "rAppID", rApp.ID)
 
 	return nil
-
 }
 
 // executeLifecycleHook executes a lifecycle hook.
 
 func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *LifecycleHook, rApp *RAppInstance) error {
-
 	logger := log.FromContext(ctx)
 
 	logger.Info("executing lifecycle hook", "hook", hook.Name, "type", hook.Type)
@@ -1210,29 +1070,21 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 		if endpoint, ok := hook.Params["endpoint"].(string); ok {
 
 			req, err := http.NewRequestWithContext(ctx, "POST", endpoint, http.NoBody)
-
 			if err != nil {
-
 				return err
-
 			}
 
 			client := &http.Client{Timeout: hook.Timeout}
 
 			resp, err := client.Do(req)
-
 			if err != nil {
-
 				return err
-
 			}
 
 			defer resp.Body.Close()
 
 			if resp.StatusCode >= 400 {
-
 				return fmt.Errorf("hook HTTP call failed with status: %d", resp.StatusCode)
-
 			}
 
 		}
@@ -1250,27 +1102,20 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 		return fmt.Errorf("unsupported hook type: %s", hook.Type)
 
 	}
-
 }
 
 // SMOClient HTTP methods.
 
 func (c *SMOClient) get(ctx context.Context, url string, result interface{}) error {
-
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	return c.doRequest(req, result)
-
 }
 
 func (c *SMOClient) post(ctx context.Context, url string, body, result interface{}) error {
-
 	var reqBody []byte
 
 	if body != nil {
@@ -1278,77 +1123,53 @@ func (c *SMOClient) post(ctx context.Context, url string, body, result interface
 		var err error
 
 		reqBody, err = json.Marshal(body)
-
 		if err != nil {
-
 			return err
-
 		}
 
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, http.NoBody)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	if reqBody != nil {
-
 		req.Header.Set("Content-Type", "application/json")
-
 	}
 
 	return c.doRequest(req, result)
-
 }
 
 func (c *SMOClient) put(ctx context.Context, url string, body, result interface{}) error {
-
 	reqBody, err := json.Marshal(body)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(reqBody))
-
 	if err != nil {
-
 		return err
-
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	return c.doRequest(req, result)
-
 }
 
 func (c *SMOClient) delete(ctx context.Context, url string) error {
-
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, http.NoBody)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	return c.doRequest(req, nil)
-
 }
 
 func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
-
 	// Add authentication.
 
 	if c.auth != nil {
-
 		switch c.auth.Type {
 
 		case "basic":
@@ -1360,39 +1181,28 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 			req.Header.Set("Authorization", "Bearer "+c.auth.Token)
 
 		}
-
 	}
 
 	// Add custom headers.
 
 	for key, value := range c.headers {
-
 		req.Header.Set(key, value)
-
 	}
 
 	resp, err := c.httpClient.Do(req)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-
 		return fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)
-
 	}
 
 	if result != nil {
-
 		return json.NewDecoder(resp.Body).Decode(result)
-
 	}
 
 	return nil
-
 }

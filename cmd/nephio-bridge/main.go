@@ -80,7 +80,6 @@ func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request 
 		// Convert to legacy format and process
 		prompt := a.convertRequestToPrompt(request)
 		result, err := a.client.ProcessIntent(ctx, prompt)
-
 		if err != nil {
 			chunks <- &shared.StreamingChunk{
 				Error: &shared.LLMError{
@@ -223,73 +222,55 @@ type dependencyImpl struct {
 // GetGitClient performs getgitclient operation.
 
 func (d *dependencyImpl) GetGitClient() git.ClientInterface {
-
 	return d.gitClient
-
 }
 
 // GetLLMClient performs getllmclient operation.
 
 func (d *dependencyImpl) GetLLMClient() shared.ClientInterface {
-
 	return d.llmClient
-
 }
 
 // GetPackageGenerator performs getpackagegenerator operation.
 
 func (d *dependencyImpl) GetPackageGenerator() *nephio.PackageGenerator {
-
 	return d.packageGen
-
 }
 
 // GetHTTPClient performs gethttpclient operation.
 
 func (d *dependencyImpl) GetHTTPClient() *http.Client {
-
 	return d.httpClient
-
 }
 
 // GetEventRecorder performs geteventrecorder operation.
 
 func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
-
 	return d.eventRecorder
-
 }
 
 // GetMetricsCollector returns the metrics collector (placeholder implementation).
 
 func (d *dependencyImpl) GetMetricsCollector() monitoring.MetricsCollector {
-
 	return nil // TODO: Implement metrics collector
-
 }
 
 // GetTelecomKnowledgeBase returns the telecom knowledge base (placeholder implementation).
 
 func (d *dependencyImpl) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
-
 	return nil // TODO: Implement telecom knowledge base
-
 }
 
 func init() {
-
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(nephoranv1.AddToScheme(scheme))
-
 }
 
 func main() {
-
 	// Load configuration from environment variables.
 
 	cfg, err := config.LoadFromEnv()
-
 	if err != nil {
 
 		setupLog.Error(err, "failed to load configuration")
@@ -311,7 +292,6 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 
 	opts := zap.Options{
-
 		Development: true,
 	}
 
@@ -332,11 +312,9 @@ func main() {
 		"namespace", cfg.Namespace)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-
 		Scheme: scheme,
 
 		Metrics: metricsserver.Options{
-
 			BindAddress: cfg.MetricsAddr,
 		},
 
@@ -346,7 +324,6 @@ func main() {
 
 		LeaderElectionID: "nephoran-intent-operator",
 	})
-
 	if err != nil {
 
 		setupLog.Error(err, "unable to start manager")
@@ -366,7 +343,6 @@ func main() {
 	if cfg.GitTokenPath != "" || cfg.GitToken != "" {
 
 		gitConfig, err := git.NewGitClientConfig(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken, cfg.GitTokenPath)
-
 		if err != nil {
 
 			setupLog.Error(err, "unable to create git client config")
@@ -378,19 +354,15 @@ func main() {
 		// Apply concurrent push limit from config if set.
 
 		if cfg.GitConcurrentPushLimit > 0 {
-
 			gitConfig.ConcurrentPushLimit = cfg.GitConcurrentPushLimit
-
 		}
 
 		gitClient = git.NewClientFromConfig(gitConfig)
 
 	} else {
-
 		// Fallback to default constructor for backward compatibility.
 
 		gitClient = git.NewClient(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken)
-
 	}
 
 	// Initialize Nephio package generator if enabled.
@@ -404,7 +376,6 @@ func main() {
 		var err error
 
 		packageGen, err = nephio.NewPackageGenerator()
-
 		if err != nil {
 
 			setupLog.Error(err, "unable to create package generator")
@@ -420,7 +391,6 @@ func main() {
 	// Create dependencies struct that implements Dependencies interface.
 
 	deps := &dependencyImpl{
-
 		gitClient: gitClient,
 
 		llmClient: &llmClientAdapter{client: llmClient},
@@ -435,7 +405,6 @@ func main() {
 	// Create controller configuration.
 
 	controllerConfig := &controllers.Config{
-
 		MaxRetries: 3,
 
 		RetryDelay: time.Minute * 2,
@@ -465,7 +434,6 @@ func main() {
 
 		controllerConfig,
 	)
-
 	if err != nil {
 
 		setupLog.Error(err, "unable to create NetworkIntent controller")
@@ -485,7 +453,6 @@ func main() {
 	// Setup E2NodeSet controller.
 
 	if err = (&controllers.E2NodeSetReconciler{
-
 		Client: mgr.GetClient(),
 
 		Scheme: mgr.GetScheme(),
@@ -524,5 +491,4 @@ func main() {
 		os.Exit(1)
 
 	}
-
 }

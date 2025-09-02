@@ -45,22 +45,17 @@ import (
 // TestConfig creates a test configuration for porch clients.
 
 func NewTestConfig() *porch.Config {
-
 	return &porch.Config{
-
 		PorchConfig: &porch.PorchServiceConfig{
-
 			Endpoint: "http://localhost:8080",
 
 			Auth: &porch.AuthenticationConfig{
-
 				Type: "none",
 			},
 
 			Timeout: 30 * time.Second,
 
 			Retry: &porch.RetryConfig{
-
 				MaxRetries: 3,
 
 				InitialDelay: 1 * time.Second,
@@ -68,9 +63,7 @@ func NewTestConfig() *porch.Config {
 		},
 
 		Observability: &porch.ObservabilityConfig{
-
 			Logging: &porch.LoggingConfig{
-
 				Level: "debug",
 
 				Format: "text",
@@ -79,15 +72,12 @@ func NewTestConfig() *porch.Config {
 			},
 		},
 	}
-
 }
 
 // GetTestKubeConfig returns a test Kubernetes configuration.
 
 func GetTestKubeConfig() *rest.Config {
-
 	return &rest.Config{
-
 		Host: "http://localhost:8080",
 
 		QPS: 100,
@@ -96,7 +86,6 @@ func GetTestKubeConfig() *rest.Config {
 
 		Timeout: 30 * time.Second,
 	}
-
 }
 
 // ClientOptions represents options for creating test clients.
@@ -114,24 +103,18 @@ type ClientOptions struct {
 // NewTestEnvironment creates a test environment with envtest.
 
 func NewTestEnvironment(t *testing.T) (*envtest.Environment, *rest.Config) {
-
 	t.Helper()
 
 	testEnv := &envtest.Environment{
-
 		CRDDirectoryPaths: []string{"../../../config/crd/bases"},
 	}
 
 	cfg, err := testEnv.Start()
-
 	if err != nil {
-
 		t.Fatalf("Failed to start test environment: %v", err)
-
 	}
 
 	return testEnv, cfg
-
 }
 
 // MockPorchClient creates a mock porch client for testing.
@@ -147,63 +130,48 @@ type MockPorchClient struct {
 // NewMockPorchClient creates a new mock client.
 
 func NewMockPorchClient() *MockPorchClient {
-
 	return &MockPorchClient{
-
 		MockResponses: make(map[string]interface{}),
 
 		CallLog: make([]string, 0),
 	}
-
 }
 
 // RecordCall records a method call for verification.
 
 func (m *MockPorchClient) RecordCall(method string) {
-
 	m.CallLog = append(m.CallLog, method)
-
 }
 
 // GetCallLog returns the recorded method calls.
 
 func (m *MockPorchClient) GetCallLog() []string {
-
 	return m.CallLog
-
 }
 
 // SetMockResponse sets a mock response for a given method.
 
 func (m *MockPorchClient) SetMockResponse(method string, response interface{}) {
-
 	m.MockResponses[method] = response
-
 }
 
 // GetMockResponse gets a mock response for a given method.
 
 func (m *MockPorchClient) GetMockResponse(method string) interface{} {
-
 	return m.MockResponses[method]
-
 }
 
 // TestRepository creates a test repository configuration.
 
 func NewTestRepository(name string) *porch.Repository {
-
 	return &porch.Repository{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: name,
 
 			Namespace: "default",
 		},
 
 		Spec: porch.RepositorySpec{
-
 			Type: "git",
 
 			URL: "https://github.com/test/repo.git",
@@ -215,24 +183,19 @@ func NewTestRepository(name string) *porch.Repository {
 			Capabilities: []string{"upstream"},
 		},
 	}
-
 }
 
 // TestPackageRevision creates a test package revision.
 
 func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
-
 	return &porch.PackageRevision{
-
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: name,
 
 			Namespace: "default",
 		},
 
 		Spec: porch.PackageRevisionSpec{
-
 			Repository: repository,
 
 			PackageName: name,
@@ -244,65 +207,48 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 			WorkspaceName: "",
 		},
 	}
-
 }
 
 // TestFunctionConfig creates a test function configuration.
 
 func NewTestFunctionConfig(name string) porch.FunctionConfig {
-
 	return porch.FunctionConfig{
-
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
 
 		ConfigMap: map[string]interface{}{
-
 			"name": name,
 
 			"description": "Test function for " + name,
 		},
 	}
-
 }
 
 // AssertNoError is a test helper for asserting no error.
 
 func AssertNoError(t *testing.T, err error) {
-
 	t.Helper()
 
 	if err != nil {
-
 		t.Fatalf("Expected no error, got: %v", err)
-
 	}
-
 }
 
 // AssertError is a test helper for asserting an error occurred.
 
 func AssertError(t *testing.T, err error) {
-
 	t.Helper()
 
 	if err == nil {
-
 		t.Fatal("Expected an error, got nil")
-
 	}
-
 }
 
 // AssertEqual is a test helper for asserting equality.
 
 func AssertEqual(t *testing.T, expected, actual interface{}) {
-
 	t.Helper()
 
 	if expected != actual {
-
 		t.Fatalf("Expected %v, got %v", expected, actual)
-
 	}
-
 }

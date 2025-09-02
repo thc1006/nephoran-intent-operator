@@ -36,7 +36,6 @@ type SecurityValidator struct {
 // SecurityConfig holds security validation configuration.
 
 type SecurityConfig struct {
-
 	// API Key validation.
 
 	EnableAPIKeyAuth bool `json:"enable_api_key_auth"`
@@ -231,15 +230,11 @@ type ContentFilter struct {
 // NewSecurityValidator creates a new security validator.
 
 func NewSecurityValidator(config *SecurityConfig) *SecurityValidator {
-
 	if config == nil {
-
 		config = getDefaultSecurityConfig()
-
 	}
 
 	validator := &SecurityValidator{
-
 		config: config,
 
 		logger: slog.Default().With("component", "security-validator"),
@@ -250,9 +245,7 @@ func NewSecurityValidator(config *SecurityConfig) *SecurityValidator {
 	// Initialize rate limiter.
 
 	if config.EnableRateLimit {
-
 		validator.rateLimiter = NewRateLimiter(&RateLimitConfig{
-
 			RequestsPerMinute: config.RequestsPerMinute,
 
 			BurstLimit: config.BurstLimit,
@@ -261,13 +254,11 @@ func NewSecurityValidator(config *SecurityConfig) *SecurityValidator {
 
 			CleanupInterval: 5 * time.Minute,
 		})
-
 	}
 
 	// Initialize prompt injection detector.
 
 	if config.EnablePromptInjectionDetection {
-
 		validator.promptDetector = NewPromptInjectionDetector(
 
 			config.InjectionPatterns,
@@ -276,13 +267,11 @@ func NewSecurityValidator(config *SecurityConfig) *SecurityValidator {
 
 			config.MaxPromptComplexity,
 		)
-
 	}
 
 	// Initialize content filter.
 
 	if config.EnableContentFilter {
-
 		validator.contentFilter = NewContentFilter(
 
 			config.BlockedTopics,
@@ -291,19 +280,15 @@ func NewSecurityValidator(config *SecurityConfig) *SecurityValidator {
 
 			config.ProfanityFilter,
 		)
-
 	}
 
 	return validator
-
 }
 
 // getDefaultSecurityConfig returns default security configuration.
 
 func getDefaultSecurityConfig() *SecurityConfig {
-
 	return &SecurityConfig{
-
 		EnableAPIKeyAuth: false,
 
 		APIKeyHeader: "X-API-Key",
@@ -327,7 +312,6 @@ func getDefaultSecurityConfig() *SecurityConfig {
 		EnablePromptInjectionDetection: true,
 
 		InjectionPatterns: []string{
-
 			`ignore.{0,20}previous.{0,20}instructions`,
 
 			`forget.{0,20}everything.{0,20}above`,
@@ -340,7 +324,6 @@ func getDefaultSecurityConfig() *SecurityConfig {
 		},
 
 		SuspiciousKeywords: []string{
-
 			"ignore", "forget", "override", "bypass", "admin", "root", "system",
 
 			"jailbreak", "prompt", "instruction", "command", "execute",
@@ -368,17 +351,14 @@ func getDefaultSecurityConfig() *SecurityConfig {
 
 		RemovePII: true,
 	}
-
 }
 
 // ValidateRequest validates an incoming HTTP request.
 
 func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*ValidationResult, error) {
-
 	startTime := time.Now()
 
 	result := &ValidationResult{
-
 		Valid: true,
 
 		Errors: []string{},
@@ -399,15 +379,12 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 	// Update metrics.
 
 	sv.updateMetrics(func(m *SecurityMetrics) {
-
 		m.TotalRequests++
-
 	})
 
 	// API Key validation.
 
 	if sv.config.EnableAPIKeyAuth {
-
 		if err := sv.validateAPIKey(r); err != nil {
 
 			result.Valid = false
@@ -419,17 +396,12 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 			result.DetectedThreats = append(result.DetectedThreats, "invalid_api_key")
 
 			sv.updateMetrics(func(m *SecurityMetrics) {
-
 				m.APIKeyFailures++
-
 			})
 
 		} else {
-
 			result.AppliedFilters = append(result.AppliedFilters, "api_key_validation")
-
 		}
-
 	}
 
 	// Rate limiting.
@@ -449,15 +421,11 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 			result.DetectedThreats = append(result.DetectedThreats, "rate_limit_exceeded")
 
 			sv.updateMetrics(func(m *SecurityMetrics) {
-
 				m.RateLimitedRequests++
-
 			})
 
 		} else {
-
 			result.AppliedFilters = append(result.AppliedFilters, "rate_limiting")
-
 		}
 
 	}
@@ -465,7 +433,6 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 	// IP filtering.
 
 	if sv.config.EnableIPFiltering {
-
 		if err := sv.validateIP(r); err != nil {
 
 			result.Valid = false
@@ -477,17 +444,12 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 			result.DetectedThreats = append(result.DetectedThreats, "blocked_ip")
 
 			sv.updateMetrics(func(m *SecurityMetrics) {
-
 				m.IPFilterBlocks++
-
 			})
 
 		} else {
-
 			result.AppliedFilters = append(result.AppliedFilters, "ip_filtering")
-
 		}
-
 	}
 
 	// Input validation.
@@ -501,9 +463,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 		result.RiskScore += 0.5
 
 		sv.updateMetrics(func(m *SecurityMetrics) {
-
 			m.ValidationErrors++
-
 		})
 
 	}
@@ -525,9 +485,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 			result.AppliedFilters = append(result.AppliedFilters, "prompt_injection_detection")
 
 			sv.updateMetrics(func(m *SecurityMetrics) {
-
 				m.PromptInjectionAttempts++
-
 			})
 
 			// Block if risk is too high.
@@ -547,7 +505,6 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 	// Content filtering.
 
 	if sv.config.EnableContentFilter && sv.contentFilter != nil {
-
 		if blocked, reason := sv.contentFilter.Filter(input); blocked {
 
 			result.Valid = false
@@ -561,13 +518,10 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 			result.AppliedFilters = append(result.AppliedFilters, "content_filtering")
 
 			sv.updateMetrics(func(m *SecurityMetrics) {
-
 				m.ContentFilterBlocks++
-
 			})
 
 		}
-
 	}
 
 	// Sanitize input.
@@ -587,99 +541,69 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 	// Update metrics based on result.
 
 	if result.Valid {
-
 		sv.updateMetrics(func(m *SecurityMetrics) {
-
 			m.ValidatedRequests++
-
 		})
-
 	} else {
-
 		sv.updateMetrics(func(m *SecurityMetrics) {
-
 			m.RejectedRequests++
-
 		})
-
 	}
 
 	sv.updateMetrics(func(m *SecurityMetrics) {
-
 		m.AverageValidationTime = (m.AverageValidationTime*time.Duration(m.TotalRequests-1) + result.ProcessingTime) / time.Duration(m.TotalRequests)
 
 		m.LastUpdated = time.Now()
-
 	})
 
 	// Audit logging.
 
 	if sv.config.EnableAuditLogging {
-
 		sv.auditLog(r, result)
-
 	}
 
 	return result, nil
-
 }
 
 // validateAPIKey validates the API key in the request.
 
 func (sv *SecurityValidator) validateAPIKey(r *http.Request) error {
-
 	apiKey := r.Header.Get(sv.config.APIKeyHeader)
 
 	if apiKey == "" {
-
 		return fmt.Errorf("missing API key in header %s", sv.config.APIKeyHeader)
-
 	}
 
 	// Check against valid API keys using constant-time comparison.
 
 	for _, validKey := range sv.config.ValidAPIKeys {
-
 		if subtle.ConstantTimeCompare([]byte(apiKey), []byte(validKey)) == 1 {
-
 			return nil
-
 		}
-
 	}
 
 	return fmt.Errorf("invalid API key")
-
 }
 
 // getRateLimitIdentifier gets the identifier for rate limiting.
 
 func (sv *SecurityValidator) getRateLimitIdentifier(r *http.Request) string {
-
 	if sv.config.RateLimitByAPIKey {
-
 		if apiKey := r.Header.Get(sv.config.APIKeyHeader); apiKey != "" {
-
 			return "api_key:" + apiKey
-
 		}
-
 	}
 
 	if sv.config.RateLimitByIP {
-
 		return "ip:" + sv.getClientIP(r)
-
 	}
 
 	return "global"
-
 }
 
 // getClientIP extracts the client IP from the request.
 
 func (sv *SecurityValidator) getClientIP(r *http.Request) string {
-
 	// Check X-Forwarded-For header first.
 
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
@@ -687,9 +611,7 @@ func (sv *SecurityValidator) getClientIP(r *http.Request) string {
 		ips := strings.Split(xff, ",")
 
 		if len(ips) > 0 {
-
 			return strings.TrimSpace(ips[0])
-
 		}
 
 	}
@@ -697,49 +619,36 @@ func (sv *SecurityValidator) getClientIP(r *http.Request) string {
 	// Check X-Real-IP header.
 
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-
 		return xri
-
 	}
 
 	// Fall back to RemoteAddr.
 
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
-
 	if err != nil {
-
 		return r.RemoteAddr
-
 	}
 
 	return host
-
 }
 
 // validateIP validates the client IP against allow/block lists.
 
 func (sv *SecurityValidator) validateIP(r *http.Request) error {
-
 	clientIP := sv.getClientIP(r)
 
 	ip := net.ParseIP(clientIP)
 
 	if ip == nil {
-
 		return fmt.Errorf("invalid IP address: %s", clientIP)
-
 	}
 
 	// Check blocked IPs.
 
 	for _, blockedIP := range sv.config.BlockedIPs {
-
 		if blocked := net.ParseIP(blockedIP); blocked != nil && ip.Equal(blocked) {
-
 			return fmt.Errorf("IP address is blocked: %s", clientIP)
-
 		}
-
 	}
 
 	// Check allowed IPs (if specified).
@@ -749,7 +658,6 @@ func (sv *SecurityValidator) validateIP(r *http.Request) error {
 		allowed := false
 
 		for _, allowedIP := range sv.config.AllowedIPs {
-
 			if allow := net.ParseIP(allowedIP); allow != nil && ip.Equal(allow) {
 
 				allowed = true
@@ -757,13 +665,10 @@ func (sv *SecurityValidator) validateIP(r *http.Request) error {
 				break
 
 			}
-
 		}
 
 		if !allowed {
-
 			return fmt.Errorf("IP address not in allow list: %s", clientIP)
-
 		}
 
 	}
@@ -771,21 +676,16 @@ func (sv *SecurityValidator) validateIP(r *http.Request) error {
 	// Check private IP restrictions.
 
 	if !sv.config.AllowPrivateIPs && isPrivateIP(ip) {
-
 		return fmt.Errorf("private IP addresses not allowed: %s", clientIP)
-
 	}
 
 	return nil
-
 }
 
 // isPrivateIP checks if an IP is private.
 
 func isPrivateIP(ip net.IP) bool {
-
 	privateRanges := []string{
-
 		"10.0.0.0/8",
 
 		"172.16.0.0/12",
@@ -798,53 +698,40 @@ func isPrivateIP(ip net.IP) bool {
 		_, cidr, _ := net.ParseCIDR(rangeStr)
 
 		if cidr.Contains(ip) {
-
 			return true
-
 		}
 
 	}
 
 	return false
-
 }
 
 // validateInput validates input content.
 
 func (sv *SecurityValidator) validateInput(input string) error {
-
 	if len(input) > sv.config.MaxInputLength {
-
 		return fmt.Errorf("input too long: %d > %d", len(input), sv.config.MaxInputLength)
-
 	}
 
 	// Check forbidden patterns.
 
 	for _, pattern := range sv.config.ForbiddenPatterns {
-
 		if matched, _ := regexp.MatchString(pattern, input); matched {
-
 			return fmt.Errorf("input contains forbidden pattern: %s", pattern)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // sanitizeInput sanitizes input by removing/replacing dangerous content.
 
 func (sv *SecurityValidator) sanitizeInput(input string) string {
-
 	sanitized := input
 
 	// Remove common injection attempts.
 
 	injectionPatterns := []string{
-
 		`<script[^>]*>.*?</script>`,
 
 		`javascript:`,
@@ -867,19 +754,15 @@ func (sv *SecurityValidator) sanitizeInput(input string) string {
 	// Remove PII if enabled.
 
 	if sv.config.RemovePII {
-
 		sanitized = sv.removePII(sanitized)
-
 	}
 
 	return sanitized
-
 }
 
 // removePII removes personally identifiable information.
 
 func (sv *SecurityValidator) removePII(input string) string {
-
 	sanitized := input
 
 	// Email addresses.
@@ -901,17 +784,14 @@ func (sv *SecurityValidator) removePII(input string) string {
 	sanitized = ccRegex.ReplaceAllString(sanitized, "[CREDIT_CARD]")
 
 	return sanitized
-
 }
 
 // auditLog logs security events.
 
 func (sv *SecurityValidator) auditLog(r *http.Request, result *ValidationResult) {
-
 	if !result.Valid || (result.Valid && sv.config.LogSuccessfulRequests) || (!result.Valid && sv.config.LogFailedRequests) {
 
 		logData := map[string]interface{}{
-
 			"client_ip": sv.getClientIP(r),
 
 			"user_agent": r.UserAgent(),
@@ -936,35 +816,27 @@ func (sv *SecurityValidator) auditLog(r *http.Request, result *ValidationResult)
 		}
 
 		if result.Valid {
-
 			sv.logger.Info("Security validation passed", "audit", logData)
-
 		} else {
-
 			sv.logger.Warn("Security validation failed", "audit", logData)
-
 		}
 
 	}
-
 }
 
 // updateMetrics safely updates security metrics.
 
 func (sv *SecurityValidator) updateMetrics(updater func(*SecurityMetrics)) {
-
 	sv.metrics.mutex.Lock()
 
 	defer sv.metrics.mutex.Unlock()
 
 	updater(sv.metrics)
-
 }
 
 // GetMetrics returns current security metrics.
 
 func (sv *SecurityValidator) GetMetrics() *SecurityMetrics {
-
 	sv.metrics.mutex.RLock()
 
 	defer sv.metrics.mutex.RUnlock()
@@ -972,7 +844,6 @@ func (sv *SecurityValidator) GetMetrics() *SecurityMetrics {
 	// Create a copy without the mutex.
 
 	metrics := &SecurityMetrics{
-
 		TotalRequests: sv.metrics.TotalRequests,
 
 		ValidatedRequests: sv.metrics.ValidatedRequests,
@@ -997,15 +868,12 @@ func (sv *SecurityValidator) GetMetrics() *SecurityMetrics {
 	}
 
 	return metrics
-
 }
 
 // NewRateLimiter creates a new rate limiter.
 
 func NewRateLimiter(config *RateLimitConfig) *RateLimiter {
-
 	rl := &RateLimiter{
-
 		limiters: make(map[string]*TokenBucket),
 
 		config: config,
@@ -1016,13 +884,11 @@ func NewRateLimiter(config *RateLimitConfig) *RateLimiter {
 	go rl.cleanupRoutine()
 
 	return rl
-
 }
 
 // Allow checks if a request is allowed under rate limiting.
 
 func (rl *RateLimiter) Allow(identifier string) bool {
-
 	rl.mutex.Lock()
 
 	defer rl.mutex.Unlock()
@@ -1038,13 +904,11 @@ func (rl *RateLimiter) Allow(identifier string) bool {
 	}
 
 	return bucket.Allow()
-
 }
 
 // cleanupRoutine removes old rate limiters.
 
 func (rl *RateLimiter) cleanupRoutine() {
-
 	ticker := time.NewTicker(rl.config.CleanupInterval)
 
 	defer ticker.Stop()
@@ -1060,9 +924,7 @@ func (rl *RateLimiter) cleanupRoutine() {
 			bucket.mutex.Lock()
 
 			if bucket.lastRefill.Before(cutoff) {
-
 				delete(rl.limiters, identifier)
-
 			}
 
 			bucket.mutex.Unlock()
@@ -1072,15 +934,12 @@ func (rl *RateLimiter) cleanupRoutine() {
 		rl.mutex.Unlock()
 
 	}
-
 }
 
 // NewTokenBucket creates a new token bucket.
 
 func NewTokenBucket(capacity, refillRate float64) *TokenBucket {
-
 	return &TokenBucket{
-
 		tokens: capacity,
 
 		capacity: capacity,
@@ -1089,13 +948,11 @@ func NewTokenBucket(capacity, refillRate float64) *TokenBucket {
 
 		lastRefill: time.Now(),
 	}
-
 }
 
 // Allow checks if a token is available.
 
 func (tb *TokenBucket) Allow() bool {
-
 	tb.mutex.Lock()
 
 	defer tb.mutex.Unlock()
@@ -1109,9 +966,7 @@ func (tb *TokenBucket) Allow() bool {
 	tb.tokens += elapsed * tb.refillRate
 
 	if tb.tokens > tb.capacity {
-
 		tb.tokens = tb.capacity
-
 	}
 
 	tb.lastRefill = now
@@ -1127,15 +982,12 @@ func (tb *TokenBucket) Allow() bool {
 	}
 
 	return false
-
 }
 
 // NewPromptInjectionDetector creates a new prompt injection detector.
 
 func NewPromptInjectionDetector(patterns, keywords []string, complexityThreshold int) *PromptInjectionDetector {
-
 	detector := &PromptInjectionDetector{
-
 		patterns: make([]*regexp.Regexp, 0),
 
 		suspiciousWords: make(map[string]bool),
@@ -1148,31 +1000,23 @@ func NewPromptInjectionDetector(patterns, keywords []string, complexityThreshold
 	// Compile patterns.
 
 	for _, pattern := range patterns {
-
 		if regex, err := regexp.Compile(`(?i)` + pattern); err == nil {
-
 			detector.patterns = append(detector.patterns, regex)
-
 		}
-
 	}
 
 	// Build suspicious words map.
 
 	for _, word := range keywords {
-
 		detector.suspiciousWords[strings.ToLower(word)] = true
-
 	}
 
 	return detector
-
 }
 
 // Detect detects potential prompt injection attempts.
 
 func (pid *PromptInjectionDetector) Detect(input string) ([]string, float64) {
-
 	var threats []string
 
 	riskScore := 0.0
@@ -1182,7 +1026,6 @@ func (pid *PromptInjectionDetector) Detect(input string) ([]string, float64) {
 	// Check against known injection patterns.
 
 	for _, pattern := range pid.patterns {
-
 		if pattern.MatchString(inputLower) {
 
 			threats = append(threats, "injection_pattern")
@@ -1190,7 +1033,6 @@ func (pid *PromptInjectionDetector) Detect(input string) ([]string, float64) {
 			riskScore += 0.8
 
 		}
-
 	}
 
 	// Check for suspicious keywords.
@@ -1200,13 +1042,9 @@ func (pid *PromptInjectionDetector) Detect(input string) ([]string, float64) {
 	suspiciousCount := 0
 
 	for _, word := range words {
-
 		if pid.suspiciousWords[word] {
-
 			suspiciousCount++
-
 		}
-
 	}
 
 	if suspiciousCount > 0 {
@@ -1232,19 +1070,15 @@ func (pid *PromptInjectionDetector) Detect(input string) ([]string, float64) {
 	// Normalize risk score to 0-1 range.
 
 	if riskScore > 1.0 {
-
 		riskScore = 1.0
-
 	}
 
 	return threats, riskScore
-
 }
 
 // calculateComplexity calculates prompt complexity.
 
 func (pid *PromptInjectionDetector) calculateComplexity(input string) int {
-
 	// Simple complexity calculation based on:.
 
 	// - Character count.
@@ -1260,31 +1094,22 @@ func (pid *PromptInjectionDetector) calculateComplexity(input string) int {
 	specialChars := 0
 
 	for _, char := range input {
-
 		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == ' ') {
-
 			specialChars++
-
 		}
-
 	}
 
 	if input != "" {
-
 		complexity += int(float64(specialChars) / float64(len(input)) * 100)
-
 	}
 
 	return complexity
-
 }
 
 // NewContentFilter creates a new content filter.
 
 func NewContentFilter(blockedTopics, requiredTopics []string, profanityFilter bool) *ContentFilter {
-
 	filter := &ContentFilter{
-
 		blockedTopics: make([]*regexp.Regexp, 0),
 
 		requiredTopics: make([]*regexp.Regexp, 0),
@@ -1297,55 +1122,39 @@ func NewContentFilter(blockedTopics, requiredTopics []string, profanityFilter bo
 	// Compile blocked topic patterns.
 
 	for _, topic := range blockedTopics {
-
 		if regex, err := regexp.Compile(`(?i)` + topic); err == nil {
-
 			filter.blockedTopics = append(filter.blockedTopics, regex)
-
 		}
-
 	}
 
 	// Compile required topic patterns.
 
 	for _, topic := range requiredTopics {
-
 		if regex, err := regexp.Compile(`(?i)` + topic); err == nil {
-
 			filter.requiredTopics = append(filter.requiredTopics, regex)
-
 		}
-
 	}
 
 	// Initialize profanity filter.
 
 	if profanityFilter {
-
 		filter.initializeProfanityFilter()
-
 	}
 
 	return filter
-
 }
 
 // Filter applies content filtering.
 
 func (cf *ContentFilter) Filter(input string) (bool, string) {
-
 	inputLower := strings.ToLower(input)
 
 	// Check blocked topics.
 
 	for _, pattern := range cf.blockedTopics {
-
 		if pattern.MatchString(inputLower) {
-
 			return true, "blocked topic detected"
-
 		}
-
 	}
 
 	// Check required topics (if any).
@@ -1355,7 +1164,6 @@ func (cf *ContentFilter) Filter(input string) (bool, string) {
 		found := false
 
 		for _, pattern := range cf.requiredTopics {
-
 			if pattern.MatchString(inputLower) {
 
 				found = true
@@ -1363,13 +1171,10 @@ func (cf *ContentFilter) Filter(input string) (bool, string) {
 				break
 
 			}
-
 		}
 
 		if !found {
-
 			return true, "required topic not found"
-
 		}
 
 	}
@@ -1381,29 +1186,22 @@ func (cf *ContentFilter) Filter(input string) (bool, string) {
 		words := strings.Fields(inputLower)
 
 		for _, word := range words {
-
 			if cf.profanityWords[word] {
-
 				return true, "profanity detected"
-
 			}
-
 		}
 
 	}
 
 	return false, ""
-
 }
 
 // initializeProfanityFilter initializes the profanity filter.
 
 func (cf *ContentFilter) initializeProfanityFilter() {
-
 	// Basic profanity list (in production, use a comprehensive list).
 
 	profanityList := []string{
-
 		// Add actual profanity words here.
 
 		"badword1", "badword2", // Placeholder
@@ -1411,9 +1209,6 @@ func (cf *ContentFilter) initializeProfanityFilter() {
 	}
 
 	for _, word := range profanityList {
-
 		cf.profanityWords[strings.ToLower(word)] = true
-
 	}
-
 }

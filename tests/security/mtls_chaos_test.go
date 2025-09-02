@@ -867,6 +867,7 @@ func (c *ChaosEngineeringTestSuite) verifyServiceConnectivity(serviceName string
 func (c *ChaosEngineeringTestSuite) createServicesWithExpiringCertificates(count int) []string {
 	return []string{}
 }
+
 func (c *ChaosEngineeringTestSuite) countRenewedCertificates(services []string) int {
 	return len(services)
 }
@@ -881,6 +882,7 @@ func (c *ChaosEngineeringTestSuite) triggerDisasterRecovery()                   
 func (c *ChaosEngineeringTestSuite) compareSystemStates(baseline, current map[string]interface{}) bool {
 	return true
 }
+
 func (c *ChaosEngineeringTestSuite) injectFailure(failureType string, duration time.Duration) string {
 	return "fault-id"
 }

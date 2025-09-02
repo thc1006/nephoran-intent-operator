@@ -126,7 +126,6 @@ type VNFInstanceStatus struct {
 	State string `json:"state"` // INSTANTIATED, NOT_INSTANTIATED, TERMINATED
 
 	DetailedState string `json:"detailedState"` // RUNNING, PENDING, ERROR
-
 }
 
 // ResourceInfo represents resource information for a VNF instance.

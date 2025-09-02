@@ -526,7 +526,6 @@ const (
 // OptimizationKnowledgeBase contains optimization knowledge and best practices.
 
 type OptimizationKnowledgeBase struct {
-
 	// Best practices indexed by component type.
 
 	BestPractices map[shared.ComponentType][]*OptimizationBestPractice `json:"bestPractices"`

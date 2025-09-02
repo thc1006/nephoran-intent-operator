@@ -58,7 +58,6 @@ type RAGMonitor struct {
 // MonitoringConfig holds monitoring configuration.
 
 type MonitoringConfig struct {
-
 	// Server configuration.
 
 	MetricsPort int `json:"metrics_port"`
@@ -112,7 +111,6 @@ type AlertThreshold struct {
 	WindowMinutes int `json:"window_minutes"`
 
 	Severity string `json:"severity"` // "critical", "warning", "info"
-
 }
 
 // HealthChecker interface for component health checks.
@@ -234,15 +232,11 @@ type RAGMetricsCollector struct {
 // NewRAGMonitor creates a new RAG monitoring system.
 
 func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
-
 	if config == nil {
-
 		config = getDefaultMonitoringConfig()
-
 	}
 
 	monitor := &RAGMonitor{
-
 		config: config,
 
 		logger: slog.Default().With("component", "rag-monitor"),
@@ -261,9 +255,7 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	// Start metrics server.
 
 	if err := monitor.startMetricsServer(); err != nil {
-
 		monitor.logger.Error("Failed to start metrics server", "error", err)
-
 	}
 
 	// Start background monitoring tasks.
@@ -273,25 +265,20 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	go monitor.startMetricsCollection()
 
 	if config.EnableResourceMonitoring {
-
 		go monitor.startResourceMonitoring()
-
 	}
 
 	return monitor
-
 }
 
 // initializePrometheusMetrics initializes all Prometheus metrics.
 
 func (rm *RAGMonitor) initializePrometheusMetrics() {
-
 	// Query metrics.
 
 	rm.queryLatencyHistogram = prometheus.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "rag_query_latency_seconds",
 
 			Help: "Latency of RAG queries in seconds",
@@ -305,7 +292,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.queryCountCounter = prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "rag_queries_total",
 
 			Help: "Total number of RAG queries processed",
@@ -319,7 +305,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.embeddingLatencyHist = prometheus.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "rag_embedding_latency_seconds",
 
 			Help: "Latency of embedding generation in seconds",
@@ -333,7 +318,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.embeddingCountCounter = prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "rag_embeddings_total",
 
 			Help: "Total number of embeddings generated",
@@ -347,7 +331,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.cacheHitRateGauge = prometheus.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "rag_cache_hit_rate",
 
 			Help: "Cache hit rate for RAG components",
@@ -361,7 +344,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.documentProcessingGauge = prometheus.NewGauge(
 
 		prometheus.GaugeOpts{
-
 			Name: "rag_documents_processing",
 
 			Help: "Number of documents currently being processed",
@@ -373,7 +355,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.chunkingLatencyHist = prometheus.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "rag_chunking_latency_seconds",
 
 			Help: "Latency of document chunking in seconds",
@@ -387,7 +368,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.retrievalLatencyHist = prometheus.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "rag_retrieval_latency_seconds",
 
 			Help: "Latency of document retrieval in seconds",
@@ -401,7 +381,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.contextAssemblyHist = prometheus.NewHistogramVec(
 
 		prometheus.HistogramOpts{
-
 			Name: "rag_context_assembly_latency_seconds",
 
 			Help: "Latency of context assembly in seconds",
@@ -417,7 +396,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	rm.errorRateCounter = prometheus.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "rag_errors_total",
 
 			Help: "Total number of errors in RAG components",
@@ -429,7 +407,6 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	// System resource metrics.
 
 	resourceMetrics := []string{
-
 		"cpu_usage_percent",
 
 		"memory_usage_percent",
@@ -442,17 +419,14 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	}
 
 	for _, metric := range resourceMetrics {
-
 		rm.systemResourceGauges[metric] = prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: fmt.Sprintf("rag_system_%s", metric),
 
 				Help: fmt.Sprintf("System %s metric", metric),
 			},
 		)
-
 	}
 
 	// Register all metrics.
@@ -481,17 +455,13 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	)
 
 	for _, gauge := range rm.systemResourceGauges {
-
 		prometheus.MustRegister(gauge)
-
 	}
-
 }
 
 // startMetricsServer starts the HTTP server for metrics and health checks.
 
 func (rm *RAGMonitor) startMetricsServer() error {
-
 	mux := http.NewServeMux()
 
 	// Metrics endpoint.
@@ -511,32 +481,25 @@ func (rm *RAGMonitor) startMetricsServer() error {
 	mux.HandleFunc("/metrics/components", rm.handleComponentMetrics)
 
 	rm.metricsServer = &http.Server{
-
 		Addr: fmt.Sprintf(":%d", rm.config.MetricsPort),
 
 		Handler: mux,
 	}
 
 	go func() {
-
 		rm.logger.Info("Starting metrics server", "port", rm.config.MetricsPort)
 
 		if err := rm.metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-
 			rm.logger.Error("Metrics server failed", "error", err)
-
 		}
-
 	}()
 
 	return nil
-
 }
 
 // RegisterHealthChecker registers a health checker for a component.
 
 func (rm *RAGMonitor) RegisterHealthChecker(checker HealthChecker) {
-
 	rm.mutex.Lock()
 
 	defer rm.mutex.Unlock()
@@ -544,53 +507,39 @@ func (rm *RAGMonitor) RegisterHealthChecker(checker HealthChecker) {
 	rm.healthCheckers[checker.GetComponentName()] = checker
 
 	rm.logger.Info("Health checker registered", "component", checker.GetComponentName())
-
 }
 
 // startHealthChecking starts background health checking.
 
 func (rm *RAGMonitor) startHealthChecking() {
-
 	ticker := time.NewTicker(rm.config.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		rm.performHealthChecks(context.Background())
-
 	}
-
 }
 
 // performHealthChecks performs health checks on all registered components.
 
 func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
-
 	rm.mutex.RLock()
 
 	checkers := make(map[string]HealthChecker)
 
 	for name, checker := range rm.healthCheckers {
-
 		checkers[name] = checker
-
 	}
 
 	rm.mutex.RUnlock()
 
 	for name, checker := range checkers {
-
 		go func(name string, checker HealthChecker) {
-
 			defer func() {
-
 				if r := recover(); r != nil {
-
 					rm.logger.Error("Health check panic", "component", name, "panic", r)
-
 				}
-
 			}()
 
 			startTime := time.Now()
@@ -615,9 +564,7 @@ func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
 				// Trigger alert if alerting is enabled.
 
 				if rm.config.EnableAlerting {
-
 					rm.alertManager.TriggerAlert(Alert{
-
 						ID: fmt.Sprintf("health_%s_%d", name, time.Now().Unix()),
 
 						MetricName: "component_health",
@@ -631,43 +578,33 @@ func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
 						LastSeen: time.Now(),
 
 						Metadata: map[string]interface{}{
-
 							"component": name,
 
 							"status": status.Status,
 						},
 					})
-
 				}
 
 			}
-
 		}(name, checker)
-
 	}
-
 }
 
 // startMetricsCollection starts background metrics collection.
 
 func (rm *RAGMonitor) startMetricsCollection() {
-
 	ticker := time.NewTicker(rm.config.MetricsInterval)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		rm.collectAndUpdateMetrics()
-
 	}
-
 }
 
 // collectAndUpdateMetrics collects metrics from all components and updates Prometheus metrics.
 
 func (rm *RAGMonitor) collectAndUpdateMetrics() {
-
 	// This would collect metrics from registered components.
 
 	// For now, we'll update based on component health.
@@ -677,9 +614,7 @@ func (rm *RAGMonitor) collectAndUpdateMetrics() {
 	checkers := make(map[string]HealthChecker)
 
 	for name, checker := range rm.healthCheckers {
-
 		checkers[name] = checker
-
 	}
 
 	rm.mutex.RUnlock()
@@ -693,9 +628,7 @@ func (rm *RAGMonitor) collectAndUpdateMetrics() {
 		status := checker.CheckHealth(context.Background())
 
 		if status.IsHealthy {
-
 			healthyComponents++
-
 		}
 
 	}
@@ -711,13 +644,11 @@ func (rm *RAGMonitor) collectAndUpdateMetrics() {
 		rm.logger.Debug("System health rate", "rate", healthRate)
 
 	}
-
 }
 
 // startResourceMonitoring starts system resource monitoring.
 
 func (rm *RAGMonitor) startResourceMonitoring() {
-
 	ticker := time.NewTicker(rm.config.ResourceMonitoringInterval)
 
 	defer ticker.Stop()
@@ -729,19 +660,16 @@ func (rm *RAGMonitor) startResourceMonitoring() {
 		rm.updateSystemResourceMetrics(metrics)
 
 	}
-
 }
 
 // collectSystemMetrics collects system resource metrics.
 
 func (rm *RAGMonitor) collectSystemMetrics() SystemMetrics {
-
 	// In a real implementation, you would collect actual system metrics.
 
 	// For now, return mock data.
 
 	return SystemMetrics{
-
 		CPUUsagePercent: 50.0,
 
 		MemoryUsagePercent: 60.0,
@@ -756,13 +684,11 @@ func (rm *RAGMonitor) collectSystemMetrics() SystemMetrics {
 
 		HeapSizeMB: 128.5,
 	}
-
 }
 
 // updateSystemResourceMetrics updates Prometheus metrics with system resource data.
 
 func (rm *RAGMonitor) updateSystemResourceMetrics(metrics SystemMetrics) {
-
 	rm.systemResourceGauges["cpu_usage_percent"].Set(metrics.CPUUsagePercent)
 
 	rm.systemResourceGauges["memory_usage_percent"].Set(metrics.MemoryUsagePercent)
@@ -772,7 +698,6 @@ func (rm *RAGMonitor) updateSystemResourceMetrics(metrics SystemMetrics) {
 	rm.systemResourceGauges["goroutine_count"].Set(float64(metrics.GoroutineCount))
 
 	rm.systemResourceGauges["heap_size_mb"].Set(metrics.HeapSizeMB)
-
 }
 
 // HTTP handlers.
@@ -780,7 +705,6 @@ func (rm *RAGMonitor) updateSystemResourceMetrics(metrics SystemMetrics) {
 // handleHealthCheck handles health check requests.
 
 func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 
 	rm.mutex.RLock()
@@ -788,15 +712,12 @@ func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	checkers := make(map[string]HealthChecker)
 
 	for name, checker := range rm.healthCheckers {
-
 		checkers[name] = checker
-
 	}
 
 	rm.mutex.RUnlock()
 
 	systemHealth := SystemHealth{
-
 		Components: make(map[string]HealthStatus),
 
 		SystemMetrics: rm.collectSystemMetrics(),
@@ -816,9 +737,7 @@ func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 		systemHealth.Components[name] = status
 
 		if !status.IsHealthy {
-
 			allHealthy = false
-
 		}
 
 	}
@@ -826,33 +745,24 @@ func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	systemHealth.IsHealthy = allHealthy
 
 	if allHealthy {
-
 		systemHealth.Status = "healthy"
-
 	} else {
-
 		systemHealth.Status = "unhealthy"
-
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	if !allHealthy {
-
 		w.WriteHeader(http.StatusServiceUnavailable)
-
 	}
 
 	json.NewEncoder(w).Encode(systemHealth)
-
 }
 
 // handleSystemStatus handles system status requests.
 
 func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
-
 	status := map[string]interface{}{
-
 		"service": "nephoran-rag-pipeline",
 
 		"version": "1.0.0",
@@ -862,7 +772,6 @@ func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request)
 		"uptime_seconds": int64(time.Since(time.Now()).Seconds()),
 
 		"monitoring": map[string]interface{}{
-
 			"metrics_enabled": true,
 
 			"health_checks": len(rm.healthCheckers),
@@ -876,13 +785,11 @@ func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(status)
-
 }
 
 // handleComponentMetrics handles component-specific metrics requests.
 
 func (rm *RAGMonitor) handleComponentMetrics(w http.ResponseWriter, r *http.Request) {
-
 	componentMetrics := make(map[string]interface{})
 
 	// Collect metrics from components.
@@ -892,7 +799,6 @@ func (rm *RAGMonitor) handleComponentMetrics(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(componentMetrics)
-
 }
 
 // Metric recording methods.
@@ -900,7 +806,6 @@ func (rm *RAGMonitor) handleComponentMetrics(w http.ResponseWriter, r *http.Requ
 // RecordQueryLatency records query processing latency.
 
 func (rm *RAGMonitor) RecordQueryLatency(duration time.Duration, intentType string, enhancement, reranking bool) {
-
 	rm.queryLatencyHistogram.WithLabelValues(
 
 		intentType,
@@ -911,23 +816,19 @@ func (rm *RAGMonitor) RecordQueryLatency(duration time.Duration, intentType stri
 	).Observe(duration.Seconds())
 
 	rm.queryCountCounter.WithLabelValues(intentType, "success").Inc()
-
 }
 
 // RecordQueryError records query processing errors.
 
 func (rm *RAGMonitor) RecordQueryError(intentType, errorType string) {
-
 	rm.queryCountCounter.WithLabelValues(intentType, "error").Inc()
 
 	rm.errorRateCounter.WithLabelValues("query_processing", errorType).Inc()
-
 }
 
 // RecordEmbeddingLatency records embedding generation latency.
 
 func (rm *RAGMonitor) RecordEmbeddingLatency(duration time.Duration, modelName string, batchSize int) {
-
 	rm.embeddingLatencyHist.WithLabelValues(
 
 		modelName,
@@ -936,47 +837,36 @@ func (rm *RAGMonitor) RecordEmbeddingLatency(duration time.Duration, modelName s
 	).Observe(duration.Seconds())
 
 	rm.embeddingCountCounter.WithLabelValues(modelName, "success").Inc()
-
 }
 
 // RecordCacheHitRate records cache hit rates.
 
 func (rm *RAGMonitor) RecordCacheHitRate(cacheType string, hitRate float64) {
-
 	rm.cacheHitRateGauge.WithLabelValues(cacheType).Set(hitRate)
-
 }
 
 // RecordDocumentProcessing records document processing metrics.
 
 func (rm *RAGMonitor) RecordDocumentProcessing(count int) {
-
 	rm.documentProcessingGauge.Set(float64(count))
-
 }
 
 // RecordChunkingLatency records document chunking latency.
 
 func (rm *RAGMonitor) RecordChunkingLatency(duration time.Duration, strategy string) {
-
 	rm.chunkingLatencyHist.WithLabelValues(strategy).Observe(duration.Seconds())
-
 }
 
 // RecordRetrievalLatency records document retrieval latency.
 
 func (rm *RAGMonitor) RecordRetrievalLatency(duration time.Duration, searchType string) {
-
 	rm.retrievalLatencyHist.WithLabelValues(searchType).Observe(duration.Seconds())
-
 }
 
 // RecordContextAssemblyLatency records context assembly latency.
 
 func (rm *RAGMonitor) RecordContextAssemblyLatency(duration time.Duration, strategy string) {
-
 	rm.contextAssemblyHist.WithLabelValues(strategy).Observe(duration.Seconds())
-
 }
 
 // Alert Manager implementation.
@@ -984,9 +874,7 @@ func (rm *RAGMonitor) RecordContextAssemblyLatency(duration time.Duration, strat
 // NewAlertManager creates a new alert manager.
 
 func NewAlertManager(config *MonitoringConfig) *AlertManager {
-
 	return &AlertManager{
-
 		config: config,
 
 		logger: slog.Default().With("component", "alert-manager"),
@@ -995,13 +883,11 @@ func NewAlertManager(config *MonitoringConfig) *AlertManager {
 
 		webhooks: config.AlertWebhooks,
 	}
-
 }
 
 // TriggerAlert triggers an alert.
 
 func (am *AlertManager) TriggerAlert(alert Alert) {
-
 	am.mutex.Lock()
 
 	defer am.mutex.Unlock()
@@ -1022,17 +908,13 @@ func (am *AlertManager) TriggerAlert(alert Alert) {
 	// Send webhook notifications.
 
 	for _, webhook := range am.webhooks {
-
 		go am.sendWebhookNotification(webhook, alert)
-
 	}
-
 }
 
 // sendWebhookNotification sends alert notification to webhook.
 
 func (am *AlertManager) sendWebhookNotification(webhook string, alert Alert) {
-
 	// In a real implementation, you would send HTTP POST to the webhook.
 
 	am.logger.Info("Would send webhook notification",
@@ -1043,13 +925,11 @@ func (am *AlertManager) sendWebhookNotification(webhook string, alert Alert) {
 
 		"severity", alert.Severity,
 	)
-
 }
 
 // GetActiveAlerts returns all active alerts.
 
 func (am *AlertManager) GetActiveAlerts() []Alert {
-
 	am.mutex.RLock()
 
 	defer am.mutex.RUnlock()
@@ -1057,19 +937,15 @@ func (am *AlertManager) GetActiveAlerts() []Alert {
 	alerts := make([]Alert, 0, len(am.alerts))
 
 	for _, alert := range am.alerts {
-
 		alerts = append(alerts, alert)
-
 	}
 
 	return alerts
-
 }
 
 // ClearAlert clears an alert.
 
 func (am *AlertManager) ClearAlert(alertID string) {
-
 	am.mutex.Lock()
 
 	defer am.mutex.Unlock()
@@ -1077,27 +953,20 @@ func (am *AlertManager) ClearAlert(alertID string) {
 	delete(am.alerts, alertID)
 
 	am.logger.Info("Alert cleared", "id", alertID)
-
 }
 
 // Shutdown gracefully shuts down the monitoring system.
 
 func (rm *RAGMonitor) Shutdown(ctx context.Context) error {
-
 	rm.logger.Info("Shutting down RAG monitor")
 
 	if rm.metricsServer != nil {
-
 		if err := rm.metricsServer.Shutdown(ctx); err != nil {
-
 			return fmt.Errorf("failed to shutdown metrics server: %w", err)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // Health checker implementations for RAG components.
@@ -1111,9 +980,7 @@ type RAGServiceHealthChecker struct {
 // CheckHealth performs checkhealth operation.
 
 func (hc *RAGServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
-
 	status := HealthStatus{
-
 		ComponentName: "rag-service",
 
 		IsHealthy: true,
@@ -1154,15 +1021,12 @@ func (hc *RAGServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus
 	status.Metadata = health
 
 	return status
-
 }
 
 // GetComponentName performs getcomponentname operation.
 
 func (hc *RAGServiceHealthChecker) GetComponentName() string {
-
 	return "rag-service"
-
 }
 
 // EmbeddingServiceHealthChecker implements health checking for EmbeddingService.
@@ -1174,9 +1038,7 @@ type EmbeddingServiceHealthChecker struct {
 // CheckHealth performs checkhealth operation.
 
 func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
-
 	status := HealthStatus{
-
 		ComponentName: "embedding-service",
 
 		IsHealthy: true,
@@ -1203,7 +1065,6 @@ func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) Health
 	metrics := hc.embeddingService.GetMetrics()
 
 	status.Metadata = map[string]interface{}{
-
 		"total_requests": metrics.TotalRequests,
 
 		"successful_requests": metrics.SuccessfulRequests,
@@ -1234,15 +1095,12 @@ func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) Health
 	}
 
 	return status
-
 }
 
 // GetComponentName performs getcomponentname operation.
 
 func (hc *EmbeddingServiceHealthChecker) GetComponentName() string {
-
 	return "embedding-service"
-
 }
 
 // RedisHealthChecker implements health checking for Redis cache.
@@ -1254,9 +1112,7 @@ type RedisHealthChecker struct {
 // CheckHealth performs checkhealth operation.
 
 func (hc *RedisHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
-
 	status := HealthStatus{
-
 		ComponentName: "redis-cache",
 
 		IsHealthy: true,
@@ -1289,9 +1145,7 @@ func (hc *RedisHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 		status.Status = "unhealthy"
 
 		if errMsg, ok := health["error"].(string); ok {
-
 			status.ErrorMessage = errMsg
-
 		}
 
 	}
@@ -1299,13 +1153,10 @@ func (hc *RedisHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 	status.Metadata = health
 
 	return status
-
 }
 
 // GetComponentName performs getcomponentname operation.
 
 func (hc *RedisHealthChecker) GetComponentName() string {
-
 	return "redis-cache"
-
 }

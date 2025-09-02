@@ -57,7 +57,6 @@ type RealtimeValidationEngine struct {
 // RealtimeValidationConfig configures real-time validation.
 
 type RealtimeValidationConfig struct {
-
 	// Core validation settings.
 
 	Enabled bool `yaml:"enabled"`
@@ -204,35 +203,27 @@ type ValidationStatistics struct {
 // L2ValidationCache represents distributed cache for validation results.
 
 type L2ValidationCache struct {
-
 	// Placeholder for distributed cache implementation.
-
 }
 
 // Get retrieves a cached validation result from L2 cache.
 
 func (c *L2ValidationCache) Get(key string) *CachedValidationResult {
-
 	// Placeholder implementation - would connect to Redis/Memcached.
 
 	return nil
-
 }
 
 // Put stores a validation result in L2 cache.
 
 func (c *L2ValidationCache) Put(key string, result *CachedValidationResult) {
-
 	// Placeholder implementation - would connect to Redis/Memcached.
-
 }
 
 // PreloadCache represents pre-validated certificates cache.
 
 type PreloadCache struct {
-
 	// Placeholder for preload cache implementation.
-
 }
 
 // ValidationCacheOptimized provides optimized caching for validation results.
@@ -421,7 +412,6 @@ type EmergencyBypassController struct {
 // NewRealtimeValidationEngine creates a new real-time validation engine.
 
 func NewRealtimeValidationEngine(
-
 	config *RealtimeValidationConfig,
 
 	logger *logging.StructuredLogger,
@@ -429,19 +419,14 @@ func NewRealtimeValidationEngine(
 	validator *ValidationFramework,
 
 	revocationChecker *RevocationChecker,
-
 ) (*RealtimeValidationEngine, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("validation config is required")
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	engine := &RealtimeValidationEngine{
-
 		config: config,
 
 		logger: logger,
@@ -462,7 +447,6 @@ func NewRealtimeValidationEngine(
 	if config.PolicyValidationEnabled {
 
 		policyEngine, err := NewPolicyEngine(&PolicyEngineConfig{
-
 			Enabled: true,
 
 			Rules: config.ORANPolicyRules,
@@ -477,7 +461,6 @@ func NewRealtimeValidationEngine(
 
 			RequireExtendedValidation: config.RequireExtendedValidation,
 		}, logger)
-
 		if err != nil {
 
 			cancel()
@@ -493,9 +476,7 @@ func NewRealtimeValidationEngine(
 	// Initialize optimized cache.
 
 	engine.cache = &ValidationCacheOptimized{
-
 		l1Cache: &L1ValidationCache{
-
 			cache: make(map[string]*CachedValidationResult),
 
 			maxSize: config.RevocationCacheSize,
@@ -511,9 +492,7 @@ func NewRealtimeValidationEngine(
 	if config.CircuitBreakerEnabled {
 
 		engine.circuitBreaker = &ValidationCircuitBreaker{
-
 			config: &CircuitBreakerConfig{
-
 				FailureThreshold: 5,
 
 				SuccessThreshold: 2,
@@ -533,32 +512,25 @@ func NewRealtimeValidationEngine(
 	// Initialize connection pool.
 
 	if config.OCSPValidationEnabled {
-
 		engine.connectionPool = &OCSPConnectionPool{
-
 			connections: make(map[string]*PooledConnection),
 
 			maxSize: config.ConnectionPoolSize,
 
 			timeout: config.ValidationTimeout,
 		}
-
 	}
 
 	// Initialize metrics recorder.
 
 	if config.MetricsEnabled {
-
 		engine.metricsRecorder = engine.initializeMetrics()
-
 	}
 
 	// Initialize webhook notifier.
 
 	if config.WebhookNotifications {
-
 		engine.webhookNotifier = &ValidationWebhookNotifier{
-
 			endpoints: config.WebhookEndpoints,
 
 			client: NewWebhookClient(logger),
@@ -567,7 +539,6 @@ func NewRealtimeValidationEngine(
 
 			workers: 5,
 		}
-
 	}
 
 	// Initialize emergency bypass controller.
@@ -575,7 +546,6 @@ func NewRealtimeValidationEngine(
 	if config.EmergencyBypassEnabled {
 
 		engine.emergencyBypass = &EmergencyBypassController{
-
 			auditLogger: NewAuditLogger(logger),
 		}
 
@@ -584,13 +554,11 @@ func NewRealtimeValidationEngine(
 	}
 
 	return engine, nil
-
 }
 
 // ValidateCertificateRealtime performs real-time certificate validation.
 
 func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Context, cert *x509.Certificate, connState *tls.ConnectionState) (*ValidationResult, error) {
-
 	start := time.Now()
 
 	e.stats.TotalValidations.Add(1)
@@ -608,7 +576,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 			"subject", cert.Subject.String())
 
 		return &ValidationResult{
-
 			SerialNumber: cert.SerialNumber.String(),
 
 			Valid: true,
@@ -623,9 +590,7 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 	// Check circuit breaker.
 
 	if e.circuitBreaker != nil && !e.circuitBreaker.AllowRequest() {
-
 		return nil, fmt.Errorf("validation circuit breaker is open")
-
 	}
 
 	// Check cache first.
@@ -653,7 +618,6 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 	// Initialize result.
 
 	result := &ValidationResult{
-
 		SerialNumber: cert.SerialNumber.String(),
 
 		Valid: true,
@@ -668,13 +632,9 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 	// Perform validations in parallel if configured.
 
 	if e.config.AsyncValidationEnabled {
-
 		e.performAsyncValidation(validationCtx, cert, connState, result)
-
 	} else {
-
 		e.performSyncValidation(validationCtx, cert, connState, result)
-
 	}
 
 	// Cache the result.
@@ -692,37 +652,25 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 	// Send webhook notification if needed.
 
 	if !result.Valid && e.webhookNotifier != nil {
-
 		e.sendValidationEvent(cert, result, "validation_failed")
-
 	}
 
 	// Update circuit breaker.
 
 	if e.circuitBreaker != nil {
-
 		if result.Valid {
-
 			e.circuitBreaker.RecordSuccess()
-
 		} else {
-
 			e.circuitBreaker.RecordFailure()
-
 		}
-
 	}
 
 	// Update statistics.
 
 	if result.Valid {
-
 		e.stats.SuccessfulValidations.Add(1)
-
 	} else {
-
 		e.stats.FailedValidations.Add(1)
-
 	}
 
 	e.logger.Info("real-time certificate validation completed",
@@ -736,13 +684,11 @@ func (e *RealtimeValidationEngine) ValidateCertificateRealtime(ctx context.Conte
 		"cached", false)
 
 	return result, nil
-
 }
 
 // performAsyncValidation performs validations asynchronously.
 
 func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, cert *x509.Certificate, connState *tls.ConnectionState, result *ValidationResult) {
-
 	var wg sync.WaitGroup
 
 	resultChan := make(chan validationComponent, 5)
@@ -754,13 +700,11 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			chainResult := e.validateChain(ctx, cert, connState)
 
 			resultChan <- validationComponent{Type: "chain", Result: chainResult}
-
 		}()
 
 	}
@@ -772,13 +716,11 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			revocationResult := e.checkRevocation(ctx, cert)
 
 			resultChan <- validationComponent{Type: "revocation", Result: revocationResult}
-
 		}()
 
 	}
@@ -790,13 +732,11 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			ctResult := e.validateCTLog(ctx, cert)
 
 			resultChan <- validationComponent{Type: "ct", Result: ctResult}
-
 		}()
 
 	}
@@ -808,13 +748,11 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			policyResult := e.validatePolicy(ctx, cert)
 
 			resultChan <- validationComponent{Type: "policy", Result: policyResult}
-
 		}()
 
 	}
@@ -826,13 +764,11 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			oranResult := e.validateORANCompliance(ctx, cert)
 
 			resultChan <- validationComponent{Type: "oran", Result: oranResult}
-
 		}()
 
 	}
@@ -840,27 +776,21 @@ func (e *RealtimeValidationEngine) performAsyncValidation(ctx context.Context, c
 	// Wait for all validations to complete.
 
 	go func() {
-
 		wg.Wait()
 
 		close(resultChan)
-
 	}()
 
 	// Aggregate results.
 
 	for component := range resultChan {
-
 		e.aggregateValidationResult(result, component)
-
 	}
-
 }
 
 // performSyncValidation performs validations synchronously.
 
 func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, cert *x509.Certificate, connState *tls.ConnectionState, result *ValidationResult) {
-
 	// Chain validation.
 
 	if e.config.ChainValidationEnabled {
@@ -910,13 +840,11 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 		e.aggregateValidationResult(result, validationComponent{Type: "oran", Result: oranResult})
 
 	}
-
 }
 
 // validateChain validates the certificate chain.
 
 func (e *RealtimeValidationEngine) validateChain(ctx context.Context, cert *x509.Certificate, connState *tls.ConnectionState) interface{} {
-
 	if connState != nil && len(connState.PeerCertificates) > 0 {
 
 		// Validate the full chain from the connection.
@@ -932,44 +860,35 @@ func (e *RealtimeValidationEngine) validateChain(ctx context.Context, cert *x509
 	result, _ := e.validator.ValidateCertificate(ctx, cert)
 
 	return result
-
 }
 
 // checkRevocation performs revocation checking with optimization.
 
 func (e *RealtimeValidationEngine) checkRevocation(ctx context.Context, cert *x509.Certificate) interface{} {
-
 	e.stats.RevocationChecks.Add(1)
 
 	// Use connection pool for OCSP if available.
 
 	if e.connectionPool != nil && e.config.OCSPValidationEnabled {
-
 		return e.checkRevocationWithPool(ctx, cert)
-
 	}
 
 	result, _ := e.revocationChecker.CheckRevocationDetailed(ctx, cert)
 
 	return result
-
 }
 
 // checkRevocationWithPool uses connection pooling for OCSP checks.
 
 func (e *RealtimeValidationEngine) checkRevocationWithPool(ctx context.Context, cert *x509.Certificate) *RevocationCheckResult {
-
 	// Get OCSP responder URL.
 
 	if len(cert.OCSPServer) == 0 {
-
 		return &RevocationCheckResult{
-
 			Status: RevocationStatusUnknown,
 
 			Errors: []string{"no OCSP responder URL in certificate"},
 		}
-
 	}
 
 	ocspURL := cert.OCSPServer[0]
@@ -977,11 +896,9 @@ func (e *RealtimeValidationEngine) checkRevocationWithPool(ctx context.Context, 
 	conn := e.connectionPool.GetConnection(ocspURL)
 
 	if conn == nil {
-
 		// Create new connection.
 
 		conn = e.connectionPool.CreateConnection(ocspURL)
-
 	}
 
 	defer e.connectionPool.ReleaseConnection(conn)
@@ -989,53 +906,42 @@ func (e *RealtimeValidationEngine) checkRevocationWithPool(ctx context.Context, 
 	// Perform OCSP check using pooled connection.
 
 	return conn.CheckRevocation(ctx, cert)
-
 }
 
 // validateCTLog validates Certificate Transparency logs.
 
 func (e *RealtimeValidationEngine) validateCTLog(ctx context.Context, cert *x509.Certificate) interface{} {
-
 	e.stats.CTLogChecks.Add(1)
 
 	// Check for embedded SCTs if stapling is required.
 
 	if e.config.RequireSCTValidation {
-
 		return e.validateSCTs(ctx, cert)
-
 	}
 
 	result, _ := e.validator.validateCTLog(ctx, cert)
 
 	return result
-
 }
 
 // validatePolicy validates against security policies.
 
 func (e *RealtimeValidationEngine) validatePolicy(ctx context.Context, cert *x509.Certificate) interface{} {
-
 	result := e.policyEngine.ValidateCertificate(ctx, cert)
 
 	if !result.Valid {
-
 		e.stats.PolicyViolations.Add(1)
-
 	}
 
 	return result
-
 }
 
 // validateORANCompliance validates O-RAN compliance.
 
 func (e *RealtimeValidationEngine) validateORANCompliance(ctx context.Context, cert *x509.Certificate) interface{} {
-
 	// O-RAN specific validation rules.
 
 	result := &ORANComplianceResult{
-
 		Valid: true,
 
 		Checks: []ORANCheck{},
@@ -1060,15 +966,12 @@ func (e *RealtimeValidationEngine) validateORANCompliance(ctx context.Context, c
 	e.checkORANAlgorithms(cert, result)
 
 	return result
-
 }
 
 // Helper validation methods.
 
 func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, result *ORANComplianceResult) {
-
 	check := ORANCheck{
-
 		Name: "O-RAN Extensions",
 
 		Passed: true,
@@ -1077,7 +980,6 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 	// Check for O-RAN specific extensions.
 
 	requiredExtensions := []string{
-
 		"1.3.6.1.4.1.53148.1.1", // O-RAN component identifier
 
 		"1.3.6.1.4.1.53148.1.2", // O-RAN role identifier
@@ -1089,7 +991,6 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 		found := false
 
 		for _, ext := range cert.Extensions {
-
 			if ext.Id.String() == oid {
 
 				found = true
@@ -1097,7 +998,6 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 				break
 
 			}
-
 		}
 
 		if !found {
@@ -1115,17 +1015,12 @@ func (e *RealtimeValidationEngine) checkORANExtensions(cert *x509.Certificate, r
 	result.Checks = append(result.Checks, check)
 
 	if !check.Passed {
-
 		result.Valid = false
-
 	}
-
 }
 
 func (e *RealtimeValidationEngine) checkORANKeyUsage(cert *x509.Certificate, result *ORANComplianceResult) {
-
 	check := ORANCheck{
-
 		Name: "O-RAN Key Usage",
 
 		Passed: true,
@@ -1156,17 +1051,12 @@ func (e *RealtimeValidationEngine) checkORANKeyUsage(cert *x509.Certificate, res
 	result.Checks = append(result.Checks, check)
 
 	if !check.Passed {
-
 		result.Valid = false
-
 	}
-
 }
 
 func (e *RealtimeValidationEngine) checkORANNaming(cert *x509.Certificate, result *ORANComplianceResult) {
-
 	check := ORANCheck{
-
 		Name: "O-RAN Naming Convention",
 
 		Passed: true,
@@ -1187,13 +1077,10 @@ func (e *RealtimeValidationEngine) checkORANNaming(cert *x509.Certificate, resul
 	}
 
 	result.Checks = append(result.Checks, check)
-
 }
 
 func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, result *ORANComplianceResult) {
-
 	check := ORANCheck{
-
 		Name: "O-RAN Algorithm Compliance",
 
 		Passed: true,
@@ -1202,7 +1089,6 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 	// Check signature algorithm.
 
 	allowedAlgorithms := []x509.SignatureAlgorithm{
-
 		x509.SHA256WithRSA,
 
 		x509.SHA384WithRSA,
@@ -1219,7 +1105,6 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 	allowed := false
 
 	for _, alg := range allowedAlgorithms {
-
 		if cert.SignatureAlgorithm == alg {
 
 			allowed = true
@@ -1227,7 +1112,6 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 			break
 
 		}
-
 	}
 
 	if !allowed {
@@ -1243,33 +1127,25 @@ func (e *RealtimeValidationEngine) checkORANAlgorithms(cert *x509.Certificate, r
 	}
 
 	result.Checks = append(result.Checks, check)
-
 }
 
 func (e *RealtimeValidationEngine) validateORANSubjectFormat(subject string) bool {
-
 	// Simplified O-RAN subject format validation.
 
 	// Real implementation would check against O-RAN specifications.
 
 	return true
-
 }
 
 // Cache management.
 
 func (e *RealtimeValidationEngine) generateCacheKey(cert *x509.Certificate) string {
-
 	return fmt.Sprintf("%s-%x", cert.SerialNumber.String(), cert.AuthorityKeyId)
-
 }
 
 func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationResult {
-
 	if e.cache == nil {
-
 		return nil
-
 	}
 
 	// Check L1 cache first.
@@ -1285,25 +1161,18 @@ func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationRes
 	// Check L2 cache if available.
 
 	if e.cache.l2Cache != nil {
-
 		return e.cache.l2Cache.Get(key)
-
 	}
 
 	return nil
-
 }
 
 func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationResult) {
-
 	if e.cache == nil {
-
 		return
-
 	}
 
 	cached := &CachedValidationResult{
-
 		Result: result,
 
 		CachedAt: time.Now(),
@@ -1318,11 +1187,8 @@ func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationRes
 	// Store in L2 cache if available.
 
 	if e.cache.l2Cache != nil {
-
 		e.cache.l2Cache.Put(key, cached)
-
 	}
-
 }
 
 // Circuit breaker methods.
@@ -1330,7 +1196,6 @@ func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationRes
 // AllowRequest performs allowrequest operation.
 
 func (cb *ValidationCircuitBreaker) AllowRequest() bool {
-
 	state := cb.state.Load().(CircuitState)
 
 	switch state {
@@ -1366,13 +1231,11 @@ func (cb *ValidationCircuitBreaker) AllowRequest() bool {
 		return false
 
 	}
-
 }
 
 // RecordSuccess performs recordsuccess operation.
 
 func (cb *ValidationCircuitBreaker) RecordSuccess() {
-
 	cb.successCount.Add(1)
 
 	state := cb.state.Load().(CircuitState)
@@ -1386,23 +1249,18 @@ func (cb *ValidationCircuitBreaker) RecordSuccess() {
 		cb.successCount.Store(0)
 
 	}
-
 }
 
 // RecordFailure performs recordfailure operation.
 
 func (cb *ValidationCircuitBreaker) RecordFailure() {
-
 	cb.failureCount.Add(1)
 
 	cb.lastFailureTime.Store(time.Now())
 
 	if cb.failureCount.Load() >= cb.config.FailureThreshold {
-
 		cb.state.Store(CircuitOpen)
-
 	}
-
 }
 
 // Connection pool methods.
@@ -1410,7 +1268,6 @@ func (cb *ValidationCircuitBreaker) RecordFailure() {
 // GetConnection performs getconnection operation.
 
 func (pool *OCSPConnectionPool) GetConnection(url string) *PooledConnection {
-
 	pool.mu.RLock()
 
 	conn, exists := pool.connections[url]
@@ -1426,27 +1283,22 @@ func (pool *OCSPConnectionPool) GetConnection(url string) *PooledConnection {
 	}
 
 	return nil
-
 }
 
 // CreateConnection performs createconnection operation.
 
 func (pool *OCSPConnectionPool) CreateConnection(url string) *PooledConnection {
-
 	pool.mu.Lock()
 
 	defer pool.mu.Unlock()
 
 	if len(pool.connections) >= pool.maxSize {
-
 		// Evict least recently used.
 
 		pool.evictLRU()
-
 	}
 
 	conn := &PooledConnection{
-
 		URL: url,
 
 		Client: NewOCSPClient(url, pool.timeout),
@@ -1459,13 +1311,11 @@ func (pool *OCSPConnectionPool) CreateConnection(url string) *PooledConnection {
 	pool.connections[url] = conn
 
 	return conn
-
 }
 
 // ReleaseConnection performs releaseconnection operation.
 
 func (pool *OCSPConnectionPool) ReleaseConnection(conn *PooledConnection) {
-
 	if conn != nil {
 
 		conn.InUse.Store(false)
@@ -1473,17 +1323,14 @@ func (pool *OCSPConnectionPool) ReleaseConnection(conn *PooledConnection) {
 		conn.LastUsed = time.Now()
 
 	}
-
 }
 
 func (pool *OCSPConnectionPool) evictLRU() {
-
 	var oldestURL string
 
 	var oldestTime time.Time
 
 	for url, conn := range pool.connections {
-
 		if !conn.InUse.Load() && (oldestURL == "" || conn.LastUsed.Before(oldestTime)) {
 
 			oldestURL = url
@@ -1491,25 +1338,18 @@ func (pool *OCSPConnectionPool) evictLRU() {
 			oldestTime = conn.LastUsed
 
 		}
-
 	}
 
 	if oldestURL != "" {
-
 		delete(pool.connections, oldestURL)
-
 	}
-
 }
 
 // Emergency bypass methods.
 
 func (e *RealtimeValidationEngine) isEmergencyBypassActive() bool {
-
 	if e.emergencyBypass == nil || !e.emergencyBypass.enabled.Load() {
-
 		return false
-
 	}
 
 	bypassUntil := e.emergencyBypass.bypassUntil.Load().(time.Time)
@@ -1523,17 +1363,13 @@ func (e *RealtimeValidationEngine) isEmergencyBypassActive() bool {
 	}
 
 	return true
-
 }
 
 // EnableEmergencyBypass performs enableemergencybypass operation.
 
 func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duration time.Duration, reason string) error {
-
 	if e.emergencyBypass == nil {
-
 		return fmt.Errorf("emergency bypass not configured")
-
 	}
 
 	// Validate authorization key.
@@ -1541,7 +1377,6 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 	authorized := false
 
 	for _, key := range e.config.BypassAuthorizationKeys {
-
 		if key == authKey {
 
 			authorized = true
@@ -1549,13 +1384,10 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 			break
 
 		}
-
 	}
 
 	if !authorized {
-
 		return fmt.Errorf("invalid authorization key")
-
 	}
 
 	e.emergencyBypass.mu.Lock()
@@ -1573,9 +1405,7 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 	// Audit log.
 
 	if e.emergencyBypass.auditLogger != nil {
-
 		e.emergencyBypass.auditLogger.LogEmergencyBypass(authKey, duration, reason)
-
 	}
 
 	e.logger.Warn("emergency bypass enabled",
@@ -1587,33 +1417,25 @@ func (e *RealtimeValidationEngine) EnableEmergencyBypass(authKey string, duratio
 		"reason", reason)
 
 	return nil
-
 }
 
 // Metrics recording.
 
 func (e *RealtimeValidationEngine) recordValidationMetrics(start time.Time, success bool, source string) {
-
 	if e.metricsRecorder == nil {
-
 		return
-
 	}
 
 	status := "success"
 
 	if !success {
-
 		status = "failure"
-
 	}
 
 	e.metricsRecorder.validationTotal.WithLabelValues(status, source).Inc()
-
 }
 
 func (e *RealtimeValidationEngine) recordValidationDuration(duration time.Duration) {
-
 	e.mu.Lock()
 
 	e.stats.ValidationDurations = append(e.stats.ValidationDurations, duration)
@@ -1621,39 +1443,29 @@ func (e *RealtimeValidationEngine) recordValidationDuration(duration time.Durati
 	// Keep only last 1000 durations for statistics.
 
 	if len(e.stats.ValidationDurations) > 1000 {
-
 		e.stats.ValidationDurations = e.stats.ValidationDurations[1:]
-
 	}
 
 	e.mu.Unlock()
 
 	if e.metricsRecorder != nil {
-
 		e.metricsRecorder.validationDuration.WithLabelValues("realtime").Observe(duration.Seconds())
-
 	}
-
 }
 
 // Webhook notification.
 
 func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, result *ValidationResult, eventType string) {
-
 	if e.webhookNotifier == nil {
-
 		return
-
 	}
 
 	event := &ValidationEvent{
-
 		Type: eventType,
 
 		Timestamp: time.Now(),
 
 		Certificate: &CertificateInfo{
-
 			SerialNumber: cert.SerialNumber.String(),
 
 			Subject: cert.Subject.String(),
@@ -1670,7 +1482,6 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 		Severity: "high",
 
 		Details: map[string]interface{}{
-
 			"errors": result.Errors,
 
 			"warnings": result.Warnings,
@@ -1686,19 +1497,15 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 		e.logger.Warn("webhook event queue full, dropping event")
 
 	}
-
 }
 
 // Initialize metrics.
 
 func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorder {
-
 	return &ValidationMetricsRecorder{
-
 		validationTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "cert_validation_total",
 
 				Help: "Total number of certificate validations",
@@ -1710,7 +1517,6 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 		validationDuration: prometheus.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "cert_validation_duration_seconds",
 
 				Help: "Certificate validation duration in seconds",
@@ -1724,7 +1530,6 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 		revocationCheckTotal: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "cert_revocation_check_total",
 
 				Help: "Total number of revocation checks",
@@ -1736,7 +1541,6 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 		cacheHitRate: prometheus.NewGauge(
 
 			prometheus.GaugeOpts{
-
 				Name: "cert_validation_cache_hit_rate",
 
 				Help: "Certificate validation cache hit rate",
@@ -1746,7 +1550,6 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 		policyViolations: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "cert_policy_violations_total",
 
 				Help: "Total number of certificate policy violations",
@@ -1758,7 +1561,6 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 		circuitBreakerState: prometheus.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "cert_validation_circuit_breaker_state",
 
 				Help: "Certificate validation circuit breaker state (0=closed, 1=open, 2=half-open)",
@@ -1767,21 +1569,17 @@ func (e *RealtimeValidationEngine) initializeMetrics() *ValidationMetricsRecorde
 			[]string{"component"},
 		),
 	}
-
 }
 
 // GetStatistics returns validation statistics.
 
 func (e *RealtimeValidationEngine) GetStatistics() *ValidationStatistics {
-
 	return e.stats
-
 }
 
 // GetCacheStatistics returns cache statistics.
 
 func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
-
 	stats := make(map[string]interface{})
 
 	totalValidations := e.stats.TotalValidations.Load()
@@ -1789,9 +1587,7 @@ func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
 	cacheHits := e.stats.CacheHits.Load()
 
 	if totalValidations > 0 {
-
 		stats["cache_hit_rate"] = float64(cacheHits) / float64(totalValidations)
-
 	}
 
 	stats["total_validations"] = totalValidations
@@ -1829,31 +1625,24 @@ func (e *RealtimeValidationEngine) GetCacheStatistics() map[string]interface{} {
 		p95Index := int(float64(len(durations)) * 0.95)
 
 		if p95Index < len(durations) {
-
 			stats["validation_duration_p95"] = durations[p95Index]
-
 		}
 
 	} else {
-
 		e.mu.RUnlock()
-
 	}
 
 	return stats
-
 }
 
 // Start starts the validation engine.
 
 func (e *RealtimeValidationEngine) Start(ctx context.Context) error {
-
 	e.logger.Info("starting real-time validation engine")
 
 	// Start webhook notifier workers.
 
 	if e.webhookNotifier != nil {
-
 		for range e.webhookNotifier.workers {
 
 			e.wg.Add(1)
@@ -1861,7 +1650,6 @@ func (e *RealtimeValidationEngine) Start(ctx context.Context) error {
 			go e.runWebhookWorker()
 
 		}
-
 	}
 
 	// Start metrics updater.
@@ -1881,29 +1669,24 @@ func (e *RealtimeValidationEngine) Start(ctx context.Context) error {
 	go e.runCacheCleanup()
 
 	return nil
-
 }
 
 // Stop stops the validation engine.
 
 func (e *RealtimeValidationEngine) Stop() {
-
 	e.logger.Info("stopping real-time validation engine")
 
 	e.cancel()
 
 	e.wg.Wait()
-
 }
 
 // Worker routines.
 
 func (e *RealtimeValidationEngine) runWebhookWorker() {
-
 	defer e.wg.Done()
 
 	for {
-
 		select {
 
 		case <-e.ctx.Done():
@@ -1913,19 +1696,14 @@ func (e *RealtimeValidationEngine) runWebhookWorker() {
 		case event := <-e.webhookNotifier.eventQueue:
 
 			if event != nil {
-
 				e.webhookNotifier.client.SendEvent(event)
-
 			}
 
 		}
-
 	}
-
 }
 
 func (e *RealtimeValidationEngine) runMetricsUpdater() {
-
 	defer e.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -1933,7 +1711,6 @@ func (e *RealtimeValidationEngine) runMetricsUpdater() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-e.ctx.Done():
@@ -1945,13 +1722,10 @@ func (e *RealtimeValidationEngine) runMetricsUpdater() {
 			e.updateMetrics()
 
 		}
-
 	}
-
 }
 
 func (e *RealtimeValidationEngine) runCacheCleanup() {
-
 	defer e.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Minute)
@@ -1959,7 +1733,6 @@ func (e *RealtimeValidationEngine) runCacheCleanup() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-e.ctx.Done():
@@ -1971,19 +1744,14 @@ func (e *RealtimeValidationEngine) runCacheCleanup() {
 			e.cleanupCache()
 
 		}
-
 	}
-
 }
 
 func (e *RealtimeValidationEngine) updateMetrics() {
-
 	stats := e.GetCacheStatistics()
 
 	if e.metricsRecorder != nil && stats["cache_hit_rate"] != nil {
-
 		e.metricsRecorder.cacheHitRate.Set(stats["cache_hit_rate"].(float64))
-
 	}
 
 	// Update circuit breaker state.
@@ -1995,17 +1763,12 @@ func (e *RealtimeValidationEngine) updateMetrics() {
 		e.metricsRecorder.circuitBreakerState.WithLabelValues("main").Set(float64(state))
 
 	}
-
 }
 
 func (e *RealtimeValidationEngine) cleanupCache() {
-
 	if e.cache != nil && e.cache.l1Cache != nil {
-
 		e.cache.l1Cache.Cleanup()
-
 	}
-
 }
 
 // Helper types.
@@ -2041,7 +1804,6 @@ type ORANCheck struct {
 // Get performs get operation.
 
 func (cache *L1ValidationCache) Get(key string) *CachedValidationResult {
-
 	cache.mu.RLock()
 
 	defer cache.mu.RUnlock()
@@ -2049,27 +1811,21 @@ func (cache *L1ValidationCache) Get(key string) *CachedValidationResult {
 	result, exists := cache.cache[key]
 
 	if !exists {
-
 		return nil
-
 	}
 
 	// Check TTL.
 
 	if time.Since(result.CachedAt) > cache.ttl {
-
 		return nil
-
 	}
 
 	return result
-
 }
 
 // Put performs put operation.
 
 func (cache *L1ValidationCache) Put(key string, result *CachedValidationResult) {
-
 	cache.mu.Lock()
 
 	defer cache.mu.Unlock()
@@ -2077,25 +1833,20 @@ func (cache *L1ValidationCache) Put(key string, result *CachedValidationResult) 
 	// Check size limit.
 
 	if len(cache.cache) >= cache.maxSize {
-
 		// Simple eviction - remove oldest.
 
 		cache.evictOldest()
-
 	}
 
 	cache.cache[key] = result
-
 }
 
 func (cache *L1ValidationCache) evictOldest() {
-
 	var oldestKey string
 
 	var oldestTime time.Time
 
 	for key, result := range cache.cache {
-
 		if oldestKey == "" || result.CachedAt.Before(oldestTime) {
 
 			oldestKey = key
@@ -2103,21 +1854,16 @@ func (cache *L1ValidationCache) evictOldest() {
 			oldestTime = result.CachedAt
 
 		}
-
 	}
 
 	if oldestKey != "" {
-
 		delete(cache.cache, oldestKey)
-
 	}
-
 }
 
 // Cleanup performs cleanup operation.
 
 func (cache *L1ValidationCache) Cleanup() {
-
 	cache.mu.Lock()
 
 	defer cache.mu.Unlock()
@@ -2125,21 +1871,15 @@ func (cache *L1ValidationCache) Cleanup() {
 	now := time.Now()
 
 	for key, result := range cache.cache {
-
 		if now.Sub(result.CachedAt) > cache.ttl {
-
 			delete(cache.cache, key)
-
 		}
-
 	}
-
 }
 
 // aggregateValidationResult aggregates component validation results.
 
 func (e *RealtimeValidationEngine) aggregateValidationResult(result *ValidationResult, component validationComponent) {
-
 	switch component.Type {
 
 	case "chain":
@@ -2205,17 +1945,13 @@ func (e *RealtimeValidationEngine) aggregateValidationResult(result *ValidationR
 				result.Valid = false
 
 				for _, violation := range policyResult.Violations {
-
 					result.Errors = append(result.Errors, violation.Description)
-
 				}
 
 			}
 
 			for _, warning := range policyResult.Warnings {
-
 				result.Warnings = append(result.Warnings, warning.Description)
-
 			}
 
 		}
@@ -2233,45 +1969,34 @@ func (e *RealtimeValidationEngine) aggregateValidationResult(result *ValidationR
 			}
 
 			for _, check := range oranResult.Checks {
-
 				if !check.Passed && check.Message != "" {
-
 					result.Warnings = append(result.Warnings, check.Message)
-
 				}
-
 			}
 
 		}
 
 	}
-
 }
 
 // validateSCTs validates Signed Certificate Timestamps.
 
 func (e *RealtimeValidationEngine) validateSCTs(ctx context.Context, cert *x509.Certificate) bool {
-
 	// Check for embedded SCTs in certificate.
 
 	for _, ext := range cert.Extensions {
-
 		// SCT List extension OID: 1.3.6.1.4.1.11129.2.4.2.
 
 		if ext.Id.Equal([]int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}) {
-
 			// Found SCT extension.
 
 			// Real implementation would parse and validate SCTs.
 
 			return true
-
 		}
-
 	}
 
 	// No SCTs found.
 
 	return false
-
 }

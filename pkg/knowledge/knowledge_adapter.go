@@ -18,30 +18,22 @@ type KnowledgeBaseAdapter struct {
 // NewKnowledgeBaseAdapter creates a new adapter with lazy loading.
 
 func NewKnowledgeBaseAdapter(config *LoaderConfig) (*KnowledgeBaseAdapter, error) {
-
 	loader, err := NewLazyKnowledgeLoader(config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create lazy loader: %w", err)
-
 	}
 
 	return &KnowledgeBaseAdapter{
-
 		loader: loader,
 	}, nil
-
 }
 
 // NewOptimizedTelecomKnowledgeBase creates an optimized knowledge base with lazy loading.
 
 func NewOptimizedTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
-
 	// Create a minimal knowledge base that uses lazy loading.
 
 	kb := &telecom.TelecomKnowledgeBase{
-
 		NetworkFunctions: make(map[string]*telecom.NetworkFunctionSpec),
 
 		Interfaces: make(map[string]*telecom.InterfaceSpec),
@@ -64,95 +56,72 @@ func NewOptimizedTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 	kb.NetworkFunctions["upf"] = nil
 
 	return kb
-
 }
 
 // GetNetworkFunction retrieves a network function with lazy loading.
 
 func (a *KnowledgeBaseAdapter) GetNetworkFunction(name string) (*telecom.NetworkFunctionSpec, bool) {
-
 	return a.loader.GetNetworkFunction(name)
-
 }
 
 // GetInterface retrieves an interface with lazy loading.
 
 func (a *KnowledgeBaseAdapter) GetInterface(name string) (*telecom.InterfaceSpec, bool) {
-
 	return a.loader.GetInterface(name)
-
 }
 
 // GetQosProfile retrieves a QoS profile with lazy loading.
 
 func (a *KnowledgeBaseAdapter) GetQosProfile(name string) (*telecom.QosProfile, bool) {
-
 	return a.loader.GetQosProfile(name)
-
 }
 
 // GetSliceType retrieves a slice type with lazy loading.
 
 func (a *KnowledgeBaseAdapter) GetSliceType(name string) (*telecom.SliceTypeSpec, bool) {
-
 	return a.loader.GetSliceType(name)
-
 }
 
 // ListNetworkFunctions returns available network function names.
 
 func (a *KnowledgeBaseAdapter) ListNetworkFunctions() []string {
-
 	return a.loader.ListNetworkFunctions()
-
 }
 
 // PreloadForIntent preloads relevant resources based on intent.
 
 func (a *KnowledgeBaseAdapter) PreloadForIntent(intent string) {
-
 	a.loader.PreloadByIntent(intent)
-
 }
 
 // GetStats returns cache statistics.
 
 func (a *KnowledgeBaseAdapter) GetStats() map[string]interface{} {
-
 	return a.loader.GetStats()
-
 }
 
 // ClearCache clears all caches.
 
 func (a *KnowledgeBaseAdapter) ClearCache() {
-
 	a.loader.ClearCache()
-
 }
 
 // GetMemoryUsage returns estimated memory usage.
 
 func (a *KnowledgeBaseAdapter) GetMemoryUsage() int64 {
-
 	return a.loader.GetMemoryUsage()
-
 }
 
 // IsInitialized returns whether the knowledge base is initialized.
 
 func (a *KnowledgeBaseAdapter) IsInitialized() bool {
-
 	return a.loader.IsInitialized()
-
 }
 
 // ConvertToTelecomKnowledgeBase converts the adapter to a TelecomKnowledgeBase for compatibility.
 
 func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
-
 	kb := &telecom.TelecomKnowledgeBase{
-
 		NetworkFunctions: make(map[string]*telecom.NetworkFunctionSpec),
 
 		Interfaces: make(map[string]*telecom.InterfaceSpec),
@@ -171,13 +140,9 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 	essentialFunctions := []string{"amf", "smf", "upf"}
 
 	for _, name := range essentialFunctions {
-
 		if nf, ok := a.GetNetworkFunction(name); ok {
-
 			kb.NetworkFunctions[strings.ToLower(name)] = nf
-
 		}
-
 	}
 
 	// Load basic interfaces.
@@ -185,13 +150,9 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 	essentialInterfaces := []string{"n1", "n2", "n3", "n4"}
 
 	for _, name := range essentialInterfaces {
-
 		if iface, ok := a.GetInterface(name); ok {
-
 			kb.Interfaces[strings.ToLower(name)] = iface
-
 		}
-
 	}
 
 	// Load basic QoS profiles.
@@ -199,13 +160,9 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 	essentialQos := []string{"5qi_1", "5qi_9"}
 
 	for _, name := range essentialQos {
-
 		if qos, ok := a.GetQosProfile(name); ok {
-
 			kb.QosProfiles[strings.ToLower(name)] = qos
-
 		}
-
 	}
 
 	// Load slice types.
@@ -213,19 +170,14 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 	sliceTypes := []string{"embb", "urllc", "mmtc"}
 
 	for _, name := range sliceTypes {
-
 		if slice, ok := a.GetSliceType(name); ok {
-
 			kb.SliceTypes[strings.ToLower(name)] = slice
-
 		}
-
 	}
 
 	// Add minimal KPIs.
 
 	kb.PerformanceKPIs["registration_success_rate"] = &telecom.KPISpec{
-
 		Name: "Registration Success Rate",
 
 		Type: "gauge",
@@ -237,7 +189,6 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 		Category: "reliability",
 
 		Thresholds: telecom.Thresholds{
-
 			Critical: 95.0,
 
 			Warning: 98.0,
@@ -249,7 +200,6 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 	// Add minimal deployment patterns.
 
 	kb.DeploymentTypes["high-availability"] = &telecom.DeploymentPattern{
-
 		Name: "high-availability",
 
 		Description: "High availability deployment",
@@ -257,21 +207,18 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 		UseCase: []string{"production"},
 
 		Architecture: telecom.DeploymentArchitecture{
-
 			Type: "multi-region",
 
 			Redundancy: "active-active",
 		},
 
 		Scaling: telecom.ScalingPattern{
-
 			Horizontal: true,
 
 			Predictive: true,
 		},
 
 		Resilience: telecom.ResiliencePattern{
-
 			CircuitBreaker: true,
 
 			Retry: true,
@@ -281,7 +228,6 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 	}
 
 	return kb
-
 }
 
 // LazyTelecomKnowledgeBase wraps TelecomKnowledgeBase with lazy loading.
@@ -297,21 +243,16 @@ type LazyTelecomKnowledgeBase struct {
 // NewLazyTelecomKnowledgeBase creates a new lazy-loading knowledge base.
 
 func NewLazyTelecomKnowledgeBase() (*LazyTelecomKnowledgeBase, error) {
-
 	config := DefaultLoaderConfig()
 
 	adapter, err := NewKnowledgeBaseAdapter(config)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Create a minimal base knowledge base.
 
 	base := &telecom.TelecomKnowledgeBase{
-
 		NetworkFunctions: make(map[string]*telecom.NetworkFunctionSpec),
 
 		Interfaces: make(map[string]*telecom.InterfaceSpec),
@@ -326,18 +267,15 @@ func NewLazyTelecomKnowledgeBase() (*LazyTelecomKnowledgeBase, error) {
 	}
 
 	return &LazyTelecomKnowledgeBase{
-
 		TelecomKnowledgeBase: base,
 
 		adapter: adapter,
 	}, nil
-
 }
 
 // GetNetworkFunction overrides the base method with lazy loading.
 
 func (l *LazyTelecomKnowledgeBase) GetNetworkFunction(name string) (*telecom.NetworkFunctionSpec, bool) {
-
 	l.mu.RLock()
 
 	// Check if already loaded in base.
@@ -357,9 +295,7 @@ func (l *LazyTelecomKnowledgeBase) GetNetworkFunction(name string) (*telecom.Net
 	nf, ok := l.adapter.GetNetworkFunction(name)
 
 	if !ok {
-
 		return nil, false
-
 	}
 
 	// Cache in base for future access.
@@ -371,13 +307,11 @@ func (l *LazyTelecomKnowledgeBase) GetNetworkFunction(name string) (*telecom.Net
 	l.mu.Unlock()
 
 	return nf, true
-
 }
 
 // GetInterface overrides the base method with lazy loading.
 
 func (l *LazyTelecomKnowledgeBase) GetInterface(name string) (*telecom.InterfaceSpec, bool) {
-
 	l.mu.RLock()
 
 	if iface, ok := l.TelecomKnowledgeBase.Interfaces[strings.ToLower(name)]; ok && iface != nil {
@@ -393,9 +327,7 @@ func (l *LazyTelecomKnowledgeBase) GetInterface(name string) (*telecom.Interface
 	iface, ok := l.adapter.GetInterface(name)
 
 	if !ok {
-
 		return nil, false
-
 	}
 
 	l.mu.Lock()
@@ -405,13 +337,11 @@ func (l *LazyTelecomKnowledgeBase) GetInterface(name string) (*telecom.Interface
 	l.mu.Unlock()
 
 	return iface, true
-
 }
 
 // GetQosProfile overrides the base method with lazy loading.
 
 func (l *LazyTelecomKnowledgeBase) GetQosProfile(name string) (*telecom.QosProfile, bool) {
-
 	l.mu.RLock()
 
 	if qos, ok := l.TelecomKnowledgeBase.QosProfiles[strings.ToLower(name)]; ok && qos != nil {
@@ -427,9 +357,7 @@ func (l *LazyTelecomKnowledgeBase) GetQosProfile(name string) (*telecom.QosProfi
 	qos, ok := l.adapter.GetQosProfile(name)
 
 	if !ok {
-
 		return nil, false
-
 	}
 
 	l.mu.Lock()
@@ -439,13 +367,11 @@ func (l *LazyTelecomKnowledgeBase) GetQosProfile(name string) (*telecom.QosProfi
 	l.mu.Unlock()
 
 	return qos, true
-
 }
 
 // GetSliceType overrides the base method with lazy loading.
 
 func (l *LazyTelecomKnowledgeBase) GetSliceType(name string) (*telecom.SliceTypeSpec, bool) {
-
 	l.mu.RLock()
 
 	if slice, ok := l.TelecomKnowledgeBase.SliceTypes[strings.ToLower(name)]; ok && slice != nil {
@@ -461,9 +387,7 @@ func (l *LazyTelecomKnowledgeBase) GetSliceType(name string) (*telecom.SliceType
 	slice, ok := l.adapter.GetSliceType(name)
 
 	if !ok {
-
 		return nil, false
-
 	}
 
 	l.mu.Lock()
@@ -473,29 +397,22 @@ func (l *LazyTelecomKnowledgeBase) GetSliceType(name string) (*telecom.SliceType
 	l.mu.Unlock()
 
 	return slice, true
-
 }
 
 // PreloadForIntent preloads relevant resources based on intent.
 
 func (l *LazyTelecomKnowledgeBase) PreloadForIntent(intent string) {
-
 	l.adapter.PreloadForIntent(intent)
-
 }
 
 // GetStats returns cache statistics.
 
 func (l *LazyTelecomKnowledgeBase) GetStats() map[string]interface{} {
-
 	return l.adapter.GetStats()
-
 }
 
 // GetMemoryUsage returns estimated memory usage.
 
 func (l *LazyTelecomKnowledgeBase) GetMemoryUsage() int64 {
-
 	return l.adapter.GetMemoryUsage()
-
 }

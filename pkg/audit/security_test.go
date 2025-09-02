@@ -404,7 +404,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 		if info, err := os.Stat(secureLogFile); err == nil {
 			mode := info.Mode()
 			// On Windows, permission checking is different
-			if mode&0077 != 0 {
+			if mode&0o077 != 0 {
 				// File is readable by group/others (not ideal but may be platform-specific)
 				suite.T().Logf("Warning: File permissions may not be restrictive enough: %o", mode)
 			}
@@ -474,7 +474,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 
 		// Simulate tampering
 		tamperedContent := strings.Replace(string(originalContent), "tamper-test-1", "tampered-event", 1)
-		err = ioutil.WriteFile(logFile, []byte(tamperedContent), 0644)
+		err = ioutil.WriteFile(logFile, []byte(tamperedContent), 0o644)
 		suite.NoError(err)
 
 		// Verify tampering is detected (would require integrity validation implementation)

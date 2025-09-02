@@ -195,7 +195,6 @@ type ResourcePoolFilter struct {
 	SortBy string `json:"sortBy,omitempty"`
 
 	SortOrder string `json:"sortOrder,omitempty"` // ASC, DESC
-
 }
 
 // Request types for resource management operations.
@@ -344,7 +343,6 @@ type NetworkInterface struct {
 	MTU int `json:"mtu,omitempty"`
 
 	State string `json:"state"` // UP, DOWN, UNKNOWN
-
 }
 
 // StorageDevice represents a storage device on a node.

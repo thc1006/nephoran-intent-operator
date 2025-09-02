@@ -31,8 +31,8 @@ func TestExecutor_CommandInjectionPrevention(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string, string) {
 				intentFile := filepath.Join(tempDir, "intent.json")
 				outDir := filepath.Join(tempDir, "out")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-				require.NoError(t, os.MkdirAll(outDir, 0755))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+				require.NoError(t, os.MkdirAll(outDir, 0o755))
 				return "porch; echo 'injected'", intentFile, outDir
 			},
 			expectedResult: func(t *testing.T, result *ExecutionResult) {
@@ -47,8 +47,8 @@ func TestExecutor_CommandInjectionPrevention(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string, string) {
 				intentFile := filepath.Join(tempDir, "intent.json")
 				outDir := filepath.Join(tempDir, "out")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-				require.NoError(t, os.MkdirAll(outDir, 0755))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+				require.NoError(t, os.MkdirAll(outDir, 0o755))
 				return "porch | cat /etc/passwd", intentFile, outDir
 			},
 			expectedResult: func(t *testing.T, result *ExecutionResult) {
@@ -62,8 +62,8 @@ func TestExecutor_CommandInjectionPrevention(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string, string) {
 				intentFile := filepath.Join(tempDir, "intent.json")
 				outDir := filepath.Join(tempDir, "out")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-				require.NoError(t, os.MkdirAll(outDir, 0755))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+				require.NoError(t, os.MkdirAll(outDir, 0o755))
 				return "porch && rm -rf /tmp", intentFile, outDir
 			},
 			expectedResult: func(t *testing.T, result *ExecutionResult) {
@@ -78,7 +78,7 @@ func TestExecutor_CommandInjectionPrevention(t *testing.T) {
 				mockPorch := createSecureMockPorch(t, tempDir)
 				maliciousPath := "../../../etc/passwd"
 				outDir := filepath.Join(tempDir, "out")
-				require.NoError(t, os.MkdirAll(outDir, 0755))
+				require.NoError(t, os.MkdirAll(outDir, 0o755))
 				return mockPorch, maliciousPath, outDir
 			},
 			expectedResult: func(t *testing.T, result *ExecutionResult) {
@@ -93,7 +93,7 @@ func TestExecutor_CommandInjectionPrevention(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string, string) {
 				mockPorch := createSecureMockPorch(t, tempDir)
 				intentFile := filepath.Join(tempDir, "intent.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
 				maliciousOutDir := "../../../tmp/malicious"
 				return mockPorch, intentFile, maliciousOutDir
 			},
@@ -154,7 +154,7 @@ func TestExecutor_ResourceExhaustionPrevention(t *testing.T) {
 			},
 			testFunc: func(t *testing.T, executor *Executor, tempDir string) {
 				intentFile := filepath.Join(tempDir, "intent.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
 
 				ctx := context.Background()
 				result, err := executor.Execute(ctx, intentFile)
@@ -180,7 +180,7 @@ func TestExecutor_ResourceExhaustionPrevention(t *testing.T) {
 			},
 			testFunc: func(t *testing.T, executor *Executor, tempDir string) {
 				intentFile := filepath.Join(tempDir, "intent.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
 
 				// Create context that will be cancelled quickly
 				ctx, cancel := context.WithCancel(context.Background())
@@ -221,7 +221,7 @@ func TestExecutor_ResourceExhaustionPrevention(t *testing.T) {
 				}`, strings.Repeat("A", 1024*1024))
 
 				intentFile := filepath.Join(tempDir, "large-intent.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(largeContent), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(largeContent), 0o644))
 
 				ctx := context.Background()
 				start := time.Now()
@@ -242,7 +242,7 @@ func TestExecutor_ResourceExhaustionPrevention(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			require.NoError(t, os.MkdirAll(filepath.Join(tempDir, "out"), 0755))
+			require.NoError(t, os.MkdirAll(filepath.Join(tempDir, "out"), 0o755))
 
 			config := tt.setupFunc(t, tempDir)
 			executor := NewExecutor(config)
@@ -314,7 +314,7 @@ func TestExecutor_PathTraversalPrevention(t *testing.T) {
 			// Create intent file if using relative path
 			if !filepath.IsAbs(tt.intentPath) && !strings.Contains(tt.intentPath, "..") {
 				intentFile := filepath.Join(tempDir, tt.intentPath)
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
 				tt.intentPath = intentFile
 			}
 
@@ -346,8 +346,8 @@ func TestExecutor_FilePermissionsSecurity(t *testing.T) {
 	intentFile := filepath.Join(tempDir, "intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	// Create mock porch that creates output files
 	mockPorch := createMockPorchWithFileCreation(t, tempDir, outDir)
@@ -381,11 +381,11 @@ func TestExecutor_FilePermissionsSecurity(t *testing.T) {
 
 			if d.IsDir() {
 				// Directories should not be world-writable
-				assert.False(t, mode&0002 != 0, "Directory %s should not be world-writable", path)
+				assert.False(t, mode&0o002 != 0, "Directory %s should not be world-writable", path)
 			} else {
 				// Files should not be world-writable or executable by others
-				assert.False(t, mode&0002 != 0, "File %s should not be world-writable", path)
-				assert.False(t, mode&0001 != 0, "File %s should not be executable by others", path)
+				assert.False(t, mode&0o002 != 0, "File %s should not be world-writable", path)
+				assert.False(t, mode&0o001 != 0, "File %s should not be executable by others", path)
 			}
 
 			return nil
@@ -461,8 +461,8 @@ func TestStatefulExecutor_SecurityStats(t *testing.T) {
 	intentFile := filepath.Join(tempDir, "intent.json")
 	outDir := filepath.Join(tempDir, "out")
 
-	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-	require.NoError(t, os.MkdirAll(outDir, 0755))
+	require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0o644))
+	require.NoError(t, os.MkdirAll(outDir, 0o755))
 
 	config := ExecutorConfig{
 		PorchPath: createSecureMockPorch(t, tempDir),

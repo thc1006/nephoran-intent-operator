@@ -18,7 +18,6 @@ var (
 	// Health monitoring metrics.
 
 	healthCheckDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "nephoran_health_check_duration_seconds",
 
 		Help: "Duration of health check operations",
@@ -27,14 +26,12 @@ var (
 	}, []string{"component", "check_type"})
 
 	healthCheckResults = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "nephoran_health_check_results_total",
 
 		Help: "Total number of health check results",
 	}, []string{"component", "status"})
 
 	componentHealthScore = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "nephoran_component_health_score",
 
 		Help: "Health score for each component (0-100)",
@@ -44,15 +41,11 @@ var (
 // NewHealthMonitor creates a new health monitor.
 
 func NewHealthMonitor(config *SelfHealingConfig, k8sClient kubernetes.Interface, logger *slog.Logger) (*HealthMonitor, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("configuration is required")
-
 	}
 
 	monitor := &HealthMonitor{
-
 		config: config,
 
 		logger: logger,
@@ -62,7 +55,6 @@ func NewHealthMonitor(config *SelfHealingConfig, k8sClient kubernetes.Interface,
 		healthCheckers: make(map[string]*ComponentHealthChecker),
 
 		systemMetrics: &SystemHealthMetrics{
-
 			ComponentHealth: make(map[string]HealthStatus),
 
 			PredictedFailures: make(map[string]float64),
@@ -78,7 +70,6 @@ func NewHealthMonitor(config *SelfHealingConfig, k8sClient kubernetes.Interface,
 	for componentName, componentConfig := range config.ComponentConfigs {
 
 		checker := &ComponentHealthChecker{
-
 			component: componentConfig,
 
 			currentStatus: HealthStatusHealthy,
@@ -86,7 +77,6 @@ func NewHealthMonitor(config *SelfHealingConfig, k8sClient kubernetes.Interface,
 			consecutiveFailures: 0,
 
 			metrics: &ComponentMetrics{
-
 				RestartCount: 0,
 			},
 
@@ -98,21 +88,17 @@ func NewHealthMonitor(config *SelfHealingConfig, k8sClient kubernetes.Interface,
 	}
 
 	return monitor, nil
-
 }
 
 // Start starts the health monitor.
 
 func (hm *HealthMonitor) Start(ctx context.Context) {
-
 	hm.logger.Info("Starting health monitor")
 
 	// Start individual component health checkers.
 
 	for name, checker := range hm.healthCheckers {
-
 		go hm.startComponentHealthChecker(ctx, name, checker)
-
 	}
 
 	// Start system health aggregation.
@@ -120,19 +106,16 @@ func (hm *HealthMonitor) Start(ctx context.Context) {
 	go hm.runSystemHealthAggregation(ctx)
 
 	hm.logger.Info("Health monitor started successfully")
-
 }
 
 // startComponentHealthChecker starts health checking for a specific component.
 
 func (hm *HealthMonitor) startComponentHealthChecker(ctx context.Context, componentName string, checker *ComponentHealthChecker) {
-
 	ticker := time.NewTicker(hm.config.MonitoringInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -144,21 +127,16 @@ func (hm *HealthMonitor) startComponentHealthChecker(ctx context.Context, compon
 			hm.checkComponentHealth(ctx, componentName, checker)
 
 		}
-
 	}
-
 }
 
 // checkComponentHealth performs health check for a single component.
 
 func (hm *HealthMonitor) checkComponentHealth(ctx context.Context, componentName string, checker *ComponentHealthChecker) {
-
 	start := time.Now()
 
 	defer func() {
-
 		healthCheckDuration.WithLabelValues(componentName, "comprehensive").Observe(time.Since(start).Seconds())
-
 	}()
 
 	hm.logger.Debug("Checking component health", "component", componentName)
@@ -178,13 +156,9 @@ func (hm *HealthMonitor) checkComponentHealth(ctx context.Context, componentName
 	// Track consecutive failures.
 
 	if healthStatus == HealthStatusHealthy {
-
 		checker.consecutiveFailures = 0
-
 	} else {
-
 		checker.consecutiveFailures++
-
 	}
 
 	// Update metrics.
@@ -208,9 +182,7 @@ func (hm *HealthMonitor) checkComponentHealth(ctx context.Context, componentName
 		// Send alert if needed.
 
 		if hm.alertManager != nil {
-
 			hm.sendHealthAlert(componentName, healthStatus, checker.consecutiveFailures)
-
 		}
 
 	}
@@ -218,13 +190,11 @@ func (hm *HealthMonitor) checkComponentHealth(ctx context.Context, componentName
 	// Record health check result.
 
 	healthCheckResults.WithLabelValues(componentName, string(healthStatus)).Inc()
-
 }
 
 // performComprehensiveHealthCheck performs comprehensive health assessment.
 
 func (hm *HealthMonitor) performComprehensiveHealthCheck(ctx context.Context, componentName string, checker *ComponentHealthChecker) HealthStatus {
-
 	component := checker.component
 
 	overallScore := 100.0
@@ -244,7 +214,6 @@ func (hm *HealthMonitor) performComprehensiveHealthCheck(ctx context.Context, co
 	// 2. HTTP endpoint health check.
 
 	if component.HealthCheckEndpoint != "" {
-
 		if endpointScore := hm.checkHTTPEndpoint(ctx, component.HealthCheckEndpoint); endpointScore >= 0 {
 
 			checkResults["endpoint"] = endpointScore
@@ -252,7 +221,6 @@ func (hm *HealthMonitor) performComprehensiveHealthCheck(ctx context.Context, co
 			overallScore *= (endpointScore / 100.0)
 
 		}
-
 	}
 
 	// 3. Resource utilization check.
@@ -292,18 +260,15 @@ func (hm *HealthMonitor) performComprehensiveHealthCheck(ctx context.Context, co
 	// Determine overall health status.
 
 	return hm.calculateHealthStatus(overallScore, checker.consecutiveFailures)
-
 }
 
 // checkKubernetesDeployment checks Kubernetes deployment health.
 
 func (hm *HealthMonitor) checkKubernetesDeployment(ctx context.Context, componentName string) float64 {
-
 	// Get deployment.
 
 	deployment, err := hm.k8sClient.AppsV1().Deployments(hm.config.ComponentConfigs[componentName].Name).
 		Get(ctx, componentName, metav1.GetOptions{})
-
 	if err != nil {
 
 		hm.logger.Debug("Failed to get deployment", "component", componentName, "error", err)
@@ -315,9 +280,7 @@ func (hm *HealthMonitor) checkKubernetesDeployment(ctx context.Context, componen
 	// Check if deployment is available.
 
 	if deployment.Status.AvailableReplicas == 0 {
-
 		return 0.0
-
 	}
 
 	// Calculate health score based on replica ratio.
@@ -329,9 +292,7 @@ func (hm *HealthMonitor) checkKubernetesDeployment(ctx context.Context, componen
 	readyReplicas := float64(deployment.Status.ReadyReplicas)
 
 	if desiredReplicas == 0 {
-
 		return 100.0
-
 	}
 
 	// Weight available and ready replicas.
@@ -341,24 +302,18 @@ func (hm *HealthMonitor) checkKubernetesDeployment(ctx context.Context, componen
 	readinessScore := (readyReplicas / desiredReplicas) * 40.0
 
 	return availabilityScore + readinessScore
-
 }
 
 // checkHTTPEndpoint checks HTTP endpoint health.
 
 func (hm *HealthMonitor) checkHTTPEndpoint(ctx context.Context, endpoint string) float64 {
-
 	client := &http.Client{
-
 		Timeout: hm.config.HealthCheckTimeout,
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, http.NoBody)
-
 	if err != nil {
-
 		return 0.0
-
 	}
 
 	start := time.Now()
@@ -368,9 +323,7 @@ func (hm *HealthMonitor) checkHTTPEndpoint(ctx context.Context, endpoint string)
 	responseTime := time.Since(start)
 
 	if err != nil {
-
 		return 0.0
-
 	}
 
 	defer resp.Body.Close()
@@ -402,31 +355,21 @@ func (hm *HealthMonitor) checkHTTPEndpoint(ctx context.Context, endpoint string)
 	// Adjust score based on response time.
 
 	if responseTime > 5*time.Second {
-
 		baseScore *= 0.5
-
 	} else if responseTime > 2*time.Second {
-
 		baseScore *= 0.8
-
 	} else if responseTime > 1*time.Second {
-
 		baseScore *= 0.9
-
 	}
 
 	return baseScore
-
 }
 
 // checkResourceUtilization checks resource utilization health.
 
 func (hm *HealthMonitor) checkResourceUtilization(ctx context.Context, componentName string, component *ComponentConfig) float64 {
-
 	if component.ResourceLimits == nil {
-
 		return 100.0 // No limits defined, assume healthy
-
 	}
 
 	// Get pod metrics (simplified - in real implementation would use metrics API).
@@ -442,47 +385,31 @@ func (hm *HealthMonitor) checkResourceUtilization(ctx context.Context, component
 	cpuScore := 100.0
 
 	if cpuUsage > 90.0 {
-
 		cpuScore = 0.0
-
 	} else if cpuUsage > 80.0 {
-
 		cpuScore = 50.0
-
 	} else if cpuUsage > 70.0 {
-
 		cpuScore = 80.0
-
 	}
 
 	memoryScore := 100.0
 
 	if memoryUsage > 90.0 {
-
 		memoryScore = 0.0
-
 	} else if memoryUsage > 80.0 {
-
 		memoryScore = 50.0
-
 	} else if memoryUsage > 70.0 {
-
 		memoryScore = 80.0
-
 	}
 
 	return (cpuScore + memoryScore) / 2.0
-
 }
 
 // checkPerformanceMetrics checks performance-related health.
 
 func (hm *HealthMonitor) checkPerformanceMetrics(ctx context.Context, componentName string, component *ComponentConfig) float64 {
-
 	if component.PerformanceThresholds == nil {
-
 		return 100.0
-
 	}
 
 	score := 100.0
@@ -492,9 +419,7 @@ func (hm *HealthMonitor) checkPerformanceMetrics(ctx context.Context, componentN
 	currentLatency := hm.getCurrentLatency(ctx, componentName)
 
 	if component.PerformanceThresholds.MaxLatency > 0 && currentLatency > component.PerformanceThresholds.MaxLatency {
-
 		score *= 0.7
-
 	}
 
 	// Check error rate (simulated).
@@ -502,9 +427,7 @@ func (hm *HealthMonitor) checkPerformanceMetrics(ctx context.Context, componentN
 	currentErrorRate := hm.getCurrentErrorRate(ctx, componentName)
 
 	if component.PerformanceThresholds.MaxErrorRate > 0 && currentErrorRate > component.PerformanceThresholds.MaxErrorRate {
-
 		score *= 0.5
-
 	}
 
 	// Check throughput (simulated).
@@ -512,31 +435,23 @@ func (hm *HealthMonitor) checkPerformanceMetrics(ctx context.Context, componentN
 	currentThroughput := hm.getCurrentThroughput(ctx, componentName)
 
 	if component.PerformanceThresholds.MinThroughput > 0 && currentThroughput < component.PerformanceThresholds.MinThroughput {
-
 		score *= 0.8
-
 	}
 
 	return score
-
 }
 
 // checkDependencies checks health of component dependencies.
 
 func (hm *HealthMonitor) checkDependencies(ctx context.Context, dependencies []string) float64 {
-
 	if len(dependencies) == 0 {
-
 		return 100.0
-
 	}
 
 	totalScore := 0.0
 
 	for _, dep := range dependencies {
-
 		if checker, exists := hm.healthCheckers[dep]; exists {
-
 			switch checker.currentStatus {
 
 			case HealthStatusHealthy:
@@ -556,35 +471,25 @@ func (hm *HealthMonitor) checkDependencies(ctx context.Context, dependencies []s
 				totalScore += 0.0
 
 			}
-
 		} else {
-
 			// Dependency not monitored, assume healthy.
 
 			totalScore += 100.0
-
 		}
-
 	}
 
 	return totalScore / float64(len(dependencies))
-
 }
 
 // calculateHealthStatus determines health status from score and failures.
 
 func (hm *HealthMonitor) calculateHealthStatus(score float64, consecutiveFailures int) HealthStatus {
-
 	// Consider consecutive failures.
 
 	if consecutiveFailures >= 5 {
-
 		return HealthStatusCritical
-
 	} else if consecutiveFailures >= 3 {
-
 		return HealthStatusUnhealthy
-
 	}
 
 	// Consider overall score.
@@ -608,19 +513,16 @@ func (hm *HealthMonitor) calculateHealthStatus(score float64, consecutiveFailure
 		return HealthStatusCritical
 
 	}
-
 }
 
 // runSystemHealthAggregation aggregates component health into system health.
 
 func (hm *HealthMonitor) runSystemHealthAggregation(ctx context.Context) {
-
 	ticker := time.NewTicker(30 * time.Second) // Aggregate every 30 seconds
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -632,15 +534,12 @@ func (hm *HealthMonitor) runSystemHealthAggregation(ctx context.Context) {
 			hm.aggregateSystemHealth()
 
 		}
-
 	}
-
 }
 
 // aggregateSystemHealth aggregates individual component health into system health.
 
 func (hm *HealthMonitor) aggregateSystemHealth() {
-
 	hm.mu.Lock()
 
 	defer hm.mu.Unlock()
@@ -648,9 +547,7 @@ func (hm *HealthMonitor) aggregateSystemHealth() {
 	totalComponents := len(hm.healthCheckers)
 
 	if totalComponents == 0 {
-
 		return
-
 	}
 
 	healthyCount := 0
@@ -692,21 +589,13 @@ func (hm *HealthMonitor) aggregateSystemHealth() {
 	// Determine overall system health.
 
 	if criticalCount > 0 || unhealthyCount > totalComponents/2 {
-
 		hm.systemMetrics.OverallHealth = HealthStatusCritical
-
 	} else if unhealthyCount > 0 || degradedCount > totalComponents/2 {
-
 		hm.systemMetrics.OverallHealth = HealthStatusUnhealthy
-
 	} else if degradedCount > 0 {
-
 		hm.systemMetrics.OverallHealth = HealthStatusDegraded
-
 	} else {
-
 		hm.systemMetrics.OverallHealth = HealthStatusHealthy
-
 	}
 
 	hm.logger.Debug("System health aggregated",
@@ -720,13 +609,11 @@ func (hm *HealthMonitor) aggregateSystemHealth() {
 		"unhealthy", unhealthyCount,
 
 		"critical", criticalCount)
-
 }
 
 // GetSystemHealth returns current system health.
 
 func (hm *HealthMonitor) GetSystemHealth() *SystemHealthMetrics {
-
 	hm.mu.RLock()
 
 	defer hm.mu.RUnlock()
@@ -734,7 +621,6 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealthMetrics {
 	// Create a copy to avoid race conditions.
 
 	metrics := &SystemHealthMetrics{
-
 		OverallHealth: hm.systemMetrics.OverallHealth,
 
 		ComponentHealth: make(map[string]HealthStatus),
@@ -755,37 +641,27 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealthMetrics {
 	// Copy maps.
 
 	for k, v := range hm.systemMetrics.ComponentHealth {
-
 		metrics.ComponentHealth[k] = v
-
 	}
 
 	for k, v := range hm.systemMetrics.PredictedFailures {
-
 		metrics.PredictedFailures[k] = v
-
 	}
 
 	for k, v := range hm.systemMetrics.ResourceUtilization {
-
 		metrics.ResourceUtilization[k] = v
-
 	}
 
 	for k, v := range hm.systemMetrics.PerformanceMetrics {
-
 		metrics.PerformanceMetrics[k] = v
-
 	}
 
 	return metrics
-
 }
 
 // updateComponentMetrics updates component-specific metrics.
 
 func (hm *HealthMonitor) updateComponentMetrics(ctx context.Context, componentName string, checker *ComponentHealthChecker) {
-
 	// Update component metrics (simulated data for now).
 
 	checker.metrics.ResponseTime = hm.getCurrentLatency(ctx, componentName)
@@ -797,13 +673,11 @@ func (hm *HealthMonitor) updateComponentMetrics(ctx context.Context, componentNa
 	checker.metrics.CPUUsage = hm.getCurrentCPUUsage(ctx, componentName)
 
 	checker.metrics.MemoryUsage = hm.getCurrentMemoryUsage(ctx, componentName)
-
 }
 
 // sendHealthAlert sends health-related alerts.
 
 func (hm *HealthMonitor) sendHealthAlert(componentName string, status HealthStatus, consecutiveFailures int) {
-
 	// Implementation would send alerts through the alert manager.
 
 	hm.logger.Info("Health alert triggered",
@@ -813,47 +687,36 @@ func (hm *HealthMonitor) sendHealthAlert(componentName string, status HealthStat
 		"status", status,
 
 		"consecutive_failures", consecutiveFailures)
-
 }
 
 // Helper methods for getting current metrics (simplified implementations).
 
 func (hm *HealthMonitor) getCurrentCPUUsage(ctx context.Context, componentName string) float64 {
-
 	// In real implementation, would query metrics API.
 
 	return 45.0 + float64(len(componentName)%20) // Simulated
-
 }
 
 func (hm *HealthMonitor) getCurrentMemoryUsage(ctx context.Context, componentName string) float64 {
-
 	// In real implementation, would query metrics API.
 
 	return 60.0 + float64(len(componentName)%30) // Simulated
-
 }
 
 func (hm *HealthMonitor) getCurrentLatency(ctx context.Context, componentName string) time.Duration {
-
 	// In real implementation, would query metrics.
 
 	return time.Duration(100+len(componentName)%200) * time.Millisecond // Simulated
-
 }
 
 func (hm *HealthMonitor) getCurrentErrorRate(ctx context.Context, componentName string) float64 {
-
 	// In real implementation, would query metrics.
 
 	return float64(len(componentName)%5) / 100.0 // Simulated
-
 }
 
 func (hm *HealthMonitor) getCurrentThroughput(ctx context.Context, componentName string) float64 {
-
 	// In real implementation, would query metrics.
 
 	return 100.0 + float64(len(componentName)%50) // Simulated
-
 }

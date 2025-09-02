@@ -26,7 +26,6 @@ const (
 // ScriptOptions configures script generation behavior.
 
 type ScriptOptions struct {
-
 	// ExitCode is the exit code the script should return.
 
 	ExitCode int
@@ -49,7 +48,6 @@ type ScriptOptions struct {
 		Windows []string // Windows batch commands
 
 		Unix []string // Unix shell commands
-
 	}
 
 	// FailOnPattern will cause the script to exit with code 1 if input contains this pattern.
@@ -60,29 +58,22 @@ type ScriptOptions struct {
 // GetScriptExtension returns the appropriate script file extension for the current OS.
 
 func GetScriptExtension() string {
-
 	if runtime.GOOS == "windows" {
-
 		return ".bat"
-
 	}
 
 	return ".sh"
-
 }
 
 // GetScriptPath returns the appropriate script path for the current OS.
 
 func GetScriptPath(dir, baseName string) string {
-
 	return filepath.Join(dir, baseName+GetScriptExtension())
-
 }
 
 // GetExecutablePath returns the path to an executable with proper extension handling.
 
 func GetExecutablePath(dir, baseName string) string {
-
 	if runtime.GOOS == "windows" {
 
 		// Check for .exe, .bat, .cmd extensions.
@@ -92,9 +83,7 @@ func GetExecutablePath(dir, baseName string) string {
 			path := filepath.Join(dir, baseName+ext)
 
 			if _, err := os.Stat(path); err == nil {
-
 				return path
-
 			}
 
 		}
@@ -108,13 +97,11 @@ func GetExecutablePath(dir, baseName string) string {
 	// Unix systems - no extension needed.
 
 	return filepath.Join(dir, baseName)
-
 }
 
 // CreateCrossPlatformScript creates a script that works on both Windows and Unix systems.
 
 func CreateCrossPlatformScript(scriptPath string, scriptType ScriptType, opts ScriptOptions) error {
-
 	var script string
 
 	var fileMode os.FileMode = 0o755
@@ -126,19 +113,15 @@ func CreateCrossPlatformScript(scriptPath string, scriptType ScriptType, opts Sc
 		fileMode = 0o644 // Windows doesn't use Unix permissions
 
 	} else {
-
 		script = generateUnixScript(scriptType, opts)
-
 	}
 
 	return os.WriteFile(scriptPath, []byte(script), fileMode)
-
 }
 
 // generateWindowsScript creates Windows batch script content.
 
 func generateWindowsScript(scriptType ScriptType, opts ScriptOptions) string {
-
 	var script string
 
 	switch scriptType {
@@ -154,13 +137,11 @@ func generateWindowsScript(scriptType ScriptType, opts ScriptOptions) string {
 	}
 
 	return script
-
 }
 
 // generateUnixScript creates Unix shell script content.
 
 func generateUnixScript(scriptType ScriptType, opts ScriptOptions) string {
-
 	var script string
 
 	switch scriptType {
@@ -176,43 +157,34 @@ func generateUnixScript(scriptType ScriptType, opts ScriptOptions) string {
 	}
 
 	return script
-
 }
 
 // generateWindowsMockPorchScript creates a Windows batch file that mimics porch behavior.
 
 func generateWindowsMockPorchScript(opts ScriptOptions) string {
-
 	sleepCmd := ""
 
 	if opts.Sleep > 0 {
-
 		// Use powershell Start-Sleep for more precise timing on Windows.
 
 		sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(opts.Sleep.Milliseconds()))
-
 	}
 
 	stdoutCmd := ""
 
 	if opts.Stdout != "" {
-
 		stdoutCmd = fmt.Sprintf("echo %s", opts.Stdout)
-
 	}
 
 	stderrCmd := ""
 
 	if opts.Stderr != "" {
-
 		stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
-
 	}
 
 	failOnPatternCmd := ""
 
 	if opts.FailOnPattern != "" {
-
 		failOnPatternCmd = fmt.Sprintf(`findstr /C:"%s" "%%2" >nul 2>nul
 
 if %%errorlevel%% equ 0 (
@@ -222,15 +194,12 @@ if %%errorlevel%% equ 0 (
     exit /b 1
 
 )`, opts.FailOnPattern, opts.FailOnPattern)
-
 	}
 
 	customCmds := ""
 
 	for _, cmd := range opts.CustomCommands.Windows {
-
 		customCmds += cmd + "\n"
-
 	}
 
 	return fmt.Sprintf(`@echo off
@@ -314,41 +283,32 @@ if not "%%4"=="" (
 
 
 exit /b %d`, failOnPatternCmd, sleepCmd, customCmds, stdoutCmd, stderrCmd, opts.ExitCode)
-
 }
 
 // generateUnixMockPorchScript creates a Unix shell script that mimics porch behavior.
 
 func generateUnixMockPorchScript(opts ScriptOptions) string {
-
 	sleepCmd := ""
 
 	if opts.Sleep > 0 {
-
 		sleepCmd = fmt.Sprintf("sleep %v", opts.Sleep.Seconds())
-
 	}
 
 	stdoutCmd := ""
 
 	if opts.Stdout != "" {
-
 		stdoutCmd = fmt.Sprintf("echo %q", opts.Stdout)
-
 	}
 
 	stderrCmd := ""
 
 	if opts.Stderr != "" {
-
 		stderrCmd = fmt.Sprintf("echo %q >&2", opts.Stderr)
-
 	}
 
 	failOnPatternCmd := ""
 
 	if opts.FailOnPattern != "" {
-
 		failOnPatternCmd = fmt.Sprintf(`if grep -q "%s" "$2" 2>/dev/null; then
 
     echo "Error: Pattern '%s' found in input file" >&2
@@ -356,15 +316,12 @@ func generateUnixMockPorchScript(opts ScriptOptions) string {
     exit 1
 
 fi`, opts.FailOnPattern, opts.FailOnPattern)
-
 	}
 
 	customCmds := ""
 
 	for _, cmd := range opts.CustomCommands.Unix {
-
 		customCmds += cmd + "\n"
-
 	}
 
 	return fmt.Sprintf(`#!/bin/bash
@@ -454,43 +411,33 @@ fi
 
 
 exit %d`, failOnPatternCmd, sleepCmd, customCmds, stdoutCmd, stderrCmd, opts.ExitCode)
-
 }
 
 // generateWindowsGenericScript creates a generic Windows batch script.
 
 func generateWindowsGenericScript(opts ScriptOptions) string {
-
 	sleepCmd := ""
 
 	if opts.Sleep > 0 {
-
 		sleepCmd = fmt.Sprintf("timeout /t %d /nobreak >nul 2>nul", int(opts.Sleep.Seconds()))
-
 	}
 
 	stdoutCmd := ""
 
 	if opts.Stdout != "" {
-
 		stdoutCmd = fmt.Sprintf("echo %s", opts.Stdout)
-
 	}
 
 	stderrCmd := ""
 
 	if opts.Stderr != "" {
-
 		stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
-
 	}
 
 	customCmds := ""
 
 	for _, cmd := range opts.CustomCommands.Windows {
-
 		customCmds += cmd + "\n"
-
 	}
 
 	return fmt.Sprintf(`@echo off
@@ -504,43 +451,33 @@ func generateWindowsGenericScript(opts ScriptOptions) string {
 %s
 
 exit /b %d`, sleepCmd, customCmds, stdoutCmd, stderrCmd, opts.ExitCode)
-
 }
 
 // generateUnixGenericScript creates a generic Unix shell script.
 
 func generateUnixGenericScript(opts ScriptOptions) string {
-
 	sleepCmd := ""
 
 	if opts.Sleep > 0 {
-
 		sleepCmd = fmt.Sprintf("sleep %v", opts.Sleep.Seconds())
-
 	}
 
 	stdoutCmd := ""
 
 	if opts.Stdout != "" {
-
 		stdoutCmd = fmt.Sprintf("echo %q", opts.Stdout)
-
 	}
 
 	stderrCmd := ""
 
 	if opts.Stderr != "" {
-
 		stderrCmd = fmt.Sprintf("echo %q >&2", opts.Stderr)
-
 	}
 
 	customCmds := ""
 
 	for _, cmd := range opts.CustomCommands.Unix {
-
 		customCmds += cmd + "\n"
-
 	}
 
 	return fmt.Sprintf(`#!/bin/bash
@@ -554,19 +491,14 @@ func generateUnixGenericScript(opts ScriptOptions) string {
 %s
 
 exit %d`, sleepCmd, customCmds, stdoutCmd, stderrCmd, opts.ExitCode)
-
 }
 
 // IsExecutable checks if a file is executable on the current platform.
 
 func IsExecutable(path string) bool {
-
 	info, err := os.Stat(path)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	if runtime.GOOS == "windows" {
@@ -582,13 +514,11 @@ func IsExecutable(path string) bool {
 	// On Unix, check executable permission.
 
 	return info.Mode()&0o111 != 0
-
 }
 
 // MakeExecutable ensures a file is executable on the current platform.
 
 func MakeExecutable(path string) error {
-
 	if runtime.GOOS == "windows" {
 
 		// On Windows, permissions are handled differently.
@@ -596,18 +526,14 @@ func MakeExecutable(path string) error {
 		// Ensure file exists and is readable.
 
 		info, err := os.Stat(path)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		if info.Mode()&0o200 == 0 {
 			// Security: Use restrictive permissions (G302)
 			// 0640 allows owner read/write, group read only
 			return os.Chmod(path, 0o640)
-
 		}
 
 		return nil
@@ -618,5 +544,4 @@ func MakeExecutable(path string) error {
 	// Security: Use 0640 permissions (owner: rw-, group: r--, others: ---)
 	// This satisfies G302 while maintaining functionality
 	return os.Chmod(path, 0o640)
-
 }

@@ -65,7 +65,6 @@ func AuditLevelFromString(level string) AuditLevel {
 // SecretManager interface defines methods for secure secret operations.
 
 type SecretManager interface {
-
 	// GetSecretValue retrieves a value from a secret source (Kubernetes or environment).
 
 	GetSecretValue(ctx context.Context, secretName, key, envVarName string) (string, error)
@@ -98,7 +97,6 @@ type SecretManager interface {
 // AuditLogger interface defines methods for security audit logging.
 
 type AuditLogger interface {
-
 	// LogSecretAccess logs when secrets are accessed.
 
 	LogSecretAccess(secretType, source, userID, sessionID string, success bool, err error)
@@ -139,7 +137,6 @@ type AuditLogger interface {
 // ConfigProvider interface defines methods for configuration access.
 
 type ConfigProvider interface {
-
 	// GetRAGAPIURL returns the appropriate RAG API URL based on environment.
 
 	GetRAGAPIURL(useInternal bool) string

@@ -446,15 +446,11 @@ type RateLimitResult struct {
 // NewRateLimiter creates a new rate limiter.
 
 func NewRateLimiter(config *RateLimitConfig, logger *logging.StructuredLogger) (*RateLimiter, error) {
-
 	if config == nil {
-
 		return nil, errors.New("rate limit config is required")
-
 	}
 
 	rl := &RateLimiter{
-
 		config: config,
 
 		logger: logger,
@@ -466,7 +462,6 @@ func NewRateLimiter(config *RateLimitConfig, logger *logging.StructuredLogger) (
 		blacklist: make(map[string]bool),
 
 		stats: &RateLimitStats{
-
 			ThrottlesByKey: make(map[string]int64),
 
 			LastReset: time.Now(),
@@ -476,13 +471,9 @@ func NewRateLimiter(config *RateLimitConfig, logger *logging.StructuredLogger) (
 	// Initialize distributed store if configured.
 
 	if config.Type == RateLimitTypeDistributed || config.Type == RateLimitTypeHybrid {
-
 		if err := rl.initializeDistributedStore(); err != nil {
-
 			return nil, fmt.Errorf("failed to initialize distributed store: %w", err)
-
 		}
-
 	}
 
 	// Initialize adaptive manager if configured.
@@ -514,17 +505,13 @@ func NewRateLimiter(config *RateLimitConfig, logger *logging.StructuredLogger) (
 	go rl.periodicStatsReset()
 
 	return rl, nil
-
 }
 
 // initializeDistributedStore initializes the distributed store.
 
 func (rl *RateLimiter) initializeDistributedStore() error {
-
 	if rl.config.DistributedConfig == nil {
-
 		return errors.New("distributed config is required")
-
 	}
 
 	switch rl.config.DistributedConfig.Backend {
@@ -532,11 +519,8 @@ func (rl *RateLimiter) initializeDistributedStore() error {
 	case BackendRedis:
 
 		store, err := NewRedisStore(rl.config.DistributedConfig.RedisConfig)
-
 		if err != nil {
-
 			return err
-
 		}
 
 		rl.distributedStore = store
@@ -548,43 +532,31 @@ func (rl *RateLimiter) initializeDistributedStore() error {
 	}
 
 	return nil
-
 }
 
 // loadLists loads whitelist and blacklist.
 
 func (rl *RateLimiter) loadLists() {
-
 	// Load whitelist.
 
 	if rl.config.WhitelistEnabled {
-
 		for _, entry := range rl.config.Whitelist {
-
 			rl.whitelist[entry] = true
-
 		}
-
 	}
 
 	// Load blacklist.
 
 	if rl.config.BlacklistEnabled {
-
 		for _, entry := range rl.config.Blacklist {
-
 			rl.blacklist[entry] = true
-
 		}
-
 	}
-
 }
 
 // CheckLimit checks if a request should be rate limited.
 
 func (rl *RateLimiter) CheckLimit(ctx context.Context, r *http.Request) (*RateLimitResult, error) {
-
 	// Extract client identifier.
 
 	clientID := rl.getClientID(r)
@@ -600,7 +572,6 @@ func (rl *RateLimiter) CheckLimit(ctx context.Context, r *http.Request) (*RateLi
 		rl.stats.mu.Unlock()
 
 		return &RateLimitResult{
-
 			Allowed: false,
 
 			Reason: "blacklisted",
@@ -621,7 +592,6 @@ func (rl *RateLimiter) CheckLimit(ctx context.Context, r *http.Request) (*RateLi
 		rl.stats.mu.Unlock()
 
 		return &RateLimitResult{
-
 			Allowed: true,
 
 			Key: clientID,
@@ -632,33 +602,25 @@ func (rl *RateLimiter) CheckLimit(ctx context.Context, r *http.Request) (*RateLi
 	// Check bypass headers.
 
 	if rl.hasBypassHeader(r) {
-
 		return &RateLimitResult{
-
 			Allowed: true,
 
 			Key: clientID,
 		}, nil
-
 	}
 
 	// Check DDoS protection.
 
 	if rl.ddosProtector != nil {
-
 		if blocked := rl.ddosProtector.IsBlocked(clientID); blocked {
-
 			return &RateLimitResult{
-
 				Allowed: false,
 
 				Reason: "ddos_protection",
 
 				Key: clientID,
 			}, nil
-
 		}
-
 	}
 
 	// Get appropriate policy.
@@ -666,9 +628,7 @@ func (rl *RateLimiter) CheckLimit(ctx context.Context, r *http.Request) (*RateLi
 	policy := rl.getPolicy(r, clientID)
 
 	if policy == nil {
-
 		policy = rl.config.DefaultLimits
-
 	}
 
 	// Check rate limit based on type.
@@ -692,13 +652,11 @@ func (rl *RateLimiter) CheckLimit(ctx context.Context, r *http.Request) (*RateLi
 		return rl.checkLocalLimit(clientID, policy)
 
 	}
-
 }
 
 // checkLocalLimit checks rate limit using local limiter.
 
 func (rl *RateLimiter) checkLocalLimit(key string, policy *RateLimitPolicy) (*RateLimitResult, error) {
-
 	rl.mu.Lock()
 
 	limiter, exists := rl.localLimiters[key]
@@ -712,9 +670,7 @@ func (rl *RateLimiter) checkLocalLimit(key string, policy *RateLimitPolicy) (*Ra
 		burst := policy.BurstSize
 
 		if burst == 0 {
-
 			burst = int(float64(policy.RequestsPerMin) * rl.config.BurstMultiplier)
-
 		}
 
 		limiter = rate.NewLimiter(rateLimit, burst)
@@ -736,9 +692,7 @@ func (rl *RateLimiter) checkLocalLimit(key string, policy *RateLimitPolicy) (*Ra
 	rl.stats.TotalRequests++
 
 	if allowed {
-
 		rl.stats.AllowedRequests++
-
 	} else {
 
 		rl.stats.ThrottledRequests++
@@ -750,7 +704,6 @@ func (rl *RateLimiter) checkLocalLimit(key string, policy *RateLimitPolicy) (*Ra
 	rl.stats.mu.Unlock()
 
 	result := &RateLimitResult{
-
 		Allowed: allowed,
 
 		Key: key,
@@ -771,25 +724,20 @@ func (rl *RateLimiter) checkLocalLimit(key string, policy *RateLimitPolicy) (*Ra
 	}
 
 	return result, nil
-
 }
 
 // checkDistributedLimit checks rate limit using distributed store.
 
 func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, policy *RateLimitPolicy) (*RateLimitResult, error) {
-
 	if rl.distributedStore == nil {
 
 		// Fallback to local if distributed store is unavailable.
 
 		if rl.config.DistributedConfig.FailoverMode == FailoverLocal {
-
 			return rl.checkLocalLimit(key, policy)
-
 		}
 
 		return &RateLimitResult{
-
 			Allowed: false,
 
 			Reason: "distributed_store_unavailable",
@@ -802,7 +750,6 @@ func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, po
 	// Increment counter in distributed store.
 
 	count, err := rl.distributedStore.Increment(ctx, key, policy.WindowSize)
-
 	if err != nil {
 
 		rl.logger.Error("failed to increment distributed counter",
@@ -822,7 +769,6 @@ func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, po
 		case FailoverReject:
 
 			return &RateLimitResult{
-
 				Allowed: false,
 
 				Reason: "distributed_store_error",
@@ -853,9 +799,7 @@ func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, po
 	rl.stats.TotalRequests++
 
 	if allowed {
-
 		rl.stats.AllowedRequests++
-
 	} else {
 
 		rl.stats.ThrottledRequests++
@@ -867,7 +811,6 @@ func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, po
 	rl.stats.mu.Unlock()
 
 	result := &RateLimitResult{
-
 		Allowed: allowed,
 
 		Key: key,
@@ -888,47 +831,37 @@ func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, po
 	}
 
 	return result, nil
-
 }
 
 // checkHybridLimit checks rate limit using both local and distributed.
 
 func (rl *RateLimiter) checkHybridLimit(ctx context.Context, key string, policy *RateLimitPolicy) (*RateLimitResult, error) {
-
 	// Check local limit first (fast path).
 
 	localResult, err := rl.checkLocalLimit(key, policy)
 
 	if err != nil || !localResult.Allowed {
-
 		return localResult, err
-
 	}
 
 	// Check distributed limit (authoritative).
 
 	return rl.checkDistributedLimit(ctx, key, policy)
-
 }
 
 // getClientID extracts client identifier from request.
 
 func (rl *RateLimiter) getClientID(r *http.Request) string {
-
 	// Try to get authenticated user ID.
 
 	if userID := r.Context().Value("user_id"); userID != nil {
-
 		return fmt.Sprintf("user:%v", userID)
-
 	}
 
 	// Try to get API key.
 
 	if apiKey := r.Header.Get("X-API-Key"); apiKey != "" {
-
 		return fmt.Sprintf("api:%s", apiKey)
-
 	}
 
 	// Fall back to IP address.
@@ -936,13 +869,11 @@ func (rl *RateLimiter) getClientID(r *http.Request) string {
 	ip := rl.getClientIP(r)
 
 	return fmt.Sprintf("ip:%s", ip)
-
 }
 
 // getClientIP extracts client IP from request.
 
 func (rl *RateLimiter) getClientIP(r *http.Request) string {
-
 	// Check X-Forwarded-For header.
 
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
@@ -950,9 +881,7 @@ func (rl *RateLimiter) getClientIP(r *http.Request) string {
 		parts := strings.Split(xff, ",")
 
 		if len(parts) > 0 {
-
 			return strings.TrimSpace(parts[0])
-
 		}
 
 	}
@@ -960,9 +889,7 @@ func (rl *RateLimiter) getClientIP(r *http.Request) string {
 	// Check X-Real-IP header.
 
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-
 		return xri
-
 	}
 
 	// Fall back to RemoteAddr.
@@ -970,21 +897,17 @@ func (rl *RateLimiter) getClientIP(r *http.Request) string {
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 
 	return ip
-
 }
 
 // getPolicy gets the appropriate rate limit policy.
 
 func (rl *RateLimiter) getPolicy(r *http.Request, clientID string) *RateLimitPolicy {
-
 	// Check endpoint-specific limits.
 
 	endpoint := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 
 	if policy, ok := rl.config.EndpointLimits[endpoint]; ok {
-
 		return policy
-
 	}
 
 	// Check user-specific limits.
@@ -994,9 +917,7 @@ func (rl *RateLimiter) getPolicy(r *http.Request, clientID string) *RateLimitPol
 		userID := strings.TrimPrefix(clientID, "user:")
 
 		if policy, ok := rl.config.UserLimits[userID]; ok {
-
 			return policy
-
 		}
 
 	}
@@ -1008,9 +929,7 @@ func (rl *RateLimiter) getPolicy(r *http.Request, clientID string) *RateLimitPol
 		ip := strings.TrimPrefix(clientID, "ip:")
 
 		if policy, ok := rl.config.IPLimits[ip]; ok {
-
 			return policy
-
 		}
 
 	}
@@ -1018,23 +937,17 @@ func (rl *RateLimiter) getPolicy(r *http.Request, clientID string) *RateLimitPol
 	// Check policy-specific limits.
 
 	if policyID := r.Header.Get("X-Policy-ID"); policyID != "" {
-
 		if policy, ok := rl.config.PolicyLimits[policyID]; ok {
-
 			return policy
-
 		}
-
 	}
 
 	return rl.config.DefaultLimits
-
 }
 
 // isWhitelisted checks if client is whitelisted.
 
 func (rl *RateLimiter) isWhitelisted(clientID string) bool {
-
 	rl.mu.RLock()
 
 	defer rl.mu.RUnlock()
@@ -1042,9 +955,7 @@ func (rl *RateLimiter) isWhitelisted(clientID string) bool {
 	// Check exact match.
 
 	if rl.whitelist[clientID] {
-
 		return true
-
 	}
 
 	// Check IP range if applicable.
@@ -1054,7 +965,6 @@ func (rl *RateLimiter) isWhitelisted(clientID string) bool {
 		ip := strings.TrimPrefix(clientID, "ip:")
 
 		for entry := range rl.whitelist {
-
 			if strings.Contains(entry, "/") {
 
 				// CIDR notation.
@@ -1062,25 +972,20 @@ func (rl *RateLimiter) isWhitelisted(clientID string) bool {
 				_, ipnet, err := net.ParseCIDR(entry)
 
 				if err == nil && ipnet.Contains(net.ParseIP(ip)) {
-
 					return true
-
 				}
 
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 // isBlacklisted checks if client is blacklisted.
 
 func (rl *RateLimiter) isBlacklisted(clientID string) bool {
-
 	rl.mu.RLock()
 
 	defer rl.mu.RUnlock()
@@ -1088,9 +993,7 @@ func (rl *RateLimiter) isBlacklisted(clientID string) bool {
 	// Check exact match.
 
 	if rl.blacklist[clientID] {
-
 		return true
-
 	}
 
 	// Check IP range if applicable.
@@ -1100,7 +1003,6 @@ func (rl *RateLimiter) isBlacklisted(clientID string) bool {
 		ip := strings.TrimPrefix(clientID, "ip:")
 
 		for entry := range rl.blacklist {
-
 			if strings.Contains(entry, "/") {
 
 				// CIDR notation.
@@ -1108,47 +1010,34 @@ func (rl *RateLimiter) isBlacklisted(clientID string) bool {
 				_, ipnet, err := net.ParseCIDR(entry)
 
 				if err == nil && ipnet.Contains(net.ParseIP(ip)) {
-
 					return true
-
 				}
 
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 // hasBypassHeader checks if request has bypass header.
 
 func (rl *RateLimiter) hasBypassHeader(r *http.Request) bool {
-
 	for _, header := range rl.config.BypassHeaders {
-
 		if r.Header.Get(header) != "" {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // SetResponseHeaders sets rate limit headers in response.
 
 func (rl *RateLimiter) SetResponseHeaders(w http.ResponseWriter, result *RateLimitResult) {
-
 	if !rl.config.ResponseHeaders {
-
 		return
-
 	}
 
 	w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", result.Limit))
@@ -1158,17 +1047,13 @@ func (rl *RateLimiter) SetResponseHeaders(w http.ResponseWriter, result *RateLim
 	w.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", result.Reset.Unix()))
 
 	if !result.Allowed && result.RetryAfter > 0 {
-
 		w.Header().Set("Retry-After", fmt.Sprintf("%d", int(result.RetryAfter.Seconds())))
-
 	}
-
 }
 
 // periodicStatsReset periodically resets statistics.
 
 func (rl *RateLimiter) periodicStatsReset() {
-
 	ticker := time.NewTicker(24 * time.Hour)
 
 	defer ticker.Stop()
@@ -1192,13 +1077,11 @@ func (rl *RateLimiter) periodicStatsReset() {
 		rl.stats.mu.Unlock()
 
 	}
-
 }
 
 // GetStats returns rate limiting statistics.
 
 func (rl *RateLimiter) GetStats() *RateLimitStats {
-
 	rl.stats.mu.RLock()
 
 	defer rl.stats.mu.RUnlock()
@@ -1206,7 +1089,6 @@ func (rl *RateLimiter) GetStats() *RateLimitStats {
 	// Return a copy of stats.
 
 	return &RateLimitStats{
-
 		TotalRequests: rl.stats.TotalRequests,
 
 		AllowedRequests: rl.stats.AllowedRequests,
@@ -1221,21 +1103,16 @@ func (rl *RateLimiter) GetStats() *RateLimitStats {
 
 		LastReset: rl.stats.LastReset,
 	}
-
 }
 
 // Close closes the rate limiter.
 
 func (rl *RateLimiter) Close() error {
-
 	if rl.distributedStore != nil {
-
 		return rl.distributedStore.Close()
-
 	}
 
 	return nil
-
 }
 
 // Helper implementations.
@@ -1243,33 +1120,26 @@ func (rl *RateLimiter) Close() error {
 // NewAdaptiveManager performs newadaptivemanager operation.
 
 func NewAdaptiveManager(config *AdaptiveConfig, logger *logging.StructuredLogger) *AdaptiveManager {
-
 	return &AdaptiveManager{
-
 		config: config,
 
 		logger: logger,
 
 		metrics: &AdaptiveMetrics{
-
 			CurrentLimit: config.MaxLimit,
 		},
 	}
-
 }
 
 // Start performs start operation.
 
 func (am *AdaptiveManager) Start() {
-
 	am.adjustTicker = time.NewTicker(am.config.AdjustInterval)
 
 	go am.adjustLimits()
-
 }
 
 func (am *AdaptiveManager) adjustLimits() {
-
 	for range am.adjustTicker.C {
 
 		// Adjust limits based on metrics.
@@ -1281,15 +1151,12 @@ func (am *AdaptiveManager) adjustLimits() {
 		am.mu.Unlock()
 
 	}
-
 }
 
 // NewDDoSProtector performs newddosprotector operation.
 
 func NewDDoSProtector(config *DDoSProtectionConfig, logger *logging.StructuredLogger) *DDoSProtector {
-
 	return &DDoSProtector{
-
 		config: config,
 
 		logger: logger,
@@ -1298,29 +1165,23 @@ func NewDDoSProtector(config *DDoSProtectionConfig, logger *logging.StructuredLo
 
 		requestCounts: make(map[string]*RequestCounter),
 	}
-
 }
 
 // Start performs start operation.
 
 func (dp *DDoSProtector) Start() {
-
 	ticker := time.NewTicker(dp.config.DetectionWindow)
 
 	defer ticker.Stop()
 
 	for range ticker.C {
-
 		dp.detectAndBlock()
-
 	}
-
 }
 
 // IsBlocked performs isblocked operation.
 
 func (dp *DDoSProtector) IsBlocked(clientID string) bool {
-
 	dp.mu.RLock()
 
 	defer dp.mu.RUnlock()
@@ -1328,9 +1189,7 @@ func (dp *DDoSProtector) IsBlocked(clientID string) bool {
 	if expiry, ok := dp.blockedIPs[clientID]; ok {
 
 		if time.Now().Before(expiry) {
-
 			return true
-
 		}
 
 		// Remove expired block.
@@ -1340,17 +1199,14 @@ func (dp *DDoSProtector) IsBlocked(clientID string) bool {
 	}
 
 	return false
-
 }
 
 func (dp *DDoSProtector) detectAndBlock() {
-
 	dp.mu.Lock()
 
 	defer dp.mu.Unlock()
 
 	// Implementation would detect DDoS patterns and block IPs.
-
 }
 
 // Redis store implementation.
@@ -1364,9 +1220,7 @@ type RedisStore struct {
 // NewRedisStore performs newredisstore operation.
 
 func NewRedisStore(config *RedisConfig) (*RedisStore, error) {
-
 	client := redis.NewClient(&redis.Options{
-
 		Addr: config.Addresses[0],
 
 		Password: config.Password,
@@ -1389,19 +1243,15 @@ func NewRedisStore(config *RedisConfig) (*RedisStore, error) {
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
-
 	}
 
 	return &RedisStore{client: client}, nil
-
 }
 
 // Increment performs increment operation.
 
 func (rs *RedisStore) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
-
 	pipe := rs.client.Pipeline()
 
 	incr := pipe.Incr(ctx, key)
@@ -1409,65 +1259,48 @@ func (rs *RedisStore) Increment(ctx context.Context, key string, window time.Dur
 	pipe.Expire(ctx, key, window)
 
 	if _, err := pipe.Exec(ctx); err != nil {
-
 		return 0, err
-
 	}
 
 	return incr.Val(), nil
-
 }
 
 // Get performs get operation.
 
 func (rs *RedisStore) Get(ctx context.Context, key string) (int64, error) {
-
 	val, err := rs.client.Get(ctx, key).Int64()
 
 	if errors.Is(err, redis.Nil) {
-
 		return 0, nil
-
 	}
 
 	return val, err
-
 }
 
 // Reset performs reset operation.
 
 func (rs *RedisStore) Reset(ctx context.Context, key string) error {
-
 	return rs.client.Del(ctx, key).Err()
-
 }
 
 // SetWithExpiry performs setwithexpiry operation.
 
 func (rs *RedisStore) SetWithExpiry(ctx context.Context, key string, value int64, expiry time.Duration) error {
-
 	return rs.client.Set(ctx, key, value, expiry).Err()
-
 }
 
 // Close performs close operation.
 
 func (rs *RedisStore) Close() error {
-
 	return rs.client.Close()
-
 }
 
 // Helper function.
 
 func maxInt(a, b int) int {
-
 	if a > b {
-
 		return a
-
 	}
 
 	return b
-
 }

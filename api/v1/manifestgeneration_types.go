@@ -143,7 +143,6 @@ const (
 // ManifestGenerationSpec defines the desired state of ManifestGeneration.
 
 type ManifestGenerationSpec struct {
-
 	// ParentIntentRef references the parent NetworkIntent.
 
 	// +kubebuilder:validation:Required
@@ -234,7 +233,6 @@ type ManifestGenerationSpec struct {
 // TemplateSource defines the source of templates.
 
 type TemplateSource struct {
-
 	// Type specifies the source type.
 
 	// +kubebuilder:validation:Required
@@ -277,7 +275,6 @@ type TemplateSource struct {
 // GitTemplateSource defines Git-based template source.
 
 type GitTemplateSource struct {
-
 	// URL of the Git repository.
 
 	// +kubebuilder:validation:Required
@@ -316,7 +313,6 @@ type GitTemplateSource struct {
 // HelmTemplateSource defines Helm chart template source.
 
 type HelmTemplateSource struct {
-
 	// Repository URL.
 
 	// +kubebuilder:validation:Required
@@ -353,7 +349,6 @@ type HelmTemplateSource struct {
 // OCITemplateSource defines OCI registry template source.
 
 type OCITemplateSource struct {
-
 	// Registry URL.
 
 	// +kubebuilder:validation:Required
@@ -384,7 +379,6 @@ type OCITemplateSource struct {
 // ConfigMapTemplateSource defines ConfigMap-based template source.
 
 type ConfigMapTemplateSource struct {
-
 	// Name of the ConfigMap.
 
 	// +kubebuilder:validation:Required
@@ -411,7 +405,6 @@ type ConfigMapTemplateSource struct {
 // GenerationOptions contains options for manifest generation.
 
 type GenerationOptions struct {
-
 	// IncludeNamespaces generates namespace manifests.
 
 	// +optional
@@ -482,7 +475,6 @@ type GenerationOptions struct {
 // ResourceNamingOptions defines naming conventions for resources.
 
 type ResourceNamingOptions struct {
-
 	// Prefix for all resource names.
 
 	// +optional
@@ -527,7 +519,6 @@ type ResourceNamingOptions struct {
 // NamespaceTemplate defines template for namespace creation.
 
 type NamespaceTemplate struct {
-
 	// Name template for the namespace.
 
 	// +optional
@@ -566,7 +557,6 @@ type NamespaceTemplate struct {
 // ManifestSecurityContext defines security context for manifests.
 
 type ManifestSecurityContext struct {
-
 	// RunAsNonRoot ensures containers run as non-root.
 
 	// +optional
@@ -621,7 +611,6 @@ type ManifestSecurityContext struct {
 // ManifestGenerationStatus defines the observed state of ManifestGeneration.
 
 type ManifestGenerationStatus struct {
-
 	// Phase represents the current generation phase.
 
 	// +optional
@@ -717,7 +706,6 @@ type ManifestGenerationStatus struct {
 // ManifestSummary provides a summary of generated manifests.
 
 type ManifestSummary struct {
-
 	// TotalManifests is the total number of generated manifests.
 
 	TotalManifests int32 `json:"totalManifests"`
@@ -754,7 +742,6 @@ type ManifestSummary struct {
 // ManifestValidationResult represents the result of manifest validation.
 
 type ManifestValidationResult struct {
-
 	// ManifestName identifies the validated manifest.
 
 	ManifestName string `json:"manifestName"`
@@ -793,7 +780,6 @@ type ManifestValidationResult struct {
 // ManifestOptimizationResult represents the result of manifest optimization.
 
 type ManifestOptimizationResult struct {
-
 	// ManifestName identifies the optimized manifest.
 
 	ManifestName string `json:"manifestName"`
@@ -832,7 +818,6 @@ type ManifestOptimizationResult struct {
 // SecurityAnalysisResult contains security analysis results.
 
 type SecurityAnalysisResult struct {
-
 	// OverallScore is the overall security score (0.0-1.0).
 
 	OverallScore float64 `json:"overallScore"`
@@ -863,7 +848,6 @@ type SecurityAnalysisResult struct {
 // SecurityIssue represents a security issue in manifests.
 
 type SecurityIssue struct {
-
 	// Type of security issue.
 
 	Type string `json:"type"`
@@ -898,7 +882,6 @@ type SecurityIssue struct {
 // SecurityComplianceResult represents compliance check results.
 
 type SecurityComplianceResult struct {
-
 	// Standard being checked (PCI-DSS, SOC2, etc.).
 
 	Standard string `json:"standard"`
@@ -929,7 +912,6 @@ type SecurityComplianceResult struct {
 // GeneratedResourceReference represents a reference to a generated resource.
 
 type GeneratedResourceReference struct {
-
 	// Name of the resource.
 
 	Name string `json:"name"`
@@ -970,7 +952,6 @@ type GeneratedResourceReference struct {
 // TemplateInfo contains information about used templates.
 
 type TemplateInfo struct {
-
 	// Engine used for templating.
 
 	Engine TemplateEngine `json:"engine"`
@@ -1049,125 +1030,89 @@ type ManifestGenerationList struct {
 // GetParentIntentName returns the name of the parent NetworkIntent.
 
 func (mg *ManifestGeneration) GetParentIntentName() string {
-
 	return mg.Spec.ParentIntentRef.Name
-
 }
 
 // GetNamespace returns the namespace of the resource.
 
 func (mg *ManifestGeneration) GetNamespace() string {
-
 	return mg.ObjectMeta.Namespace
-
 }
 
 // GetParentIntentNamespace returns the namespace of the parent NetworkIntent.
 
 func (mg *ManifestGeneration) GetParentIntentNamespace() string {
-
 	if mg.Spec.ParentIntentRef.Namespace != "" {
-
 		return mg.Spec.ParentIntentRef.Namespace
-
 	}
 
 	return mg.GetNamespace()
-
 }
 
 // IsGenerationComplete returns true if generation is complete.
 
 func (mg *ManifestGeneration) IsGenerationComplete() bool {
-
 	return mg.Status.Phase == ManifestGenerationPhaseCompleted
-
 }
 
 // IsGenerationFailed returns true if generation has failed.
 
 func (mg *ManifestGeneration) IsGenerationFailed() bool {
-
 	return mg.Status.Phase == ManifestGenerationPhaseFailed
-
 }
 
 // GetGeneratedManifestCount returns the number of generated manifests.
 
 func (mg *ManifestGeneration) GetGeneratedManifestCount() int32 {
-
 	if mg.Status.ManifestSummary != nil {
-
 		return mg.Status.ManifestSummary.TotalManifests
-
 	}
 
 	return 0
-
 }
 
 // HasValidationErrors returns true if there are validation errors.
 
 func (mg *ManifestGeneration) HasValidationErrors() bool {
-
 	for _, result := range mg.Status.ValidationResults {
-
 		if !result.Valid {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // GetSecurityScore returns the overall security score.
 
 func (mg *ManifestGeneration) GetSecurityScore() float64 {
-
 	if mg.Status.SecurityAnalysis != nil {
-
 		return mg.Status.SecurityAnalysis.OverallScore
-
 	}
 
 	return 0.0
-
 }
 
 // ShouldValidateManifests returns true if manifest validation is enabled.
 
 func (mg *ManifestGeneration) ShouldValidateManifests() bool {
-
 	if mg.Spec.ValidateManifests == nil {
-
 		return true
-
 	}
 
 	return *mg.Spec.ValidateManifests
-
 }
 
 // ShouldOptimizeManifests returns true if manifest optimization is enabled.
 
 func (mg *ManifestGeneration) ShouldOptimizeManifests() bool {
-
 	if mg.Spec.OptimizeManifests == nil {
-
 		return true
-
 	}
 
 	return *mg.Spec.OptimizeManifests
-
 }
 
 func init() {
-
 	SchemeBuilder.Register(&ManifestGeneration{}, &ManifestGenerationList{})
-
 }

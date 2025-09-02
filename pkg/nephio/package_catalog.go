@@ -552,7 +552,6 @@ type TopologySpread struct {
 // Default configuration.
 
 var DefaultPackageCatalogConfig = &PackageCatalogConfig{
-
 	CatalogRepository: "nephoran-catalog",
 
 	BlueprintDirectory: "blueprints",
@@ -575,29 +574,22 @@ var DefaultPackageCatalogConfig = &PackageCatalogConfig{
 // NewNephioPackageCatalog creates a new package catalog.
 
 func NewNephioPackageCatalog(
-
 	client client.Client,
 
 	porchClient porch.PorchClient,
 
 	config *PackageCatalogConfig,
-
 ) (*NephioPackageCatalog, error) {
-
 	if config == nil {
-
 		config = DefaultPackageCatalogConfig
-
 	}
 
 	// Initialize metrics.
 
 	metrics := &PackageCatalogMetrics{
-
 		BlueprintQueries: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_catalog_blueprint_queries_total",
 
 				Help: "Total number of blueprint queries",
@@ -609,7 +601,6 @@ func NewNephioPackageCatalog(
 		VariantCreations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_catalog_variant_creations_total",
 
 				Help: "Total number of package variant creations",
@@ -621,7 +612,6 @@ func NewNephioPackageCatalog(
 		CatalogOperations: promauto.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_catalog_operations_total",
 
 				Help: "Total number of catalog operations",
@@ -633,7 +623,6 @@ func NewNephioPackageCatalog(
 		CacheHitRate: promauto.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_catalog_cache_hits_total",
 
 				Help: "Total number of cache hits",
@@ -643,7 +632,6 @@ func NewNephioPackageCatalog(
 		CacheMissRate: promauto.NewCounter(
 
 			prometheus.CounterOpts{
-
 				Name: "nephio_catalog_cache_misses_total",
 
 				Help: "Total number of cache misses",
@@ -653,7 +641,6 @@ func NewNephioPackageCatalog(
 		BlueprintLoadTime: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephio_catalog_blueprint_load_duration_seconds",
 
 				Help: "Time taken to load blueprints",
@@ -667,7 +654,6 @@ func NewNephioPackageCatalog(
 		VariantCreationTime: promauto.NewHistogramVec(
 
 			prometheus.HistogramOpts{
-
 				Name: "nephio_catalog_variant_creation_duration_seconds",
 
 				Help: "Time taken to create package variants",
@@ -681,7 +667,6 @@ func NewNephioPackageCatalog(
 		CatalogSize: promauto.NewGaugeVec(
 
 			prometheus.GaugeOpts{
-
 				Name: "nephio_catalog_items",
 
 				Help: "Number of items in catalog",
@@ -692,7 +677,6 @@ func NewNephioPackageCatalog(
 	}
 
 	catalog := &NephioPackageCatalog{
-
 		client: client,
 
 		config: config,
@@ -705,19 +689,15 @@ func NewNephioPackageCatalog(
 	// Initialize catalog with standard blueprints.
 
 	if err := catalog.initializeStandardBlueprints(); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize standard blueprints: %w", err)
-
 	}
 
 	return catalog, nil
-
 }
 
 // FindBlueprintForIntent finds the best blueprint for a given intent.
 
 func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, intent *v1.NetworkIntent) (*BlueprintPackage, error) {
-
 	ctx, span := npc.tracer.Start(ctx, "find-blueprint-for-intent")
 
 	defer span.End()
@@ -732,12 +712,10 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	startTime := time.Now()
 
 	defer func() {
-
 		npc.metrics.BlueprintLoadTime.WithLabelValues(
 
 			"query", npc.config.CatalogRepository,
 		).Observe(time.Since(startTime).Seconds())
-
 	}()
 
 	// Check cache first.
@@ -770,13 +748,10 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	var candidates []*BlueprintPackage
 
 	npc.blueprints.Range(func(key, value interface{}) bool {
-
 		if blueprint, ok := value.(*BlueprintPackage); ok {
-
 			// Check if blueprint supports this intent type.
 
 			for _, intentType := range blueprint.IntentTypes {
-
 				if intentType == intent.Spec.IntentType {
 
 					candidates = append(candidates, blueprint)
@@ -784,13 +759,10 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 					break
 
 				}
-
 			}
-
 		}
 
 		return true
-
 	})
 
 	if len(candidates) == 0 {
@@ -838,13 +810,11 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	)
 
 	return bestBlueprint, nil
-
 }
 
 // CreatePackageVariant creates a specialized package variant for a target cluster.
 
 func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, blueprint *BlueprintPackage, specialization *SpecializationRequest) (*PackageVariant, error) {
-
 	ctx, span := npc.tracer.Start(ctx, "create-package-variant")
 
 	defer span.End()
@@ -859,12 +829,10 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 	startTime := time.Now()
 
 	defer func() {
-
 		npc.metrics.VariantCreationTime.WithLabelValues(
 
 			blueprint.Name, specialization.ClusterContext.Name,
 		).Observe(time.Since(startTime).Seconds())
-
 	}()
 
 	// Generate variant name.
@@ -880,7 +848,6 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 	// Create package variant.
 
 	variant := &PackageVariant{
-
 		Name: variantName,
 
 		Blueprint: blueprint,
@@ -897,7 +864,6 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 	// Find target cluster.
 
 	cluster, err := npc.findWorkloadCluster(ctx, specialization.ClusterContext.Name)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -916,7 +882,6 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 	// Create specialized package revision.
 
 	packageRevision, err := npc.createSpecializedPackageRevision(ctx, variant)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -962,13 +927,11 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 	)
 
 	return variant, nil
-
 }
 
 // createSpecializedPackageRevision creates a specialized package revision.
 
 func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Context, variant *PackageVariant) (*porch.PackageRevision, error) {
-
 	ctx, span := npc.tracer.Start(ctx, "create-specialized-package-revision")
 
 	defer span.End()
@@ -976,7 +939,6 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 	// Create package spec based on blueprint and specialization.
 
 	packageSpec := &porch.PackageSpec{
-
 		Repository: npc.config.CatalogRepository,
 
 		PackageName: variant.Name,
@@ -986,7 +948,6 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		Lifecycle: porch.PackageRevisionLifecycleDraft,
 
 		Labels: map[string]string{
-
 			"blueprint": variant.Blueprint.Name,
 
 			"cluster": variant.TargetCluster.Name,
@@ -997,7 +958,6 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		},
 
 		Annotations: map[string]string{
-
 			"blueprint.version": variant.Blueprint.Version,
 
 			"cluster.region": variant.TargetCluster.Region,
@@ -1011,16 +971,13 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 	// Create package revision.
 
 	packageRevision := &porch.PackageRevision{
-
 		TypeMeta: metav1.TypeMeta{
-
 			APIVersion: "porch.nephoran.com/v1",
 
 			Kind: "PackageRevision",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
-
 			Name: fmt.Sprintf("%s-%s", packageSpec.PackageName, packageSpec.Revision),
 
 			Namespace: "nephoran-system",
@@ -1031,7 +988,6 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		},
 
 		Spec: porch.PackageRevisionSpec{
-
 			PackageName: packageSpec.PackageName,
 
 			Repository: packageSpec.Repository,
@@ -1051,7 +1007,6 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 	// In a real implementation, this would use the Porch client.
 
 	createdPackage := &porch.PackageRevision{
-
 		TypeMeta: packageRevision.TypeMeta,
 
 		ObjectMeta: packageRevision.ObjectMeta,
@@ -1059,7 +1014,6 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		Spec: packageRevision.Spec,
 
 		Status: porch.PackageRevisionStatus{
-
 			UpstreamLock: nil,
 
 			PublishedBy: "nephoran-intent-operator",
@@ -1080,13 +1034,11 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 	)
 
 	return createdPackage, nil
-
 }
 
 // generateSpecializedResources generates specialized Kubernetes resources.
 
 func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Context, variant *PackageVariant) []porch.KRMResource {
-
 	resources := make([]porch.KRMResource, 0)
 
 	// Generate resources based on blueprint templates and specialization.
@@ -1098,13 +1050,11 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 		specializedResource := npc.applySpecialization(template, variant.Specialization)
 
 		resource := porch.KRMResource{
-
 			APIVersion: template.APIVersion,
 
 			Kind: template.Kind,
 
 			Metadata: map[string]interface{}{
-
 				"name": template.Name,
 			},
 
@@ -1126,13 +1076,11 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 	}
 
 	return resources
-
 }
 
 // generateSpecializedFunctions generates specialized KRM functions.
 
 func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Context, variant *PackageVariant) []porch.FunctionConfig {
-
 	functions := make([]porch.FunctionConfig, 0)
 
 	// Add blueprint functions with specialization.
@@ -1140,7 +1088,6 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 	for _, funcDef := range variant.Blueprint.Functions {
 
 		functionConfig := porch.FunctionConfig{
-
 			Image: funcDef.Image,
 
 			ConfigMap: npc.mergeConfigs(
@@ -1160,11 +1107,9 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 	if variant.Specialization.ORANCompliance != nil {
 
 		oranFunction := porch.FunctionConfig{
-
 			Image: "krm/oran-validator:latest",
 
 			ConfigMap: map[string]interface{}{
-
 				"interfaces": variant.Specialization.ORANCompliance.Interfaces,
 
 				"validations": variant.Specialization.ORANCompliance.Validations,
@@ -1180,11 +1125,9 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 	if variant.Specialization.NetworkSlice != nil {
 
 		sliceFunction := porch.FunctionConfig{
-
 			Image: "krm/network-slice-optimizer:latest",
 
 			ConfigMap: map[string]interface{}{
-
 				"sliceId": variant.Specialization.NetworkSlice.SliceID,
 
 				"sliceType": variant.Specialization.NetworkSlice.SliceType,
@@ -1200,13 +1143,11 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 	}
 
 	return functions
-
 }
 
 // applySpecialization applies specialization parameters to a resource template.
 
 func (npc *NephioPackageCatalog) applySpecialization(template ResourceTemplate, spec *SpecializationRequest) map[string]interface{} {
-
 	// Deep copy the template.
 
 	specialized := npc.deepCopyMap(template.Template)
@@ -1214,35 +1155,27 @@ func (npc *NephioPackageCatalog) applySpecialization(template ResourceTemplate, 
 	// Apply cluster context.
 
 	if spec.ClusterContext != nil {
-
 		npc.injectClusterContext(specialized, spec.ClusterContext)
-
 	}
 
 	// Apply parameters.
 
 	for key, value := range spec.Parameters {
-
 		npc.injectParameter(specialized, key, value)
-
 	}
 
 	// Apply resource overrides.
 
 	for key, value := range spec.ResourceOverrides {
-
 		npc.injectResourceOverride(specialized, key, value)
-
 	}
 
 	return specialized
-
 }
 
 // generateClusterSpecificResources generates cluster-specific resources.
 
 func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Context, variant *PackageVariant) []porch.KRMResource {
-
 	resources := make([]porch.KRMResource, 0)
 
 	cluster := variant.TargetCluster
@@ -1250,17 +1183,14 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 	// Namespace resource.
 
 	namespaceResource := porch.KRMResource{
-
 		Kind: "Namespace",
 
 		APIVersion: "v1",
 
 		Metadata: map[string]interface{}{
-
 			"name": fmt.Sprintf("%s-ns", variant.Name),
 
 			"labels": map[string]interface{}{
-
 				"cluster": cluster.Name,
 
 				"region": cluster.Region,
@@ -1277,20 +1207,17 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 	// ConfigMap with cluster info.
 
 	configMapResource := porch.KRMResource{
-
 		Kind: "ConfigMap",
 
 		APIVersion: "v1",
 
 		Metadata: map[string]interface{}{
-
 			"name": fmt.Sprintf("%s-cluster-info", variant.Name),
 
 			"namespace": fmt.Sprintf("%s-ns", variant.Name),
 		},
 
 		Data: map[string]interface{}{
-
 			"cluster.name": cluster.Name,
 
 			"cluster.region": cluster.Region,
@@ -1304,19 +1231,16 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 	resources = append(resources, configMapResource)
 
 	return resources
-
 }
 
 // Helper methods.
 
 func (npc *NephioPackageCatalog) findWorkloadCluster(ctx context.Context, clusterName string) (*WorkloadCluster, error) {
-
 	// This would typically query the workload registry.
 
 	// For now, return a mock cluster.
 
 	return &WorkloadCluster{
-
 		Name: clusterName,
 
 		Status: WorkloadClusterStatusActive,
@@ -1326,9 +1250,7 @@ func (npc *NephioPackageCatalog) findWorkloadCluster(ctx context.Context, cluste
 		Zone: "us-east-1a",
 
 		Capabilities: []ClusterCapability{
-
 			{
-
 				Name: "5g-core",
 
 				Type: "network-function",
@@ -1341,15 +1263,12 @@ func (npc *NephioPackageCatalog) findWorkloadCluster(ctx context.Context, cluste
 
 		CreatedAt: time.Now(),
 	}, nil
-
 }
 
 func (npc *NephioPackageCatalog) deepCopyMap(source map[string]interface{}) map[string]interface{} {
-
 	result := make(map[string]interface{})
 
 	for k, v := range source {
-
 		switch val := v.(type) {
 
 		case map[string]interface{}:
@@ -1365,19 +1284,15 @@ func (npc *NephioPackageCatalog) deepCopyMap(source map[string]interface{}) map[
 			result[k] = val
 
 		}
-
 	}
 
 	return result
-
 }
 
 func (npc *NephioPackageCatalog) deepCopySlice(source []interface{}) []interface{} {
-
 	result := make([]interface{}, len(source))
 
 	for i, v := range source {
-
 		switch val := v.(type) {
 
 		case map[string]interface{}:
@@ -1393,19 +1308,15 @@ func (npc *NephioPackageCatalog) deepCopySlice(source []interface{}) []interface
 			result[i] = val
 
 		}
-
 	}
 
 	return result
-
 }
 
 func (npc *NephioPackageCatalog) injectClusterContext(resource map[string]interface{}, cluster *ClusterContext) {
-
 	// Inject cluster-specific information into resource.
 
 	if metadata, ok := resource["metadata"].(map[string]interface{}); ok {
-
 		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
 
 			labels["cluster.name"] = cluster.Name
@@ -1415,41 +1326,31 @@ func (npc *NephioPackageCatalog) injectClusterContext(resource map[string]interf
 			labels["cluster.zone"] = cluster.Zone
 
 		}
-
 	}
-
 }
 
 func (npc *NephioPackageCatalog) injectParameter(resource map[string]interface{}, key string, value interface{}) {
-
 	// Simple parameter injection - in practice this would be more sophisticated.
 
 	npc.replaceInMap(resource, fmt.Sprintf("{{.%s}}", key), value)
-
 }
 
 func (npc *NephioPackageCatalog) injectResourceOverride(resource map[string]interface{}, path string, value interface{}) {
-
 	// Apply resource override at specified path.
 
 	// This would use JSONPath or similar for complex path resolution.
 
 	resource[path] = value
-
 }
 
 func (npc *NephioPackageCatalog) replaceInMap(m map[string]interface{}, placeholder string, value interface{}) {
-
 	for k, v := range m {
-
 		switch val := v.(type) {
 
 		case string:
 
 			if val == placeholder {
-
 				m[k] = value
-
 			}
 
 		case map[string]interface{}:
@@ -1461,23 +1362,17 @@ func (npc *NephioPackageCatalog) replaceInMap(m map[string]interface{}, placehol
 			npc.replaceInSlice(val, placeholder, value)
 
 		}
-
 	}
-
 }
 
 func (npc *NephioPackageCatalog) replaceInSlice(s []interface{}, placeholder string, value interface{}) {
-
 	for i, v := range s {
-
 		switch val := v.(type) {
 
 		case string:
 
 			if val == placeholder {
-
 				s[i] = value
-
 			}
 
 		case map[string]interface{}:
@@ -1489,33 +1384,24 @@ func (npc *NephioPackageCatalog) replaceInSlice(s []interface{}, placeholder str
 			npc.replaceInSlice(val, placeholder, value)
 
 		}
-
 	}
-
 }
 
 func (npc *NephioPackageCatalog) mergeConfigs(base, overlay map[string]interface{}) map[string]interface{} {
-
 	result := npc.deepCopyMap(base)
 
 	for k, v := range overlay {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // initializeStandardBlueprints initializes the catalog with standard blueprints.
 
 func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
-
 	blueprints := []*BlueprintPackage{
-
 		{
-
 			Name: "5g-amf-blueprint",
 
 			Repository: npc.config.CatalogRepository,
@@ -1527,7 +1413,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Category: "5g-core",
 
 			IntentTypes: []v1.IntentType{
-
 				v1.IntentTypeDeployment,
 
 				v1.IntentTypeOptimization,
@@ -1536,9 +1421,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			},
 
 			Dependencies: []PackageDependency{
-
 				{
-
 					Name: "5g-common",
 
 					Repository: npc.config.CatalogRepository,
@@ -1550,9 +1433,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			},
 
 			Parameters: []ParameterDefinition{
-
 				{
-
 					Name: "replicas",
 
 					Type: "int",
@@ -1565,7 +1446,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 				},
 
 				{
-
 					Name: "resources.cpu",
 
 					Type: "string",
@@ -1578,7 +1458,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 				},
 
 				{
-
 					Name: "resources.memory",
 
 					Type: "string",
@@ -1597,7 +1476,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 		},
 
 		{
-
 			Name: "5g-upf-blueprint",
 
 			Repository: npc.config.CatalogRepository,
@@ -1609,7 +1487,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Category: "5g-core",
 
 			IntentTypes: []v1.IntentType{
-
 				v1.IntentTypeDeployment,
 
 				v1.IntentTypeOptimization,
@@ -1618,9 +1495,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			},
 
 			Dependencies: []PackageDependency{
-
 				{
-
 					Name: "5g-common",
 
 					Repository: npc.config.CatalogRepository,
@@ -1632,9 +1507,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			},
 
 			Parameters: []ParameterDefinition{
-
 				{
-
 					Name: "replicas",
 
 					Type: "int",
@@ -1647,7 +1520,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 				},
 
 				{
-
 					Name: "dataPlane.type",
 
 					Type: "string",
@@ -1666,7 +1538,6 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 		},
 
 		{
-
 			Name: "oran-ric-blueprint",
 
 			Repository: npc.config.CatalogRepository,
@@ -1678,16 +1549,13 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Category: "oran",
 
 			IntentTypes: []v1.IntentType{
-
 				v1.IntentTypeDeployment,
 
 				v1.IntentTypeOptimization,
 			},
 
 			Dependencies: []PackageDependency{
-
 				{
-
 					Name: "oran-common",
 
 					Repository: npc.config.CatalogRepository,
@@ -1699,9 +1567,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			},
 
 			Parameters: []ParameterDefinition{
-
 				{
-
 					Name: "ric.type",
 
 					Type: "string",
@@ -1731,37 +1597,28 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 	}
 
 	return nil
-
 }
 
 // convertResourcesForSpec converts []porch.KRMResource to []interface{} for PackageRevisionSpec.
 
 func (npc *NephioPackageCatalog) convertResourcesForSpec(resources []porch.KRMResource) []interface{} {
-
 	result := make([]interface{}, len(resources))
 
 	for i, resource := range resources {
-
 		result[i] = resource
-
 	}
 
 	return result
-
 }
 
 // convertFunctionsForSpec converts []porch.FunctionConfig to []interface{} for PackageRevisionSpec.
 
 func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.FunctionConfig) []interface{} {
-
 	result := make([]interface{}, len(functions))
 
 	for i, function := range functions {
-
 		result[i] = function
-
 	}
 
 	return result
-
 }

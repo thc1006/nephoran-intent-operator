@@ -813,7 +813,6 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 						// Cleanup
 						req, _ := http.NewRequest("DELETE", httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 						testClient.Do(req)
-
 					}(i)
 				}
 

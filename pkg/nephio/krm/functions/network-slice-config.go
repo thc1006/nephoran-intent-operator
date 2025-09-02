@@ -58,7 +58,6 @@ type NetworkSliceConfigFunction struct {
 // NetworkSliceConfig defines the configuration structure for network slicing.
 
 type NetworkSliceConfig struct {
-
 	// Slice identification.
 
 	SliceID string `json:"sliceId" yaml:"sliceId"`
@@ -109,7 +108,6 @@ type NetworkSliceConfig struct {
 // SLAConfiguration defines service level agreement parameters.
 
 type SLAConfiguration struct {
-
 	// Latency requirements.
 
 	Latency *LatencyRequirements `json:"latency,omitempty" yaml:"latency,omitempty"`
@@ -157,7 +155,6 @@ type ThroughputRequirements struct {
 	UserDensity int32 `json:"userDensity,omitempty" yaml:"userDensity,omitempty"` // users per km²
 
 	DeviceDensity int32 `json:"deviceDensity,omitempty" yaml:"deviceDensity,omitempty"` // devices per km²
-
 }
 
 // AvailabilityRequirements defines availability SLA parameters.
@@ -172,7 +169,6 @@ type AvailabilityRequirements struct {
 	MTBF string `json:"mtbf,omitempty" yaml:"mtbf,omitempty"` // Mean Time Between Failures
 
 	MTTR string `json:"mttr,omitempty" yaml:"mttr,omitempty"` // Mean Time To Repair
-
 }
 
 // ReliabilityRequirements defines reliability SLA parameters.
@@ -185,7 +181,6 @@ type ReliabilityRequirements struct {
 	PacketLoss float64 `json:"packetLoss,omitempty" yaml:"packetLoss,omitempty"` // maximum acceptable packet loss
 
 	Redundancy string `json:"redundancy,omitempty" yaml:"redundancy,omitempty"` // redundancy level
-
 }
 
 // ScalabilityRequirements defines scalability SLA parameters.
@@ -200,7 +195,6 @@ type ScalabilityRequirements struct {
 	ScaleUpTime string `json:"scaleUpTime,omitempty" yaml:"scaleUpTime,omitempty"` // time to scale up
 
 	ScaleDownTime string `json:"scaleDownTime,omitempty" yaml:"scaleDownTime,omitempty"` // time to scale down
-
 }
 
 // QoSConfiguration defines quality of service parameters.
@@ -226,7 +220,6 @@ type QoSConfiguration struct {
 // SliceResourceAllocation defines resource allocation for the slice.
 
 type SliceResourceAllocation struct {
-
 	// Compute resources.
 
 	CPU string `json:"cpu,omitempty" yaml:"cpu,omitempty"` // e.g., "2000m", "4"
@@ -280,7 +273,6 @@ type FrequencyBand struct {
 	Bandwidth string `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
 
 	Technology string `json:"technology,omitempty" yaml:"technology,omitempty"` // 4G, 5G
-
 }
 
 // ResourcePoolAllocation defines allocation from resource pools.
@@ -648,18 +640,14 @@ type WeightedPodAffinityTerm struct {
 // NewNetworkSliceConfigFunction creates a new network slice configuration function.
 
 func NewNetworkSliceConfigFunction() *NetworkSliceConfigFunction {
-
 	return &NetworkSliceConfigFunction{
-
 		tracer: otel.Tracer("network-slice-config-function"),
 	}
-
 }
 
 // Execute implements the KRM function for network slice configuration.
 
 func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []porch.KRMResource, config map[string]interface{}) ([]porch.KRMResource, []*porch.FunctionResult, error) {
-
 	ctx, span := f.tracer.Start(ctx, "network-slice-config-execute")
 
 	defer span.End()
@@ -674,7 +662,6 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	// Parse configuration.
 
 	sliceConfig, err := f.parseConfig(config)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -704,7 +691,6 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	// Process resources.
 
 	processedResources, results, err := f.processResources(ctx, resources, sliceConfig)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -754,49 +740,36 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	)
 
 	return processedResources, results, nil
-
 }
 
 // parseConfig parses the function configuration into NetworkSliceConfig.
 
 func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) (*NetworkSliceConfig, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("configuration is required")
-
 	}
 
 	// Convert to JSON and back to struct for type safety.
 
 	configJSON, err := json.Marshal(config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal config: %w", err)
-
 	}
 
 	var sliceConfig NetworkSliceConfig
 
 	if err := json.Unmarshal(configJSON, &sliceConfig); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-
 	}
 
 	// Validate required fields.
 
 	if sliceConfig.SliceID == "" {
-
 		return nil, fmt.Errorf("sliceId is required")
-
 	}
 
 	if sliceConfig.SliceType == "" {
-
 		return nil, fmt.Errorf("sliceType is required")
-
 	}
 
 	// Validate slice type.
@@ -806,7 +779,6 @@ func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) 
 	validType := false
 
 	for _, validSliceType := range validSliceTypes {
-
 		if sliceConfig.SliceType == validSliceType {
 
 			validType = true
@@ -814,29 +786,23 @@ func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) 
 			break
 
 		}
-
 	}
 
 	if !validType {
-
 		return nil, fmt.Errorf("invalid sliceType: %s, must be one of: %v", sliceConfig.SliceType, validSliceTypes)
-
 	}
 
 	return &sliceConfig, nil
-
 }
 
 // processResources processes existing resources based on slice configuration.
 
 func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resources []porch.KRMResource, config *NetworkSliceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
-
 	var processedResources []porch.KRMResource
 
 	var results []*porch.FunctionResult
 
 	for i, resource := range resources {
-
 		// Process based on resource type.
 
 		switch {
@@ -848,9 +814,7 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		case resource.Kind == "Deployment":
@@ -860,9 +824,7 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		case resource.Kind == "Service":
@@ -872,9 +834,7 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		case resource.Kind == "ConfigMap":
@@ -884,9 +844,7 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		default:
@@ -896,36 +854,29 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 			processedResources = append(processedResources, resource)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Resource %d passed through unchanged", i),
 
 				Severity: "info",
 			})
 
 		}
-
 	}
 
 	return processedResources, results, nil
-
 }
 
 // processNetworkIntent configures NetworkIntent resources for network slicing.
 
 func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add network slice configuration to NetworkIntent.
 
 	if resource.Spec == nil {
-
 		resource.Spec = make(map[string]interface{})
-
 	}
 
 	// Add network slice specification.
 
 	resource.Spec["networkSlice"] = map[string]interface{}{
-
 		"sliceId": config.SliceID,
 
 		"sliceType": config.SliceType,
@@ -938,15 +889,11 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 	// Add labels for slice identification.
 
 	if resource.Metadata == nil {
-
 		resource.Metadata = make(map[string]interface{})
-
 	}
 
 	if resource.Metadata["labels"] == nil {
-
 		resource.Metadata["labels"] = make(map[string]interface{})
-
 	}
 
 	labels := resource.Metadata["labels"].(map[string]interface{})
@@ -956,24 +903,19 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 	labels["nephoran.com/network-slice-type"] = config.SliceType
 
 	return resource, &porch.FunctionResult{
-
 		Message: fmt.Sprintf("Configured NetworkIntent for slice %s", config.SliceID),
 
 		Severity: "info",
 	}
-
 }
 
 // processDeployment configures Deployment resources for network slicing.
 
 func (f *NetworkSliceConfigFunction) processDeployment(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add resource requirements based on slice configuration.
 
 	if config.Resources != nil {
-
 		f.applyResourceRequirements(&resource, config.Resources)
-
 	}
 
 	// Add slice-specific labels and annotations.
@@ -983,24 +925,19 @@ func (f *NetworkSliceConfigFunction) processDeployment(resource porch.KRMResourc
 	// Configure network functions if specified.
 
 	if len(config.NetworkFunctions) > 0 {
-
 		f.configureNetworkFunctions(&resource, config.NetworkFunctions)
-
 	}
 
 	return resource, &porch.FunctionResult{
-
 		Message: fmt.Sprintf("Configured Deployment for slice %s", config.SliceID),
 
 		Severity: "info",
 	}
-
 }
 
 // processService configures Service resources for network slicing.
 
 func (f *NetworkSliceConfigFunction) processService(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add slice-specific labels and annotations.
 
 	f.addSliceLabelsAndAnnotations(&resource, config)
@@ -1008,30 +945,23 @@ func (f *NetworkSliceConfigFunction) processService(resource porch.KRMResource, 
 	// Configure QoS annotations if specified.
 
 	if config.QoS != nil {
-
 		f.addQoSAnnotations(&resource, config.QoS)
-
 	}
 
 	return resource, &porch.FunctionResult{
-
 		Message: fmt.Sprintf("Configured Service for slice %s", config.SliceID),
 
 		Severity: "info",
 	}
-
 }
 
 // processConfigMap configures ConfigMap resources for network slicing.
 
 func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add slice configuration to ConfigMap data.
 
 	if resource.Data == nil {
-
 		resource.Data = make(map[string]interface{})
-
 	}
 
 	// Add slice configuration.
@@ -1075,18 +1005,15 @@ func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource
 	}
 
 	return resource, &porch.FunctionResult{
-
 		Message: fmt.Sprintf("Configured ConfigMap for slice %s", config.SliceID),
 
 		Severity: "info",
 	}
-
 }
 
 // generateAdditionalResources generates additional resources needed for network slicing.
 
 func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Context, config *NetworkSliceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
-
 	var resources []porch.KRMResource
 
 	var results []*porch.FunctionResult
@@ -1100,7 +1027,6 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		resources = append(resources, quota)
 
 		results = append(results, &porch.FunctionResult{
-
 			Message: fmt.Sprintf("Generated ResourceQuota for slice %s", config.SliceID),
 
 			Severity: "info",
@@ -1117,7 +1043,6 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		resources = append(resources, netPol)
 
 		results = append(results, &porch.FunctionResult{
-
 			Message: fmt.Sprintf("Generated NetworkPolicy for slice %s", config.SliceID),
 
 			Severity: "info",
@@ -1134,7 +1059,6 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		resources = append(resources, monitor)
 
 		results = append(results, &porch.FunctionResult{
-
 			Message: fmt.Sprintf("Generated ServiceMonitor for slice %s", config.SliceID),
 
 			Severity: "info",
@@ -1151,7 +1075,6 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		resources = append(resources, pdb)
 
 		results = append(results, &porch.FunctionResult{
-
 			Message: fmt.Sprintf("Generated PodDisruptionBudget for slice %s", config.SliceID),
 
 			Severity: "info",
@@ -1160,35 +1083,25 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 	}
 
 	return resources, results, nil
-
 }
 
 // Helper methods for resource configuration.
 
 func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.KRMResource, resourceConfig *SliceResourceAllocation) {
-
 	if resource.Spec == nil {
-
 		resource.Spec = make(map[string]interface{})
-
 	}
 
 	// Apply to container resources in deployment.
 
 	if template, ok := resource.Spec["template"].(map[string]interface{}); ok {
-
 		if spec, ok := template["spec"].(map[string]interface{}); ok {
-
 			if containers, ok := spec["containers"].([]interface{}); ok {
-
 				for _, container := range containers {
-
 					if containerMap, ok := container.(map[string]interface{}); ok {
 
 						if containerMap["resources"] == nil {
-
 							containerMap["resources"] = make(map[string]interface{})
-
 						}
 
 						resourcesMap := containerMap["resources"].(map[string]interface{})
@@ -1206,15 +1119,11 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 							}
 
 							if resourceConfig.CPU != "" {
-
 								requests["cpu"] = resourceConfig.CPU
-
 							}
 
 							if resourceConfig.Memory != "" {
-
 								requests["memory"] = resourceConfig.Memory
-
 							}
 
 						}
@@ -1232,7 +1141,6 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 							}
 
 							if resourceConfig.CPU != "" {
-
 								// Set limits to 2x requests for CPU.
 
 								if cpu, err := k8sresource.ParseQuantity(resourceConfig.CPU); err == nil {
@@ -1244,15 +1152,11 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 									limits["cpu"] = cpuDouble.String()
 
 								} else {
-
 									limits["cpu"] = resourceConfig.CPU
-
 								}
-
 							}
 
 							if resourceConfig.Memory != "" {
-
 								// Set limits to 1.5x requests for memory.
 
 								if mem, err := k8sresource.ParseQuantity(resourceConfig.Memory); err == nil {
@@ -1266,41 +1170,28 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 									limits["memory"] = memCopy.String()
 
 								} else {
-
 									limits["memory"] = resourceConfig.Memory
-
 								}
-
 							}
 
 						}
 
 					}
-
 				}
-
 			}
-
 		}
-
 	}
-
 }
 
 func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porch.KRMResource, config *NetworkSliceConfig) {
-
 	// Add labels.
 
 	if resource.Metadata == nil {
-
 		resource.Metadata = make(map[string]interface{})
-
 	}
 
 	if resource.Metadata["labels"] == nil {
-
 		resource.Metadata["labels"] = make(map[string]interface{})
-
 	}
 
 	labels := resource.Metadata["labels"].(map[string]interface{})
@@ -1314,9 +1205,7 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 	// Add annotations.
 
 	if resource.Metadata["annotations"] == nil {
-
 		resource.Metadata["annotations"] = make(map[string]interface{})
-
 	}
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
@@ -1324,9 +1213,7 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 	annotations["nephoran.com/slice-config-timestamp"] = time.Now().UTC().Format(time.RFC3339)
 
 	if config.Description != "" {
-
 		annotations["nephoran.com/slice-description"] = config.Description
-
 	}
 
 	// Add SLA annotations.
@@ -1334,79 +1221,55 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 	if config.SLA != nil {
 
 		if config.SLA.Latency != nil {
-
 			annotations["nephoran.com/max-latency"] = config.SLA.Latency.MaxLatency
-
 		}
 
 		if config.SLA.Availability != nil {
-
 			annotations["nephoran.com/availability-target"] = fmt.Sprintf("%.4f", config.SLA.Availability.Target)
-
 		}
 
 	}
-
 }
 
 func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResource, qos *QoSConfiguration) {
-
 	if resource.Metadata == nil {
-
 		resource.Metadata = make(map[string]interface{})
-
 	}
 
 	if resource.Metadata["annotations"] == nil {
-
 		resource.Metadata["annotations"] = make(map[string]interface{})
-
 	}
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
 
 	if qos.FiveQI != 0 {
-
 		annotations["nephoran.com/5qi"] = strconv.Itoa(int(qos.FiveQI))
-
 	}
 
 	if qos.PriorityLevel != 0 {
-
 		annotations["nephoran.com/priority-level"] = strconv.Itoa(int(qos.PriorityLevel))
-
 	}
 
 	if qos.PacketDelayBudget != "" {
-
 		annotations["nephoran.com/packet-delay-budget"] = qos.PacketDelayBudget
-
 	}
 
 	if qos.QoSClass != "" {
-
 		annotations["nephoran.com/qos-class"] = qos.QoSClass
-
 	}
-
 }
 
 func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.KRMResource, nfConfigs []*NetworkFunctionConfig) {
-
 	// This would configure specific network functions based on the slice requirements.
 
 	// For now, add metadata to indicate which NFs should be deployed.
 
 	if resource.Metadata == nil {
-
 		resource.Metadata = make(map[string]interface{})
-
 	}
 
 	if resource.Metadata["annotations"] == nil {
-
 		resource.Metadata["annotations"] = make(map[string]interface{})
-
 	}
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
@@ -1414,41 +1277,32 @@ func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.K
 	var nfTypes []string
 
 	for _, nfConfig := range nfConfigs {
-
 		nfTypes = append(nfTypes, nfConfig.Type)
-
 	}
 
 	annotations["nephoran.com/required-network-functions"] = strings.Join(nfTypes, ",")
-
 }
 
 // Resource generation methods.
 
 func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceConfig) porch.KRMResource {
-
 	return porch.KRMResource{
-
 		APIVersion: "v1",
 
 		Kind: "ResourceQuota",
 
 		Metadata: map[string]interface{}{
-
 			"name": fmt.Sprintf("%s-quota", config.SliceID),
 
 			"namespace": "default", // Should be configurable
 
 			"labels": map[string]interface{}{
-
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
 		Spec: map[string]interface{}{
-
 			"hard": map[string]interface{}{
-
 				"requests.cpu": config.Resources.CPU,
 
 				"requests.memory": config.Resources.Memory,
@@ -1459,35 +1313,27 @@ func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceC
 			},
 		},
 	}
-
 }
 
 func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceConfig) porch.KRMResource {
-
 	return porch.KRMResource{
-
 		APIVersion: "networking.k8s.io/v1",
 
 		Kind: "NetworkPolicy",
 
 		Metadata: map[string]interface{}{
-
 			"name": fmt.Sprintf("%s-netpol", config.SliceID),
 
 			"namespace": "default",
 
 			"labels": map[string]interface{}{
-
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
 		Spec: map[string]interface{}{
-
 			"podSelector": map[string]interface{}{
-
 				"matchLabels": map[string]interface{}{
-
 					"nephoran.com/network-slice-id": config.SliceID,
 				},
 			},
@@ -1495,17 +1341,11 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 			"policyTypes": []string{"Ingress", "Egress"},
 
 			"ingress": []map[string]interface{}{
-
 				{
-
 					"from": []map[string]interface{}{
-
 						{
-
 							"podSelector": map[string]interface{}{
-
 								"matchLabels": map[string]interface{}{
-
 									"nephoran.com/network-slice-id": config.SliceID,
 								},
 							},
@@ -1515,17 +1355,11 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 			},
 
 			"egress": []map[string]interface{}{
-
 				{
-
 					"to": []map[string]interface{}{
-
 						{
-
 							"podSelector": map[string]interface{}{
-
 								"matchLabels": map[string]interface{}{
-
 									"nephoran.com/network-slice-id": config.SliceID,
 								},
 							},
@@ -1535,43 +1369,33 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 			},
 		},
 	}
-
 }
 
 func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSliceConfig) porch.KRMResource {
-
 	return porch.KRMResource{
-
 		APIVersion: "monitoring.coreos.com/v1",
 
 		Kind: "ServiceMonitor",
 
 		Metadata: map[string]interface{}{
-
 			"name": fmt.Sprintf("%s-monitor", config.SliceID),
 
 			"namespace": "default",
 
 			"labels": map[string]interface{}{
-
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
 		Spec: map[string]interface{}{
-
 			"selector": map[string]interface{}{
-
 				"matchLabels": map[string]interface{}{
-
 					"nephoran.com/network-slice-id": config.SliceID,
 				},
 			},
 
 			"endpoints": []map[string]interface{}{
-
 				{
-
 					"port": "metrics",
 
 					"interval": "30s",
@@ -1581,55 +1405,42 @@ func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSlice
 			},
 		},
 	}
-
 }
 
 func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *NetworkSliceConfig) porch.KRMResource {
-
 	// Calculate minimum available based on availability target.
 
 	minAvailable := "50%"
 
 	if config.SLA.Availability.Target > 0.999 {
-
 		minAvailable = "80%"
-
 	} else if config.SLA.Availability.Target > 0.99 {
-
 		minAvailable = "66%"
-
 	}
 
 	return porch.KRMResource{
-
 		APIVersion: "policy/v1",
 
 		Kind: "PodDisruptionBudget",
 
 		Metadata: map[string]interface{}{
-
 			"name": fmt.Sprintf("%s-pdb", config.SliceID),
 
 			"namespace": "default",
 
 			"labels": map[string]interface{}{
-
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
 		Spec: map[string]interface{}{
-
 			"minAvailable": minAvailable,
 
 			"selector": map[string]interface{}{
-
 				"matchLabels": map[string]interface{}{
-
 					"nephoran.com/network-slice-id": config.SliceID,
 				},
 			},
 		},
 	}
-
 }

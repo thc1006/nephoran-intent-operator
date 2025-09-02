@@ -22,7 +22,6 @@ type Intent struct {
 }
 
 func main() {
-
 	var intentPath string
 
 	var outDir string
@@ -46,7 +45,6 @@ func main() {
 	}
 
 	b, err := os.ReadFile(intentPath)
-
 	if err != nil {
 
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
@@ -74,5 +72,4 @@ func main() {
 		os.Exit(1)
 
 	}
-
 }

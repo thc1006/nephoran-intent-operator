@@ -591,7 +591,7 @@ func (suite *DisasterRecoveryTestSuite) cleanupBackupCorruption(s *DisasterRecov
 
 func (suite *DisasterRecoveryTestSuite) createBackup(backupID string, components []string) error {
 	backupPath := filepath.Join(suite.backupDir, backupID)
-	if err := os.MkdirAll(backupPath, 0755); err != nil {
+	if err := os.MkdirAll(backupPath, 0o755); err != nil {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
@@ -638,7 +638,6 @@ func (suite *DisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace s
 		}
 	}
 }
-
 
 // Comprehensive disaster recovery testing
 func (suite *DisasterRecoveryTestSuite) TestComprehensiveDisasterRecovery() {
@@ -746,4 +745,3 @@ func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *Disaste
 	_ = report // In real implementation, would write to file
 	return nil
 }
-

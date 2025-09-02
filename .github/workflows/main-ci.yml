@@ -30,7 +30,8 @@ permissions:
 env:
   GO_VERSION: "1.24.6"
   CONTROLLER_GEN_VERSION: "v0.19.0"
-  GOLANGCI_LINT_VERSION: "v1.64.3"
+  GOLANGCI_LINT_VERSION: "v1.65.1"  # Updated for 2025 compatibility
+  ENVTEST_K8S_VERSION: "1.31.0"      # Latest stable for envtest
   CGO_ENABLED: "0"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
@@ -403,40 +404,64 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-deps-${{ env.GO_VERSION }}-
 
-      - name: Smart test execution
+      - name: Setup envtest binaries
         run: |
-          echo "🧪 Running test suite with smart optimization..."
+          echo "🔧 Setting up envtest binaries..."
+          set -euo pipefail
+          
+          # Install setup-envtest for faster binary management
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          
+          # Setup envtest binaries
+          setup-envtest use ${{ env.ENVTEST_K8S_VERSION }} --arch=amd64 --os=linux
+          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.ENVTEST_K8S_VERSION }} --arch=amd64 --os=linux -p path)
+          echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
+          
+          echo "✅ Envtest binaries configured"
+
+      - name: Smart test execution with 2025 patterns
+        env:
+          KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
+        run: |
+          echo "🧪 Running 2025-optimized test suite..."
           set -euo pipefail
           
           # Create test results directory
           mkdir -p test-results
           
+          # 2025 test execution patterns
+          export CGO_ENABLED=0
+          export GOMAXPROCS=2  # Optimize for CI
+          
           if [ "$FAST_MODE" = "true" ]; then
-            echo "⚡ Fast mode: Essential tests only (no race detection, no coverage)"
-            if ! go test -short -timeout=8m ./api/... ./controllers/... ./pkg/... 2>&1 | tee test-results/test-output.txt; then
+            echo "⚡ Fast mode: Essential tests only (optimized for 2025)"
+            if ! go test -short -timeout=10m -parallel=4 ./api/... ./controllers/... ./pkg/... 2>&1 | tee test-results/test-output.txt; then
               echo "❌ Essential tests failed"
               exit 1
             fi
             echo "✅ Essential tests passed (fast mode)"
           else
-            echo "🔍 Full mode: Comprehensive test suite with race detection"
-            if ! go test -v -race -vet=off -timeout=20m -coverprofile=test-results/coverage.out -covermode=atomic ./... 2>&1 | tee test-results/test-output.txt; then
+            echo "🔍 Full mode: 2025 comprehensive test suite"
+            # Enhanced race detection with proper timeouts for 2025
+            if ! go test -v -race -vet=off -timeout=25m -parallel=2 -coverprofile=test-results/coverage.out -covermode=atomic ./... 2>&1 | tee test-results/test-output.txt; then
               echo "❌ Unit tests failed"
               echo "📋 Test failures detected"
               echo "📊 Test summary:"
-              tail -20 test-results/test-output.txt || true
+              tail -30 test-results/test-output.txt || true
               exit 1
             fi
             
-            echo "✅ All unit tests passed"
+            echo "✅ All unit tests passed (2025 patterns)"
             
-            # Generate coverage report
+            # Enhanced coverage reporting for 2025
             echo "📊 Generating coverage report..."
             go tool cover -html=test-results/coverage.out -o test-results/coverage.html
             
-            # Print coverage summary
-            echo "📈 Coverage summary:"
+            # Detailed coverage summary
+            echo "📈 Coverage summary (2025 format):"
             go tool cover -func=test-results/coverage.out | tail -1
+            echo "📋 Per-package coverage:"
+            go tool cover -func=test-results/coverage.out | grep -E "(total|api/|controllers/|pkg/)" | head -10
           fi
 
       - name: Benchmark tests

@@ -93,37 +93,28 @@ type RequestContext struct {
 // NewStructuredLogger creates a new structured logger instance.
 
 func NewStructuredLogger(config Config) *StructuredLogger {
-
 	level := parseLevel(config.Level)
 
 	var handler slog.Handler
 
 	opts := &slog.HandlerOptions{
-
 		Level: level,
 
 		AddSource: config.AddSource,
 	}
 
 	if config.TimeFormat != "" {
-
 		opts.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
-
 			if a.Key == slog.TimeKey {
-
 				return slog.Attr{
-
 					Key: slog.TimeKey,
 
 					Value: slog.StringValue(a.Value.Time().Format(config.TimeFormat)),
 				}
-
 			}
 
 			return a
-
 		}
-
 	}
 
 	switch strings.ToLower(config.Format) {
@@ -141,7 +132,6 @@ func NewStructuredLogger(config Config) *StructuredLogger {
 	logger := slog.New(handler)
 
 	return &StructuredLogger{
-
 		Logger: logger,
 
 		serviceName: config.ServiceName,
@@ -152,15 +142,12 @@ func NewStructuredLogger(config Config) *StructuredLogger {
 
 		component: config.Component,
 	}
-
 }
 
 // WithComponent creates a logger with a specific component context.
 
 func (sl *StructuredLogger) WithComponent(component string) *StructuredLogger {
-
 	return &StructuredLogger{
-
 		Logger: sl.Logger,
 
 		serviceName: sl.serviceName,
@@ -173,13 +160,11 @@ func (sl *StructuredLogger) WithComponent(component string) *StructuredLogger {
 
 		requestID: sl.requestID,
 	}
-
 }
 
 // WithRequest creates a logger with request context.
 
 func (sl *StructuredLogger) WithRequest(ctx *RequestContext) *StructuredLogger {
-
 	logger := sl.Logger.With(
 
 		"request_id", ctx.RequestID,
@@ -200,7 +185,6 @@ func (sl *StructuredLogger) WithRequest(ctx *RequestContext) *StructuredLogger {
 	)
 
 	return &StructuredLogger{
-
 		Logger: logger,
 
 		serviceName: sl.serviceName,
@@ -213,7 +197,6 @@ func (sl *StructuredLogger) WithRequest(ctx *RequestContext) *StructuredLogger {
 
 		requestID: ctx.RequestID,
 	}
-
 }
 
 // Enhanced logging methods with automatic context.
@@ -221,41 +204,31 @@ func (sl *StructuredLogger) WithRequest(ctx *RequestContext) *StructuredLogger {
 // InfoWithContext logs an info message with full service context.
 
 func (sl *StructuredLogger) InfoWithContext(msg string, args ...any) {
-
 	sl.Logger.Info(msg, sl.withServiceContext(args...)...)
-
 }
 
 // ErrorWithContext logs an error message with full service context.
 
 func (sl *StructuredLogger) ErrorWithContext(msg string, err error, args ...any) {
-
 	attrs := sl.withServiceContext(args...)
 
 	if err != nil {
-
 		attrs = append(attrs, "error", err.Error(), "error_type", fmt.Sprintf("%T", err))
-
 	}
 
 	sl.Logger.Error(msg, attrs...)
-
 }
 
 // WarnWithContext logs a warning message with full service context.
 
 func (sl *StructuredLogger) WarnWithContext(msg string, args ...any) {
-
 	sl.Logger.Warn(msg, sl.withServiceContext(args...)...)
-
 }
 
 // DebugWithContext logs a debug message with full service context.
 
 func (sl *StructuredLogger) DebugWithContext(msg string, args ...any) {
-
 	sl.Logger.Debug(msg, sl.withServiceContext(args...)...)
-
 }
 
 // Performance and operation logging.
@@ -263,7 +236,6 @@ func (sl *StructuredLogger) DebugWithContext(msg string, args ...any) {
 // LogOperation logs the start and completion of an operation.
 
 func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) error {
-
 	start := time.Now()
 
 	sl.InfoWithContext("Operation started",
@@ -278,7 +250,6 @@ func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) 
 	duration := time.Since(start)
 
 	if err != nil {
-
 		sl.ErrorWithContext("Operation failed",
 
 			err,
@@ -289,9 +260,7 @@ func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) 
 
 			"duration_ms", duration.Milliseconds(),
 		)
-
 	} else {
-
 		sl.InfoWithContext("Operation completed",
 
 			"operation", operationName,
@@ -300,19 +269,15 @@ func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) 
 
 			"duration_ms", duration.Milliseconds(),
 		)
-
 	}
 
 	return err
-
 }
 
 // LogPerformance logs performance metrics for an operation.
 
 func (sl *StructuredLogger) LogPerformance(operationName string, duration time.Duration, metadata map[string]interface{}) {
-
 	attrs := []any{
-
 		"operation", operationName,
 
 		"duration", duration,
@@ -323,31 +288,23 @@ func (sl *StructuredLogger) LogPerformance(operationName string, duration time.D
 	}
 
 	for key, value := range metadata {
-
 		attrs = append(attrs, key, value)
-
 	}
 
 	sl.InfoWithContext("Performance metrics", attrs...)
-
 }
 
 // LogHTTPRequest logs HTTP request details.
 
 func (sl *StructuredLogger) LogHTTPRequest(method, path string, statusCode int, duration time.Duration, size int64) {
-
 	level := slog.LevelInfo
 
 	if statusCode >= 400 {
-
 		level = slog.LevelWarn
-
 	}
 
 	if statusCode >= 500 {
-
 		level = slog.LevelError
-
 	}
 
 	sl.Logger.Log(context.Background(), level, "HTTP request processed",
@@ -367,7 +324,6 @@ func (sl *StructuredLogger) LogHTTPRequest(method, path string, statusCode int, 
 			"http_response_size", size,
 		)...,
 	)
-
 }
 
 // Security and audit logging.
@@ -375,9 +331,7 @@ func (sl *StructuredLogger) LogHTTPRequest(method, path string, statusCode int, 
 // LogSecurityEvent logs security-related events.
 
 func (sl *StructuredLogger) LogSecurityEvent(eventType, description, severity string, metadata map[string]interface{}) {
-
 	attrs := []any{
-
 		"security_event", true,
 
 		"event_type", eventType,
@@ -390,9 +344,7 @@ func (sl *StructuredLogger) LogSecurityEvent(eventType, description, severity st
 	}
 
 	for key, value := range metadata {
-
 		attrs = append(attrs, key, value)
-
 	}
 
 	switch severity {
@@ -410,15 +362,12 @@ func (sl *StructuredLogger) LogSecurityEvent(eventType, description, severity st
 		sl.InfoWithContext("Security event", attrs...)
 
 	}
-
 }
 
 // LogAuditEvent logs audit trail events.
 
 func (sl *StructuredLogger) LogAuditEvent(action, resource, userID string, metadata map[string]interface{}) {
-
 	attrs := []any{
-
 		"audit_event", true,
 
 		"action", action,
@@ -431,13 +380,10 @@ func (sl *StructuredLogger) LogAuditEvent(action, resource, userID string, metad
 	}
 
 	for key, value := range metadata {
-
 		attrs = append(attrs, key, value)
-
 	}
 
 	sl.InfoWithContext("Audit event", attrs...)
-
 }
 
 // Business and application logging.
@@ -445,9 +391,7 @@ func (sl *StructuredLogger) LogAuditEvent(action, resource, userID string, metad
 // LogBusinessEvent logs business-specific events.
 
 func (sl *StructuredLogger) LogBusinessEvent(eventType string, metadata map[string]interface{}) {
-
 	attrs := []any{
-
 		"business_event", true,
 
 		"event_type", eventType,
@@ -456,19 +400,15 @@ func (sl *StructuredLogger) LogBusinessEvent(eventType string, metadata map[stri
 	}
 
 	for key, value := range metadata {
-
 		attrs = append(attrs, key, value)
-
 	}
 
 	sl.InfoWithContext("Business event", attrs...)
-
 }
 
 // LogAPIUsage logs API usage patterns.
 
 func (sl *StructuredLogger) LogAPIUsage(endpoint, method, userID string, requestSize, responseSize int64, duration time.Duration) {
-
 	sl.InfoWithContext("API usage",
 
 		"api_endpoint", endpoint,
@@ -487,7 +427,6 @@ func (sl *StructuredLogger) LogAPIUsage(endpoint, method, userID string, request
 
 		"api_usage_log", true,
 	)
-
 }
 
 // System and infrastructure logging.
@@ -495,28 +434,22 @@ func (sl *StructuredLogger) LogAPIUsage(endpoint, method, userID string, request
 // LogSystemMetrics logs system performance metrics.
 
 func (sl *StructuredLogger) LogSystemMetrics(metrics map[string]interface{}) {
-
 	attrs := []any{
-
 		"system_metrics", true,
 
 		"timestamp", time.Now(),
 	}
 
 	for key, value := range metrics {
-
 		attrs = append(attrs, key, value)
-
 	}
 
 	sl.InfoWithContext("System metrics", attrs...)
-
 }
 
 // LogResourceUsage logs resource utilization.
 
 func (sl *StructuredLogger) LogResourceUsage(cpuPercent, memoryMB, diskUsagePercent float64) {
-
 	sl.InfoWithContext("Resource usage",
 
 		"cpu_percent", cpuPercent,
@@ -527,7 +460,6 @@ func (sl *StructuredLogger) LogResourceUsage(cpuPercent, memoryMB, diskUsagePerc
 
 		"resource_usage_log", true,
 	)
-
 }
 
 // Utility methods.
@@ -535,9 +467,7 @@ func (sl *StructuredLogger) LogResourceUsage(cpuPercent, memoryMB, diskUsagePerc
 // withServiceContext adds service-level context to log attributes.
 
 func (sl *StructuredLogger) withServiceContext(args ...any) []any {
-
 	baseAttrs := []any{
-
 		"service", sl.serviceName,
 
 		"version", sl.serviceVersion,
@@ -546,25 +476,19 @@ func (sl *StructuredLogger) withServiceContext(args ...any) []any {
 	}
 
 	if sl.component != "" {
-
 		baseAttrs = append(baseAttrs, "component", sl.component)
-
 	}
 
 	if sl.requestID != "" {
-
 		baseAttrs = append(baseAttrs, "request_id", sl.requestID)
-
 	}
 
 	return append(baseAttrs, args...)
-
 }
 
 // parseLevel converts string level to slog.Level.
 
 func parseLevel(level LogLevel) slog.Level {
-
 	switch strings.ToLower(string(level)) {
 
 	case "debug":
@@ -588,15 +512,12 @@ func parseLevel(level LogLevel) slog.Level {
 		return slog.LevelInfo
 
 	}
-
 }
 
 // LogFormat provides formatted logging for complex objects.
 
 func (sl *StructuredLogger) LogFormat(level LogLevel, msg string, obj interface{}) {
-
 	jsonData, err := json.MarshalIndent(obj, "", "  ")
-
 	if err != nil {
 
 		sl.ErrorWithContext("Failed to marshal object for logging", err,
@@ -633,32 +554,24 @@ func (sl *StructuredLogger) LogFormat(level LogLevel, msg string, obj interface{
 		sl.InfoWithContext(msg, "formatted_data", string(jsonData))
 
 	}
-
 }
 
 // getSafeFunctionName safely extracts function name with proper error handling.
 
 func getSafeFunctionName(fn *runtime.Func) string {
-
 	if fn == nil {
-
 		return ""
-
 	}
 
 	// Use defer/recover to catch any potential panics from fn.Name().
 
 	defer func() {
-
 		if r := recover(); r != nil {
-
 			// Log the panic but don't propagate it - return empty string instead.
 
 			// This prevents the entire logging system from crashing.
 			// We intentionally do nothing here to prevent logging system crashes
-
 		}
-
 	}()
 
 	// Even though fn is not nil, fn.Name() can still panic in edge cases.
@@ -668,25 +581,19 @@ func getSafeFunctionName(fn *runtime.Func) string {
 	name := fn.Name()
 
 	if name == "" {
-
 		return "<unnamed>"
-
 	}
 
 	return name
-
 }
 
 // GetCallerInfo returns caller information for debugging.
 
 func GetCallerInfo(skip int) (string, int, string) {
-
 	pc, file, line, ok := runtime.Caller(skip + 1)
 
 	if !ok {
-
 		return "", 0, ""
-
 	}
 
 	fn := runtime.FuncForPC(pc)
@@ -694,21 +601,16 @@ func GetCallerInfo(skip int) (string, int, string) {
 	funcName := getSafeFunctionName(fn)
 
 	if funcName == "" {
-
 		funcName = "<unknown>"
-
 	}
 
 	return file, line, funcName
-
 }
 
 // DefaultConfig returns a default logging configuration.
 
 func DefaultConfig(serviceName, version, environment string) Config {
-
 	return Config{
-
 		Level: LevelInfo,
 
 		Format: "json",
@@ -723,13 +625,11 @@ func DefaultConfig(serviceName, version, environment string) Config {
 
 		TimeFormat: time.RFC3339,
 	}
-
 }
 
 // NewLogger creates a simple logger for backwards compatibility.
 
 func NewLogger(serviceName, level string) *StructuredLogger {
-
 	logLevel := LevelInfo
 
 	switch strings.ToLower(level) {
@@ -749,7 +649,6 @@ func NewLogger(serviceName, level string) *StructuredLogger {
 	}
 
 	config := Config{
-
 		Level: logLevel,
 
 		Format: "text",
@@ -764,7 +663,6 @@ func NewLogger(serviceName, level string) *StructuredLogger {
 	}
 
 	return NewStructuredLogger(config)
-
 }
 
 // WithService creates a config option to set the service name

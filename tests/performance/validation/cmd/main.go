@@ -10,7 +10,6 @@ import (
 // main provides a CLI entry point for the validation suite.
 
 func main() {
-
 	// Set up logging.
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -26,5 +25,4 @@ func main() {
 		os.Exit(1)
 
 	}
-
 }

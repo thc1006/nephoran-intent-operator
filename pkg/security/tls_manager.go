@@ -29,7 +29,6 @@ var (
 	tlsCertificateExpiryDays = promauto.NewGaugeVec(
 
 		prometheus.GaugeOpts{
-
 			Name: "nephoran_tls_certificate_expiry_days",
 
 			Help: "Days until TLS certificate expiry",
@@ -41,7 +40,6 @@ var (
 	tlsHandshakeErrors = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "nephoran_tls_handshake_errors_total",
 
 			Help: "Total number of TLS handshake errors",
@@ -53,7 +51,6 @@ var (
 	tlsVersionConnections = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "nephoran_tls_version_connections_total",
 
 			Help: "Total number of connections by TLS version",
@@ -65,7 +62,6 @@ var (
 	mtlsAuthenticationSuccess = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "nephoran_mtls_authentication_success_total",
 
 			Help: "Total successful mTLS authentications",
@@ -77,7 +73,6 @@ var (
 	mtlsAuthenticationFailure = promauto.NewCounterVec(
 
 		prometheus.CounterOpts{
-
 			Name: "nephoran_mtls_authentication_failure_total",
 
 			Help: "Total failed mTLS authentications",
@@ -90,7 +85,6 @@ var (
 // TLSManagerConfig represents TLS configuration compliant with O-RAN security requirements.
 
 type TLSManagerConfig struct {
-
 	// Certificate paths.
 
 	CertFile string
@@ -159,56 +153,41 @@ type TLSManager struct {
 // NewTLSManager creates a new TLS manager with O-RAN compliant settings.
 
 func NewTLSManager(config *TLSManagerConfig, logger *zap.Logger) (*TLSManager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("TLS config cannot be nil")
-
 	}
 
 	// Set O-RAN compliant defaults.
 
 	if config.MinVersion == 0 {
-
 		config.MinVersion = tls.VersionTLS13
-
 	}
 
 	if config.MaxVersion == 0 {
-
 		config.MaxVersion = tls.VersionTLS13
-
 	}
 
 	// O-RAN WG11 approved cipher suites for TLS 1.3.
 
 	if len(config.CipherSuites) == 0 {
-
 		config.CipherSuites = []uint16{
-
 			tls.TLS_AES_256_GCM_SHA384,
 
 			tls.TLS_CHACHA20_POLY1305_SHA256,
 		}
-
 	}
 
 	// Default certificate rotation settings.
 
 	if config.RotationCheckInterval == 0 {
-
 		config.RotationCheckInterval = 1 * time.Hour
-
 	}
 
 	if config.RenewalThreshold == 0 {
-
 		config.RenewalThreshold = 30 * 24 * time.Hour // 30 days
-
 	}
 
 	tm := &TLSManager{
-
 		config: config,
 
 		logger: logger,
@@ -219,17 +198,13 @@ func NewTLSManager(config *TLSManagerConfig, logger *zap.Logger) (*TLSManager, e
 	// Initialize TLS configuration.
 
 	if err := tm.loadCertificates(); err != nil {
-
 		return nil, fmt.Errorf("failed to load certificates: %w", err)
-
 	}
 
 	// Setup file watcher for certificate rotation.
 
 	if err := tm.setupFileWatcher(); err != nil {
-
 		logger.Warn("Failed to setup certificate file watcher", zap.Error(err))
-
 	}
 
 	// Start certificate rotation monitor.
@@ -237,13 +212,11 @@ func NewTLSManager(config *TLSManagerConfig, logger *zap.Logger) (*TLSManager, e
 	go tm.monitorCertificateRotation()
 
 	return tm, nil
-
 }
 
 // loadCertificates loads and validates TLS certificates.
 
 func (tm *TLSManager) loadCertificates() error {
-
 	tm.mu.Lock()
 
 	defer tm.mu.Unlock()
@@ -251,47 +224,34 @@ func (tm *TLSManager) loadCertificates() error {
 	// Load CA certificate pool.
 
 	caCert, err := os.ReadFile(tm.config.CAFile)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to read CA certificate: %w", err)
-
 	}
 
 	tm.certPool = x509.NewCertPool()
 
 	if !tm.certPool.AppendCertsFromPEM(caCert) {
-
 		return fmt.Errorf("failed to parse CA certificate")
-
 	}
 
 	// Load server certificate.
 
 	serverCert, err := tls.LoadX509KeyPair(tm.config.CertFile, tm.config.KeyFile)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to load server certificate: %w", err)
-
 	}
 
 	// Parse certificate for validation and metrics.
 
 	x509Cert, err := x509.ParseCertificate(serverCert.Certificate[0])
-
 	if err != nil {
-
 		return fmt.Errorf("failed to parse server certificate: %w", err)
-
 	}
 
 	// Validate certificate is not expired.
 
 	if time.Now().After(x509Cert.NotAfter) {
-
 		return fmt.Errorf("server certificate has expired")
-
 	}
 
 	// Update expiry metrics.
@@ -303,7 +263,6 @@ func (tm *TLSManager) loadCertificates() error {
 	// Configure TLS settings.
 
 	tm.tlsConfig = &tls.Config{
-
 		Certificates: []tls.Certificate{serverCert},
 
 		ClientCAs: tm.certPool,
@@ -334,11 +293,8 @@ func (tm *TLSManager) loadCertificates() error {
 		if tm.config.ClientCertFile != "" && tm.config.ClientKeyFile != "" {
 
 			clientCert, err := tls.LoadX509KeyPair(tm.config.ClientCertFile, tm.config.ClientKeyFile)
-
 			if err != nil {
-
 				return fmt.Errorf("failed to load client certificate: %w", err)
-
 			}
 
 			tm.tlsConfig.Certificates = append(tm.tlsConfig.Certificates, clientCert)
@@ -378,13 +334,11 @@ func (tm *TLSManager) loadCertificates() error {
 		zap.Float64("daysUntilExpiry", daysUntilExpiry))
 
 	return nil
-
 }
 
 // verifyConnection performs custom verification during TLS handshake.
 
 func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
-
 	// Record TLS version metrics.
 
 	switch cs.Version {
@@ -426,7 +380,6 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 		// Validate certificate chain.
 
 		opts := x509.VerifyOptions{
-
 			Roots: tm.certPool,
 
 			Intermediates: x509.NewCertPool(),
@@ -435,9 +388,7 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 		}
 
 		for _, cert := range cs.PeerCertificates[1:] {
-
 			opts.Intermediates.AddCert(cert)
-
 		}
 
 		if _, err := clientCert.Verify(opts); err != nil {
@@ -455,7 +406,6 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 			allowed := false
 
 			for _, cn := range tm.config.AllowedCNs {
-
 				if clientCert.Subject.CommonName == cn {
 
 					allowed = true
@@ -463,7 +413,6 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 					break
 
 				}
-
 			}
 
 			if !allowed {
@@ -483,9 +432,7 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 			allowed := false
 
 			for _, san := range tm.config.AllowedSANs {
-
 				for _, dnsName := range clientCert.DNSNames {
-
 					if dnsName == san {
 
 						allowed = true
@@ -493,9 +440,7 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 						break
 
 					}
-
 				}
-
 			}
 
 			if !allowed {
@@ -519,13 +464,11 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 	}
 
 	return nil
-
 }
 
 // getConfigForClient returns a TLS configuration for a specific client.
 
 func (tm *TLSManager) getConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
-
 	tm.mu.RLock()
 
 	defer tm.mu.RUnlock()
@@ -535,19 +478,14 @@ func (tm *TLSManager) getConfigForClient(hello *tls.ClientHelloInfo) (*tls.Confi
 	// This allows for dynamic configuration updates.
 
 	return tm.tlsConfig, nil
-
 }
 
 // setupFileWatcher sets up file watching for certificate changes.
 
 func (tm *TLSManager) setupFileWatcher() error {
-
 	watcher, err := fsnotify.NewWatcher()
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create file watcher: %w", err)
-
 	}
 
 	tm.watcher = watcher
@@ -557,23 +495,17 @@ func (tm *TLSManager) setupFileWatcher() error {
 	certDir := filepath.Dir(tm.config.CertFile)
 
 	if err := watcher.Add(certDir); err != nil {
-
 		return fmt.Errorf("failed to watch certificate directory: %w", err)
-
 	}
 
 	go func() {
-
 		for {
-
 			select {
 
 			case event, ok := <-watcher.Events:
 
 				if !ok {
-
 					return
-
 				}
 
 				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
@@ -581,9 +513,7 @@ func (tm *TLSManager) setupFileWatcher() error {
 					tm.logger.Info("Certificate file changed, reloading", zap.String("file", event.Name))
 
 					if err := tm.loadCertificates(); err != nil {
-
 						tm.logger.Error("Failed to reload certificates", zap.Error(err))
-
 					}
 
 				}
@@ -591,9 +521,7 @@ func (tm *TLSManager) setupFileWatcher() error {
 			case err, ok := <-watcher.Errors:
 
 				if !ok {
-
 					return
-
 				}
 
 				tm.logger.Error("File watcher error", zap.Error(err))
@@ -603,25 +531,20 @@ func (tm *TLSManager) setupFileWatcher() error {
 				return
 
 			}
-
 		}
-
 	}()
 
 	return nil
-
 }
 
 // monitorCertificateRotation monitors certificate expiry and triggers rotation.
 
 func (tm *TLSManager) monitorCertificateRotation() {
-
 	ticker := time.NewTicker(tm.config.RotationCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ticker.C:
@@ -633,35 +556,27 @@ func (tm *TLSManager) monitorCertificateRotation() {
 			return
 
 		}
-
 	}
-
 }
 
 // checkCertificateExpiry checks if certificates need rotation.
 
 func (tm *TLSManager) checkCertificateExpiry() {
-
 	tm.mu.RLock()
 
 	defer tm.mu.RUnlock()
 
 	if tm.tlsConfig == nil || len(tm.tlsConfig.Certificates) == 0 {
-
 		return
-
 	}
 
 	for i, cert := range tm.tlsConfig.Certificates {
 
 		if len(cert.Certificate) == 0 {
-
 			continue
-
 		}
 
 		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
-
 		if err != nil {
 
 			tm.logger.Error("Failed to parse certificate for expiry check", zap.Error(err))
@@ -677,9 +592,7 @@ func (tm *TLSManager) checkCertificateExpiry() {
 		certType := "server"
 
 		if i > 0 {
-
 			certType = "client"
-
 		}
 
 		tlsCertificateExpiryDays.WithLabelValues(tm.config.ServiceName, certType).Set(daysUntilExpiry)
@@ -703,13 +616,11 @@ func (tm *TLSManager) checkCertificateExpiry() {
 		}
 
 	}
-
 }
 
 // notifyCertificateRenewalRequired sends notification for certificate renewal.
 
 func (tm *TLSManager) notifyCertificateRenewalRequired(cert *x509.Certificate) {
-
 	// This would integrate with cert-manager annotations or other renewal mechanisms.
 
 	tm.logger.Info("Certificate renewal required",
@@ -717,53 +628,43 @@ func (tm *TLSManager) notifyCertificateRenewalRequired(cert *x509.Certificate) {
 		zap.String("subject", cert.Subject.String()),
 
 		zap.Time("expiryTime", cert.NotAfter))
-
 }
 
 // GetTLSConfig returns the current TLS configuration.
 
 func (tm *TLSManager) GetTLSConfig() *tls.Config {
-
 	tm.mu.RLock()
 
 	defer tm.mu.RUnlock()
 
 	return tm.tlsConfig.Clone()
-
 }
 
 // GetServerCredentials returns gRPC server credentials.
 
 func (tm *TLSManager) GetServerCredentials() credentials.TransportCredentials {
-
 	tm.mu.RLock()
 
 	defer tm.mu.RUnlock()
 
 	return tm.serverCreds
-
 }
 
 // GetClientCredentials returns gRPC client credentials.
 
 func (tm *TLSManager) GetClientCredentials() credentials.TransportCredentials {
-
 	tm.mu.RLock()
 
 	defer tm.mu.RUnlock()
 
 	return tm.clientCreds
-
 }
 
 // CreateHTTPClient creates an HTTP client with mTLS configuration.
 
 func (tm *TLSManager) CreateHTTPClient() *http.Client {
-
 	return &http.Client{
-
 		Transport: &http.Transport{
-
 			TLSClientConfig: tm.GetTLSConfig(),
 
 			ForceAttemptHTTP2: true,
@@ -771,30 +672,24 @@ func (tm *TLSManager) CreateHTTPClient() *http.Client {
 
 		Timeout: 30 * time.Second,
 	}
-
 }
 
 // CreateGRPCServerOptions creates gRPC server options with TLS.
 
 func (tm *TLSManager) CreateGRPCServerOptions() []grpc.ServerOption {
-
 	return []grpc.ServerOption{
-
 		grpc.Creds(tm.GetServerCredentials()),
 
 		grpc.ConnectionTimeout(30 * time.Second),
 
 		grpc.MaxConcurrentStreams(100),
 	}
-
 }
 
 // CreateGRPCDialOptions creates gRPC dial options with TLS.
 
 func (tm *TLSManager) CreateGRPCDialOptions() []grpc.DialOption {
-
 	return []grpc.DialOption{
-
 		grpc.WithTransportCredentials(tm.GetClientCredentials()),
 
 		grpc.WithDefaultCallOptions(
@@ -805,19 +700,15 @@ func (tm *TLSManager) CreateGRPCDialOptions() []grpc.DialOption {
 
 		),
 	}
-
 }
 
 // ValidatePeerCertificate validates a peer certificate against configured policies.
 
 func (tm *TLSManager) ValidatePeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-
 	if len(rawCerts) == 0 {
 
 		if tm.config.MTLSEnabled {
-
 			return fmt.Errorf("no client certificate provided for mTLS")
-
 		}
 
 		return nil
@@ -825,11 +716,8 @@ func (tm *TLSManager) ValidatePeerCertificate(rawCerts [][]byte, verifiedChains 
 	}
 
 	cert, err := x509.ParseCertificate(rawCerts[0])
-
 	if err != nil {
-
 		return fmt.Errorf("failed to parse peer certificate: %w", err)
-
 	}
 
 	// Check certificate validity.
@@ -837,54 +725,42 @@ func (tm *TLSManager) ValidatePeerCertificate(rawCerts [][]byte, verifiedChains 
 	now := time.Now()
 
 	if now.Before(cert.NotBefore) || now.After(cert.NotAfter) {
-
 		return fmt.Errorf("certificate is not valid: notBefore=%v, notAfter=%v, now=%v",
 
 			cert.NotBefore, cert.NotAfter, now)
-
 	}
 
 	// Verify against CA.
 
 	opts := x509.VerifyOptions{
-
 		Roots: tm.certPool,
 
 		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
 
 	if _, err := cert.Verify(opts); err != nil {
-
 		return fmt.Errorf("certificate verification failed: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // Close stops the TLS manager and cleans up resources.
 
 func (tm *TLSManager) Close() error {
-
 	close(tm.stopCh)
 
 	if tm.watcher != nil {
-
 		return tm.watcher.Close()
-
 	}
 
 	return nil
-
 }
 
 // LoadTLSConfigFromEnv loads TLS configuration from environment variables.
 
 func LoadTLSConfigFromEnv() *TLSManagerConfig {
-
 	return &TLSManagerConfig{
-
 		CertFile: os.Getenv("TLS_CERT_FILE"),
 
 		KeyFile: os.Getenv("TLS_KEY_FILE"),
@@ -899,5 +775,4 @@ func LoadTLSConfigFromEnv() *TLSManagerConfig {
 
 		ServiceName: os.Getenv("SERVICE_NAME"),
 	}
-
 }

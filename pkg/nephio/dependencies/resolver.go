@@ -53,7 +53,6 @@ import (
 // resolution, conflict detection, and optimization capabilities for telecommunications packages.
 
 type DependencyResolver interface {
-
 	// Core resolution operations.
 
 	ResolveDependencies(ctx context.Context, spec *ResolutionSpec) (*ResolutionResult, error)
@@ -112,7 +111,6 @@ type DependencyResolver interface {
 // dependencyResolver implements comprehensive dependency resolution with SAT solving.
 
 type dependencyResolver struct {
-
 	// Core components.
 
 	client porch.PorchClient
@@ -610,29 +608,21 @@ const (
 // NewDependencyResolver creates a new dependency resolver with comprehensive configuration.
 
 func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (DependencyResolver, error) {
-
 	if client == nil {
-
 		return nil, fmt.Errorf("porch client cannot be nil")
-
 	}
 
 	if config == nil {
-
 		config = DefaultResolverConfig()
-
 	}
 
 	if err := config.Validate(); err != nil {
-
 		return nil, fmt.Errorf("invalid resolver config: %w", err)
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	resolver := &dependencyResolver{
-
 		client: client,
 
 		logger: log.Log.WithName("dependency-resolver"),
@@ -655,7 +645,6 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 	// Initialize constraint solver with SAT algorithms.
 
 	resolver.constraintSolver = NewConstraintSolver(&ConstraintSolverConfig{
-
 		MaxIterations: config.MaxSolverIterations,
 
 		MaxBacktracks: config.MaxSolverBacktracks,
@@ -668,7 +657,6 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 	// Initialize version solver with semantic versioning.
 
 	resolver.versionSolver = NewVersionSolver(&VersionSolverConfig{
-
 		PrereleaseStrategy: config.PrereleaseStrategy,
 
 		BuildMetadataStrategy: config.BuildMetadataStrategy,
@@ -679,7 +667,6 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 	// Initialize conflict resolver.
 
 	resolver.conflictResolver = NewConflictResolver(&ConflictResolverConfig{
-
 		EnableMLPrediction: config.EnableMLConflictPrediction,
 
 		ConflictStrategies: config.ConflictStrategies,
@@ -724,7 +711,6 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 		"concurrency", config.EnableConcurrency)
 
 	return resolver, nil
-
 }
 
 // Core resolution methods.
@@ -732,15 +718,12 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 // ResolveDependencies performs comprehensive dependency resolution with SAT solving.
 
 func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *ResolutionSpec) (*ResolutionResult, error) {
-
 	startTime := time.Now()
 
 	// Validate input.
 
 	if err := r.validateResolutionSpec(spec); err != nil {
-
 		return nil, fmt.Errorf("invalid resolution spec: %w", err)
-
 	}
 
 	// Apply timeout if specified.
@@ -770,7 +753,6 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 		cacheKey := r.generateCacheKey(spec)
 
 		if cached, found := r.resolutionCache.Get(cacheKey); found {
-
 			if result, ok := cached.(*ResolutionResult); ok {
 
 				r.metrics.CacheHits.Inc()
@@ -780,7 +762,6 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 				return result, nil
 
 			}
-
 		}
 
 		r.metrics.CacheMisses.Inc()
@@ -790,7 +771,6 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 	// Create resolution context.
 
 	resCtx := &ResolutionContext{
-
 		Spec: spec,
 
 		Resolver: r,
@@ -809,47 +789,34 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 	// Build dependency tree.
 
 	tree, err := r.buildDependencyTree(ctx, resCtx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to build dependency tree: %w", err)
-
 	}
 
 	// Solve constraints using SAT solver.
 
 	solution, err := r.solveConstraints(ctx, resCtx)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("constraint solving failed: %w", err)
-
 	}
 
 	// Resolve versions.
 
 	versionResolution, err := r.resolveVersions(ctx, resCtx, solution)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("version resolution failed: %w", err)
-
 	}
 
 	// Detect and resolve conflicts.
 
 	conflicts, err := r.detectAndResolveConflicts(ctx, resCtx, versionResolution)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("conflict resolution failed: %w", err)
-
 	}
 
 	// Build final result.
 
 	result := &ResolutionResult{
-
 		Success: len(conflicts) == 0,
 
 		ResolvedPackages: r.extractResolvedPackages(resCtx),
@@ -896,13 +863,11 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 		"duration", result.ResolutionTime)
 
 	return result, nil
-
 }
 
 // SolveConstraints uses SAT solver algorithms to solve dependency constraints.
 
 func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintSolution, error) {
-
 	startTime := time.Now()
 
 	r.logger.V(1).Info("Solving dependency constraints", "constraints", len(constraints))
@@ -910,9 +875,7 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	// Validate constraints.
 
 	if err := r.validateConstraints(constraints); err != nil {
-
 		return nil, fmt.Errorf("invalid constraints: %w", err)
-
 	}
 
 	// Check constraint cache.
@@ -922,7 +885,6 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 		cacheKey := r.generateConstraintCacheKey(constraints)
 
 		if cached, found := r.constraintCache.Get(cacheKey); found {
-
 			if solution, ok := cached.(*ConstraintSolution); ok {
 
 				r.metrics.ConstraintCacheHits.Inc()
@@ -930,7 +892,6 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 				return solution, nil
 
 			}
-
 		}
 
 		r.metrics.ConstraintCacheMisses.Inc()
@@ -940,27 +901,20 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	// Convert constraints to SAT clauses.
 
 	clauses, variables, err := r.constraintSolver.ConvertToSAT(constraints)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to convert constraints to SAT: %w", err)
-
 	}
 
 	// Solve SAT problem.
 
 	satSolution, err := r.constraintSolver.SolveSAT(ctx, clauses, variables)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("SAT solving failed: %w", err)
-
 	}
 
 	// Convert SAT solution back to constraint solution.
 
 	solution := &ConstraintSolution{
-
 		Satisfiable: satSolution.Satisfiable,
 
 		Assignments: make(map[string]interface{}),
@@ -975,9 +929,7 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	}
 
 	if satSolution.Satisfiable {
-
 		solution.Assignments = r.constraintSolver.ConvertSATAssignments(satSolution.Assignments, variables)
-
 	} else {
 
 		// Extract unsatisfiable core for conflict analysis.
@@ -985,13 +937,9 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 		core, err := r.constraintSolver.ExtractUnsatisfiableCore(clauses, variables)
 
 		if err != nil {
-
 			r.logger.Error(err, "Failed to extract unsatisfiable core")
-
 		} else {
-
 			solution.Conflicts = r.constraintSolver.ConvertCoreToConflicts(core, constraints)
-
 		}
 
 	}
@@ -1011,23 +959,17 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	r.metrics.ConstraintSolvingTime.Observe(solution.SolvingTime.Seconds())
 
 	if solution.Satisfiable {
-
 		r.metrics.ConstraintSolvingSuccess.Inc()
-
 	} else {
-
 		r.metrics.ConstraintSolvingFailures.Inc()
-
 	}
 
 	return solution, nil
-
 }
 
 // ResolveVersions resolves package versions using semantic versioning.
 
 func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolutionResult, error) {
-
 	startTime := time.Now()
 
 	r.logger.V(1).Info("Resolving package versions", "requirements", len(requirements))
@@ -1037,7 +979,6 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 	packageRequirements := r.groupVersionRequirements(requirements)
 
 	resolution := &VersionResolutionResult{
-
 		Success: true,
 
 		Resolutions: make(map[string]*VersionResolution),
@@ -1054,21 +995,15 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 	if r.workerPool != nil {
 
 		err := r.resolveVersionsConcurrently(ctx, packageRequirements, resolution)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("concurrent version resolution failed: %w", err)
-
 		}
 
 	} else {
 
 		err := r.resolveVersionsSequentially(ctx, packageRequirements, resolution)
-
 		if err != nil {
-
 			return nil, fmt.Errorf("sequential version resolution failed: %w", err)
-
 		}
 
 	}
@@ -1094,29 +1029,22 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 	r.metrics.VersionResolutionTime.Observe(resolution.ResolutionTime.Seconds())
 
 	if resolution.Success {
-
 		r.metrics.VersionResolutionSuccess.Inc()
-
 	} else {
-
 		r.metrics.VersionResolutionFailures.Inc()
-
 	}
 
 	return resolution, nil
-
 }
 
 // DetectConflicts identifies dependency conflicts using multiple detection algorithms.
 
 func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*PackageReference) (*ConflictReport, error) {
-
 	startTime := time.Now()
 
 	r.logger.V(1).Info("Detecting dependency conflicts", "packages", len(packages))
 
 	report := &ConflictReport{
-
 		Packages: packages,
 
 		VersionConflicts: make([]*VersionConflict, 0),
@@ -1147,19 +1075,14 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 		conflictChannels[i] = conflictCh
 
 		g.Go(func() error {
-
 			defer close(conflictCh)
 
 			conflicts, err := detector.DetectConflicts(packages)
-
 			if err != nil {
-
 				return err
-
 			}
 
 			for _, conflict := range conflicts {
-
 				select {
 
 				case conflictCh <- conflict:
@@ -1169,11 +1092,9 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 					return gCtx.Err()
 
 				}
-
 			}
 
 			return nil
-
 		})
 
 	}
@@ -1181,15 +1102,11 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 	// Collect conflicts from all detectors.
 
 	g.Go(func() error {
-
 		return r.collectConflicts(gCtx, conflictChannels, report)
-
 	})
 
 	if err := g.Wait(); err != nil {
-
 		return nil, fmt.Errorf("conflict detection failed: %w", err)
-
 	}
 
 	// Deduplicate and classify conflicts.
@@ -1217,7 +1134,6 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 		"duration", report.DetectionTime)
 
 	return report, nil
-
 }
 
 // Helper methods and utility functions.
@@ -1225,77 +1141,56 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 // validateResolutionSpec validates the resolution specification.
 
 func (r *dependencyResolver) validateResolutionSpec(spec *ResolutionSpec) error {
-
 	if spec == nil {
-
 		return fmt.Errorf("resolution spec cannot be nil")
-
 	}
 
 	if len(spec.RootPackages) == 0 {
-
 		return fmt.Errorf("root packages cannot be empty")
-
 	}
 
 	for i, pkg := range spec.RootPackages {
 
 		if pkg == nil {
-
 			return fmt.Errorf("root package at index %d is nil", i)
-
 		}
 
 		if pkg.Repository == "" {
-
 			return fmt.Errorf("root package at index %d has empty repository", i)
-
 		}
 
 		if pkg.Name == "" {
-
 			return fmt.Errorf("root package at index %d has empty name", i)
-
 		}
 
 	}
 
 	if spec.MaxDepth < 0 {
-
 		return fmt.Errorf("max depth cannot be negative")
-
 	}
 
 	if spec.Timeout < 0 {
-
 		return fmt.Errorf("timeout cannot be negative")
-
 	}
 
 	return nil
-
 }
 
 // generateCacheKey generates a cache key for resolution spec.
 
 func (r *dependencyResolver) generateCacheKey(spec *ResolutionSpec) string {
-
 	h := sha256.New()
 
 	// Include root packages.
 
 	for _, pkg := range spec.RootPackages {
-
 		fmt.Fprintf(h, "%s/%s@%s", pkg.Repository, pkg.Name, pkg.Version)
-
 	}
 
 	// Include constraints.
 
 	for _, constraint := range spec.Constraints {
-
 		fmt.Fprintf(h, "%s:%s", constraint.Type, constraint.Package.Name)
-
 	}
 
 	// Include strategy and options.
@@ -1309,13 +1204,11 @@ func (r *dependencyResolver) generateCacheKey(spec *ResolutionSpec) string {
 	fmt.Fprintf(h, "test:%t", spec.IncludeTest)
 
 	return fmt.Sprintf("%x", h.Sum(nil))
-
 }
 
 // registerDefaultProviders registers default dependency providers.
 
 func (r *dependencyResolver) registerDefaultProviders() {
-
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
@@ -1337,13 +1230,11 @@ func (r *dependencyResolver) registerDefaultProviders() {
 	r.providers["local"] = NewLocalDependencyProvider(r.config.LocalConfig)
 
 	r.logger.V(1).Info("Registered default dependency providers", "providers", len(r.providers))
-
 }
 
 // startBackgroundProcesses starts background processing goroutines.
 
 func (r *dependencyResolver) startBackgroundProcesses() {
-
 	// Start cache cleanup process.
 
 	if r.resolutionCache != nil {
@@ -1365,13 +1256,11 @@ func (r *dependencyResolver) startBackgroundProcesses() {
 	r.wg.Add(1)
 
 	go r.healthCheckProcess()
-
 }
 
 // cacheCleanupProcess periodically cleans up expired cache entries.
 
 func (r *dependencyResolver) cacheCleanupProcess() {
-
 	defer r.wg.Done()
 
 	ticker := time.NewTicker(r.config.CacheCleanupInterval)
@@ -1379,7 +1268,6 @@ func (r *dependencyResolver) cacheCleanupProcess() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-r.ctx.Done():
@@ -1391,15 +1279,12 @@ func (r *dependencyResolver) cacheCleanupProcess() {
 			r.cleanupCaches()
 
 		}
-
 	}
-
 }
 
 // metricsCollectionProcess periodically collects and reports metrics.
 
 func (r *dependencyResolver) metricsCollectionProcess() {
-
 	defer r.wg.Done()
 
 	ticker := time.NewTicker(r.config.MetricsCollectionInterval)
@@ -1407,7 +1292,6 @@ func (r *dependencyResolver) metricsCollectionProcess() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-r.ctx.Done():
@@ -1419,15 +1303,12 @@ func (r *dependencyResolver) metricsCollectionProcess() {
 			r.collectAndReportMetrics()
 
 		}
-
 	}
-
 }
 
 // healthCheckProcess periodically checks resolver health.
 
 func (r *dependencyResolver) healthCheckProcess() {
-
 	defer r.wg.Done()
 
 	ticker := time.NewTicker(r.config.HealthCheckInterval)
@@ -1435,7 +1316,6 @@ func (r *dependencyResolver) healthCheckProcess() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-r.ctx.Done():
@@ -1447,23 +1327,18 @@ func (r *dependencyResolver) healthCheckProcess() {
 			r.performHealthCheck()
 
 		}
-
 	}
-
 }
 
 // Close gracefully shuts down the dependency resolver.
 
 func (r *dependencyResolver) Close() error {
-
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
 
 	if r.closed {
-
 		return nil
-
 	}
 
 	r.logger.Info("Shutting down dependency resolver")
@@ -1477,41 +1352,29 @@ func (r *dependencyResolver) Close() error {
 	// Close caches.
 
 	if r.resolutionCache != nil {
-
 		r.resolutionCache.Close()
-
 	}
 
 	if r.constraintCache != nil {
-
 		r.constraintCache.Close()
-
 	}
 
 	if r.versionCache != nil {
-
 		r.versionCache.Close()
-
 	}
 
 	// Close worker pool.
 
 	if r.workerPool != nil {
-
 		r.workerPool.Close()
-
 	}
 
 	// Close providers.
 
 	for name, provider := range r.providers {
-
 		if err := provider.Close(); err != nil {
-
 			r.logger.Error(err, "Failed to close provider", "provider", name)
-
 		}
-
 	}
 
 	r.closed = true
@@ -1519,21 +1382,17 @@ func (r *dependencyResolver) Close() error {
 	r.logger.Info("Dependency resolver shutdown complete")
 
 	return nil
-
 }
 
 // ClearCache clears cached data based on patterns.
 
 func (r *dependencyResolver) ClearCache(ctx context.Context, patterns []string) error {
-
 	r.mu.Lock()
 
 	defer r.mu.Unlock()
 
 	if r.closed {
-
 		return fmt.Errorf("resolver is closed")
-
 	}
 
 	r.logger.Info("Clearing cache", "patterns", patterns)
@@ -1541,43 +1400,30 @@ func (r *dependencyResolver) ClearCache(ctx context.Context, patterns []string) 
 	// Clear resolution cache.
 
 	if r.resolutionCache != nil {
-
 		for _, pattern := range patterns {
-
 			// Simple pattern matching for cache keys.
 
 			// In production, this could use more sophisticated pattern matching.
 
 			if pattern == "*" || pattern == "" {
-
 				r.resolutionCache.Clear()
-
 			}
-
 		}
-
 	}
 
 	// Clear constraint cache.
 
 	if r.constraintCache != nil {
-
 		for _, pattern := range patterns {
-
 			if pattern == "*" || pattern == "" {
-
 				r.constraintCache.Clear()
-
 			}
-
 		}
-
 	}
 
 	r.logger.Info("Cache cleared successfully")
 
 	return nil
-
 }
 
 // Additional method implementations would continue here...
@@ -1639,7 +1485,6 @@ type ResolutionContext struct {
 // CreateRollbackPlan creates a rollback plan from current to target state.
 
 func (r *dependencyResolver) CreateRollbackPlan(ctx context.Context, currentState, targetState []*PackageReference) (*RollbackPlan, error) {
-
 	r.logger.Info("Creating rollback plan",
 
 		"currentPackages", len(currentState),
@@ -1647,7 +1492,6 @@ func (r *dependencyResolver) CreateRollbackPlan(ctx context.Context, currentStat
 		"targetPackages", len(targetState))
 
 	plan := &RollbackPlan{
-
 		PlanID: "rollback-" + time.Now().Format("20060102-150405"),
 
 		Description: "Rollback plan for dependency changes",
@@ -1658,15 +1502,12 @@ func (r *dependencyResolver) CreateRollbackPlan(ctx context.Context, currentStat
 	}
 
 	return plan, nil
-
 }
 
 // ExecuteRollback executes a rollback plan.
 
 func (r *dependencyResolver) ExecuteRollback(ctx context.Context, plan *RollbackPlan) (*RollbackResult, error) {
-
 	return &RollbackResult{
-
 		PlanID: plan.PlanID,
 
 		Success: true,
@@ -1679,56 +1520,44 @@ func (r *dependencyResolver) ExecuteRollback(ctx context.Context, plan *Rollback
 
 		RolledBackAt: time.Now(),
 	}, nil
-
 }
 
 // WarmCache pre-loads cache with package information.
 
 func (r *dependencyResolver) WarmCache(ctx context.Context, packages []*PackageReference) error {
-
 	return nil
-
 }
 
 // GetCacheStats returns cache statistics.
 
 func (r *dependencyResolver) GetCacheStats(ctx context.Context) (*CacheStats, error) {
-
 	return &CacheStats{}, nil
-
 }
 
 // SetStrategy sets the resolution strategy.
 
 func (r *dependencyResolver) SetStrategy(strategy ResolutionStrategy) error {
-
 	r.strategy = strategy
 
 	return nil
-
 }
 
 // GetAvailableStrategies returns available resolution strategies.
 
 func (r *dependencyResolver) GetAvailableStrategies() []ResolutionStrategy {
-
 	return []ResolutionStrategy{
-
 		StrategyLatest,
 
 		StrategyStable,
 
 		StrategyMinimal,
 	}
-
 }
 
 // GetHealth returns resolver health status.
 
 func (r *dependencyResolver) GetHealth(ctx context.Context) (*ResolverHealth, error) {
-
 	return &ResolverHealth{
-
 		Status: "healthy",
 
 		Components: map[string]string{"cache": "healthy", "registry": "healthy"},
@@ -1743,23 +1572,18 @@ func (r *dependencyResolver) GetHealth(ctx context.Context) (*ResolverHealth, er
 
 		RegistryConnectivity: true,
 	}, nil
-
 }
 
 // GetMetrics returns resolver metrics.
 
 func (r *dependencyResolver) GetMetrics(ctx context.Context) (*ResolverMetrics, error) {
-
 	return r.metrics, nil
-
 }
 
 // ResolveTransitive resolves transitive dependencies.
 
 func (r *dependencyResolver) ResolveTransitive(ctx context.Context, packages []*PackageReference, opts *TransitiveOptions) (*TransitiveResult, error) {
-
 	return &TransitiveResult{
-
 		Dependencies: make([]*ResolvedDependency, 0),
 
 		Tree: &DependencyTree{},
@@ -1772,15 +1596,12 @@ func (r *dependencyResolver) ResolveTransitive(ctx context.Context, packages []*
 
 		ResolvedAt: time.Now(),
 	}, nil
-
 }
 
 // ValidateConstraints validates dependency constraints.
 
 func (r *dependencyResolver) ValidateConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintValidation, error) {
-
 	return &ConstraintValidation{
-
 		Valid: true,
 
 		Violations: make([]*ConstraintViolation, 0),
@@ -1793,13 +1614,10 @@ func (r *dependencyResolver) ValidateConstraints(ctx context.Context, constraint
 
 		Validator: "dependency-resolver",
 	}, nil
-
 }
 
 // FindCompatibleVersions finds compatible versions for a package.
 
 func (r *dependencyResolver) FindCompatibleVersions(ctx context.Context, pkg *PackageReference, constraints []*VersionConstraint) ([]*VersionCandidate, error) {
-
 	return []*VersionCandidate{}, nil
-
 }

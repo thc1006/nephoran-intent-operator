@@ -92,7 +92,7 @@ spec:
 `, intentFile, time.Now().Format(time.RFC3339))
 
 	outputFile := filepath.Join(outputDir, "scaling-patch.yaml")
-	return os.WriteFile(outputFile, []byte(fakeOutput), 0644)
+	return os.WriteFile(outputFile, []byte(fakeOutput), 0o644)
 }
 
 func (m *MockPorchExecutorSimple) GetCalls() int {
@@ -562,7 +562,7 @@ func TestConductorErrorHandling(t *testing.T) {
 
 				// Create a read-only directory
 				readOnlyDir := filepath.Join(tempDir, "readonly")
-				err = os.MkdirAll(readOnlyDir, 0444)
+				err = os.MkdirAll(readOnlyDir, 0o444)
 				require.NoError(t, err)
 
 				s := runtime.NewScheme()
@@ -596,7 +596,7 @@ func TestConductorErrorHandling(t *testing.T) {
 			defer func() {
 				if tempDir != "" {
 					// Restore permissions for cleanup
-					_ = os.Chmod(tempDir, 0755)
+					_ = os.Chmod(tempDir, 0o755)
 					os.RemoveAll(tempDir)
 				}
 			}()

@@ -363,15 +363,24 @@ func (m *CertRotationManager) GetRotationMetrics() *RotationMetrics {
 	m.metrics.mu.RLock()
 	defer m.metrics.mu.RUnlock()
 
-	// Return a copy
-	metrics := *m.metrics
-	metrics.CertificateMetrics = make(map[string]*CertificateMetrics)
+	// Return a safe copy without copying the mutex
+	metrics := &RotationMetrics{
+		TotalRotations:      m.metrics.TotalRotations,
+		SuccessfulRotations: m.metrics.SuccessfulRotations,
+		FailedRotations:     m.metrics.FailedRotations,
+		EmergencyRotations:  m.metrics.EmergencyRotations,
+		AverageRotationTime: m.metrics.AverageRotationTime,
+		LastRotationTime:    m.metrics.LastRotationTime,
+		CertificateMetrics:  make(map[string]*CertificateMetrics),
+		// Note: mu is not copied to avoid lock copying violation
+	}
+
 	for key, certMetrics := range m.metrics.CertificateMetrics {
 		certMetricsCopy := *certMetrics
 		metrics.CertificateMetrics[key] = &certMetricsCopy
 	}
 
-	return &metrics
+	return metrics
 }
 
 // monitoringLoop runs the main certificate monitoring loop

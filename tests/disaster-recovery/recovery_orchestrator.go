@@ -323,38 +323,31 @@ type RecoveryExecutionMetrics struct {
 // NewRecoveryOrchestrator creates a new recovery orchestrator.
 
 func NewRecoveryOrchestrator(client client.Client, backupManager *BackupManager) *RecoveryOrchestrator {
-
 	return &RecoveryOrchestrator{
-
 		client: client,
 
 		backupManager: backupManager,
 
 		scenarios: make(map[string]*DisasterScenario),
 	}
-
 }
 
 // RegisterScenario registers a disaster recovery scenario.
 
 func (ro *RecoveryOrchestrator) RegisterScenario(scenario *DisasterScenario) {
-
 	ro.mu.Lock()
 
 	defer ro.mu.Unlock()
 
 	ro.scenarios[scenario.Name] = scenario
-
 }
 
 // ExecuteRecoveryPlan executes a recovery plan.
 
 func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *RecoveryPlan) (*RecoveryExecution, error) {
-
 	logger := log.FromContext(ctx)
 
 	execution := &RecoveryExecution{
-
 		ID: fmt.Sprintf("%s-%d", plan.ID, time.Now().Unix()),
 
 		PlanID: plan.ID,
@@ -368,7 +361,6 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 		Context: make(map[string]interface{}),
 
 		Metrics: RecoveryExecutionMetrics{
-
 			TotalSteps: len(plan.Steps),
 		},
 	}
@@ -412,9 +404,7 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 			execution.Status = StatusRollingBack
 
 			if rollbackErr := ro.executeSteps(ctx, plan.Rollback, execution); rollbackErr != nil {
-
 				logger.Error(rollbackErr, "Rollback failed", "execution", execution.ID)
-
 			}
 
 		}
@@ -458,13 +448,11 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 	go ro.sendNotifications(ctx, plan.NotificationPlan.OnSuccess, execution, nil)
 
 	return execution, nil
-
 }
 
 // executeSteps executes a list of recovery steps.
 
 func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []RecoveryStep, execution *RecoveryExecution) error {
-
 	logger := log.FromContext(ctx)
 
 	// Build dependency graph.
@@ -472,9 +460,7 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 	stepMap := make(map[string]*RecoveryStep)
 
 	for i := range steps {
-
 		stepMap[steps[i].ID] = &steps[i]
-
 	}
 
 	// Execute steps in dependency order.
@@ -488,9 +474,7 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 		for _, step := range steps {
 
 			if executed[step.ID] {
-
 				continue
-
 			}
 
 			// Check if all dependencies are satisfied.
@@ -498,7 +482,6 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 			canExecute := true
 
 			for _, depID := range step.Dependencies {
-
 				if !executed[depID] {
 
 					canExecute = false
@@ -506,19 +489,15 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 					break
 
 				}
-
 			}
 
 			if !canExecute {
-
 				continue
-
 			}
 
 			// Execute step.
 
 			stepExecution := &StepExecution{
-
 				StepID: step.ID,
 
 				StartTime: time.Now(),
@@ -539,9 +518,7 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 				execution.Metrics.FailedSteps++
 
 				if step.Critical {
-
 					return fmt.Errorf("critical step %s failed: %w", step.ID, err)
-
 				} else {
 
 					logger.Error(err, "Non-critical step failed", "step", step.ID)
@@ -571,47 +548,35 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 		}
 
 		if !progress {
-
 			return fmt.Errorf("circular dependency or unresolvable dependencies detected")
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // executeStep executes a single recovery step with retry logic.
 
 func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution, stepExecution *StepExecution) error {
-
 	var lastError error
 
 	retryPolicy := step.RetryPolicy
 
 	if retryPolicy.MaxRetries == 0 {
-
 		retryPolicy.MaxRetries = 3
-
 	}
 
 	if retryPolicy.InitialDelay == 0 {
-
 		retryPolicy.InitialDelay = 1 * time.Second
-
 	}
 
 	if retryPolicy.BackoffMultiplier == 0 {
-
 		retryPolicy.BackoffMultiplier = 2.0
-
 	}
 
 	if retryPolicy.MaxDelay == 0 {
-
 		retryPolicy.MaxDelay = 30 * time.Second
-
 	}
 
 	delay := retryPolicy.InitialDelay
@@ -631,9 +596,7 @@ func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoverySt
 			delay = time.Duration(float64(delay) * retryPolicy.BackoffMultiplier)
 
 			if delay > retryPolicy.MaxDelay {
-
 				delay = retryPolicy.MaxDelay
-
 			}
 
 		}
@@ -655,17 +618,13 @@ func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoverySt
 	}
 
 	return fmt.Errorf("step failed after %d attempts: %w", retryPolicy.MaxRetries+1, lastError)
-
 }
 
 // executeStepByType executes a step based on its type.
 
 func (ro *RecoveryOrchestrator) executeStepByType(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	if step.Executor != nil {
-
 		return step.Executor.Execute(ctx, step, ro)
-
 	}
 
 	switch step.Type {
@@ -707,23 +666,18 @@ func (ro *RecoveryOrchestrator) executeStepByType(ctx context.Context, step Reco
 		return fmt.Errorf("unsupported step type: %s", step.Type)
 
 	}
-
 }
 
 // Step execution implementations.
 
 func (ro *RecoveryOrchestrator) executeBackupRestoreStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	backupID, ok := step.Parameters["backup_id"].(string)
 
 	if !ok {
-
 		return fmt.Errorf("backup_id parameter required for backup restore step")
-
 	}
 
 	options := RestoreOptions{
-
 		Namespace: execution.getStringParameter("namespace", "default"),
 
 		IgnoreErrors: step.Parameters["ignore_errors"] == true,
@@ -732,69 +686,52 @@ func (ro *RecoveryOrchestrator) executeBackupRestoreStep(ctx context.Context, st
 	}
 
 	result, err := ro.backupManager.RestoreBackup(ctx, backupID, options)
-
 	if err != nil {
-
 		return fmt.Errorf("backup restore failed: %w", err)
-
 	}
 
 	execution.Context["restore_result"] = result
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) executeServiceRestartStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	// Implementation would restart Kubernetes services/deployments.
 
 	// This is a simplified placeholder.
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) executeScaleStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution, scaleUp bool) error {
-
 	// Implementation would scale Kubernetes deployments.
 
 	// This is a simplified placeholder.
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) executeHealthCheckStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	checks, ok := step.Parameters["health_checks"].([]HealthCheck)
 
 	if !ok {
-
 		return fmt.Errorf("health_checks parameter required")
-
 	}
 
 	return ro.performHealthChecks(ctx, checks)
-
 }
 
 func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	timeout, ok := step.Parameters["timeout"].(time.Duration)
 
 	if !ok {
-
 		timeout = 30 * time.Second
-
 	}
 
 	condition, ok := step.Parameters["condition"].(string)
 
 	if !ok {
-
 		return fmt.Errorf("condition parameter required for wait step")
-
 	}
 
 	// TODO: Implement condition checking logic.
@@ -802,47 +739,36 @@ func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step Recove
 	_ = condition // Suppress unused variable error for now
 
 	return wait.PollUntilContextTimeout(context.Background(), 1*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
-
 		// Implement condition checking logic based on condition string.
 
 		// This is a simplified placeholder.
 
 		return true, nil
-
 	})
-
 }
 
 func (ro *RecoveryOrchestrator) executeDataValidationStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	// Implementation would validate data integrity.
 
 	// This is a simplified placeholder.
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) executeNotificationStep(ctx context.Context, step RecoveryStep, execution *RecoveryExecution) error {
-
 	targets, ok := step.Parameters["targets"].([]NotificationTarget)
 
 	if !ok {
-
 		return fmt.Errorf("targets parameter required for notification step")
-
 	}
 
 	return ro.sendNotifications(ctx, targets, execution, nil)
-
 }
 
 // Helper methods.
 
 func (ro *RecoveryOrchestrator) checkPrerequisites(ctx context.Context, prerequisites []string) error {
-
 	for _, prereq := range prerequisites {
-
 		// Check each prerequisite (e.g., backup exists, services are running, etc.).
 
 		// This is a simplified implementation.
@@ -858,61 +784,45 @@ func (ro *RecoveryOrchestrator) checkPrerequisites(ctx context.Context, prerequi
 			// Check cluster health.
 
 		}
-
 	}
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) performHealthChecks(ctx context.Context, checks []HealthCheck) error {
-
 	for _, check := range checks {
-
 		if err := ro.performSingleHealthCheck(ctx, check); err != nil {
-
 			if check.Critical {
-
 				return fmt.Errorf("critical health check failed: %s: %w", check.Name, err)
-
 			}
 
 			// Log non-critical failures but continue.
-
 		}
-
 	}
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) performSingleHealthCheck(ctx context.Context, check HealthCheck) error {
-
 	// Implementation would perform actual health checks.
 
 	// This is a simplified placeholder.
 
 	return nil
-
 }
 
 func (ro *RecoveryOrchestrator) sendNotifications(ctx context.Context, targets []NotificationTarget, execution *RecoveryExecution, err error) error {
-
 	// Implementation would send actual notifications.
 
 	// This is a simplified placeholder.
 
 	return nil
-
 }
 
 // Utility methods for RecoveryExecution.
 
 func (re *RecoveryExecution) addError(stepID, message string, critical, retryable bool) {
-
 	re.Errors = append(re.Errors, RecoveryError{
-
 		StepID: stepID,
 
 		Message: message,
@@ -923,53 +833,38 @@ func (re *RecoveryExecution) addError(stepID, message string, critical, retryabl
 
 		Retryable: retryable,
 	})
-
 }
 
 func (re *RecoveryExecution) getStringParameter(key, defaultValue string) string {
-
 	if val, ok := re.Context[key].(string); ok {
-
 		return val
-
 	}
 
 	return defaultValue
-
 }
 
 // GetActiveRecoveries returns currently active recovery executions.
 
 func (ro *RecoveryOrchestrator) GetActiveRecoveries() map[string]*RecoveryExecution {
-
 	recoveries := make(map[string]*RecoveryExecution)
 
 	ro.activeRecoveries.Range(func(key, value interface{}) bool {
-
 		if id, ok := key.(string); ok {
-
 			if execution, ok := value.(*RecoveryExecution); ok {
-
 				recoveries[id] = execution
-
 			}
-
 		}
 
 		return true
-
 	})
 
 	return recoveries
-
 }
 
 // CancelRecovery cancels an active recovery execution.
 
 func (ro *RecoveryOrchestrator) CancelRecovery(executionID string) error {
-
 	if value, ok := ro.activeRecoveries.Load(executionID); ok {
-
 		if execution, ok := value.(*RecoveryExecution); ok {
 
 			execution.Status = StatusCancelled
@@ -981,9 +876,7 @@ func (ro *RecoveryOrchestrator) CancelRecovery(executionID string) error {
 			return nil
 
 		}
-
 	}
 
 	return fmt.Errorf("recovery execution not found: %s", executionID)
-
 }

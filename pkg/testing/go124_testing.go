@@ -328,15 +328,12 @@ type TestContainer struct {
 // NewGo124TestFramework creates a new enhanced testing framework.
 
 func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
-
 	framework := &Go124TestFramework{
-
 		t: t,
 
 		benchResults: make(map[string]*BenchmarkResult),
 
 		testMetrics: &TestMetrics{
-
 			TestResults: make(map[string]*TestResult),
 
 			BenchmarkResults: make(map[string]*BenchmarkResult),
@@ -345,7 +342,6 @@ func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 		},
 
 		configuration: &TestConfiguration{
-
 			Parallel: false,
 
 			Timeout: 5 * time.Minute,
@@ -371,19 +367,15 @@ func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 	// Setup automatic cleanup.
 
 	t.Cleanup(func() {
-
 		framework.performCleanup()
-
 	})
 
 	return framework
-
 }
 
 // SetupSuite initializes the test suite with Go 1.24+ enhancements.
 
 func (ts *TestSuiteBase) SetupSuite() {
-
 	ts.startTime = time.Now()
 
 	ts.tempDirs = make([]string, 0)
@@ -399,9 +391,7 @@ func (ts *TestSuiteBase) SetupSuite() {
 	// Initialize framework.
 
 	if ts.Framework == nil {
-
 		ts.Framework = NewGo124TestFramework(ts.T())
-
 	}
 
 	// Setup resource monitoring.
@@ -413,55 +403,43 @@ func (ts *TestSuiteBase) SetupSuite() {
 	// Call the embedded suite's SetupSuite if it exists.
 
 	if ts.Suite.T() != nil {
-
 		// Use reflection to check if SetupSuite method exists and call it.
 
 		// For now, just track the setup duration.
-
 	}
 
 	ts.setupDuration = time.Since(setupStart)
-
 }
 
 // TearDownSuite cleans up after test suite completion.
 
 func (ts *TestSuiteBase) TearDownSuite() {
-
 	teardownStart := time.Now()
 
 	// Cleanup containers.
 
 	for _, container := range ts.testContainers {
-
 		ts.cleanupContainer(container)
-
 	}
 
 	// Cleanup temp directories.
 
 	for _, dir := range ts.tempDirs {
-
 		os.RemoveAll(dir)
-
 	}
 
 	// Release network ports.
 
 	for _, port := range ts.networkPorts {
-
 		ts.releasePort(port)
-
 	}
 
 	// Call the embedded suite's TearDownSuite if it exists.
 
 	if ts.Suite.T() != nil {
-
 		// Use reflection to check if TearDownSuite method exists and call it.
 
 		// For now, just track the teardown duration.
-
 	}
 
 	ts.teardownDuration = time.Since(teardownStart)
@@ -469,11 +447,8 @@ func (ts *TestSuiteBase) TearDownSuite() {
 	// Generate test report.
 
 	if ts.Framework != nil {
-
 		ts.Framework.generateReport()
-
 	}
-
 }
 
 // EnhancedAssert provides enhanced assertion capabilities.
@@ -489,32 +464,26 @@ type EnhancedAssert struct {
 // NewEnhancedAssert creates an enhanced assertion helper.
 
 func (fw *Go124TestFramework) NewEnhancedAssert(context string) *EnhancedAssert {
-
 	return &EnhancedAssert{
-
 		t: fw.t,
 
 		context: context,
 
 		tags: make(map[string]string),
 	}
-
 }
 
 // WithTag adds a tag to the assertion.
 
 func (ea *EnhancedAssert) WithTag(key, value string) *EnhancedAssert {
-
 	ea.tags[key] = value
 
 	return ea
-
 }
 
 // Equal performs enhanced equality assertion with detailed reporting.
 
 func (ea *EnhancedAssert) Equal(expected, actual interface{}, msgAndArgs ...interface{}) bool {
-
 	if !assert.Equal(ea.t, expected, actual, msgAndArgs...) {
 
 		ea.t.Logf("Enhanced Assertion Failed in context: %s", ea.context)
@@ -530,13 +499,11 @@ func (ea *EnhancedAssert) Equal(expected, actual interface{}, msgAndArgs ...inte
 	}
 
 	return true
-
 }
 
 // EventuallyWithContext performs assertion with timeout and context.
 
 func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition func() bool, timeout, tick time.Duration, msgAndArgs ...interface{}) bool {
-
 	timer := time.NewTimer(timeout)
 
 	defer timer.Stop()
@@ -546,7 +513,6 @@ func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition f
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -564,21 +530,16 @@ func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition f
 		case <-ticker.C:
 
 			if condition() {
-
 				return true
-
 			}
 
 		}
-
 	}
-
 }
 
 // BenchmarkWithMetrics performs enhanced benchmarking with detailed metrics.
 
 func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*testing.B)) *BenchmarkResult {
-
 	// Capture initial state.
 
 	var memStatsBefore runtime.MemStats
@@ -608,7 +569,6 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 	// Create enhanced result.
 
 	benchResult := &BenchmarkResult{
-
 		Name: name,
 
 		Iterations: result.N,
@@ -647,13 +607,11 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 	fw.mu.Unlock()
 
 	return benchResult
-
 }
 
 // ParallelTest runs tests in parallel with enhanced coordination.
 
 func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
-
 	fw.t.Parallel()
 
 	// Setup parallel test context (for potential future use).
@@ -672,19 +630,15 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 	start := time.Now()
 
 	defer func() {
-
 		duration := time.Since(start)
 
 		fw.recordTestResult(fw.t.Name(), TestStatusPassed, duration, "")
-
 	}()
 
 	// Run test with enhanced error handling.
 
 	func() {
-
 		defer func() {
-
 			if r := recover(); r != nil {
 
 				fw.t.Errorf("Panic in parallel test: %v", r)
@@ -692,21 +646,16 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 				fw.recordTestResult(fw.t.Name(), TestStatusFailed, time.Since(start), fmt.Sprintf("Panic: %v", r))
 
 			}
-
 		}()
 
 		testFunc(fw.t)
-
 	}()
-
 }
 
 // SubTest creates enhanced subtests with better isolation.
 
 func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bool {
-
 	return fw.t.Run(name, func(subT *testing.T) {
-
 		// Create sub-framework.
 
 		subFramework := NewGo124TestFramework(subT)
@@ -723,19 +672,15 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 		start := time.Now()
 
 		defer func() {
-
 			duration := time.Since(start)
 
 			subFramework.recordTestResult(name, TestStatusPassed, duration, "")
-
 		}()
 
 		// Run subtest with enhanced error handling.
 
 		func() {
-
 			defer func() {
-
 				if r := recover(); r != nil {
 
 					subT.Errorf("Panic in subtest %s: %v", name, r)
@@ -743,31 +688,24 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 					subFramework.recordTestResult(name, TestStatusFailed, time.Since(start), fmt.Sprintf("Panic: %v", r))
 
 				}
-
 			}()
 
 			testFunc(subT)
-
 		}()
-
 	})
-
 }
 
 // TableTest performs table-driven testing with enhanced reporting.
 
 func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testFunc func(*testing.T, TestCase)) {
-
 	for i, tc := range testCases {
 
 		testName := fmt.Sprintf("%s/%d-%s", name, i, tc.Name)
 
 		fw.SubTest(testName, func(t *testing.T) {
-
 			start := time.Now()
 
 			defer func() {
-
 				if r := recover(); r != nil {
 
 					t.Errorf("Panic in table test case %s: %v", tc.Name, r)
@@ -775,15 +713,12 @@ func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testF
 					fw.recordTestResult(testName, TestStatusFailed, time.Since(start), fmt.Sprintf("Panic: %v", r))
 
 				}
-
 			}()
 
 			testFunc(t, tc)
-
 		})
 
 	}
-
 }
 
 // TestCase represents a table-driven test case.
@@ -811,13 +746,9 @@ type TestCase struct {
 // CreateTempDir performs createtempdir operation.
 
 func (fw *Go124TestFramework) CreateTempDir(prefix string) (string, error) {
-
 	dir, err := os.MkdirTemp("", prefix)
-
 	if err != nil {
-
 		return "", err
-
 	}
 
 	fw.mu.Lock()
@@ -827,29 +758,23 @@ func (fw *Go124TestFramework) CreateTempDir(prefix string) (string, error) {
 	fw.mu.Unlock()
 
 	return dir, nil
-
 }
 
 // WriteTestFile performs writetestfile operation.
 
 func (fw *Go124TestFramework) WriteTestFile(dir, filename string, content []byte) error {
-
 	filePath := filepath.Join(dir, filename)
 
 	return os.WriteFile(filePath, content, 0o640)
-
 }
 
 func (fw *Go124TestFramework) startResourceMonitoring() {
-
 	go func() {
-
 		ticker := time.NewTicker(1 * time.Second)
 
 		defer ticker.Stop()
 
 		for {
-
 			select {
 
 			case <-ticker.C:
@@ -861,23 +786,17 @@ func (fw *Go124TestFramework) startResourceMonitoring() {
 				// Check if test deadline is approaching.
 
 				if deadline, ok := fw.t.Deadline(); ok && time.Until(deadline) < 5*time.Second {
-
 					return
-
 				}
 
 				time.Sleep(100 * time.Millisecond)
 
 			}
-
 		}
-
 	}()
-
 }
 
 func (fw *Go124TestFramework) collectMetrics() {
-
 	var memStats runtime.MemStats
 
 	runtime.ReadMemStats(&memStats)
@@ -887,9 +806,7 @@ func (fw *Go124TestFramework) collectMetrics() {
 	defer fw.mu.Unlock()
 
 	if fw.testMetrics.MemoryProfile == nil {
-
 		fw.testMetrics.MemoryProfile = &MemoryProfile{}
-
 	}
 
 	fw.testMetrics.MemoryProfile.HeapAlloc = memStats.HeapAlloc
@@ -905,17 +822,14 @@ func (fw *Go124TestFramework) collectMetrics() {
 	fw.testMetrics.MemoryProfile.GCCPUFraction = memStats.GCCPUFraction
 
 	fw.testMetrics.MemoryProfile.LastGC = time.Unix(0, int64(memStats.LastGC))
-
 }
 
 func (fw *Go124TestFramework) recordTestResult(name string, status TestStatus, duration time.Duration, errorMsg string) {
-
 	fw.mu.Lock()
 
 	defer fw.mu.Unlock()
 
 	result := &TestResult{
-
 		Name: name,
 
 		Status: status,
@@ -950,17 +864,13 @@ func (fw *Go124TestFramework) recordTestResult(name string, status TestStatus, d
 		fw.testMetrics.SkippedTests++
 
 	}
-
 }
 
 func (fw *Go124TestFramework) generateTestID() string {
-
 	return fmt.Sprintf("test_%d_%d", time.Now().UnixNano(), runtime.NumGoroutine())
-
 }
 
 func (fw *Go124TestFramework) performCleanup() {
-
 	fw.mu.Lock()
 
 	cleanup := fw.cleanup
@@ -968,29 +878,19 @@ func (fw *Go124TestFramework) performCleanup() {
 	fw.mu.Unlock()
 
 	for _, cleanupFunc := range cleanup {
-
 		func() {
-
 			defer func() {
-
 				if r := recover(); r != nil {
-
 					fw.t.Logf("Panic during cleanup: %v", r)
-
 				}
-
 			}()
 
 			cleanupFunc()
-
 		}()
-
 	}
-
 }
 
 func (fw *Go124TestFramework) generateReport() {
-
 	fw.mu.Lock()
 
 	defer fw.mu.Unlock()
@@ -1000,9 +900,7 @@ func (fw *Go124TestFramework) generateReport() {
 	fw.testMetrics.TotalDuration = fw.testMetrics.EndTime.Sub(fw.testMetrics.StartTime)
 
 	if fw.testMetrics.TotalTests > 0 {
-
 		fw.testMetrics.AverageDuration = fw.testMetrics.TotalDuration / time.Duration(fw.testMetrics.TotalTests)
-
 	}
 
 	// Create output directory.
@@ -1032,15 +930,12 @@ func (fw *Go124TestFramework) generateReport() {
 		fw.generateMarkdownReport()
 
 	}
-
 }
 
 func (fw *Go124TestFramework) generateJSONReport() {
-
 	reportPath := filepath.Join(fw.configuration.OutputDirectory, "test-report.json")
 
 	data, err := json.MarshalIndent(fw.testMetrics, "", "  ")
-
 	if err != nil {
 
 		fw.t.Logf("Failed to marshal test metrics: %v", err)
@@ -1058,19 +953,15 @@ func (fw *Go124TestFramework) generateJSONReport() {
 	}
 
 	fw.t.Logf("Test report generated: %s", reportPath)
-
 }
 
 func (fw *Go124TestFramework) generateHTMLReport() {
-
 	// HTML report generation would go here.
 
 	fw.t.Logf("HTML report generation not implemented yet")
-
 }
 
 func (fw *Go124TestFramework) generateMarkdownReport() {
-
 	reportPath := filepath.Join(fw.configuration.OutputDirectory, "test-report.md")
 
 	var sb strings.Builder
@@ -1106,11 +997,9 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 		sb.WriteString("|------|------------|-------|------|----------|\n")
 
 		for name, result := range fw.testMetrics.BenchmarkResults {
-
 			sb.WriteString(fmt.Sprintf("| %s | %d | %d | %d | %d |\n",
 
 				name, result.Iterations, result.NanosPerOp, result.BytesPerOp, result.AllocsPerOp))
-
 		}
 
 		sb.WriteString("\n")
@@ -1126,23 +1015,18 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 	}
 
 	fw.t.Logf("Test report generated: %s", reportPath)
-
 }
 
 // Helper methods for test suite.
 
 func (ts *TestSuiteBase) cleanupContainer(container TestContainer) {
-
 	// Container cleanup logic would go here.
 
 	ts.T().Logf("Cleaning up container: %s", container.ID)
-
 }
 
 func (ts *TestSuiteBase) releasePort(port int) {
-
 	// Port release logic would go here.
 
 	ts.T().Logf("Releasing port: %d", port)
-
 }

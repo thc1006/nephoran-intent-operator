@@ -433,9 +433,7 @@ type DashboardManager struct {
 // NewDashboardManager creates a new dashboard manager.
 
 func NewDashboardManager(config DashboardConfig, logger *logrus.Logger) (*DashboardManager, error) {
-
 	dm := &DashboardManager{
-
 		config: config,
 
 		client: &http.Client{Timeout: 30 * time.Second},
@@ -456,55 +454,43 @@ func NewDashboardManager(config DashboardConfig, logger *logrus.Logger) (*Dashbo
 	// Load dashboard templates.
 
 	if err := dm.loadTemplates(); err != nil {
-
 		return nil, fmt.Errorf("failed to load templates: %w", err)
-
 	}
 
 	return dm, nil
-
 }
 
 // Start starts the dashboard manager.
 
 func (dm *DashboardManager) Start(ctx context.Context) error {
-
 	dm.logger.Info("Starting Dashboard Manager")
 
 	// Start health monitoring.
 
 	if dm.config.Monitoring.HealthCheckInterval > 0 {
-
 		go dm.healthMonitoringLoop(ctx)
-
 	}
 
 	// Provision existing dashboards.
 
 	if err := dm.provisionDashboards(ctx); err != nil {
-
 		return fmt.Errorf("failed to provision dashboards: %w", err)
-
 	}
 
 	return nil
-
 }
 
 // Stop stops the dashboard manager.
 
 func (dm *DashboardManager) Stop() {
-
 	dm.logger.Info("Stopping Dashboard Manager")
 
 	close(dm.stopCh)
-
 }
 
 // CreateDashboard creates a new dashboard from template.
 
 func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName string, variables map[string]interface{}) (*Dashboard, error) {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -512,9 +498,7 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 	template, exists := dm.templates[templateName]
 
 	if !exists {
-
 		return nil, fmt.Errorf("template %s not found", templateName)
-
 	}
 
 	// Render template with variables.
@@ -522,9 +506,7 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 	var buf bytes.Buffer
 
 	if err := template.Execute(&buf, variables); err != nil {
-
 		return nil, fmt.Errorf("failed to render template: %w", err)
-
 	}
 
 	// Parse rendered JSON.
@@ -532,9 +514,7 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 	var dashboard Dashboard
 
 	if err := json.Unmarshal(buf.Bytes(), &dashboard); err != nil {
-
 		return nil, fmt.Errorf("failed to parse dashboard JSON: %w", err)
-
 	}
 
 	// Generate UID if not provided.
@@ -554,13 +534,10 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 	// Create dashboard in Grafana.
 
 	if err := dm.createGrafanaDashboard(ctx, &dashboard); err != nil {
-
 		return nil, fmt.Errorf("failed to create dashboard in Grafana: %w", err)
-
 	}
 
 	dm.logger.WithFields(logrus.Fields{
-
 		"uid": dashboard.UID,
 
 		"title": dashboard.Title,
@@ -569,13 +546,11 @@ func (dm *DashboardManager) CreateDashboard(ctx context.Context, templateName st
 	}).Info("Created dashboard")
 
 	return &dashboard, nil
-
 }
 
 // UpdateDashboard updates an existing dashboard.
 
 func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, dashboard *Dashboard) error {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -583,9 +558,7 @@ func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, das
 	existing, exists := dm.dashboards[uid]
 
 	if !exists {
-
 		return fmt.Errorf("dashboard %s not found", uid)
-
 	}
 
 	// Update version.
@@ -601,13 +574,10 @@ func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, das
 	// Update dashboard in Grafana.
 
 	if err := dm.updateGrafanaDashboard(ctx, dashboard); err != nil {
-
 		return fmt.Errorf("failed to update dashboard in Grafana: %w", err)
-
 	}
 
 	dm.logger.WithFields(logrus.Fields{
-
 		"uid": dashboard.UID,
 
 		"title": dashboard.Title,
@@ -616,13 +586,11 @@ func (dm *DashboardManager) UpdateDashboard(ctx context.Context, uid string, das
 	}).Info("Updated dashboard")
 
 	return nil
-
 }
 
 // DeleteDashboard deletes a dashboard.
 
 func (dm *DashboardManager) DeleteDashboard(ctx context.Context, uid string) error {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -630,17 +598,13 @@ func (dm *DashboardManager) DeleteDashboard(ctx context.Context, uid string) err
 	dashboard, exists := dm.dashboards[uid]
 
 	if !exists {
-
 		return fmt.Errorf("dashboard %s not found", uid)
-
 	}
 
 	// Delete from Grafana.
 
 	if err := dm.deleteGrafanaDashboard(ctx, uid); err != nil {
-
 		return fmt.Errorf("failed to delete dashboard from Grafana: %w", err)
-
 	}
 
 	// Remove from local storage.
@@ -650,20 +614,17 @@ func (dm *DashboardManager) DeleteDashboard(ctx context.Context, uid string) err
 	delete(dm.statuses, uid)
 
 	dm.logger.WithFields(logrus.Fields{
-
 		"uid": uid,
 
 		"title": dashboard.Title,
 	}).Info("Deleted dashboard")
 
 	return nil
-
 }
 
 // GetDashboard retrieves a dashboard.
 
 func (dm *DashboardManager) GetDashboard(uid string) (*Dashboard, error) {
-
 	dm.mu.RLock()
 
 	defer dm.mu.RUnlock()
@@ -671,19 +632,15 @@ func (dm *DashboardManager) GetDashboard(uid string) (*Dashboard, error) {
 	dashboard, exists := dm.dashboards[uid]
 
 	if !exists {
-
 		return nil, fmt.Errorf("dashboard %s not found", uid)
-
 	}
 
 	return dashboard, nil
-
 }
 
 // ListDashboards lists all managed dashboards.
 
 func (dm *DashboardManager) ListDashboards() []*Dashboard {
-
 	dm.mu.RLock()
 
 	defer dm.mu.RUnlock()
@@ -691,19 +648,15 @@ func (dm *DashboardManager) ListDashboards() []*Dashboard {
 	dashboards := make([]*Dashboard, 0, len(dm.dashboards))
 
 	for _, dashboard := range dm.dashboards {
-
 		dashboards = append(dashboards, dashboard)
-
 	}
 
 	return dashboards
-
 }
 
 // GetDashboardStatus returns the status of a dashboard.
 
 func (dm *DashboardManager) GetDashboardStatus(uid string) (*DashboardStatus, error) {
-
 	dm.mu.RLock()
 
 	defer dm.mu.RUnlock()
@@ -711,23 +664,17 @@ func (dm *DashboardManager) GetDashboardStatus(uid string) (*DashboardStatus, er
 	status, exists := dm.statuses[uid]
 
 	if !exists {
-
 		return nil, fmt.Errorf("dashboard status %s not found", uid)
-
 	}
 
 	return status, nil
-
 }
 
 // StartABTest starts an A/B test between two dashboard versions.
 
 func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboardB string, duration time.Duration) (*ABTestResult, error) {
-
 	if !dm.config.ABTesting.Enabled {
-
 		return nil, fmt.Errorf("A/B testing is not enabled")
-
 	}
 
 	dm.mu.Lock()
@@ -737,7 +684,6 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 	testID := fmt.Sprintf("%s-vs-%s-%d", dashboardA, dashboardB, time.Now().Unix())
 
 	result := &ABTestResult{
-
 		DashboardA: dashboardA,
 
 		DashboardB: dashboardB,
@@ -762,7 +708,6 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 	// Schedule test completion.
 
 	go func() {
-
 		timer := time.NewTimer(duration)
 
 		defer timer.Stop()
@@ -778,11 +723,9 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 			return
 
 		}
-
 	}()
 
 	dm.logger.WithFields(logrus.Fields{
-
 		"test_id": testID,
 
 		"dashboard_a": dashboardA,
@@ -793,17 +736,13 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 	}).Info("Started A/B test")
 
 	return result, nil
-
 }
 
 // loadTemplates loads dashboard templates.
 
 func (dm *DashboardManager) loadTemplates() error {
-
 	if dm.config.Templates.Path == "" {
-
 		return nil
-
 	}
 
 	// Load template files.
@@ -811,17 +750,13 @@ func (dm *DashboardManager) loadTemplates() error {
 	pattern := filepath.Join(dm.config.Templates.Path, "*.json")
 
 	files, err := filepath.Glob(pattern)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to glob template files: %w", err)
-
 	}
 
 	for _, file := range files {
 
 		content, err := os.ReadFile(file)
-
 		if err != nil {
 
 			dm.logger.WithError(err).WithField("file", file).Warn("Failed to read template file")
@@ -833,7 +768,6 @@ func (dm *DashboardManager) loadTemplates() error {
 		name := strings.TrimSuffix(filepath.Base(file), ".json")
 
 		tmpl, err := template.New(name).Parse(string(content))
-
 		if err != nil {
 
 			dm.logger.WithError(err).WithField("file", file).Warn("Failed to parse template")
@@ -849,35 +783,27 @@ func (dm *DashboardManager) loadTemplates() error {
 	}
 
 	return nil
-
 }
 
 // provisionDashboards provisions existing dashboards.
 
 func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
-
 	// Load dashboards from filesystem.
 
 	if dm.config.DashboardPath == "" {
-
 		return nil
-
 	}
 
 	pattern := filepath.Join(dm.config.DashboardPath, "*.json")
 
 	files, err := filepath.Glob(pattern)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to glob dashboard files: %w", err)
-
 	}
 
 	for _, file := range files {
 
 		content, err := os.ReadFile(file)
-
 		if err != nil {
 
 			dm.logger.WithError(err).WithField("file", file).Warn("Failed to read dashboard file")
@@ -919,7 +845,6 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 		}
 
 		dm.logger.WithFields(logrus.Fields{
-
 			"uid": dashboard.UID,
 
 			"title": dashboard.Title,
@@ -928,19 +853,16 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 	}
 
 	return nil
-
 }
 
 // healthMonitoringLoop continuously monitors dashboard health.
 
 func (dm *DashboardManager) healthMonitoringLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(dm.config.Monitoring.HealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -956,15 +878,12 @@ func (dm *DashboardManager) healthMonitoringLoop(ctx context.Context) {
 			dm.checkDashboardHealth(ctx)
 
 		}
-
 	}
-
 }
 
 // checkDashboardHealth checks the health of all dashboards.
 
 func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -976,7 +895,6 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 		if status == nil {
 
 			status = &DashboardStatus{
-
 				UID: uid,
 
 				Title: dashboard.Title,
@@ -1031,21 +949,16 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 		status.LastUpdated = time.Now()
 
 	}
-
 }
 
 // checkDashboardAccessibility checks if a dashboard is accessible.
 
 func (dm *DashboardManager) checkDashboardAccessibility(ctx context.Context, uid string) bool {
-
 	url := fmt.Sprintf("%s/api/dashboards/uid/%s", dm.config.GrafanaURL, uid)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	req.Header.Set("Authorization", "Bearer "+dm.config.APIKey)
@@ -1053,23 +966,18 @@ func (dm *DashboardManager) checkDashboardAccessibility(ctx context.Context, uid
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := dm.client.Do(req)
-
 	if err != nil {
-
 		return false
-
 	}
 
 	defer resp.Body.Close()
 
 	return resp.StatusCode == http.StatusOK
-
 }
 
 // checkDataFlow checks if data is flowing to dashboard panels.
 
 func (dm *DashboardManager) checkDataFlow(ctx context.Context, dashboard *Dashboard) bool {
-
 	// This would typically query Prometheus or the data source.
 
 	// to check if recent data exists for the dashboard queries.
@@ -1077,66 +985,53 @@ func (dm *DashboardManager) checkDataFlow(ctx context.Context, dashboard *Dashbo
 	// For now, return true as placeholder.
 
 	return true
-
 }
 
 // createGrafanaDashboard creates a dashboard in Grafana.
 
 func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-
 	payload := map[string]interface{}{
-
 		"dashboard": dashboard,
 
 		"overwrite": false,
 	}
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
-
 }
 
 // updateGrafanaDashboard updates a dashboard in Grafana.
 
 func (dm *DashboardManager) updateGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-
 	payload := map[string]interface{}{
-
 		"dashboard": dashboard,
 
 		"overwrite": true,
 	}
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
-
 }
 
 // createOrUpdateGrafanaDashboard creates or updates a dashboard in Grafana.
 
 func (dm *DashboardManager) createOrUpdateGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-
 	payload := map[string]interface{}{
-
 		"dashboard": dashboard,
 
 		"overwrite": true,
 	}
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
-
 }
 
 // deleteGrafanaDashboard deletes a dashboard from Grafana.
 
 func (dm *DashboardManager) deleteGrafanaDashboard(ctx context.Context, uid string) error {
-
 	return dm.sendGrafanaRequest(ctx, "DELETE", fmt.Sprintf("/api/dashboards/uid/%s", uid), nil)
-
 }
 
 // sendGrafanaRequest sends a request to Grafana API.
 
 func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path string, payload interface{}) error {
-
 	url := dm.config.GrafanaURL + path
 
 	var body []byte
@@ -1146,21 +1041,15 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 		var err error
 
 		body, err = json.Marshal(payload)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to marshal payload: %w", err)
-
 		}
 
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(body))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	req.Header.Set("Authorization", "Bearer "+dm.config.APIKey)
@@ -1168,17 +1057,12 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 	req.Header.Set("Content-Type", "application/json")
 
 	if dm.config.OrgID > 0 {
-
 		req.Header.Set("X-Grafana-Org-Id", fmt.Sprintf("%d", dm.config.OrgID))
-
 	}
 
 	resp, err := dm.client.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to send request: %w", err)
-
 	}
 
 	defer resp.Body.Close()
@@ -1192,13 +1076,11 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 	}
 
 	return nil
-
 }
 
 // completeABTest completes an A/B test and determines the winner.
 
 func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
-
 	dm.mu.Lock()
 
 	defer dm.mu.Unlock()
@@ -1206,9 +1088,7 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 	result, exists := dm.abTests[testID]
 
 	if !exists {
-
 		return
-
 	}
 
 	// Collect metrics for both dashboards.
@@ -1244,12 +1124,10 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 	}
 
 	dm.logger.WithFields(logrus.Fields{
-
 		"test_id": testID,
 
 		"winner": result.Winner,
 
 		"confidence": result.Confidence,
 	}).Info("Completed A/B test")
-
 }

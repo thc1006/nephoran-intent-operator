@@ -17,14 +17,12 @@ var (
 	// Metrics for failure prediction.
 
 	failurePredictionAccuracy = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "nephoran_failure_prediction_accuracy",
 
 		Help: "Accuracy of failure prediction models",
 	}, []string{"component", "model_type"})
 
 	failurePredictionLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "nephoran_failure_prediction_duration_seconds",
 
 		Help: "Duration of failure prediction operations",
@@ -33,7 +31,6 @@ var (
 	}, []string{"component", "operation"})
 
 	predictedFailuresProbability = promauto.NewGaugeVec(prometheus.GaugeOpts{
-
 		Name: "nephoran_predicted_failure_probability",
 
 		Help: "Probability of predicted failures for components",
@@ -43,15 +40,11 @@ var (
 // NewFailurePrediction creates a new failure prediction system.
 
 func NewFailurePrediction(config *SelfHealingConfig, logger *slog.Logger) (*FailurePrediction, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("configuration is required")
-
 	}
 
 	fp := &FailurePrediction{
-
 		config: config,
 
 		logger: logger,
@@ -72,7 +65,6 @@ func NewFailurePrediction(config *SelfHealingConfig, logger *slog.Logger) (*Fail
 	for componentName := range config.ComponentConfigs {
 
 		model := &PredictionModel{
-
 			Name: fmt.Sprintf("%s-predictor", componentName),
 
 			Component: componentName,
@@ -88,7 +80,6 @@ func NewFailurePrediction(config *SelfHealingConfig, logger *slog.Logger) (*Fail
 			PredictionWindow: 30 * time.Minute,
 
 			Thresholds: map[string]float64{
-
 				"failure_probability": 0.8,
 
 				"anomaly_score": 0.7,
@@ -106,13 +97,11 @@ func NewFailurePrediction(config *SelfHealingConfig, logger *slog.Logger) (*Fail
 	}
 
 	return fp, nil
-
 }
 
 // Start starts the failure prediction system.
 
 func (fp *FailurePrediction) Start(ctx context.Context) {
-
 	fp.logger.Info("Starting failure prediction system")
 
 	// Start prediction loop.
@@ -128,19 +117,16 @@ func (fp *FailurePrediction) Start(ctx context.Context) {
 	go fp.anomalyDetector.Start(ctx)
 
 	fp.logger.Info("Failure prediction system started successfully")
-
 }
 
 // runPredictionLoop runs the main prediction loop.
 
 func (fp *FailurePrediction) runPredictionLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(5 * time.Minute) // Predict every 5 minutes
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -152,21 +138,17 @@ func (fp *FailurePrediction) runPredictionLoop(ctx context.Context) {
 			fp.performPredictions(ctx)
 
 		}
-
 	}
-
 }
 
 // runModelTrainingLoop periodically retrains models.
 
 func (fp *FailurePrediction) runModelTrainingLoop(ctx context.Context) {
-
 	ticker := time.NewTicker(6 * time.Hour) // Retrain every 6 hours
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -178,21 +160,16 @@ func (fp *FailurePrediction) runModelTrainingLoop(ctx context.Context) {
 			fp.retrainModels(ctx)
 
 		}
-
 	}
-
 }
 
 // performPredictions performs failure predictions for all components.
 
 func (fp *FailurePrediction) performPredictions(ctx context.Context) {
-
 	start := time.Now()
 
 	defer func() {
-
 		failurePredictionLatency.WithLabelValues("all", "prediction").Observe(time.Since(start).Seconds())
-
 	}()
 
 	fp.logger.Debug("Performing failure predictions")
@@ -232,19 +209,15 @@ func (fp *FailurePrediction) performPredictions(ctx context.Context) {
 		}
 
 	}
-
 }
 
 // predictFailureProbability predicts failure probability for a component.
 
 func (fp *FailurePrediction) predictFailureProbability(ctx context.Context, componentName string, model *PredictionModel) float64 {
-
 	start := time.Now()
 
 	defer func() {
-
 		failurePredictionLatency.WithLabelValues(componentName, "single_prediction").Observe(time.Since(start).Seconds())
-
 	}()
 
 	// Get recent historical data.
@@ -252,11 +225,9 @@ func (fp *FailurePrediction) predictFailureProbability(ctx context.Context, comp
 	historicalData := fp.historicalData.GetRecentData(componentName, 24*time.Hour)
 
 	if len(historicalData) < 10 {
-
 		// Not enough data for prediction.
 
 		return 0.0
-
 	}
 
 	// Perform prediction based on model type.
@@ -280,17 +251,13 @@ func (fp *FailurePrediction) predictFailureProbability(ctx context.Context, comp
 		return fp.predictWithARIMA(historicalData, model) // Default to ARIMA
 
 	}
-
 }
 
 // predictWithARIMA performs ARIMA-based time series prediction.
 
 func (fp *FailurePrediction) predictWithARIMA(data []DataPoint, model *PredictionModel) float64 {
-
 	if len(data) < 20 {
-
 		return 0.0
-
 	}
 
 	// Simplified ARIMA implementation for demonstration.
@@ -312,57 +279,43 @@ func (fp *FailurePrediction) predictWithARIMA(data []DataPoint, model *Predictio
 	// High upward trend in error rate or resource usage.
 
 	if trend["error_rate"] > 0.05 {
-
 		failureProbability += 0.3
-
 	}
 
 	if trend["cpu_usage"] > 0.1 || trend["memory_usage"] > 0.1 {
-
 		failureProbability += 0.2
-
 	}
 
 	if trend["response_time"] > 0.1 {
-
 		failureProbability += 0.2
-
 	}
 
 	// High volatility indicates instability.
 
 	if volatility > 0.3 {
-
 		failureProbability += 0.2
-
 	}
 
 	// Seasonal patterns suggesting problems.
 
 	if seasonality > 0.5 {
-
 		failureProbability += 0.1
-
 	}
 
 	// Ensure probability is within [0, 1].
 
 	return math.Min(1.0, math.Max(0.0, failureProbability))
-
 }
 
 // predictWithNeuralNetwork performs neural network-based prediction.
 
 func (fp *FailurePrediction) predictWithNeuralNetwork(data []DataPoint, model *PredictionModel) float64 {
-
 	// Simplified neural network simulation.
 
 	// In production, would use proper ML framework like TensorFlow or PyTorch.
 
 	if len(data) < 50 {
-
 		return 0.0
-
 	}
 
 	// Feature extraction.
@@ -374,7 +327,6 @@ func (fp *FailurePrediction) predictWithNeuralNetwork(data []DataPoint, model *P
 	// Using weighted combination of features.
 
 	weights := map[string]float64{
-
 		"cpu_trend": 0.25,
 
 		"memory_trend": 0.20,
@@ -389,29 +341,21 @@ func (fp *FailurePrediction) predictWithNeuralNetwork(data []DataPoint, model *P
 	prediction := 0.0
 
 	for feature, weight := range weights {
-
 		if value, exists := features[feature]; exists {
-
 			prediction += value * weight
-
 		}
-
 	}
 
 	// Apply sigmoid activation function.
 
 	return 1.0 / (1.0 + math.Exp(-prediction))
-
 }
 
 // predictWithLinearRegression performs linear regression-based prediction.
 
 func (fp *FailurePrediction) predictWithLinearRegression(data []DataPoint, model *PredictionModel) float64 {
-
 	if len(data) < 10 {
-
 		return 0.0
-
 	}
 
 	// Simple linear regression on recent trend.
@@ -433,31 +377,25 @@ func (fp *FailurePrediction) predictWithLinearRegression(data []DataPoint, model
 	failureProbability := 0.0
 
 	if errorRateSlope > 0.01 {
-
 		failureProbability += 0.4
-
 	}
 
 	if responseTimeSlope > 50 { // 50ms increase per data point
 
 		failureProbability += 0.3
-
 	}
 
 	if cpuSlope > 0.05 { // 5% increase per data point
 
 		failureProbability += 0.3
-
 	}
 
 	return math.Min(1.0, failureProbability)
-
 }
 
 // retrainModels retrains prediction models with recent data.
 
 func (fp *FailurePrediction) retrainModels(ctx context.Context) {
-
 	fp.logger.Info("Retraining prediction models")
 
 	fp.mu.Lock()
@@ -509,13 +447,11 @@ func (fp *FailurePrediction) retrainModels(ctx context.Context) {
 			"duration", time.Since(start))
 
 	}
-
 }
 
 // GetFailureProbabilities returns current failure probabilities.
 
 func (fp *FailurePrediction) GetFailureProbabilities() map[string]float64 {
-
 	fp.mu.RLock()
 
 	defer fp.mu.RUnlock()
@@ -523,19 +459,15 @@ func (fp *FailurePrediction) GetFailureProbabilities() map[string]float64 {
 	probabilities := make(map[string]float64)
 
 	for k, v := range fp.failureProbabilities {
-
 		probabilities[k] = v
-
 	}
 
 	return probabilities
-
 }
 
 // GetPredictionAccuracy returns prediction accuracy for each component.
 
 func (fp *FailurePrediction) GetPredictionAccuracy() map[string]float64 {
-
 	fp.mu.RLock()
 
 	defer fp.mu.RUnlock()
@@ -543,25 +475,19 @@ func (fp *FailurePrediction) GetPredictionAccuracy() map[string]float64 {
 	accuracy := make(map[string]float64)
 
 	for k, v := range fp.predictionAccuracy {
-
 		accuracy[k] = v
-
 	}
 
 	return accuracy
-
 }
 
 // Helper methods.
 
 func (fp *FailurePrediction) calculateTrend(data []DataPoint) map[string]float64 {
-
 	trends := make(map[string]float64)
 
 	if len(data) < 2 {
-
 		return trends
-
 	}
 
 	// Calculate simple trend as slope over time.
@@ -575,19 +501,15 @@ func (fp *FailurePrediction) calculateTrend(data []DataPoint) map[string]float64
 	}
 
 	return trends
-
 }
 
 func (fp *FailurePrediction) calculateSeasonality(data []DataPoint) float64 {
-
 	// Simplified seasonality calculation.
 
 	// In production, would use FFT or autocorrelation.
 
 	if len(data) < 24 {
-
 		return 0.0
-
 	}
 
 	// Check for 24-hour patterns (hourly data).
@@ -603,15 +525,11 @@ func (fp *FailurePrediction) calculateSeasonality(data []DataPoint) float64 {
 	}
 
 	return seasonalVariance / float64(len(data)-24)
-
 }
 
 func (fp *FailurePrediction) calculateVolatility(data []DataPoint) float64 {
-
 	if len(data) < 2 {
-
 		return 0.0
-
 	}
 
 	// Calculate coefficient of variation for CPU usage.
@@ -635,23 +553,17 @@ func (fp *FailurePrediction) calculateVolatility(data []DataPoint) float64 {
 	variance := (sumSquares / n) - (mean * mean)
 
 	if mean == 0 {
-
 		return 0.0
-
 	}
 
 	return math.Sqrt(variance) / mean // Coefficient of variation
-
 }
 
 func (fp *FailurePrediction) extractFeatures(data []DataPoint) map[string]float64 {
-
 	features := make(map[string]float64)
 
 	if len(data) == 0 {
-
 		return features
-
 	}
 
 	// Recent values.
@@ -671,9 +583,7 @@ func (fp *FailurePrediction) extractFeatures(data []DataPoint) map[string]float6
 	trends := fp.calculateTrend(data)
 
 	for metric, trend := range trends {
-
 		features[metric+"_trend"] = trend
-
 	}
 
 	// Volatility.
@@ -681,17 +591,13 @@ func (fp *FailurePrediction) extractFeatures(data []DataPoint) map[string]float6
 	features["volatility"] = fp.calculateVolatility(data)
 
 	return features
-
 }
 
 func (fp *FailurePrediction) calculateLinearSlope(data []DataPoint, metric string) float64 {
-
 	n := len(data)
 
 	if n < 2 {
-
 		return 0.0
-
 	}
 
 	// Simple linear regression: y = mx + b, return m (slope).
@@ -719,51 +625,37 @@ func (fp *FailurePrediction) calculateLinearSlope(data []DataPoint, metric strin
 	denominator := nFloat*sumXX - sumX*sumX
 
 	if denominator == 0 {
-
 		return 0.0
-
 	}
 
 	return (nFloat*sumXY - sumX*sumY) / denominator
-
 }
 
 func (fp *FailurePrediction) calculateModelAccuracy(componentName string, period time.Duration) float64 {
-
 	// Get prediction history for the component.
 
 	predictions := fp.historicalData.GetPredictionHistory(componentName, period)
 
 	if len(predictions) == 0 {
-
 		return 0.0
-
 	}
 
 	correctPredictions := 0
 
 	for _, prediction := range predictions {
-
 		if prediction.WasAccurate {
-
 			correctPredictions++
-
 		}
-
 	}
 
 	return float64(correctPredictions) / float64(len(predictions))
-
 }
 
 func (fp *FailurePrediction) updateModelParameters(model *PredictionModel, trainingData []DataPoint) {
-
 	// Update model thresholds based on training data statistics.
 
 	if len(trainingData) == 0 {
-
 		return
-
 	}
 
 	// Calculate statistics for threshold adjustment.
@@ -785,15 +677,11 @@ func (fp *FailurePrediction) updateModelParameters(model *PredictionModel, train
 	model.Thresholds["failure_probability"] = fp.calculatePercentile(errorRates, 0.95)
 
 	model.Thresholds["anomaly_score"] = fp.calculatePercentile(responseTimes, 0.90)
-
 }
 
 func (fp *FailurePrediction) calculatePercentile(values []float64, percentile float64) float64 {
-
 	if len(values) == 0 {
-
 		return 0.0
-
 	}
 
 	// Simple percentile calculation (would use sort in production).
@@ -801,9 +689,7 @@ func (fp *FailurePrediction) calculatePercentile(values []float64, percentile fl
 	sum := 0.0
 
 	for _, v := range values {
-
 		sum += v
-
 	}
 
 	mean := sum / float64(len(values))
@@ -811,15 +697,12 @@ func (fp *FailurePrediction) calculatePercentile(values []float64, percentile fl
 	// Use mean as approximation (simplified).
 
 	return mean * (1.0 + percentile)
-
 }
 
 func (fp *FailurePrediction) recordPrediction(componentName string, probability float64, predictedTime time.Time) {
-
 	// Record prediction for later accuracy evaluation.
 
 	fp.historicalData.RecordPrediction(componentName, PredictionRecord{
-
 		Timestamp: time.Now(),
 
 		Component: componentName,
@@ -831,19 +714,14 @@ func (fp *FailurePrediction) recordPrediction(componentName string, probability 
 		WasAccurate: false, // Will be updated when prediction time arrives
 
 	})
-
 }
 
 func maxInt(a, b int) int {
-
 	if a > b {
-
 		return a
-
 	}
 
 	return b
-
 }
 
 // Supporting types for historical data storage.
@@ -887,9 +765,7 @@ type HistoricalDataStore struct {
 // NewHistoricalDataStore performs newhistoricaldatastore operation.
 
 func NewHistoricalDataStore() *HistoricalDataStore {
-
 	return &HistoricalDataStore{
-
 		data: make(map[string][]DataPoint),
 
 		predictions: make(map[string][]PredictionRecord),
@@ -897,13 +773,11 @@ func NewHistoricalDataStore() *HistoricalDataStore {
 		maxDataPoints: 10000, // Keep last 10k data points per component
 
 	}
-
 }
 
 // GetRecentData performs getrecentdata operation.
 
 func (hds *HistoricalDataStore) GetRecentData(component string, duration time.Duration) []DataPoint {
-
 	hds.mu.RLock()
 
 	defer hds.mu.RUnlock()
@@ -911,9 +785,7 @@ func (hds *HistoricalDataStore) GetRecentData(component string, duration time.Du
 	data, exists := hds.data[component]
 
 	if !exists {
-
 		return []DataPoint{}
-
 	}
 
 	cutoff := time.Now().Add(-duration)
@@ -921,23 +793,17 @@ func (hds *HistoricalDataStore) GetRecentData(component string, duration time.Du
 	var recent []DataPoint
 
 	for _, point := range data {
-
 		if point.Timestamp.After(cutoff) {
-
 			recent = append(recent, point)
-
 		}
-
 	}
 
 	return recent
-
 }
 
 // GetPredictionHistory performs getpredictionhistory operation.
 
 func (hds *HistoricalDataStore) GetPredictionHistory(component string, duration time.Duration) []PredictionRecord {
-
 	hds.mu.RLock()
 
 	defer hds.mu.RUnlock()
@@ -945,9 +811,7 @@ func (hds *HistoricalDataStore) GetPredictionHistory(component string, duration 
 	predictions, exists := hds.predictions[component]
 
 	if !exists {
-
 		return []PredictionRecord{}
-
 	}
 
 	cutoff := time.Now().Add(-duration)
@@ -955,31 +819,23 @@ func (hds *HistoricalDataStore) GetPredictionHistory(component string, duration 
 	var recent []PredictionRecord
 
 	for _, pred := range predictions {
-
 		if pred.Timestamp.After(cutoff) {
-
 			recent = append(recent, pred)
-
 		}
-
 	}
 
 	return recent
-
 }
 
 // RecordPrediction performs recordprediction operation.
 
 func (hds *HistoricalDataStore) RecordPrediction(component string, record PredictionRecord) {
-
 	hds.mu.Lock()
 
 	defer hds.mu.Unlock()
 
 	if _, exists := hds.predictions[component]; !exists {
-
 		hds.predictions[component] = make([]PredictionRecord, 0)
-
 	}
 
 	hds.predictions[component] = append(hds.predictions[component], record)
@@ -987,11 +843,8 @@ func (hds *HistoricalDataStore) RecordPrediction(component string, record Predic
 	// Limit size.
 
 	if len(hds.predictions[component]) > hds.maxDataPoints {
-
 		hds.predictions[component] = hds.predictions[component][1:]
-
 	}
-
 }
 
 // AnomalyDetector detects anomalies in system behavior.
@@ -1005,11 +858,8 @@ type AnomalyDetector struct {
 // NewAnomalyDetector performs newanomalydetector operation.
 
 func NewAnomalyDetector() *AnomalyDetector {
-
 	return &AnomalyDetector{
-
 		thresholds: map[string]float64{
-
 			"cpu_spike": 0.9, // 90% CPU usage
 
 			"memory_spike": 0.85, // 85% memory usage
@@ -1020,15 +870,12 @@ func NewAnomalyDetector() *AnomalyDetector {
 
 		},
 	}
-
 }
 
 // Start performs start operation.
 
 func (ad *AnomalyDetector) Start(ctx context.Context) {
-
 	// Anomaly detection would run continuously.
 
 	// For now, it's a placeholder.
-
 }

@@ -20,19 +20,19 @@ package v1
 import (
 	"fmt"
 	"time"
-	
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Intent processing phase constants
 const (
-	IntentProcessingPhasePending     = "Pending"
-	IntentProcessingPhaseProcessing  = "Processing"
-	IntentProcessingPhaseInProgress  = "InProgress"
-	IntentProcessingPhaseCompleted   = "Completed"
-	IntentProcessingPhaseFailed      = "Failed"
-	IntentProcessingPhaseRetrying    = "Retrying"
+	IntentProcessingPhasePending    = "Pending"
+	IntentProcessingPhaseProcessing = "Processing"
+	IntentProcessingPhaseInProgress = "InProgress"
+	IntentProcessingPhaseCompleted  = "Completed"
+	IntentProcessingPhaseFailed     = "Failed"
+	IntentProcessingPhaseRetrying   = "Retrying"
 )
 
 // IntentProcessingSpec defines the desired state of IntentProcessing

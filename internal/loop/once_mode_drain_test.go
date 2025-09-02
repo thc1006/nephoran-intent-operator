@@ -61,7 +61,7 @@ func TestOnceModeProperDrainage(t *testing.T) {
 		filename := fmt.Sprintf("intent-once-%d.json", i)
 		filePath := filepath.Join(tempDir, filename)
 		content := generateValidIntentJSON(t)
-		err := os.WriteFile(filePath, []byte(content), 0644)
+		err := os.WriteFile(filePath, []byte(content), 0o644)
 		require.NoError(t, err)
 	}
 
@@ -117,7 +117,7 @@ func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 		filename := fmt.Sprintf("intent-timing-%d.json", i)
 		filePath := filepath.Join(tempDir, filename)
 		content := generateValidIntentJSON(t)
-		err := os.WriteFile(filePath, []byte(content), 0644)
+		err := os.WriteFile(filePath, []byte(content), 0o644)
 		require.NoError(t, err)
 	}
 
@@ -199,7 +199,7 @@ func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 			"replicas": %d,
 			"source": "test"
 		}`, i, (i%5)+1)
-		err := os.WriteFile(filePath, []byte(content), 0644)
+		err := os.WriteFile(filePath, []byte(content), 0o644)
 		require.NoError(t, err)
 	}
 
@@ -238,7 +238,7 @@ echo X >> "%s"
 echo Processed
 exit /b 0
 `, int(delay.Seconds())+1, counterFile)
-		err := os.WriteFile(mockPath, []byte(mockScript), 0755)
+		err := os.WriteFile(mockPath, []byte(mockScript), 0o755)
 		require.NoError(t, err)
 	} else {
 		mockPath = mockPath + ".sh"
@@ -249,7 +249,7 @@ echo "X" >> "%s"
 echo "Processed: $2"
 exit 0
 `, delay.Seconds(), counterFile)
-		err := os.WriteFile(mockPath, []byte(mockScript), 0755)
+		err := os.WriteFile(mockPath, []byte(mockScript), 0o755)
 		require.NoError(t, err)
 	}
 
@@ -270,8 +270,8 @@ exit 0
 
 // Helper: Create a mock porch that tracks timing
 func createTimingMockPorch(t testing.TB, tempDir string, delay time.Duration,
-	counter *int32, firstStart *time.Time, lastEnd *time.Time) string {
-
+	counter *int32, firstStart *time.Time, lastEnd *time.Time,
+) string {
 	mockPath := filepath.Join(tempDir, "mock-porch-timing")
 	counterFile := filepath.Join(tempDir, "timing-counter.txt")
 	timingFile := filepath.Join(tempDir, "timing-log.txt")
@@ -287,7 +287,7 @@ echo END >> "%s"
 echo X >> "%s"
 exit /b 0
 `, timingFile, int(delay.Seconds())+1, timingFile, counterFile)
-		err := os.WriteFile(mockPath, []byte(mockScript), 0755)
+		err := os.WriteFile(mockPath, []byte(mockScript), 0o755)
 		require.NoError(t, err)
 	} else {
 		mockPath = mockPath + ".sh"
@@ -299,7 +299,7 @@ echo "X" >> "%s"
 echo "Processed"
 exit 0
 `, timingFile, delay.Seconds(), timingFile, counterFile)
-		err := os.WriteFile(mockPath, []byte(mockScript), 0755)
+		err := os.WriteFile(mockPath, []byte(mockScript), 0o755)
 		require.NoError(t, err)
 	}
 

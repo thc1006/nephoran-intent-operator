@@ -40,7 +40,6 @@ type A1Handlers struct {
 // NewA1Handlers creates a new A1 handlers instance.
 
 func NewA1Handlers(
-
 	service A1Service,
 
 	validator A1Validator,
@@ -52,23 +51,16 @@ func NewA1Handlers(
 	logger *logging.StructuredLogger,
 
 	config *A1ServerConfig,
-
 ) *A1Handlers {
-
 	if logger == nil {
-
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("a1-handlers", "1.0.0", "development"))
-
 	}
 
 	if config == nil {
-
 		config = DefaultA1ServerConfig()
-
 	}
 
 	return &A1Handlers{
-
 		service: service,
 
 		validator: validator,
@@ -83,7 +75,6 @@ func NewA1Handlers(
 
 		circuitBreaker: make(map[string]*CircuitBreaker),
 	}
-
 }
 
 // A1-P Policy Interface Handlers.
@@ -91,7 +82,6 @@ func NewA1Handlers(
 // HandleGetPolicyTypes handles GET /A1-P/v2/policytypes.
 
 func (h *A1Handlers) HandleGetPolicyTypes(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -110,17 +100,14 @@ func (h *A1Handlers) HandleGetPolicyTypes(w http.ResponseWriter, r *http.Request
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "GetPolicyTypes", duration)
-
 	}()
 
 	// Get policy types from service.
 
 	policyTypeIDs, err := h.service.GetPolicyTypes(ctx)
-
 	if err != nil {
 
 		h.handleError(w, r, WrapError(err, "Failed to retrieve policy types"))
@@ -155,13 +142,11 @@ func (h *A1Handlers) HandleGetPolicyTypes(w http.ResponseWriter, r *http.Request
 
 		"count", len(policyTypeIDs),
 	)
-
 }
 
 // HandleGetPolicyType handles GET /A1-P/v2/policytypes/{policy_type_id}.
 
 func (h *A1Handlers) HandleGetPolicyType(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -177,7 +162,6 @@ func (h *A1Handlers) HandleGetPolicyType(w http.ResponseWriter, r *http.Request)
 	policyTypeIDStr := vars["policy_type_id"]
 
 	policyTypeID, err := strconv.Atoi(policyTypeIDStr)
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError("Invalid policy type ID format"))
@@ -196,17 +180,14 @@ func (h *A1Handlers) HandleGetPolicyType(w http.ResponseWriter, r *http.Request)
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "GetPolicyType", duration)
-
 	}()
 
 	// Get policy type from service.
 
 	policyType, err := h.service.GetPolicyType(ctx, policyTypeID)
-
 	if err != nil {
 
 		h.handleError(w, r, NewPolicyTypeNotFoundError(policyTypeID))
@@ -246,13 +227,11 @@ func (h *A1Handlers) HandleGetPolicyType(w http.ResponseWriter, r *http.Request)
 
 		"policy_type_id", policyTypeID,
 	)
-
 }
 
 // HandleCreatePolicyType handles PUT /A1-P/v2/policytypes/{policy_type_id}.
 
 func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 
 	defer cancel()
@@ -268,7 +247,6 @@ func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Reque
 	policyTypeIDStr := vars["policy_type_id"]
 
 	policyTypeID, err := strconv.Atoi(policyTypeIDStr)
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError("Invalid policy type ID format"))
@@ -287,11 +265,9 @@ func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Reque
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "CreatePolicyType", duration)
-
 	}()
 
 	// Validate content type.
@@ -314,7 +290,6 @@ func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Reque
 	// Read and parse request body.
 
 	body, err := h.readRequestBody(r, 1024*1024) // 1MB limit
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError(fmt.Sprintf("Failed to read request body: %v", err)))
@@ -414,13 +389,11 @@ func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Reque
 
 		"policy_type_id", policyTypeID,
 	)
-
 }
 
 // HandleDeletePolicyType handles DELETE /A1-P/v2/policytypes/{policy_type_id}.
 
 func (h *A1Handlers) HandleDeletePolicyType(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 
 	defer cancel()
@@ -436,7 +409,6 @@ func (h *A1Handlers) HandleDeletePolicyType(w http.ResponseWriter, r *http.Reque
 	policyTypeIDStr := vars["policy_type_id"]
 
 	policyTypeID, err := strconv.Atoi(policyTypeIDStr)
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError("Invalid policy type ID format"))
@@ -455,11 +427,9 @@ func (h *A1Handlers) HandleDeletePolicyType(w http.ResponseWriter, r *http.Reque
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "DeletePolicyType", duration)
-
 	}()
 
 	// Check if policy type exists.
@@ -512,13 +482,11 @@ func (h *A1Handlers) HandleDeletePolicyType(w http.ResponseWriter, r *http.Reque
 
 		"policy_type_id", policyTypeID,
 	)
-
 }
 
 // HandleGetPolicyInstances handles GET /A1-P/v2/policytypes/{policy_type_id}/policies.
 
 func (h *A1Handlers) HandleGetPolicyInstances(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -534,7 +502,6 @@ func (h *A1Handlers) HandleGetPolicyInstances(w http.ResponseWriter, r *http.Req
 	policyTypeIDStr := vars["policy_type_id"]
 
 	policyTypeID, err := strconv.Atoi(policyTypeIDStr)
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError("Invalid policy type ID format"))
@@ -553,11 +520,9 @@ func (h *A1Handlers) HandleGetPolicyInstances(w http.ResponseWriter, r *http.Req
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "GetPolicyInstances", duration)
-
 	}()
 
 	// Check if policy type exists.
@@ -575,7 +540,6 @@ func (h *A1Handlers) HandleGetPolicyInstances(w http.ResponseWriter, r *http.Req
 	// Get policy instances from service.
 
 	policyIDs, err := h.service.GetPolicyInstances(ctx, policyTypeID)
-
 	if err != nil {
 
 		h.handleError(w, r, WrapError(err, "Failed to retrieve policy instances"))
@@ -619,13 +583,11 @@ func (h *A1Handlers) HandleGetPolicyInstances(w http.ResponseWriter, r *http.Req
 
 		"count", len(policyIDs),
 	)
-
 }
 
 // HandleGetPolicyInstance handles GET /A1-P/v2/policytypes/{policy_type_id}/policies/{policy_id}.
 
 func (h *A1Handlers) HandleGetPolicyInstance(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -658,17 +620,14 @@ func (h *A1Handlers) HandleGetPolicyInstance(w http.ResponseWriter, r *http.Requ
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "GetPolicyInstance", duration)
-
 	}()
 
 	// Get policy instance from service.
 
 	policyInstance, err := h.service.GetPolicyInstance(ctx, policyTypeID, policyID)
-
 	if err != nil {
 
 		h.handleError(w, r, NewPolicyInstanceNotFoundError(policyTypeID, policyID))
@@ -712,13 +671,11 @@ func (h *A1Handlers) HandleGetPolicyInstance(w http.ResponseWriter, r *http.Requ
 
 		"policy_id", policyID,
 	)
-
 }
 
 // HandleCreatePolicyInstance handles PUT /A1-P/v2/policytypes/{policy_type_id}/policies/{policy_id}.
 
 func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 
 	defer cancel()
@@ -751,11 +708,9 @@ func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.R
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "CreatePolicyInstance", duration)
-
 	}()
 
 	// Validate content type.
@@ -790,7 +745,6 @@ func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.R
 	// Read and parse request body (policy data).
 
 	body, err := h.readRequestBody(r, 1024*1024) // 1MB limit
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError(fmt.Sprintf("Failed to read request body: %v", err)))
@@ -816,7 +770,6 @@ func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.R
 	// Create policy instance.
 
 	policyInstance := &PolicyInstance{
-
 		PolicyID: policyID,
 
 		PolicyTypeID: policyTypeID,
@@ -871,9 +824,7 @@ func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.R
 	statusCode := http.StatusCreated
 
 	if isUpdate {
-
 		statusCode = http.StatusOK
-
 	}
 
 	w.Header().Set("Content-Type", ContentTypeJSON)
@@ -896,21 +847,17 @@ func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.R
 
 		"is_update", isUpdate,
 	)
-
 }
 
 // HandleUpdatePolicyInstance handles PUT (same as create per O-RAN spec).
 
 func (h *A1Handlers) HandleUpdatePolicyInstance(w http.ResponseWriter, r *http.Request) {
-
 	h.HandleCreatePolicyInstance(w, r)
-
 }
 
 // HandleDeletePolicyInstance handles DELETE /A1-P/v2/policytypes/{policy_type_id}/policies/{policy_id}.
 
 func (h *A1Handlers) HandleDeletePolicyInstance(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 
 	defer cancel()
@@ -943,11 +890,9 @@ func (h *A1Handlers) HandleDeletePolicyInstance(w http.ResponseWriter, r *http.R
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "DeletePolicyInstance", duration)
-
 	}()
 
 	// Check if policy instance exists.
@@ -988,13 +933,11 @@ func (h *A1Handlers) HandleDeletePolicyInstance(w http.ResponseWriter, r *http.R
 
 		"policy_id", policyID,
 	)
-
 }
 
 // HandleGetPolicyStatus handles GET /A1-P/v2/policytypes/{policy_type_id}/policies/{policy_id}/status.
 
 func (h *A1Handlers) HandleGetPolicyStatus(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -1027,17 +970,14 @@ func (h *A1Handlers) HandleGetPolicyStatus(w http.ResponseWriter, r *http.Reques
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1PolicyInterface, "GetPolicyStatus", duration)
-
 	}()
 
 	// Get policy status from service.
 
 	policyStatus, err := h.service.GetPolicyStatus(ctx, policyTypeID, policyID)
-
 	if err != nil {
 
 		h.handleError(w, r, NewPolicyInstanceNotFoundError(policyTypeID, policyID))
@@ -1083,7 +1023,6 @@ func (h *A1Handlers) HandleGetPolicyStatus(w http.ResponseWriter, r *http.Reques
 
 		"status", policyStatus.EnforcementStatus,
 	)
-
 }
 
 // A1-C Consumer Interface Handlers.
@@ -1091,7 +1030,6 @@ func (h *A1Handlers) HandleGetPolicyStatus(w http.ResponseWriter, r *http.Reques
 // HandleRegisterConsumer handles POST /A1-C/v1/consumers/{consumer_id}.
 
 func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 
 	defer cancel()
@@ -1124,11 +1062,9 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1ConsumerInterface, "RegisterConsumer", duration)
-
 	}()
 
 	// Validate content type.
@@ -1151,7 +1087,6 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 	// Read and parse request body.
 
 	body, err := h.readRequestBody(r, 1024*1024) // 1MB limit
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError(fmt.Sprintf("Failed to read request body: %v", err)))
@@ -1251,13 +1186,11 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 
 		"consumer_id", consumerID,
 	)
-
 }
 
 // HandleUnregisterConsumer handles DELETE /A1-C/v1/consumers/{consumer_id}.
 
 func (h *A1Handlers) HandleUnregisterConsumer(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 
 	defer cancel()
@@ -1290,11 +1223,9 @@ func (h *A1Handlers) HandleUnregisterConsumer(w http.ResponseWriter, r *http.Req
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1ConsumerInterface, "UnregisterConsumer", duration)
-
 	}()
 
 	// Check if consumer exists.
@@ -1333,13 +1264,11 @@ func (h *A1Handlers) HandleUnregisterConsumer(w http.ResponseWriter, r *http.Req
 
 		"consumer_id", consumerID,
 	)
-
 }
 
 // HandleGetConsumer handles GET /A1-C/v1/consumers/{consumer_id}.
 
 func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -1372,17 +1301,14 @@ func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request) {
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1ConsumerInterface, "GetConsumer", duration)
-
 	}()
 
 	// Get consumer from service.
 
 	consumer, err := h.service.GetConsumer(ctx, consumerID)
-
 	if err != nil {
 
 		h.handleError(w, r, NewConsumerNotFoundError(consumerID))
@@ -1422,13 +1348,11 @@ func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request) {
 
 		"consumer_id", consumerID,
 	)
-
 }
 
 // HandleListConsumers handles GET /A1-C/v1/consumers.
 
 func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request) {
-
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 
 	defer cancel()
@@ -1443,17 +1367,14 @@ func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request)
 	)
 
 	defer func() {
-
 		duration := time.Since(startTime)
 
 		h.metrics.RecordRequestDuration(A1ConsumerInterface, "ListConsumers", duration)
-
 	}()
 
 	// Get consumers from service.
 
 	consumers, err := h.service.ListConsumers(ctx)
-
 	if err != nil {
 
 		h.handleError(w, r, WrapError(err, "Failed to list consumers"))
@@ -1493,7 +1414,6 @@ func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request)
 
 		"count", len(consumers),
 	)
-
 }
 
 // Additional A1-EI handlers would be implemented similarly...
@@ -1505,99 +1425,79 @@ func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request)
 // HandleGetEITypes handles GET /A1-EI/v1/eitypes.
 
 func (h *A1Handlers) HandleGetEITypes(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to GetPolicyTypes.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleGetEIType handles GET /A1-EI/v1/eitypes/{ei_type_id}.
 
 func (h *A1Handlers) HandleGetEIType(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to GetPolicyType.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleCreateEIType handles PUT /A1-EI/v1/eitypes/{ei_type_id}.
 
 func (h *A1Handlers) HandleCreateEIType(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to CreatePolicyType.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleDeleteEIType handles DELETE /A1-EI/v1/eitypes/{ei_type_id}.
 
 func (h *A1Handlers) HandleDeleteEIType(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to DeletePolicyType.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleGetEIJobs handles GET /A1-EI/v1/eijobs.
 
 func (h *A1Handlers) HandleGetEIJobs(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to GetPolicyInstances.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleGetEIJob handles GET /A1-EI/v1/eijobs/{ei_job_id}.
 
 func (h *A1Handlers) HandleGetEIJob(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to GetPolicyInstance.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleCreateEIJob handles PUT /A1-EI/v1/eijobs/{ei_job_id}.
 
 func (h *A1Handlers) HandleCreateEIJob(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to CreatePolicyInstance.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleUpdateEIJob handles PUT (same as create).
 
 func (h *A1Handlers) HandleUpdateEIJob(w http.ResponseWriter, r *http.Request) {
-
 	h.HandleCreateEIJob(w, r)
-
 }
 
 // HandleDeleteEIJob handles DELETE /A1-EI/v1/eijobs/{ei_job_id}.
 
 func (h *A1Handlers) HandleDeleteEIJob(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to DeletePolicyInstance.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // HandleGetEIJobStatus handles GET /A1-EI/v1/eijobs/{ei_job_id}/status.
 
 func (h *A1Handlers) HandleGetEIJobStatus(w http.ResponseWriter, r *http.Request) {
-
 	// Implementation similar to GetPolicyStatus.
 
 	h.handleNotImplemented(w, r, "A1-EI interface not fully implemented")
-
 }
 
 // Utility methods.
@@ -1605,11 +1505,9 @@ func (h *A1Handlers) HandleGetEIJobStatus(w http.ResponseWriter, r *http.Request
 // extractPolicyParams extracts and validates policy type ID and policy ID from URL vars.
 
 func (h *A1Handlers) extractPolicyParams(vars map[string]string, w http.ResponseWriter, r *http.Request) (int, string, bool) {
-
 	policyTypeIDStr := vars["policy_type_id"]
 
 	policyTypeID, err := strconv.Atoi(policyTypeIDStr)
-
 	if err != nil {
 
 		h.handleError(w, r, NewInvalidRequestError("Invalid policy type ID format"))
@@ -1629,59 +1527,45 @@ func (h *A1Handlers) extractPolicyParams(vars map[string]string, w http.Response
 	}
 
 	return policyTypeID, policyID, true
-
 }
 
 // getRequestID extracts or generates a request ID for tracing.
 
 func (h *A1Handlers) getRequestID(r *http.Request) string {
-
 	requestID := r.Header.Get("X-Request-ID")
 
 	if requestID == "" {
-
 		requestID = r.Header.Get("X-Correlation-ID")
-
 	}
 
 	if requestID == "" {
-
 		requestID = fmt.Sprintf("req_%d", time.Now().UnixNano())
-
 	}
 
 	return requestID
-
 }
 
 // isContentTypeJSON checks if the request content type is JSON.
 
 func (h *A1Handlers) isContentTypeJSON(r *http.Request) bool {
-
 	contentType := r.Header.Get("Content-Type")
 
 	return strings.HasPrefix(contentType, ContentTypeJSON)
-
 }
 
 // readRequestBody reads the request body with size limit.
 
 func (h *A1Handlers) readRequestBody(r *http.Request, maxSize int64) ([]byte, error) {
-
 	if r.ContentLength > maxSize {
-
 		return nil, fmt.Errorf("request body too large: %d bytes (max %d)", r.ContentLength, maxSize)
-
 	}
 
 	return io.ReadAll(io.LimitReader(r.Body, maxSize))
-
 }
 
 // handleError handles A1 errors and writes appropriate responses.
 
 func (h *A1Handlers) handleError(w http.ResponseWriter, r *http.Request, err *A1Error) {
-
 	requestID := h.getRequestID(r)
 
 	err.CorrelationID = requestID
@@ -1702,13 +1586,11 @@ func (h *A1Handlers) handleError(w http.ResponseWriter, r *http.Request, err *A1
 	)
 
 	WriteA1Error(w, err)
-
 }
 
 // handleNotImplemented handles not implemented endpoints.
 
 func (h *A1Handlers) handleNotImplemented(w http.ResponseWriter, r *http.Request, message string) {
-
 	h.handleError(w, r, NewA1Error(
 
 		ErrorTypeInternalServerError,
@@ -1719,15 +1601,12 @@ func (h *A1Handlers) handleNotImplemented(w http.ResponseWriter, r *http.Request
 
 		message,
 	))
-
 }
 
 // HealthCheckHandler handles health check requests.
 
 func (h *A1Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
-
 	healthCheck := &HealthCheck{
-
 		Status: "UP",
 
 		Timestamp: time.Now(),
@@ -1735,7 +1614,6 @@ func (h *A1Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) 
 		Version: "1.0.0",
 
 		Components: map[string]interface{}{
-
 			"a1_policy": "UP",
 
 			"a1_consumer": "UP",
@@ -1749,13 +1627,11 @@ func (h *A1Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(healthCheck)
-
 }
 
 // ReadinessCheckHandler handles readiness check requests.
 
 func (h *A1Handlers) ReadinessCheckHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Check if service dependencies are ready.
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
@@ -1791,7 +1667,6 @@ func (h *A1Handlers) ReadinessCheckHandler(w http.ResponseWriter, r *http.Reques
 		}
 
 		checks = append(checks, ComponentCheck{
-
 			Name: "storage",
 
 			Status: status,
@@ -1806,7 +1681,6 @@ func (h *A1Handlers) ReadinessCheckHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	healthCheck := &HealthCheck{
-
 		Status: map[bool]string{true: "UP", false: "DOWN"}[ready],
 
 		Timestamp: time.Now(),
@@ -1821,5 +1695,4 @@ func (h *A1Handlers) ReadinessCheckHandler(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(statusCode)
 
 	json.NewEncoder(w).Encode(healthCheck)
-
 }

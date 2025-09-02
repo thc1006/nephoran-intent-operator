@@ -754,13 +754,13 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			reportDir := filepath.Join(projectRoot, ".test-artifacts")
-			os.MkdirAll(reportDir, 0755)
+			os.MkdirAll(reportDir, 0o755)
 
 			reportPath := filepath.Join(reportDir, "performance_sla_validation_report.json")
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = ioutil.WriteFile(reportPath, reportData, 0o644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("Performance SLA validation report generated: %s\n", reportPath)

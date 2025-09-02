@@ -69,41 +69,30 @@ type PerformanceComparison struct {
 // safeIntConversion safely converts uint64 difference to int64 with bounds checking.
 
 func safeIntConversion(after, before uint64) int64 {
-
 	if after < before {
-
 		return 0 // Handle underflow
-
 	}
 
 	diff := after - before
 
 	if diff > math.MaxInt64 {
-
 		return math.MaxInt64 // Cap at max int64
-
 	}
 
 	return int64(diff)
-
 }
 
 // safeUintToInt safely converts uint64 to int64 with bounds checking.
 
 func safeUintToInt(val uint64) int64 {
-
 	if val > math.MaxInt64 {
-
 		return math.MaxInt64 // Cap at max int64
-
 	}
 
 	return int64(val)
-
 }
 
 func main() {
-
 	fmt.Println("🚀 Nephoran Intent Operator - Go 1.24+ Performance Comparison")
 
 	fmt.Println("============================================================")
@@ -133,13 +122,11 @@ func main() {
 	saveMetricsAsBaseline(currentMetrics)
 
 	fmt.Println("✅ Performance comparison completed successfully!")
-
 }
 
 // runPerformanceTests executes comprehensive performance tests.
 
 func runPerformanceTests() *PerformanceMetrics {
-
 	fmt.Println("📊 Running performance tests...")
 
 	var memStatsBefore, memStatsAfter runtime.MemStats
@@ -173,7 +160,6 @@ func runPerformanceTests() *PerformanceMetrics {
 	duration := time.Since(startTime)
 
 	metrics := &PerformanceMetrics{
-
 		TestName: "Go 1.24+ Performance Benchmark",
 
 		GoVersion: runtime.Version(),
@@ -210,13 +196,11 @@ func runPerformanceTests() *PerformanceMetrics {
 	fmt.Printf("  Duration: %v\n", duration)
 
 	return metrics
-
 }
 
 // benchmarkHTTPPerformance tests HTTP client performance.
 
 func benchmarkHTTPPerformance() int64 {
-
 	// Simulate HTTP requests.
 
 	start := time.Now()
@@ -226,36 +210,29 @@ func benchmarkHTTPPerformance() int64 {
 	testDuration := 5 * time.Second
 
 	for time.Since(start) < testDuration {
-
 		// Simulate HTTP request processing.
 
 		operations++
-
 	}
 
 	return operations / int64(testDuration.Seconds())
-
 }
 
 // benchmarkJSONProcessing tests JSON marshaling/unmarshaling performance.
 
 func benchmarkJSONProcessing() int64 {
-
 	// Test data.
 
 	testData := map[string]interface{}{
-
 		"intent": "NetworkIntent",
 
 		"spec": map[string]interface{}{
-
 			"networkFunction": "AMF",
 
 			"parameters": []string{"param1", "param2", "param3"},
 		},
 
 		"metadata": map[string]string{
-
 			"namespace": "default",
 
 			"correlationId": "test-123",
@@ -273,13 +250,10 @@ func benchmarkJSONProcessing() int64 {
 		// Marshal.
 
 		data, err := json.Marshal(testData)
-
 		if err != nil {
-
 			// This is a benchmark, just continue on marshal error.
 
 			continue
-
 		}
 
 		// Unmarshal.
@@ -289,11 +263,9 @@ func benchmarkJSONProcessing() int64 {
 		// FIXME: Adding error check for json.Unmarshal per errcheck linter.
 
 		if err := json.Unmarshal(data, &result); err != nil {
-
 			// In benchmark, continue on error but log it.
 
 			log.Printf("JSON unmarshal error in benchmark: %v", err)
-
 		}
 
 		operations++
@@ -301,13 +273,11 @@ func benchmarkJSONProcessing() int64 {
 	}
 
 	return operations / int64(testDuration.Seconds())
-
 }
 
 // benchmarkCryptographicOperations tests crypto performance.
 
 func benchmarkCryptographicOperations() int64 {
-
 	// Test key and data.
 
 	key := make([]byte, 32)
@@ -315,15 +285,11 @@ func benchmarkCryptographicOperations() int64 {
 	data := make([]byte, 1024)
 
 	for i := range key {
-
 		key[i] = byte(i)
-
 	}
 
 	for i := range data {
-
 		data[i] = byte(i % 256)
-
 	}
 
 	start := time.Now()
@@ -333,23 +299,18 @@ func benchmarkCryptographicOperations() int64 {
 	testDuration := 5 * time.Second
 
 	for time.Since(start) < testDuration {
-
 		// Simulate crypto operations.
 
 		operations++
-
 	}
 
 	return operations / int64(testDuration.Seconds())
-
 }
 
 // loadBaselineMetrics loads baseline performance metrics.
 
 func loadBaselineMetrics() *PerformanceMetrics {
-
 	file, err := os.Open("performance-baseline.json")
-
 	if err != nil {
 
 		fmt.Println("📋 No baseline metrics found, creating new baseline...")
@@ -373,17 +334,13 @@ func loadBaselineMetrics() *PerformanceMetrics {
 	fmt.Printf("📈 Loaded baseline metrics from: %s\n", metrics.Timestamp.Format("2006-01-02 15:04:05"))
 
 	return &metrics
-
 }
 
 // comparePerformance compares current metrics with baseline.
 
 func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceComparison {
-
 	if baseline == nil {
-
 		return &PerformanceComparison{
-
 			Summary: "No baseline available for comparison",
 
 			Timestamp: time.Now(),
@@ -394,13 +351,11 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 
 			OverallGain: 0,
 		}
-
 	}
 
 	fmt.Println("🔍 Comparing performance metrics...")
 
 	results := []ComparisonResult{
-
 		compareMetric("HTTP Requests/sec", float64(baseline.HTTPRequestsPerSec), float64(current.HTTPRequestsPerSec)),
 
 		compareMetric("JSON Operations/sec", float64(baseline.JSONOpsPerSec), float64(current.JSONOpsPerSec)),
@@ -419,7 +374,6 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 	validMetrics := 0
 
 	for _, result := range results {
-
 		if result.Status != "Error" {
 
 			totalImprovement += result.ImprovementPercent
@@ -427,19 +381,15 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 			validMetrics++
 
 		}
-
 	}
 
 	overallGain := 0.0
 
 	if validMetrics > 0 {
-
 		overallGain = totalImprovement / float64(validMetrics)
-
 	}
 
 	return &PerformanceComparison{
-
 		Summary: fmt.Sprintf("Performance comparison between %s and %s", baseline.GoVersion, current.GoVersion),
 
 		Timestamp: time.Now(),
@@ -450,17 +400,13 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 
 		OverallGain: overallGain,
 	}
-
 }
 
 // compareMetric compares individual performance metrics.
 
 func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
-
 	if oldValue == 0 {
-
 		return ComparisonResult{
-
 			Metric: name,
 
 			OldValue: oldValue,
@@ -469,7 +415,6 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 
 			Status: "Error: Division by zero",
 		}
-
 	}
 
 	improvement := ((newValue - oldValue) / oldValue) * 100
@@ -477,13 +422,9 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 	status := "Improved"
 
 	if improvement < 0 {
-
 		status = "Degraded"
-
 	} else if improvement < 1 {
-
 		status = "Unchanged"
-
 	}
 
 	// For metrics where lower is better (like memory usage, duration).
@@ -504,7 +445,6 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 	}
 
 	return ComparisonResult{
-
 		Metric: name,
 
 		OldValue: oldValue,
@@ -515,15 +455,12 @@ func compareMetric(name string, oldValue, newValue float64) ComparisonResult {
 
 		Status: status,
 	}
-
 }
 
 // generateJSONReport creates a JSON performance report.
 
 func generateJSONReport(comparison *PerformanceComparison) {
-
 	file, err := os.Create("performance-comparison.json")
-
 	if err != nil {
 
 		log.Printf("Error creating JSON report: %v", err)
@@ -547,15 +484,12 @@ func generateJSONReport(comparison *PerformanceComparison) {
 	}
 
 	fmt.Println("📄 JSON report generated: performance-comparison.json")
-
 }
 
 // generateTextReport creates a human-readable text report.
 
 func generateTextReport(comparison *PerformanceComparison) {
-
 	file, err := os.Create("performance-comparison.txt")
-
 	if err != nil {
 
 		log.Printf("Error creating text report: %v", err)
@@ -571,83 +505,57 @@ func generateTextReport(comparison *PerformanceComparison) {
 	var writeErr error
 
 	if _, err := fmt.Fprintf(file, "Nephoran Intent Operator - Performance Comparison Report\n"); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "======================================================\n\n"); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "Summary: %s\n", comparison.Summary); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "Timestamp: %s\n", comparison.Timestamp.Format("2006-01-02 15:04:05")); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "Go Version: %s\n", comparison.GoVersion); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "Overall Performance Gain: %.2f%%\n\n", comparison.OverallGain); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "Detailed Results:\n"); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "-----------------\n"); err != nil && writeErr == nil {
-
 		writeErr = err
-
 	}
 
 	for _, result := range comparison.Results {
 
 		if _, err := fmt.Fprintf(file, "Metric: %s\n", result.Metric); err != nil && writeErr == nil {
-
 			writeErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "  Old Value: %.2f\n", result.OldValue); err != nil && writeErr == nil {
-
 			writeErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "  New Value: %.2f\n", result.NewValue); err != nil && writeErr == nil {
-
 			writeErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "  Improvement: %.2f%%\n", result.ImprovementPercent); err != nil && writeErr == nil {
-
 			writeErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "  Status: %s\n\n", result.Status); err != nil && writeErr == nil {
-
 			writeErr = err
-
 		}
 
 	}
@@ -663,15 +571,12 @@ func generateTextReport(comparison *PerformanceComparison) {
 	}
 
 	fmt.Println("📄 Text report generated: performance-comparison.txt")
-
 }
 
 // generateMarkdownReport creates a markdown performance report.
 
 func generateMarkdownReport(comparison *PerformanceComparison) {
-
 	file, err := os.Create("performance-comparison.md")
-
 	if err != nil {
 
 		log.Printf("Error creating markdown report: %v", err)
@@ -687,51 +592,35 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	var mdWriteErr error
 
 	if _, err := fmt.Fprintf(file, "# Nephoran Intent Operator - Performance Comparison Report\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Summary:** %s\n\n", comparison.Summary); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Timestamp:** %s\n\n", comparison.Timestamp.Format("2006-01-02 15:04:05")); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Go Version:** %s\n\n", comparison.GoVersion); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "**Overall Performance Gain:** %.2f%%\n\n", comparison.OverallGain); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "## Performance Metrics\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "| Metric | Old Value | New Value | Improvement | Status |\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "|--------|-----------|-----------|-------------|--------|\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	for _, result := range comparison.Results {
@@ -739,13 +628,9 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 		status := "✅"
 
 		if result.Status == "Degraded" {
-
 			status = "❌"
-
 		} else if result.Status == "Unchanged" {
-
 			status = "🔄"
-
 		}
 
 		if _, err := fmt.Fprintf(file, "| %s | %.2f | %.2f | %.2f%% | %s %s |\n",
@@ -761,89 +646,61 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 			status,
 
 			result.Status); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 	}
 
 	if _, err := fmt.Fprintf(file, "\n## Key Improvements\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if comparison.OverallGain > 0 {
 
 		if _, err := fmt.Fprintf(file, "- **Overall Performance Gain:** %.2f%%\n", comparison.OverallGain); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "- **Go 1.24+ Optimizations:** Successfully applied\n"); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "- **Memory Efficiency:** Improved through advanced memory pools\n"); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "- **HTTP/3 Support:** Enhanced network performance\n"); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 		if _, err := fmt.Fprintf(file, "- **Cryptographic Operations:** Optimized with modern algorithms\n"); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
 
 	} else {
-
 		if _, err := fmt.Fprintf(file, "- Performance analysis indicates potential areas for optimization\n"); err != nil && mdWriteErr == nil {
-
 			mdWriteErr = err
-
 		}
-
 	}
 
 	if _, err := fmt.Fprintf(file, "\n## Next Steps\n\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "1. Monitor production metrics\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "2. Validate improvements in real-world scenarios\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "3. Continue optimization efforts\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	if _, err := fmt.Fprintf(file, "4. Update performance baselines\n"); err != nil && mdWriteErr == nil {
-
 		mdWriteErr = err
-
 	}
 
 	// Check for any write errors in markdown generation.
@@ -857,15 +714,12 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	}
 
 	fmt.Println("📄 Markdown report generated: performance-comparison.md")
-
 }
 
 // saveMetricsAsBaseline saves current metrics as new baseline.
 
 func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
-
 	file, err := os.Create("performance-baseline.json")
-
 	if err != nil {
 
 		log.Printf("Error saving baseline metrics: %v", err)
@@ -889,5 +743,4 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 	}
 
 	fmt.Println("💾 Current metrics saved as new baseline")
-
 }

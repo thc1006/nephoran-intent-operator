@@ -39,9 +39,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 	})
 
 	Context("Complete NetworkIntent Workflow", func() {
-		var (
-			networkIntentReconciler *NetworkIntentReconciler
-		)
+		var networkIntentReconciler *NetworkIntentReconciler
 
 		BeforeEach(func() {
 			By("Setting up NetworkIntent reconciler for integration testing")
@@ -206,9 +204,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 	})
 
 	Context("Complete E2NodeSet Workflow", func() {
-		var (
-			e2nodeSetReconciler *E2NodeSetReconciler
-		)
+		var e2nodeSetReconciler *E2NodeSetReconciler
 
 		BeforeEach(func() {
 			By("Setting up E2NodeSet reconciler for integration testing")

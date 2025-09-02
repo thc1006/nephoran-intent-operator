@@ -37,7 +37,6 @@ import (
 // RANFunction defines a RAN function supported by E2 nodes.
 
 type RANFunction struct {
-
 	// FunctionID is the unique identifier for the RAN function (0-4095).
 
 	// +kubebuilder:validation:Minimum=0
@@ -70,7 +69,6 @@ type RANFunction struct {
 // E2NodeSpec defines the specification for an individual E2 node.
 
 type E2NodeSpec struct {
-
 	// NodeID is the unique identifier for the E2 node.
 
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`
@@ -95,7 +93,6 @@ type E2NodeSpec struct {
 // E2NodeTemplate defines the template for creating E2 nodes.
 
 type E2NodeTemplate struct {
-
 	// Metadata for the E2 node template.
 
 	// +optional
@@ -135,7 +132,6 @@ const (
 // SimulationConfig defines configuration for E2 node simulation.
 
 type SimulationConfig struct {
-
 	// UECount specifies the number of UEs to simulate per E2 node.
 
 	// +kubebuilder:validation:Minimum=1
@@ -170,7 +166,6 @@ type SimulationConfig struct {
 // RetryConfig defines retry configuration for RIC connections.
 
 type RetryConfig struct {
-
 	// MaxAttempts specifies the maximum number of retry attempts.
 
 	// +kubebuilder:validation:Minimum=1
@@ -193,7 +188,6 @@ type RetryConfig struct {
 // RICConfiguration defines configuration for RIC connectivity.
 
 type RICConfiguration struct {
-
 	// RICEndpoint specifies the RIC endpoint URL.
 
 	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9-]+:[0-9]+$`
@@ -228,7 +222,6 @@ type RICConfiguration struct {
 // E2NodeSetSpec defines the desired state of E2NodeSet.
 
 type E2NodeSetSpec struct {
-
 	// Replicas is the number of simulated E2 Nodes to run.
 
 	// +kubebuilder:validation:Minimum=0
@@ -304,7 +297,6 @@ const (
 // E2NodeStatus represents the status of an individual E2 node.
 
 type E2NodeStatus struct {
-
 	// NodeID is the identifier of the E2 node.
 
 	NodeID string `json:"nodeID"`
@@ -360,7 +352,6 @@ const (
 // E2NodeSetCondition represents a condition of the E2NodeSet.
 
 type E2NodeSetCondition struct {
-
 	// Type of the condition.
 
 	Type E2NodeSetConditionType `json:"type"`
@@ -428,7 +419,6 @@ const (
 // E2NodeSetStatus defines the observed state of E2NodeSet.
 
 type E2NodeSetStatus struct {
-
 	// Phase represents the current phase of the E2NodeSet lifecycle.
 
 	// +optional
@@ -531,7 +521,5 @@ type E2NodeSetList struct {
 }
 
 func init() {
-
 	SchemeBuilder.Register(&E2NodeSet{}, &E2NodeSetList{})
-
 }

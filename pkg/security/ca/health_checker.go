@@ -217,17 +217,13 @@ type TLSCheckInfo struct {
 // NewHealthChecker creates a new health checker.
 
 func NewHealthChecker(
-
 	logger *logging.StructuredLogger,
 
 	config *HealthCheckerConfig,
-
 ) *HealthChecker {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &HealthChecker{
-
 		logger: logger,
 
 		config: config,
@@ -238,13 +234,11 @@ func NewHealthChecker(
 
 		cancel: cancel,
 	}
-
 }
 
 // Start starts the health checker.
 
 func (hc *HealthChecker) Start(ctx context.Context) error {
-
 	if !hc.config.Enabled {
 
 		hc.logger.Info("health checker is disabled")
@@ -284,41 +278,32 @@ func (hc *HealthChecker) Start(ctx context.Context) error {
 	hc.wg.Wait()
 
 	return nil
-
 }
 
 // Stop stops the health checker.
 
 func (hc *HealthChecker) Stop() {
-
 	hc.logger.Info("stopping health checker")
 
 	hc.cancel()
 
 	hc.wg.Wait()
-
 }
 
 // StartHealthCheck starts a new health check session.
 
 func (hc *HealthChecker) StartHealthCheck(
-
 	target *HealthCheckTarget,
 
 	config *HealthCheckConfig,
-
 ) (*HealthCheckSession, error) {
-
 	if !hc.config.Enabled {
-
 		return nil, fmt.Errorf("health checker is disabled")
-
 	}
 
 	sessionID := fmt.Sprintf("hc-%s-%d", target.Name, time.Now().Unix())
 
 	session := &HealthCheckSession{
-
 		ID: sessionID,
 
 		Type: hc.determineCheckType(target),
@@ -351,17 +336,14 @@ func (hc *HealthChecker) StartHealthCheck(
 		"address", fmt.Sprintf("%s:%d", target.Address, target.Port))
 
 	return session, nil
-
 }
 
 // PerformHealthCheck performs a single health check.
 
 func (hc *HealthChecker) PerformHealthCheck(session *HealthCheckSession) (*HealthCheckResult, error) {
-
 	startTime := time.Now()
 
 	result := &HealthCheckResult{
-
 		Timestamp: startTime,
 
 		Metadata: make(map[string]string),
@@ -398,9 +380,7 @@ func (hc *HealthChecker) PerformHealthCheck(session *HealthCheckSession) (*Healt
 	result.Success = err == nil
 
 	if err != nil {
-
 		result.ErrorMessage = err.Error()
-
 	}
 
 	// Update session.
@@ -414,13 +394,9 @@ func (hc *HealthChecker) PerformHealthCheck(session *HealthCheckSession) (*Healt
 	session.TotalChecks++
 
 	if result.Success {
-
 		session.SuccessCount++
-
 	} else {
-
 		session.FailureCount++
-
 	}
 
 	// Determine overall health status.
@@ -440,23 +416,17 @@ func (hc *HealthChecker) PerformHealthCheck(session *HealthCheckSession) (*Healt
 		"status", session.Status)
 
 	return result, err
-
 }
 
 // PerformContinuousHealthCheck performs continuous health checking.
 
 func (hc *HealthChecker) PerformContinuousHealthCheck(
-
 	session *HealthCheckSession,
 
 	duration time.Duration,
-
 ) error {
-
 	if session.Config == nil {
-
 		return fmt.Errorf("health check config is required")
-
 	}
 
 	timeout := time.After(duration)
@@ -464,9 +434,7 @@ func (hc *HealthChecker) PerformContinuousHealthCheck(
 	interval := session.Config.Interval
 
 	if interval == 0 {
-
 		interval = hc.config.DefaultInterval
-
 	}
 
 	ticker := time.NewTicker(interval)
@@ -482,7 +450,6 @@ func (hc *HealthChecker) PerformContinuousHealthCheck(
 		"interval", interval)
 
 	for {
-
 		select {
 
 		case <-hc.ctx.Done():
@@ -504,37 +471,27 @@ func (hc *HealthChecker) PerformContinuousHealthCheck(
 		case <-ticker.C:
 
 			_, err := hc.PerformHealthCheck(session)
-
 			if err != nil {
-
 				hc.logger.Debug("health check failed",
 
 					"session_id", session.ID,
 
 					"error", err)
-
 			}
 
 		}
-
 	}
-
 }
 
 // performHTTPCheck performs HTTP/HTTPS health check.
 
 func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-
 	var scheme string
 
 	if session.Type == HealthCheckTypeHTTPS {
-
 		scheme = "https"
-
 	} else {
-
 		scheme = "http"
-
 	}
 
 	url := fmt.Sprintf("%s://%s:%d%s", scheme, session.Target.Address, session.Target.Port, session.Target.Path)
@@ -544,13 +501,10 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 	timeout := hc.config.DefaultTimeout
 
 	if session.Config != nil && session.Config.Timeout > 0 {
-
 		timeout = session.Config.Timeout
-
 	}
 
 	client := &http.Client{
-
 		Timeout: timeout,
 	}
 
@@ -559,18 +513,14 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 	if session.Type == HealthCheckTypeHTTPS {
 
 		tlsConfig := &tls.Config{
-
 			InsecureSkipVerify: !hc.config.TLSVerificationEnabled,
 		}
 
 		if session.Target.TLSConfig != nil && session.Target.TLSConfig.VerifyCertificate {
-
 			tlsConfig.InsecureSkipVerify = false
-
 		}
 
 		client.Transport = &http.Transport{
-
 			TLSClientConfig: tlsConfig,
 		}
 
@@ -579,29 +529,21 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 	// Create request.
 
 	req, err := http.NewRequestWithContext(hc.ctx, "GET", url, http.NoBody)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to create request: %w", err)
-
 	}
 
 	// Add headers.
 
 	for key, value := range session.Target.Headers {
-
 		req.Header.Set(key, value)
-
 	}
 
 	// Perform request.
 
 	resp, err := client.Do(req)
-
 	if err != nil {
-
 		return fmt.Errorf("request failed: %w", err)
-
 	}
 
 	defer resp.Body.Close()
@@ -623,9 +565,7 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 		// Perform TLS-specific checks.
 
 		if err := hc.validateTLSInfo(tlsInfo, session.Target.TLSConfig); err != nil {
-
 			return fmt.Errorf("TLS validation failed: %w", err)
-
 		}
 
 	}
@@ -633,27 +573,21 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 	// Check status code.
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-
 		return fmt.Errorf("unhealthy status code: %d", resp.StatusCode)
-
 	}
 
 	return nil
-
 }
 
 // performGRPCCheck performs gRPC health check.
 
 func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
 
 	timeout := hc.config.DefaultTimeout
 
 	if session.Config != nil && session.Config.Timeout > 0 {
-
 		timeout = session.Config.Timeout
-
 	}
 
 	// Create connection.
@@ -661,11 +595,8 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 	conn, err := grpc.NewClient(address,
 
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
-
 	if err != nil {
-
 		return fmt.Errorf("failed to connect: %w", err)
-
 	}
 
 	defer conn.Close()
@@ -683,20 +614,14 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 	serviceName := ""
 
 	if session.Target.GRPCService != "" {
-
 		serviceName = session.Target.GRPCService
-
 	}
 
 	resp, err := client.Check(checkCtx, &grpc_health_v1.HealthCheckRequest{
-
 		Service: serviceName,
 	})
-
 	if err != nil {
-
 		return fmt.Errorf("health check failed: %w", err)
-
 	}
 
 	result.Metadata["grpc_service"] = serviceName
@@ -704,35 +629,26 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 	result.Metadata["grpc_status"] = resp.Status.String()
 
 	if resp.Status != grpc_health_v1.HealthCheckResponse_SERVING {
-
 		return fmt.Errorf("service not serving: %s", resp.Status)
-
 	}
 
 	return nil
-
 }
 
 // performTCPCheck performs TCP connectivity check.
 
 func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
 
 	timeout := hc.config.DefaultTimeout
 
 	if session.Config != nil && session.Config.Timeout > 0 {
-
 		timeout = session.Config.Timeout
-
 	}
 
 	conn, err := net.DialTimeout("tcp", address, timeout)
-
 	if err != nil {
-
 		return fmt.Errorf("TCP connection failed: %w", err)
-
 	}
 
 	defer conn.Close()
@@ -742,29 +658,22 @@ func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *He
 	result.Metadata["address"] = address
 
 	return nil
-
 }
 
 // performUDPCheck performs UDP connectivity check.
 
 func (hc *HealthChecker) performUDPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
-
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
 
 	timeout := hc.config.DefaultTimeout
 
 	if session.Config != nil && session.Config.Timeout > 0 {
-
 		timeout = session.Config.Timeout
-
 	}
 
 	conn, err := net.DialTimeout("udp", address, timeout)
-
 	if err != nil {
-
 		return fmt.Errorf("UDP connection failed: %w", err)
-
 	}
 
 	defer conn.Close()
@@ -774,15 +683,12 @@ func (hc *HealthChecker) performUDPCheck(session *HealthCheckSession, result *He
 	result.Metadata["address"] = address
 
 	return nil
-
 }
 
 // extractTLSInfo extracts TLS information from connection state.
 
 func (hc *HealthChecker) extractTLSInfo(connState *tls.ConnectionState, tlsConfig *TLSCheckConfig) *TLSCheckInfo {
-
 	info := &TLSCheckInfo{
-
 		Version: hc.tlsVersionString(connState.Version),
 
 		CipherSuite: tls.CipherSuiteName(connState.CipherSuite),
@@ -809,15 +715,11 @@ func (hc *HealthChecker) extractTLSInfo(connState *tls.ConnectionState, tlsConfi
 			threshold := tlsConfig.ExpiryThreshold
 
 			if threshold == 0 {
-
 				threshold = 30 * 24 * time.Hour // Default 30 days
-
 			}
 
 			if time.Until(cert.NotAfter) < threshold {
-
 				info.ExpiresWithin = time.Until(cert.NotAfter)
-
 			}
 
 		}
@@ -825,25 +727,19 @@ func (hc *HealthChecker) extractTLSInfo(connState *tls.ConnectionState, tlsConfi
 	}
 
 	return info
-
 }
 
 // validateTLSInfo validates TLS information against configuration.
 
 func (hc *HealthChecker) validateTLSInfo(tlsInfo *TLSCheckInfo, tlsConfig *TLSCheckConfig) error {
-
 	if tlsConfig == nil {
-
 		return nil
-
 	}
 
 	// Check certificate expiry.
 
 	if tlsConfig.ExpiresSoon && tlsInfo.ExpiresWithin > 0 {
-
 		return fmt.Errorf("certificate expires in %v", tlsInfo.ExpiresWithin)
-
 	}
 
 	// Check allowed SANs.
@@ -855,7 +751,6 @@ func (hc *HealthChecker) validateTLSInfo(tlsInfo *TLSCheckInfo, tlsConfig *TLSCh
 		for _, allowedSAN := range tlsConfig.AllowedSANs {
 
 			for _, certSAN := range tlsInfo.SANs {
-
 				if allowedSAN == certSAN {
 
 					foundValidSAN = true
@@ -863,79 +758,60 @@ func (hc *HealthChecker) validateTLSInfo(tlsInfo *TLSCheckInfo, tlsConfig *TLSCh
 					break
 
 				}
-
 			}
 
 			if foundValidSAN {
-
 				break
-
 			}
 
 		}
 
 		if !foundValidSAN {
-
 			return fmt.Errorf("certificate SANs do not match allowed values")
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // determineCheckType determines the appropriate check type for a target.
 
 func (hc *HealthChecker) determineCheckType(target *HealthCheckTarget) HealthCheckType {
-
 	// Check if gRPC service is specified.
 
 	if target.GRPCService != "" {
-
 		return HealthCheckTypeGRPC
-
 	}
 
 	// Check common HTTPS ports.
 
 	if target.Port == 443 || target.Port == 8443 {
-
 		return HealthCheckTypeHTTPS
-
 	}
 
 	// Check common HTTP ports.
 
 	if target.Port == 80 || target.Port == 8080 || target.Port == 3000 {
-
 		return HealthCheckTypeHTTP
-
 	}
 
 	// If path is specified, assume HTTP.
 
 	if target.Path != "" {
-
 		return HealthCheckTypeHTTP
-
 	}
 
 	// Default to TCP.
 
 	return HealthCheckTypeTCP
-
 }
 
 // determineHealthStatus determines the overall health status for a session.
 
 func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) HealthCheckStatus {
-
 	if session.TotalChecks == 0 {
-
 		return HealthCheckStatusUnknown
-
 	}
 
 	_ = hc.calculateSuccessRate(session) // successRate for future use
@@ -953,27 +829,19 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 	recentChecks := 10
 
 	if len(session.Results) < recentChecks {
-
 		recentChecks = len(session.Results)
-
 	}
 
 	if recentChecks == 0 {
-
 		return HealthCheckStatusUnknown
-
 	}
 
 	recentSuccess := 0
 
 	for i := len(session.Results) - recentChecks; i < len(session.Results); i++ {
-
 		if session.Results[i].Success {
-
 			recentSuccess++
-
 		}
-
 	}
 
 	recentSuccessRate := float64(recentSuccess) / float64(recentChecks)
@@ -981,37 +849,27 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 	if recentSuccessRate >= 0.8 { // 80% success rate
 
 		return HealthCheckStatusHealthy
-
 	} else if recentSuccessRate >= 0.5 { // 50% success rate
 
 		return HealthCheckStatusDegraded
-
 	} else {
-
 		return HealthCheckStatusUnhealthy
-
 	}
-
 }
 
 // calculateSuccessRate calculates the success rate for a session.
 
 func (hc *HealthChecker) calculateSuccessRate(session *HealthCheckSession) float64 {
-
 	if session.TotalChecks == 0 {
-
 		return 0.0
-
 	}
 
 	return float64(session.SuccessCount) / float64(session.TotalChecks)
-
 }
 
 // GetHealthCheckSession gets a health check session.
 
 func (hc *HealthChecker) GetHealthCheckSession(sessionID string) (*HealthCheckSession, bool) {
-
 	hc.mu.RLock()
 
 	defer hc.mu.RUnlock()
@@ -1019,13 +877,11 @@ func (hc *HealthChecker) GetHealthCheckSession(sessionID string) (*HealthCheckSe
 	session, exists := hc.activeChecks[sessionID]
 
 	return session, exists
-
 }
 
 // GetActiveHealthCheckSessions returns all active health check sessions.
 
 func (hc *HealthChecker) GetActiveHealthCheckSessions() []*HealthCheckSession {
-
 	hc.mu.RLock()
 
 	defer hc.mu.RUnlock()
@@ -1033,19 +889,15 @@ func (hc *HealthChecker) GetActiveHealthCheckSessions() []*HealthCheckSession {
 	sessions := make([]*HealthCheckSession, 0, len(hc.activeChecks))
 
 	for _, session := range hc.activeChecks {
-
 		sessions = append(sessions, session)
-
 	}
 
 	return sessions
-
 }
 
 // Background processes.
 
 func (hc *HealthChecker) runMetricsCollector() {
-
 	defer hc.wg.Done()
 
 	ticker := time.NewTicker(1 * time.Minute)
@@ -1053,7 +905,6 @@ func (hc *HealthChecker) runMetricsCollector() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-hc.ctx.Done():
@@ -1065,13 +916,10 @@ func (hc *HealthChecker) runMetricsCollector() {
 			hc.collectMetrics()
 
 		}
-
 	}
-
 }
 
 func (hc *HealthChecker) collectMetrics() {
-
 	hc.mu.RLock()
 
 	activeCount := len(hc.activeChecks)
@@ -1081,11 +929,9 @@ func (hc *HealthChecker) collectMetrics() {
 	hc.logger.Debug("health check metrics",
 
 		"active_sessions", activeCount)
-
 }
 
 func (hc *HealthChecker) runSessionCleanup() {
-
 	defer hc.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Minute)
@@ -1093,7 +939,6 @@ func (hc *HealthChecker) runSessionCleanup() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-hc.ctx.Done():
@@ -1105,13 +950,10 @@ func (hc *HealthChecker) runSessionCleanup() {
 			hc.cleanupSessions()
 
 		}
-
 	}
-
 }
 
 func (hc *HealthChecker) cleanupSessions() {
-
 	cutoff := time.Now().Add(-1 * time.Hour) // Keep sessions for 1 hour
 
 	hc.mu.Lock()
@@ -1119,7 +961,6 @@ func (hc *HealthChecker) cleanupSessions() {
 	defer hc.mu.Unlock()
 
 	for sessionID, session := range hc.activeChecks {
-
 		if session.LastCheckTime.Before(cutoff) {
 
 			delete(hc.activeChecks, sessionID)
@@ -1129,15 +970,12 @@ func (hc *HealthChecker) cleanupSessions() {
 				"session_id", sessionID)
 
 		}
-
 	}
-
 }
 
 // Helper methods.
 
 func (hc *HealthChecker) tlsVersionString(version uint16) string {
-
 	switch version {
 
 	case tls.VersionTLS10:
@@ -1161,5 +999,4 @@ func (hc *HealthChecker) tlsVersionString(version uint16) string {
 		return "Unknown"
 
 	}
-
 }

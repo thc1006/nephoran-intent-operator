@@ -57,7 +57,6 @@ type ORANInterfaceConfigFunction struct {
 // ORANInterfaceConfig defines the configuration structure for O-RAN interfaces.
 
 type ORANInterfaceConfig struct {
-
 	// Interface specifications.
 
 	Interfaces []*ORANInterface `json:"interfaces" yaml:"interfaces"`
@@ -86,7 +85,6 @@ type ORANInterfaceConfig struct {
 // ORANInterface defines a single O-RAN interface configuration.
 
 type ORANInterface struct {
-
 	// Basic properties.
 
 	Name string `json:"name" yaml:"name"`
@@ -278,7 +276,6 @@ type AuthorizationConfig struct {
 	Policies []AuthPolicy `json:"policies,omitempty" yaml:"policies,omitempty"`
 
 	DefaultAction string `json:"defaultAction,omitempty" yaml:"defaultAction,omitempty"` // allow, deny
-
 }
 
 // AuthPolicy defines an authorization policy.
@@ -289,7 +286,6 @@ type AuthPolicy struct {
 	Rules []AuthRule `json:"rules,omitempty" yaml:"rules,omitempty"`
 
 	Effect string `json:"effect" yaml:"effect"` // allow, deny
-
 }
 
 // AuthRule defines an authorization rule.
@@ -319,7 +315,6 @@ type EncryptionConfig struct {
 // A1InterfaceConfig defines A1 interface specific configuration.
 
 type A1InterfaceConfig struct {
-
 	// Policy Type Management.
 
 	PolicyTypes []*PolicyTypeConfig `json:"policyTypes,omitempty" yaml:"policyTypes,omitempty"`
@@ -416,7 +411,6 @@ type A1ConsumerConfig struct {
 // O1InterfaceConfig defines O1 interface specific configuration.
 
 type O1InterfaceConfig struct {
-
 	// FCAPS Management.
 
 	FaultManagement *FaultManagementConfig `json:"faultManagement,omitempty" yaml:"faultManagement,omitempty"`
@@ -574,7 +568,6 @@ type ThresholdConfig struct {
 	CriticalThreshold float64 `json:"criticalThreshold,omitempty" yaml:"criticalThreshold,omitempty"`
 
 	Direction string `json:"direction,omitempty" yaml:"direction,omitempty"` // up, down
-
 }
 
 // SecurityManagementConfig defines security management.
@@ -615,7 +608,6 @@ type AccessControlRule struct {
 	Action string `json:"action" yaml:"action"`
 
 	Permission string `json:"permission" yaml:"permission"` // allow, deny
-
 }
 
 // AuditLoggingConfig defines audit logging configuration.
@@ -659,7 +651,6 @@ type YANGModelConfig struct {
 // O2InterfaceConfig defines O2 interface specific configuration.
 
 type O2InterfaceConfig struct {
-
 	// Infrastructure Management Service.
 
 	IMS *IMSConfig `json:"ims,omitempty" yaml:"ims,omitempty"`
@@ -756,7 +747,6 @@ type CloudProviderConfig struct {
 // E2InterfaceConfig defines E2 interface specific configuration.
 
 type E2InterfaceConfig struct {
-
 	// E2 Node configuration.
 
 	E2Nodes []*E2NodeConfig `json:"e2Nodes,omitempty" yaml:"e2Nodes,omitempty"`
@@ -1359,18 +1349,14 @@ type XAppResources struct {
 // NewORANInterfaceConfigFunction creates a new O-RAN interface configuration function.
 
 func NewORANInterfaceConfigFunction() *ORANInterfaceConfigFunction {
-
 	return &ORANInterfaceConfigFunction{
-
 		tracer: otel.Tracer("oran-interface-config-function"),
 	}
-
 }
 
 // Execute implements the KRM function for O-RAN interface configuration.
 
 func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []porch.KRMResource, config map[string]interface{}) ([]porch.KRMResource, []*porch.FunctionResult, error) {
-
 	ctx, span := f.tracer.Start(ctx, "oran-interface-config-execute")
 
 	defer span.End()
@@ -1385,7 +1371,6 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	// Parse configuration.
 
 	oranConfig, err := f.parseConfig(config)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -1411,7 +1396,6 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	// Process existing resources.
 
 	processedResources, results, err := f.processResources(ctx, resources, oranConfig)
-
 	if err != nil {
 
 		span.RecordError(err)
@@ -1459,57 +1443,42 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	)
 
 	return processedResources, results, nil
-
 }
 
 // parseConfig parses the function configuration into ORANInterfaceConfig.
 
 func (f *ORANInterfaceConfigFunction) parseConfig(config map[string]interface{}) (*ORANInterfaceConfig, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("configuration is required")
-
 	}
 
 	// Convert to JSON and back to struct for type safety.
 
 	configJSON, err := json.Marshal(config)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal config: %w", err)
-
 	}
 
 	var oranConfig ORANInterfaceConfig
 
 	if err := json.Unmarshal(configJSON, &oranConfig); err != nil {
-
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-
 	}
 
 	// Validate configuration.
 
 	if err := f.validateConfig(&oranConfig); err != nil {
-
 		return nil, fmt.Errorf("config validation failed: %w", err)
-
 	}
 
 	return &oranConfig, nil
-
 }
 
 // validateConfig validates the O-RAN interface configuration.
 
 func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig) error {
-
 	if len(config.Interfaces) == 0 {
-
 		return fmt.Errorf("at least one interface configuration is required")
-
 	}
 
 	// Validate each interface.
@@ -1517,15 +1486,11 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 	for i, iface := range config.Interfaces {
 
 		if iface.Name == "" {
-
 			return fmt.Errorf("interface %d: name is required", i)
-
 		}
 
 		if iface.Type == "" {
-
 			return fmt.Errorf("interface %d: type is required", i)
-
 		}
 
 		// Validate interface type.
@@ -1535,7 +1500,6 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 		validType := false
 
 		for _, validIfaceType := range validTypes {
-
 			if iface.Type == validIfaceType {
 
 				validType = true
@@ -1543,13 +1507,10 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 				break
 
 			}
-
 		}
 
 		if !validType {
-
 			return fmt.Errorf("interface %d: invalid type %s, must be one of: %v", i, iface.Type, validTypes)
-
 		}
 
 		// Validate type-specific configuration.
@@ -1559,33 +1520,25 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 		case "A1":
 
 			if iface.A1Config == nil {
-
 				return fmt.Errorf("interface %d: A1 configuration is required for A1 interface", i)
-
 			}
 
 		case "O1":
 
 			if iface.O1Config == nil {
-
 				return fmt.Errorf("interface %d: O1 configuration is required for O1 interface", i)
-
 			}
 
 		case "O2":
 
 			if iface.O2Config == nil {
-
 				return fmt.Errorf("interface %d: O2 configuration is required for O2 interface", i)
-
 			}
 
 		case "E2":
 
 			if iface.E2Config == nil {
-
 				return fmt.Errorf("interface %d: E2 configuration is required for E2 interface", i)
-
 			}
 
 		}
@@ -1593,19 +1546,16 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 	}
 
 	return nil
-
 }
 
 // processResources processes existing resources based on O-RAN interface configuration.
 
 func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, resources []porch.KRMResource, config *ORANInterfaceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
-
 	var processedResources []porch.KRMResource
 
 	var results []*porch.FunctionResult
 
 	for i, resource := range resources {
-
 		// Process based on resource type.
 
 		switch {
@@ -1617,9 +1567,7 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		case resource.Kind == "Service":
@@ -1629,9 +1577,7 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		case resource.Kind == "ConfigMap":
@@ -1641,9 +1587,7 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		case resource.Kind == "Secret":
@@ -1653,9 +1597,7 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 			processedResources = append(processedResources, processed)
 
 			if result != nil {
-
 				results = append(results, result)
-
 			}
 
 		default:
@@ -1665,24 +1607,20 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 			processedResources = append(processedResources, resource)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Resource %d passed through unchanged", i),
 
 				Severity: "info",
 			})
 
 		}
-
 	}
 
 	return processedResources, results, nil
-
 }
 
 // processDeployment configures Deployment resources for O-RAN interfaces.
 
 func (f *ORANInterfaceConfigFunction) processDeployment(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add O-RAN interface labels and annotations.
 
 	f.addORANLabelsAndAnnotations(&resource, config)
@@ -1696,18 +1634,15 @@ func (f *ORANInterfaceConfigFunction) processDeployment(resource porch.KRMResour
 	f.configureORANPorts(&resource, config)
 
 	return resource, &porch.FunctionResult{
-
 		Message: "Configured Deployment for O-RAN interfaces",
 
 		Severity: "info",
 	}
-
 }
 
 // processService configures Service resources for O-RAN interfaces.
 
 func (f *ORANInterfaceConfigFunction) processService(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add O-RAN interface labels and annotations.
 
 	f.addORANLabelsAndAnnotations(&resource, config)
@@ -1717,24 +1652,19 @@ func (f *ORANInterfaceConfigFunction) processService(resource porch.KRMResource,
 	f.configureServicePorts(&resource, config)
 
 	return resource, &porch.FunctionResult{
-
 		Message: "Configured Service for O-RAN interfaces",
 
 		Severity: "info",
 	}
-
 }
 
 // processConfigMap configures ConfigMap resources for O-RAN interfaces.
 
 func (f *ORANInterfaceConfigFunction) processConfigMap(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add O-RAN interface configuration to ConfigMap.
 
 	if resource.Data == nil {
-
 		resource.Data = make(map[string]interface{})
-
 	}
 
 	// Add interface configurations.
@@ -1768,63 +1698,49 @@ func (f *ORANInterfaceConfigFunction) processConfigMap(resource porch.KRMResourc
 	}
 
 	return resource, &porch.FunctionResult{
-
 		Message: "Configured ConfigMap for O-RAN interfaces",
 
 		Severity: "info",
 	}
-
 }
 
 // processSecret configures Secret resources for O-RAN interface security.
 
 func (f *ORANInterfaceConfigFunction) processSecret(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-
 	// Add O-RAN interface security configurations.
 
 	if resource.Data == nil {
-
 		resource.Data = make(map[string]interface{})
-
 	}
 
 	// Add security configurations for interfaces that require them.
 
 	for _, iface := range config.Interfaces {
-
 		if iface.Security != nil && iface.Security.TLS != nil && iface.Security.TLS.Enabled {
 
 			// Add TLS certificate references.
 
 			if iface.Security.TLS.CertificateRef != "" {
-
 				resource.Data[fmt.Sprintf("%s-tls-cert", iface.Name)] = iface.Security.TLS.CertificateRef
-
 			}
 
 			if iface.Security.TLS.KeyRef != "" {
-
 				resource.Data[fmt.Sprintf("%s-tls-key", iface.Name)] = iface.Security.TLS.KeyRef
-
 			}
 
 		}
-
 	}
 
 	return resource, &porch.FunctionResult{
-
 		Message: "Configured Secret for O-RAN interface security",
 
 		Severity: "info",
 	}
-
 }
 
 // generateInterfaceResources generates additional resources for O-RAN interfaces.
 
 func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Context, config *ORANInterfaceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
-
 	var resources []porch.KRMResource
 
 	var results []*porch.FunctionResult
@@ -1832,7 +1748,6 @@ func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Con
 	// Generate resources for each interface.
 
 	for _, iface := range config.Interfaces {
-
 		switch iface.Type {
 
 		case "A1":
@@ -1868,7 +1783,6 @@ func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Con
 			results = append(results, ifaceResults...)
 
 		}
-
 	}
 
 	// Generate ServiceMonitor for monitoring.
@@ -1880,7 +1794,6 @@ func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Con
 		resources = append(resources, monitor)
 
 		results = append(results, &porch.FunctionResult{
-
 			Message: "Generated ServiceMonitor for O-RAN interfaces",
 
 			Severity: "info",
@@ -1889,25 +1802,19 @@ func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Con
 	}
 
 	return resources, results, nil
-
 }
 
 // Helper methods for resource configuration.
 
 func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-
 	// Add labels.
 
 	if resource.Metadata == nil {
-
 		resource.Metadata = make(map[string]interface{})
-
 	}
 
 	if resource.Metadata["labels"] == nil {
-
 		resource.Metadata["labels"] = make(map[string]interface{})
-
 	}
 
 	labels := resource.Metadata["labels"].(map[string]interface{})
@@ -1921,9 +1828,7 @@ func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porc
 	var interfaceTypes []string
 
 	for _, iface := range config.Interfaces {
-
 		interfaceTypes = append(interfaceTypes, iface.Type)
-
 	}
 
 	labels["nephoran.com/oran-interfaces"] = strings.Join(interfaceTypes, ",")
@@ -1931,9 +1836,7 @@ func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porc
 	// Add annotations.
 
 	if resource.Metadata["annotations"] == nil {
-
 		resource.Metadata["annotations"] = make(map[string]interface{})
-
 	}
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
@@ -1949,33 +1852,23 @@ func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porc
 		annotations["nephoran.com/oran-version"] = config.Compliance.Version
 
 	}
-
 }
 
 func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-
 	// Configure environment variables in deployment containers.
 
 	if resource.Spec == nil {
-
 		return
-
 	}
 
 	if template, ok := resource.Spec["template"].(map[string]interface{}); ok {
-
 		if spec, ok := template["spec"].(map[string]interface{}); ok {
-
 			if containers, ok := spec["containers"].([]interface{}); ok {
-
 				for _, container := range containers {
-
 					if containerMap, ok := container.(map[string]interface{}); ok {
 
 						if containerMap["env"] == nil {
-
 							containerMap["env"] = []interface{}{}
-
 						}
 
 						envVars := containerMap["env"].([]interface{})
@@ -1985,7 +1878,6 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 						for _, iface := range config.Interfaces {
 
 							envVar := map[string]interface{}{
-
 								"name": fmt.Sprintf("ORAN_%s_ENABLED", iface.Type),
 
 								"value": fmt.Sprintf("%t", iface.Enabled),
@@ -1996,7 +1888,6 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 							if iface.Endpoint != nil {
 
 								envVar = map[string]interface{}{
-
 									"name": fmt.Sprintf("ORAN_%s_ENDPOINT", iface.Type),
 
 									"value": iface.Endpoint.URL,
@@ -2011,41 +1902,27 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 						containerMap["env"] = envVars
 
 					}
-
 				}
-
 			}
-
 		}
-
 	}
-
 }
 
 func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-
 	// Configure container ports in deployment.
 
 	if resource.Spec == nil {
-
 		return
-
 	}
 
 	if template, ok := resource.Spec["template"].(map[string]interface{}); ok {
-
 		if spec, ok := template["spec"].(map[string]interface{}); ok {
-
 			if containers, ok := spec["containers"].([]interface{}); ok {
-
 				for _, container := range containers {
-
 					if containerMap, ok := container.(map[string]interface{}); ok {
 
 						if containerMap["ports"] == nil {
-
 							containerMap["ports"] = []interface{}{}
-
 						}
 
 						ports := containerMap["ports"].([]interface{})
@@ -2053,11 +1930,9 @@ func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMReso
 						// Add ports for each interface.
 
 						for _, iface := range config.Interfaces {
-
 							if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 
 								port := map[string]interface{}{
-
 									"name": fmt.Sprintf("%s-port", strings.ToLower(iface.Name)),
 
 									"containerPort": iface.Endpoint.Port,
@@ -2066,45 +1941,32 @@ func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMReso
 								}
 
 								if iface.Protocol != nil {
-
 									port["protocol"] = strings.ToUpper(iface.Protocol.Type)
-
 								}
 
 								ports = append(ports, port)
 
 							}
-
 						}
 
 						containerMap["ports"] = ports
 
 					}
-
 				}
-
 			}
-
 		}
-
 	}
-
 }
 
 func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-
 	// Configure service ports.
 
 	if resource.Spec == nil {
-
 		resource.Spec = make(map[string]interface{})
-
 	}
 
 	if resource.Spec["ports"] == nil {
-
 		resource.Spec["ports"] = []interface{}{}
-
 	}
 
 	ports := resource.Spec["ports"].([]interface{})
@@ -2112,11 +1974,9 @@ func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMR
 	// Add ports for each interface.
 
 	for _, iface := range config.Interfaces {
-
 		if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 
 			port := map[string]interface{}{
-
 				"name": fmt.Sprintf("%s-port", strings.ToLower(iface.Name)),
 
 				"port": iface.Endpoint.Port,
@@ -2127,49 +1987,40 @@ func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMR
 			}
 
 			if iface.Protocol != nil {
-
 				port["protocol"] = strings.ToUpper(iface.Protocol.Type)
-
 			}
 
 			ports = append(ports, port)
 
 		}
-
 	}
 
 	resource.Spec["ports"] = ports
-
 }
 
 // Interface-specific resource generation methods.
 
 func (f *ORANInterfaceConfigFunction) generateA1Resources(iface *ORANInterface) ([]porch.KRMResource, []*porch.FunctionResult) {
-
 	var resources []porch.KRMResource
 
 	var results []*porch.FunctionResult
 
 	if iface.A1Config != nil {
-
 		// Generate A1 policy ConfigMap.
 
 		if len(iface.A1Config.PolicyTypes) > 0 {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-a1-policies", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "A1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2190,22 +2041,18 @@ func (f *ORANInterfaceConfigFunction) generateA1Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated A1 policy ConfigMap for %s", iface.Name),
 
 				Severity: "info",
 			})
 
 		}
-
 	}
 
 	return resources, results
-
 }
 
 func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) ([]porch.KRMResource, []*porch.FunctionResult) {
-
 	var resources []porch.KRMResource
 
 	var results []*porch.FunctionResult
@@ -2217,19 +2064,16 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 		if iface.O1Config.NETCONF != nil {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-o1-netconf", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "O1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2237,7 +2081,6 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 				},
 
 				Data: map[string]interface{}{
-
 					"netconf-port": fmt.Sprintf("%d", iface.O1Config.NETCONF.Port),
 
 					"call-home": fmt.Sprintf("%t", iface.O1Config.NETCONF.CallHome),
@@ -2255,7 +2098,6 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated O1 NETCONF ConfigMap for %s", iface.Name),
 
 				Severity: "info",
@@ -2268,19 +2110,16 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 		if len(iface.O1Config.YANGModels) > 0 {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-o1-yang", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "O1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2301,7 +2140,6 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated O1 YANG models ConfigMap for %s", iface.Name),
 
 				Severity: "info",
@@ -2312,11 +2150,9 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 	}
 
 	return resources, results
-
 }
 
 func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) ([]porch.KRMResource, []*porch.FunctionResult) {
-
 	var resources []porch.KRMResource
 
 	var results []*porch.FunctionResult
@@ -2328,19 +2164,16 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 		if iface.O2Config.IMS != nil && iface.O2Config.IMS.Enabled {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-o2-ims", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "O2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2348,7 +2181,6 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 				},
 
 				Data: map[string]interface{}{
-
 					"inventory-url": iface.O2Config.IMS.InventoryURL,
 
 					"subscription-url": iface.O2Config.IMS.SubscriptionURL,
@@ -2366,7 +2198,6 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated O2 IMS ConfigMap for %s", iface.Name),
 
 				Severity: "info",
@@ -2379,19 +2210,16 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 		if len(iface.O2Config.CloudProviders) > 0 {
 
 			secret := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "Secret",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-o2-cloud-creds", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "O2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2402,7 +2230,6 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 			}
 
 			for _, provider := range iface.O2Config.CloudProviders {
-
 				if len(provider.Credentials) > 0 {
 
 					credsData, _ := json.Marshal(provider.Credentials)
@@ -2410,13 +2237,11 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 					secret.Data[fmt.Sprintf("%s-credentials", provider.ProviderID)] = string(credsData)
 
 				}
-
 			}
 
 			resources = append(resources, secret)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated O2 cloud credentials Secret for %s", iface.Name),
 
 				Severity: "info",
@@ -2427,11 +2252,9 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 	}
 
 	return resources, results
-
 }
 
 func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) ([]porch.KRMResource, []*porch.FunctionResult) {
-
 	var resources []porch.KRMResource
 
 	var results []*porch.FunctionResult
@@ -2443,19 +2266,16 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 		if len(iface.E2Config.E2Nodes) > 0 {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-e2-nodes", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2476,7 +2296,6 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated E2 nodes ConfigMap for %s", iface.Name),
 
 				Severity: "info",
@@ -2489,19 +2308,16 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 		if len(iface.E2Config.ServiceModels) > 0 {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-e2-service-models", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2522,7 +2338,6 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated E2 service models ConfigMap for %s", iface.Name),
 
 				Severity: "info",
@@ -2535,19 +2350,16 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 		if iface.E2Config.SCTP != nil {
 
 			configMap := porch.KRMResource{
-
 				APIVersion: "v1",
 
 				Kind: "ConfigMap",
 
 				Metadata: map[string]interface{}{
-
 					"name": fmt.Sprintf("%s-e2-sctp", iface.Name),
 
 					"namespace": "default",
 
 					"labels": map[string]interface{}{
-
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2555,7 +2367,6 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 				},
 
 				Data: map[string]interface{}{
-
 					"sctp-port": fmt.Sprintf("%d", iface.E2Config.SCTP.Port),
 
 					"sctp-streams": fmt.Sprintf("%d", iface.E2Config.SCTP.Streams),
@@ -2571,7 +2382,6 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 			resources = append(resources, configMap)
 
 			results = append(results, &porch.FunctionResult{
-
 				Message: fmt.Sprintf("Generated E2 SCTP ConfigMap for %s", iface.Name),
 
 				Severity: "info",
@@ -2582,43 +2392,33 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 	}
 
 	return resources, results
-
 }
 
 func (f *ORANInterfaceConfigFunction) generateServiceMonitor(config *ORANInterfaceConfig) porch.KRMResource {
-
 	return porch.KRMResource{
-
 		APIVersion: "monitoring.coreos.com/v1",
 
 		Kind: "ServiceMonitor",
 
 		Metadata: map[string]interface{}{
-
 			"name": "oran-interfaces-monitor",
 
 			"namespace": "default",
 
 			"labels": map[string]interface{}{
-
 				"nephoran.com/oran-interfaces": "enabled",
 			},
 		},
 
 		Spec: map[string]interface{}{
-
 			"selector": map[string]interface{}{
-
 				"matchLabels": map[string]interface{}{
-
 					"nephoran.com/oran-enabled": "true",
 				},
 			},
 
 			"endpoints": []map[string]interface{}{
-
 				{
-
 					"port": "metrics",
 
 					"interval": "30s",
@@ -2628,5 +2428,4 @@ func (f *ORANInterfaceConfigFunction) generateServiceMonitor(config *ORANInterfa
 			},
 		},
 	}
-
 }

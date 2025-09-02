@@ -961,8 +961,10 @@ type Session struct {
 	ExpiresAt time.Time
 }
 
-var sessionStore = make(map[string]*Session)
-var usedBackupCodes = make(map[string]bool)
+var (
+	sessionStore    = make(map[string]*Session)
+	usedBackupCodes = make(map[string]bool)
+)
 
 func (s *AuthTestSuite) createSession(userID string) string {
 	sessionID := s.generateSecureState()

@@ -401,7 +401,6 @@ func (suite *LLMProcessorServiceTestSuite) TestConfigurationScenarios() {
 			// Test initialization (may fail in test environment, but shouldn't panic)
 			ctx := context.Background()
 			err := service.Initialize(ctx)
-
 			if err != nil {
 				suite.T().Logf("Scenario %s failed initialization (expected in test): %v", scenario.name, err)
 			}

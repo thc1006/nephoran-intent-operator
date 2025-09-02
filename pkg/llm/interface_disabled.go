@@ -37,9 +37,7 @@ type DisabledBatchProcessor interface {
 // StreamingProcessor handles streaming requests (disabled).
 
 type StreamingProcessor struct {
-
 	// Stub implementation fields.
-
 }
 
 // CacheProvider provides caching functionality (disabled).

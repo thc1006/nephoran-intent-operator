@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-
 	// Create a RAG-enhanced processor with default config.
 
 	processor := llm.NewRAGEnhancedProcessor()
@@ -20,7 +19,6 @@ func main() {
 	// Test intent that should use RAG.
 
 	testIntents := []string{
-
 		"Deploy a 5G AMF with high availability",
 
 		"How to configure O-RAN E2 interface",
@@ -42,25 +40,18 @@ func main() {
 		result, err := processor.ProcessIntent(ctx, intent)
 
 		if err != nil {
-
 			fmt.Printf("Error: %v\n", err)
-
 		} else {
 
 			fmt.Printf("Success! Result length: %d characters\n", len(result))
 
 			if len(result) > 200 {
-
 				fmt.Printf("Result preview: %s...\n", result[:200])
-
 			} else {
-
 				fmt.Printf("Result: %s\n", result)
-
 			}
 
 		}
 
 	}
-
 }

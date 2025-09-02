@@ -27,7 +27,6 @@ type PerformanceBenchmarks struct {
 // BenchmarkResults holds comparative performance data.
 
 type BenchmarkResults struct {
-
 	// Latency improvements.
 
 	OriginalP99Latency time.Duration `json:"original_p99_latency"`
@@ -98,7 +97,6 @@ type OriginalController struct {
 // NewPerformanceBenchmarks creates a new benchmark suite.
 
 func NewPerformanceBenchmarks() (*PerformanceBenchmarks, error) {
-
 	logger := slog.Default().With("component", "performance-benchmarks")
 
 	// Create optimized controller.
@@ -106,22 +104,17 @@ func NewPerformanceBenchmarks() (*PerformanceBenchmarks, error) {
 	optimizedConfig := getDefaultOptimizedControllerConfig()
 
 	optimizedController, err := NewOptimizedControllerIntegration(optimizedConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create optimized controller: %w", err)
-
 	}
 
 	// Create original controller simulation.
 
 	originalController := &OriginalController{
-
 		logger: logger,
 	}
 
 	return &PerformanceBenchmarks{
-
 		originalController: originalController,
 
 		optimizedController: optimizedController,
@@ -130,13 +123,11 @@ func NewPerformanceBenchmarks() (*PerformanceBenchmarks, error) {
 
 		results: &BenchmarkResults{},
 	}, nil
-
 }
 
 // RunComprehensiveBenchmarks executes all performance benchmarks.
 
 func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context) (*BenchmarkResults, error) {
-
 	pb.logger.Info("Starting comprehensive performance benchmarks")
 
 	// Test scenarios.
@@ -154,9 +145,7 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 
 		description string
 	}{
-
 		{
-
 			name: "simple_deployment",
 
 			intent: "Deploy AMF with 3 replicas in production namespace",
@@ -171,7 +160,6 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 		},
 
 		{
-
 			name: "concurrent_deployment",
 
 			intent: "Deploy SMF with auto-scaling enabled",
@@ -186,7 +174,6 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 		},
 
 		{
-
 			name: "high_load_mixed",
 
 			intent: "Scale UPF to 5 replicas with enhanced performance",
@@ -201,7 +188,6 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 		},
 
 		{
-
 			name: "burst_traffic",
 
 			intent: "Deploy NSSF for network slicing with HA configuration",
@@ -232,7 +218,6 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 		// Run original implementation.
 
 		originalResults, err := pb.benchmarkOriginal(ctx, tc.intent, tc.intentType, tc.concurrency, tc.iterations)
-
 		if err != nil {
 
 			pb.logger.Error("Original benchmark failed", "error", err)
@@ -244,7 +229,6 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 		// Run optimized implementation.
 
 		optimizedResults, err := pb.benchmarkOptimized(ctx, tc.intent, tc.intentType, tc.concurrency, tc.iterations)
-
 		if err != nil {
 
 			pb.logger.Error("Optimized benchmark failed", "error", err)
@@ -279,23 +263,18 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 	)
 
 	return pb.results, nil
-
 }
 
 // benchmarkOriginal runs benchmarks against the original implementation.
 
 func (pb *PerformanceBenchmarks) benchmarkOriginal(
-
 	ctx context.Context,
 
 	intent, intentType string,
 
 	concurrency, iterations int,
-
 ) (*TestResults, error) {
-
 	results := &TestResults{
-
 		Latencies: make([]time.Duration, 0, concurrency*iterations),
 
 		StartTime: time.Now(),
@@ -324,7 +303,6 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			for range iterations {
@@ -338,17 +316,12 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 				latency := time.Since(start)
 
 				if err != nil {
-
 					errorChan <- err
-
 				} else {
-
 					latencyChan <- latency
-
 				}
 
 			}
-
 		}()
 
 	}
@@ -362,15 +335,11 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 	// Collect results.
 
 	for latency := range latencyChan {
-
 		results.Latencies = append(results.Latencies, latency)
-
 	}
 
 	for err := range errorChan {
-
 		results.Errors = append(results.Errors, err)
-
 	}
 
 	// Measure final memory.
@@ -392,23 +361,18 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 	pb.calculateStatistics(results)
 
 	return results, nil
-
 }
 
 // benchmarkOptimized runs benchmarks against the optimized implementation.
 
 func (pb *PerformanceBenchmarks) benchmarkOptimized(
-
 	ctx context.Context,
 
 	intent, intentType string,
 
 	concurrency, iterations int,
-
 ) (*TestResults, error) {
-
 	results := &TestResults{
-
 		Latencies: make([]time.Duration, 0, concurrency*iterations),
 
 		StartTime: time.Now(),
@@ -437,7 +401,6 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			for range iterations {
@@ -447,7 +410,6 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 				// Use optimized processing.
 
 				parameters := map[string]interface{}{
-
 					"model": "gpt-4o-mini",
 
 					"max_tokens": 2048,
@@ -461,17 +423,12 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 				latency := time.Since(start)
 
 				if err != nil {
-
 					errorChan <- err
-
 				} else {
-
 					latencyChan <- latency
-
 				}
 
 			}
-
 		}()
 
 	}
@@ -485,15 +442,11 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 	// Collect results.
 
 	for latency := range latencyChan {
-
 		results.Latencies = append(results.Latencies, latency)
-
 	}
 
 	for err := range errorChan {
-
 		results.Errors = append(results.Errors, err)
-
 	}
 
 	// Measure final memory.
@@ -515,13 +468,11 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 	pb.calculateStatistics(results)
 
 	return results, nil
-
 }
 
 // benchmarkHTTPOptimizations tests HTTP client optimizations.
 
 func (pb *PerformanceBenchmarks) benchmarkHTTPOptimizations(ctx context.Context) {
-
 	pb.logger.Info("Benchmarking HTTP optimizations")
 
 	// Test connection reuse.
@@ -553,9 +504,7 @@ func (pb *PerformanceBenchmarks) benchmarkHTTPOptimizations(ctx context.Context)
 		// Simulate reused connection.
 
 		if i == 0 {
-
 			time.Sleep(time.Millisecond * 5) // Initial connection only
-
 		}
 
 		time.Sleep(time.Millisecond * 10) // Request processing
@@ -578,13 +527,11 @@ func (pb *PerformanceBenchmarks) benchmarkHTTPOptimizations(ctx context.Context)
 
 		"improvement", fmt.Sprintf("%.1f%%", httpImprovement),
 	)
-
 }
 
 // benchmarkCacheOptimizations tests intelligent caching.
 
 func (pb *PerformanceBenchmarks) benchmarkCacheOptimizations(ctx context.Context) {
-
 	pb.logger.Info("Benchmarking cache optimizations")
 
 	// Simulate cache performance.
@@ -598,9 +545,7 @@ func (pb *PerformanceBenchmarks) benchmarkCacheOptimizations(ctx context.Context
 	start := time.Now()
 
 	for range iterations {
-
 		time.Sleep(time.Millisecond * 50) // Full LLM processing time
-
 	}
 
 	originalCacheTime := time.Since(start)
@@ -610,17 +555,11 @@ func (pb *PerformanceBenchmarks) benchmarkCacheOptimizations(ctx context.Context
 	start = time.Now()
 
 	for i := range iterations {
-
 		if float64(i)/float64(iterations) < cacheHitRate {
-
 			time.Sleep(time.Millisecond * 1) // Cache hit
-
 		} else {
-
 			time.Sleep(time.Millisecond * 50) // Cache miss
-
 		}
-
 	}
 
 	optimizedCacheTime := time.Since(start)
@@ -637,13 +576,11 @@ func (pb *PerformanceBenchmarks) benchmarkCacheOptimizations(ctx context.Context
 
 		"latency_reduction", fmt.Sprintf("%.1f%%", cacheImprovement),
 	)
-
 }
 
 // benchmarkJSONOptimizations tests JSON processing optimizations.
 
 func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context) {
-
 	pb.logger.Info("Benchmarking JSON optimizations")
 
 	testJSON := `{
@@ -667,9 +604,7 @@ func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context)
 	start := time.Now()
 
 	for range iterations {
-
 		pb.parseJSONStandard(testJSON)
-
 	}
 
 	standardTime := time.Since(start)
@@ -677,7 +612,6 @@ func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context)
 	// Optimized JSON parsing.
 
 	processor := NewFastJSONProcessor(JSONOptimizationConfig{
-
 		UseUnsafeOperations: true,
 
 		EnableZeroCopyParsing: true,
@@ -686,9 +620,7 @@ func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context)
 	start = time.Now()
 
 	for range iterations {
-
 		processor.ParseLLMResponse(testJSON)
-
 	}
 
 	optimizedTime := time.Since(start)
@@ -705,13 +637,11 @@ func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context)
 
 		"speedup_factor", fmt.Sprintf("%.1fx", jsonSpeedup),
 	)
-
 }
 
 // benchmarkBatchProcessing tests batch processing efficiency.
 
 func (pb *PerformanceBenchmarks) benchmarkBatchProcessing(ctx context.Context) {
-
 	pb.logger.Info("Benchmarking batch processing")
 
 	// Simulate batch vs individual processing.
@@ -725,9 +655,7 @@ func (pb *PerformanceBenchmarks) benchmarkBatchProcessing(ctx context.Context) {
 	start := time.Now()
 
 	for range requests {
-
 		time.Sleep(time.Millisecond * 25) // Individual request overhead
-
 	}
 
 	individualTime := time.Since(start)
@@ -737,9 +665,7 @@ func (pb *PerformanceBenchmarks) benchmarkBatchProcessing(ctx context.Context) {
 	start = time.Now()
 
 	for range requests / batchSize {
-
 		time.Sleep(time.Millisecond * 75) // Batch processing time (less than 5x individual)
-
 	}
 
 	batchTime := time.Since(start)
@@ -756,13 +682,11 @@ func (pb *PerformanceBenchmarks) benchmarkBatchProcessing(ctx context.Context) {
 
 		"average_batch_size", batchSize,
 	)
-
 }
 
 // Helper methods.
 
 func (pb *PerformanceBenchmarks) calculateImprovements(testName string, original, optimized *TestResults) {
-
 	latencyImprovement := (1.0 - float64(optimized.P99Latency)/float64(original.P99Latency)) * 100
 
 	throughputImprovement := (optimized.Throughput/original.Throughput - 1.0) * 100
@@ -805,15 +729,11 @@ func (pb *PerformanceBenchmarks) calculateImprovements(testName string, original
 
 		"memory_reduction", fmt.Sprintf("%.1f%%", memoryReduction),
 	)
-
 }
 
 func (pb *PerformanceBenchmarks) calculateStatistics(results *TestResults) {
-
 	if len(results.Latencies) == 0 {
-
 		return
-
 	}
 
 	// Sort latencies for percentile calculations.
@@ -825,17 +745,11 @@ func (pb *PerformanceBenchmarks) calculateStatistics(results *TestResults) {
 	// Simple sort for percentiles (would use proper sorting in production).
 
 	for i := range len(latencies) - 1 {
-
 		for j := i + 1; j < len(latencies); j++ {
-
 			if latencies[i] > latencies[j] {
-
 				latencies[i], latencies[j] = latencies[j], latencies[i]
-
 			}
-
 		}
-
 	}
 
 	// Calculate percentiles.
@@ -855,27 +769,21 @@ func (pb *PerformanceBenchmarks) calculateStatistics(results *TestResults) {
 	results.PeakMemory = results.EndMemory
 
 	if results.StartMemory > results.EndMemory {
-
 		results.PeakMemory = results.StartMemory
-
 	}
-
 }
 
 func (pb *PerformanceBenchmarks) parseJSONStandard(data string) error {
-
 	// Standard JSON parsing simulation.
 
 	time.Sleep(time.Microsecond * 10)
 
 	return nil
-
 }
 
 // Original controller simulation.
 
 func (oc *OriginalController) processLLMPhaseOriginal(ctx context.Context, intent, intentType string) error {
-
 	// Simulate original processing with higher latency and CPU usage.
 
 	start := time.Now()
@@ -899,7 +807,6 @@ func (oc *OriginalController) processLLMPhaseOriginal(ctx context.Context, inten
 	oc.logger.Debug("Original processing completed", "duration", totalTime)
 
 	return nil
-
 }
 
 // TestResults holds benchmark test results.
@@ -933,7 +840,6 @@ type TestResults struct {
 // GetBenchmarkSummary returns a human-readable benchmark summary.
 
 func (pb *PerformanceBenchmarks) GetBenchmarkSummary() string {
-
 	return fmt.Sprintf(`
 
 Performance Benchmark Results:
@@ -1044,27 +950,16 @@ STATUS: %s
 
 		pb.getOverallStatus(),
 	)
-
 }
 
 func (pb *PerformanceBenchmarks) getOverallStatus() string {
-
 	if pb.results.TotalLatencyReduction >= 30.0 && pb.results.TotalCPUReduction >= 60.0 {
-
 		return "✅ ALL TARGETS ACHIEVED"
-
 	} else if pb.results.TotalLatencyReduction >= 30.0 {
-
 		return "⚠️  LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
-
 	} else if pb.results.TotalCPUReduction >= 60.0 {
-
 		return "⚠️  CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
-
 	} else {
-
 		return "🔄 OPTIMIZATION IN PROGRESS"
-
 	}
-
 }

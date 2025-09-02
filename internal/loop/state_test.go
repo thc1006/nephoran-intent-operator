@@ -46,7 +46,7 @@ func TestNewStateManager(t *testing.T) {
 					},
 				}
 				data, _ := json.Marshal(stateData)
-				require.NoError(t, os.WriteFile(stateFile, data, 0644))
+				require.NoError(t, os.WriteFile(stateFile, data, 0o644))
 				return dir
 			},
 			wantErr: false,
@@ -56,7 +56,7 @@ func TestNewStateManager(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				dir := t.TempDir()
 				stateFile := filepath.Join(dir, StateFileName)
-				require.NoError(t, os.WriteFile(stateFile, []byte("invalid json"), 0644))
+				require.NoError(t, os.WriteFile(stateFile, []byte("invalid json"), 0o644))
 				return dir
 			},
 			wantErr: false, // Should handle corruption gracefully
@@ -93,7 +93,7 @@ func TestStateManager_IsProcessed(t *testing.T) {
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	tests := []struct {
 		name           string
@@ -133,7 +133,7 @@ func TestStateManager_IsProcessed(t *testing.T) {
 				require.NoError(t, sm.MarkProcessed(testFile))
 				// Modify the file content
 				newContent := `{"action": "scale", "target": "deployment", "count": 5}`
-				require.NoError(t, os.WriteFile(testFile, []byte(newContent), 0644))
+				require.NoError(t, os.WriteFile(testFile, []byte(newContent), 0o644))
 				return testFile
 			},
 			expectedResult: false, // Modified files should not be considered processed
@@ -174,7 +174,7 @@ func TestStateManager_MarkProcessed(t *testing.T) {
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Mark as processed
 	err = sm.MarkProcessed(testFile)
@@ -222,7 +222,7 @@ func TestStateManager_MarkFailed(t *testing.T) {
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Mark as failed
 	err = sm.MarkFailed(testFile)
@@ -249,7 +249,7 @@ func TestStateManager_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		testFile := filepath.Join(dir, fmt.Sprintf("test-intent-%d.json", i))
 		testContent := fmt.Sprintf(`{"action": "scale", "target": "deployment", "count": %d}`, i+1)
-		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 		testFiles[i] = testFile
 	}
 
@@ -315,8 +315,8 @@ func TestStateManager_CleanupOldEntries(t *testing.T) {
 	testFile1 := filepath.Join(dir, "old-intent.json")
 	testFile2 := filepath.Join(dir, "new-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile1, []byte(testContent), 0644))
-	require.NoError(t, os.WriteFile(testFile2, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile1, []byte(testContent), 0o644))
+	require.NoError(t, os.WriteFile(testFile2, []byte(testContent), 0o644))
 
 	// Mark files as processed
 	require.NoError(t, sm.MarkProcessed(testFile1))
@@ -375,7 +375,7 @@ func TestStateManager_LoadStateWithCorruption(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create corrupted state file
-			require.NoError(t, os.WriteFile(stateFile, []byte(tt.fileContent), 0644))
+			require.NoError(t, os.WriteFile(stateFile, []byte(tt.fileContent), 0o644))
 
 			sm, err := NewStateManager(dir)
 			if tt.expectError {
@@ -434,7 +434,7 @@ func TestCalculateFileHash(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testFile := filepath.Join(dir, "test.json")
-			require.NoError(t, os.WriteFile(testFile, []byte(tt.content), 0644))
+			require.NoError(t, os.WriteFile(testFile, []byte(tt.content), 0o644))
 
 			hash, size, err := calculateFileHash(filepath.Join(dir, "test.json"))
 			if tt.expectError {
@@ -508,7 +508,7 @@ func TestStateManager_GetProcessedAndFailedFiles(t *testing.T) {
 
 	testContent := `{"action": "scale", "count": 3}`
 	for _, file := range append(processedFiles, failedFiles...) {
-		require.NoError(t, os.WriteFile(file, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(file, []byte(testContent), 0o644))
 	}
 
 	// Mark files
@@ -547,7 +547,7 @@ func TestStateManager_AutoSave(t *testing.T) {
 
 	testFile := filepath.Join(dir, "test.json")
 	testContent := `{"action": "scale", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Mark as processed
 	require.NoError(t, sm.MarkProcessed(testFile))
@@ -559,7 +559,7 @@ func TestStateManager_AutoSave(t *testing.T) {
 	// Enable auto-save and mark another file
 	sm.autoSave = true
 	testFile2 := filepath.Join(dir, "test2.json")
-	require.NoError(t, os.WriteFile(testFile2, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile2, []byte(testContent), 0o644))
 	require.NoError(t, sm.MarkProcessed(testFile2))
 
 	// State file should exist now
@@ -577,7 +577,7 @@ func BenchmarkStateManager_IsProcessed(b *testing.B) {
 	testContent := `{"action": "scale", "count": 3}`
 	for i := 0; i < 1000; i++ {
 		testFile := filepath.Join(dir, fmt.Sprintf("test%d.json", i))
-		require.NoError(b, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(b, os.WriteFile(testFile, []byte(testContent), 0o644))
 		require.NoError(b, sm.MarkProcessed(testFile))
 		testFiles[i] = testFile
 	}
@@ -606,7 +606,7 @@ func BenchmarkStateManager_MarkProcessed(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testFile := filepath.Join(dir, fmt.Sprintf("test%d.json", i))
-		_ = os.WriteFile(testFile, []byte(testContent), 0644)
+		_ = os.WriteFile(testFile, []byte(testContent), 0o644)
 		_ = sm.MarkProcessed(testFile)
 	}
 }

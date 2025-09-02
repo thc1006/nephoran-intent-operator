@@ -82,26 +82,20 @@ type RateLimitConfig struct {
 // NewAlertManager creates a new alert manager.
 
 func NewAlertManager(config *NotificationConfig, logger *slog.Logger) (*AlertManager, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("notification configuration is required")
-
 	}
 
 	return &AlertManager{
-
 		config: config,
 
 		logger: logger,
 	}, nil
-
 }
 
 // SendAlert sends an alert through configured channels.
 
 func (am *AlertManager) SendAlert(alert *Alert) error {
-
 	if !am.config.Enabled {
 
 		am.logger.Debug("Alert manager disabled, skipping alert", "alert", alert.ID)
@@ -125,23 +119,18 @@ func (am *AlertManager) SendAlert(alert *Alert) error {
 	// For now, just log the alert.
 
 	return nil
-
 }
 
 // Start starts the alert manager.
 
 func (am *AlertManager) Start(ctx context.Context) error {
-
 	am.logger.Info("Starting alert manager")
 
 	return nil
-
 }
 
 // Stop stops the alert manager.
 
 func (am *AlertManager) Stop() {
-
 	am.logger.Info("Stopping alert manager")
-
 }

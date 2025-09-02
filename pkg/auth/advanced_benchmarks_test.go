@@ -1309,10 +1309,12 @@ func (a *EnhancedAuthSystem) EvaluatePermission(ctx context.Context, check Permi
 }
 
 // Interface placeholders for benchmarks
-type BenchmarkJWTManager interface{}
-type BenchmarkRBACEngine interface{}
-type BenchmarkLDAPClient interface{}
-type BenchmarkOAuth2Manager interface{}
-type BenchmarkSessionManager interface{}
-type BenchmarkTokenCache interface{}
-type BenchmarkAuthMetrics interface{}
+type (
+	BenchmarkJWTManager     interface{}
+	BenchmarkRBACEngine     interface{}
+	BenchmarkLDAPClient     interface{}
+	BenchmarkOAuth2Manager  interface{}
+	BenchmarkSessionManager interface{}
+	BenchmarkTokenCache     interface{}
+	BenchmarkAuthMetrics    interface{}
+)

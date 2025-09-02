@@ -42,7 +42,6 @@ import (
 // ValidatorConfig holds configuration for YANG validation.
 
 type ValidatorConfig struct {
-
 	// Validation options.
 
 	EnableConstraintValidation bool `yaml:"enableConstraintValidation"`
@@ -93,9 +92,7 @@ type ValidatorConfig struct {
 // DefaultValidatorConfig returns a default ValidatorConfig.
 
 func DefaultValidatorConfig() *ValidatorConfig {
-
 	return &ValidatorConfig{
-
 		EnableConstraintValidation: true,
 
 		EnableDataTypeValidation: true,
@@ -132,13 +129,11 @@ func DefaultValidatorConfig() *ValidatorConfig {
 
 		MaxValidationErrors: 50,
 	}
-
 }
 
 // YANGValidator defines the interface for YANG model validation.
 
 type YANGValidator interface {
-
 	// ValidatePackageRevision validates a package revision against YANG models.
 
 	ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error)
@@ -193,18 +188,14 @@ type ValidatorMetrics struct {
 // Create a new ValidatorMetrics instance.
 
 func newValidatorMetrics() *ValidatorMetrics {
-
 	return &ValidatorMetrics{
-
 		ValidationsTotal: prometheus.NewCounter(prometheus.CounterOpts{
-
 			Name: "yang_validations_total",
 
 			Help: "Total number of YANG validations performed",
 		}),
 
 		ValidationDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
-
 			Name: "yang_validation_duration_seconds",
 
 			Help: "Duration of YANG validation processes",
@@ -215,7 +206,6 @@ func newValidatorMetrics() *ValidatorMetrics {
 		ValidationErrors: prometheus.NewCounterVec(
 
 			prometheus.CounterOpts{
-
 				Name: "yang_validation_errors_total",
 
 				Help: "Total number of YANG validation errors",
@@ -225,27 +215,23 @@ func newValidatorMetrics() *ValidatorMetrics {
 		),
 
 		ModelsLoaded: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "yang_models_loaded",
 
 			Help: "Number of YANG models currently loaded",
 		}),
 
 		CacheHitRate: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "yang_cache_hit_rate",
 
 			Help: "Cache hit rate for YANG model validations",
 		}),
 
 		ActiveValidations: prometheus.NewGauge(prometheus.GaugeOpts{
-
 			Name: "yang_active_validations",
 
 			Help: "Number of currently active YANG validations",
 		}),
 	}
-
 }
 
 // Custom type for package revision resource.
@@ -289,30 +275,23 @@ type yangValidator struct {
 // NewYANGValidator creates a new YANG validator.
 
 func NewYANGValidator(config *ValidatorConfig) (YANGValidator, error) {
-
 	if config == nil {
-
 		config = DefaultValidatorConfig()
-
 	}
 
 	return &yangValidator{
-
 		config: config,
 
 		metrics: newValidatorMetrics(),
 
 		startTime: time.Now(),
 	}, nil
-
 }
 
 // Additional modifications for resource validation.
 
 func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error) {
-
 	result := &ValidationResult{
-
 		ModelName: pkg.ObjectMeta.Name,
 
 		ValidationTime: time.Now(),
@@ -335,20 +314,15 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 		case map[string]interface{}:
 
 			if kind, exists := r["kind"]; exists {
-
 				if kindStr, ok := kind.(string); ok {
-
 					res = PackageResource{
-
 						Kind: kindStr,
 
 						Data: r["data"],
 					}
-
 				} else {
 
 					result.Errors = append(result.Errors, &ValidationError{
-
 						Code: "INVALID_KIND_TYPE",
 
 						Message: "Resource kind is not a string",
@@ -357,11 +331,9 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 					continue
 
 				}
-
 			} else {
 
 				result.Errors = append(result.Errors, &ValidationError{
-
 					Code: "MISSING_KIND",
 
 					Message: "Resource missing kind field",
@@ -374,7 +346,6 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 		default:
 
 			result.Errors = append(result.Errors, &ValidationError{
-
 				Code: "INVALID_RESOURCE_TYPE",
 
 				Message: "Unable to parse resource type",
@@ -391,7 +362,6 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 			if !ok {
 
 				result.Errors = append(result.Errors, &ValidationError{
-
 					Code: "INVALID_CONFIGMAP_DATA",
 
 					Message: "ConfigMap data is not a map",
@@ -404,9 +374,7 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 			config, exists := dataMap["config"]
 
 			if !exists {
-
 				continue
-
 			}
 
 			configMapData, ok := config.(map[string]interface{})
@@ -414,7 +382,6 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 			if !ok {
 
 				result.Errors = append(result.Errors, &ValidationError{
-
 					Code: "INVALID_CONFIG_DATA",
 
 					Message: "ConfigMap config is not a map",
@@ -425,9 +392,7 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 			}
 
 			for k, v := range configMapData {
-
 				configData[k] = v
-
 			}
 
 		}
@@ -439,15 +404,12 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 	result.Valid = len(result.Errors) == 0
 
 	return result, nil
-
 }
 
 // GetValidatorHealth returns the health status of the validator.
 
 func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error) {
-
 	return &ValidatorHealth{
-
 		Status: "healthy",
 
 		LastCheck: time.Now(),
@@ -462,15 +424,12 @@ func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealt
 
 		Version: "1.0.0",
 	}, nil
-
 }
 
 // Close gracefully shuts down the validator.
 
 func (v *yangValidator) Close() error {
-
 	// Cleanup resources.
 
 	return nil
-
 }

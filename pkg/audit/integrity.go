@@ -47,21 +47,18 @@ const (
 
 var (
 	integrityOperationsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "audit_integrity_operations_total",
 
 		Help: "Total number of integrity operations",
 	}, []string{"operation", "status"})
 
 	integrityChainLength = promauto.NewGauge(prometheus.GaugeOpts{
-
 		Name: "audit_integrity_chain_length",
 
 		Help: "Current length of integrity chain",
 	})
 
 	integrityVerificationDuration = promauto.NewHistogram(prometheus.HistogramOpts{
-
 		Name: "audit_integrity_verification_duration_seconds",
 
 		Help: "Duration of integrity verification operations",
@@ -181,25 +178,19 @@ type IntegrityVerification struct {
 // NewIntegrityChain creates a new integrity chain.
 
 func NewIntegrityChain() (*IntegrityChain, error) {
-
 	config := DefaultIntegrityConfig()
 
 	return NewIntegrityChainWithConfig(config)
-
 }
 
 // NewIntegrityChainWithConfig creates a new integrity chain with specific configuration.
 
 func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, error) {
-
 	if !config.Enabled {
-
 		return &IntegrityChain{enabled: false}, nil
-
 	}
 
 	ic := &IntegrityChain{
-
 		chain: make([]IntegrityLink, 0),
 
 		logger: log.Log.WithName("integrity-chain"),
@@ -212,23 +203,17 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 	// Initialize cryptographic keys.
 
 	if err := ic.initializeKeys(config); err != nil {
-
 		return nil, fmt.Errorf("failed to initialize cryptographic keys: %w", err)
-
 	}
 
 	// Load existing chain if available.
 
 	if config.ChainFile != "" {
-
 		if err := ic.loadChain(config.ChainFile); err != nil {
-
 			ic.logger.Error(err, "Failed to load existing chain", "file", config.ChainFile)
 
 			// Continue with empty chain.
-
 		}
-
 	}
 
 	ic.logger.Info("Integrity chain initialized",
@@ -240,17 +225,13 @@ func NewIntegrityChainWithConfig(config *IntegrityConfig) (*IntegrityChain, erro
 		"last_sequence", ic.sequenceNum)
 
 	return ic, nil
-
 }
 
 // ProcessEvent adds an audit event to the integrity chain.
 
 func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
-
 	if !ic.enabled {
-
 		return nil
-
 	}
 
 	ic.mutex.Lock()
@@ -260,7 +241,6 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 	// Calculate event hash.
 
 	eventHash, err := ic.calculateEventHash(event)
-
 	if err != nil {
 
 		integrityOperationsTotal.WithLabelValues("hash_event", "error").Inc()
@@ -274,7 +254,6 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 	ic.sequenceNum++
 
 	link := IntegrityLink{
-
 		SequenceNumber: ic.sequenceNum,
 
 		Timestamp: time.Now().UTC(),
@@ -293,7 +272,6 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 	// Calculate chain hash.
 
 	chainHash, err := ic.calculateChainHash(&link)
-
 	if err != nil {
 
 		integrityOperationsTotal.WithLabelValues("hash_chain", "error").Inc()
@@ -307,7 +285,6 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 	// Sign the link.
 
 	signature, err := ic.signLink(&link)
-
 	if err != nil {
 
 		integrityOperationsTotal.WithLabelValues("sign_link", "error").Inc()
@@ -327,11 +304,9 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 	// Enforce maximum chain length.
 
 	if len(ic.chain) > MaxChainLength {
-
 		// Archive old entries (in production, these would be persisted).
 
 		ic.chain = ic.chain[len(ic.chain)-MaxChainLength:]
-
 	}
 
 	// Update event with integrity information.
@@ -351,25 +326,19 @@ func (ic *IntegrityChain) ProcessEvent(event *types.AuditEvent) error {
 	integrityChainLength.Set(float64(len(ic.chain)))
 
 	return nil
-
 }
 
 // VerifyEvent verifies the integrity of a single audit event.
 
 func (ic *IntegrityChain) VerifyEvent(event *types.AuditEvent) error {
-
 	if !ic.enabled {
-
 		return nil
-
 	}
 
 	start := time.Now()
 
 	defer func() {
-
 		integrityVerificationDuration.Observe(time.Since(start).Seconds())
-
 	}()
 
 	// Find the corresponding link in the chain.
@@ -381,7 +350,6 @@ func (ic *IntegrityChain) VerifyEvent(event *types.AuditEvent) error {
 	var link *IntegrityLink
 
 	for i := range ic.chain {
-
 		if ic.chain[i].EventID == event.ID {
 
 			link = &ic.chain[i]
@@ -389,7 +357,6 @@ func (ic *IntegrityChain) VerifyEvent(event *types.AuditEvent) error {
 			break
 
 		}
-
 	}
 
 	if link == nil {
@@ -403,7 +370,6 @@ func (ic *IntegrityChain) VerifyEvent(event *types.AuditEvent) error {
 	// Verify event hash.
 
 	expectedHash, err := ic.calculateEventHash(event)
-
 	if err != nil {
 
 		integrityOperationsTotal.WithLabelValues("verify_event", "hash_error").Inc()
@@ -433,25 +399,19 @@ func (ic *IntegrityChain) VerifyEvent(event *types.AuditEvent) error {
 	integrityOperationsTotal.WithLabelValues("verify_event", "success").Inc()
 
 	return nil
-
 }
 
 // VerifyChain verifies the integrity of the entire chain.
 
 func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
-
 	if !ic.enabled {
-
 		return &IntegrityReport{Valid: true}, nil
-
 	}
 
 	start := time.Now()
 
 	defer func() {
-
 		integrityVerificationDuration.Observe(time.Since(start).Seconds())
-
 	}()
 
 	ic.mutex.RLock()
@@ -459,7 +419,6 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 	defer ic.mutex.RUnlock()
 
 	report := &IntegrityReport{
-
 		Valid: true,
 
 		TotalEvents: len(ic.chain),
@@ -474,7 +433,6 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 	for i, link := range ic.chain {
 
 		verification := IntegrityVerification{
-
 			EventID: link.EventID,
 
 			SequenceNumber: link.SequenceNumber,
@@ -509,7 +467,6 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 			report.FailedEvents++
 
 			report.ChainBreaks = append(report.ChainBreaks, IntegrityChainBreak{
-
 				SequenceNumber: link.SequenceNumber,
 
 				EventID: link.EventID,
@@ -562,9 +519,7 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 		}
 
 		if verification.Valid {
-
 			report.VerifiedEvents++
-
 		}
 
 		report.VerificationDetails = append(report.VerificationDetails, verification)
@@ -574,30 +529,21 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 	}
 
 	if report.Valid {
-
 		integrityOperationsTotal.WithLabelValues("verify_chain", "success").Inc()
-
 	} else {
-
 		integrityOperationsTotal.WithLabelValues("verify_chain", "failed").Inc()
-
 	}
 
 	return report, nil
-
 }
 
 // GetChainInfo returns information about the integrity chain.
 
 func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
-
 	if !ic.enabled {
-
 		return map[string]interface{}{
-
 			"enabled": false,
 		}
-
 	}
 
 	ic.mutex.RLock()
@@ -605,7 +551,6 @@ func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
 	defer ic.mutex.RUnlock()
 
 	return map[string]interface{}{
-
 		"enabled": true,
 
 		"length": len(ic.chain),
@@ -622,17 +567,13 @@ func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
 
 		"sign_algorithm": SignatureAlgorithm,
 	}
-
 }
 
 // ExportChain exports the integrity chain for backup or transfer.
 
 func (ic *IntegrityChain) ExportChain() ([]byte, error) {
-
 	if !ic.enabled {
-
 		return nil, fmt.Errorf("integrity chain is disabled")
-
 	}
 
 	ic.mutex.RLock()
@@ -650,7 +591,6 @@ func (ic *IntegrityChain) ExportChain() ([]byte, error) {
 
 		ExportTime time.Time `json:"export_time"`
 	}{
-
 		Version: IntegrityVersion,
 
 		KeyID: ic.keyID,
@@ -663,19 +603,15 @@ func (ic *IntegrityChain) ExportChain() ([]byte, error) {
 	}
 
 	return json.MarshalIndent(export, "", "  ")
-
 }
 
 // Helper methods.
 
 func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
-
 	keySize := config.KeySize
 
 	if keySize < MinKeySize {
-
 		keySize = MinKeySize
-
 	}
 
 	if config.AutoGenerateKeys {
@@ -683,11 +619,8 @@ func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
 		// Generate new key pair.
 
 		privateKey, err := rsa.GenerateKey(rand.Reader, keySize)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to generate RSA key pair: %w", err)
-
 		}
 
 		ic.privateKey = privateKey
@@ -697,27 +630,19 @@ func (ic *IntegrityChain) initializeKeys(config *IntegrityConfig) error {
 		ic.keyID = ic.calculateKeyID(&privateKey.PublicKey)
 
 	} else if config.KeyPairPath != "" {
-
 		// Load existing key pair.
 
 		if err := ic.loadKeyPair(config.KeyPairPath); err != nil {
-
 			return fmt.Errorf("failed to load key pair: %w", err)
-
 		}
-
 	} else {
-
 		return fmt.Errorf("either auto_generate_keys must be true or key_pair_path must be provided")
-
 	}
 
 	return nil
-
 }
 
 func (ic *IntegrityChain) calculateEventHash(event *types.AuditEvent) (string, error) {
-
 	// Create a canonical representation of the event for hashing.
 
 	hashData := struct {
@@ -737,7 +662,6 @@ func (ic *IntegrityChain) calculateEventHash(event *types.AuditEvent) (string, e
 
 		Data map[string]interface{} `json:"data"`
 	}{
-
 		ID: event.ID,
 
 		Timestamp: event.Timestamp,
@@ -764,17 +688,13 @@ func (ic *IntegrityChain) calculateEventHash(event *types.AuditEvent) (string, e
 		keys := make([]string, 0, len(hashData.Data))
 
 		for k := range hashData.Data {
-
 			keys = append(keys, k)
-
 		}
 
 		sort.Strings(keys)
 
 		for _, k := range keys {
-
 			sortedData[k] = hashData.Data[k]
-
 		}
 
 		hashData.Data = sortedData
@@ -782,21 +702,16 @@ func (ic *IntegrityChain) calculateEventHash(event *types.AuditEvent) (string, e
 	}
 
 	jsonBytes, err := json.Marshal(hashData)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to marshal event for hashing: %w", err)
-
 	}
 
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
-
 }
 
 func (ic *IntegrityChain) calculateChainHash(link *IntegrityLink) (string, error) {
-
 	// Create canonical representation for chain hash.
 
 	hashData := struct {
@@ -810,7 +725,6 @@ func (ic *IntegrityChain) calculateChainHash(link *IntegrityLink) (string, error
 
 		KeyID string `json:"key_id"`
 	}{
-
 		SequenceNumber: link.SequenceNumber,
 
 		EventID: link.EventID,
@@ -823,25 +737,18 @@ func (ic *IntegrityChain) calculateChainHash(link *IntegrityLink) (string, error
 	}
 
 	jsonBytes, err := json.Marshal(hashData)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to marshal link for hashing: %w", err)
-
 	}
 
 	hash := sha256.Sum256(jsonBytes)
 
 	return hex.EncodeToString(hash[:]), nil
-
 }
 
 func (ic *IntegrityChain) signLink(link *IntegrityLink) (string, error) {
-
 	if ic.privateKey == nil {
-
 		return "", fmt.Errorf("private key not available for signing")
-
 	}
 
 	// Create signature payload.
@@ -853,33 +760,23 @@ func (ic *IntegrityChain) signLink(link *IntegrityLink) (string, error) {
 	// Sign using RSA-PSS.
 
 	signature, err := rsa.SignPSS(rand.Reader, ic.privateKey, crypto.SHA256, payloadHash[:], nil)
-
 	if err != nil {
-
 		return "", fmt.Errorf("failed to sign link: %w", err)
-
 	}
 
 	return base64.StdEncoding.EncodeToString(signature), nil
-
 }
 
 func (ic *IntegrityChain) verifyLinkSignature(link *IntegrityLink) error {
-
 	if ic.publicKey == nil {
-
 		return fmt.Errorf("public key not available for verification")
-
 	}
 
 	// Decode signature.
 
 	signature, err := base64.StdEncoding.DecodeString(link.Signature)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to decode signature: %w", err)
-
 	}
 
 	// Create signature payload.
@@ -891,19 +788,14 @@ func (ic *IntegrityChain) verifyLinkSignature(link *IntegrityLink) error {
 	// Verify using RSA-PSS.
 
 	err = rsa.VerifyPSS(ic.publicKey, crypto.SHA256, payloadHash[:], signature, nil)
-
 	if err != nil {
-
 		return fmt.Errorf("signature verification failed: %w", err)
-
 	}
 
 	return nil
-
 }
 
 func (ic *IntegrityChain) calculateKeyID(publicKey *rsa.PublicKey) string {
-
 	// Create key ID from public key hash.
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
@@ -915,15 +807,11 @@ func (ic *IntegrityChain) calculateKeyID(publicKey *rsa.PublicKey) string {
 	hash := sha256.Sum256(publicKeyBytes)
 
 	return hex.EncodeToString(hash[:])[:16] // Use first 16 characters
-
 }
 
 func (ic *IntegrityChain) exportPublicKey() string {
-
 	if ic.publicKey == nil {
-
 		return ""
-
 	}
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(ic.publicKey)
@@ -933,34 +821,28 @@ func (ic *IntegrityChain) exportPublicKey() string {
 	}
 
 	block := &pem.Block{
-
 		Type: "PUBLIC KEY",
 
 		Bytes: publicKeyBytes,
 	}
 
 	return string(pem.EncodeToMemory(block))
-
 }
 
 func (ic *IntegrityChain) loadKeyPair(keyPath string) error {
-
 	// This is a placeholder implementation.
 
 	// In practice, you would load keys from files or secure key management systems.
 
 	return fmt.Errorf("key loading not implemented in this example")
-
 }
 
 func (ic *IntegrityChain) loadChain(chainFile string) error {
-
 	// This is a placeholder implementation.
 
 	// In practice, you would load the chain from a persistent store.
 
 	return fmt.Errorf("chain loading not implemented in this example")
-
 }
 
 // GetCurrentHash returns the current hash of the integrity chain.
@@ -1024,9 +906,7 @@ func (ic *IntegrityChain) VerifyEventChain(events []*types.AuditEvent) bool {
 // DefaultIntegrityConfig returns a default integrity configuration.
 
 func DefaultIntegrityConfig() *IntegrityConfig {
-
 	return &IntegrityConfig{
-
 		Enabled: true,
 
 		KeySize: 2048,
@@ -1037,7 +917,6 @@ func DefaultIntegrityConfig() *IntegrityConfig {
 
 		MaxChainLength: MaxChainLength,
 	}
-
 }
 
 // EventSigner provides cryptographic signing for audit events

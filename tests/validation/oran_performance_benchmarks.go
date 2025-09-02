@@ -96,9 +96,7 @@ type ORANBenchmarkResult struct {
 // NewORANPerformanceBenchmarker creates a new performance benchmarker.
 
 func NewORANPerformanceBenchmarker(validator *ORANInterfaceValidator, factory *ORANTestFactory) *ORANPerformanceBenchmarker {
-
 	return &ORANPerformanceBenchmarker{
-
 		oranValidator: validator,
 
 		testFactory: factory,
@@ -106,7 +104,6 @@ func NewORANPerformanceBenchmarker(validator *ORANInterfaceValidator, factory *O
 		benchmarkResults: make(map[string]*ORANBenchmarkResult),
 
 		concurrencyLimits: map[string]int{
-
 			"A1": 50, // A1 interface can handle 50 concurrent operations
 
 			"E2": 100, // E2 interface can handle 100 concurrent operations
@@ -123,21 +120,17 @@ func NewORANPerformanceBenchmarker(validator *ORANInterfaceValidator, factory *O
 
 		maxConcurrency: 100,
 	}
-
 }
 
 // SetK8sClient sets the Kubernetes client for benchmarking.
 
 func (opb *ORANPerformanceBenchmarker) SetK8sClient(client client.Client) {
-
 	opb.k8sClient = client
-
 }
 
 // RunComprehensivePerformanceBenchmarks runs benchmarks for all O-RAN interfaces.
 
 func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx context.Context) map[string]*ORANBenchmarkResult {
-
 	ginkgo.By("Running Comprehensive O-RAN Performance Benchmarks")
 
 	// Run benchmarks for each interface.
@@ -171,17 +164,13 @@ func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx
 	opb.generatePerformanceReport()
 
 	return opb.benchmarkResults
-
 }
 
 // runInterfaceBenchmark runs performance benchmark for a specific interface.
 
 func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *ORANBenchmarkResult {
-
 	result := &ORANBenchmarkResult{
-
 		BenchmarkResult: &BenchmarkResult{
-
 			Name: interfaceName,
 
 			MetricValue: 0,
@@ -237,7 +226,6 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 		wg.Add(1)
 
 		go func() {
-
 			defer wg.Done()
 
 			for time.Now().Before(deadline) {
@@ -257,13 +245,9 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 				atomic.AddInt64(&totalRequests, 1)
 
 				if success {
-
 					atomic.AddInt64(&successfulRequests, 1)
-
 				} else {
-
 					atomic.AddInt64(&failedRequests, 1)
-
 				}
 
 				// Record latency.
@@ -281,7 +265,6 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 				time.Sleep(1 * time.Millisecond)
 
 			}
-
 		}()
 
 	}
@@ -325,13 +308,9 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 	// Update benchmark result based on performance.
 
 	if result.ErrorRate > 5.0 {
-
 		result.BenchmarkResult.Passed = false
-
 	} else {
-
 		result.BenchmarkResult.Passed = true
-
 	}
 
 	result.BenchmarkResult.MetricValue = result.ThroughputRPS
@@ -339,13 +318,11 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 	result.BenchmarkResult.Score = int(100 - result.ErrorRate)
 
 	return result
-
 }
 
 // runWarmup performs warmup operations for consistent benchmarking.
 
 func (opb *ORANPerformanceBenchmarker) runWarmup(ctx context.Context, interfaceName string) {
-
 	warmupDeadline := time.Now().Add(opb.warmupDuration)
 
 	for time.Now().Before(warmupDeadline) {
@@ -355,13 +332,11 @@ func (opb *ORANPerformanceBenchmarker) runWarmup(ctx context.Context, interfaceN
 		time.Sleep(10 * time.Millisecond)
 
 	}
-
 }
 
 // executeInterfaceOperation executes a single operation for the specified interface.
 
 func (opb *ORANPerformanceBenchmarker) executeInterfaceOperation(ctx context.Context, interfaceName string) bool {
-
 	switch interfaceName {
 
 	case "A1":
@@ -385,13 +360,11 @@ func (opb *ORANPerformanceBenchmarker) executeInterfaceOperation(ctx context.Con
 		return false
 
 	}
-
 }
 
 // executeA1Operation executes an A1 interface operation.
 
 func (opb *ORANPerformanceBenchmarker) executeA1Operation(ctx context.Context) bool {
-
 	// Create and manage A1 policy.
 
 	policy := opb.testFactory.CreateA1Policy("traffic-steering")
@@ -399,15 +372,12 @@ func (opb *ORANPerformanceBenchmarker) executeA1Operation(ctx context.Context) b
 	// Create policy.
 
 	if err := opb.oranValidator.ricMockService.CreatePolicy(policy); err != nil {
-
 		return false
-
 	}
 
 	// Read policy.
 
 	_, err := opb.oranValidator.ricMockService.GetPolicy(policy.PolicyID)
-
 	if err != nil {
 
 		opb.oranValidator.ricMockService.DeletePolicy(policy.PolicyID)
@@ -431,19 +401,15 @@ func (opb *ORANPerformanceBenchmarker) executeA1Operation(ctx context.Context) b
 	// Delete policy.
 
 	if err := opb.oranValidator.ricMockService.DeletePolicy(policy.PolicyID); err != nil {
-
 		return false
-
 	}
 
 	return true
-
 }
 
 // executeE2Operation executes an E2 interface operation.
 
 func (opb *ORANPerformanceBenchmarker) executeE2Operation(ctx context.Context) bool {
-
 	// Register E2 node and create subscription.
 
 	node := opb.testFactory.CreateE2Node("gnodeb")
@@ -451,9 +417,7 @@ func (opb *ORANPerformanceBenchmarker) executeE2Operation(ctx context.Context) b
 	// Register node.
 
 	if err := opb.oranValidator.e2MockService.RegisterNode(node); err != nil {
-
 		return false
-
 	}
 
 	// Create subscription.
@@ -501,13 +465,11 @@ func (opb *ORANPerformanceBenchmarker) executeE2Operation(ctx context.Context) b
 	opb.oranValidator.e2MockService.UnregisterNode(node.NodeID)
 
 	return true
-
 }
 
 // executeO1Operation executes an O1 interface operation.
 
 func (opb *ORANPerformanceBenchmarker) executeO1Operation(ctx context.Context) bool {
-
 	// Manage O1 configuration.
 
 	element := opb.testFactory.CreateManagedElement("AMF")
@@ -515,9 +477,7 @@ func (opb *ORANPerformanceBenchmarker) executeO1Operation(ctx context.Context) b
 	// Add managed element.
 
 	if err := opb.oranValidator.smoMockService.AddManagedElement(element); err != nil {
-
 		return false
-
 	}
 
 	// Apply configuration.
@@ -535,7 +495,6 @@ func (opb *ORANPerformanceBenchmarker) executeO1Operation(ctx context.Context) b
 	// Get configuration.
 
 	_, err := opb.oranValidator.smoMockService.GetConfiguration(config.ConfigID)
-
 	if err != nil {
 
 		opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
@@ -547,7 +506,6 @@ func (opb *ORANPerformanceBenchmarker) executeO1Operation(ctx context.Context) b
 	// Get managed element.
 
 	_, err = opb.oranValidator.smoMockService.GetManagedElement(element.ElementID)
-
 	if err != nil {
 
 		opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
@@ -561,25 +519,19 @@ func (opb *ORANPerformanceBenchmarker) executeO1Operation(ctx context.Context) b
 	opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
 
 	return true
-
 }
 
 // executeO2Operation executes an O2 interface operation.
 
 func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) bool {
-
 	// Simulate cloud infrastructure operations.
 
 	// Validate Terraform template.
 
 	terraformTemplate := map[string]interface{}{
-
 		"terraform": map[string]interface{}{
-
 			"required_providers": map[string]interface{}{
-
 				"kubernetes": map[string]interface{}{
-
 					"source": "hashicorp/kubernetes",
 
 					"version": "~> 2.0",
@@ -588,13 +540,9 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 		},
 
 		"resource": map[string]interface{}{
-
 			"kubernetes_deployment": map[string]interface{}{
-
 				"test_deployment": map[string]interface{}{
-
 					"metadata": map[string]interface{}{
-
 						"name": "test-upf",
 					},
 				},
@@ -603,21 +551,17 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 	}
 
 	if !opb.oranValidator.ValidateTerraformTemplate(terraformTemplate) {
-
 		return false
-
 	}
 
 	// Validate cloud provider config.
 
 	cloudConfig := map[string]interface{}{
-
 		"provider": "aws",
 
 		"region": "us-west-2",
 
 		"resources": map[string]interface{}{
-
 			"ec2_instances": 2,
 
 			"s3_buckets": 1,
@@ -625,9 +569,7 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 	}
 
 	if !opb.oranValidator.ValidateCloudProviderConfig(cloudConfig) {
-
 		return false
-
 	}
 
 	// Simulate resource lifecycle.
@@ -635,13 +577,11 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 	time.Sleep(5 * time.Millisecond) // Simulate cloud API call
 
 	return true
-
 }
 
 // runLoadTestingScenarios runs various load testing scenarios.
 
 func (opb *ORANPerformanceBenchmarker) runLoadTestingScenarios(ctx context.Context) {
-
 	ginkgo.By("Running Load Testing Scenarios")
 
 	scenarios := []struct {
@@ -653,7 +593,6 @@ func (opb *ORANPerformanceBenchmarker) runLoadTestingScenarios(ctx context.Conte
 
 		interface_ string
 	}{
-
 		{"Low Load A1", 10, 1 * time.Minute, "A1"},
 
 		{"Medium Load A1", 25, 1 * time.Minute, "A1"},
@@ -700,13 +639,11 @@ func (opb *ORANPerformanceBenchmarker) runLoadTestingScenarios(ctx context.Conte
 			scenario.name, result.ThroughputRPS, float64(result.AverageLatency.Nanoseconds())/1e6))
 
 	}
-
 }
 
 // runConcurrencyTesting tests different concurrency levels.
 
 func (opb *ORANPerformanceBenchmarker) runConcurrencyTesting(ctx context.Context) {
-
 	ginkgo.By("Running Concurrency Testing")
 
 	testInterface := "E2" // Use E2 as it has good concurrency characteristics
@@ -742,17 +679,13 @@ func (opb *ORANPerformanceBenchmarker) runConcurrencyTesting(ctx context.Context
 	opb.concurrencyLimits[testInterface] = originalLimit
 
 	opb.testDuration = originalDuration
-
 }
 
 // calculateLatencyStats calculates basic latency statistics.
 
 func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Duration) (minLatency, maxLatency, avg time.Duration) {
-
 	if len(latencies) == 0 {
-
 		return
-
 	}
 
 	minLatency = latencies[0]
@@ -764,15 +697,11 @@ func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Du
 	for _, latency := range latencies {
 
 		if latency < minLatency {
-
 			minLatency = latency
-
 		}
 
 		if latency > maxLatency {
-
 			maxLatency = latency
-
 		}
 
 		total += latency.Nanoseconds()
@@ -782,17 +711,13 @@ func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Du
 	avg = time.Duration(total / int64(len(latencies)))
 
 	return
-
 }
 
 // calculatePercentile calculates the specified percentile from latency data.
 
 func (opb *ORANPerformanceBenchmarker) calculatePercentile(latencies []time.Duration, percentile float64) time.Duration {
-
 	if len(latencies) == 0 {
-
 		return 0
-
 	}
 
 	// Simple percentile calculation (would use sort in production).
@@ -800,19 +725,15 @@ func (opb *ORANPerformanceBenchmarker) calculatePercentile(latencies []time.Dura
 	index := int(float64(len(latencies)) * percentile)
 
 	if index >= len(latencies) {
-
 		index = len(latencies) - 1
-
 	}
 
 	return latencies[index]
-
 }
 
 // generatePerformanceReport generates a comprehensive performance report.
 
 func (opb *ORANPerformanceBenchmarker) generatePerformanceReport() {
-
 	ginkgo.By("Generating Performance Report")
 
 	ginkgo.By("=== O-RAN Interface Performance Benchmark Results ===")
@@ -822,7 +743,6 @@ func (opb *ORANPerformanceBenchmarker) generatePerformanceReport() {
 	interfaces := []string{"A1", "E2", "O1", "O2"}
 
 	for _, interfaceName := range interfaces {
-
 		if result, exists := opb.benchmarkResults[interfaceName]; exists {
 
 			ginkgo.By(fmt.Sprintf("%s Interface Performance:", interfaceName))
@@ -840,19 +760,16 @@ func (opb *ORANPerformanceBenchmarker) generatePerformanceReport() {
 			ginkgo.By("")
 
 		}
-
 	}
 
 	// Performance targets validation.
 
 	opb.validatePerformanceTargets()
-
 }
 
 // validatePerformanceTargets validates that interfaces meet performance targets.
 
 func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
-
 	ginkgo.By("Validating Performance Targets")
 
 	targets := map[string]struct {
@@ -862,7 +779,6 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 
 		maxErrorRate float64
 	}{
-
 		"A1": {minThroughput: 20.0, maxLatency: 100 * time.Millisecond, maxErrorRate: 2.0},
 
 		"E2": {minThroughput: 50.0, maxLatency: 50 * time.Millisecond, maxErrorRate: 1.5},
@@ -875,7 +791,6 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 	allTargetsMet := true
 
 	for interfaceName, target := range targets {
-
 		if result, exists := opb.benchmarkResults[interfaceName]; exists {
 
 			targetsMet := true
@@ -889,11 +804,9 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 				targetsMet = false
 
 			} else {
-
 				ginkgo.By(fmt.Sprintf("✅ %s Throughput: %.2f RPS >= %.2f RPS (target)",
 
 					interfaceName, result.ThroughputRPS, target.minThroughput))
-
 			}
 
 			if result.AverageLatency > target.maxLatency {
@@ -907,13 +820,11 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 				targetsMet = false
 
 			} else {
-
 				ginkgo.By(fmt.Sprintf("✅ %s Latency: %.2fms <= %.2fms (target)",
 
 					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6,
 
 					float64(target.maxLatency.Nanoseconds())/1e6))
-
 			}
 
 			if result.ErrorRate > target.maxErrorRate {
@@ -925,65 +836,45 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 				targetsMet = false
 
 			} else {
-
 				ginkgo.By(fmt.Sprintf("✅ %s Error Rate: %.1f%% <= %.1f%% (target)",
 
 					interfaceName, result.ErrorRate, target.maxErrorRate))
-
 			}
 
 			if !targetsMet {
-
 				allTargetsMet = false
-
 			}
 
 		}
-
 	}
 
 	if allTargetsMet {
-
 		ginkgo.By("🎯 All Performance Targets Met!")
-
 	} else {
-
 		ginkgo.By("⚠️  Some Performance Targets Not Met")
-
 	}
-
 }
 
 // GetBenchmarkResults returns all benchmark results.
 
 func (opb *ORANPerformanceBenchmarker) GetBenchmarkResults() map[string]*BenchmarkResult {
-
 	results := make(map[string]*BenchmarkResult)
 
 	for k, v := range opb.benchmarkResults {
-
 		if v != nil && v.BenchmarkResult != nil {
-
 			results[k] = v.BenchmarkResult
-
 		}
-
 	}
 
 	return results
-
 }
 
 // GetInterfaceBenchmark returns benchmark result for a specific interface.
 
 func (opb *ORANPerformanceBenchmarker) GetInterfaceBenchmark(interfaceName string) *BenchmarkResult {
-
 	if result, ok := opb.benchmarkResults[interfaceName]; ok && result != nil {
-
 		return result.BenchmarkResult
-
 	}
 
 	return nil
-
 }

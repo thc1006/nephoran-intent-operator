@@ -43,7 +43,6 @@ type EdgeController struct {
 // EdgeControllerConfig defines configuration for edge computing management.
 
 type EdgeControllerConfig struct {
-
 	// Edge node discovery.
 
 	NodeDiscoveryEnabled bool `json:"node_discovery_enabled"`
@@ -85,7 +84,6 @@ type EdgeControllerConfig struct {
 	BackhaulFailoverEnabled bool `json:"backhaul_failover_enabled"`
 
 	LocalAutonomy bool `json:"local_autonomy"` // Continue without backhaul
-
 }
 
 // EdgeNode represents an edge computing node.
@@ -371,7 +369,6 @@ type ServiceMetrics struct {
 	ErrorRate float64 `json:"error_rate"`
 
 	CacheHitRate float64 `json:"cache_hit_rate"` // For caching services
-
 }
 
 // GeographicArea defines coverage area for edge zones.
@@ -384,7 +381,6 @@ type GeographicArea struct {
 	RadiusKm float64 `json:"radius_km"`
 
 	Polygon []Coordinate `json:"polygon,omitempty"` // For irregular shapes
-
 }
 
 // Coordinate represents a geographic coordinate.
@@ -434,7 +430,6 @@ const (
 // NewEdgeController creates a new edge computing controller.
 
 func NewEdgeController(
-
 	client client.Client,
 
 	kubeClient kubernetes.Interface,
@@ -444,11 +439,8 @@ func NewEdgeController(
 	scheme *runtime.Scheme,
 
 	config *EdgeControllerConfig,
-
 ) *EdgeController {
-
 	return &EdgeController{
-
 		Client: client,
 
 		KubeClient: kubeClient,
@@ -463,23 +455,19 @@ func NewEdgeController(
 
 		edgeZones: make(map[string]*EdgeZone),
 	}
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
 
 func (r *EdgeController) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoran.NetworkIntent{}).
 		Complete(r)
-
 }
 
 // Reconcile handles edge computing operations.
 
 func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-
 	log := r.Log.WithValues("networkintent", req.NamespacedName)
 
 	// Get the NetworkIntent resource.
@@ -487,17 +475,13 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 	var intent nephoran.NetworkIntent
 
 	if err := r.Get(ctx, req.NamespacedName, &intent); err != nil {
-
 		return reconcile.Result{}, client.IgnoreNotFound(err)
-
 	}
 
 	// Check if this intent requires edge processing.
 
 	if !r.requiresEdgeProcessing(&intent) {
-
 		return reconcile.Result{}, nil
-
 	}
 
 	log.Info("Processing edge computing intent", "intent", intent.Name)
@@ -505,7 +489,6 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 	// Find suitable edge nodes.
 
 	edgeNodes, err := r.findSuitableEdgeNodes(ctx, &intent)
-
 	if err != nil {
 
 		log.Error(err, "Failed to find suitable edge nodes")
@@ -531,19 +514,15 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 	// Note: Message field not available in current API version.
 
 	if err := r.Status().Update(ctx, &intent); err != nil {
-
 		log.Error(err, "Failed to update intent status")
-
 	}
 
 	return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
-
 }
 
 // StartEdgeDiscovery starts the edge node discovery process.
 
 func (r *EdgeController) StartEdgeDiscovery(ctx context.Context) error {
-
 	r.Log.Info("Starting edge node discovery")
 
 	go r.runEdgeDiscovery(ctx)
@@ -553,19 +532,16 @@ func (r *EdgeController) StartEdgeDiscovery(ctx context.Context) error {
 	go r.runZoneManagement(ctx)
 
 	return nil
-
 }
 
 // runEdgeDiscovery continuously discovers edge nodes.
 
 func (r *EdgeController) runEdgeDiscovery(ctx context.Context) {
-
 	ticker := time.NewTicker(r.config.DiscoveryInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -575,21 +551,16 @@ func (r *EdgeController) runEdgeDiscovery(ctx context.Context) {
 		case <-ticker.C:
 
 			if err := r.discoverEdgeNodes(ctx); err != nil {
-
 				r.Log.Error(err, "Edge node discovery failed")
-
 			}
 
 		}
-
 	}
-
 }
 
 // discoverEdgeNodes discovers and registers edge nodes.
 
 func (r *EdgeController) discoverEdgeNodes(ctx context.Context) error {
-
 	// This would implement actual edge node discovery.
 
 	// For now, simulate discovery of edge nodes.
@@ -631,19 +602,15 @@ func (r *EdgeController) discoverEdgeNodes(ctx context.Context) error {
 	r.updateEdgeZones()
 
 	return nil
-
 }
 
 // simulateEdgeNodeDiscovery simulates edge node discovery.
 
 func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
-
 	// Simulate different types of edge nodes.
 
 	nodes := []*EdgeNode{
-
 		{
-
 			ID: "edge-node-1",
 
 			Name: "Metro Edge Node 1",
@@ -653,7 +620,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			Status: EdgeNodeActive,
 
 			Capabilities: EdgeCapabilities{
-
 				ComputeIntensive: true,
 
 				LowLatencyProcessing: true,
@@ -668,7 +634,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			Resources: EdgeResources{
-
 				CPU: 16,
 
 				Memory: 64 * 1024 * 1024 * 1024, // 64GB
@@ -682,7 +647,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 				Accelerators: 1,
 
 				Utilization: ResourceUtilization{
-
 					CPUPercent: 45.0,
 
 					MemoryPercent: 60.0,
@@ -694,9 +658,7 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			NetworkInterfaces: []NetworkInterface{
-
 				{
-
 					Name: "5g-interface",
 
 					Type: "5G",
@@ -714,9 +676,7 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			O_RANFunctions: []O_RANFunction{
-
 				{
-
 					Type: "Near-RT RIC",
 
 					Version: "1.0.0",
@@ -724,7 +684,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 					Status: "Active",
 
 					Metrics: O_RANMetrics{
-
 						ThroughputMbps: 500.0,
 
 						LatencyMs: 1.5,
@@ -741,7 +700,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			Location: GeographicLocation{
-
 				Latitude: 40.7128,
 
 				Longitude: -74.0060, // New York
@@ -751,7 +709,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			LastSeen: time.Now(),
 
 			HealthMetrics: EdgeHealthMetrics{
-
 				UptimePercent: 99.95,
 
 				AverageLatency: 1.8,
@@ -769,7 +726,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 		},
 
 		{
-
 			ID: "edge-node-2",
 
 			Name: "Access Edge Node 1",
@@ -779,7 +735,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			Status: EdgeNodeActive,
 
 			Capabilities: EdgeCapabilities{
-
 				ComputeIntensive: false,
 
 				LowLatencyProcessing: true,
@@ -796,7 +751,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			Resources: EdgeResources{
-
 				CPU: 4,
 
 				Memory: 16 * 1024 * 1024 * 1024, // 16GB
@@ -810,7 +764,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 				Accelerators: 0,
 
 				Utilization: ResourceUtilization{
-
 					CPUPercent: 30.0,
 
 					MemoryPercent: 40.0,
@@ -822,9 +775,7 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			NetworkInterfaces: []NetworkInterface{
-
 				{
-
 					Name: "fiber-interface",
 
 					Type: "Ethernet",
@@ -840,7 +791,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			},
 
 			Location: GeographicLocation{
-
 				Latitude: 40.7589,
 
 				Longitude: -73.9851, // Manhattan
@@ -850,7 +800,6 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 			LastSeen: time.Now(),
 
 			HealthMetrics: EdgeHealthMetrics{
-
 				UptimePercent: 99.8,
 
 				AverageLatency: 4.2,
@@ -869,13 +818,11 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 	}
 
 	return nodes
-
 }
 
 // updateEdgeZones updates edge zone information based on discovered nodes.
 
 func (r *EdgeController) updateEdgeZones() {
-
 	zones := make(map[string]*EdgeZone)
 
 	for nodeID, node := range r.edgeNodes {
@@ -885,7 +832,6 @@ func (r *EdgeController) updateEdgeZones() {
 		if zone == nil {
 
 			zone = &EdgeZone{
-
 				ID: node.Zone,
 
 				Name: node.Zone,
@@ -914,47 +860,35 @@ func (r *EdgeController) updateEdgeZones() {
 	r.edgeZones = zones
 
 	r.Log.Info("Updated edge zones", "zones", len(zones))
-
 }
 
 // getRegionFromZone determines the region for a zone.
 
 func (r *EdgeController) getRegionFromZone(zone string) string {
-
 	// Simple mapping - in real implementation this would be configurable.
 
 	if zone == "metro-zone-1" {
-
 		return "us-east-1"
-
 	}
 
 	return "us-east-1"
-
 }
 
 // determineServiceLevel determines service level based on node capabilities.
 
 func (r *EdgeController) determineServiceLevel(node *EdgeNode) ServiceLevel {
-
 	if node.Capabilities.LowLatencyProcessing && node.HealthMetrics.AverageLatency < 2.0 {
-
 		return ServiceLevelPremium
-
 	} else if node.HealthMetrics.AverageLatency < 10.0 {
-
 		return ServiceLevelStandard
-
 	}
 
 	return ServiceLevelBasic
-
 }
 
 // aggregateZoneCapacity aggregates resource capacity for a zone.
 
 func (r *EdgeController) aggregateZoneCapacity(zone *EdgeZone, node *EdgeNode) {
-
 	zone.TotalCapacity.CPU += node.Resources.CPU
 
 	zone.TotalCapacity.Memory += node.Resources.Memory
@@ -966,19 +900,16 @@ func (r *EdgeController) aggregateZoneCapacity(zone *EdgeZone, node *EdgeNode) {
 	zone.TotalCapacity.NetworkBandwidth += node.Resources.NetworkBandwidth
 
 	zone.TotalCapacity.Accelerators += node.Resources.Accelerators
-
 }
 
 // runHealthChecks performs continuous health checks on edge nodes.
 
 func (r *EdgeController) runHealthChecks(ctx context.Context) {
-
 	ticker := time.NewTicker(r.config.NodeHealthCheckInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -990,23 +921,18 @@ func (r *EdgeController) runHealthChecks(ctx context.Context) {
 			r.performHealthChecks(ctx)
 
 		}
-
 	}
-
 }
 
 // performHealthChecks checks health of all edge nodes.
 
 func (r *EdgeController) performHealthChecks(ctx context.Context) {
-
 	r.mutex.RLock()
 
 	nodes := make(map[string]*EdgeNode)
 
 	for k, v := range r.edgeNodes {
-
 		nodes[k] = v
-
 	}
 
 	r.mutex.RUnlock()
@@ -1018,23 +944,19 @@ func (r *EdgeController) performHealthChecks(ctx context.Context) {
 		wg.Add(1)
 
 		go func(id string, n *EdgeNode) {
-
 			defer wg.Done()
 
 			r.checkNodeHealth(ctx, id, n)
-
 		}(nodeID, node)
 
 	}
 
 	wg.Wait()
-
 }
 
 // checkNodeHealth performs health check for a specific edge node.
 
 func (r *EdgeController) checkNodeHealth(ctx context.Context, nodeID string, node *EdgeNode) {
-
 	// Simulate health check - in real implementation would make HTTP calls.
 
 	node.LastSeen = time.Now()
@@ -1044,13 +966,9 @@ func (r *EdgeController) checkNodeHealth(ctx context.Context, nodeID string, nod
 	// Simulate some variability in metrics.
 
 	if node.HealthMetrics.AverageLatency > 10.0 {
-
 		node.Status = EdgeNodeDegraded
-
 	} else {
-
 		node.Status = EdgeNodeActive
-
 	}
 
 	r.Log.V(2).Info("Health check completed",
@@ -1060,19 +978,16 @@ func (r *EdgeController) checkNodeHealth(ctx context.Context, nodeID string, nod
 		"status", node.Status,
 
 		"latency", node.HealthMetrics.AverageLatency)
-
 }
 
 // runZoneManagement manages edge zones and their configurations.
 
 func (r *EdgeController) runZoneManagement(ctx context.Context) {
-
 	ticker := time.NewTicker(60 * time.Second) // Check every minute
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1084,39 +999,30 @@ func (r *EdgeController) runZoneManagement(ctx context.Context) {
 			r.manageEdgeZones(ctx)
 
 		}
-
 	}
-
 }
 
 // manageEdgeZones manages edge zone configurations and load balancing.
 
 func (r *EdgeController) manageEdgeZones(ctx context.Context) {
-
 	r.mutex.RLock()
 
 	zones := make(map[string]*EdgeZone)
 
 	for k, v := range r.edgeZones {
-
 		zones[k] = v
-
 	}
 
 	r.mutex.RUnlock()
 
 	for zoneID, zone := range zones {
-
 		r.optimizeZoneLoad(ctx, zoneID, zone)
-
 	}
-
 }
 
 // optimizeZoneLoad optimizes load distribution within an edge zone.
 
 func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zone *EdgeZone) {
-
 	// Calculate current utilization.
 
 	totalUtilization := 0.0
@@ -1124,7 +1030,6 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 	nodeCount := 0
 
 	for _, nodeID := range zone.Nodes {
-
 		if node, exists := r.edgeNodes[nodeID]; exists {
 
 			totalUtilization += node.Resources.Utilization.CPUPercent
@@ -1132,13 +1037,10 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 			nodeCount++
 
 		}
-
 	}
 
 	if nodeCount == 0 {
-
 		return
-
 	}
 
 	avgUtilization := totalUtilization / float64(nodeCount)
@@ -1158,13 +1060,11 @@ func (r *EdgeController) optimizeZoneLoad(ctx context.Context, zoneID string, zo
 		r.triggerZoneScaling(ctx, zoneID, zone)
 
 	}
-
 }
 
 // triggerZoneScaling triggers scaling operations for overloaded zones.
 
 func (r *EdgeController) triggerZoneScaling(ctx context.Context, zoneID string, zone *EdgeZone) {
-
 	// In a real implementation, this would:.
 
 	// 1. Request additional edge nodes.
@@ -1176,32 +1076,25 @@ func (r *EdgeController) triggerZoneScaling(ctx context.Context, zoneID string, 
 	// 4. Implement traffic shaping.
 
 	r.Log.Info("Scaling edge zone", "zone", zoneID, "nodes", len(zone.Nodes))
-
 }
 
 // requiresEdgeProcessing determines if an intent requires edge processing.
 
 func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) bool {
-
 	description := intent.Spec.Intent
 
 	// Check for edge-related keywords.
 
 	edgeKeywords := []string{
-
 		"edge", "URLLC", "ultra-low latency", "real-time",
 
 		"IoT", "AR/VR", "autonomous", "industrial", "local",
 	}
 
 	for _, keyword := range edgeKeywords {
-
 		if contains(description, keyword) {
-
 			return true
-
 		}
-
 	}
 
 	// Check for low latency requirements in the intent text.
@@ -1213,17 +1106,14 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 		contains(description, "ultra-low latency") || contains(description, "URLLC") {
 
 		return true
-
 	}
 
 	return false
-
 }
 
 // findSuitableEdgeNodes finds edge nodes suitable for the intent.
 
 func (r *EdgeController) findSuitableEdgeNodes(ctx context.Context, intent *nephoran.NetworkIntent) ([]*EdgeNode, error) {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -1231,19 +1121,13 @@ func (r *EdgeController) findSuitableEdgeNodes(ctx context.Context, intent *neph
 	var suitableNodes []*EdgeNode
 
 	for _, node := range r.edgeNodes {
-
 		if r.isNodeSuitable(node, intent) {
-
 			suitableNodes = append(suitableNodes, node)
-
 		}
-
 	}
 
 	if len(suitableNodes) == 0 {
-
 		return nil, fmt.Errorf("no suitable edge nodes found for intent %s", intent.Name)
-
 	}
 
 	// Sort by suitability score.
@@ -1255,41 +1139,31 @@ func (r *EdgeController) findSuitableEdgeNodes(ctx context.Context, intent *neph
 	maxNodes := 3
 
 	if len(suitableNodes) < maxNodes {
-
 		maxNodes = len(suitableNodes)
-
 	}
 
 	return suitableNodes[:maxNodes], nil
-
 }
 
 // isNodeSuitable checks if a node is suitable for the intent.
 
 func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.NetworkIntent) bool {
-
 	// Check node status.
 
 	if node.Status != EdgeNodeActive {
-
 		return false
-
 	}
 
 	// Check resource availability.
 
 	if node.Resources.Utilization.CPUPercent > r.config.EdgeResourceThreshold*100 {
-
 		return false
-
 	}
 
 	// Check latency requirements.
 
 	if node.HealthMetrics.AverageLatency > float64(r.config.MaxLatencyMs) {
-
 		return false
-
 	}
 
 	// Check specific capabilities based on intent.
@@ -1297,47 +1171,32 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 	description := intent.Spec.Intent
 
 	if contains(description, "AI") || contains(description, "ML") {
-
 		if !node.Capabilities.ComputeIntensive {
-
 			return false
-
 		}
-
 	}
 
 	if contains(description, "URLLC") {
-
 		if !node.Capabilities.LowLatencyProcessing {
-
 			return false
-
 		}
-
 	}
 
 	if contains(description, "RIC") {
-
 		if !node.Capabilities.LocalRICSupport {
-
 			return false
-
 		}
-
 	}
 
 	return true
-
 }
 
 // sortNodesBySuitability sorts nodes by their suitability for the intent.
 
 func (r *EdgeController) sortNodesBySuitability(nodes []*EdgeNode, intent *nephoran.NetworkIntent) {
-
 	// Simple scoring algorithm - in real implementation would be more sophisticated.
 
 	for i := range len(nodes) - 1 {
-
 		for j := i + 1; j < len(nodes); j++ {
 
 			score1 := r.calculateNodeScore(nodes[i], intent)
@@ -1345,21 +1204,16 @@ func (r *EdgeController) sortNodesBySuitability(nodes []*EdgeNode, intent *nepho
 			score2 := r.calculateNodeScore(nodes[j], intent)
 
 			if score2 > score1 {
-
 				nodes[i], nodes[j] = nodes[j], nodes[i]
-
 			}
 
 		}
-
 	}
-
 }
 
 // calculateNodeScore calculates a suitability score for a node.
 
 func (r *EdgeController) calculateNodeScore(node *EdgeNode, intent *nephoran.NetworkIntent) float64 {
-
 	score := 0.0
 
 	// Lower latency is better.
@@ -1379,25 +1233,19 @@ func (r *EdgeController) calculateNodeScore(node *EdgeNode, intent *nephoran.Net
 	description := intent.Spec.Intent
 
 	if contains(description, "AI") && node.Capabilities.ComputeIntensive {
-
 		score += 50.0
-
 	}
 
 	if contains(description, "URLLC") && node.Capabilities.LowLatencyProcessing {
-
 		score += 30.0
-
 	}
 
 	return score
-
 }
 
 // deployToEdgeNodes deploys the intent to selected edge nodes.
 
 func (r *EdgeController) deployToEdgeNodes(ctx context.Context, intent *nephoran.NetworkIntent, nodes []*EdgeNode) error {
-
 	r.Log.Info("Deploying to edge nodes",
 
 		"intent", intent.Name,
@@ -1419,13 +1267,11 @@ func (r *EdgeController) deployToEdgeNodes(ctx context.Context, intent *nephoran
 	}
 
 	return nil
-
 }
 
 // deployToSingleNode deploys the intent to a single edge node.
 
 func (r *EdgeController) deployToSingleNode(ctx context.Context, intent *nephoran.NetworkIntent, node *EdgeNode) error {
-
 	// In a real implementation, this would:.
 
 	// 1. Generate edge-specific manifests.
@@ -1451,13 +1297,11 @@ func (r *EdgeController) deployToSingleNode(ctx context.Context, intent *nephora
 	time.Sleep(2 * time.Second)
 
 	return nil
-
 }
 
 // GetEdgeNodes returns all discovered edge nodes.
 
 func (r *EdgeController) GetEdgeNodes() map[string]*EdgeNode {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -1465,19 +1309,15 @@ func (r *EdgeController) GetEdgeNodes() map[string]*EdgeNode {
 	result := make(map[string]*EdgeNode)
 
 	for k, v := range r.edgeNodes {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // GetEdgeZones returns all edge zones.
 
 func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
-
 	r.mutex.RLock()
 
 	defer r.mutex.RUnlock()
@@ -1485,19 +1325,15 @@ func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
 	result := make(map[string]*EdgeZone)
 
 	for k, v := range r.edgeZones {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // contains checks if a string contains a substring (case-insensitive).
 
 func contains(s, substr string) bool {
-
 	return len(s) >= len(substr) &&
 
 		(s == substr ||
@@ -1509,23 +1345,16 @@ func contains(s, substr string) bool {
 					s[len(s)-len(substr):] == substr ||
 
 					containsMiddle(s, substr)))
-
 }
 
 // containsMiddle checks if substr exists in the middle of s.
 
 func containsMiddle(s, substr string) bool {
-
 	for i := 0; i <= len(s)-len(substr); i++ {
-
 		if s[i:i+len(substr)] == substr {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }

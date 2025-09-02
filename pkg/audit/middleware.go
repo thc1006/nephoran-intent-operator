@@ -88,14 +88,12 @@ const (
 
 var (
 	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-
 		Name: "audit_http_requests_total",
 
 		Help: "Total number of HTTP requests processed by audit middleware",
 	}, []string{"method", "path", "status", "user_id"})
 
 	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "audit_http_request_duration_seconds",
 
 		Help: "Duration of HTTP requests in seconds",
@@ -104,7 +102,6 @@ var (
 	}, []string{"method", "path"})
 
 	httpRequestSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "audit_http_request_size_bytes",
 
 		Help: "Size of HTTP requests in bytes",
@@ -113,7 +110,6 @@ var (
 	}, []string{"method", "path"})
 
 	httpResponseSize = promauto.NewHistogramVec(prometheus.HistogramOpts{
-
 		Name: "audit_http_response_size_bytes",
 
 		Help: "Size of HTTP responses in bytes",
@@ -141,7 +137,6 @@ type HTTPAuditMiddleware struct {
 // HTTPAuditConfig configures the HTTP audit middleware.
 
 type HTTPAuditConfig struct {
-
 	// Enabled controls whether HTTP auditing is active.
 
 	Enabled bool `json:"enabled" yaml:"enabled"`
@@ -264,15 +259,11 @@ type auditResponseWriter struct {
 // NewHTTPAuditMiddleware creates a new HTTP audit middleware.
 
 func NewHTTPAuditMiddleware(auditSystem *AuditSystem, config *HTTPAuditConfig) *HTTPAuditMiddleware {
-
 	if config == nil {
-
 		config = DefaultHTTPAuditConfig()
-
 	}
 
 	middleware := &HTTPAuditMiddleware{
-
 		auditSystem: auditSystem,
 
 		config: config,
@@ -283,33 +274,24 @@ func NewHTTPAuditMiddleware(auditSystem *AuditSystem, config *HTTPAuditConfig) *
 	// Initialize pools for request/response capture.
 
 	middleware.requestPool = sync.Pool{
-
 		New: func() interface{} {
-
 			return &bytes.Buffer{}
-
 		},
 	}
 
 	middleware.responsePool = sync.Pool{
-
 		New: func() interface{} {
-
 			return &bytes.Buffer{}
-
 		},
 	}
 
 	return middleware
-
 }
 
 // Handler returns an HTTP middleware handler.
 
 func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		if !m.config.Enabled {
 
 			next.ServeHTTP(w, r)
@@ -333,9 +315,7 @@ func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 		requestID := r.Header.Get(HeaderRequestID)
 
 		if requestID == "" {
-
 			requestID = uuid.New().String()
-
 		}
 
 		// Add request ID to response header.
@@ -345,11 +325,8 @@ func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 		// Capture request information.
 
 		requestInfo, err := m.captureRequestInfo(r, requestID)
-
 		if err != nil {
-
 			m.logger.Error(err, "Failed to capture request info", "request_id", requestID)
-
 		}
 
 		// Add context information to request.
@@ -365,7 +342,6 @@ func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 		shouldCaptureResponseBody := m.config.CaptureResponseBody && !m.isSensitivePath(r.URL.Path)
 
 		wrappedWriter := &auditResponseWriter{
-
 			ResponseWriter: w,
 
 			statusCode: 200, // Default status code
@@ -396,17 +372,13 @@ func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 		// Update metrics.
 
 		m.updateMetrics(r, requestInfo, responseInfo, duration)
-
 	})
-
 }
 
 // captureRequestInfo captures information about the HTTP request.
 
 func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID string) (*HTTPRequestInfo, error) {
-
 	info := &HTTPRequestInfo{
-
 		RequestID: requestID,
 
 		Method: r.Method,
@@ -431,9 +403,7 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 	// Capture headers if enabled.
 
 	if m.config.CaptureHeaders {
-
 		info.Headers = m.sanitizeHeaders(r.Header)
-
 	}
 
 	// Parse accepted content types.
@@ -443,9 +413,7 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 		info.AcceptedTypes = strings.Split(acceptHeader, ",")
 
 		for i, t := range info.AcceptedTypes {
-
 			info.AcceptedTypes[i] = strings.TrimSpace(t)
-
 		}
 
 	}
@@ -455,11 +423,8 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 	if m.config.CaptureRequestBody && !m.isSensitivePath(r.URL.Path) && r.Body != nil {
 
 		body, err := m.captureRequestBody(r)
-
 		if err != nil {
-
 			return info, fmt.Errorf("failed to capture request body: %w", err)
-
 		}
 
 		info.Body = body
@@ -467,17 +432,13 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 	}
 
 	return info, nil
-
 }
 
 // captureRequestBody reads and captures the request body.
 
 func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error) {
-
 	if r.ContentLength > m.config.MaxBodySize {
-
 		return fmt.Sprintf("[TRUNCATED: Body size %d exceeds limit %d]", r.ContentLength, m.config.MaxBodySize), nil
-
 	}
 
 	// Get buffer from pool.
@@ -485,11 +446,9 @@ func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error
 	buf := m.requestPool.Get().(*bytes.Buffer)
 
 	defer func() {
-
 		buf.Reset()
 
 		m.requestPool.Put(buf)
-
 	}()
 
 	// Read body.
@@ -497,9 +456,7 @@ func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error
 	_, err := io.CopyN(buf, r.Body, m.config.MaxBodySize+1)
 
 	if err != nil && !errors.Is(err, io.EOF) {
-
 		return "", err
-
 	}
 
 	bodyBytes := buf.Bytes()
@@ -529,27 +486,20 @@ func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error
 		var jsonData interface{}
 
 		if err := json.Unmarshal(bodyBytes, &jsonData); err == nil {
-
 			if prettyJSON, err := json.MarshalIndent(jsonData, "", "  "); err == nil {
-
 				return string(prettyJSON), nil
-
 			}
-
 		}
 
 	}
 
 	return string(bodyBytes), nil
-
 }
 
 // captureResponseInfo captures information about the HTTP response.
 
 func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, duration time.Duration) *HTTPResponseInfo {
-
 	info := &HTTPResponseInfo{
-
 		StatusCode: w.statusCode,
 
 		StatusText: http.StatusText(w.statusCode),
@@ -566,9 +516,7 @@ func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, durati
 	// Capture headers if enabled.
 
 	if m.config.CaptureHeaders {
-
 		info.Headers = m.sanitizeHeaders(http.Header(w.Header()))
-
 	}
 
 	// Capture response body if enabled and captured.
@@ -584,13 +532,9 @@ func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, durati
 			var jsonData interface{}
 
 			if err := json.Unmarshal([]byte(bodyString), &jsonData); err == nil {
-
 				if prettyJSON, err := json.MarshalIndent(jsonData, "", "  "); err == nil {
-
 					bodyString = string(prettyJSON)
-
 				}
-
 			}
 
 		}
@@ -600,25 +544,19 @@ func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, durati
 	}
 
 	return info
-
 }
 
 // createHTTPAuditEvent creates an audit event for the HTTP request/response.
 
 func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo *HTTPRequestInfo, responseInfo *HTTPResponseInfo, duration time.Duration) {
-
 	// Extract user context.
 
 	var userContext *UserContext
 
 	if m.config.UserExtractor != nil {
-
 		userContext = m.config.UserExtractor(r)
-
 	} else {
-
 		userContext = m.defaultUserExtractor(r)
-
 	}
 
 	// Determine event result.
@@ -626,17 +564,11 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 	var result EventResult
 
 	if responseInfo.StatusCode >= 200 && responseInfo.StatusCode < 400 {
-
 		result = ResultSuccess
-
 	} else if responseInfo.StatusCode >= 400 && responseInfo.StatusCode < 500 {
-
 		result = ResultDenied
-
 	} else {
-
 		result = ResultError
-
 	}
 
 	// Determine severity based on status code and method.
@@ -644,21 +576,15 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 	severity := SeverityInfo
 
 	if responseInfo.StatusCode >= 400 {
-
 		severity = SeverityWarning
-
 	}
 
 	if responseInfo.StatusCode >= 500 {
-
 		severity = SeverityError
-
 	}
 
 	if requestInfo.Method == "DELETE" && result == ResultSuccess {
-
 		severity = SeverityNotice
-
 	}
 
 	// Get sanitized path for consistent logging.
@@ -666,9 +592,7 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 	sanitizedPath := requestInfo.Path
 
 	if m.config.PathSanitizer != nil {
-
 		sanitizedPath = m.config.PathSanitizer(requestInfo.Path)
-
 	}
 
 	// Create audit event.
@@ -690,9 +614,7 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 	// Add user context if available.
 
 	if userContext != nil {
-
 		event.UserContext = userContext
-
 	}
 
 	// Add tracing information if available.
@@ -710,7 +632,6 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 	// Log the event.
 
 	if err := m.auditSystem.LogEvent(event); err != nil {
-
 		m.logger.Error(err, "Failed to log HTTP audit event",
 
 			"request_id", requestInfo.RequestID,
@@ -718,31 +639,24 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 			"method", requestInfo.Method,
 
 			"path", sanitizedPath)
-
 	}
-
 }
 
 // updateMetrics updates Prometheus metrics.
 
 func (m *HTTPAuditMiddleware) updateMetrics(r *http.Request, requestInfo *HTTPRequestInfo, responseInfo *HTTPResponseInfo, duration time.Duration) {
-
 	// Sanitize path for metrics.
 
 	path := requestInfo.Path
 
 	if m.config.PathSanitizer != nil {
-
 		path = m.config.PathSanitizer(path)
-
 	}
 
 	userID := "anonymous"
 
 	if userContext := m.defaultUserExtractor(r); userContext != nil && userContext.UserID != "" {
-
 		userID = userContext.UserID
-
 	}
 
 	// Update metrics.
@@ -766,18 +680,15 @@ func (m *HTTPAuditMiddleware) updateMetrics(r *http.Request, requestInfo *HTTPRe
 	).Observe(duration.Seconds())
 
 	if requestInfo.BodySize > 0 {
-
 		httpRequestSize.WithLabelValues(
 
 			requestInfo.Method,
 
 			path,
 		).Observe(float64(requestInfo.BodySize))
-
 	}
 
 	if responseInfo.BodySize > 0 {
-
 		httpResponseSize.WithLabelValues(
 
 			requestInfo.Method,
@@ -786,191 +697,130 @@ func (m *HTTPAuditMiddleware) updateMetrics(r *http.Request, requestInfo *HTTPRe
 
 			strconv.Itoa(responseInfo.StatusCode),
 		).Observe(float64(responseInfo.BodySize))
-
 	}
-
 }
 
 // Helper methods.
 
 func (m *HTTPAuditMiddleware) getClientIP(r *http.Request) string {
-
 	// Check X-Forwarded-For header.
 
 	if xff := r.Header.Get(HeaderForwardedFor); xff != "" {
-
 		// Take the first IP if multiple are present.
 
 		if ips := strings.Split(xff, ","); len(ips) > 0 {
-
 			return strings.TrimSpace(ips[0])
-
 		}
-
 	}
 
 	// Check X-Real-IP header.
 
 	if realIP := r.Header.Get(HeaderRealIP); realIP != "" {
-
 		return realIP
-
 	}
 
 	// Fall back to RemoteAddr.
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-
 	if err != nil {
-
 		return r.RemoteAddr
-
 	}
 
 	return ip
-
 }
 
 func (m *HTTPAuditMiddleware) sanitizeHeaders(headers http.Header) map[string]string {
-
 	sanitized := make(map[string]string)
 
 	for name, values := range headers {
-
 		if m.isSensitiveHeader(name) {
-
 			sanitized[name] = "[REDACTED]"
-
 		} else {
-
 			sanitized[name] = strings.Join(values, ", ")
-
 		}
-
 	}
 
 	return sanitized
-
 }
 
 func (m *HTTPAuditMiddleware) isSensitiveHeader(header string) bool {
-
 	for _, sensitive := range m.config.SensitiveHeaders {
-
 		if strings.EqualFold(sensitive, header) {
-
 			return true
-
 		}
-
 	}
 
 	// Default sensitive headers.
 
 	defaultSensitive := []string{
-
 		"authorization", "x-api-key", "x-auth-token",
 
 		"cookie", "set-cookie", "x-csrf-token",
 	}
 
 	for _, sensitive := range defaultSensitive {
-
 		if strings.EqualFold(sensitive, header) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (m *HTTPAuditMiddleware) isSensitivePath(path string) bool {
-
 	for _, sensitivePath := range m.config.SensitivePaths {
-
 		if strings.HasPrefix(path, sensitivePath) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (m *HTTPAuditMiddleware) shouldExcludePath(path string) bool {
-
 	// Check health check paths.
 
 	for _, healthPath := range m.config.HealthCheckPaths {
-
 		if path == healthPath {
-
 			return true
-
 		}
-
 	}
 
 	// Check excluded paths.
 
 	for _, excludePath := range m.config.ExcludePaths {
-
 		if strings.HasPrefix(path, excludePath) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (m *HTTPAuditMiddleware) defaultUserExtractor(r *http.Request) *UserContext {
-
 	userID := r.Header.Get(HeaderUserID)
 
 	if userID == "" {
-
 		// Try to extract from Authorization header.
 
 		if auth := r.Header.Get(HeaderAuthorization); auth != "" {
-
 			// This is a simplified extraction - in practice, you'd decode JWT tokens.
 
 			if strings.HasPrefix(auth, "Bearer ") {
-
 				userID = "bearer-token-user" // Placeholder
-
 			} else if strings.HasPrefix(auth, "Basic ") {
-
 				userID = "basic-auth-user" // Placeholder
-
 			}
-
 		}
-
 	}
 
 	if userID == "" {
-
 		return nil
-
 	}
 
 	return &UserContext{
-
 		UserID: userID,
 	}
-
 }
 
 // auditResponseWriter methods.
@@ -978,7 +828,6 @@ func (m *HTTPAuditMiddleware) defaultUserExtractor(r *http.Request) *UserContext
 // Write performs write operation.
 
 func (w *auditResponseWriter) Write(data []byte) (int, error) {
-
 	// Write to original response writer.
 
 	n, err := w.ResponseWriter.Write(data)
@@ -988,69 +837,52 @@ func (w *auditResponseWriter) Write(data []byte) (int, error) {
 	// Capture body if enabled and within limits.
 
 	if w.captureBody && w.body.Len()+n <= int(w.config.MaxBodySize) {
-
 		w.body.Write(data[:n])
-
 	}
 
 	return n, err
-
 }
 
 // WriteHeader performs writeheader operation.
 
 func (w *auditResponseWriter) WriteHeader(statusCode int) {
-
 	w.statusCode = statusCode
 
 	w.ResponseWriter.WriteHeader(statusCode)
-
 }
 
 // Header performs header operation.
 
 func (w *auditResponseWriter) Header() http.Header {
-
 	return w.ResponseWriter.Header()
-
 }
 
 // Implement http.Hijacker if the underlying ResponseWriter supports it.
 
 func (w *auditResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-
 	hijacker, ok := w.ResponseWriter.(http.Hijacker)
 
 	if !ok {
-
 		return nil, nil, fmt.Errorf("ResponseWriter does not support hijacking")
-
 	}
 
 	return hijacker.Hijack()
-
 }
 
 // Implement http.Flusher if the underlying ResponseWriter supports it.
 
 func (w *auditResponseWriter) Flush() {
-
 	flusher, ok := w.ResponseWriter.(http.Flusher)
 
 	if ok {
-
 		flusher.Flush()
-
 	}
-
 }
 
 // DefaultHTTPAuditConfig returns a default HTTP audit configuration.
 
 func DefaultHTTPAuditConfig() *HTTPAuditConfig {
-
 	return &HTTPAuditConfig{
-
 		Enabled: true,
 
 		CaptureRequestBody: false, // Default to false for performance
@@ -1062,38 +894,32 @@ func DefaultHTTPAuditConfig() *HTTPAuditConfig {
 		MaxBodySize: MaxBodySize,
 
 		SensitiveHeaders: []string{
-
 			"Authorization", "X-API-Key", "X-Auth-Token",
 
 			"Cookie", "Set-Cookie", "X-CSRF-Token",
 		},
 
 		SensitivePaths: []string{
-
 			"/api/v1/auth", "/api/v1/login", "/api/v1/password",
 
 			"/api/v1/secrets", "/api/v1/keys",
 		},
 
 		ExcludePaths: []string{
-
 			"/metrics", "/debug", "/favicon.ico",
 		},
 
 		HealthCheckPaths: []string{
-
 			"/health", "/healthz", "/readiness", "/liveness",
 
 			"/status", "/ping",
 		},
 	}
-
 }
 
 // DefaultPathSanitizer provides a default path sanitization function.
 
 func DefaultPathSanitizer(path string) string {
-
 	// Replace UUIDs, numbers, and other variable path components.
 
 	// This is a simplified example - in practice, you'd use regex.
@@ -1101,23 +927,16 @@ func DefaultPathSanitizer(path string) string {
 	parts := strings.Split(path, "/")
 
 	for i, part := range parts {
-
 		if len(part) == 36 && strings.Count(part, "-") == 4 {
-
 			// Likely a UUID.
 
 			parts[i] = "{uuid}"
-
 		} else if _, err := strconv.Atoi(part); err == nil && part != "" {
-
 			// Numeric ID.
 
 			parts[i] = "{id}"
-
 		}
-
 	}
 
 	return strings.Join(parts, "/")
-
 }

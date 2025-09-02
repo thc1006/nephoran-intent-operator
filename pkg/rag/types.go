@@ -35,7 +35,6 @@ type Doc struct {
 // This allows for different implementations (Weaviate, no-op, etc.).
 
 type RAGClient interface {
-
 	// Retrieve performs a semantic search for relevant documents.
 
 	Retrieve(ctx context.Context, query string) ([]Doc, error)
@@ -58,17 +57,19 @@ type RAGClient interface {
 }
 
 // Type aliases for shared types to ensure consistency across the package.
-type SearchQuery = shared.SearchQuery
-type SearchResult = shared.SearchResult
+type (
+	SearchQuery  = shared.SearchQuery
+	SearchResult = shared.SearchResult
+)
 
 // SearchResponse represents a search response (defined locally to avoid import cycles).
 type SearchResponse struct {
-	Results []*SearchResult `json:"results"`
-	Total int `json:"total"`
-	Took time.Duration `json:"took"`
-	Query string `json:"query"`
-	ProcessedAt time.Time `json:"processed_at"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Results     []*SearchResult        `json:"results"`
+	Total       int                    `json:"total"`
+	Took        time.Duration          `json:"took"`
+	Query       string                 `json:"query"`
+	ProcessedAt time.Time              `json:"processed_at"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Note: RAGRequest and RAGResponse types are defined in rag_service.go to avoid duplication
@@ -76,11 +77,11 @@ type SearchResponse struct {
 
 // WeaviateHealthStatus represents the health status of the Weaviate client.
 type WeaviateHealthStatus struct {
-	IsHealthy  bool      `json:"is_healthy"`
-	LastCheck  time.Time `json:"last_check"`
-	Version    string    `json:"version,omitempty"`
-	Message    string    `json:"message,omitempty"`
-	Details    map[string]interface{} `json:"details,omitempty"`
+	IsHealthy bool                   `json:"is_healthy"`
+	LastCheck time.Time              `json:"last_check"`
+	Version   string                 `json:"version,omitempty"`
+	Message   string                 `json:"message,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
 // WeaviateClient represents the basic Weaviate client interface.
@@ -97,7 +98,6 @@ type WeaviateClient interface {
 // RAGClientConfig holds configuration for RAG clients.
 
 type RAGClientConfig struct {
-
 	// Common configuration.
 
 	Enabled bool
@@ -132,7 +132,6 @@ type RAGClientConfig struct {
 // Without "rag" build tag: returns no-op implementation.
 
 func NewRAGClient(config *RAGClientConfig) RAGClient {
-
 	// This function will be implemented differently in:.
 
 	// - weaviate_client.go (with //go:build rag).
@@ -142,9 +141,7 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 	// Return a basic no-op implementation as fallback
 
 	return &noopRAGClient{}
-
 }
-
 
 // noopRAGClient is a minimal no-op implementation for compilation.
 type noopRAGClient struct{}
@@ -187,12 +184,9 @@ type QueryRequest struct {
 	MinScore float64 `json:"minScore,omitempty"` // Minimum relevance score for results
 
 	Filters map[string]interface{} `json:"filters,omitempty"` // Additional filters for retrieval
-
 }
 
-
 // Note: Service type removed - use specific service implementations
-
 
 // AsyncWorkerConfig defines configuration for async worker pools.
 
@@ -295,9 +289,7 @@ type TestQueryJob struct {
 // NewAsyncWorkerPool creates a new async worker pool for tests.
 
 func NewAsyncWorkerPool(config *AsyncWorkerConfig) *AsyncWorkerPoolForTests {
-
 	return &AsyncWorkerPoolForTests{
-
 		documentWorkers: config.DocumentWorkers,
 
 		queryWorkers: config.QueryWorkers,
@@ -307,7 +299,6 @@ func NewAsyncWorkerPool(config *AsyncWorkerConfig) *AsyncWorkerPoolForTests {
 		queryQueue: make(chan TestQueryJob, config.QueryQueueSize),
 
 		metrics: &AsyncWorkerMetrics{
-
 			DocumentJobsSubmitted: 0,
 
 			QueryJobsSubmitted: 0,
@@ -323,33 +314,25 @@ func NewAsyncWorkerPool(config *AsyncWorkerConfig) *AsyncWorkerPoolForTests {
 
 		started: false,
 	}
-
 }
 
 // Start starts the async worker pool.
 
 func (p *AsyncWorkerPoolForTests) Start() error {
-
 	if p.started {
-
 		return fmt.Errorf("worker pool already started")
-
 	}
 
 	p.started = true
 
 	return nil
-
 }
 
 // Stop stops the async worker pool.
 
 func (p *AsyncWorkerPoolForTests) Stop(timeout time.Duration) error {
-
 	if !p.started {
-
 		return fmt.Errorf("async worker pool not started")
-
 	}
 
 	p.started = false
@@ -359,23 +342,17 @@ func (p *AsyncWorkerPoolForTests) Stop(timeout time.Duration) error {
 	// This is a simple implementation for testing purposes.
 
 	if timeout > 0 {
-
 		time.Sleep(time.Millisecond * 200) // Allow time for goroutines to complete
-
 	}
 
 	return nil
-
 }
 
 // SubmitDocumentJob submits a document job for processing.
 
 func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
-
 	if !p.started {
-
 		return fmt.Errorf("async worker pool not started")
-
 	}
 
 	// Check queue fullness by trying to send to channel with select.
@@ -399,7 +376,6 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 	// For testing, simulate processing by calling the callback directly.
 
 	go func() {
-
 		time.Sleep(100 * time.Millisecond) // Simulate processing time
 
 		var chunks []BasicDocumentChunk
@@ -415,13 +391,10 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 			p.metrics.DocumentJobsFailed++
 
 		} else {
-
 			// Create mock chunks using the BasicDocumentChunk type.
 
 			chunks = []BasicDocumentChunk{
-
 				{
-
 					ID: job.ID + "_chunk_1",
 
 					DocumentID: job.ID,
@@ -438,7 +411,6 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 				},
 
 				{
-
 					ID: job.ID + "_chunk_2",
 
 					DocumentID: job.ID,
@@ -454,35 +426,27 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 					EndOffset: len(job.Content),
 				},
 			}
-
 		}
 
 		p.metrics.DocumentJobsCompleted++
 
 		if job.Callback != nil {
-
 			job.Callback(job.ID, chunks, err)
-
 		}
 
 		// Remove job from queue.
 
 		<-p.documentQueue
-
 	}()
 
 	return nil
-
 }
 
 // SubmitQueryJob submits a query job for processing.
 
 func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
-
 	if !p.started {
-
 		return fmt.Errorf("async worker pool not started")
-
 	}
 
 	// Check queue fullness by trying to send to channel with select.
@@ -506,7 +470,6 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 	// For testing, simulate processing by calling the callback directly.
 
 	go func() {
-
 		time.Sleep(50 * time.Millisecond) // Simulate processing time
 
 		var results []RetrievedContext
@@ -522,13 +485,10 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 			p.metrics.QueryJobsFailed++
 
 		} else {
-
 			// Create mock results using RetrievedContext.
 
 			results = []RetrievedContext{
-
 				{
-
 					ID: "result_1",
 
 					Content: "Mock search result 1 for query: " + job.Query,
@@ -539,7 +499,6 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 				},
 
 				{
-
 					ID: "result_2",
 
 					Content: "Mock search result 2 for query: " + job.Query,
@@ -549,33 +508,26 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 					Metadata: map[string]interface{}{"source": "test"},
 				},
 			}
-
 		}
 
 		p.metrics.QueryJobsCompleted++
 
 		if job.Callback != nil {
-
 			job.Callback(job.ID, results, err)
-
 		}
 
 		// Remove job from queue.
 
 		<-p.queryQueue
-
 	}()
 
 	return nil
-
 }
 
 // GetMetrics returns current metrics.
 
 func (p *AsyncWorkerPoolForTests) GetMetrics() *AsyncWorkerMetrics {
-
 	return p.metrics
-
 }
 
 // RetrievalRequest represents a request for document retrieval.
@@ -590,7 +542,6 @@ type RetrievalRequest struct {
 	Filters map[string]interface{} `json:"filters,omitempty"` // Additional filters for retrieval
 
 	Context map[string]interface{} `json:"context,omitempty"` // Additional context for the query
-
 }
 
 // RetrievalResponse represents a response from document retrieval.
@@ -609,7 +560,6 @@ type RetrievalResponse struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"` // Additional metadata about the retrieval
 
 	Error string `json:"error,omitempty"` // Error message if retrieval failed
-
 }
 
 // Note: QueryResponse and RAGService are defined in other RAG files.
@@ -625,24 +575,24 @@ type WeaviateConnectionPool struct {
 
 // WeaviatePooledConnection represents a pooled Weaviate connection.
 type WeaviatePooledConnection struct {
-	ID          string
-	Client      WeaviateClient
-	CreatedAt   time.Time
-	LastUsedAt  time.Time
-	IsHealthy   bool
-	UsageCount  int64
+	ID         string
+	Client     WeaviateClient
+	CreatedAt  time.Time
+	LastUsedAt time.Time
+	IsHealthy  bool
+	UsageCount int64
 }
 
 // PoolConfig configures the connection pool.
 type PoolConfig struct {
 	MinConnections      int           `json:"min_connections"`
 	MaxConnections      int           `json:"max_connections"`
-	MaxIdleTime        time.Duration `json:"max_idle_time"`
+	MaxIdleTime         time.Duration `json:"max_idle_time"`
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	WeaviateURL        string        `json:"weaviate_url"`
-	WeaviateAPIKey     string        `json:"weaviate_api_key"`
-	ConnectionTimeout  time.Duration `json:"connection_timeout"`
-	MaxRetries         int           `json:"max_retries"`
+	WeaviateURL         string        `json:"weaviate_url"`
+	WeaviateAPIKey      string        `json:"weaviate_api_key"`
+	ConnectionTimeout   time.Duration `json:"connection_timeout"`
+	MaxRetries          int           `json:"max_retries"`
 }
 
 // PoolMetrics tracks connection pool metrics.
@@ -663,27 +613,27 @@ type PoolMetrics struct {
 type OptimizedRAGConfig struct {
 	// Base configuration
 	RAGClientConfig *RAGClientConfig `json:"rag_client_config"`
-	
+
 	// Performance settings
-	EnableCaching          bool          `json:"enable_caching"`
-	CacheSize             int           `json:"cache_size"`
-	CacheTTL              time.Duration `json:"cache_ttl"`
-	
+	EnableCaching bool          `json:"enable_caching"`
+	CacheSize     int           `json:"cache_size"`
+	CacheTTL      time.Duration `json:"cache_ttl"`
+
 	// Batch processing
-	BatchSize             int           `json:"batch_size"`
-	MaxConcurrentRequests int           `json:"max_concurrent_requests"`
-	
+	BatchSize             int `json:"batch_size"`
+	MaxConcurrentRequests int `json:"max_concurrent_requests"`
+
 	// Query optimization
-	EnableQueryRewriting  bool    `json:"enable_query_rewriting"`
-	SemanticThreshold     float64 `json:"semantic_threshold"`
-	
+	EnableQueryRewriting bool    `json:"enable_query_rewriting"`
+	SemanticThreshold    float64 `json:"semantic_threshold"`
+
 	// Response generation
-	MaxResponseTokens     int     `json:"max_response_tokens"`
-	ResponseTemperature   float32 `json:"response_temperature"`
-	
+	MaxResponseTokens   int     `json:"max_response_tokens"`
+	ResponseTemperature float32 `json:"response_temperature"`
+
 	// Monitoring
-	EnableMetrics         bool          `json:"enable_metrics"`
-	MetricsInterval       time.Duration `json:"metrics_interval"`
+	EnableMetrics   bool          `json:"enable_metrics"`
+	MetricsInterval time.Duration `json:"metrics_interval"`
 }
 
 // OptimizedRAGService provides enhanced RAG capabilities with performance optimizations.
@@ -699,12 +649,12 @@ func DefaultPoolConfig() *PoolConfig {
 	return &PoolConfig{
 		MinConnections:      2,
 		MaxConnections:      10,
-		MaxIdleTime:        5 * time.Minute,
+		MaxIdleTime:         5 * time.Minute,
 		HealthCheckInterval: 30 * time.Second,
-		WeaviateURL:        "http://localhost:8080",
-		WeaviateAPIKey:     "",
-		ConnectionTimeout:  30 * time.Second,
-		MaxRetries:         3,
+		WeaviateURL:         "http://localhost:8080",
+		WeaviateAPIKey:      "",
+		ConnectionTimeout:   30 * time.Second,
+		MaxRetries:          3,
 	}
 }
 
@@ -713,7 +663,7 @@ func NewWeaviateConnectionPool(config *PoolConfig) *WeaviateConnectionPool {
 	if config == nil {
 		config = DefaultPoolConfig()
 	}
-	
+
 	return &WeaviateConnectionPool{
 		config:      config,
 		connections: make(chan *WeaviatePooledConnection, config.MaxConnections),
@@ -737,16 +687,16 @@ func (pool *WeaviateConnectionPool) Stop() error {
 // GetMetrics returns pool metrics
 func (pool *WeaviateConnectionPool) GetMetrics() *PoolMetrics {
 	return &PoolMetrics{
-		ActiveConnections: 0,
-		TotalConnections: 0,
-		IdleConnections: 0,
-		ConnectionsCreated: 0,
+		ActiveConnections:    0,
+		TotalConnections:     0,
+		IdleConnections:      0,
+		ConnectionsCreated:   0,
 		ConnectionsDestroyed: 0,
-		TotalRequests: 0,
-		FailedRequests: 0,
-		AverageResponseTime: 0,
-		AverageLatency: 0,
-		ConnectionFailures: 0,
+		TotalRequests:        0,
+		FailedRequests:       0,
+		AverageResponseTime:  0,
+		AverageLatency:       0,
+		ConnectionFailures:   0,
 	}
 }
 
@@ -754,9 +704,9 @@ func (pool *WeaviateConnectionPool) GetMetrics() *PoolMetrics {
 func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
 	return &OptimizedRAGConfig{
 		RAGClientConfig: &RAGClientConfig{
-			Enabled:           true,
-			MaxSearchResults:  10,
-			MinConfidence:     0.7,
+			Enabled:          true,
+			MaxSearchResults: 10,
+			MinConfidence:    0.7,
 			WeaviateURL:      "http://localhost:8080",
 			WeaviateAPIKey:   "",
 			LLMEndpoint:      "http://localhost:8081",
@@ -764,7 +714,7 @@ func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
 			MaxTokens:        2048,
 			Temperature:      0.7,
 		},
-		EnableCaching:          true,
+		EnableCaching:         true,
 		CacheSize:             1000,
 		CacheTTL:              30 * time.Minute,
 		BatchSize:             10,
@@ -783,9 +733,9 @@ func NewOptimizedRAGService(weaviatePool *WeaviateConnectionPool, llmClient inte
 	if config == nil {
 		config = getDefaultOptimizedRAGConfig()
 	}
-	
+
 	ragClient := NewRAGClient(config.RAGClientConfig)
-	
+
 	return &OptimizedRAGService{
 		config:       config,
 		ragClient:    ragClient,
@@ -796,42 +746,42 @@ func NewOptimizedRAGService(weaviatePool *WeaviateConnectionPool, llmClient inte
 // ProcessQuery processes a single RAG query
 func (service *OptimizedRAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
 	return &RAGResponse{
-		Answer: "Mock response",
-		Confidence: 0.8,
+		Answer:          "Mock response",
+		Confidence:      0.8,
 		SourceDocuments: []*shared.SearchResult{},
-		ProcessingTime: 100 * time.Millisecond,
-		RetrievalTime: 50 * time.Millisecond,
-		Query: request.Query,
-		ProcessedAt: time.Now(),
+		ProcessingTime:  100 * time.Millisecond,
+		RetrievalTime:   50 * time.Millisecond,
+		Query:           request.Query,
+		ProcessedAt:     time.Now(),
 	}, nil
 }
 
 // GetOptimizedMetrics returns optimized service metrics
 func (service *OptimizedRAGService) GetOptimizedMetrics() *OptimizedRAGMetrics {
 	return &OptimizedRAGMetrics{
-		TotalQueries: 0,
-		SuccessfulQueries: 0,
-		FailedQueries: 0,
-		AverageLatency: 100 * time.Millisecond,
-		P95Latency: 200 * time.Millisecond,
-		P99Latency: 300 * time.Millisecond,
-		MemoryCacheHitRate: 0.75,
-		RedisCacheHitRate: 0.60,
-		OverallCacheHitRate: 0.70,
-		CacheLatency: 5 * time.Millisecond,
+		TotalQueries:           0,
+		SuccessfulQueries:      0,
+		FailedQueries:          0,
+		AverageLatency:         100 * time.Millisecond,
+		P95Latency:             200 * time.Millisecond,
+		P99Latency:             300 * time.Millisecond,
+		MemoryCacheHitRate:     0.75,
+		RedisCacheHitRate:      0.60,
+		OverallCacheHitRate:    0.70,
+		CacheLatency:           5 * time.Millisecond,
 		AverageResponseQuality: 0.85,
-		CircuitBreakerTrips: 0,
-		RecoveryEvents: 0,
-		ConnectionFailures: 0,
-		LastUpdated: time.Now(),
+		CircuitBreakerTrips:    0,
+		RecoveryEvents:         0,
+		ConnectionFailures:     0,
+		LastUpdated:            time.Now(),
 	}
 }
 
 // GetHealth returns service health status
 func (service *OptimizedRAGService) GetHealth() interface{} {
 	return map[string]interface{}{
-		"status": "healthy",
-		"rag_client": "connected",
+		"status":        "healthy",
+		"rag_client":    "connected",
 		"weaviate_pool": "active",
 	}
 }
@@ -865,19 +815,19 @@ type HNSWOptimizerConfig struct {
 // HNSWParameters holds HNSW algorithm parameters.
 type HNSWParameters struct {
 	EfConstruction   int `json:"ef_construction"`
-	Ef              int `json:"ef"`
-	M               int `json:"m"`
+	Ef               int `json:"ef"`
+	M                int `json:"m"`
 	MaxConnections   int `json:"max_connections"`
 	MaxConnectionsL0 int `json:"max_connections_l0"`
 }
 
 // HNSWMetrics tracks HNSW performance metrics.
 type HNSWMetrics struct {
-	OptimizationRuns    int64         `json:"optimization_runs"`
-	AverageLatency      time.Duration `json:"average_latency"`
-	AccuracyScore       float64       `json:"accuracy_score"`
-	LastOptimized       time.Time     `json:"last_optimized"`
-	ParameterChanges    int64         `json:"parameter_changes"`
+	OptimizationRuns int64         `json:"optimization_runs"`
+	AverageLatency   time.Duration `json:"average_latency"`
+	AccuracyScore    float64       `json:"accuracy_score"`
+	LastOptimized    time.Time     `json:"last_optimized"`
+	ParameterChanges int64         `json:"parameter_changes"`
 }
 
 // NewHNSWOptimizer creates a new HNSW optimizer.
@@ -892,7 +842,7 @@ func NewHNSWOptimizer(client interface{}, config *HNSWOptimizerConfig) *HNSWOpti
 			MaxOptimizationRounds: 10,
 		}
 	}
-	
+
 	return &HNSWOptimizer{
 		client:  client,
 		config:  config,
@@ -917,22 +867,22 @@ type QueryPattern struct {
 // OptimizationResult represents the result of parameter optimization.
 type OptimizationResult struct {
 	Success             bool                   `json:"success"`
-	OptimizedParams     *HNSWParameters       `json:"optimized_params"`
-	PerformanceGain     float64               `json:"performance_gain"`
-	LatencyImprovement  time.Duration         `json:"latency_improvement"`
-	AccuracyImprovement float32               `json:"accuracy_improvement"`
-	RecommendedAction   string                `json:"recommended_action"`
+	OptimizedParams     *HNSWParameters        `json:"optimized_params"`
+	PerformanceGain     float64                `json:"performance_gain"`
+	LatencyImprovement  time.Duration          `json:"latency_improvement"`
+	AccuracyImprovement float32                `json:"accuracy_improvement"`
+	RecommendedAction   string                 `json:"recommended_action"`
 	Metadata            map[string]interface{} `json:"metadata"`
-	Error               error                 `json:"error,omitempty"`
+	Error               error                  `json:"error,omitempty"`
 }
 
 // WeaviateConfig holds Weaviate configuration.
 type WeaviateConfig struct {
-	Host      string `json:"host"`
-	Scheme    string `json:"scheme"`
-	APIKey    string `json:"api_key"`
-	Timeout   time.Duration `json:"timeout"`
-	MaxRetries int `json:"max_retries"`
+	Host       string        `json:"host"`
+	Scheme     string        `json:"scheme"`
+	APIKey     string        `json:"api_key"`
+	Timeout    time.Duration `json:"timeout"`
+	MaxRetries int           `json:"max_retries"`
 }
 
 // OptimizedRAGMetrics provides comprehensive metrics for the optimized RAG service.
@@ -944,31 +894,31 @@ type OptimizedRAGMetrics struct {
 	AverageLatency    time.Duration `json:"average_latency"`
 	P95Latency        time.Duration `json:"p95_latency"`
 	P99Latency        time.Duration `json:"p99_latency"`
-	
+
 	// Cache performance
 	MemoryCacheHitRate  float64       `json:"memory_cache_hit_rate"`
 	RedisCacheHitRate   float64       `json:"redis_cache_hit_rate"`
 	OverallCacheHitRate float64       `json:"overall_cache_hit_rate"`
 	CacheLatency        time.Duration `json:"cache_latency"`
-	
+
 	// Connection pool performance
 	PoolUtilization       float64       `json:"pool_utilization"`
 	AvgConnectionWaitTime time.Duration `json:"avg_connection_wait_time"`
 	ConnectionFailures    int64         `json:"connection_failures"`
-	
+
 	// Quality metrics
-	AverageRelevanceScore float64 `json:"average_relevance_score"`
-	ContextQualityScore   float64 `json:"context_quality_score"`
+	AverageRelevanceScore  float64 `json:"average_relevance_score"`
+	ContextQualityScore    float64 `json:"context_quality_score"`
 	AverageResponseQuality float64 `json:"average_response_quality"`
-	
+
 	// Resource utilization
-	MemoryUsage int64 `json:"memory_usage"`
+	MemoryUsage int64   `json:"memory_usage"`
 	CPUUsage    float64 `json:"cpu_usage"`
-	
+
 	// Circuit breaker
 	CircuitBreakerTrips int64 `json:"circuit_breaker_trips"`
 	RecoveryEvents      int64 `json:"recovery_events"`
-	
+
 	// Timestamps
 	LastUpdated time.Time `json:"last_updated"`
 }
@@ -981,16 +931,16 @@ type OptimizedRAGMetrics struct {
 func (h *HNSWOptimizer) OptimizeForWorkload(ctx context.Context, className string, queryPatterns []*QueryPattern, config interface{}) (*OptimizationResult, error) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
+
 	// Mock implementation for now
 	return &OptimizationResult{
-		Success: true,
-		PerformanceGain: 25.0,
-		LatencyImprovement: 30 * time.Millisecond,
-		OptimizedParams: h.currentParams,
+		Success:             true,
+		PerformanceGain:     25.0,
+		LatencyImprovement:  30 * time.Millisecond,
+		OptimizedParams:     h.currentParams,
 		AccuracyImprovement: 0.05,
-		RecommendedAction: "Optimized for workload",
-		Metadata: make(map[string]interface{}),
+		RecommendedAction:   "Optimized for workload",
+		Metadata:            make(map[string]interface{}),
 	}, nil
 }
 
@@ -998,27 +948,27 @@ func (h *HNSWOptimizer) OptimizeForWorkload(ctx context.Context, className strin
 func (h *HNSWOptimizer) GetCurrentParameters() *HNSWParameters {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	
+
 	if h.currentParams == nil {
 		return &HNSWParameters{
-			Ef: 200,
-			EfConstruction: 200,
-			M: 16,
-			MaxConnections: 32,
+			Ef:               200,
+			EfConstruction:   200,
+			M:                16,
+			MaxConnections:   32,
 			MaxConnectionsL0: 64,
 		}
 	}
 	return h.currentParams
 }
 
-// GetMetrics returns current HNSW optimizer metrics  
+// GetMetrics returns current HNSW optimizer metrics
 func (h *HNSWOptimizer) GetMetrics() *HNSWMetrics {
 	if h.metrics == nil {
 		return &HNSWMetrics{
 			OptimizationRuns: 0,
-			AverageLatency: 0,
-			AccuracyScore: 0.0,
-			LastOptimized: time.Time{},
+			AverageLatency:   0,
+			AccuracyScore:    0.0,
+			LastOptimized:    time.Time{},
 			ParameterChanges: 0,
 		}
 	}
@@ -1030,10 +980,10 @@ func NewWeaviateClient(config *WeaviateConfig) (WeaviateClient, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
-	
+
 	// For now, return a basic implementation - this would be expanded based on actual needs
 	return &WeaviateClientBasic{
-		host: config.Host,
+		host:   config.Host,
 		scheme: config.Scheme,
 	}, nil
 }
@@ -1047,12 +997,12 @@ type WeaviateClientBasic struct {
 // Search implements WeaviateClient interface
 func (w *WeaviateClientBasic) Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
 	return &SearchResponse{
-		Results: []*SearchResult{},
-		Total: 0,
-		Took: 0,
-		Query: query.Query,
+		Results:     []*SearchResult{},
+		Total:       0,
+		Took:        0,
+		Query:       query.Query,
 		ProcessedAt: time.Now(),
-		Metadata: make(map[string]interface{}),
+		Metadata:    make(map[string]interface{}),
 	}, nil
 }
 
@@ -1061,13 +1011,13 @@ func (w *WeaviateClientBasic) IsHealthy() bool {
 	return true
 }
 
-// GetHealthStatus implements WeaviateClient interface  
+// GetHealthStatus implements WeaviateClient interface
 func (w *WeaviateClientBasic) GetHealthStatus() *WeaviateHealthStatus {
 	return &WeaviateHealthStatus{
 		IsHealthy: true,
 		LastCheck: time.Now(),
-		Version: "v1.0.0-mock",
-		Message: "Basic implementation - always healthy",
+		Version:   "v1.0.0-mock",
+		Message:   "Basic implementation - always healthy",
 	}
 }
 

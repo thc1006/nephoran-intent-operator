@@ -19,7 +19,7 @@ func TestFileManager_BasicOperations(t *testing.T) {
 	t.Run("move to processed", func(t *testing.T) {
 		testFile := filepath.Join(dir, "test-intent.json")
 		testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 		err := fm.MoveToProcessed(testFile)
 		require.NoError(t, err)
@@ -36,7 +36,7 @@ func TestFileManager_BasicOperations(t *testing.T) {
 	t.Run("move to failed", func(t *testing.T) {
 		testFile := filepath.Join(dir, "failed-intent.json")
 		testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 		errorMsg := "porch command failed: exit code 1"
 		err := fm.MoveToFailed(testFile, errorMsg)
@@ -157,7 +157,7 @@ func TestFileManager_ErrorSanitization(t *testing.T) {
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
-	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0o644))
 
 	// Test with malicious error message
 	maliciousError := "access denied\x00for\x01../../../etc/passwd\x02\n\n\n\nwith control chars"

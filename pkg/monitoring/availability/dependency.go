@@ -175,7 +175,6 @@ type DependencyHealthCheck struct {
 	Query string `json:"query,omitempty"` // For Prometheus queries
 
 	ExpectedStatus int `json:"expected_status,omitempty"` // For HTTP checks
-
 }
 
 // SLARequirements defines SLA requirements for a dependency.
@@ -190,7 +189,6 @@ type SLARequirements struct {
 	MTTR time.Duration `json:"mttr"` // Mean Time To Recovery
 
 	MTBF time.Duration `json:"mtbf"` // Mean Time Between Failures
-
 }
 
 // DependencyHealth represents current health status of a dependency.
@@ -243,7 +241,6 @@ type DependencyGraph struct {
 	AdjacencyMap map[string][]string `json:"adjacency_map"` // dependency_id -> [dependent_ids]
 
 	ReverseMap map[string][]string `json:"reverse_map"` // dependent_id -> [dependency_ids]
-
 }
 
 // CascadeFailureAnalysis represents analysis of potential cascade failures.
@@ -267,7 +264,6 @@ type CascadeFailureAnalysis struct {
 // DependencyTracker tracks and monitors service dependencies.
 
 type DependencyTracker struct {
-
 	// Configuration.
 
 	config *DependencyTrackerConfig
@@ -368,7 +364,6 @@ type DependencyTrackerConfig struct {
 // NewDependencyTracker creates a new dependency tracker.
 
 func NewDependencyTracker(
-
 	config *DependencyTrackerConfig,
 
 	kubeClient client.Client,
@@ -376,13 +371,9 @@ func NewDependencyTracker(
 	kubeClientset kubernetes.Interface,
 
 	promClient api.Client,
-
 ) (*DependencyTracker, error) {
-
 	if config == nil {
-
 		return nil, fmt.Errorf("config cannot be nil")
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -390,13 +381,10 @@ func NewDependencyTracker(
 	var promAPI v1.API
 
 	if promClient != nil && config.PrometheusEnabled {
-
 		promAPI = v1.NewAPI(promClient)
-
 	}
 
 	tracker := &DependencyTracker{
-
 		config: config,
 
 		kubeClient: kubeClient,
@@ -406,7 +394,6 @@ func NewDependencyTracker(
 		promClient: promAPI,
 
 		graph: &DependencyGraph{
-
 			Dependencies: make(map[string]*Dependency),
 
 			AdjacencyMap: make(map[string][]string),
@@ -430,13 +417,11 @@ func NewDependencyTracker(
 	}
 
 	return tracker, nil
-
 }
 
 // Start begins dependency tracking.
 
 func (dt *DependencyTracker) Start() error {
-
 	ctx, span := dt.tracer.Start(dt.ctx, "dependency-tracker-start")
 
 	defer span.End()
@@ -456,29 +441,23 @@ func (dt *DependencyTracker) Start() error {
 	go dt.runCleanup(ctx)
 
 	return nil
-
 }
 
 // Stop stops dependency tracking.
 
 func (dt *DependencyTracker) Stop() error {
-
 	dt.cancel()
 
 	close(dt.stopCh)
 
 	return nil
-
 }
 
 // AddDependency adds a dependency to the graph.
 
 func (dt *DependencyTracker) AddDependency(dep *Dependency) error {
-
 	if dep == nil || dep.ID == "" {
-
 		return fmt.Errorf("invalid dependency")
-
 	}
 
 	dt.graphMutex.Lock()
@@ -498,7 +477,6 @@ func (dt *DependencyTracker) AddDependency(dep *Dependency) error {
 	dt.healthMutex.Lock()
 
 	dt.healthStatus[dep.ID] = &DependencyHealth{
-
 		DependencyID: dep.ID,
 
 		Status: DepStatusUnknown,
@@ -517,7 +495,6 @@ func (dt *DependencyTracker) AddDependency(dep *Dependency) error {
 		dt.stateMutex.Lock()
 
 		dt.circuitStates[dep.ID] = &CircuitBreakerState{
-
 			DependencyID: dep.ID,
 
 			State: "closed",
@@ -528,25 +505,19 @@ func (dt *DependencyTracker) AddDependency(dep *Dependency) error {
 	}
 
 	return nil
-
 }
 
 // updateAdjacencyMaps updates the adjacency maps for dependency relationships.
 
 func (dt *DependencyTracker) updateAdjacencyMaps(dep *Dependency) {
-
 	// Initialize if not exists.
 
 	if dt.graph.AdjacencyMap[dep.ID] == nil {
-
 		dt.graph.AdjacencyMap[dep.ID] = make([]string, 0)
-
 	}
 
 	if dt.graph.ReverseMap[dep.ID] == nil {
-
 		dt.graph.ReverseMap[dep.ID] = make([]string, 0)
-
 	}
 
 	// Update forward mapping (this dependency -> its dependents).
@@ -562,27 +533,22 @@ func (dt *DependencyTracker) updateAdjacencyMaps(dep *Dependency) {
 	for _, depID := range dep.Dependencies {
 
 		if dt.graph.AdjacencyMap[depID] == nil {
-
 			dt.graph.AdjacencyMap[depID] = make([]string, 0)
-
 		}
 
 		dt.graph.AdjacencyMap[depID] = append(dt.graph.AdjacencyMap[depID], dep.ID)
 
 	}
-
 }
 
 // runHealthMonitoring runs continuous health monitoring.
 
 func (dt *DependencyTracker) runHealthMonitoring(ctx context.Context) {
-
 	ticker := time.NewTicker(dt.config.MonitoringInterval)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -594,15 +560,12 @@ func (dt *DependencyTracker) runHealthMonitoring(ctx context.Context) {
 			dt.performHealthChecks(ctx)
 
 		}
-
 	}
-
 }
 
 // performHealthChecks performs health checks for all dependencies.
 
 func (dt *DependencyTracker) performHealthChecks(ctx context.Context) {
-
 	ctx, span := dt.tracer.Start(ctx, "perform-health-checks")
 
 	defer span.End()
@@ -612,9 +575,7 @@ func (dt *DependencyTracker) performHealthChecks(ctx context.Context) {
 	dependencies := make([]*Dependency, 0, len(dt.graph.Dependencies))
 
 	for _, dep := range dt.graph.Dependencies {
-
 		dependencies = append(dependencies, dep)
-
 	}
 
 	dt.graphMutex.RUnlock()
@@ -628,11 +589,9 @@ func (dt *DependencyTracker) performHealthChecks(ctx context.Context) {
 		wg.Add(1)
 
 		go func(dependency *Dependency) {
-
 			defer wg.Done()
 
 			dt.checkDependencyHealth(ctx, dependency)
-
 		}(dep)
 
 	}
@@ -642,13 +601,11 @@ func (dt *DependencyTracker) performHealthChecks(ctx context.Context) {
 	span.AddEvent("Health checks completed",
 
 		trace.WithAttributes(attribute.Int("dependencies_checked", len(dependencies))))
-
 }
 
 // checkDependencyHealth checks the health of a single dependency.
 
 func (dt *DependencyTracker) checkDependencyHealth(ctx context.Context, dep *Dependency) {
-
 	ctx, span := dt.tracer.Start(ctx, "check-dependency-health",
 
 		trace.WithAttributes(
@@ -662,7 +619,6 @@ func (dt *DependencyTracker) checkDependencyHealth(ctx context.Context, dep *Dep
 	defer span.End()
 
 	health := &DependencyHealth{
-
 		DependencyID: dep.ID,
 
 		LastUpdate: time.Now(),
@@ -709,13 +665,9 @@ func (dt *DependencyTracker) checkDependencyHealth(ctx context.Context, dep *Dep
 	// Determine overall status.
 
 	if overallHealthy {
-
 		health.Status = DepStatusHealthy
-
 	} else if health.ErrorRate < 0.5 {
-
 		health.Status = DepStatusDegraded
-
 	} else {
 
 		health.Status = DepStatusUnhealthy
@@ -733,9 +685,7 @@ func (dt *DependencyTracker) checkDependencyHealth(ctx context.Context, dep *Dep
 		health.CircuitBreakerState = dt.getCircuitBreakerState(dep.ID)
 
 		if health.CircuitBreakerState == "open" {
-
 			health.Status = DepStatusCircuitOpen
-
 		}
 
 	}
@@ -755,13 +705,9 @@ func (dt *DependencyTracker) checkDependencyHealth(ctx context.Context, dep *Dep
 	// Update circuit breaker if dependency failed.
 
 	if health.Status == DepStatusUnhealthy {
-
 		dt.updateCircuitBreaker(dep.ID, false)
-
 	} else if health.Status == DepStatusHealthy {
-
 		dt.updateCircuitBreaker(dep.ID, true)
-
 	}
 
 	span.AddEvent("Health check completed",
@@ -775,17 +721,14 @@ func (dt *DependencyTracker) checkDependencyHealth(ctx context.Context, dep *Dep
 			attribute.Float64("availability", health.Availability),
 		),
 	)
-
 }
 
 // performSingleHealthCheck performs a single health check.
 
 func (dt *DependencyTracker) performSingleHealthCheck(ctx context.Context, dep *Dependency, healthCheck *DependencyHealthCheck) HealthCheckResult {
-
 	startTime := time.Now()
 
 	result := HealthCheckResult{
-
 		CheckType: healthCheck.Type,
 
 		Timestamp: startTime,
@@ -832,15 +775,12 @@ func (dt *DependencyTracker) performSingleHealthCheck(ctx context.Context, dep *
 	result.ResponseTime = time.Since(startTime)
 
 	return result
-
 }
 
 // performPrometheusCheck performs a Prometheus-based health check.
 
 func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *Dependency, healthCheck *DependencyHealthCheck) HealthCheckResult {
-
 	result := HealthCheckResult{
-
 		CheckType: "prometheus",
 
 		Timestamp: time.Now(),
@@ -861,7 +801,6 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 	// Execute Prometheus query.
 
 	promResult, warnings, err := dt.promClient.Query(ctx, healthCheck.Query, time.Now())
-
 	if err != nil {
 
 		result.Status = "error"
@@ -873,9 +812,7 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 	}
 
 	if len(warnings) > 0 {
-
 		result.Metadata["warnings"] = warnings
-
 	}
 
 	// Evaluate result based on query type.
@@ -893,11 +830,9 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 			result.Error = "no metrics found"
 
 		} else {
-
 			result.Metadata["value"] = float64(vector[0].Value)
 
 			// You could add custom evaluation logic here based on the metric value.
-
 		}
 
 	case model.ValScalar:
@@ -915,15 +850,12 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 	}
 
 	return result
-
 }
 
 // performHTTPCheck performs an HTTP-based health check.
 
 func (dt *DependencyTracker) performHTTPCheck(ctx context.Context, dep *Dependency, healthCheck *DependencyHealthCheck) HealthCheckResult {
-
 	result := HealthCheckResult{
-
 		CheckType: "http",
 
 		Timestamp: time.Now(),
@@ -932,7 +864,6 @@ func (dt *DependencyTracker) performHTTPCheck(ctx context.Context, dep *Dependen
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", healthCheck.Target, http.NoBody)
-
 	if err != nil {
 
 		result.Status = "error"
@@ -944,12 +875,10 @@ func (dt *DependencyTracker) performHTTPCheck(ctx context.Context, dep *Dependen
 	}
 
 	client := &http.Client{
-
 		Timeout: healthCheck.Timeout,
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 
 		result.Status = "error"
@@ -979,15 +908,12 @@ func (dt *DependencyTracker) performHTTPCheck(ctx context.Context, dep *Dependen
 	}
 
 	return result
-
 }
 
 // performTCPCheck performs a TCP connection check.
 
 func (dt *DependencyTracker) performTCPCheck(ctx context.Context, dep *Dependency, healthCheck *DependencyHealthCheck) HealthCheckResult {
-
 	result := HealthCheckResult{
-
 		CheckType: "tcp",
 
 		Timestamp: time.Now(),
@@ -998,7 +924,6 @@ func (dt *DependencyTracker) performTCPCheck(ctx context.Context, dep *Dependenc
 	// For TCP checks, we just try to establish a connection.
 
 	conn, err := net.DialTimeout("tcp", healthCheck.Target, healthCheck.Timeout)
-
 	if err != nil {
 
 		result.Status = "unhealthy"
@@ -1012,15 +937,12 @@ func (dt *DependencyTracker) performTCPCheck(ctx context.Context, dep *Dependenc
 	defer conn.Close()
 
 	return result
-
 }
 
 // performDNSCheck performs a DNS resolution check.
 
 func (dt *DependencyTracker) performDNSCheck(ctx context.Context, dep *Dependency, healthCheck *DependencyHealthCheck) HealthCheckResult {
-
 	result := HealthCheckResult{
-
 		CheckType: "dns",
 
 		Timestamp: time.Now(),
@@ -1031,7 +953,6 @@ func (dt *DependencyTracker) performDNSCheck(ctx context.Context, dep *Dependenc
 	resolver := &net.Resolver{}
 
 	ips, err := resolver.LookupIPAddr(ctx, healthCheck.Target)
-
 	if err != nil {
 
 		result.Status = "unhealthy"
@@ -1049,21 +970,16 @@ func (dt *DependencyTracker) performDNSCheck(ctx context.Context, dep *Dependenc
 		result.Error = "no IP addresses found"
 
 	} else {
-
 		result.Metadata["resolved_ips"] = len(ips)
-
 	}
 
 	return result
-
 }
 
 // performKubernetesCheck performs a Kubernetes API check.
 
 func (dt *DependencyTracker) performKubernetesCheck(ctx context.Context, dep *Dependency, healthCheck *DependencyHealthCheck) HealthCheckResult {
-
 	result := HealthCheckResult{
-
 		CheckType: "kubernetes",
 
 		Timestamp: time.Now(),
@@ -1084,10 +1000,8 @@ func (dt *DependencyTracker) performKubernetesCheck(ctx context.Context, dep *De
 	// Check if service/pods are running.
 
 	pods, err := dt.kubeClientset.CoreV1().Pods(dep.Namespace).List(ctx, metav1.ListOptions{
-
 		LabelSelector: fmt.Sprintf("app=%s", dep.ServiceName),
 	})
-
 	if err != nil {
 
 		result.Status = "error"
@@ -1101,13 +1015,9 @@ func (dt *DependencyTracker) performKubernetesCheck(ctx context.Context, dep *De
 	runningPods := 0
 
 	for _, pod := range pods.Items {
-
 		if pod.Status.Phase == "Running" {
-
 			runningPods++
-
 		}
-
 	}
 
 	result.Metadata["total_pods"] = len(pods.Items)
@@ -1123,13 +1033,11 @@ func (dt *DependencyTracker) performKubernetesCheck(ctx context.Context, dep *De
 	}
 
 	return result
-
 }
 
 // calculateAvailability calculates availability for a dependency over a time period.
 
 func (dt *DependencyTracker) calculateAvailability(dependencyID string, period time.Duration) float64 {
-
 	dt.healthMutex.RLock()
 
 	defer dt.healthMutex.RUnlock()
@@ -1141,9 +1049,7 @@ func (dt *DependencyTracker) calculateAvailability(dependencyID string, period t
 	currentHealth, exists := dt.healthStatus[dependencyID]
 
 	if !exists {
-
 		return 0.0
-
 	}
 
 	switch currentHealth.Status {
@@ -1165,35 +1071,27 @@ func (dt *DependencyTracker) calculateAvailability(dependencyID string, period t
 		return 0.0
 
 	}
-
 }
 
 // getCircuitBreakerState gets the current circuit breaker state.
 
 func (dt *DependencyTracker) getCircuitBreakerState(dependencyID string) string {
-
 	dt.stateMutex.RLock()
 
 	defer dt.stateMutex.RUnlock()
 
 	if state, exists := dt.circuitStates[dependencyID]; exists {
-
 		return state.State
-
 	}
 
 	return "closed" // Default state
-
 }
 
 // updateCircuitBreaker updates the circuit breaker state based on health check results.
 
 func (dt *DependencyTracker) updateCircuitBreaker(dependencyID string, success bool) {
-
 	if !dt.config.EnableCircuitBreaker {
-
 		return
-
 	}
 
 	dt.stateMutex.Lock()
@@ -1203,9 +1101,7 @@ func (dt *DependencyTracker) updateCircuitBreaker(dependencyID string, success b
 	state, exists := dt.circuitStates[dependencyID]
 
 	if !exists {
-
 		return
-
 	}
 
 	dt.graphMutex.RLock()
@@ -1215,9 +1111,7 @@ func (dt *DependencyTracker) updateCircuitBreaker(dependencyID string, success b
 	dt.graphMutex.RUnlock()
 
 	if !depExists || !dep.CircuitBreaker.Enabled {
-
 		return
-
 	}
 
 	now := time.Now()
@@ -1227,9 +1121,7 @@ func (dt *DependencyTracker) updateCircuitBreaker(dependencyID string, success b
 	case "closed":
 
 		if success {
-
 			state.FailureCount = 0
-
 		} else {
 
 			state.FailureCount++
@@ -1287,7 +1179,6 @@ func (dt *DependencyTracker) updateCircuitBreaker(dependencyID string, success b
 		}
 
 		if state.HalfOpenCalls >= dep.CircuitBreaker.HalfOpenMaxCalls {
-
 			if state.ConsecutiveSuccesses < dep.CircuitBreaker.ConsecutiveSuccesses {
 
 				state.State = "open"
@@ -1295,21 +1186,16 @@ func (dt *DependencyTracker) updateCircuitBreaker(dependencyID string, success b
 				state.NextRetryTime = now.Add(dep.CircuitBreaker.RecoveryTimeout)
 
 			}
-
 		}
 
 	}
-
 }
 
 // runCircuitBreakerManagement manages circuit breaker states.
 
 func (dt *DependencyTracker) runCircuitBreakerManagement(ctx context.Context) {
-
 	if !dt.config.EnableCircuitBreaker {
-
 		return
-
 	}
 
 	ticker := time.NewTicker(time.Minute)
@@ -1317,7 +1203,6 @@ func (dt *DependencyTracker) runCircuitBreakerManagement(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1329,15 +1214,12 @@ func (dt *DependencyTracker) runCircuitBreakerManagement(ctx context.Context) {
 			dt.manageCircuitBreakers(ctx)
 
 		}
-
 	}
-
 }
 
 // manageCircuitBreakers performs circuit breaker management tasks.
 
 func (dt *DependencyTracker) manageCircuitBreakers(ctx context.Context) {
-
 	_, span := dt.tracer.Start(ctx, "manage-circuit-breakers")
 
 	defer span.End()
@@ -1347,9 +1229,7 @@ func (dt *DependencyTracker) manageCircuitBreakers(ctx context.Context) {
 	states := make(map[string]*CircuitBreakerState)
 
 	for k, v := range dt.circuitStates {
-
 		states[k] = v
-
 	}
 
 	dt.stateMutex.RUnlock()
@@ -1359,7 +1239,6 @@ func (dt *DependencyTracker) manageCircuitBreakers(ctx context.Context) {
 	stateChanges := 0
 
 	for depID, state := range states {
-
 		if state.State == "open" && now.After(state.NextRetryTime) {
 
 			dt.stateMutex.Lock()
@@ -1375,25 +1254,21 @@ func (dt *DependencyTracker) manageCircuitBreakers(ctx context.Context) {
 			stateChanges++
 
 		}
-
 	}
 
 	span.AddEvent("Circuit breaker management completed",
 
 		trace.WithAttributes(attribute.Int("state_changes", stateChanges)))
-
 }
 
 // runCascadeAnalysis performs cascade failure analysis.
 
 func (dt *DependencyTracker) runCascadeAnalysis(ctx context.Context) {
-
 	ticker := time.NewTicker(5 * time.Minute) // Analyze every 5 minutes
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1405,15 +1280,12 @@ func (dt *DependencyTracker) runCascadeAnalysis(ctx context.Context) {
 			dt.performCascadeAnalysis(ctx)
 
 		}
-
 	}
-
 }
 
 // performCascadeAnalysis analyzes potential cascade failures.
 
 func (dt *DependencyTracker) performCascadeAnalysis(ctx context.Context) {
-
 	_, span := dt.tracer.Start(ctx, "perform-cascade-analysis")
 
 	defer span.End()
@@ -1425,13 +1297,9 @@ func (dt *DependencyTracker) performCascadeAnalysis(ctx context.Context) {
 	unhealthyDeps := make([]string, 0)
 
 	for depID, health := range dt.healthStatus {
-
 		if health.Status == DepStatusUnhealthy || health.Status == DepStatusCircuitOpen {
-
 			unhealthyDeps = append(unhealthyDeps, depID)
-
 		}
-
 	}
 
 	dt.healthMutex.RUnlock()
@@ -1457,19 +1325,16 @@ func (dt *DependencyTracker) performCascadeAnalysis(ctx context.Context) {
 	span.AddEvent("Cascade analysis completed",
 
 		trace.WithAttributes(attribute.Int("unhealthy_dependencies", len(unhealthyDeps))))
-
 }
 
 // analyzeCascadeImpact analyzes the cascade impact of a failed dependency.
 
 func (dt *DependencyTracker) analyzeCascadeImpact(failedDep string) *CascadeFailureAnalysis {
-
 	dt.graphMutex.RLock()
 
 	defer dt.graphMutex.RUnlock()
 
 	analysis := &CascadeFailureAnalysis{
-
 		FailedDependency: failedDep,
 
 		Timestamp: time.Now(),
@@ -1494,9 +1359,7 @@ func (dt *DependencyTracker) analyzeCascadeImpact(failedDep string) *CascadeFail
 		for _, current := range queue {
 
 			if visited[current] {
-
 				continue
-
 			}
 
 			visited[current] = true
@@ -1504,9 +1367,7 @@ func (dt *DependencyTracker) analyzeCascadeImpact(failedDep string) *CascadeFail
 			// Add dependents to impact list.
 
 			if dependents, exists := dt.graph.AdjacencyMap[current]; exists {
-
 				for _, dependent := range dependents {
-
 					if !visited[dependent] {
 
 						analysis.ImpactedServices = append(analysis.ImpactedServices, dependent)
@@ -1516,15 +1377,11 @@ func (dt *DependencyTracker) analyzeCascadeImpact(failedDep string) *CascadeFail
 						// Calculate business impact.
 
 						if dep, exists := dt.graph.Dependencies[dependent]; exists {
-
 							analysis.BusinessImpact += float64(dep.BusinessImpact)
-
 						}
 
 					}
-
 				}
-
 			}
 
 		}
@@ -1548,33 +1405,23 @@ func (dt *DependencyTracker) analyzeCascadeImpact(failedDep string) *CascadeFail
 		// Add critical path dependencies to recovery path.
 
 		for _, depID := range dep.Dependencies {
-
 			if depHealth, exists := dt.healthStatus[depID]; exists {
-
 				if depHealth.Status != DepStatusHealthy {
-
 					analysis.RecoveryPath = append(analysis.RecoveryPath, depID)
-
 				}
-
 			}
-
 		}
 
 	}
 
 	return analysis
-
 }
 
 // runServiceMeshIntegration integrates with service mesh for dependency discovery.
 
 func (dt *DependencyTracker) runServiceMeshIntegration(ctx context.Context) {
-
 	if !dt.config.ServiceMeshEnabled {
-
 		return
-
 	}
 
 	ticker := time.NewTicker(10 * time.Minute) // Discover every 10 minutes
@@ -1582,7 +1429,6 @@ func (dt *DependencyTracker) runServiceMeshIntegration(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1594,15 +1440,12 @@ func (dt *DependencyTracker) runServiceMeshIntegration(ctx context.Context) {
 			dt.discoverServiceMeshDependencies(ctx)
 
 		}
-
 	}
-
 }
 
 // discoverServiceMeshDependencies discovers dependencies from service mesh.
 
 func (dt *DependencyTracker) discoverServiceMeshDependencies(ctx context.Context) {
-
 	ctx, span := dt.tracer.Start(ctx, "discover-service-mesh-dependencies")
 
 	defer span.End()
@@ -1624,55 +1467,46 @@ func (dt *DependencyTracker) discoverServiceMeshDependencies(ctx context.Context
 		dt.discoverConsulDependencies(ctx)
 
 	}
-
 }
 
 // discoverIstioDependencies discovers dependencies from Istio.
 
 func (dt *DependencyTracker) discoverIstioDependencies(ctx context.Context) {
-
 	// This would query Istio's telemetry data to discover service dependencies.
 
 	// Implementation would use Istio's APIs or Prometheus metrics.
 
 	// For now, this is a placeholder.
-
 }
 
 // discoverLinkerdDependencies discovers dependencies from Linkerd.
 
 func (dt *DependencyTracker) discoverLinkerdDependencies(ctx context.Context) {
-
 	// This would query Linkerd's tap API or metrics to discover dependencies.
 
 	// Implementation would use Linkerd's APIs.
 
 	// For now, this is a placeholder.
-
 }
 
 // discoverConsulDependencies discovers dependencies from Consul Connect.
 
 func (dt *DependencyTracker) discoverConsulDependencies(ctx context.Context) {
-
 	// This would query Consul's service registry and intentions.
 
 	// Implementation would use Consul's APIs.
 
 	// For now, this is a placeholder.
-
 }
 
 // runCleanup performs cleanup of old data.
 
 func (dt *DependencyTracker) runCleanup(ctx context.Context) {
-
 	ticker := time.NewTicker(time.Hour)
 
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-ctx.Done():
@@ -1684,15 +1518,12 @@ func (dt *DependencyTracker) runCleanup(ctx context.Context) {
 			dt.performCleanup(ctx)
 
 		}
-
 	}
-
 }
 
 // performCleanup cleans up old data.
 
 func (dt *DependencyTracker) performCleanup(ctx context.Context) {
-
 	_, span := dt.tracer.Start(ctx, "perform-cleanup")
 
 	defer span.End()
@@ -1706,13 +1537,9 @@ func (dt *DependencyTracker) performCleanup(ctx context.Context) {
 	validAnalyses := make([]CascadeFailureAnalysis, 0)
 
 	for _, analysis := range dt.cascadeHistory {
-
 		if analysis.Timestamp.After(cutoff) {
-
 			validAnalyses = append(validAnalyses, analysis)
-
 		}
-
 	}
 
 	removed := len(dt.cascadeHistory) - len(validAnalyses)
@@ -1724,13 +1551,11 @@ func (dt *DependencyTracker) performCleanup(ctx context.Context) {
 	span.AddEvent("Cleanup completed",
 
 		trace.WithAttributes(attribute.Int("cascade_analyses_removed", removed)))
-
 }
 
 // GetDependencyHealth returns current health status for a dependency.
 
 func (dt *DependencyTracker) GetDependencyHealth(dependencyID string) (*DependencyHealth, bool) {
-
 	dt.healthMutex.RLock()
 
 	defer dt.healthMutex.RUnlock()
@@ -1738,13 +1563,11 @@ func (dt *DependencyTracker) GetDependencyHealth(dependencyID string) (*Dependen
 	health, exists := dt.healthStatus[dependencyID]
 
 	return health, exists
-
 }
 
 // GetAllDependencyHealth returns health status for all dependencies.
 
 func (dt *DependencyTracker) GetAllDependencyHealth() map[string]*DependencyHealth {
-
 	dt.healthMutex.RLock()
 
 	defer dt.healthMutex.RUnlock()
@@ -1752,19 +1575,15 @@ func (dt *DependencyTracker) GetAllDependencyHealth() map[string]*DependencyHeal
 	result := make(map[string]*DependencyHealth)
 
 	for k, v := range dt.healthStatus {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // GetCascadeAnalysis returns recent cascade failure analyses.
 
 func (dt *DependencyTracker) GetCascadeAnalysis(since time.Time) []CascadeFailureAnalysis {
-
 	dt.cascadeMutex.RLock()
 
 	defer dt.cascadeMutex.RUnlock()
@@ -1772,23 +1591,17 @@ func (dt *DependencyTracker) GetCascadeAnalysis(since time.Time) []CascadeFailur
 	result := make([]CascadeFailureAnalysis, 0)
 
 	for _, analysis := range dt.cascadeHistory {
-
 		if analysis.Timestamp.After(since) {
-
 			result = append(result, analysis)
-
 		}
-
 	}
 
 	return result
-
 }
 
 // GetCircuitBreakerStates returns current circuit breaker states.
 
 func (dt *DependencyTracker) GetCircuitBreakerStates() map[string]*CircuitBreakerState {
-
 	dt.stateMutex.RLock()
 
 	defer dt.stateMutex.RUnlock()
@@ -1796,25 +1609,19 @@ func (dt *DependencyTracker) GetCircuitBreakerStates() map[string]*CircuitBreake
 	result := make(map[string]*CircuitBreakerState)
 
 	for k, v := range dt.circuitStates {
-
 		result[k] = v
-
 	}
 
 	return result
-
 }
 
 // GetAvailabilityMetrics converts dependency health to availability metrics.
 
 func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*AvailabilityMetric, error) {
-
 	health, exists := dt.GetDependencyHealth(dependencyID)
 
 	if !exists {
-
 		return nil, fmt.Errorf("dependency %s not found", dependencyID)
-
 	}
 
 	dt.graphMutex.RLock()
@@ -1824,9 +1631,7 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 	dt.graphMutex.RUnlock()
 
 	if !depExists {
-
 		return nil, fmt.Errorf("dependency configuration for %s not found", dependencyID)
-
 	}
 
 	// Convert dependency status to availability status.
@@ -1878,7 +1683,6 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 	}
 
 	metric := &AvailabilityMetric{
-
 		Timestamp: health.LastUpdate,
 
 		Dimension: DimensionComponent, // Dependencies are component-level
@@ -1898,7 +1702,6 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 		Layer: layer,
 
 		Metadata: map[string]interface{}{
-
 			"dependency_type": string(dep.Type),
 
 			"circuit_breaker_state": health.CircuitBreakerState,
@@ -1912,5 +1715,4 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 	}
 
 	return metric, nil
-
 }

@@ -19,7 +19,7 @@ func TestLoadIntent(t *testing.T) {
 		"reason": "test reason"
 	}`
 
-	if err := os.WriteFile(intentPath, []byte(validIntent), 0644); err != nil {
+	if err := os.WriteFile(intentPath, []byte(validIntent), 0o644); err != nil {
 		t.Fatalf("Failed to write test intent: %v", err)
 	}
 
@@ -91,7 +91,7 @@ func TestLoadIntentValidation(t *testing.T) {
 			tempDir := t.TempDir()
 			intentPath := filepath.Join(tempDir, "intent.json")
 
-			if err := os.WriteFile(intentPath, []byte(tt.content), 0644); err != nil {
+			if err := os.WriteFile(intentPath, []byte(tt.content), 0o644); err != nil {
 				t.Fatalf("Failed to write test intent: %v", err)
 			}
 

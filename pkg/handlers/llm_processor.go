@@ -116,7 +116,6 @@ type IntentProcessor struct {
 // NewLLMProcessorHandler creates a new handler instance.
 
 func NewLLMProcessorHandler(
-
 	config *config.LLMProcessorConfig,
 
 	processor *IntentProcessor,
@@ -142,9 +141,7 @@ func NewLLMProcessorHandler(
 	healthChecker *health.HealthChecker,
 
 	startTime time.Time,
-
 ) *LLMProcessorHandler {
-
 	return NewLLMProcessorHandlerWithMetrics(
 
 		config,
@@ -171,13 +168,11 @@ func NewLLMProcessorHandler(
 
 		monitoring.NewMetricsCollector(),
 	)
-
 }
 
 // NewLLMProcessorHandlerWithMetrics creates a new handler instance with a provided metrics collector.
 
 func NewLLMProcessorHandlerWithMetrics(
-
 	config *config.LLMProcessorConfig,
 
 	processor *IntentProcessor,
@@ -205,11 +200,8 @@ func NewLLMProcessorHandlerWithMetrics(
 	startTime time.Time,
 
 	metricsCollector monitoring.MetricsCollector,
-
 ) *LLMProcessorHandler {
-
 	return &LLMProcessorHandler{
-
 		config: config,
 
 		processor: processor,
@@ -234,13 +226,11 @@ func NewLLMProcessorHandlerWithMetrics(
 
 		metricsCollector: metricsCollector,
 	}
-
 }
 
 // ProcessIntentHandler handles intent processing requests.
 
 func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Start timing for metrics.
 
 	handlerStartTime := time.Now()
@@ -250,7 +240,6 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	// Ensure metrics are recorded when handler exits.
 
 	defer func() {
-
 		duration := time.Since(handlerStartTime)
 
 		h.metricsCollector.RecordHTTPRequest(
@@ -263,7 +252,6 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 
 			duration,
 		)
-
 	}()
 
 	if r.Method != http.MethodPost {
@@ -315,7 +303,6 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	defer cancel()
 
 	result, err := h.processor.ProcessIntent(ctx, req.Intent, req.Metadata)
-
 	if err != nil {
 
 		h.logger.Error("Failed to process intent",
@@ -328,7 +315,6 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		statusCode = http.StatusInternalServerError
 
 		response := ProcessIntentResponse{
-
 			Status: "error",
 
 			Error: err.Error(),
@@ -347,7 +333,6 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	}
 
 	response := ProcessIntentResponse{
-
 		Result: result.Result,
 
 		Status: result.Status,
@@ -369,13 +354,11 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 
 		slog.Duration("processing_time", time.Since(startTime)),
 	)
-
 }
 
 // StatusHandler returns service status information.
 
 func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Start timing for metrics.
 
 	handlerStartTime := time.Now()
@@ -385,7 +368,6 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 	// Ensure metrics are recorded when handler exits.
 
 	defer func() {
-
 		duration := time.Since(handlerStartTime)
 
 		h.metricsCollector.RecordHTTPRequest(
@@ -398,11 +380,9 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 
 			duration,
 		)
-
 	}()
 
 	status := map[string]interface{}{
-
 		"service": "llm-processor",
 
 		"version": h.config.ServiceVersion,
@@ -423,13 +403,11 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.writeJSONResponse(w, status, http.StatusOK)
-
 }
 
 // StreamingHandler handles Server-Sent Events streaming requests.
 
 func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Start timing for HTTP request metrics.
 
 	handlerStartTime := time.Now()
@@ -445,7 +423,6 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 	// Ensure HTTP metrics are recorded when handler exits.
 
 	defer func() {
-
 		// Record HTTP request metrics.
 
 		duration := time.Since(handlerStartTime)
@@ -470,7 +447,6 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 			h.metricsCollector.RecordSSEStream(streamRoute, false) // Stream ended
 
 		}
-
 	}()
 
 	if r.Method != http.MethodPost {
@@ -520,15 +496,11 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 	// Set defaults.
 
 	if req.ModelName == "" {
-
 		req.ModelName = h.config.LLMModelName
-
 	}
 
 	if req.MaxTokens == 0 {
-
 		req.MaxTokens = h.config.LLMMaxTokens
-
 	}
 
 	h.logger.Info("Starting streaming request",
@@ -551,7 +523,6 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 	r = r.WithContext(ctx)
 
 	err := h.streamingProcessor.HandleStreamingRequest(w, r, &req)
-
 	if err != nil {
 
 		h.logger.Error("Streaming request failed", slog.String("error", err.Error()))
@@ -563,13 +534,11 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 		statusCode = http.StatusInternalServerError
 
 	}
-
 }
 
 // MetricsHandler provides comprehensive metrics.
 
 func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Start timing for metrics.
 
 	handlerStartTime := time.Now()
@@ -579,7 +548,6 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 	// Ensure metrics are recorded when handler exits.
 
 	defer func() {
-
 		duration := time.Since(handlerStartTime)
 
 		h.metricsCollector.RecordHTTPRequest(
@@ -592,11 +560,9 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 
 			duration,
 		)
-
 	}()
 
 	metrics := map[string]interface{}{
-
 		"service": "llm-processor",
 
 		"version": h.config.ServiceVersion,
@@ -607,59 +573,45 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 	// Add token manager metrics.
 
 	if h.tokenManager != nil {
-
 		metrics["supported_models"] = h.tokenManager.GetSupportedModels()
-
 	}
 
 	// Add circuit breaker metrics.
 
 	if h.circuitBreakerMgr != nil {
-
 		metrics["circuit_breakers"] = h.circuitBreakerMgr.GetAllStats()
-
 	}
 
 	// Add streaming metrics.
 
 	if h.streamingProcessor != nil {
-
 		metrics["streaming"] = h.streamingProcessor.GetMetrics()
-
 	}
 
 	// Add context builder metrics.
 
 	if h.contextBuilder != nil {
-
 		metrics["context_builder"] = h.contextBuilder.GetMetrics()
-
 	}
 
 	// Add relevance scorer metrics.
 
 	if h.relevanceScorer != nil {
-
 		metrics["relevance_scorer"] = h.relevanceScorer.GetMetrics()
-
 	}
 
 	// Add prompt builder metrics.
 
 	if h.promptBuilder != nil {
-
 		metrics["prompt_builder"] = map[string]interface{}{"status": "stubbed"}
-
 	}
 
 	h.writeJSONResponse(w, metrics, http.StatusOK)
-
 }
 
 // CircuitBreakerStatusHandler provides circuit breaker status and control.
 
 func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Start timing for metrics.
 
 	handlerStartTime := time.Now()
@@ -669,7 +621,6 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 	// Ensure metrics are recorded when handler exits.
 
 	defer func() {
-
 		duration := time.Since(handlerStartTime)
 
 		h.metricsCollector.RecordHTTPRequest(
@@ -682,7 +633,6 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 
 			duration,
 		)
-
 	}()
 
 	if h.circuitBreakerMgr == nil {
@@ -762,19 +712,16 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 	stats := h.circuitBreakerMgr.GetAllStats()
 
 	h.writeJSONResponse(w, stats, http.StatusOK)
-
 }
 
 // ProcessIntent processes an intent using the configured processor.
 
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, metadata map[string]string) (*ProcessIntentResult, error) {
-
 	p.Logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
 
 	// Use circuit breaker for fault tolerance.
 
 	operation := func(ctx context.Context) (interface{}, error) {
-
 		// RAG-enhanced processing stubbed out.
 
 		// if p.RAGEnhancedClient != nil { ... }.
@@ -782,27 +729,21 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 		// Fallback to base LLM client.
 
 		return p.LLMClient.ProcessIntent(ctx, intent)
-
 	}
 
 	result, err := p.CircuitBreaker.Execute(ctx, operation)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
-
 	}
 
 	// Create ProcessIntentResult from the raw LLM response.
 
 	processedResult := &ProcessIntentResult{
-
 		Result: result.(string),
 
 		Status: "success",
 
 		Metadata: map[string]interface{}{
-
 			"original_metadata": metadata,
 
 			"processing_method": "llm_enhanced",
@@ -810,23 +751,18 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 	}
 
 	return processedResult, nil
-
 }
 
 // Helper methods.
 
 func (h *LLMProcessorHandler) writeJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
-
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-
 		h.logger.Error("Failed to encode JSON response", slog.String("error", err.Error()))
-
 	}
-
 }
 
 // NLToIntentHandler handles natural language to intent conversion.
@@ -834,17 +770,14 @@ func (h *LLMProcessorHandler) writeJSONResponse(w http.ResponseWriter, data inte
 // POST /nl/intent - Accepts text/plain body and returns Intent JSON.
 
 func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.Request) {
-
 	var statusCode int
 
 	startTime := time.Now()
 
 	defer func() {
-
 		duration := time.Since(startTime).Seconds()
 
 		if h.metricsCollector != nil {
-
 			h.metricsCollector.RecordHTTPRequest(
 
 				r.Method,
@@ -855,9 +788,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 
 				time.Duration(duration*float64(time.Second)),
 			)
-
 		}
-
 	}()
 
 	if r.Method != http.MethodPost {
@@ -873,7 +804,6 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 	// Read the raw text body.
 
 	body, err := io.ReadAll(r.Body)
-
 	if err != nil {
 
 		statusCode = http.StatusBadRequest
@@ -905,7 +835,6 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 	parser := ingest.NewRuleBasedIntentParser()
 
 	intent, err := parser.ParseIntent(text)
-
 	if err != nil {
 
 		h.logger.Error("Failed to parse intent",
@@ -945,13 +874,10 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 	statusCode = http.StatusOK
 
 	h.writeJSONResponse(w, intent, statusCode)
-
 }
 
 func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int, requestID string) {
-
 	response := map[string]interface{}{
-
 		"error": message,
 
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
@@ -966,5 +892,4 @@ func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message 
 	}
 
 	h.writeJSONResponse(w, response, statusCode)
-
 }

@@ -40,7 +40,6 @@ import (
 // StateMachine manages the state transitions for intent processing.
 
 type StateMachine struct {
-
 	// State transition rules.
 
 	transitions map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase
@@ -65,9 +64,7 @@ type StateMachine struct {
 // NewStateMachine creates a new state machine.
 
 func NewStateMachine(config *OrchestratorConfig) *StateMachine {
-
 	sm := &StateMachine{
-
 		transitions: make(map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase),
 
 		parallelPhases: make(map[interfaces.ProcessingPhase][]interfaces.ProcessingPhase),
@@ -88,22 +85,18 @@ func NewStateMachine(config *OrchestratorConfig) *StateMachine {
 	sm.initializeTerminalStates()
 
 	return sm
-
 }
 
 // initializeTransitions sets up the state transition rules.
 
 func (sm *StateMachine) initializeTransitions() {
-
 	// Standard sequential processing flow.
 
 	sm.transitions[interfaces.PhaseIntentReceived] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseLLMProcessing,
 	}
 
 	sm.transitions[interfaces.PhaseLLMProcessing] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseResourcePlanning,
 
 		interfaces.PhaseFailed, // In case of failure
@@ -111,28 +104,24 @@ func (sm *StateMachine) initializeTransitions() {
 	}
 
 	sm.transitions[interfaces.PhaseResourcePlanning] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseManifestGeneration,
 
 		interfaces.PhaseFailed,
 	}
 
 	sm.transitions[interfaces.PhaseManifestGeneration] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseGitOpsCommit,
 
 		interfaces.PhaseFailed,
 	}
 
 	sm.transitions[interfaces.PhaseGitOpsCommit] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseDeploymentVerification,
 
 		interfaces.PhaseFailed,
 	}
 
 	sm.transitions[interfaces.PhaseDeploymentVerification] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseCompleted,
 
 		interfaces.PhaseFailed,
@@ -143,17 +132,14 @@ func (sm *StateMachine) initializeTransitions() {
 	sm.transitions[interfaces.PhaseCompleted] = []interfaces.ProcessingPhase{}
 
 	sm.transitions[interfaces.PhaseFailed] = []interfaces.ProcessingPhase{}
-
 }
 
 // initializeParallelProcessing sets up parallel processing rules.
 
 func (sm *StateMachine) initializeParallelProcessing() {
-
 	// After LLM processing, resource planning can start while preparing for manifest generation.
 
 	sm.parallelPhases[interfaces.PhaseResourcePlanning] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseManifestGeneration, // Can start template preparation
 
 	}
@@ -161,7 +147,6 @@ func (sm *StateMachine) initializeParallelProcessing() {
 	// During manifest generation, we can prepare GitOps workflows.
 
 	sm.parallelPhases[interfaces.PhaseManifestGeneration] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseGitOpsCommit, // Can prepare git operations
 
 	}
@@ -169,13 +154,11 @@ func (sm *StateMachine) initializeParallelProcessing() {
 	// Note: This is a simplified example. In practice, you might have more complex.
 
 	// parallel processing rules based on resource types, network function types, etc.
-
 }
 
 // initializeDependencies sets up phase dependencies.
 
 func (sm *StateMachine) initializeDependencies() {
-
 	// LLM Processing has no dependencies (starts immediately).
 
 	sm.dependencies[interfaces.PhaseLLMProcessing] = []interfaces.ProcessingPhase{}
@@ -183,53 +166,43 @@ func (sm *StateMachine) initializeDependencies() {
 	// Resource Planning depends on LLM Processing.
 
 	sm.dependencies[interfaces.PhaseResourcePlanning] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseLLMProcessing,
 	}
 
 	// Manifest Generation depends on Resource Planning.
 
 	sm.dependencies[interfaces.PhaseManifestGeneration] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseResourcePlanning,
 	}
 
 	// GitOps Commit depends on Manifest Generation.
 
 	sm.dependencies[interfaces.PhaseGitOpsCommit] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseManifestGeneration,
 	}
 
 	// Deployment Verification depends on GitOps Commit.
 
 	sm.dependencies[interfaces.PhaseDeploymentVerification] = []interfaces.ProcessingPhase{
-
 		interfaces.PhaseGitOpsCommit,
 	}
-
 }
 
 // initializeTerminalStates marks terminal states.
 
 func (sm *StateMachine) initializeTerminalStates() {
-
 	sm.terminalStates[interfaces.PhaseCompleted] = true
 
 	sm.terminalStates[interfaces.PhaseFailed] = true
-
 }
 
 // GetCurrentPhase determines the current phase based on intent status.
 
 func (sm *StateMachine) GetCurrentPhase(intent *nephoranv1.NetworkIntent) interfaces.ProcessingPhase {
-
 	// If no phase is set, start with intent received.
 
 	if intent.Status.Phase == "" {
-
 		return interfaces.PhaseIntentReceived
-
 	}
 
 	// Convert string to ProcessingPhase.
@@ -239,127 +212,95 @@ func (sm *StateMachine) GetCurrentPhase(intent *nephoranv1.NetworkIntent) interf
 	// Validate the phase.
 
 	if sm.isValidPhase(currentPhase) {
-
 		return currentPhase
-
 	}
 
 	// If invalid phase, start from beginning.
 
 	return interfaces.PhaseIntentReceived
-
 }
 
 // GetNextPhase returns the next phase in the processing pipeline.
 
 func (sm *StateMachine) GetNextPhase(currentPhase interfaces.ProcessingPhase) interfaces.ProcessingPhase {
-
 	transitions, exists := sm.transitions[currentPhase]
 
 	if !exists || len(transitions) == 0 {
-
 		return interfaces.PhaseFailed // No valid transitions
-
 	}
 
 	// Return the first (primary) transition.
 
 	return transitions[0]
-
 }
 
 // GetPossibleTransitions returns all possible transitions from a phase.
 
 func (sm *StateMachine) GetPossibleTransitions(currentPhase interfaces.ProcessingPhase) []interfaces.ProcessingPhase {
-
 	transitions, exists := sm.transitions[currentPhase]
 
 	if !exists {
-
 		return []interfaces.ProcessingPhase{}
-
 	}
 
 	return transitions
-
 }
 
 // CanTransitionTo checks if a transition is valid.
 
 func (sm *StateMachine) CanTransitionTo(from, to interfaces.ProcessingPhase) bool {
-
 	transitions := sm.GetPossibleTransitions(from)
 
 	for _, phase := range transitions {
-
 		if phase == to {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // GetParallelPhases returns phases that can run in parallel with the given phase.
 
 func (sm *StateMachine) GetParallelPhases(phase interfaces.ProcessingPhase) []interfaces.ProcessingPhase {
-
 	if !sm.config.EnableParallelProcessing {
-
 		return []interfaces.ProcessingPhase{}
-
 	}
 
 	parallelPhases, exists := sm.parallelPhases[phase]
 
 	if !exists {
-
 		return []interfaces.ProcessingPhase{}
-
 	}
 
 	return parallelPhases
-
 }
 
 // GetPhaseDependencies returns the dependencies for a phase.
 
 func (sm *StateMachine) GetPhaseDependencies(phase interfaces.ProcessingPhase) []interfaces.ProcessingPhase {
-
 	dependencies, exists := sm.dependencies[phase]
 
 	if !exists {
-
 		return []interfaces.ProcessingPhase{}
-
 	}
 
 	return dependencies
-
 }
 
 // IsTerminalPhase checks if a phase is terminal.
 
 func (sm *StateMachine) IsTerminalPhase(phase interfaces.ProcessingPhase) bool {
-
 	return sm.terminalStates[phase]
-
 }
 
 // ValidateTransition validates a phase transition.
 
 func (sm *StateMachine) ValidateTransition(intent *nephoranv1.NetworkIntent, fromPhase, toPhase interfaces.ProcessingPhase) error {
-
 	// Check if the transition is valid.
 
 	if !sm.CanTransitionTo(fromPhase, toPhase) {
-
 		return fmt.Errorf("invalid transition from %s to %s", fromPhase, toPhase)
-
 	}
 
 	// Check dependencies for the target phase.
@@ -367,25 +308,18 @@ func (sm *StateMachine) ValidateTransition(intent *nephoranv1.NetworkIntent, fro
 	dependencies := sm.GetPhaseDependencies(toPhase)
 
 	for _, depPhase := range dependencies {
-
 		if !sm.isPhaseCompleted(intent, depPhase) {
-
 			return fmt.Errorf("dependency %s not completed for phase %s", depPhase, toPhase)
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // GetProcessingWorkflow returns the complete workflow for an intent type.
 
 func (sm *StateMachine) GetProcessingWorkflow(intentType nephoranv1.IntentType) *ProcessingWorkflow {
-
 	workflow := &ProcessingWorkflow{
-
 		IntentType: intentType,
 
 		Phases: make([]WorkflowPhase, 0),
@@ -418,17 +352,13 @@ func (sm *StateMachine) GetProcessingWorkflow(intentType nephoranv1.IntentType) 
 	}
 
 	return workflow
-
 }
 
 // buildDeploymentWorkflow creates a deployment-specific workflow.
 
 func (sm *StateMachine) buildDeploymentWorkflow() []WorkflowPhase {
-
 	return []WorkflowPhase{
-
 		{
-
 			Phase: interfaces.PhaseLLMProcessing,
 
 			Required: true,
@@ -441,7 +371,6 @@ func (sm *StateMachine) buildDeploymentWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseResourcePlanning,
 
 			Required: true,
@@ -454,7 +383,6 @@ func (sm *StateMachine) buildDeploymentWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseManifestGeneration,
 
 			Required: true,
@@ -467,7 +395,6 @@ func (sm *StateMachine) buildDeploymentWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseGitOpsCommit,
 
 			Required: true,
@@ -480,7 +407,6 @@ func (sm *StateMachine) buildDeploymentWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseDeploymentVerification,
 
 			Required: true,
@@ -492,17 +418,13 @@ func (sm *StateMachine) buildDeploymentWorkflow() []WorkflowPhase {
 			EstimatedDuration: "3m",
 		},
 	}
-
 }
 
 // buildScalingWorkflow creates a scaling-specific workflow.
 
 func (sm *StateMachine) buildScalingWorkflow() []WorkflowPhase {
-
 	return []WorkflowPhase{
-
 		{
-
 			Phase: interfaces.PhaseLLMProcessing,
 
 			Required: true,
@@ -516,7 +438,6 @@ func (sm *StateMachine) buildScalingWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseResourcePlanning,
 
 			Required: true,
@@ -530,7 +451,6 @@ func (sm *StateMachine) buildScalingWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseManifestGeneration,
 
 			Required: false, // May not need new manifests for simple scaling
@@ -543,7 +463,6 @@ func (sm *StateMachine) buildScalingWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseGitOpsCommit,
 
 			Required: false, // May update existing resources directly
@@ -556,7 +475,6 @@ func (sm *StateMachine) buildScalingWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseDeploymentVerification,
 
 			Required: true,
@@ -569,29 +487,23 @@ func (sm *StateMachine) buildScalingWorkflow() []WorkflowPhase {
 
 		},
 	}
-
 }
 
 // buildOptimizationWorkflow creates an optimization-specific workflow.
 
 func (sm *StateMachine) buildOptimizationWorkflow() []WorkflowPhase {
-
 	// Similar to deployment but with additional analysis phases.
 
 	return sm.buildDeploymentWorkflow()
-
 }
 
 // buildMaintenanceWorkflow creates a maintenance-specific workflow.
 
 func (sm *StateMachine) buildMaintenanceWorkflow() []WorkflowPhase {
-
 	// May skip some phases for maintenance operations.
 
 	return []WorkflowPhase{
-
 		{
-
 			Phase: interfaces.PhaseLLMProcessing,
 
 			Required: true,
@@ -604,7 +516,6 @@ func (sm *StateMachine) buildMaintenanceWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseManifestGeneration,
 
 			Required: true,
@@ -617,7 +528,6 @@ func (sm *StateMachine) buildMaintenanceWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseGitOpsCommit,
 
 			Required: true,
@@ -630,7 +540,6 @@ func (sm *StateMachine) buildMaintenanceWorkflow() []WorkflowPhase {
 		},
 
 		{
-
 			Phase: interfaces.PhaseDeploymentVerification,
 
 			Required: true,
@@ -642,23 +551,18 @@ func (sm *StateMachine) buildMaintenanceWorkflow() []WorkflowPhase {
 			EstimatedDuration: "2m",
 		},
 	}
-
 }
 
 // buildDefaultWorkflow creates the default workflow.
 
 func (sm *StateMachine) buildDefaultWorkflow() []WorkflowPhase {
-
 	return sm.buildDeploymentWorkflow()
-
 }
 
 // Helper methods.
 
 func (sm *StateMachine) isValidPhase(phase interfaces.ProcessingPhase) bool {
-
 	validPhases := []interfaces.ProcessingPhase{
-
 		interfaces.PhaseIntentReceived,
 
 		interfaces.PhaseLLMProcessing,
@@ -677,35 +581,24 @@ func (sm *StateMachine) isValidPhase(phase interfaces.ProcessingPhase) bool {
 	}
 
 	for _, validPhase := range validPhases {
-
 		if phase == validPhase {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 func (sm *StateMachine) isPhaseCompleted(intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase) bool {
-
 	// Check if the phase has a completed condition.
 
 	for _, condition := range intent.Status.Conditions {
-
 		if condition.Type == string(phase) && condition.Status == "True" {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // Data structures for workflow management.
@@ -753,9 +646,7 @@ type PhaseCondition struct {
 // GetWorkflowProgress calculates the progress of workflow execution.
 
 func (workflow *ProcessingWorkflow) GetWorkflowProgress(intent *nephoranv1.NetworkIntent) *WorkflowProgress {
-
 	progress := &WorkflowProgress{
-
 		TotalPhases: len(workflow.Phases),
 
 		CompletedPhases: 0,
@@ -772,7 +663,6 @@ func (workflow *ProcessingWorkflow) GetWorkflowProgress(intent *nephoranv1.Netwo
 		// Check if phase is completed.
 
 		for _, condition := range intent.Status.Conditions {
-
 			if condition.Type == string(phase.Phase) {
 
 				if condition.Status == "True" {
@@ -782,19 +672,14 @@ func (workflow *ProcessingWorkflow) GetWorkflowProgress(intent *nephoranv1.Netwo
 					progress.CompletedPhases++
 
 				} else if condition.Reason == "Processing" {
-
 					status = "in_progress"
-
 				} else if condition.Status == "False" {
-
 					status = "failed"
-
 				}
 
 				break
 
 			}
-
 		}
 
 		progress.PhaseStatuses[phase.Phase] = status
@@ -804,13 +689,10 @@ func (workflow *ProcessingWorkflow) GetWorkflowProgress(intent *nephoranv1.Netwo
 	// Calculate percentage.
 
 	if progress.TotalPhases > 0 {
-
 		progress.ProgressPercentage = float64(progress.CompletedPhases) / float64(progress.TotalPhases) * 100
-
 	}
 
 	return progress
-
 }
 
 // WorkflowProgress represents the current progress of a workflow.

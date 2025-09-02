@@ -28,9 +28,7 @@ type OptimizedTestRunner struct {
 // NewOptimizedTestRunner creates a new optimized test runner.
 
 func NewOptimizedTestRunner() *OptimizedTestRunner {
-
 	return &OptimizedTestRunner{
-
 		optimizer: NewWindowsTestOptimizer(),
 
 		concurrencyMgr: NewWindowsConcurrencyManager(),
@@ -41,13 +39,11 @@ func NewOptimizedTestRunner() *OptimizedTestRunner {
 
 		metricsCollector: NewTestMetricsCollector(),
 	}
-
 }
 
 // RunOptimizedTest runs a test with optimizations.
 
 func (r *OptimizedTestRunner) RunOptimizedTest(t *testing.T, testFunc func(*testing.T, *TestContext)) {
-
 	startTime := time.Now()
 
 	// Acquire concurrency slot.
@@ -59,7 +55,6 @@ func (r *OptimizedTestRunner) RunOptimizedTest(t *testing.T, testFunc func(*test
 	// Create optimized test context.
 
 	ctx := &TestContext{
-
 		T: t,
 
 		TempDir: r.optimizer.OptimizedTempDir(t, "test"),
@@ -74,17 +69,14 @@ func (r *OptimizedTestRunner) RunOptimizedTest(t *testing.T, testFunc func(*test
 	// Set up cleanup.
 
 	defer func() {
-
 		r.metricsCollector.RecordTestCompletion(t.Name(), time.Since(startTime))
 
 		ctx.Cleanup()
-
 	}()
 
 	// Run the test.
 
 	testFunc(t, ctx)
-
 }
 
 // TestContext provides optimized test context.
@@ -108,65 +100,50 @@ type TestContext struct {
 // CreateTempFile creates a temporary file with optimizations.
 
 func (tc *TestContext) CreateTempFile(name string, content []byte) string {
-
 	filePath := filepath.Join(tc.TempDir, name)
 
 	if err := tc.Optimizer.OptimizedFileWrite(filePath, content); err != nil {
-
 		tc.T.Fatalf("Failed to create temp file %s: %v", name, err)
-
 	}
 
 	return filePath
-
 }
 
 // CreateTempFiles creates multiple files efficiently.
 
 func (tc *TestContext) CreateTempFiles(files map[string][]byte) map[string]string {
-
 	results := make(map[string]string)
 
 	if err := tc.BatchProc.CreateFiles(tc.TempDir, files); err != nil {
-
 		tc.T.Fatalf("Failed to create temp files: %v", err)
-
 	}
 
 	for name := range files {
-
 		results[name] = filepath.Join(tc.TempDir, name)
-
 	}
 
 	return results
-
 }
 
 // GetOptimizedContext creates a context with optimized timeout.
 
 func (tc *TestContext) GetOptimizedContext(baseTimeout time.Duration) (context.Context, context.CancelFunc) {
-
 	return tc.Optimizer.OptimizedContextTimeout(context.Background(), baseTimeout)
-
 }
 
 // AddCleanup adds a cleanup function.
 
 func (tc *TestContext) AddCleanup(fn func()) {
-
 	tc.mu.Lock()
 
 	defer tc.mu.Unlock()
 
 	tc.cleanupFns = append(tc.cleanupFns, fn)
-
 }
 
 // Cleanup performs all cleanup operations.
 
 func (tc *TestContext) Cleanup() {
-
 	tc.mu.Lock()
 
 	defer tc.mu.Unlock()
@@ -174,13 +151,9 @@ func (tc *TestContext) Cleanup() {
 	// Execute cleanup functions in reverse order.
 
 	for i := len(tc.cleanupFns) - 1; i >= 0; i-- {
-
 		if fn := tc.cleanupFns[i]; fn != nil {
-
 			fn()
-
 		}
-
 	}
 
 	tc.cleanupFns = nil
@@ -188,7 +161,6 @@ func (tc *TestContext) Cleanup() {
 	// Cleanup optimizer.
 
 	tc.Optimizer.Cleanup()
-
 }
 
 // BatchFileProcessor handles efficient batch file operations.
@@ -200,30 +172,22 @@ type BatchFileProcessor struct {
 // NewBatchFileProcessor creates a new batch file processor.
 
 func NewBatchFileProcessor() *BatchFileProcessor {
-
 	limit := runtime.NumCPU()
 
 	if runtime.GOOS == "windows" {
-
 		limit = max(1, limit/2)
-
 	}
 
 	return &BatchFileProcessor{
-
 		concurrencyLimit: make(chan struct{}, limit),
 	}
-
 }
 
 // CreateFiles creates multiple files concurrently with optimizations.
 
 func (b *BatchFileProcessor) CreateFiles(baseDir string, files map[string][]byte) error {
-
 	if err := os.MkdirAll(baseDir, 0o755); err != nil {
-
 		return fmt.Errorf("failed to create base directory: %w", err)
-
 	}
 
 	// Use a bounded goroutine pool.
@@ -237,7 +201,6 @@ func (b *BatchFileProcessor) CreateFiles(baseDir string, files map[string][]byte
 		wg.Add(1)
 
 		go func(fname string, data []byte) {
-
 			defer wg.Done()
 
 			// Acquire concurrency slot.
@@ -263,11 +226,8 @@ func (b *BatchFileProcessor) CreateFiles(baseDir string, files map[string][]byte
 			// Write file with platform-specific optimizations.
 
 			if err := writeFileOptimized(filePath, data); err != nil {
-
 				errChan <- fmt.Errorf("failed to write file %s: %w", fname, err)
-
 			}
-
 		}(filename, content)
 
 	}
@@ -279,23 +239,17 @@ func (b *BatchFileProcessor) CreateFiles(baseDir string, files map[string][]byte
 	// Check for errors.
 
 	for err := range errChan {
-
 		if err != nil {
-
 			return err
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // writeFileOptimized writes a file with platform-specific optimizations.
 
 func writeFileOptimized(filePath string, content []byte) error {
-
 	if runtime.GOOS == "windows" {
 
 		// Use atomic write on Windows for better reliability.
@@ -303,9 +257,7 @@ func writeFileOptimized(filePath string, content []byte) error {
 		tempFile := filePath + ".tmp"
 
 		if err := os.WriteFile(tempFile, content, 0o640); err != nil {
-
 			return err
-
 		}
 
 		return os.Rename(tempFile, filePath)
@@ -313,7 +265,6 @@ func writeFileOptimized(filePath string, content []byte) error {
 	}
 
 	return os.WriteFile(filePath, content, 0o640)
-
 }
 
 // TestResourcePool manages reusable test resources.
@@ -329,69 +280,51 @@ type TestResourcePool struct {
 // NewTestResourcePool creates a new resource pool.
 
 func NewTestResourcePool() *TestResourcePool {
-
 	return &TestResourcePool{}
-
 }
 
 // GetCachedDirectory returns a cached directory or creates a new one.
 
 func (p *TestResourcePool) GetCachedDirectory(key string) (string, bool) {
-
 	if val, ok := p.directories.Load(key); ok {
-
 		return val.(string), true
-
 	}
 
 	return "", false
-
 }
 
 // CacheDirectory caches a directory for reuse.
 
 func (p *TestResourcePool) CacheDirectory(key, path string) {
-
 	p.directories.Store(key, path)
-
 }
 
 // GetCachedFile returns cached file content.
 
 func (p *TestResourcePool) GetCachedFile(path string) ([]byte, bool) {
-
 	if val, ok := p.files.Load(path); ok {
-
 		return val.([]byte), true
-
 	}
 
 	return nil, false
-
 }
 
 // CacheFile caches file content for reuse.
 
 func (p *TestResourcePool) CacheFile(path string, content []byte) {
-
 	// Only cache files up to 1MB to avoid memory issues.
 
 	if len(content) <= 1024*1024 {
-
 		p.files.Store(path, content)
-
 	}
-
 }
 
 // Clear clears all cached resources.
 
 func (p *TestResourcePool) Clear() {
-
 	p.directories = sync.Map{}
 
 	p.files = sync.Map{}
-
 }
 
 // TestMetricsCollector collects test performance metrics.
@@ -405,33 +338,25 @@ type TestMetricsCollector struct {
 // NewTestMetricsCollector creates a new metrics collector.
 
 func NewTestMetricsCollector() *TestMetricsCollector {
-
 	return &TestMetricsCollector{}
-
 }
 
 // RecordTestCompletion records test completion time.
 
 func (m *TestMetricsCollector) RecordTestCompletion(testName string, duration time.Duration) {
-
 	m.testDurations.Store(testName, duration)
-
 }
 
 // GetAverageDuration gets average duration for tests with given prefix.
 
 func (m *TestMetricsCollector) GetAverageDuration(prefix string) time.Duration {
-
 	var total time.Duration
 
 	var count int
 
 	m.testDurations.Range(func(key, value interface{}) bool {
-
 		if testName, ok := key.(string); ok {
-
 			if len(testName) >= len(prefix) && testName[:len(prefix)] == prefix {
-
 				if duration, ok := value.(time.Duration); ok {
 
 					total += duration
@@ -439,29 +364,22 @@ func (m *TestMetricsCollector) GetAverageDuration(prefix string) time.Duration {
 					count++
 
 				}
-
 			}
-
 		}
 
 		return true
-
 	})
 
 	if count == 0 {
-
 		return 0
-
 	}
 
 	return total / time.Duration(count)
-
 }
 
 // PrintSummary prints a summary of test performance.
 
 func (m *TestMetricsCollector) PrintSummary() {
-
 	fmt.Printf("\n=== Test Performance Summary ===\n")
 
 	fmt.Printf("Platform: %s/%s\n", runtime.GOOS, runtime.GOARCH)
@@ -477,9 +395,7 @@ func (m *TestMetricsCollector) PrintSummary() {
 	var testCount int
 
 	m.testDurations.Range(func(key, value interface{}) bool {
-
 		if testName, ok := key.(string); ok {
-
 			if duration, ok := value.(time.Duration); ok {
 
 				totalDuration += duration
@@ -495,11 +411,9 @@ func (m *TestMetricsCollector) PrintSummary() {
 				}
 
 			}
-
 		}
 
 		return true
-
 	})
 
 	if testCount > 0 {
@@ -517,7 +431,6 @@ func (m *TestMetricsCollector) PrintSummary() {
 	}
 
 	fmt.Printf("================================\n\n")
-
 }
 
 // Optimized test helper functions.
@@ -525,35 +438,28 @@ func (m *TestMetricsCollector) PrintSummary() {
 // WithOptimizedTest runs a test with optimizations.
 
 func WithOptimizedTest(t *testing.T, testFunc func(*testing.T, *TestContext)) {
-
 	runner := NewOptimizedTestRunner()
 
 	runner.RunOptimizedTest(t, testFunc)
-
 }
 
 // WithOptimizedTimeout creates a context with optimized timeout for the platform.
 
 func WithOptimizedTimeout(ctx context.Context, baseTimeout time.Duration) (context.Context, context.CancelFunc) {
-
 	optimizedTimeout := baseTimeout
 
 	if runtime.GOOS == "windows" {
-
 		// Increase timeout by 50% on Windows.
 
 		optimizedTimeout = time.Duration(float64(baseTimeout) * 1.5)
-
 	}
 
 	return context.WithTimeout(ctx, optimizedTimeout)
-
 }
 
 // CreateOptimizedTempDir creates a temporary directory optimized for the platform.
 
 func CreateOptimizedTempDir(t testing.TB, prefix string) string {
-
 	if runtime.GOOS == "windows" {
 
 		// Use shorter paths on Windows.
@@ -563,25 +469,19 @@ func CreateOptimizedTempDir(t testing.TB, prefix string) string {
 		shortPrefix := prefix
 
 		if len(prefix) > 8 {
-
 			shortPrefix = prefix[:8]
-
 		}
 
 		tempDir := filepath.Join(tempBase, fmt.Sprintf("%s-%d", shortPrefix, time.Now().UnixNano()%1000000))
 
 		if err := os.MkdirAll(tempDir, 0o755); err != nil {
-
 			t.Fatalf("Failed to create temp dir: %v", err)
-
 		}
 
 		// Clean up on test completion.
 
 		t.Cleanup(func() {
-
 			os.RemoveAll(tempDir)
-
 		})
 
 		return tempDir
@@ -589,15 +489,12 @@ func CreateOptimizedTempDir(t testing.TB, prefix string) string {
 	}
 
 	return t.TempDir()
-
 }
 
 // BatchCreateFiles creates multiple files efficiently.
 
 func BatchCreateFiles(baseDir string, files map[string][]byte) error {
-
 	processor := NewBatchFileProcessor()
 
 	return processor.CreateFiles(baseDir, files)
-
 }

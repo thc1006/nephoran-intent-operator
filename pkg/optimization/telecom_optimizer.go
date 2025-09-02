@@ -77,7 +77,6 @@ type TelecomPerformanceOptimizer struct {
 // TelecomOptimizerConfig contains telecom-specific optimization configuration.
 
 type TelecomOptimizerConfig struct {
-
 	// 5G Core optimization parameters.
 
 	CoreNetworkConfig *CoreNetworkConfig `json:"coreNetworkConfig"`
@@ -157,7 +156,6 @@ const (
 // CoreNetworkConfig defines 5G Core network optimization parameters.
 
 type CoreNetworkConfig struct {
-
 	// AMF optimization.
 
 	AMFConfig *AMFConfig `json:"amfConfig"`
@@ -312,7 +310,6 @@ const (
 // RICConfig defines RAN Intelligent Controller optimization.
 
 type RICConfig struct {
-
 	// Near-RT RIC configuration.
 
 	NearRTRICConfig *NearRTRICConfig `json:"nearRtRicConfig"`
@@ -375,7 +372,6 @@ type XAppOptimization struct {
 // RANConfig defines RAN optimization parameters.
 
 type RANConfig struct {
-
 	// Coverage optimization.
 
 	CoverageOptimization *CoverageOptimization `json:"coverageOptimization"`
@@ -452,9 +448,7 @@ type EdgeConfig struct {
 // NewTelecomPerformanceOptimizer creates a new telecom performance optimizer.
 
 func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.Logger) *TelecomPerformanceOptimizer {
-
 	optimizer := &TelecomPerformanceOptimizer{
-
 		logger: logger.WithName("telecom-optimizer"),
 
 		config: config,
@@ -479,7 +473,6 @@ func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.
 	optimizer.telecomMetrics = NewTelecomMetricsCollector(logger)
 
 	return optimizer
-
 }
 
 // TelecomOptimizationStrategy represents a telecom-specific optimization strategy.
@@ -503,13 +496,10 @@ type TelecomOptimizationStrategy struct {
 // GetTelecomOptimizationStrategies returns telecom-specific optimization strategies.
 
 func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies() []TelecomOptimizationStrategy {
-
 	strategies := []TelecomOptimizationStrategy{
-
 		// 5G Core optimization strategies.
 
 		{
-
 			Name: "5g_core_latency_optimization",
 
 			Category: CategoryTelecommunications,
@@ -517,9 +507,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("5g_core"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "core_network_latency",
 
 					Operator: OperatorGreaterThan,
@@ -531,7 +519,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 50.0,
 
 				SignalingEfficiencyGain: 30.0,
@@ -540,9 +527,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ImplementationSteps: []ImplementationStep{
-
 				{
-
 					Order: 1,
 
 					Name: "optimize_amf_configuration",
@@ -555,7 +540,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 2,
 
 					Name: "optimize_smf_session_management",
@@ -568,7 +552,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 3,
 
 					Name: "optimize_upf_packet_processing",
@@ -582,9 +565,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			RiskFactors: []RecommendationRiskFactor{
-
 				{
-
 					Name: "service_disruption",
 
 					Description: "Potential service disruption during optimization",
@@ -603,7 +584,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 		// Network slicing optimization.
 
 		{
-
 			Name: "network_slice_optimization",
 
 			Category: CategoryTelecommunications,
@@ -611,9 +591,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("network_slicing"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "slice_isolation_efficiency",
 
 					Operator: OperatorLessThan,
@@ -625,7 +603,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 40.0,
 
 				ThroughputIncrease: 35.0,
@@ -634,9 +611,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ImplementationSteps: []ImplementationStep{
-
 				{
-
 					Order: 1,
 
 					Name: "analyze_slice_utilization",
@@ -649,7 +624,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 2,
 
 					Name: "optimize_slice_allocation",
@@ -662,7 +636,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 3,
 
 					Name: "enable_slice_isolation",
@@ -679,7 +652,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 		// O-RAN RIC optimization.
 
 		{
-
 			Name: "oran_ric_optimization",
 
 			Category: CategoryTelecommunications,
@@ -687,9 +659,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("oran_ric"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "ric_processing_latency",
 
 					Operator: OperatorGreaterThan,
@@ -701,7 +671,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 70.0,
 
 				ThroughputIncrease: 45.0,
@@ -712,9 +681,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ImplementationSteps: []ImplementationStep{
-
 				{
-
 					Order: 1,
 
 					Name: "optimize_near_rt_ric",
@@ -727,7 +694,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 2,
 
 					Name: "optimize_xapp_deployment",
@@ -740,7 +706,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 3,
 
 					Name: "optimize_e2_interface",
@@ -757,7 +722,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 		// RAN optimization.
 
 		{
-
 			Name: "ran_performance_optimization",
 
 			Category: CategoryTelecommunications,
@@ -765,9 +729,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("ran"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "ran_efficiency",
 
 					Operator: OperatorLessThan,
@@ -779,7 +741,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				ThroughputIncrease: 60.0,
 
 				SpectrumEfficiencyGain: 45.0,
@@ -790,9 +751,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ImplementationSteps: []ImplementationStep{
-
 				{
-
 					Order: 1,
 
 					Name: "optimize_coverage",
@@ -805,7 +764,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 2,
 
 					Name: "optimize_interference",
@@ -818,7 +776,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 				},
 
 				{
-
 					Order: 3,
 
 					Name: "optimize_handover",
@@ -835,7 +792,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 		// Multi-vendor interoperability.
 
 		{
-
 			Name: "multi_vendor_interop_optimization",
 
 			Category: CategoryTelecommunications,
@@ -843,9 +799,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("interoperability"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "interop_efficiency",
 
 					Operator: OperatorLessThan,
@@ -857,7 +811,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				InteropImprovements: 50.0,
 
 				LatencyReduction: 20.0,
@@ -869,7 +822,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 		// QoS optimization.
 
 		{
-
 			Name: "qos_sla_optimization",
 
 			Category: CategoryTelecommunications,
@@ -877,9 +829,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("qos_management"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "sla_compliance_rate",
 
 					Operator: OperatorLessThan,
@@ -891,7 +841,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				ReliabilityImprovement: 40.0,
 
 				LatencyReduction: 25.0,
@@ -903,7 +852,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 		// Edge deployment optimization.
 
 		{
-
 			Name: "edge_deployment_optimization",
 
 			Category: CategoryTelecommunications,
@@ -911,9 +859,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			TargetComponent: ComponentType("edge_computing"),
 
 			ApplicableScenarios: []ScenarioCondition{
-
 				{
-
 					MetricName: "edge_latency",
 
 					Operator: OperatorGreaterThan,
@@ -925,7 +871,6 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 
 			ExpectedBenefits: &ExpectedBenefits{
-
 				LatencyReduction: 80.0,
 
 				ThroughputIncrease: 40.0,
@@ -936,19 +881,15 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 	}
 
 	return strategies
-
 }
 
 // OptimizeTelecomPerformance applies telecom-specific optimizations.
 
 func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
-
 	ctx context.Context,
 
 	analysisResult *PerformanceAnalysisResult,
-
 ) ([]*OptimizationRecommendation, error) {
-
 	optimizer.logger.Info("Starting telecom-specific performance optimization")
 
 	var recommendations []*OptimizationRecommendation
@@ -956,7 +897,6 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	// Collect telecom-specific metrics.
 
 	telecomMetrics, err := optimizer.telecomMetrics.CollectMetrics(ctx)
-
 	if err != nil {
 
 		optimizer.logger.Error(err, "Failed to collect telecom metrics")
@@ -970,13 +910,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	coreRecommendations, err := optimizer.coreNetworkOptimizer.OptimizeCore(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize 5G Core")
-
 	} else {
-
 		recommendations = append(recommendations, coreRecommendations...)
-
 	}
 
 	// Optimize network slicing.
@@ -984,13 +920,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	sliceRecommendations, err := optimizer.sliceOptimizer.OptimizeSlicing(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize network slicing")
-
 	} else {
-
 		recommendations = append(recommendations, sliceRecommendations...)
-
 	}
 
 	// Optimize O-RAN RIC.
@@ -998,13 +930,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	ricRecommendations, err := optimizer.ricOptimizer.OptimizeRIC(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize O-RAN RIC")
-
 	} else {
-
 		recommendations = append(recommendations, ricRecommendations...)
-
 	}
 
 	// Optimize RAN performance.
@@ -1012,13 +940,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	ranRecommendations, err := optimizer.ranOptimizer.OptimizeRAN(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize RAN")
-
 	} else {
-
 		recommendations = append(recommendations, ranRecommendations...)
-
 	}
 
 	// Optimize multi-vendor interoperability.
@@ -1026,13 +950,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	interopRecommendations, err := optimizer.interopOptimizer.OptimizeInterop(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize interoperability")
-
 	} else {
-
 		recommendations = append(recommendations, interopRecommendations...)
-
 	}
 
 	// Optimize QoS and SLA compliance.
@@ -1040,13 +960,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	qosRecommendations, err := optimizer.qosOptimizer.OptimizeQoS(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize QoS")
-
 	} else {
-
 		recommendations = append(recommendations, qosRecommendations...)
-
 	}
 
 	// Optimize edge deployment.
@@ -1054,13 +970,9 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	edgeRecommendations, err := optimizer.edgeOptimizer.OptimizeEdge(ctx, telecomMetrics, analysisResult)
 
 	if err != nil {
-
 		optimizer.logger.Error(err, "Failed to optimize edge deployment")
-
 	} else {
-
 		recommendations = append(recommendations, edgeRecommendations...)
-
 	}
 
 	// Apply telecom-specific prioritization.
@@ -1072,13 +984,11 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		"totalRecommendations", len(recommendations))
 
 	return recommendations, nil
-
 }
 
 // prioritizeTelecomRecommendations applies telecom-specific prioritization logic.
 
 func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(recommendations []*OptimizationRecommendation) {
-
 	for _, rec := range recommendations {
 
 		// Apply telecom-specific weighting to risk score.
@@ -1088,15 +998,11 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 		// Boost recommendations that mention latency or reliability in title/description.
 
 		if contains(rec.Title, "latency") || contains(rec.Description, "latency") {
-
 			rec.RiskScore *= 0.9 // Lower risk score is better
-
 		}
 
 		if contains(rec.Title, "reliability") || contains(rec.Description, "reliability") {
-
 			rec.RiskScore *= 0.95 // Slight risk reduction for reliability improvements
-
 		}
 
 		// Telecom-specific optimizations get priority.
@@ -1106,25 +1012,19 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 			contains(rec.Title, "ric") || contains(rec.Title, "telecom") {
 
 			rec.RiskScore *= 0.85 // Lower risk for telecom-specific optimizations
-
 		}
 
 	}
-
 }
 
 // contains checks if a string contains a substring (case-insensitive).
 
 func contains(s, substr string) bool {
-
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
-
 }
 
 func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category OptimizationCategory) TelecomOptimizationCategory {
-
 	mapping := map[OptimizationCategory]TelecomOptimizationCategory{
-
 		CategoryPerformance: TelecomCategoryLatency,
 
 		CategoryReliability: TelecomCategoryReliability,
@@ -1135,13 +1035,10 @@ func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category Opti
 	}
 
 	if telecomCategory, exists := mapping[category]; exists {
-
 		return telecomCategory
-
 	}
 
 	return TelecomCategoryEfficiency
-
 }
 
 // Telecom-specific metrics and analysis.
@@ -1149,7 +1046,6 @@ func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category Opti
 // TelecomMetrics contains telecom-specific performance metrics.
 
 type TelecomMetrics struct {
-
 	// 5G Core metrics.
 
 	AMFMetrics *AMFMetrics `json:"amfMetrics"`
@@ -1416,77 +1312,58 @@ type TelecomMetricsCollector struct {
 // Constructor functions.
 
 func NewCoreNetworkOptimizer(config *CoreNetworkConfig, logger logr.Logger) *CoreNetworkOptimizer {
-
 	return &CoreNetworkOptimizer{logger: logger.WithName("core-network-optimizer"), config: config}
-
 }
 
 // NewNetworkSliceOptimizer performs newnetworksliceoptimizer operation.
 
 func NewNetworkSliceOptimizer(config *NetworkSliceConfig, logger logr.Logger) *NetworkSliceOptimizer {
-
 	return &NetworkSliceOptimizer{logger: logger.WithName("slice-optimizer"), config: config}
-
 }
 
 // NewRICOptimizer performs newricoptimizer operation.
 
 func NewRICOptimizer(config *RICConfig, logger logr.Logger) *RICOptimizer {
-
 	return &RICOptimizer{logger: logger.WithName("ric-optimizer"), config: config}
-
 }
 
 // NewRANOptimizer performs newranoptimizer operation.
 
 func NewRANOptimizer(config *RANConfig, logger logr.Logger) *RANOptimizer {
-
 	return &RANOptimizer{logger: logger.WithName("ran-optimizer"), config: config}
-
 }
 
 // NewInteropOptimizer performs newinteropoptimizer operation.
 
 func NewInteropOptimizer(config *InteropConfig, logger logr.Logger) *InteropOptimizer {
-
 	return &InteropOptimizer{logger: logger.WithName("interop-optimizer"), config: config}
-
 }
 
 // NewQoSOptimizer performs newqosoptimizer operation.
 
 func NewQoSOptimizer(config *QoSConfig, logger logr.Logger) *QoSOptimizer {
-
 	return &QoSOptimizer{logger: logger.WithName("qos-optimizer"), config: config}
-
 }
 
 // NewEdgeDeploymentOptimizer performs newedgedeploymentoptimizer operation.
 
 func NewEdgeDeploymentOptimizer(config *EdgeConfig, logger logr.Logger) *EdgeDeploymentOptimizer {
-
 	return &EdgeDeploymentOptimizer{logger: logger.WithName("edge-optimizer"), config: config}
-
 }
 
 // NewTelecomMetricsCollector performs newtelecommetricscollector operation.
 
 func NewTelecomMetricsCollector(logger logr.Logger) *TelecomMetricsCollector {
-
 	return &TelecomMetricsCollector{logger: logger.WithName("telecom-metrics")}
-
 }
 
 // Placeholder implementations (would be fully implemented in production).
 
 func (collector *TelecomMetricsCollector) CollectMetrics(ctx context.Context) (*TelecomMetrics, error) {
-
 	// Implementation would collect actual telecom metrics.
 
 	return &TelecomMetrics{
-
 		AMFMetrics: &AMFMetrics{
-
 			RegistrationLatency: 50 * time.Millisecond,
 
 			RegistrationSuccessRate: 0.99,
@@ -1497,65 +1374,50 @@ func (collector *TelecomMetricsCollector) CollectMetrics(ctx context.Context) (*
 		// ... other metrics.
 
 	}, nil
-
 }
 
 // OptimizeCore performs optimizecore operation.
 
 func (optimizer *CoreNetworkOptimizer) OptimizeCore(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	// Implementation would analyze core network performance and generate recommendations.
 
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizeSlicing performs optimizeslicing operation.
 
 func (optimizer *NetworkSliceOptimizer) OptimizeSlicing(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizeRIC performs optimizeric operation.
 
 func (optimizer *RICOptimizer) OptimizeRIC(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizeRAN performs optimizeran operation.
 
 func (optimizer *RANOptimizer) OptimizeRAN(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizeInterop performs optimizeinterop operation.
 
 func (optimizer *InteropOptimizer) OptimizeInterop(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizeQoS performs optimizeqos operation.
 
 func (optimizer *QoSOptimizer) OptimizeQoS(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // OptimizeEdge performs optimizeedge operation.
 
 func (optimizer *EdgeDeploymentOptimizer) OptimizeEdge(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-
 	return []*OptimizationRecommendation{}, nil
-
 }
 
 // Additional type definitions for completeness (simplified).
@@ -1819,11 +1681,8 @@ type (
 // GetDefaultTelecomOptimizerConfig returns default telecom optimizer configuration.
 
 func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
-
 	return &TelecomOptimizerConfig{
-
 		LatencyThresholds: map[string]time.Duration{
-
 			"5g_core": 10 * time.Millisecond,
 
 			"ric": 1 * time.Millisecond,
@@ -1832,7 +1691,6 @@ func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
 		},
 
 		ThroughputThresholds: map[string]float64{
-
 			"upf": 1000.0, // Mbps
 
 			"ran": 500.0,
@@ -1841,7 +1699,6 @@ func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
 		},
 
 		AvailabilityTargets: map[string]float64{
-
 			"5g_core": 0.9999,
 
 			"ran": 0.999,
@@ -1850,7 +1707,6 @@ func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
 		},
 
 		OptimizationPriorities: map[TelecomOptimizationCategory]float64{
-
 			TelecomCategoryLatency: 1.3,
 
 			TelecomCategoryReliability: 1.2,
@@ -1862,5 +1718,4 @@ func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
 			TelecomCategoryEfficiency: 1.0,
 		},
 	}
-
 }

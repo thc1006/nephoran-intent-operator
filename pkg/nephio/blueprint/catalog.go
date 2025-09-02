@@ -241,7 +241,6 @@ type TemplateOutput struct {
 // SearchCriteria defines criteria for template search and filtering.
 
 type SearchCriteria struct {
-
 	// Basic filters.
 
 	Query string `json:"query,omitempty"`
@@ -384,23 +383,17 @@ type DependencyGraph struct {
 // NewCatalog creates a new blueprint catalog.
 
 func NewCatalog(config *BlueprintConfig, logger *zap.Logger) (*Catalog, error) {
-
 	if config == nil {
-
 		config = DefaultBlueprintConfig()
-
 	}
 
 	if logger == nil {
-
 		logger = zap.NewNop()
-
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	catalog := &Catalog{
-
 		config: config,
 
 		logger: logger,
@@ -441,17 +434,13 @@ func NewCatalog(config *BlueprintConfig, logger *zap.Logger) (*Catalog, error) {
 		zap.Int("repositories", len(catalog.repositories)))
 
 	return catalog, nil
-
 }
 
 // initializeDefaultRepositories sets up default template repositories.
 
 func (c *Catalog) initializeDefaultRepositories() error {
-
 	defaultRepos := []TemplateRepository{
-
 		{
-
 			Name: "nephio-official",
 
 			URL: "https://github.com/nephio-project/catalog.git",
@@ -466,7 +455,6 @@ func (c *Catalog) initializeDefaultRepositories() error {
 		},
 
 		{
-
 			Name: "oran-alliance",
 
 			URL: "https://github.com/o-ran-sc/scp-oam-modeling.git",
@@ -481,7 +469,6 @@ func (c *Catalog) initializeDefaultRepositories() error {
 		},
 
 		{
-
 			Name: "free5gc-templates",
 
 			URL: "https://github.com/free5gc/free5gc-k8s.git",
@@ -499,13 +486,11 @@ func (c *Catalog) initializeDefaultRepositories() error {
 	c.repositories = append(c.repositories, defaultRepos...)
 
 	return nil
-
 }
 
 // startBackgroundOperations starts background worker goroutines.
 
 func (c *Catalog) startBackgroundOperations() {
-
 	// Template synchronization worker.
 
 	c.wg.Add(1)
@@ -523,13 +508,11 @@ func (c *Catalog) startBackgroundOperations() {
 	c.wg.Add(1)
 
 	go c.cacheCleanupWorker()
-
 }
 
 // FindTemplates searches for templates matching the given criteria.
 
 func (c *Catalog) FindTemplates(ctx context.Context, criteria *SearchCriteria) ([]*Template, error) {
-
 	startTime := time.Now()
 
 	c.logger.Debug("Searching templates",
@@ -541,11 +524,8 @@ func (c *Catalog) FindTemplates(ctx context.Context, criteria *SearchCriteria) (
 	cacheKey := c.buildCacheKey(criteria)
 
 	if cached, ok := c.repoCache.Load(cacheKey); ok {
-
 		if cacheEntry, ok := cached.(map[string]interface{}); ok {
-
 			if expiry, ok := cacheEntry["expiry"].(time.Time); ok && time.Now().Before(expiry) {
-
 				if templates, ok := cacheEntry["templates"].([]*Template); ok {
 
 					c.cacheHits++
@@ -559,11 +539,8 @@ func (c *Catalog) FindTemplates(ctx context.Context, criteria *SearchCriteria) (
 					return templates, nil
 
 				}
-
 			}
-
 		}
-
 	}
 
 	c.cacheMisses++
@@ -601,15 +578,12 @@ func (c *Catalog) FindTemplates(ctx context.Context, criteria *SearchCriteria) (
 		zap.Int("paginated_results", len(paginated)))
 
 	return paginated, nil
-
 }
 
 // GetTemplate retrieves a specific template by ID.
 
 func (c *Catalog) GetTemplate(ctx context.Context, templateID string) (*Template, error) {
-
 	if template, ok := c.templates.Load(templateID); ok {
-
 		if tmpl, ok := template.(*Template); ok {
 
 			c.cacheHits++
@@ -617,29 +591,22 @@ func (c *Catalog) GetTemplate(ctx context.Context, templateID string) (*Template
 			return tmpl, nil
 
 		}
-
 	}
 
 	c.cacheMisses++
 
 	return nil, fmt.Errorf("template not found: %s", templateID)
-
 }
 
 // GetTemplatesByComponent returns templates for specific components.
 
 func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []v1.ORANComponent) ([]*Template, error) {
-
 	var results []*Template
 
 	for _, component := range components {
-
 		if templates, ok := c.templatesByComponent[string(component)]; ok {
-
 			results = append(results, templates...)
-
 		}
-
 	}
 
 	// Remove duplicates.
@@ -647,15 +614,12 @@ func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []v1.O
 	uniqueResults := c.removeDuplicateTemplates(results)
 
 	return uniqueResults, nil
-
 }
 
 // GetRecommendedTemplates returns recommended templates for a NetworkIntent.
 
 func (c *Catalog) GetRecommendedTemplates(ctx context.Context, intent *v1.NetworkIntent) ([]*Template, error) {
-
 	criteria := &SearchCriteria{
-
 		TargetComponents: convertNetworkTargetComponentsToORANComponents(intent.Spec.TargetComponents),
 
 		IntentTypes: []v1.IntentType{intent.Spec.IntentType},
@@ -674,69 +638,51 @@ func (c *Catalog) GetRecommendedTemplates(ctx context.Context, intent *v1.Networ
 	}
 
 	return c.FindTemplates(ctx, criteria)
-
 }
 
 // ValidateTemplate validates a template against O-RAN compliance and other criteria.
 
 func (c *Catalog) ValidateTemplate(ctx context.Context, template *Template) error {
-
 	var errors []string
 
 	// Validate required fields.
 
 	if template.ID == "" {
-
 		errors = append(errors, "template ID is required")
-
 	}
 
 	if template.Name == "" {
-
 		errors = append(errors, "template name is required")
-
 	}
 
 	if template.Version == "" {
-
 		errors = append(errors, "template version is required")
-
 	}
 
 	// Validate files exist.
 
 	if len(template.Files) == 0 {
-
 		errors = append(errors, "template must contain at least one file")
-
 	}
 
 	// Validate O-RAN compliance if claimed.
 
 	if template.ORANCompliant {
-
 		if err := c.validateORANCompliance(template); err != nil {
-
 			errors = append(errors, fmt.Sprintf("O-RAN compliance validation failed: %v", err))
-
 		}
-
 	}
 
 	// Validate dependencies.
 
 	if err := c.validateDependencies(ctx, template); err != nil {
-
 		errors = append(errors, fmt.Sprintf("dependency validation failed: %v", err))
-
 	}
 
 	// Validate template syntax.
 
 	if err := c.validateTemplateSyntax(template); err != nil {
-
 		errors = append(errors, fmt.Sprintf("template syntax validation failed: %v", err))
-
 	}
 
 	template.ValidationErrors = errors
@@ -744,25 +690,19 @@ func (c *Catalog) ValidateTemplate(ctx context.Context, template *Template) erro
 	template.Validated = len(errors) == 0
 
 	if len(errors) > 0 {
-
 		return fmt.Errorf("template validation failed: %v", errors)
-
 	}
 
 	return nil
-
 }
 
 // RegisterTemplate registers a new template in the catalog.
 
 func (c *Catalog) RegisterTemplate(ctx context.Context, template *Template) error {
-
 	// Validate template.
 
 	if err := c.ValidateTemplate(ctx, template); err != nil {
-
 		return fmt.Errorf("template validation failed: %w", err)
-
 	}
 
 	// Set metadata.
@@ -770,9 +710,7 @@ func (c *Catalog) RegisterTemplate(ctx context.Context, template *Template) erro
 	now := time.Now()
 
 	if template.CreatedAt.IsZero() {
-
 		template.CreatedAt = now
-
 	}
 
 	template.UpdatedAt = now
@@ -796,19 +734,14 @@ func (c *Catalog) RegisterTemplate(ctx context.Context, template *Template) erro
 		zap.String("version", template.Version))
 
 	return nil
-
 }
 
 // UpdateTemplate updates an existing template.
 
 func (c *Catalog) UpdateTemplate(ctx context.Context, template *Template) error {
-
 	existing, err := c.GetTemplate(ctx, template.ID)
-
 	if err != nil {
-
 		return fmt.Errorf("template not found for update: %w", err)
-
 	}
 
 	// Preserve creation time and usage stats.
@@ -826,9 +759,7 @@ func (c *Catalog) UpdateTemplate(ctx context.Context, template *Template) error 
 	// Validate updated template.
 
 	if err := c.ValidateTemplate(ctx, template); err != nil {
-
 		return fmt.Errorf("template validation failed: %w", err)
-
 	}
 
 	// Update storage and indexes.
@@ -846,27 +777,20 @@ func (c *Catalog) UpdateTemplate(ctx context.Context, template *Template) error 
 		zap.String("version", template.Version))
 
 	return nil
-
 }
 
 // RemoveTemplate removes a template from the catalog.
 
 func (c *Catalog) RemoveTemplate(ctx context.Context, templateID string) error {
-
 	template, err := c.GetTemplate(ctx, templateID)
-
 	if err != nil {
-
 		return err
-
 	}
 
 	// Check for dependencies.
 
 	if dependents := c.dependencyGraph.GetDependents(templateID); len(dependents) > 0 {
-
 		return fmt.Errorf("cannot remove template %s: has dependents %v", templateID, dependents)
-
 	}
 
 	// Remove from storage and indexes.
@@ -882,13 +806,11 @@ func (c *Catalog) RemoveTemplate(ctx context.Context, templateID string) error {
 		zap.String("template_name", template.Name))
 
 	return nil
-
 }
 
 // SyncRepositories synchronizes templates from all configured repositories.
 
 func (c *Catalog) SyncRepositories(ctx context.Context) error {
-
 	c.syncMutex.Lock()
 
 	defer c.syncMutex.Unlock()
@@ -902,9 +824,7 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 	for _, repo := range c.repositories {
 
 		if !repo.Enabled {
-
 			continue
-
 		}
 
 		if err := c.syncRepository(ctx, &repo); err != nil {
@@ -924,9 +844,7 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 	c.lastSync = time.Now()
 
 	if len(allErrors) > 0 {
-
 		return fmt.Errorf("repository sync errors: %v", allErrors)
-
 	}
 
 	c.logger.Info("Repository synchronization completed",
@@ -934,13 +852,11 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 		zap.Time("last_sync", c.lastSync))
 
 	return nil
-
 }
 
 // syncRepository synchronizes templates from a single repository.
 
 func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) error {
-
 	c.logger.Debug("Syncing repository",
 
 		zap.String("repository", repo.Name),
@@ -950,21 +866,15 @@ func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) 
 	// Clone or pull repository.
 
 	repoPath, err := c.cloneRepository(ctx, repo)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to clone repository: %w", err)
-
 	}
 
 	// Discover templates in repository.
 
 	templates, err := c.discoverTemplates(repoPath, repo)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to discover templates: %w", err)
-
 	}
 
 	// Register discovered templates.
@@ -974,13 +884,11 @@ func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) 
 		template.Repository = repo.Name
 
 		if err := c.RegisterTemplate(ctx, template); err != nil {
-
 			c.logger.Warn("Failed to register template",
 
 				zap.String("template_id", template.ID),
 
 				zap.Error(err))
-
 		}
 
 	}
@@ -992,145 +900,102 @@ func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) 
 		zap.Int("templates", len(templates)))
 
 	return nil
-
 }
 
 // Implementation of search, indexing, and caching methods.
 
 func (c *Catalog) performSearch(criteria *SearchCriteria) []*Template {
-
 	var results []*Template
 
 	if criteria.Query != "" {
-
 		results = c.searchIndex.SearchByText(criteria.Query)
-
 	} else {
-
 		// Return all templates if no specific query.
 
 		c.templates.Range(func(key, value interface{}) bool {
-
 			if template, ok := value.(*Template); ok {
-
 				results = append(results, template)
-
 			}
 
 			return true
-
 		})
-
 	}
 
 	return results
-
 }
 
 func (c *Catalog) applyFilters(templates []*Template, criteria *SearchCriteria) []*Template {
-
 	var filtered []*Template
 
 	for _, template := range templates {
-
 		if c.matchesFilters(template, criteria) {
-
 			filtered = append(filtered, template)
-
 		}
-
 	}
 
 	return filtered
-
 }
 
 func (c *Catalog) matchesFilters(template *Template, criteria *SearchCriteria) bool {
-
 	// Type filter.
 
 	if criteria.Type != "" && template.Type != criteria.Type {
-
 		return false
-
 	}
 
 	// Category filter.
 
 	if criteria.Category != "" && template.Category != criteria.Category {
-
 		return false
-
 	}
 
 	// Component filter.
 
 	if len(criteria.TargetComponents) > 0 {
-
 		if !c.hasMatchingComponent(template.TargetComponents, criteria.TargetComponents) {
-
 			return false
-
 		}
-
 	}
 
 	// Intent type filter.
 
 	if len(criteria.IntentTypes) > 0 {
-
 		if !c.hasMatchingIntentType(template.IntentTypes, criteria.IntentTypes) {
-
 			return false
-
 		}
-
 	}
 
 	// O-RAN compliance filter.
 
 	if criteria.ORANCompliant != nil && template.ORANCompliant != *criteria.ORANCompliant {
-
 		return false
-
 	}
 
 	// Rating filter.
 
 	if criteria.MinRating != nil && template.Rating < *criteria.MinRating {
-
 		return false
-
 	}
 
 	// Validation filter.
 
 	if criteria.Validated != nil && template.Validated != *criteria.Validated {
-
 		return false
-
 	}
 
 	return true
-
 }
 
 func (c *Catalog) sortTemplates(templates []*Template, sortBy, sortOrder string) []*Template {
-
 	if sortBy == "" {
-
 		sortBy = "name"
-
 	}
 
 	if sortOrder == "" {
-
 		sortOrder = "asc"
-
 	}
 
 	sort.Slice(templates, func(i, j int) bool {
-
 		var less bool
 
 		switch sortBy {
@@ -1158,82 +1023,62 @@ func (c *Catalog) sortTemplates(templates []*Template, sortBy, sortOrder string)
 		}
 
 		if sortOrder == "desc" {
-
 			return !less
-
 		}
 
 		return less
-
 	})
 
 	return templates
-
 }
 
 func (c *Catalog) paginateResults(templates []*Template, limit, offset int) []*Template {
-
 	if limit <= 0 {
-
 		return templates
-
 	}
 
 	start := offset
 
 	if start >= len(templates) {
-
 		return []*Template{}
-
 	}
 
 	end := start + limit
 
 	if end > len(templates) {
-
 		end = len(templates)
-
 	}
 
 	return templates[start:end]
-
 }
 
 // Helper and utility methods.
 
 func (c *Catalog) buildCacheKey(criteria *SearchCriteria) string {
-
 	data, _ := json.Marshal(criteria)
 
 	hash := sha256.Sum256(data)
 
 	return fmt.Sprintf("search_%x", hash[:8])
-
 }
 
 func (c *Catalog) cacheSearchResults(key string, results []*Template) {
-
 	c.repoCache.Store(key, map[string]interface{}{
-
 		"templates": results,
 
 		"expiry": time.Now().Add(c.config.CacheTTL),
 	})
-
 }
 
 func (c *Catalog) calculateChecksum(template *Template) string {
-
 	data, _ := json.Marshal(template.Files)
 
 	hash := sha256.Sum256(data)
 
 	return fmt.Sprintf("%x", hash)
-
 }
 
 func (c *Catalog) updateIndexes(template *Template) {
-
 	c.searchIndex.UpdateTemplate(template)
 
 	c.dependencyGraph.UpdateTemplate(template)
@@ -1249,17 +1094,13 @@ func (c *Catalog) updateIndexes(template *Template) {
 	// Update component index.
 
 	for _, component := range template.TargetComponents {
-
 		c.templatesByComponent[string(component)] = append(c.templatesByComponent[string(component)], template)
-
 	}
-
 }
 
 // Background worker methods.
 
 func (c *Catalog) syncWorker() {
-
 	defer c.wg.Done()
 
 	ticker := time.NewTicker(30 * time.Minute) // Sync every 30 minutes
@@ -1267,7 +1108,6 @@ func (c *Catalog) syncWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-c.ctx.Done():
@@ -1279,21 +1119,16 @@ func (c *Catalog) syncWorker() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 
 			if err := c.SyncRepositories(ctx); err != nil {
-
 				c.logger.Error("Background repository sync failed", zap.Error(err))
-
 			}
 
 			cancel()
 
 		}
-
 	}
-
 }
 
 func (c *Catalog) indexMaintenanceWorker() {
-
 	defer c.wg.Done()
 
 	ticker := time.NewTicker(10 * time.Minute)
@@ -1301,7 +1136,6 @@ func (c *Catalog) indexMaintenanceWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-c.ctx.Done():
@@ -1313,13 +1147,10 @@ func (c *Catalog) indexMaintenanceWorker() {
 			c.maintainIndexes()
 
 		}
-
 	}
-
 }
 
 func (c *Catalog) cacheCleanupWorker() {
-
 	defer c.wg.Done()
 
 	ticker := time.NewTicker(c.config.CacheTTL / 2)
@@ -1327,7 +1158,6 @@ func (c *Catalog) cacheCleanupWorker() {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 
 		case <-c.ctx.Done():
@@ -1339,41 +1169,32 @@ func (c *Catalog) cacheCleanupWorker() {
 			c.cleanupCache()
 
 		}
-
 	}
-
 }
 
 // GetCacheHits returns the number of cache hits.
 
 func (c *Catalog) GetCacheHits() int64 {
-
 	return c.cacheHits
-
 }
 
 // GetCacheMisses returns the number of cache misses.
 
 func (c *Catalog) GetCacheMisses() int64 {
-
 	return c.cacheMisses
-
 }
 
 // HealthCheck performs a health check on the catalog.
 
 func (c *Catalog) HealthCheck(ctx context.Context) bool {
-
 	// Check if we have templates loaded.
 
 	templateCount := 0
 
 	c.templates.Range(func(_, _ interface{}) bool {
-
 		templateCount++
 
 		return templateCount < 100 // Just count a few to avoid long iteration
-
 	})
 
 	if templateCount == 0 {
@@ -1397,15 +1218,12 @@ func (c *Catalog) HealthCheck(ctx context.Context) bool {
 	}
 
 	return true
-
 }
 
 // Placeholder implementations for complex methods that would need full implementation.
 
 func NewSearchIndex() *SearchIndex {
-
 	return &SearchIndex{
-
 		nameIndex: make(map[string][]*Template),
 
 		tagIndex: make(map[string][]*Template),
@@ -1416,15 +1234,12 @@ func NewSearchIndex() *SearchIndex {
 
 		textIndex: make(map[string][]*Template),
 	}
-
 }
 
 // NewDependencyGraph performs newdependencygraph operation.
 
 func NewDependencyGraph() *DependencyGraph {
-
 	return &DependencyGraph{
-
 		dependencies: make(map[string][]string),
 
 		dependents: make(map[string][]string),
@@ -1433,13 +1248,11 @@ func NewDependencyGraph() *DependencyGraph {
 
 		compatibility: make(map[string][]string),
 	}
-
 }
 
 // removeDuplicateTemplates removes duplicate templates from a slice.
 
 func (c *Catalog) removeDuplicateTemplates(templates []*Template) []*Template {
-
 	seen := make(map[string]bool)
 
 	var result []*Template
@@ -1447,9 +1260,7 @@ func (c *Catalog) removeDuplicateTemplates(templates []*Template) []*Template {
 	for _, template := range templates {
 
 		if template == nil {
-
 			continue
-
 		}
 
 		if !seen[template.ID] {
@@ -1463,17 +1274,13 @@ func (c *Catalog) removeDuplicateTemplates(templates []*Template) []*Template {
 	}
 
 	return result
-
 }
 
 // validateORANCompliance validates a template against O-RAN compliance rules.
 
 func (c *Catalog) validateORANCompliance(template *Template) error {
-
 	if !template.ORANCompliant {
-
 		return nil // Skip validation if not claiming O-RAN compliance
-
 	}
 
 	// Check for required O-RAN interfaces.
@@ -1493,7 +1300,6 @@ func (c *Catalog) validateORANCompliance(template *Template) error {
 			patterns := c.getInterfacePatterns(iface)
 
 			for _, pattern := range patterns {
-
 				if strings.Contains(contentLower, pattern) {
 
 					foundInterfaces[iface] = true
@@ -1501,7 +1307,6 @@ func (c *Catalog) validateORANCompliance(template *Template) error {
 					break
 
 				}
-
 			}
 
 		}
@@ -1513,71 +1318,52 @@ func (c *Catalog) validateORANCompliance(template *Template) error {
 	// Check if at least one O-RAN interface is implemented.
 
 	if len(foundInterfaces) == 0 {
-
 		return fmt.Errorf("template claims O-RAN compliance but no O-RAN interfaces found")
-
 	}
 
 	return nil
-
 }
 
 // validateDependencies validates template dependencies.
 
 func (c *Catalog) validateDependencies(ctx context.Context, template *Template) error {
-
 	for _, dep := range template.Dependencies {
-
 		if dep.Required {
-
 			// Check if dependency template exists.
 
 			if _, err := c.GetTemplate(context.Background(), dep.TemplateID); err != nil {
-
 				return fmt.Errorf("required dependency %s not found: %w", dep.TemplateID, err)
-
 			}
-
 		}
-
 	}
 
 	return nil
-
 }
 
 // validateTemplateSyntax validates template file syntax.
 
 func (c *Catalog) validateTemplateSyntax(template *Template) error {
-
 	for filename, content := range template.Files {
-
 		if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
 
 			var obj interface{}
 
 			if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
-
 				return fmt.Errorf("invalid YAML syntax in %s: %w", filename, err)
-
 			}
 
 		}
 
 		// Add more syntax validation for other file types as needed.
-
 	}
 
 	return nil
-
 }
 
 // getInterfacePatterns returns search patterns for O-RAN interfaces.
 
 func (c *Catalog) getInterfacePatterns(iface string) []string {
-
 	patterns := map[string][]string{
-
 		"A1": {"a1", "policy", "near-rt-ric", "non-rt-ric"},
 
 		"O1": {"o1", "netconf", "yang", "fcaps", "fault", "configuration", "accounting", "performance", "security"},
@@ -1588,63 +1374,43 @@ func (c *Catalog) getInterfacePatterns(iface string) []string {
 	}
 
 	if p, ok := patterns[iface]; ok {
-
 		return p
-
 	}
 
 	return []string{}
-
 }
 
 // hasMatchingComponent checks if template components match search criteria.
 
 func (c *Catalog) hasMatchingComponent(templateComponents, searchComponents []v1.ORANComponent) bool {
-
 	for _, searchComp := range searchComponents {
-
 		for _, templateComp := range templateComponents {
-
 			if templateComp == searchComp {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 // hasMatchingIntentType checks if template intent types match search criteria.
 
 func (c *Catalog) hasMatchingIntentType(templateTypes, searchTypes []v1.IntentType) bool {
-
 	for _, searchType := range searchTypes {
-
 		for _, templateType := range templateTypes {
-
 			if templateType == searchType {
-
 				return true
-
 			}
-
 		}
-
 	}
 
 	return false
-
 }
 
 // removeFromIndexes removes template from all indexes.
 
 func (c *Catalog) removeFromIndexes(template *Template) {
-
 	c.searchIndex.RemoveTemplate(template)
 
 	c.dependencyGraph.RemoveTemplate(template)
@@ -1652,9 +1418,7 @@ func (c *Catalog) removeFromIndexes(template *Template) {
 	// Remove from type index.
 
 	if templates, ok := c.templatesByType[template.Type]; ok {
-
 		for i, t := range templates {
-
 			if t.ID == template.ID {
 
 				c.templatesByType[template.Type] = append(templates[:i], templates[i+1:]...)
@@ -1662,17 +1426,13 @@ func (c *Catalog) removeFromIndexes(template *Template) {
 				break
 
 			}
-
 		}
-
 	}
 
 	// Remove from category index.
 
 	if templates, ok := c.templatesByCategory[template.Category]; ok {
-
 		for i, t := range templates {
-
 			if t.ID == template.ID {
 
 				c.templatesByCategory[template.Category] = append(templates[:i], templates[i+1:]...)
@@ -1680,19 +1440,14 @@ func (c *Catalog) removeFromIndexes(template *Template) {
 				break
 
 			}
-
 		}
-
 	}
 
 	// Remove from component index.
 
 	for _, component := range template.TargetComponents {
-
 		if templates, ok := c.templatesByComponent[string(component)]; ok {
-
 			for i, t := range templates {
-
 				if t.ID == template.ID {
 
 					c.templatesByComponent[string(component)] = append(templates[:i], templates[i+1:]...)
@@ -1700,59 +1455,42 @@ func (c *Catalog) removeFromIndexes(template *Template) {
 					break
 
 				}
-
 			}
-
 		}
-
 	}
-
 }
 
 // maintainIndexes performs index maintenance.
 
 func (c *Catalog) maintainIndexes() {
-
 	c.logger.Debug("Performing index maintenance")
 
 	// Cleanup empty index entries, rebuild if needed, etc.
 
 	// This is a placeholder for more sophisticated index maintenance.
-
 }
 
 // cleanupCache removes expired cache entries.
 
 func (c *Catalog) cleanupCache() {
-
 	now := time.Now()
 
 	c.repoCache.Range(func(key, value interface{}) bool {
-
 		if cacheEntry, ok := value.(map[string]interface{}); ok {
-
 			if expiry, ok := cacheEntry["expiry"].(time.Time); ok {
-
 				if now.After(expiry) {
-
 					c.repoCache.Delete(key)
-
 				}
-
 			}
-
 		}
 
 		return true
-
 	})
-
 }
 
 // cloneRepository clones or updates a repository.
 
 func (c *Catalog) cloneRepository(ctx context.Context, repo *TemplateRepository) (string, error) {
-
 	// This is a stub implementation.
 
 	// In a real implementation, this would use git-go to clone/update repositories.
@@ -1760,13 +1498,11 @@ func (c *Catalog) cloneRepository(ctx context.Context, repo *TemplateRepository)
 	c.logger.Debug("Cloning repository (stub)", zap.String("repo", repo.Name))
 
 	return "/tmp/repo-" + repo.Name, nil
-
 }
 
 // discoverTemplates discovers templates in a repository path.
 
 func (c *Catalog) discoverTemplates(repoPath string, repo *TemplateRepository) ([]*Template, error) {
-
 	// This is a stub implementation.
 
 	// In a real implementation, this would scan the repository for template files.
@@ -1774,7 +1510,6 @@ func (c *Catalog) discoverTemplates(repoPath string, repo *TemplateRepository) (
 	c.logger.Debug("Discovering templates (stub)", zap.String("path", repoPath))
 
 	return []*Template{}, nil
-
 }
 
 // SearchIndex methods.
@@ -1782,7 +1517,6 @@ func (c *Catalog) discoverTemplates(repoPath string, repo *TemplateRepository) (
 // SearchByText searches templates by text.
 
 func (si *SearchIndex) SearchByText(query string) []*Template {
-
 	si.mutex.RLock()
 
 	defer si.mutex.RUnlock()
@@ -1792,19 +1526,15 @@ func (si *SearchIndex) SearchByText(query string) []*Template {
 	queryLower := strings.ToLower(query)
 
 	if templates, ok := si.textIndex[queryLower]; ok {
-
 		return templates
-
 	}
 
 	return []*Template{}
-
 }
 
 // UpdateTemplate updates template in search index.
 
 func (si *SearchIndex) UpdateTemplate(template *Template) {
-
 	si.mutex.Lock()
 
 	defer si.mutex.Unlock()
@@ -1828,25 +1558,19 @@ func (si *SearchIndex) UpdateTemplate(template *Template) {
 	// Update component index.
 
 	for _, component := range template.TargetComponents {
-
 		si.componentIndex[string(component)] = append(si.componentIndex[string(component)], template)
-
 	}
 
 	// Update type index.
 
 	for _, intentType := range template.IntentTypes {
-
 		si.typeIndex[intentType] = append(si.typeIndex[intentType], template)
-
 	}
-
 }
 
 // RemoveTemplate removes template from search index.
 
 func (si *SearchIndex) RemoveTemplate(template *Template) {
-
 	si.mutex.Lock()
 
 	defer si.mutex.Unlock()
@@ -1856,9 +1580,7 @@ func (si *SearchIndex) RemoveTemplate(template *Template) {
 	nameLower := strings.ToLower(template.Name)
 
 	if templates, ok := si.nameIndex[nameLower]; ok {
-
 		si.nameIndex[nameLower] = si.removeTemplateFromSlice(templates, template.ID)
-
 	}
 
 	// Remove from tag index.
@@ -1868,9 +1590,7 @@ func (si *SearchIndex) RemoveTemplate(template *Template) {
 		tagLower := strings.ToLower(tag)
 
 		if templates, ok := si.tagIndex[tagLower]; ok {
-
 			si.tagIndex[tagLower] = si.removeTemplateFromSlice(templates, template.ID)
-
 		}
 
 	}
@@ -1878,43 +1598,28 @@ func (si *SearchIndex) RemoveTemplate(template *Template) {
 	// Remove from component index.
 
 	for _, component := range template.TargetComponents {
-
 		if templates, ok := si.componentIndex[string(component)]; ok {
-
 			si.componentIndex[string(component)] = si.removeTemplateFromSlice(templates, template.ID)
-
 		}
-
 	}
 
 	// Remove from type index.
 
 	for _, intentType := range template.IntentTypes {
-
 		if templates, ok := si.typeIndex[intentType]; ok {
-
 			si.typeIndex[intentType] = si.removeTemplateFromSlice(templates, template.ID)
-
 		}
-
 	}
-
 }
 
 func (si *SearchIndex) removeTemplateFromSlice(templates []*Template, templateID string) []*Template {
-
 	for i, template := range templates {
-
 		if template.ID == templateID {
-
 			return append(templates[:i], templates[i+1:]...)
-
 		}
-
 	}
 
 	return templates
-
 }
 
 // DependencyGraph methods.
@@ -1922,25 +1627,20 @@ func (si *SearchIndex) removeTemplateFromSlice(templates []*Template, templateID
 // GetDependents returns templates that depend on the given template.
 
 func (dg *DependencyGraph) GetDependents(templateID string) []string {
-
 	dg.mutex.RLock()
 
 	defer dg.mutex.RUnlock()
 
 	if dependents, ok := dg.dependents[templateID]; ok {
-
 		return dependents
-
 	}
 
 	return []string{}
-
 }
 
 // UpdateTemplate updates template dependencies in the graph.
 
 func (dg *DependencyGraph) UpdateTemplate(template *Template) {
-
 	dg.mutex.Lock()
 
 	defer dg.mutex.Unlock()
@@ -1960,9 +1660,7 @@ func (dg *DependencyGraph) UpdateTemplate(template *Template) {
 		// Update dependents mapping.
 
 		if dg.dependents[dep.TemplateID] == nil {
-
 			dg.dependents[dep.TemplateID] = []string{}
-
 		}
 
 		dg.dependents[dep.TemplateID] = append(dg.dependents[dep.TemplateID], template.ID)
@@ -1970,13 +1668,11 @@ func (dg *DependencyGraph) UpdateTemplate(template *Template) {
 	}
 
 	dg.dependencies[template.ID] = deps
-
 }
 
 // RemoveTemplate removes template from dependency graph.
 
 func (dg *DependencyGraph) RemoveTemplate(template *Template) {
-
 	dg.mutex.Lock()
 
 	defer dg.mutex.Unlock()
@@ -1992,9 +1688,7 @@ func (dg *DependencyGraph) RemoveTemplate(template *Template) {
 	// Remove from other templates' dependents lists.
 
 	for templateID, dependents := range dg.dependents {
-
 		for i, dependent := range dependents {
-
 			if dependent == template.ID {
 
 				dg.dependents[templateID] = append(dependents[:i], dependents[i+1:]...)
@@ -2002,9 +1696,6 @@ func (dg *DependencyGraph) RemoveTemplate(template *Template) {
 				break
 
 			}
-
 		}
-
 	}
-
 }

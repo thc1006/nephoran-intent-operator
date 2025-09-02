@@ -1158,11 +1158,13 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 }
 
 // Interface placeholders
-type PackageGenerator interface{}
-type KRMFunctionRuntime interface{}
-type PorchClient interface{}
-type GitClient interface{}
-type ConfigSyncManager interface{}
-type PolicyEngine interface{}
-type ResourceManager interface{}
-type NephioMetrics interface{}
+type (
+	PackageGenerator   interface{}
+	KRMFunctionRuntime interface{}
+	PorchClient        interface{}
+	GitClient          interface{}
+	ConfigSyncManager  interface{}
+	PolicyEngine       interface{}
+	ResourceManager    interface{}
+	NephioMetrics      interface{}
+)

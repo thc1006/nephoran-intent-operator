@@ -218,11 +218,8 @@ type VectorResult struct {
 // NewGRPCWeaviateClient creates a new gRPC-based Weaviate client.
 
 func NewGRPCWeaviateClient(config *GRPCClientConfig) (*GRPCWeaviateClient, error) {
-
 	if config == nil {
-
 		config = getDefaultGRPCConfig()
-
 	}
 
 	logger := slog.Default().With("component", "grpc-weaviate-client")
@@ -230,11 +227,8 @@ func NewGRPCWeaviateClient(config *GRPCClientConfig) (*GRPCWeaviateClient, error
 	// Create connection pool.
 
 	connPool, err := newGRPCConnectionPool(config, logger)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
-
 	}
 
 	// Create optimized codec.
@@ -244,13 +238,11 @@ func NewGRPCWeaviateClient(config *GRPCClientConfig) (*GRPCWeaviateClient, error
 	// Create interceptors.
 
 	interceptors := &GRPCInterceptors{
-
 		metrics: &GRPCMetrics{},
 
 		logger: logger,
 
 		rateLimiter: &GRPCRateLimiter{
-
 			requestsPerSecond: 1000.0,
 
 			burstSize: 100,
@@ -258,7 +250,6 @@ func NewGRPCWeaviateClient(config *GRPCClientConfig) (*GRPCWeaviateClient, error
 	}
 
 	client := &GRPCWeaviateClient{
-
 		config: config,
 
 		logger: logger,
@@ -273,15 +264,12 @@ func NewGRPCWeaviateClient(config *GRPCClientConfig) (*GRPCWeaviateClient, error
 	}
 
 	return client, nil
-
 }
 
 // getDefaultGRPCConfig returns default gRPC configuration.
 
 func getDefaultGRPCConfig() *GRPCClientConfig {
-
 	return &GRPCClientConfig{
-
 		ServerAddress: "localhost:50051",
 
 		MaxConnections: 10,
@@ -314,15 +302,12 @@ func getDefaultGRPCConfig() *GRPCClientConfig {
 
 		EnableTLS: false,
 	}
-
 }
 
 // newGRPCConnectionPool creates a new connection pool.
 
 func newGRPCConnectionPool(config *GRPCClientConfig, logger *slog.Logger) (*GRPCConnectionPool, error) {
-
 	pool := &GRPCConnectionPool{
-
 		connections: make([]*grpc.ClientConn, config.MaxConnections),
 
 		config: config,
@@ -335,7 +320,6 @@ func newGRPCConnectionPool(config *GRPCClientConfig, logger *slog.Logger) (*GRPC
 	for i := range config.MaxConnections {
 
 		conn, err := pool.createConnection()
-
 		if err != nil {
 
 			// Close any existing connections.
@@ -353,27 +337,21 @@ func newGRPCConnectionPool(config *GRPCClientConfig, logger *slog.Logger) (*GRPC
 	logger.Info("gRPC connection pool created", "connections", config.MaxConnections)
 
 	return pool, nil
-
 }
 
 // createConnection creates a new gRPC connection with optimized settings.
 
 func (p *GRPCConnectionPool) createConnection() (*grpc.ClientConn, error) {
-
 	var opts []grpc.DialOption
 
 	// Security settings.
 
 	if p.config.EnableTLS {
-
 		// TLS credentials would be configured here.
 
 		// opts = append(opts, grpc.WithTransportCredentials(...)).
-
 	} else {
-
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-
 	}
 
 	// Keepalive settings.
@@ -381,7 +359,6 @@ func (p *GRPCConnectionPool) createConnection() (*grpc.ClientConn, error) {
 	if p.config.EnableKeepalive {
 
 		keepaliveParams := keepalive.ClientParameters{
-
 			Time: p.config.KeepaliveTime,
 
 			Timeout: p.config.KeepaliveTimeout,
@@ -405,33 +382,26 @@ func (p *GRPCConnectionPool) createConnection() (*grpc.ClientConn, error) {
 	// Compression.
 
 	if p.config.EnableCompression {
-
 		opts = append(opts, grpc.WithDefaultCallOptions(
 
 			grpc.UseCompressor(p.config.CompressionAlgorithm),
 		))
-
 	}
 
 	// Connection timeout (context no longer needed with NewClient)
 	// TODO: Configure connection timeout through grpc.WithTimeout dial option
 
 	conn, err := grpc.NewClient(p.config.ServerAddress, opts...)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to dial gRPC server: %w", err)
-
 	}
 
 	return conn, nil
-
 }
 
 // GetConnection returns a connection from the pool using round-robin.
 
 func (p *GRPCConnectionPool) GetConnection() *grpc.ClientConn {
-
 	p.mutex.Lock()
 
 	defer p.mutex.Unlock()
@@ -441,13 +411,11 @@ func (p *GRPCConnectionPool) GetConnection() *grpc.ClientConn {
 	p.current = (p.current + 1) % len(p.connections)
 
 	return conn
-
 }
 
 // Close closes all connections in the pool.
 
 func (p *GRPCConnectionPool) Close() error {
-
 	p.mutex.Lock()
 
 	defer p.mutex.Unlock()
@@ -455,9 +423,7 @@ func (p *GRPCConnectionPool) Close() error {
 	var lastErr error
 
 	for i, conn := range p.connections {
-
 		if conn != nil {
-
 			if err := conn.Close(); err != nil {
 
 				p.logger.Error("Failed to close connection", "index", i, "error", err)
@@ -465,21 +431,16 @@ func (p *GRPCConnectionPool) Close() error {
 				lastErr = err
 
 			}
-
 		}
-
 	}
 
 	return lastErr
-
 }
 
 // newOptimizedCodec creates an optimized codec with object pooling.
 
 func newOptimizedCodec(config *GRPCClientConfig) *OptimizedCodec {
-
 	codec := &OptimizedCodec{
-
 		enableCompression: config.EnableCompression,
 
 		compressionLevel: 6, // Balanced compression level
@@ -489,41 +450,32 @@ func newOptimizedCodec(config *GRPCClientConfig) *OptimizedCodec {
 	// Initialize buffer pool.
 
 	codec.bufferPool.New = func() interface{} {
-
 		return make([]byte, 0, 1024) // Initial capacity of 1KB
-
 	}
 
 	// Initialize encoder pool - using bytes.Buffer as proto.Buffer is deprecated.
 
 	codec.encoderPool.New = func() interface{} {
-
 		return make([]byte, 0, 1024) // Protobuf encoder buffer
-
 	}
 
 	// Initialize decoder pool - using bytes.Buffer as proto.Buffer is deprecated.
 
 	codec.decoderPool.New = func() interface{} {
-
 		return make([]byte, 0, 1024) // Protobuf decoder buffer
-
 	}
 
 	return codec
-
 }
 
 // Search performs a high-performance vector search using gRPC.
 
 func (c *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
-
 	startTime := time.Now()
 
 	// Convert to gRPC request format.
 
 	grpcReq := &VectorSearchRequest{
-
 		Query: query.Query,
 
 		Limit: query.Limit,
@@ -531,7 +483,6 @@ func (c *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*S
 		Filters: query.Filters,
 
 		Metadata: map[string]string{
-
 			"hybrid_search": fmt.Sprintf("%t", query.HybridSearch),
 
 			"hybrid_alpha": fmt.Sprintf("%.2f", query.HybridAlpha),
@@ -541,7 +492,6 @@ func (c *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*S
 	// Perform the search.
 
 	grpcResp, err := c.performGRPCSearch(ctx, grpcReq)
-
 	if err != nil {
 
 		c.updateMetrics(false, time.Since(startTime), 0, 0)
@@ -568,17 +518,13 @@ func (c *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*S
 	)
 
 	return response, nil
-
 }
 
 // BatchSearch performs optimized batch searching using gRPC.
 
 func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQuery) ([]*SearchResponse, error) {
-
 	if len(queries) == 0 {
-
 		return nil, fmt.Errorf("no queries provided")
-
 	}
 
 	startTime := time.Now()
@@ -586,25 +532,20 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 	// Convert to gRPC batch request - using Queries field instead of Requests.
 
 	batchReq := &BatchSearchRequest{
-
 		Queries: make([]*SearchQuery, len(queries)),
 
 		Metadata: map[string]interface{}{
-
 			"batch_size": fmt.Sprintf("%d", len(queries)),
 		},
 	}
 
 	for i, query := range queries {
-
 		batchReq.Queries[i] = query
-
 	}
 
 	// Perform batch search.
 
 	batchResp, err := c.performGRPCBatchSearch(ctx, batchReq)
-
 	if err != nil {
 
 		c.updateMetrics(false, time.Since(startTime), 0, len(queries))
@@ -618,9 +559,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 	responses := make([]*SearchResponse, len(batchResp.Responses))
 
 	for i, grpcResp := range batchResp.Responses {
-
 		responses[i] = c.convertToSearchResponse(grpcResp, queries[i].Query)
-
 	}
 
 	c.updateMetrics(true, time.Since(startTime), len(responses), len(queries))
@@ -633,13 +572,11 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 	)
 
 	return responses, nil
-
 }
 
 // performGRPCSearch performs the actual gRPC search call.
 
 func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorSearchRequest) (*VectorSearchResponse, error) {
-
 	// Get connection from pool.
 
 	_ = c.connPool.GetConnection() // TODO: Use when actual gRPC implementation is ready
@@ -667,17 +604,13 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 	// Return mock response.
 
 	return &VectorSearchResponse{
-
 		Results: []*VectorResult{
-
 			{
-
 				ID: "doc1",
 
 				Score: 0.95,
 
 				Document: map[string]interface{}{
-
 					"content": "Sample telecom document content",
 
 					"title": "5G Network Configuration",
@@ -686,17 +619,14 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 		},
 
 		Metadata: map[string]string{
-
 			"total_results": "1",
 		},
 	}, nil
-
 }
 
 // performGRPCBatchSearch performs batch gRPC search.
 
 func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *BatchSearchRequest) (*GRPCBatchSearchResponse, error) {
-
 	// Get connection from pool.
 
 	conn := c.connPool.GetConnection()
@@ -724,19 +654,14 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 	responses := make([]*VectorSearchResponse, len(req.Queries))
 
 	for i := range req.Queries {
-
 		responses[i] = &VectorSearchResponse{
-
 			Results: []*VectorResult{
-
 				{
-
 					ID: fmt.Sprintf("doc%d", i+1),
 
 					Score: 0.90 + float32(i)*0.01,
 
 					Document: map[string]interface{}{
-
 						"content": fmt.Sprintf("Document content for query %d", i+1),
 
 						"title": fmt.Sprintf("Document %d", i+1),
@@ -744,72 +669,55 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 				},
 			},
 		}
-
 	}
 
 	return &GRPCBatchSearchResponse{
-
 		Responses: responses,
 
 		Metadata: map[string]string{
-
 			"batch_size": fmt.Sprintf("%d", len(req.Queries)),
 		},
 	}, nil
-
 }
 
 // addAuthenticationContext adds authentication to the gRPC context.
 
 func (c *GRPCWeaviateClient) addAuthenticationContext(ctx context.Context) context.Context {
-
 	md := metadata.New(map[string]string{})
 
 	if c.config.APIKey != "" {
-
 		md.Set("api-key", c.config.APIKey)
-
 	}
 
 	if c.config.Token != "" {
-
 		md.Set("authorization", "Bearer "+c.config.Token)
-
 	}
 
 	return metadata.NewOutgoingContext(ctx, md)
-
 }
 
 // convertToSearchResponse converts gRPC response to standard SearchResponse.
 
 func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchResponse, query string) *SearchResponse {
-
 	results := make([]*SearchResult, len(grpcResp.Results))
 
 	for i, result := range grpcResp.Results {
 
 		doc := &shared.TelecomDocument{
-
 			ID: result.ID,
 		}
 
 		// Extract document fields from the map.
 
 		if content, ok := result.Document["content"].(string); ok {
-
 			doc.Content = content
-
 		}
 
 		if title, ok := result.Document["title"].(string); ok {
-
 			doc.Title = title
-
 		}
 
 		results[i] = &SearchResult{
-
 			Document: doc,
 
 			Score: result.Score,
@@ -818,7 +726,6 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 	}
 
 	return &SearchResponse{
-
 		Results: results,
 
 		Query: query,
@@ -826,17 +733,14 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 		ProcessedAt: time.Now(),
 
 		Metadata: map[string]interface{}{
-
 			"grpc_metadata": grpcResp.Metadata,
 		},
 	}
-
 }
 
 // updateMetrics updates gRPC client metrics.
 
 func (c *GRPCWeaviateClient) updateMetrics(success bool, latency time.Duration, resultCount, batchSize int) {
-
 	c.metrics.mutex.Lock()
 
 	defer c.metrics.mutex.Unlock()
@@ -844,27 +748,19 @@ func (c *GRPCWeaviateClient) updateMetrics(success bool, latency time.Duration, 
 	c.metrics.TotalRequests++
 
 	if success {
-
 		c.metrics.SuccessfulRequests++
-
 	} else {
-
 		c.metrics.FailedRequests++
-
 	}
 
 	// Update average latency.
 
 	if c.metrics.TotalRequests == 1 {
-
 		c.metrics.AverageLatency = latency
-
 	} else {
-
 		c.metrics.AverageLatency = (c.metrics.AverageLatency*time.Duration(c.metrics.TotalRequests-1) +
 
 			latency) / time.Duration(c.metrics.TotalRequests)
-
 	}
 
 	// Update batch metrics.
@@ -876,19 +772,16 @@ func (c *GRPCWeaviateClient) updateMetrics(success bool, latency time.Duration, 
 		c.metrics.BatchEfficiency = float64(c.metrics.BatchedRequests) / float64(c.metrics.TotalRequests)
 
 	}
-
 }
 
 // StreamingSearch provides streaming search results.
 
 func (c *GRPCWeaviateClient) StreamingSearch(ctx context.Context, queries []*SearchQuery, resultChan chan<- *SearchResponse) error {
-
 	defer close(resultChan)
 
 	for _, query := range queries {
 
 		result, err := c.Search(ctx, query)
-
 		if err != nil {
 
 			c.logger.Error("Streaming search failed", "error", err, "query", query.Query)
@@ -910,13 +803,11 @@ func (c *GRPCWeaviateClient) StreamingSearch(ctx context.Context, queries []*Sea
 	}
 
 	return nil
-
 }
 
 // GetMetrics returns current gRPC client metrics.
 
 func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
-
 	c.metrics.mutex.RLock()
 
 	defer c.metrics.mutex.RUnlock()
@@ -924,7 +815,6 @@ func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
 	// Return a copy without the mutex.
 
 	metrics := &GRPCMetrics{
-
 		TotalRequests: c.metrics.TotalRequests,
 
 		SuccessfulRequests: c.metrics.SuccessfulRequests,
@@ -951,13 +841,11 @@ func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
 	}
 
 	return metrics
-
 }
 
 // GetConnectionPoolStatus returns connection pool status.
 
 func (c *GRPCWeaviateClient) GetConnectionPoolStatus() map[string]interface{} {
-
 	c.connPool.mutex.RLock()
 
 	defer c.connPool.mutex.RUnlock()
@@ -965,34 +853,26 @@ func (c *GRPCWeaviateClient) GetConnectionPoolStatus() map[string]interface{} {
 	activeConns := 0
 
 	for _, conn := range c.connPool.connections {
-
 		if conn != nil && conn.GetState().String() == "READY" {
-
 			activeConns++
-
 		}
-
 	}
 
 	return map[string]interface{}{
-
 		"total_connections": len(c.connPool.connections),
 
 		"active_connections": activeConns,
 
 		"current_index": c.connPool.current,
 	}
-
 }
 
 // Close closes the gRPC client and all connections.
 
 func (c *GRPCWeaviateClient) Close() error {
-
 	c.logger.Info("Closing gRPC Weaviate client")
 
 	return c.connPool.Close()
-
 }
 
 // Health check methods and additional utilities would be implemented here...
@@ -1000,11 +880,9 @@ func (c *GRPCWeaviateClient) Close() error {
 // IsHealthy checks if the gRPC client is healthy.
 
 func (c *GRPCWeaviateClient) IsHealthy(ctx context.Context) bool {
-
 	conn := c.connPool.GetConnection()
 
 	state := conn.GetState()
 
 	return state.String() == "READY" || state.String() == "IDLE"
-
 }

@@ -12,7 +12,6 @@ import (
 // StreamFilter defines filtering criteria for streaming data.
 
 type StreamFilter struct {
-
 	// Filter criteria.
 
 	AttributeFilters map[string]string `json:"attributeFilters,omitempty"`
@@ -57,7 +56,6 @@ type TimeRange struct {
 // PushProvider interface for push notification providers.
 
 type PushProvider interface {
-
 	// SendPush sends a push notification.
 
 	SendPush(token string, message *PushMessage) error
@@ -338,7 +336,6 @@ type RotationCondition struct {
 // SecurityPolicyEngine defines the interface for security policy evaluation.
 
 type SecurityPolicyEngine interface {
-
 	// EvaluatePolicy evaluates a security policy against a request.
 
 	EvaluatePolicy(request *PolicyRequest) (*PolicyDecision, error)
@@ -472,7 +469,6 @@ type AuditSettings struct {
 	RetentionDays int `json:"retentionDays"` // How long to keep audit logs
 
 	AlertOnViolation bool `json:"alertOnViolation"` // Send alerts on policy violations
-
 }
 
 // PolicyRequest represents a request for policy evaluation.
@@ -623,7 +619,6 @@ type Advice struct {
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
 
 	Priority string `json:"priority"` // low, medium, high
-
 }
 
 // PolicyFilter defines filtering criteria for listing policies.
@@ -653,7 +648,6 @@ type PolicyFilter struct {
 // NotificationChannel interface for different notification channels.
 
 type NotificationChannel interface {
-
 	// Send sends a notification.
 
 	Send(message *NotificationMessage) error
@@ -1129,7 +1123,6 @@ type ApprovalStep struct {
 	DecisionAt time.Time `json:"decisionAt,omitempty"`
 
 	Order int `json:"order"` // Order in approval chain
-
 }
 
 // AuditEntry represents an audit log entry (minimal definition for compilation).

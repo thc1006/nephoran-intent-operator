@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/a1/policies", a1sim.SavePolicyHandler("policies"))
@@ -25,7 +24,6 @@ func main() {
 	// Use http.Server with timeouts to fix G114 security warning.
 
 	server := &http.Server{
-
 		Addr: addr,
 
 		Handler: mux,
@@ -38,5 +36,4 @@ func main() {
 	}
 
 	log.Fatal(server.ListenAndServe())
-
 }

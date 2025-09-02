@@ -47,7 +47,6 @@ import (
 // SharedInfrastructure provides the complete shared infrastructure.
 
 type SharedInfrastructure struct {
-
 	// Core managers.
 
 	integrationManager *IntegrationManager
@@ -82,7 +81,6 @@ type SharedInfrastructure struct {
 // NewSharedInfrastructure creates a new shared infrastructure instance.
 
 func NewSharedInfrastructure(mgr manager.Manager, configDir string) (*SharedInfrastructure, error) {
-
 	logger := ctrl.Log.WithName("shared-infrastructure")
 
 	// Create configuration manager.
@@ -96,47 +94,33 @@ func NewSharedInfrastructure(mgr manager.Manager, configDir string) (*SharedInfr
 	// Register configuration files.
 
 	if err := configMgr.RegisterConfigFile("integration", filepath.Join(configDir, "integration.yaml")); err != nil {
-
 		return nil, fmt.Errorf("failed to register integration config: %w", err)
-
 	}
 
 	if err := configMgr.RegisterConfigFile("state-manager", filepath.Join(configDir, "state-manager.yaml")); err != nil {
-
 		return nil, fmt.Errorf("failed to register state manager config: %w", err)
-
 	}
 
 	if err := configMgr.RegisterConfigFile("event-bus", filepath.Join(configDir, "event-bus.yaml")); err != nil {
-
 		return nil, fmt.Errorf("failed to register event bus config: %w", err)
-
 	}
 
 	if err := configMgr.RegisterConfigFile("coordination", filepath.Join(configDir, "coordination.yaml")); err != nil {
-
 		return nil, fmt.Errorf("failed to register coordination config: %w", err)
-
 	}
 
 	if err := configMgr.RegisterConfigFile("performance", filepath.Join(configDir, "performance.yaml")); err != nil {
-
 		return nil, fmt.Errorf("failed to register performance config: %w", err)
-
 	}
 
 	if err := configMgr.RegisterConfigFile("recovery", filepath.Join(configDir, "recovery.yaml")); err != nil {
-
 		return nil, fmt.Errorf("failed to register recovery config: %w", err)
-
 	}
 
 	// Start configuration manager.
 
 	if err := configMgr.Start(context.Background()); err != nil {
-
 		return nil, fmt.Errorf("failed to start configuration manager: %w", err)
-
 	}
 
 	// Load integration configuration.
@@ -216,17 +200,13 @@ func NewSharedInfrastructure(mgr manager.Manager, configDir string) (*SharedInfr
 	// Create integration manager.
 
 	integrationMgr, err := NewIntegrationManager(mgr, &integrationConfig)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create integration manager: %w", err)
-
 	}
 
 	// Create shared infrastructure.
 
 	si := &SharedInfrastructure{
-
 		integrationManager: integrationMgr,
 
 		configurationManager: configMgr,
@@ -257,135 +237,103 @@ func NewSharedInfrastructure(mgr manager.Manager, configDir string) (*SharedInfr
 	logger.Info("Shared infrastructure created successfully")
 
 	return si, nil
-
 }
 
 // SetupWithManager sets up the shared infrastructure with the controller manager.
 
 func (si *SharedInfrastructure) SetupWithManager() error {
-
 	// Setup integration manager.
 
 	if err := si.integrationManager.SetupWithManager(); err != nil {
-
 		return fmt.Errorf("failed to setup integration manager: %w", err)
-
 	}
 
 	si.logger.Info("Shared infrastructure setup completed")
 
 	return nil
-
 }
 
 // RegisterController registers a controller with the coordination system.
 
 func (si *SharedInfrastructure) RegisterController(controller ControllerInterface) error {
-
 	return si.integrationManager.RegisterController(controller)
-
 }
 
 // RegisterWebhook registers a webhook with the integration system.
 
 func (si *SharedInfrastructure) RegisterWebhook(name string, webhook WebhookInterface) error {
-
 	return si.integrationManager.RegisterWebhook(name, webhook)
-
 }
 
 // GetStateManager returns the state manager.
 
 func (si *SharedInfrastructure) GetStateManager() *StateManager {
-
 	return si.stateManager
-
 }
 
 // GetEventBus returns the event bus.
 
 func (si *SharedInfrastructure) GetEventBus() EventBus {
-
 	return si.eventBus
-
 }
 
 // GetCoordinationManager returns the coordination manager.
 
 func (si *SharedInfrastructure) GetCoordinationManager() *CoordinationManager {
-
 	return si.coordinationManager
-
 }
 
 // GetPerformanceOptimizer returns the performance optimizer.
 
 func (si *SharedInfrastructure) GetPerformanceOptimizer() *PerformanceOptimizer {
-
 	return si.performanceOptimizer
-
 }
 
 // GetRecoveryManager returns the recovery manager.
 
 func (si *SharedInfrastructure) GetRecoveryManager() *RecoveryManager {
-
 	return si.recoveryManager
-
 }
 
 // GetConfigurationManager returns the configuration manager.
 
 func (si *SharedInfrastructure) GetConfigurationManager() *ConfigurationManager {
-
 	return si.configurationManager
-
 }
 
 // GetSystemHealth returns the current system health.
 
 func (si *SharedInfrastructure) GetSystemHealth() *SystemHealth {
-
 	return si.integrationManager.GetSystemHealth()
-
 }
 
 // GetMetrics returns system metrics.
 
 func (si *SharedInfrastructure) GetMetrics() map[string]interface{} {
-
 	return si.integrationManager.GetMetrics()
-
 }
 
 // ProcessIntent processes a network intent through the coordination system.
 
 func (si *SharedInfrastructure) ProcessIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) error {
-
 	namespacedName := client.ObjectKeyFromObject(intent)
 
 	return si.coordinationManager.ProcessIntent(ctx, namespacedName)
-
 }
 
 // IsHealthy returns the overall health status.
 
 func (si *SharedInfrastructure) IsHealthy() bool {
-
 	health := si.GetSystemHealth()
 
 	return health.Healthy
-
 }
 
 // Start starts the shared infrastructure (automatically handled by controller manager).
 
 func (si *SharedInfrastructure) Start(ctx context.Context) error {
-
 	if si.started {
-
 		return nil
-
 	}
 
 	si.started = true
@@ -393,25 +341,19 @@ func (si *SharedInfrastructure) Start(ctx context.Context) error {
 	si.logger.Info("Shared infrastructure started")
 
 	return nil
-
 }
 
 // Stop stops the shared infrastructure.
 
 func (si *SharedInfrastructure) Stop(ctx context.Context) error {
-
 	if !si.started {
-
 		return nil
-
 	}
 
 	// Stop configuration manager.
 
 	if err := si.configurationManager.Stop(ctx); err != nil {
-
 		si.logger.Error(err, "Failed to stop configuration manager")
-
 	}
 
 	si.started = false
@@ -419,7 +361,6 @@ func (si *SharedInfrastructure) Stop(ctx context.Context) error {
 	si.logger.Info("Shared infrastructure stopped")
 
 	return nil
-
 }
 
 // Utility functions.
@@ -427,35 +368,26 @@ func (si *SharedInfrastructure) Stop(ctx context.Context) error {
 // SetupSharedInfrastructureWithManager is a convenience function to set up the complete shared infrastructure.
 
 func SetupSharedInfrastructureWithManager(mgr manager.Manager, configDir string) (*SharedInfrastructure, error) {
-
 	// Add our scheme to the manager.
 
 	if err := nephoranv1.AddToScheme(mgr.GetScheme()); err != nil {
-
 		return nil, fmt.Errorf("failed to add scheme: %w", err)
-
 	}
 
 	// Create shared infrastructure.
 
 	sharedInfra, err := NewSharedInfrastructure(mgr, configDir)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create shared infrastructure: %w", err)
-
 	}
 
 	// Setup with manager.
 
 	if err := sharedInfra.SetupWithManager(); err != nil {
-
 		return nil, fmt.Errorf("failed to setup shared infrastructure: %w", err)
-
 	}
 
 	return sharedInfra, nil
-
 }
 
 // ConfigManagerHealthChecker implements health checking for configuration manager.
@@ -467,23 +399,17 @@ type ConfigManagerHealthChecker struct {
 // Check performs check operation.
 
 func (c *ConfigManagerHealthChecker) Check(ctx context.Context) error {
-
 	if !c.configMgr.IsHealthy() {
-
 		return fmt.Errorf("configuration manager is unhealthy")
-
 	}
 
 	return nil
-
 }
 
 // GetName performs getname operation.
 
 func (c *ConfigManagerHealthChecker) GetName() string {
-
 	return "configuration-manager"
-
 }
 
 // ConfigurationChangeHandler handles configuration changes for the shared infrastructure.
@@ -497,20 +423,16 @@ type ConfigurationChangeHandler struct {
 // NewConfigurationChangeHandler performs newconfigurationchangehandler operation.
 
 func NewConfigurationChangeHandler(si *SharedInfrastructure) *ConfigurationChangeHandler {
-
 	return &ConfigurationChangeHandler{
-
 		sharedInfra: si,
 
 		logger: ctrl.Log.WithName("config-change-handler"),
 	}
-
 }
 
 // OnConfigChange performs onconfigchange operation.
 
 func (cch *ConfigurationChangeHandler) OnConfigChange(configType string, oldConfig, newConfig interface{}) error {
-
 	cch.logger.Info("Configuration changed", "configType", configType)
 
 	// Handle different configuration types.
@@ -544,67 +466,54 @@ func (cch *ConfigurationChangeHandler) OnConfigChange(configType string, oldConf
 	}
 
 	return nil
-
 }
 
 func (cch *ConfigurationChangeHandler) handleIntegrationConfigChange(oldConfig, newConfig interface{}) error {
-
 	// Handle integration configuration changes.
 
 	cch.logger.Info("Integration configuration changed - may require restart")
 
 	return nil
-
 }
 
 func (cch *ConfigurationChangeHandler) handleStateManagerConfigChange(oldConfig, newConfig interface{}) error {
-
 	// Handle state manager configuration changes.
 
 	cch.logger.Info("State manager configuration changed")
 
 	return nil
-
 }
 
 func (cch *ConfigurationChangeHandler) handleEventBusConfigChange(oldConfig, newConfig interface{}) error {
-
 	// Handle event bus configuration changes.
 
 	cch.logger.Info("Event bus configuration changed")
 
 	return nil
-
 }
 
 func (cch *ConfigurationChangeHandler) handleCoordinationConfigChange(oldConfig, newConfig interface{}) error {
-
 	// Handle coordination configuration changes.
 
 	cch.logger.Info("Coordination configuration changed")
 
 	return nil
-
 }
 
 func (cch *ConfigurationChangeHandler) handlePerformanceConfigChange(oldConfig, newConfig interface{}) error {
-
 	// Handle performance configuration changes.
 
 	cch.logger.Info("Performance configuration changed")
 
 	return nil
-
 }
 
 func (cch *ConfigurationChangeHandler) handleRecoveryConfigChange(oldConfig, newConfig interface{}) error {
-
 	// Handle recovery configuration changes.
 
 	cch.logger.Info("Recovery configuration changed")
 
 	return nil
-
 }
 
 // ValidationConfig provides validation configuration.

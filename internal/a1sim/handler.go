@@ -49,9 +49,7 @@ type PolicyRules struct {
 // SavePolicyHandler creates an HTTP handler that saves A1 policies to the specified directory.
 
 func SavePolicyHandler(dir string) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Method != http.MethodPost {
 
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -83,7 +81,6 @@ func SavePolicyHandler(dir string) http.HandlerFunc {
 		path := filepath.Join(dir, name)
 
 		b, err := json.MarshalIndent(p, "", "  ")
-
 		if err != nil {
 
 			http.Error(w, "failed to marshal policy: "+err.Error(), http.StatusInternalServerError)
@@ -113,7 +110,5 @@ func SavePolicyHandler(dir string) http.HandlerFunc {
 			return
 
 		}
-
 	}
-
 }

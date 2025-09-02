@@ -28,12 +28,12 @@ type ComplianceValidationSuite struct {
 
 // MTLSComplianceResult tracks compliance validation results
 type MTLSComplianceResult struct {
-	Standard      string               `json:"standard"`
-	Version       string               `json:"version"`
+	Standard      string                   `json:"standard"`
+	Version       string                   `json:"version"`
 	Requirements  []*MTLSRequirementResult `json:"requirements"`
-	OverallStatus string               `json:"overall_status"`
-	Score         float64              `json:"score"`
-	Timestamp     time.Time            `json:"timestamp"`
+	OverallStatus string                   `json:"overall_status"`
+	Score         float64                  `json:"score"`
+	Timestamp     time.Time                `json:"timestamp"`
 }
 
 // MTLSRequirementResult tracks individual requirement validation for mTLS tests
@@ -106,7 +106,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			} else {
 				req001.Status = "FAIL"
 				req001.Details = fmt.Sprintf("mTLS connection failed: %v", err)
-					req001.Remediation = "Configure mTLS certificates and enable mutual authentication"
+				req001.Remediation = "Configure mTLS certificates and enable mutual authentication"
 			}
 			result.Requirements = append(result.Requirements, req001)
 

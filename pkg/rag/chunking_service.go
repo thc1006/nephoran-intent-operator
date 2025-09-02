@@ -28,7 +28,6 @@ type ChunkingService struct {
 // ChunkingConfig holds configuration for the chunking service.
 
 type ChunkingConfig struct {
-
 	// Basic chunking parameters.
 
 	ChunkSize int `json:"chunk_size"` // Target chunk size in characters
@@ -88,13 +87,11 @@ type ChunkingConfig struct {
 	AddDocumentMetadata bool `json:"add_document_metadata"` // Include document metadata
 
 	AddChunkMetadata bool `json:"add_chunk_metadata"` // Include chunk-specific metadata
-
 }
 
 // DocumentChunk represents a processed chunk with hierarchy and context.
 
 type DocumentChunk struct {
-
 	// Basic chunk information.
 
 	ID string `json:"id"`
@@ -300,27 +297,21 @@ type Reference struct {
 	StartOffset int `json:"start_offset"`
 
 	Type string `json:"type"` // citation, standard, specification, etc.
-
 }
 
 // NewChunkingService creates a new chunking service with the specified configuration.
 
 func NewChunkingService(config *ChunkingConfig) *ChunkingService {
-
 	if config == nil {
-
 		config = getDefaultChunkingConfig()
-
 	}
 
 	return &ChunkingService{
-
 		config: config,
 
 		logger: slog.Default().With("component", "chunking-service"),
 
 		metrics: &ChunkingMetrics{
-
 			TypeDistribution: make(map[string]int64),
 
 			HierarchyDepthStats: make(map[int]int64),
@@ -328,13 +319,11 @@ func NewChunkingService(config *ChunkingConfig) *ChunkingService {
 			LastProcessedAt: time.Now(),
 		},
 	}
-
 }
 
 // ChunkDocument processes a loaded document and returns intelligent chunks.
 
 func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocument) ([]*DocumentChunk, error) {
-
 	startTime := time.Now()
 
 	cs.logger.Info("Starting document chunking",
@@ -349,21 +338,15 @@ func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocumen
 	// Analyze document structure.
 
 	structure, err := cs.analyzeDocumentStructure(doc.Content)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to analyze document structure: %w", err)
-
 	}
 
 	// Create chunks based on the analyzed structure.
 
 	chunks, err := cs.createIntelligentChunks(ctx, doc, structure)
-
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to create chunks: %w", err)
-
 	}
 
 	// Post-process chunks for quality and consistency.
@@ -375,7 +358,6 @@ func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocumen
 	processingTime := time.Since(startTime)
 
 	cs.updateMetrics(func(m *ChunkingMetrics) {
-
 		m.TotalDocuments++
 
 		m.TotalChunks += int64(len(chunks))
@@ -395,7 +377,6 @@ func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocumen
 			m.HierarchyDepthStats[chunk.HierarchyLevel]++
 
 		}
-
 	})
 
 	cs.logger.Info("Document chunking completed",
@@ -408,15 +389,12 @@ func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocumen
 	)
 
 	return chunks, nil
-
 }
 
 // analyzeDocumentStructure analyzes the document to identify its hierarchical structure.
 
 func (cs *ChunkingService) analyzeDocumentStructure(content string) (*DocumentStructure, error) {
-
 	structure := &DocumentStructure{
-
 		Sections: []Section{},
 
 		TableOfContents: []TOCEntry{},
@@ -458,13 +436,11 @@ func (cs *ChunkingService) analyzeDocumentStructure(content string) (*DocumentSt
 	)
 
 	return structure, nil
-
 }
 
 // extractSections identifies section headers and their content.
 
 func (cs *ChunkingService) extractSections(content string) []Section {
-
 	var sections []Section
 
 	// Pattern for section headers with numbers (e.g., "1.2.3 Section Title").
@@ -474,7 +450,6 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 	// Pattern for unnumbered section headers (e.g., "Introduction", "Abstract").
 
 	headerPatterns := []*regexp.Regexp{
-
 		regexp.MustCompile(`(?mi)^(abstract|introduction|summary|conclusion|references?|bibliography|appendix\s*[a-z]?)$`),
 
 		regexp.MustCompile(`(?mi)^([A-Z][A-Z\s]+[A-Z])$`), // ALL CAPS headers
@@ -510,7 +485,6 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 		if matches := sectionPattern.FindStringSubmatch(line); len(matches) >= 3 {
 
 			section = Section{
-
 				ID: fmt.Sprintf("section_%d", len(sections)),
 
 				Title: strings.TrimSpace(matches[2]),
@@ -525,15 +499,12 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 			matched = true
 
 		} else {
-
 			// Check unnumbered headers.
 
 			for _, pattern := range headerPatterns {
-
 				if pattern.MatchString(line) && len(line) < 100 { // Reasonable title length
 
 					section = Section{
-
 						ID: fmt.Sprintf("section_%d", len(sections)),
 
 						Title: line,
@@ -550,9 +521,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 					break
 
 				}
-
 			}
-
 		}
 
 		if matched {
@@ -560,9 +529,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 			// Set end offset for previous section.
 
 			if len(sections) > 0 {
-
 				sections[len(sections)-1].EndOffset = currentOffset
-
 			}
 
 			sections = append(sections, section)
@@ -576,9 +543,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 	// Set end offset for the last section.
 
 	if len(sections) > 0 {
-
 		sections[len(sections)-1].EndOffset = len(content)
-
 	}
 
 	// Extract content for each section.
@@ -586,13 +551,9 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 	for i := range sections {
 
 		if i < len(sections)-1 {
-
 			sections[i].Content = content[sections[i].StartOffset:sections[i+1].StartOffset]
-
 		} else {
-
 			sections[i].Content = content[sections[i].StartOffset:sections[i].EndOffset]
-
 		}
 
 		sections[i].Content = strings.TrimSpace(sections[i].Content)
@@ -600,17 +561,13 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 	}
 
 	return sections
-
 }
 
 // buildSectionHierarchy creates a hierarchical structure from flat sections.
 
 func (cs *ChunkingService) buildSectionHierarchy(sections []Section) []Section {
-
 	if len(sections) == 0 {
-
 		return sections
-
 	}
 
 	var rootSections []Section
@@ -624,9 +581,7 @@ func (cs *ChunkingService) buildSectionHierarchy(sections []Section) []Section {
 		// Find the appropriate parent.
 
 		for len(stack) > 0 && stack[len(stack)-1].Level >= section.Level {
-
 			stack = stack[:len(stack)-1] // Pop from stack
-
 		}
 
 		// Set parent if stack is not empty.
@@ -640,11 +595,9 @@ func (cs *ChunkingService) buildSectionHierarchy(sections []Section) []Section {
 			parent.Children = append(parent.Children, *section)
 
 		} else {
-
 			// This is a root section.
 
 			rootSections = append(rootSections, *section)
-
 		}
 
 		// Push current section to stack.
@@ -654,13 +607,11 @@ func (cs *ChunkingService) buildSectionHierarchy(sections []Section) []Section {
 	}
 
 	return rootSections
-
 }
 
 // extractFigures identifies figure references in the document.
 
 func (cs *ChunkingService) extractFigures(content string) []Figure {
-
 	var figures []Figure
 
 	// Pattern for figure references (e.g., "Figure 1: Caption").
@@ -672,7 +623,6 @@ func (cs *ChunkingService) extractFigures(content string) []Figure {
 	submatches := figurePattern.FindAllStringSubmatch(content, -1)
 
 	for i, match := range matches {
-
 		if i < len(submatches) {
 
 			submatch := submatches[i]
@@ -680,21 +630,16 @@ func (cs *ChunkingService) extractFigures(content string) []Figure {
 			figureNum := 0
 
 			if len(submatch) > 1 {
-
 				fmt.Sscanf(submatch[1], "%d", &figureNum)
-
 			}
 
 			caption := ""
 
 			if len(submatch) > 2 {
-
 				caption = strings.TrimSpace(submatch[2])
-
 			}
 
 			figure := Figure{
-
 				ID: fmt.Sprintf("figure_%d", figureNum),
 
 				Number: figureNum,
@@ -709,17 +654,14 @@ func (cs *ChunkingService) extractFigures(content string) []Figure {
 			figures = append(figures, figure)
 
 		}
-
 	}
 
 	return figures
-
 }
 
 // extractTables identifies table structures in the document.
 
 func (cs *ChunkingService) extractTables(content string) []Table {
-
 	var tables []Table
 
 	// Pattern for table headers (e.g., "Table 1: Caption").
@@ -731,7 +673,6 @@ func (cs *ChunkingService) extractTables(content string) []Table {
 	submatches := tablePattern.FindAllStringSubmatch(content, -1)
 
 	for i, match := range matches {
-
 		if i < len(submatches) {
 
 			submatch := submatches[i]
@@ -739,17 +680,13 @@ func (cs *ChunkingService) extractTables(content string) []Table {
 			tableNum := 0
 
 			if len(submatch) > 1 {
-
 				fmt.Sscanf(submatch[1], "%d", &tableNum)
-
 			}
 
 			caption := ""
 
 			if len(submatch) > 2 {
-
 				caption = strings.TrimSpace(submatch[2])
-
 			}
 
 			// Try to identify table structure.
@@ -759,7 +696,6 @@ func (cs *ChunkingService) extractTables(content string) []Table {
 			headers, rowCount := cs.analyzeTableStructure(tableContent)
 
 			table := Table{
-
 				ID: fmt.Sprintf("table_%d", tableNum),
 
 				Number: tableNum,
@@ -778,21 +714,16 @@ func (cs *ChunkingService) extractTables(content string) []Table {
 			tables = append(tables, table)
 
 		}
-
 	}
 
 	return tables
-
 }
 
 // extractTableContent extracts table content following a table header.
 
 func (cs *ChunkingService) extractTableContent(content string, startPos int) string {
-
 	if startPos >= len(content) {
-
 		return ""
-
 	}
 
 	// Look for tabular data patterns in the next few hundred characters.
@@ -800,9 +731,7 @@ func (cs *ChunkingService) extractTableContent(content string, startPos int) str
 	searchRange := 1000
 
 	if startPos+searchRange > len(content) {
-
 		searchRange = len(content) - startPos
-
 	}
 
 	searchText := content[startPos : startPos+searchRange]
@@ -820,9 +749,7 @@ func (cs *ChunkingService) extractTableContent(content string, startPos int) str
 		if line == "" {
 
 			if len(tableLines) > 0 {
-
 				break // End of table
-
 			}
 
 			continue
@@ -832,31 +759,23 @@ func (cs *ChunkingService) extractTableContent(content string, startPos int) str
 		// Check if line looks like table data (has multiple columns).
 
 		if cs.looksLikeTableRow(line) {
-
 			tableLines = append(tableLines, line)
-
 		} else if len(tableLines) > 0 {
-
 			break // End of table
-
 		}
 
 	}
 
 	return strings.Join(tableLines, "\n")
-
 }
 
 // looksLikeTableRow determines if a line looks like a table row.
 
 func (cs *ChunkingService) looksLikeTableRow(line string) bool {
-
 	// Check for tab separators.
 
 	if strings.Count(line, "\t") >= 2 {
-
 		return true
-
 	}
 
 	// Check for multiple space separators (3+ spaces).
@@ -864,33 +783,25 @@ func (cs *ChunkingService) looksLikeTableRow(line string) bool {
 	multiSpacePattern := regexp.MustCompile(`\s{3,}`)
 
 	if len(multiSpacePattern.FindAllString(line, -1)) >= 2 {
-
 		return true
-
 	}
 
 	// Check for pipe separators.
 
 	if strings.Count(line, "|") >= 2 {
-
 		return true
-
 	}
 
 	return false
-
 }
 
 // analyzeTableStructure analyzes table content to extract headers and row count.
 
 func (cs *ChunkingService) analyzeTableStructure(tableContent string) ([]string, int) {
-
 	lines := strings.Split(tableContent, "\n")
 
 	if len(lines) == 0 {
-
 		return nil, 0
-
 	}
 
 	// Try to identify headers from the first line.
@@ -900,13 +811,9 @@ func (cs *ChunkingService) analyzeTableStructure(tableContent string) ([]string,
 	var headers []string
 
 	if strings.Contains(firstLine, "\t") {
-
 		headers = strings.Split(firstLine, "\t")
-
 	} else if strings.Contains(firstLine, "|") {
-
 		headers = strings.Split(firstLine, "|")
-
 	} else {
 
 		// Split by multiple spaces.
@@ -920,19 +827,15 @@ func (cs *ChunkingService) analyzeTableStructure(tableContent string) ([]string,
 	// Clean up headers.
 
 	for i, header := range headers {
-
 		headers[i] = strings.TrimSpace(header)
-
 	}
 
 	return headers, len(lines)
-
 }
 
 // extractReferences identifies references and citations.
 
 func (cs *ChunkingService) extractReferences(content string) []Reference {
-
 	var references []Reference
 
 	// Pattern for reference sections.
@@ -956,11 +859,9 @@ func (cs *ChunkingService) extractReferences(content string) []Reference {
 		refSubmatches := refPattern.FindAllStringSubmatch(refSection, -1)
 
 		for _, submatch := range refSubmatches {
-
 			if len(submatch) >= 3 {
 
 				ref := Reference{
-
 					ID: fmt.Sprintf("ref_%s", submatch[1]),
 
 					Text: strings.TrimSpace(submatch[2]),
@@ -973,7 +874,6 @@ func (cs *ChunkingService) extractReferences(content string) []Reference {
 				references = append(references, ref)
 
 			}
-
 		}
 
 	}
@@ -989,7 +889,6 @@ func (cs *ChunkingService) extractReferences(content string) []Reference {
 		citation := content[match[0]:match[1]]
 
 		ref := Reference{
-
 			ID: fmt.Sprintf("inline_cite_%d", len(references)),
 
 			Text: citation,
@@ -1004,27 +903,21 @@ func (cs *ChunkingService) extractReferences(content string) []Reference {
 	}
 
 	return references
-
 }
 
 // createIntelligentChunks creates chunks based on the document structure.
 
 func (cs *ChunkingService) createIntelligentChunks(ctx context.Context, doc *LoadedDocument, structure *DocumentStructure) ([]*DocumentChunk, error) {
-
 	var chunks []*DocumentChunk
 
 	if cs.config.PreserveHierarchy && len(structure.Sections) > 0 {
-
 		// Create chunks based on sections.
 
 		chunks = cs.createSectionBasedChunks(doc, structure)
-
 	} else {
-
 		// Create chunks using semantic boundaries.
 
 		chunks = cs.createSemanticChunks(doc, structure)
-
 	}
 
 	// Add chunk metadata and enhance with context.
@@ -1038,9 +931,7 @@ func (cs *ChunkingService) createIntelligentChunks(ctx context.Context, doc *Loa
 		chunk.ChunkingMethod = cs.determineChunkingMethod()
 
 		if cs.config.AddDocumentMetadata {
-
 			chunk.DocumentMetadata = doc.Metadata
-
 		}
 
 		// Calculate quality score.
@@ -1066,13 +957,11 @@ func (cs *ChunkingService) createIntelligentChunks(ctx context.Context, doc *Loa
 	cs.addChunkContext(chunks)
 
 	return chunks, nil
-
 }
 
 // createSectionBasedChunks creates chunks respecting document section boundaries.
 
 func (cs *ChunkingService) createSectionBasedChunks(doc *LoadedDocument, structure *DocumentStructure) []*DocumentChunk {
-
 	var chunks []*DocumentChunk
 
 	// Process sections recursively.
@@ -1080,13 +969,11 @@ func (cs *ChunkingService) createSectionBasedChunks(doc *LoadedDocument, structu
 	cs.processSectionsRecursively(structure.Sections, doc, []string{}, &chunks)
 
 	return chunks
-
 }
 
 // processSectionsRecursively processes sections and their children.
 
 func (cs *ChunkingService) processSectionsRecursively(sections []Section, doc *LoadedDocument, parentPath []string, chunks *[]*DocumentChunk) {
-
 	for _, section := range sections {
 
 		currentPath := append(parentPath, section.Title)
@@ -1100,19 +987,15 @@ func (cs *ChunkingService) processSectionsRecursively(sections []Section, doc *L
 		// Process child sections.
 
 		if len(section.Children) > 0 {
-
 			cs.processSectionsRecursively(section.Children, doc, currentPath, chunks)
-
 		}
 
 	}
-
 }
 
 // chunkSectionContent creates chunks from a single section.
 
 func (cs *ChunkingService) chunkSectionContent(section Section, doc *LoadedDocument, hierarchyPath []string) []*DocumentChunk {
-
 	var chunks []*DocumentChunk
 
 	content := section.Content
@@ -1136,13 +1019,11 @@ func (cs *ChunkingService) chunkSectionContent(section Section, doc *LoadedDocum
 	}
 
 	return chunks
-
 }
 
 // createSemanticChunks creates chunks using semantic boundary detection.
 
 func (cs *ChunkingService) createSemanticChunks(doc *LoadedDocument, structure *DocumentStructure) []*DocumentChunk {
-
 	var chunks []*DocumentChunk
 
 	content := doc.Content
@@ -1154,15 +1035,11 @@ func (cs *ChunkingService) createSemanticChunks(doc *LoadedDocument, structure *
 		chunkEnd := cs.findOptimalChunkBoundary(content, offset)
 
 		if chunkEnd <= offset {
-
 			chunkEnd = offset + cs.config.ChunkSize
-
 		}
 
 		if chunkEnd > len(content) {
-
 			chunkEnd = len(content)
-
 		}
 
 		chunkContent := content[offset:chunkEnd]
@@ -1176,27 +1053,21 @@ func (cs *ChunkingService) createSemanticChunks(doc *LoadedDocument, structure *
 		offset = chunkEnd - cs.config.ChunkOverlap
 
 		if offset < 0 {
-
 			offset = 0
-
 		}
 
 	}
 
 	return chunks
-
 }
 
 // findOptimalChunkBoundary finds the best place to end a chunk.
 
 func (cs *ChunkingService) findOptimalChunkBoundary(content string, start int) int {
-
 	targetEnd := start + cs.config.ChunkSize
 
 	if targetEnd >= len(content) {
-
 		return len(content)
-
 	}
 
 	// Search window around target end.
@@ -1206,15 +1077,11 @@ func (cs *ChunkingService) findOptimalChunkBoundary(content string, start int) i
 	searchEnd := targetEnd + cs.config.ChunkOverlap
 
 	if searchStart < start {
-
 		searchStart = start
-
 	}
 
 	if searchEnd > len(content) {
-
 		searchEnd = len(content)
-
 	}
 
 	bestBoundary := targetEnd
@@ -1238,17 +1105,13 @@ func (cs *ChunkingService) findOptimalChunkBoundary(content string, start int) i
 	}
 
 	return bestBoundary
-
 }
 
 // calculateBoundaryScore calculates how good a position is for a chunk boundary.
 
 func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float64 {
-
 	if pos >= len(content) {
-
 		return 0.0
-
 	}
 
 	score := 0.0
@@ -1264,9 +1127,7 @@ func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float
 		nextChar := rune(content[pos])
 
 		if (prevChar == '.' || prevChar == '!' || prevChar == '?') && (nextChar == ' ' || nextChar == '\n') {
-
 			score += cs.config.SentenceBoundaryWeight
-
 		}
 
 	}
@@ -1274,13 +1135,9 @@ func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float
 	// Paragraph boundary (double newline).
 
 	if pos > 1 && pos < len(content)-1 {
-
 		if content[pos-1] == '\n' && char == '\n' {
-
 			score += cs.config.ParagraphBoundaryWeight
-
 		}
-
 	}
 
 	// Section boundary (detect section headers).
@@ -1292,21 +1149,15 @@ func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float
 		lineEnd := strings.Index(content[lineStart:], "\n")
 
 		if lineEnd == -1 {
-
 			lineEnd = len(content) - lineStart
-
 		} else {
-
 			lineEnd += lineStart
-
 		}
 
 		line := strings.TrimSpace(content[lineStart:lineEnd])
 
 		if cs.looksLikeSectionHeader(line) {
-
 			score += cs.config.SectionBoundaryWeight
-
 		}
 
 	}
@@ -1314,41 +1165,30 @@ func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float
 	// Avoid breaking technical terms.
 
 	if cs.config.PreserveTechnicalTerms {
-
 		if cs.isInsideTechnicalTerm(content, pos) {
-
 			score -= 2.0 // Penalty for breaking technical terms
-
 		}
-
 	}
 
 	return score
-
 }
 
 // looksLikeSectionHeader determines if a line looks like a section header.
 
 func (cs *ChunkingService) looksLikeSectionHeader(line string) bool {
-
 	if len(line) == 0 || len(line) > 100 {
-
 		return false
-
 	}
 
 	// Check for numbered sections.
 
 	if matched, _ := regexp.MatchString(`^\d+(?:\.\d+)*\s+\w+`, line); matched {
-
 		return true
-
 	}
 
 	// Check for common section titles.
 
 	commonHeaders := []string{
-
 		"introduction", "abstract", "summary", "conclusion", "background",
 
 		"methodology", "implementation", "results", "discussion", "references",
@@ -1359,31 +1199,23 @@ func (cs *ChunkingService) looksLikeSectionHeader(line string) bool {
 	lowerLine := strings.ToLower(line)
 
 	for _, header := range commonHeaders {
-
 		if strings.Contains(lowerLine, header) {
-
 			return true
-
 		}
-
 	}
 
 	// Check if line is all caps (potential header).
 
 	if len(line) > 3 && strings.ToUpper(line) == line && strings.Contains(line, " ") {
-
 		return true
-
 	}
 
 	return false
-
 }
 
 // isInsideTechnicalTerm checks if a position is inside a technical term.
 
 func (cs *ChunkingService) isInsideTechnicalTerm(content string, pos int) bool {
-
 	// Look at a small window around the position.
 
 	windowSize := 20
@@ -1391,17 +1223,13 @@ func (cs *ChunkingService) isInsideTechnicalTerm(content string, pos int) bool {
 	start := pos - windowSize
 
 	if start < 0 {
-
 		start = 0
-
 	}
 
 	end := pos + windowSize
 
 	if end > len(content) {
-
 		end = len(content)
-
 	}
 
 	window := content[start:end]
@@ -1417,25 +1245,19 @@ func (cs *ChunkingService) isInsideTechnicalTerm(content string, pos int) bool {
 		matches := regex.FindAllStringIndex(window, -1)
 
 		for _, match := range matches {
-
 			if relativePos >= match[0] && relativePos <= match[1] {
-
 				return true
-
 			}
-
 		}
 
 	}
 
 	return false
-
 }
 
 // splitContentIntoChunks splits content into multiple chunks with overlap.
 
 func (cs *ChunkingService) splitContentIntoChunks(content, docID string, baseOffset int, hierarchyPath []string, sectionTitle string, level int) []*DocumentChunk {
-
 	var chunks []*DocumentChunk
 
 	offset := 0
@@ -1445,9 +1267,7 @@ func (cs *ChunkingService) splitContentIntoChunks(content, docID string, baseOff
 		chunkEnd := offset + cs.config.ChunkSize
 
 		if chunkEnd > len(content) {
-
 			chunkEnd = len(content)
-
 		}
 
 		// Try to find a better boundary.
@@ -1457,9 +1277,7 @@ func (cs *ChunkingService) splitContentIntoChunks(content, docID string, baseOff
 			betterEnd := cs.findOptimalChunkBoundary(content, offset)
 
 			if betterEnd > offset && betterEnd <= len(content) {
-
 				chunkEnd = betterEnd
-
 			}
 
 		}
@@ -1475,9 +1293,7 @@ func (cs *ChunkingService) splitContentIntoChunks(content, docID string, baseOff
 		nextOffset := chunkEnd - cs.config.ChunkOverlap
 
 		if nextOffset <= offset {
-
 			nextOffset = offset + 1 // Ensure progress
-
 		}
 
 		offset = nextOffset
@@ -1485,17 +1301,14 @@ func (cs *ChunkingService) splitContentIntoChunks(content, docID string, baseOff
 	}
 
 	return chunks
-
 }
 
 // createChunk creates a single document chunk with metadata.
 
 func (cs *ChunkingService) createChunk(content, docID string, startOffset, length int, hierarchyPath []string, sectionTitle string, level int) *DocumentChunk {
-
 	chunkID := fmt.Sprintf("%s_chunk_%d", docID, startOffset)
 
 	chunk := &DocumentChunk{
-
 		ID: chunkID,
 
 		DocumentID: docID,
@@ -1527,9 +1340,7 @@ func (cs *ChunkingService) createChunk(content, docID string, startOffset, lengt
 	// Add parent sections (all but the last element of hierarchy path).
 
 	if len(hierarchyPath) > 1 {
-
 		chunk.ParentSections = hierarchyPath[:len(hierarchyPath)-1]
-
 	}
 
 	// Calculate content ratio (text vs whitespace/formatting).
@@ -1537,13 +1348,11 @@ func (cs *ChunkingService) createChunk(content, docID string, startOffset, lengt
 	chunk.ContentRatio = cs.calculateContentRatio(content)
 
 	return chunk
-
 }
 
 // cleanChunkContent cleans and normalizes chunk content.
 
 func (cs *ChunkingService) cleanChunkContent(content string) string {
-
 	// Remove excessive whitespace.
 
 	cleaned := regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
@@ -1567,23 +1376,19 @@ func (cs *ChunkingService) cleanChunkContent(content string) string {
 	}
 
 	return strings.TrimSpace(cleaned)
-
 }
 
 // countWords counts the number of words in the content.
 
 func (cs *ChunkingService) countWords(content string) int {
-
 	words := strings.Fields(content)
 
 	return len(words)
-
 }
 
 // countSentences counts the number of sentences in the content.
 
 func (cs *ChunkingService) countSentences(content string) int {
-
 	// Simple sentence counting based on sentence-ending punctuation.
 
 	sentencePattern := regexp.MustCompile(`[.!?]+\s+`)
@@ -1595,49 +1400,35 @@ func (cs *ChunkingService) countSentences(content string) int {
 	count := 0
 
 	for _, sentence := range sentences {
-
 		if len(strings.TrimSpace(sentence)) > 10 {
-
 			count++
-
 		}
-
 	}
 
 	return count
-
 }
 
 // calculateContentRatio calculates the ratio of meaningful content to total characters.
 
 func (cs *ChunkingService) calculateContentRatio(content string) float64 {
-
 	if len(content) == 0 {
-
 		return 0.0
-
 	}
 
 	meaningfulChars := 0
 
 	for _, char := range content {
-
 		if unicode.IsLetter(char) || unicode.IsDigit(char) {
-
 			meaningfulChars++
-
 		}
-
 	}
 
 	return float64(meaningfulChars) / float64(len(content))
-
 }
 
 // analyzeChunkTechnicalContent analyzes chunk for technical content.
 
 func (cs *ChunkingService) analyzeChunkTechnicalContent(chunk *DocumentChunk) {
-
 	content := strings.ToLower(chunk.Content)
 
 	// Check for tables.
@@ -1667,39 +1458,30 @@ func (cs *ChunkingService) analyzeChunkTechnicalContent(chunk *DocumentChunk) {
 	// Determine chunk type.
 
 	chunk.ChunkType = cs.determineChunkType(chunk)
-
 }
 
 // containsTableData checks if chunk contains tabular data.
 
 func (cs *ChunkingService) containsTableData(content string) bool {
-
 	lines := strings.Split(content, "\n")
 
 	tableRowCount := 0
 
 	for _, line := range lines {
-
 		if cs.looksLikeTableRow(line) {
-
 			tableRowCount++
-
 		}
-
 	}
 
 	return tableRowCount >= 2 // At least 2 rows that look like table data
-
 }
 
 // containsCodeBlock checks if chunk contains code blocks.
 
 func (cs *ChunkingService) containsCodeBlock(content string) bool {
-
 	// Check for common code indicators.
 
 	codePatterns := []string{
-
 		"```", // Markdown code blocks
 
 		"```", // Alternative code blocks
@@ -1715,27 +1497,20 @@ func (cs *ChunkingService) containsCodeBlock(content string) bool {
 	lowerContent := strings.ToLower(content)
 
 	for _, pattern := range codePatterns {
-
 		if strings.Contains(lowerContent, pattern) {
-
 			return true
-
 		}
-
 	}
 
 	return false
-
 }
 
 // containsFormula checks if chunk contains mathematical formulas.
 
 func (cs *ChunkingService) containsFormula(content string) bool {
-
 	// Check for mathematical notation.
 
 	formulaPatterns := []string{
-
 		"=", "+", "-", "*", "/", "^", "√",
 
 		"∑", "∫", "π", "α", "β", "γ", "θ", "λ", "μ", "σ",
@@ -1746,27 +1521,21 @@ func (cs *ChunkingService) containsFormula(content string) bool {
 	mathSymbolCount := 0
 
 	for _, pattern := range formulaPatterns {
-
 		mathSymbolCount += strings.Count(content, pattern)
-
 	}
 
 	// Also check for LaTeX-style formulas.
 
 	if strings.Contains(content, "$") || strings.Contains(content, "\\") {
-
 		mathSymbolCount += 10 // Higher weight for LaTeX
-
 	}
 
 	return mathSymbolCount >= 3 // Threshold for formula detection
-
 }
 
 // extractTechnicalTermsFromChunk extracts technical terms from a chunk.
 
 func (cs *ChunkingService) extractTechnicalTermsFromChunk(content string) []string {
-
 	var terms []string
 
 	termSet := make(map[string]bool)
@@ -1794,57 +1563,41 @@ func (cs *ChunkingService) extractTechnicalTermsFromChunk(content string) []stri
 	}
 
 	return terms
-
 }
 
 // determineChunkType determines the primary type of content in the chunk.
 
 func (cs *ChunkingService) determineChunkType(chunk *DocumentChunk) string {
-
 	if chunk.ContainsTable {
-
 		return "table"
-
 	}
 
 	if chunk.ContainsFigure {
-
 		return "figure"
-
 	}
 
 	if chunk.ContainsCode {
-
 		return "code"
-
 	}
 
 	if chunk.ContainsFormula {
-
 		return "formula"
-
 	}
 
 	if len(chunk.TechnicalTerms) > 5 {
-
 		return "technical"
-
 	}
 
 	if chunk.ContainsReference {
-
 		return "reference"
-
 	}
 
 	return "text"
-
 }
 
 // extractSemanticTags extracts semantic classification tags.
 
 func (cs *ChunkingService) extractSemanticTags(content string) []string {
-
 	var tags []string
 
 	lowerContent := strings.ToLower(content)
@@ -1852,7 +1605,6 @@ func (cs *ChunkingService) extractSemanticTags(content string) []string {
 	// Define semantic categories and their keywords.
 
 	semanticCategories := map[string][]string{
-
 		"architecture": {"architecture", "design", "structure", "component", "interface"},
 
 		"protocol": {"protocol", "message", "procedure", "signaling", "handshake"},
@@ -1871,9 +1623,7 @@ func (cs *ChunkingService) extractSemanticTags(content string) []string {
 	}
 
 	for category, keywords := range semanticCategories {
-
 		for _, keyword := range keywords {
-
 			if strings.Contains(lowerContent, keyword) {
 
 				tags = append(tags, category)
@@ -1881,19 +1631,15 @@ func (cs *ChunkingService) extractSemanticTags(content string) []string {
 				break // Only add category once
 
 			}
-
 		}
-
 	}
 
 	return tags
-
 }
 
 // calculateKeywordDensity calculates keyword frequency density.
 
 func (cs *ChunkingService) calculateKeywordDensity(content string) map[string]float64 {
-
 	words := strings.Fields(strings.ToLower(content))
 
 	wordCount := make(map[string]int)
@@ -1911,7 +1657,6 @@ func (cs *ChunkingService) calculateKeywordDensity(content string) map[string]fl
 		if len(word) > 2 { // Ignore very short words
 
 			wordCount[word]++
-
 		}
 
 	}
@@ -1921,23 +1666,18 @@ func (cs *ChunkingService) calculateKeywordDensity(content string) map[string]fl
 	density := make(map[string]float64)
 
 	for word, count := range wordCount {
-
 		if count > 1 { // Only include words that appear more than once
 
 			density[word] = float64(count) / float64(totalWords)
-
 		}
-
 	}
 
 	return density
-
 }
 
 // postProcessChunks performs final processing and quality checks on chunks.
 
 func (cs *ChunkingService) postProcessChunks(chunks []*DocumentChunk, doc *LoadedDocument, structure *DocumentStructure) []*DocumentChunk {
-
 	var processedChunks []*DocumentChunk
 
 	for _, chunk := range chunks {
@@ -1977,13 +1717,11 @@ func (cs *ChunkingService) postProcessChunks(chunks []*DocumentChunk, doc *Loade
 	}
 
 	return processedChunks
-
 }
 
 // addChunkContext adds contextual information between chunks.
 
 func (cs *ChunkingService) addChunkContext(chunks []*DocumentChunk) {
-
 	for i, chunk := range chunks {
 
 		// Add previous context (overlap with previous chunk).
@@ -1995,9 +1733,7 @@ func (cs *ChunkingService) addChunkContext(chunks []*DocumentChunk) {
 			overlapSize := cs.config.ChunkOverlap
 
 			if len(prevChunk.Content) < overlapSize {
-
 				overlapSize = len(prevChunk.Content)
-
 			}
 
 			chunk.PreviousContext = prevChunk.Content[len(prevChunk.Content)-overlapSize:]
@@ -2013,9 +1749,7 @@ func (cs *ChunkingService) addChunkContext(chunks []*DocumentChunk) {
 			overlapSize := cs.config.ChunkOverlap
 
 			if len(nextChunk.Content) < overlapSize {
-
 				overlapSize = len(nextChunk.Content)
-
 			}
 
 			chunk.NextContext = nextChunk.Content[:overlapSize]
@@ -2033,13 +1767,11 @@ func (cs *ChunkingService) addChunkContext(chunks []*DocumentChunk) {
 		}
 
 	}
-
 }
 
 // calculateChunkQuality calculates a quality score for the chunk.
 
 func (cs *ChunkingService) calculateChunkQuality(chunk *DocumentChunk) float64 {
-
 	score := 0.0
 
 	// Content ratio (meaningful characters vs total).
@@ -2051,23 +1783,15 @@ func (cs *ChunkingService) calculateChunkQuality(chunk *DocumentChunk) float64 {
 	lengthScore := 0.0
 
 	if chunk.CharacterCount >= cs.config.MinChunkSize && chunk.CharacterCount <= cs.config.MaxChunkSize {
-
 		lengthScore = 20.0
-
 	} else if chunk.CharacterCount < cs.config.MinChunkSize {
-
 		lengthScore = float64(chunk.CharacterCount) / float64(cs.config.MinChunkSize) * 20.0
-
 	} else {
-
 		lengthScore = 20.0 - (float64(chunk.CharacterCount-cs.config.MaxChunkSize) / float64(cs.config.MaxChunkSize) * 10.0)
-
 	}
 
 	if lengthScore < 0 {
-
 		lengthScore = 0
-
 	}
 
 	score += lengthScore
@@ -2079,9 +1803,7 @@ func (cs *ChunkingService) calculateChunkQuality(chunk *DocumentChunk) float64 {
 		score += float64(len(chunk.TechnicalTerms)) * 2
 
 		if score > 100 {
-
 			score = 100
-
 		}
 
 	}
@@ -2093,13 +1815,9 @@ func (cs *ChunkingService) calculateChunkQuality(chunk *DocumentChunk) float64 {
 		avgWordsPerSentence := float64(chunk.WordCount) / float64(chunk.SentenceCount)
 
 		if avgWordsPerSentence >= 5 && avgWordsPerSentence <= 30 {
-
 			score += 20
-
 		} else {
-
 			score += 10
-
 		}
 
 	}
@@ -2107,9 +1825,7 @@ func (cs *ChunkingService) calculateChunkQuality(chunk *DocumentChunk) float64 {
 	// Hierarchy context bonus.
 
 	if len(chunk.HierarchyPath) > 0 {
-
 		score += 10
-
 	}
 
 	// Semantic tags bonus.
@@ -2119,65 +1835,49 @@ func (cs *ChunkingService) calculateChunkQuality(chunk *DocumentChunk) float64 {
 	// Cap the score at 100.
 
 	if score > 100 {
-
 		score = 100
-
 	}
 
 	return score
-
 }
 
 // determineChunkingMethod returns a description of the chunking method used.
 
 func (cs *ChunkingService) determineChunkingMethod() string {
-
 	methods := []string{}
 
 	if cs.config.PreserveHierarchy {
-
 		methods = append(methods, "hierarchy-aware")
-
 	}
 
 	if cs.config.UseSemanticBoundaries {
-
 		methods = append(methods, "semantic-boundaries")
-
 	}
 
 	if cs.config.PreserveTechnicalTerms {
-
 		methods = append(methods, "technical-preserving")
-
 	}
 
 	if len(methods) == 0 {
-
 		return "basic-chunking"
-
 	}
 
 	return strings.Join(methods, "+")
-
 }
 
 // updateMetrics safely updates the chunking metrics.
 
 func (cs *ChunkingService) updateMetrics(updater func(*ChunkingMetrics)) {
-
 	cs.metrics.mutex.Lock()
 
 	defer cs.metrics.mutex.Unlock()
 
 	updater(cs.metrics)
-
 }
 
 // GetMetrics returns the current chunking metrics.
 
 func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
-
 	cs.metrics.mutex.RLock()
 
 	defer cs.metrics.mutex.RUnlock()
@@ -2185,7 +1885,6 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 	// Return a copy without the mutex.
 
 	metrics := &ChunkingMetrics{
-
 		TotalDocuments: cs.metrics.TotalDocuments,
 
 		TotalChunks: cs.metrics.TotalChunks,
@@ -2205,7 +1904,6 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 
 			LowQualityChunks int64 `json:"low_quality_chunks"`
 		}{
-
 			AverageQualityScore: cs.metrics.QualityMetrics.AverageQualityScore,
 
 			HighQualityChunks: cs.metrics.QualityMetrics.HighQualityChunks,
@@ -2223,13 +1921,11 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 	}
 
 	return metrics
-
 }
 
 // ChunkDocuments processes multiple documents in parallel.
 
 func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDocument) ([]*DocumentChunk, error) {
-
 	var allChunks []*DocumentChunk
 
 	var mu sync.Mutex
@@ -2247,9 +1943,7 @@ func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDoc
 		end := i + cs.config.BatchSize
 
 		if end > len(docs) {
-
 			end = len(docs)
-
 		}
 
 		batch := docs[i:end]
@@ -2259,7 +1953,6 @@ func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDoc
 			wg.Add(1)
 
 			go func(d *LoadedDocument) {
-
 				defer wg.Done()
 
 				// Acquire semaphore.
@@ -2269,7 +1962,6 @@ func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDoc
 				defer func() { <-semaphore }()
 
 				chunks, err := cs.ChunkDocument(ctx, d)
-
 				if err != nil {
 
 					cs.logger.Error("Failed to chunk document", "doc_id", d.ID, "error", err)
@@ -2283,7 +1975,6 @@ func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDoc
 				allChunks = append(allChunks, chunks...)
 
 				mu.Unlock()
-
 			}(doc)
 
 		}
@@ -2300,49 +1991,36 @@ func (cs *ChunkingService) ChunkDocuments(ctx context.Context, docs []*LoadedDoc
 	)
 
 	return allChunks, nil
-
 }
 
 // copyMap creates a deep copy of a map[string]int64.
 
 func copyMap(original map[string]int64) map[string]int64 {
-
 	if original == nil {
-
 		return nil
-
 	}
 
 	copied := make(map[string]int64, len(original))
 
 	for k, v := range original {
-
 		copied[k] = v
-
 	}
 
 	return copied
-
 }
 
 // copyIntMap creates a deep copy of a map[int]int64.
 
 func copyIntMap(original map[int]int64) map[int]int64 {
-
 	if original == nil {
-
 		return nil
-
 	}
 
 	copied := make(map[int]int64, len(original))
 
 	for k, v := range original {
-
 		copied[k] = v
-
 	}
 
 	return copied
-
 }

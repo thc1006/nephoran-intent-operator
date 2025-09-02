@@ -43,15 +43,11 @@ import (
 // AnalyzeDependencyGraph analyzes a dependency graph.
 
 func (a *dependencyAnalyzer) AnalyzeDependencyGraph(ctx context.Context, graph *DependencyGraph) (*GraphAnalysis, error) {
-
 	if graph == nil {
-
 		return nil, fmt.Errorf("dependency graph cannot be nil")
-
 	}
 
 	analysis := &GraphAnalysis{
-
 		TotalNodes: len(graph.Nodes),
 
 		TotalEdges: len(graph.Edges),
@@ -66,17 +62,13 @@ func (a *dependencyAnalyzer) AnalyzeDependencyGraph(ctx context.Context, graph *
 	}
 
 	return analysis, nil
-
 }
 
 // AnalyzeDependencyTrends analyzes dependency trends over time.
 
 func (a *dependencyAnalyzer) AnalyzeDependencyTrends(ctx context.Context, packages []*PackageReference, period time.Duration) (*TrendAnalysis, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for trend analysis")
-
 	}
 
 	// Create a time range based on the period.
@@ -84,14 +76,12 @@ func (a *dependencyAnalyzer) AnalyzeDependencyTrends(ctx context.Context, packag
 	now := time.Now()
 
 	timeRange := &TimeRange{
-
 		Start: now.Add(-period),
 
 		End: now,
 	}
 
 	analysis := &TrendAnalysis{
-
 		AnalysisID: fmt.Sprintf("trend-analysis-%d", time.Now().UnixNano()),
 
 		TimeRange: timeRange,
@@ -118,7 +108,6 @@ func (a *dependencyAnalyzer) AnalyzeDependencyTrends(ctx context.Context, packag
 	if len(packages) > 0 {
 
 		trend := &Trend{
-
 			Type: TrendTypeUsage,
 
 			Direction: TrendDirectionUp,
@@ -137,21 +126,16 @@ func (a *dependencyAnalyzer) AnalyzeDependencyTrends(ctx context.Context, packag
 	analysis.Metadata["analyzed_at"] = time.Now()
 
 	return analysis, nil
-
 }
 
 // AnalyzePackage analyzes a single package.
 
 func (a *dependencyAnalyzer) AnalyzePackage(ctx context.Context, pkg *PackageReference) (*PackageAnalysis, error) {
-
 	if pkg == nil {
-
 		return nil, fmt.Errorf("package reference cannot be nil")
-
 	}
 
 	analysis := &PackageAnalysis{
-
 		Package: pkg,
 
 		PopularityScore: 0.5,
@@ -180,21 +164,16 @@ func (a *dependencyAnalyzer) AnalyzePackage(ctx context.Context, pkg *PackageRef
 	}
 
 	return analysis, nil
-
 }
 
 // AnalyzePerformance analyzes performance of packages.
 
 func (a *dependencyAnalyzer) AnalyzePerformance(ctx context.Context, packages []*PackageReference) (*PerformanceAnalysis, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for performance analysis")
-
 	}
 
 	analysis := &PerformanceAnalysis{
-
 		AnalysisID: fmt.Sprintf("performance-analysis-%d", time.Now().UnixNano()),
 
 		OverallScore: 0.8,
@@ -209,21 +188,16 @@ func (a *dependencyAnalyzer) AnalyzePerformance(ctx context.Context, packages []
 	}
 
 	return analysis, nil
-
 }
 
 // AnalyzeRisks analyzes risks associated with packages.
 
 func (a *dependencyAnalyzer) AnalyzeRisks(ctx context.Context, packages []*PackageReference) (*RiskAnalysis, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for risk analysis")
-
 	}
 
 	analysis := &RiskAnalysis{
-
 		AnalysisID: fmt.Sprintf("risk-analysis-%d", time.Now().UnixNano()),
 
 		OverallRiskScore: 0.3, // Low risk
@@ -240,7 +214,6 @@ func (a *dependencyAnalyzer) AnalyzeRisks(ctx context.Context, packages []*Packa
 	if len(packages) > 0 {
 
 		riskFactor := RiskFactor{
-
 			Type: "security",
 
 			Severity: "medium",
@@ -255,21 +228,16 @@ func (a *dependencyAnalyzer) AnalyzeRisks(ctx context.Context, packages []*Packa
 	}
 
 	return analysis, nil
-
 }
 
 // AssessSecurityRisks assesses security risks for packages.
 
 func (a *dependencyAnalyzer) AssessSecurityRisks(ctx context.Context, packages []*PackageReference) (*SecurityRiskAssessment, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for security risk assessment")
-
 	}
 
 	assessment := &SecurityRiskAssessment{
-
 		AssessmentID: fmt.Sprintf("security-assessment-%d", time.Now().UnixNano()),
 
 		Packages: packages,
@@ -292,7 +260,6 @@ func (a *dependencyAnalyzer) AssessSecurityRisks(ctx context.Context, packages [
 	if len(packages) > 0 {
 
 		issue := &SecurityIssue{
-
 			ID: fmt.Sprintf("issue-%d", time.Now().UnixNano()),
 
 			Severity: "medium",
@@ -311,7 +278,6 @@ func (a *dependencyAnalyzer) AssessSecurityRisks(ctx context.Context, packages [
 		// Add corresponding risk factor.
 
 		riskFactor := &RiskFactor{
-
 			Type: "security",
 
 			Severity: "medium",
@@ -326,15 +292,12 @@ func (a *dependencyAnalyzer) AssessSecurityRisks(ctx context.Context, packages [
 	}
 
 	return assessment, nil
-
 }
 
 // PredictDependencyIssues predicts potential dependency issues.
 
 func (a *dependencyAnalyzer) PredictDependencyIssues(ctx context.Context, packages []*PackageReference) (*IssuePrediction, error) {
-
 	prediction := &IssuePrediction{
-
 		Type: "dependency_vulnerability",
 
 		Probability: 0.8,
@@ -353,31 +316,25 @@ func (a *dependencyAnalyzer) PredictDependencyIssues(ctx context.Context, packag
 	// Analyze each package for potential issues.
 
 	if len(packages) > 0 {
-
 		// Adjust prediction based on package analysis.
 
 		prediction.Description = fmt.Sprintf("Analyzed %d packages for potential dependency issues", len(packages))
-
 	}
 
 	return prediction, nil
-
 }
 
 // RecommendVersionUpgrades recommends version upgrades.
 
 func (a *dependencyAnalyzer) RecommendVersionUpgrades(ctx context.Context, packages []*PackageReference) ([]*UpgradeRecommendation, error) {
-
 	recommendations := make([]*UpgradeRecommendation, 0)
 
 	// Stub implementation.
 
 	for _, pkg := range packages {
-
 		if pkg.Version != "latest" {
 
 			rec := &UpgradeRecommendation{
-
 				PackageName: pkg.Name,
 
 				CurrentVersion: pkg.Version,
@@ -396,29 +353,23 @@ func (a *dependencyAnalyzer) RecommendVersionUpgrades(ctx context.Context, packa
 			recommendations = append(recommendations, rec)
 
 		}
-
 	}
 
 	return recommendations, nil
-
 }
 
 // AnalyzeDependencyEvolution analyzes dependency evolution.
 
 func (a *dependencyAnalyzer) AnalyzeDependencyEvolution(ctx context.Context, packages []*PackageReference) (*EvolutionAnalysis, error) {
-
 	// For simplicity, analyze the first package if available.
 
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for evolution analysis")
-
 	}
 
 	pkg := packages[0]
 
 	analysis := &EvolutionAnalysis{
-
 		AnalysisID: generateEvolutionAnalysisID(),
 
 		Package: pkg,
@@ -437,7 +388,6 @@ func (a *dependencyAnalyzer) AnalyzeDependencyEvolution(ctx context.Context, pac
 	// Stub implementation - add some sample version history.
 
 	sampleVersion := &VersionInfo{
-
 		Version: pkg.Version,
 
 		ReleaseDate: time.Now().Add(-30 * 24 * time.Hour), // 30 days ago
@@ -452,7 +402,6 @@ func (a *dependencyAnalyzer) AnalyzeDependencyEvolution(ctx context.Context, pac
 	// Add a sample evolution trend.
 
 	trend := &EvolutionTrend{
-
 		Aspect: "stability",
 
 		Direction: TrendDirectionUp,
@@ -465,17 +414,14 @@ func (a *dependencyAnalyzer) AnalyzeDependencyEvolution(ctx context.Context, pac
 	analysis.EvolutionTrends = append(analysis.EvolutionTrends, trend)
 
 	return analysis, nil
-
 }
 
 // BenchmarkDependencies benchmarks dependency performance.
 
 func (a *dependencyAnalyzer) BenchmarkDependencies(ctx context.Context, packages []*PackageReference) (*BenchmarkResult, error) {
-
 	// Create a benchmark result using the actual struct fields from types.go.
 
 	result := &BenchmarkResult{
-
 		Name: "dependency_performance_benchmark",
 
 		Iterations: int64(len(packages)) * 1000,
@@ -496,9 +442,7 @@ func (a *dependencyAnalyzer) BenchmarkDependencies(ctx context.Context, packages
 	packageNames := make([]string, len(packages))
 
 	for i, pkg := range packages {
-
 		packageNames[i] = pkg.Name
-
 	}
 
 	result.Metadata["packages"] = packageNames
@@ -508,15 +452,12 @@ func (a *dependencyAnalyzer) BenchmarkDependencies(ctx context.Context, packages
 	result.Metadata["overall_score"] = 0.8
 
 	return result, nil
-
 }
 
 // AnalyzeResourceUsage analyzes resource usage of packages.
 
 func (a *dependencyAnalyzer) AnalyzeResourceUsage(ctx context.Context, packages []*PackageReference) (*ResourceUsageAnalysis, error) {
-
 	analysis := &ResourceUsageAnalysis{
-
 		AnalysisID: generateResourceUsageAnalysisID(),
 
 		Packages: packages,
@@ -545,7 +486,6 @@ func (a *dependencyAnalyzer) AnalyzeResourceUsage(ctx context.Context, packages 
 	for _, pkg := range packages {
 
 		usage := &ResourceUsage{
-
 			CPU: 5.0, // 5% CPU
 
 			Memory: 50 * 1024 * 1024, // 50MB
@@ -571,7 +511,6 @@ func (a *dependencyAnalyzer) AnalyzeResourceUsage(ctx context.Context, packages 
 	// Set total usage.
 
 	analysis.TotalUsage = &ResourceUsage{
-
 		CPU: totalCPU,
 
 		Memory: totalMemory,
@@ -582,63 +521,46 @@ func (a *dependencyAnalyzer) AnalyzeResourceUsage(ctx context.Context, packages 
 	}
 
 	return analysis, nil
-
 }
 
 // Utility ID generation functions.
 
 func generatePredictionID() string {
-
 	return fmt.Sprintf("prediction-%d", time.Now().UnixNano())
-
 }
 
 func generateEvolutionAnalysisID() string {
-
 	return fmt.Sprintf("evolution-%d", time.Now().UnixNano())
-
 }
 
 func generateBenchmarkID() string {
-
 	return fmt.Sprintf("benchmark-%d", time.Now().UnixNano())
-
 }
 
 func generateResourceUsageAnalysisID() string {
-
 	return fmt.Sprintf("resource-usage-%d", time.Now().UnixNano())
-
 }
 
 // convertPackagesToStrings converts PackageReference slice to string slice.
 
 func convertPackagesToStrings(packages []*PackageReference) []string {
-
 	result := make([]string, len(packages))
 
 	for i, pkg := range packages {
-
 		result[i] = pkg.Name
-
 	}
 
 	return result
-
 }
 
 // DetectHealthTrends detects health trends for packages.
 
 func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []*PackageReference) (*HealthTrendAnalysis, error) {
-
 	if len(packages) == 0 {
-
 		return nil, fmt.Errorf("no packages provided for health trend analysis")
-
 	}
 
 	analysis := &HealthTrendAnalysis{
-
 		AnalysisID: fmt.Sprintf("health-trend-%d", time.Now().UnixNano()),
 
 		Packages: packages,
@@ -667,7 +589,6 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 	for _, pkg := range packages {
 
 		trend := &PackageHealthTrend{
-
 			Package: pkg,
 
 			Trend: HealthTrendImproving,
@@ -686,7 +607,6 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 		// Add health prediction.
 
 		prediction := &HealthPrediction{
-
 			Package: pkg,
 
 			PredictedScore: 0.85,
@@ -705,7 +625,6 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 		// Add trend prediction.
 
 		trendPrediction := &HealthTrendPrediction{
-
 			PackageName: pkg.Name,
 
 			PredictedTrend: HealthTrendImproving,
@@ -726,7 +645,6 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 		// Add health snapshot.
 
 		snapshot := &HealthSnapshot{
-
 			PackageName: pkg.Name,
 
 			Timestamp: time.Now(),
@@ -749,7 +667,6 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 		// Add recommendation.
 
 		recommendation := &HealthRecommendation{
-
 			ID: fmt.Sprintf("rec-%d", time.Now().UnixNano()),
 
 			Type: "upgrade",
@@ -768,5 +685,4 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 	}
 
 	return analysis, nil
-
 }
