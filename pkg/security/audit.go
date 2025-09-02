@@ -95,7 +95,7 @@ func (al *AuditLogger) LogSecretAccess(secretType, source, userID, sessionID str
 
 		SessionID: sessionID,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Result: getResultString(success),
 	}
@@ -129,7 +129,7 @@ func (al *AuditLogger) LogAuthenticationAttempt(provider, userID, ipAddress, use
 
 		UserAgent: userAgent,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Result: getResultString(success),
 	}
@@ -159,7 +159,7 @@ func (al *AuditLogger) LogSecretRotation(secretName, rotationType, userID string
 
 		UserID: userID,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Result: getResultString(success),
 	}
@@ -187,7 +187,7 @@ func (al *AuditLogger) LogAPIKeyValidation(keyType, provider string, success boo
 
 		Component: "secret_loader",
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Result: getResultString(success),
 	}
@@ -221,7 +221,7 @@ func (al *AuditLogger) LogUnauthorizedAccess(resource, userID, ipAddress, userAg
 
 		UserAgent: userAgent,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Result: "denied",
 	}
@@ -245,7 +245,7 @@ func (al *AuditLogger) LogSecurityViolation(violationType, description, userID, 
 
 		IPAddress: ipAddress,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Result: "violation_detected",
 	}

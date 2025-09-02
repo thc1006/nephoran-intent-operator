@@ -12,7 +12,7 @@ import (
 )
 
 // TestRealisticTelecomWorkload tests realistic 5G network function deployment scenarios
-// DISABLED: func TestRealisticTelecomWorkload(t *testing.T) {
+func TestRealisticTelecomWorkload(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -107,21 +107,21 @@ import (
 				{
 					Name: "Create eMBB Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "eMBB", json.RawMessage("{}"))
+						return createNetworkSlice(ctx, "eMBB", json.RawMessage(`{}`))
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create URLLC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "URLLC", json.RawMessage("{}"))
+						return createNetworkSlice(ctx, "URLLC", json.RawMessage(`{}`))
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create mMTC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "mMTC", json.RawMessage("{}"))
+						return createNetworkSlice(ctx, "mMTC", json.RawMessage(`{}`))
 					},
 					Delay: 1 * time.Second,
 				},
@@ -214,7 +214,7 @@ import (
 }
 
 // TestHighVolumeDeployment tests high-volume concurrent deployments
-// DISABLED: func TestHighVolumeDeployment(t *testing.T) {
+func TestHighVolumeDeployment(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -247,7 +247,7 @@ import (
 }
 
 // TestComplexIntentProcessing tests processing of complex multi-step intents
-// DISABLED: func TestComplexIntentProcessing(t *testing.T) {
+func TestComplexIntentProcessing(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -422,3 +422,4 @@ func processComplexIntent(ctx context.Context, intent *nephoranv1.NetworkIntent)
 
 	return nil
 }
+

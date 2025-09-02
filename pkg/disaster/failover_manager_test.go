@@ -28,7 +28,7 @@ type FailoverManagerTestSuite struct {
 	mockRoute53 *MockRoute53Client
 }
 
-// DISABLED: func TestFailoverManagerSuite(t *testing.T) {
+func TestFailoverManagerSuite(t *testing.T) {
 	suite.Run(t, new(FailoverManagerTestSuite))
 }
 
@@ -631,7 +631,7 @@ func (fm *FailoverManager) InitiateFailover(ctx context.Context, targetRegion, r
 		TargetRegion: targetRegion,
 		Status:       "in_progress",
 		StartTime:    start,
-		Metadata:     json.RawMessage("{}"),
+		Metadata:     json.RawMessage(`{}`),
 	}
 
 	// Update DNS record
@@ -690,3 +690,4 @@ func (fm *FailoverManager) updateDNSRecord(ctx context.Context, targetRegion str
 	// Simple test implementation
 	return nil // Skip DNS update in basic test
 }
+

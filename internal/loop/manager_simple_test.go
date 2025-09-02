@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestFileManager_BasicOperations(t *testing.T) {
+func TestFileManager_BasicOperations(t *testing.T) {
 	dir := t.TempDir()
 	fm, err := NewFileManager(dir)
 	require.NoError(t, err)
@@ -63,7 +63,7 @@ import (
 	})
 }
 
-// DISABLED: func TestFileManager_ErrorScenarios(t *testing.T) {
+func TestFileManager_ErrorScenarios(t *testing.T) {
 	dir := t.TempDir()
 	fm, err := NewFileManager(dir)
 	require.NoError(t, err)
@@ -76,7 +76,7 @@ import (
 	})
 }
 
-// DISABLED: func TestSanitizeErrorMessage(t *testing.T) {
+func TestSanitizeErrorMessage(t *testing.T) {
 	t.Skip("sanitizeErrorMessage function not available")
 	tests := []struct {
 		name     string
@@ -149,7 +149,7 @@ import (
 	}
 }
 
-// DISABLED: func TestFileManager_ErrorSanitization(t *testing.T) {
+func TestFileManager_ErrorSanitization(t *testing.T) {
 	dir := t.TempDir()
 	fm, err := NewFileManager(dir)
 	require.NoError(t, err)

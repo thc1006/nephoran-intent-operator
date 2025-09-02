@@ -18,7 +18,7 @@ type IntegrityTestSuite struct {
 	validator      *IntegrityValidator
 }
 
-// DISABLED: func TestIntegrityTestSuite(t *testing.T) {
+func TestIntegrityTestSuite(t *testing.T) {
 	suite.Run(t, new(IntegrityTestSuite))
 }
 
@@ -301,7 +301,7 @@ func (suite *IntegrityTestSuite) TestIntegrityValidation() {
 func (suite *IntegrityTestSuite) TestTamperDetection() {
 	suite.Run("detect data field tampering", func() {
 		event := createIntegrityTestEvent("tamper-data-test")
-		event.Data = json.RawMessage("{}")
+		event.Data = json.RawMessage(`{}`)
 
 		err := suite.integrityChain.ProcessEvent(event)
 		suite.NoError(err)
@@ -510,7 +510,7 @@ func (suite *IntegrityTestSuite) TestIntegrityRecovery() {
 func (suite *IntegrityTestSuite) TestForensicAnalysis() {
 	suite.Run("forensic event analysis", func() {
 		event := createIntegrityTestEvent("forensic-test")
-		event.Data = json.RawMessage("{}")
+		event.Data = json.RawMessage(`{}`)
 
 		err := suite.integrityChain.ProcessEvent(event)
 		suite.NoError(err)
@@ -571,7 +571,7 @@ func createIntegrityTestEvent(action string) *types.AuditEvent {
 		UserContext: &types.UserContext{
 			UserID: "test-user",
 		},
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 }
 
@@ -579,3 +579,4 @@ func createIntegrityTestEvent(action string) *types.AuditEvent {
 // but are kept simple for testing isolation
 
 // Benchmark tests removed - would need real implementations to work properly
+

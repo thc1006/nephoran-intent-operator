@@ -628,7 +628,7 @@ func (am *AuthMiddleware) writeErrorResponse(w http.ResponseWriter, status int, 
 
 	w.WriteHeader(status)
 
-	errorResponse := json.RawMessage("{}")
+	errorResponse := json.RawMessage(`{}`)
 
 	json.NewEncoder(w).Encode(errorResponse)
 }
@@ -1169,3 +1169,4 @@ func min(a, b int) int {
 
 // These types are additional types specific to the test requirements
 // The main middleware implementations are elsewhere in this file
+

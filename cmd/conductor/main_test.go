@@ -8,7 +8,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// DISABLED: func TestIsIntentFile(t *testing.T) {
+func TestIsIntentFile(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string
@@ -56,7 +56,7 @@ import (
 	}
 }
 
-// DISABLED: func TestExtractCorrelationID(t *testing.T) {
+func TestExtractCorrelationID(t *testing.T) {
 	// Create temporary test files
 	tempDir := t.TempDir()
 
@@ -124,7 +124,7 @@ import (
 }
 
 // TestBuildCommand verifies the command construction logic
-// DISABLED: func TestCommandConstruction(t *testing.T) {
+func TestCommandConstruction(t *testing.T) {
 	// This test validates that the command would be built correctly
 	// In a real scenario, we'd mock exec.Command, but for MVP this demonstrates intent
 

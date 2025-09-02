@@ -14,7 +14,7 @@ import (
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
-// DISABLED: func TestNewJWTManager(t *testing.T) {
+func TestNewJWTManager(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      *auth.JWTConfig
@@ -88,7 +88,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_SetSigningKey(t *testing.T) {
+func TestJWTManager_SetSigningKey(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -134,7 +134,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_GenerateToken(t *testing.T) {
+func TestJWTManager_GenerateToken(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -174,7 +174,9 @@ import (
 		{
 			name:     "Token with custom claims",
 			userInfo: user,
-			customClaims: json.RawMessage("{}"),
+			customClaims: map[string]interface{}{
+				"custom_field": "custom_value",
+				"roles":        []string{"admin", "user"},
 			},
 			expectError: false,
 			checkToken: func(t *testing.T, tokenStr string) {
@@ -248,7 +250,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_ValidateToken(t *testing.T) {
+func TestJWTManager_ValidateToken(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -325,7 +327,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_RefreshToken(t *testing.T) {
+func TestJWTManager_RefreshToken(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -393,7 +395,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_BlacklistToken(t *testing.T) {
+func TestJWTManager_BlacklistToken(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -450,7 +452,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_GetPublicKey(t *testing.T) {
+func TestJWTManager_GetPublicKey(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -495,7 +497,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_GetJWKS(t *testing.T) {
+func TestJWTManager_GetJWKS(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -527,7 +529,7 @@ import (
 	assert.NotEmpty(t, keyMap["e"], "RSA exponent should be present")
 }
 
-// DISABLED: func TestJWTManager_RotateKeys(t *testing.T) {
+func TestJWTManager_RotateKeys(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -555,7 +557,7 @@ import (
 	assert.Equal(t, user.Subject, claims.Subject)
 }
 
-// DISABLED: func TestJWTManager_ExtractClaims(t *testing.T) {
+func TestJWTManager_ExtractClaims(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -563,7 +565,7 @@ import (
 	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	customClaims := json.RawMessage("{}"),
+	customClaims := map[string]interface{}{
 		"permissions": []string{"read", "write"},
 		"department":  "engineering",
 	}
@@ -615,7 +617,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_GenerateTokenPair(t *testing.T) {
+func TestJWTManager_GenerateTokenPair(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -655,7 +657,8 @@ import (
 		{
 			name:     "Token pair with custom claims",
 			userInfo: user,
-			customClaims: json.RawMessage("{}"),
+			customClaims: map[string]interface{}{
+				"role": "admin",
 			},
 			expectError: false,
 			checkTokens: func(t *testing.T, accessToken, refreshToken string) {
@@ -697,7 +700,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_TokenValidationWithContext(t *testing.T) {
+func TestJWTManager_TokenValidationWithContext(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -759,7 +762,7 @@ import (
 	}
 }
 
-// DISABLED: func TestJWTManager_CleanupBlacklist(t *testing.T) {
+func TestJWTManager_CleanupBlacklist(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -908,7 +911,7 @@ func generateTestTokenWithClaims(t *testing.T, manager *authtestutil.JWTManagerM
 }
 
 // Table-driven test for comprehensive JWT validation scenarios
-// DISABLED: func TestJWTManager_ComprehensiveValidation(t *testing.T) {
+func TestJWTManager_ComprehensiveValidation(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 

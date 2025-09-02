@@ -58,7 +58,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 10 * time.Minute,
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 				},
 
 				{
@@ -68,7 +68,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 10 * time.Minute,
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 				},
 
 				{
@@ -78,7 +78,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 5 * time.Minute,
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 				},
 
 				{
@@ -88,7 +88,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 8 * time.Minute,
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 				},
 			},
 
@@ -104,7 +104,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "simple",
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 				},
 
 				// Moderate Scenarios (50% of tests).
@@ -118,7 +118,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "moderate",
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 					},
 				},
 
@@ -145,7 +145,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Development environment with minimal resources",
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 
 				{
@@ -153,7 +153,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Staging environment simulating production load",
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 
 				{
@@ -161,7 +161,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Production environment with full resources",
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -620,3 +620,4 @@ func GetConfigurationPresets() *ConfigurationPresets {
 		ContinuousIntegration: GetEnvironmentSpecificConfig("ci"),
 	}
 }
+

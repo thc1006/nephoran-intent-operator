@@ -1789,9 +1789,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 				Kind: "Deployment",
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 
-				Spec: json.RawMessage("{}"),
+				Spec: json.RawMessage(`{}`),
 			},
 		},
 
@@ -1825,9 +1825,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 				Kind: "Deployment",
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 
-				Spec: json.RawMessage("{}"),
+				Spec: json.RawMessage(`{}`),
 			},
 		},
 
@@ -1866,9 +1866,9 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 
 					Kind: "Deployment",
 
-					Metadata: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
 
-					Spec: json.RawMessage("{}"),
+					Spec: json.RawMessage(`{}`),
 				},
 			},
 
@@ -2421,3 +2421,4 @@ func (obm *ORANBlueprintManager) createPackageRevision(
 
 	return packageRevision, nil
 }
+

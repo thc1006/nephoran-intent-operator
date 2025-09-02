@@ -8,7 +8,7 @@ import (
 )
 
 // TestCmdSafeQuoteCrossPlatform ensures cmdSafeQuote compiles and behaves consistently across platforms
-// DISABLED: func TestCmdSafeQuoteCrossPlatform(t *testing.T) {
+func TestCmdSafeQuoteCrossPlatform(t *testing.T) {
 	tests := []struct {
 		name string
 		args []string
@@ -50,7 +50,7 @@ import (
 }
 
 // TestCmdSafeQuoteWindowsBehavior tests Windows-specific quoting behavior
-// DISABLED: func TestCmdSafeQuoteWindowsBehavior(t *testing.T) {
+func TestCmdSafeQuoteWindowsBehavior(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Windows-specific test")
 	}
@@ -65,7 +65,7 @@ import (
 }
 
 // TestCmdSafeQuoteUnixBehavior tests Unix-specific behavior
-// DISABLED: func TestCmdSafeQuoteUnixBehavior(t *testing.T) {
+func TestCmdSafeQuoteUnixBehavior(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Unix-specific test")
 	}

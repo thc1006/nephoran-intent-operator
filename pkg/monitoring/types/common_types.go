@@ -1,6 +1,9 @@
 package monitoringtypes
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // BusinessImpact represents the business impact of system performance or issues
 type BusinessImpact struct {

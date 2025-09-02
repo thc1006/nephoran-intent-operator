@@ -286,12 +286,12 @@ func (suite *NetworkIntentControllerTestSuite) BenchmarkReconcile() {
 }
 
 // TestSuite runner function
-// DISABLED: func TestNetworkIntentControllerTestSuite(t *testing.T) {
+func TestNetworkIntentControllerTestSuite(t *testing.T) {
 	suite.Run(t, new(NetworkIntentControllerTestSuite))
 }
 
 // Additional unit tests using standard testing approach
-// DISABLED: func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
+func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
 	// Test using standard Go testing approach for comparison
 	scheme := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(scheme)
@@ -342,7 +342,7 @@ func (suite *NetworkIntentControllerTestSuite) BenchmarkReconcile() {
 }
 
 // Test race conditions and concurrent access
-// DISABLED: func TestNetworkIntentReconciler_ConcurrentReconcile(t *testing.T) {
+func TestNetworkIntentReconciler_ConcurrentReconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(scheme)
 	require.NoError(t, err)
@@ -412,7 +412,7 @@ func (suite *NetworkIntentControllerTestSuite) BenchmarkReconcile() {
 }
 
 // Test edge cases and error conditions
-// DISABLED: func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
+func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func() (*controllers.NetworkIntentReconciler, ctrl.Request)

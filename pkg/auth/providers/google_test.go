@@ -15,7 +15,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// DISABLED: func TestNewGoogleProvider(t *testing.T) {
+func TestNewGoogleProvider(t *testing.T) {
 	tests := []struct {
 		name         string
 		clientID     string
@@ -66,12 +66,12 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_GetProviderName(t *testing.T) {
+func TestGoogleProvider_GetProviderName(t *testing.T) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	assert.Equal(t, "google", provider.GetProviderName())
 }
 
-// DISABLED: func TestGoogleProvider_SupportsFeature(t *testing.T) {
+func TestGoogleProvider_SupportsFeature(t *testing.T) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
@@ -96,7 +96,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_GetAuthorizationURL(t *testing.T) {
+func TestGoogleProvider_GetAuthorizationURL(t *testing.T) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
@@ -191,7 +191,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_ExchangeCodeForToken(t *testing.T) {
+func TestGoogleProvider_ExchangeCodeForToken(t *testing.T) {
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/token" {
@@ -206,16 +206,16 @@ import (
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -281,7 +281,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_RefreshToken(t *testing.T) {
+func TestGoogleProvider_RefreshToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/token" {
 			err := r.ParseForm()
@@ -293,16 +293,16 @@ import (
 			refreshToken := r.FormValue("refresh_token")
 			switch refreshToken {
 			case "valid-refresh-token":
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "expired-refresh-token":
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -357,7 +357,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_GetUserInfo(t *testing.T) {
+func TestGoogleProvider_GetUserInfo(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/oauth2/v2/userinfo" {
 			authHeader := r.Header.Get("Authorization")
@@ -413,7 +413,7 @@ import (
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
 				w.WriteHeader(http.StatusUnauthorized)
-				response := json.RawMessage("{}"){
+				response := map[string]interface{}{
 						"code":    401,
 						"message": "Invalid Credentials",
 						"status":  "UNAUTHENTICATED",
@@ -422,7 +422,7 @@ import (
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusForbidden)
-				response := json.RawMessage("{}"){
+				response := map[string]interface{}{
 						"code":    403,
 						"message": "Forbidden",
 						"status":  "PERMISSION_DENIED",
@@ -514,7 +514,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_ValidateToken(t *testing.T) {
+func TestGoogleProvider_ValidateToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/oauth2/v2/userinfo" {
 			authHeader := r.Header.Get("Authorization")
@@ -522,7 +522,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				userInfo := json.RawMessage("{}")
+				userInfo := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
@@ -580,7 +580,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_RevokeToken(t *testing.T) {
+func TestGoogleProvider_RevokeToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/o/oauth2/revoke" {
 			assert.Equal(t, "POST", r.Method)
@@ -594,7 +594,7 @@ import (
 				w.Write([]byte("success"))
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -635,7 +635,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGoogleProvider_DiscoverConfiguration(t *testing.T) {
+func TestGoogleProvider_DiscoverConfiguration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/.well-known/openid_configuration" {
 			config := OIDCConfiguration{
@@ -693,7 +693,7 @@ import (
 	*/
 }
 
-// DISABLED: func TestGoogleProvider_GetConfiguration(t *testing.T) {
+func TestGoogleProvider_GetConfiguration(t *testing.T) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	config := provider.GetConfiguration()
 
@@ -711,7 +711,7 @@ import (
 	assert.Contains(t, config.Features, FeatureTokenRefresh)
 }
 
-// DISABLED: func TestGoogleProvider_WithHostedDomain(t *testing.T) {
+func TestGoogleProvider_WithHostedDomain(t *testing.T) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback", "example.com")
 
 	authURL, _, err := provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback")
@@ -752,7 +752,7 @@ func createMockGoogleServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/token":
-			response := json.RawMessage("{}")
+			response := json.RawMessage(`{}`)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/oauth2/v2/userinfo":
@@ -785,7 +785,7 @@ func createMockGoogleServer() *httptest.Server {
 }
 
 // Test edge cases and error conditions
-// DISABLED: func TestGoogleProvider_EdgeCases(t *testing.T) {
+func TestGoogleProvider_EdgeCases(t *testing.T) {
 	t.Run("Empty client credentials", func(t *testing.T) {
 		provider := NewGoogleProvider("", "", "http://localhost:8080/callback")
 		assert.NotNil(t, provider)
@@ -823,3 +823,4 @@ func createMockGoogleServer() *httptest.Server {
 		assert.Contains(t, err.Error(), "context deadline exceeded")
 	})
 }
+

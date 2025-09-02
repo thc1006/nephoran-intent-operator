@@ -827,7 +827,7 @@ func (s *InMemoryStorage) CheckStorageHealth(ctx context.Context) (*models.Healt
 
 // GetStorageMetrics returns storage metrics.
 func (s *InMemoryStorage) GetStorageMetrics(ctx context.Context) (map[string]interface{}, error) {
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // BeginTransaction begins a transaction.
@@ -1363,3 +1363,4 @@ func (s *InMemoryStorage) applyResourcePagination(resources []*models.Resource, 
 
 	return resources[start:end]
 }
+

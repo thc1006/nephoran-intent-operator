@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// DISABLED: func TestLLMClient(t *testing.T) {
+func TestLLMClient(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "LLM Client Suite")
 }
@@ -28,7 +28,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 		// Create mock server for testing
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Default successful response
-			response := json.RawMessage("{}"){
+			response := map[string]interface{}{
 					"replicas": float64(1),
 					"image":    "test:latest",
 				},
@@ -174,7 +174,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 					return
 				}
 				// Third attempt succeeds
-				response := json.RawMessage("{}"){
+				response := map[string]interface{}{
 						"replicas": float64(1),
 						"image":    "test:latest",
 					},

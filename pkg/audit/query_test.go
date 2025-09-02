@@ -21,7 +21,7 @@ type QueryEngineTestSuite struct {
 	testEvents  []*AuditEvent
 }
 
-// DISABLED: func TestQueryEngineTestSuite(t *testing.T) {
+func TestQueryEngineTestSuite(t *testing.T) {
 	suite.Run(t, new(QueryEngineTestSuite))
 }
 
@@ -67,7 +67,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 			NetworkContext: &NetworkContext{
 				SourcePort: 8080,
 			},
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -85,7 +85,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 			NetworkContext: &NetworkContext{
 				SourcePort: 8080,
 			},
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -105,7 +105,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				ResourceID:   "user123",
 				Operation:    "read",
 			},
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -120,7 +120,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				Username: "charlie",
 				Role:     "operator",
 			},
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -135,7 +135,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				Username: "",
 				Role:     "",
 			},
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -183,7 +183,7 @@ func (suite *QueryEngineTestSuite) TestBasicEventRetrieval() {
 func (suite *QueryEngineTestSuite) TestEventFiltering() {
 	suite.Run("filter by event type", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -195,7 +195,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by multiple event types", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			},
 			Limit: 100,
 		}
@@ -214,7 +214,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by severity", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -226,7 +226,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by severity range", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -242,7 +242,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by component", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -257,7 +257,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by user", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -272,7 +272,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by result", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -467,7 +467,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			TextSearch: "auth",
 			StartTime:  now.Add(-24 * time.Hour),
 			EndTime:    now.Add(-1 * time.Hour),
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 				"result":   "success",
 			},
 			SortBy:    "timestamp",
@@ -489,7 +489,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 
 	suite.Run("nested data filtering", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -500,7 +500,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 
 	suite.Run("user context filtering", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -515,7 +515,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 
 	suite.Run("resource context filtering", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -563,8 +563,8 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 func (suite *QueryEngineTestSuite) TestAggregations() {
 	suite.Run("count by event type", func() {
 		query := &Query{
-			Aggregations: json.RawMessage("{}"){
-					"terms": json.RawMessage("{}"),
+			Aggregations: map[string]interface{}{
+					"terms": json.RawMessage(`{}`),
 				},
 			},
 			Limit: 0, // No events, just aggregations
@@ -578,8 +578,8 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 
 	suite.Run("count by severity", func() {
 		query := &Query{
-			Aggregations: json.RawMessage("{}"){
-					"terms": json.RawMessage("{}"),
+			Aggregations: map[string]interface{}{
+					"terms": json.RawMessage(`{}`),
 				},
 			},
 			Limit: 0,
@@ -593,8 +593,8 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 
 	suite.Run("date histogram", func() {
 		query := &Query{
-			Aggregations: json.RawMessage("{}"){
-					"date_histogram": json.RawMessage("{}"),
+			Aggregations: map[string]interface{}{
+					"date_histogram": json.RawMessage(`{}`),
 				},
 			},
 			Limit: 0,
@@ -625,7 +625,7 @@ func (suite *QueryEngineTestSuite) TestQueryPerformance() {
 		}
 
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			SortBy:    "timestamp",
 			SortOrder: "desc",
 			Limit:     100,
@@ -656,7 +656,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 
 	suite.Run("invalid filter value", func() {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -691,7 +691,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 }
 
 // Query Builder Tests
-// DISABLED: func TestQueryBuilder(t *testing.T) {
+func TestQueryBuilder(t *testing.T) {
 	tests := []struct {
 		name     string
 		builder  func() *QueryBuilder
@@ -706,7 +706,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 					WithLimit(50)
 			},
 			expected: &Query{
-				Filters: json.RawMessage("{}"),
+				Filters: json.RawMessage(`{}`),
 				Limit: 50,
 			},
 		},
@@ -723,7 +723,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 			expected: &Query{
 				StartTime: time.Now().Add(-24 * time.Hour),
 				EndTime:   time.Now(),
-				Filters: json.RawMessage("{}"),
+				Filters: json.RawMessage(`{}`),
 				SortBy:    "timestamp",
 				SortOrder: "desc",
 			},
@@ -735,16 +735,16 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 					WithQuery("error").
 					WithUser("user123").
 					WithResult(ResultFailure).
-					WithAggregation("severity_counts", json.RawMessage("{}"){
+					WithAggregation("severity_counts", map[string]interface{}{
 							"field": "severity",
 						},
 					})
 			},
 			expected: &Query{
 				TextSearch: "error",
-				Filters: json.RawMessage("{}"),
-				Aggregations: json.RawMessage("{}"){
-						"terms": json.RawMessage("{}"),
+				Filters: json.RawMessage(`{}`),
+				Aggregations: map[string]interface{}{
+						"terms": json.RawMessage(`{}`),
 					},
 				},
 			},
@@ -809,7 +809,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 	b.Run("simple filter", func(b *testing.B) {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			Limit: 100,
 		}
 
@@ -821,7 +821,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 	b.Run("complex filter with sort", func(b *testing.B) {
 		query := &Query{
-			Filters: json.RawMessage("{}"),
+			Filters: json.RawMessage(`{}`),
 			},
 			SortBy:    "timestamp",
 			SortOrder: "desc",
@@ -928,3 +928,4 @@ func (qb *QueryBuilder) Build() *Query {
 
 // Re-export backends types for testing
 type QueryResponse = backends.QueryResponse
+

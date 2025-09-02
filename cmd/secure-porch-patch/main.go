@@ -435,7 +435,7 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 
 	// Add security-relevant fields.
 
-	zapConfig.InitialFields = json.RawMessage("{}")
+	zapConfig.InitialFields = json.RawMessage(`{}`)
 
 	zapLogger, err := zapConfig.Build()
 	if err != nil {
@@ -444,3 +444,4 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 
 	return zapr.NewLogger(zapLogger), nil
 }
+

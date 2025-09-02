@@ -438,7 +438,7 @@ func (psa *PredictiveSLAAnalyzer) detectAnomalies(data []*MetricsData, metricNam
 					Deviation:     deviation,
 					Severity:      fmt.Sprintf("%.2f", math.Min(deviation/threshold, 1.0)),
 					AnomalyScore:  math.Min(deviation/threshold, 1.0),
-					Context:       json.RawMessage("{}"),
+					Context:       json.RawMessage(`{}`),
 				})
 			}
 		}
@@ -675,3 +675,4 @@ func (psa *PredictiveSLAAnalyzer) calculateRSquared(x, y []float64, slope, inter
 
 	return 1.0 - (ssRes / ssTot)
 }
+

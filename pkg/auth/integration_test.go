@@ -154,7 +154,7 @@ func (suite *IntegrationTestSuite) setupHTTPServer() {
 		JWTManager:     suite.jwtManager,
 		SessionManager: suite.sessionManager,
 		RBACManager:    suite.rbacManager,
-		OAuthProviders: json.RawMessage("{}"),
+		OAuthProviders: json.RawMessage(`{}`),
 		BaseURL: "http://localhost:8080",
 		Logger:  suite.tc.Logger,
 	})
@@ -224,13 +224,13 @@ func (suite *IntegrationTestSuite) setupHTTPServer() {
 
 func (suite *IntegrationTestSuite) protectedHandler(w http.ResponseWriter, r *http.Request) {
 	userCtx := r.Context().Value("user").(*UserContext)
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 	json.NewEncoder(w).Encode(response)
 }
 
 func (suite *IntegrationTestSuite) adminHandler(w http.ResponseWriter, r *http.Request) {
 	userCtx := r.Context().Value("user").(*UserContext)
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -244,13 +244,13 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	suite.tc.Cleanup()
 }
 
-// DISABLED: func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
+func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
 	// Step 1: Initiate OAuth2 login
 	t.Run("Step 1: Initiate OAuth2 login", func(t *testing.T) {
-		loginReq := json.RawMessage("{}")
+		loginReq := json.RawMessage(`{}`)
 
 		body, _ := json.Marshal(loginReq)
 		resp, err := http.Post(suite.server.URL+"/auth/login", "application/json", bytes.NewReader(body))
@@ -402,13 +402,13 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	})
 }
 
-// DISABLED: func TestIntegration_SessionBasedAuthentication(t *testing.T) {
+func TestIntegration_SessionBasedAuthentication(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
 	// Create session directly for testing
 	ctx := context.Background()
-	session, err := suite.sessionManager.CreateSession(ctx, suite.testUser, json.RawMessage("{}"))
+	session, err := suite.sessionManager.CreateSession(ctx, suite.testUser, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
 	t.Run("Access protected endpoint with session", func(t *testing.T) {
@@ -477,7 +477,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	})
 }
 
-// DISABLED: func TestIntegration_RBACAuthorization(t *testing.T) {
+func TestIntegration_RBACAuthorization(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -602,7 +602,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	}
 }
 
-// DISABLED: func TestIntegration_ErrorScenarios(t *testing.T) {
+func TestIntegration_ErrorScenarios(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -625,7 +625,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 
 	t.Run("Expired token access", func(t *testing.T) {
 		// Create expired token
-		expiredClaims := json.RawMessage("{}")
+		expiredClaims := json.RawMessage(`{}`)
 		expiredToken := suite.tc.CreateTestToken(expiredClaims)
 
 		req, _ := http.NewRequest("GET", suite.server.URL+"/auth/userinfo", nil)
@@ -652,7 +652,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	})
 }
 
-// DISABLED: func TestIntegration_ConcurrentAccess(t *testing.T) {
+func TestIntegration_ConcurrentAccess(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -706,7 +706,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	assert.Less(t, errorRate, 0.01, "Error rate should be less than 1%%: %v", errors[:min(len(errors), 10)])
 }
 
-// DISABLED: func TestIntegration_HealthCheck(t *testing.T) {
+func TestIntegration_HealthCheck(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -730,7 +730,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	assert.Equal(t, "healthy", components["rbac_manager"])
 }
 
-// DISABLED: func TestIntegration_JWKSEndpoint(t *testing.T) {
+func TestIntegration_JWKSEndpoint(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -756,7 +756,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	assert.Equal(t, "RS256", key["alg"])
 }
 
-// DISABLED: func TestIntegration_MiddlewareChaining(t *testing.T) {
+func TestIntegration_MiddlewareChaining(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -791,7 +791,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 
 // LDAP Integration Tests
 
-// DISABLED: func TestIntegration_LDAPAuthenticationFlow(t *testing.T) {
+func TestIntegration_LDAPAuthenticationFlow(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -905,7 +905,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	})
 }
 
-// DISABLED: func TestIntegration_AuthManagerUnified(t *testing.T) {
+func TestIntegration_AuthManagerUnified(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -989,7 +989,7 @@ func (suite *IntegrationTestSuite) Cleanup() {
 	})
 }
 
-// DISABLED: func TestIntegration_CompleteAuthenticationSuite(t *testing.T) {
+func TestIntegration_CompleteAuthenticationSuite(t *testing.T) {
 	suite := NewIntegrationTestSuite(t)
 	defer suite.Cleanup()
 
@@ -1056,3 +1056,4 @@ func min(a, b int) int {
 	}
 	return b
 }
+

@@ -45,7 +45,7 @@ import (
 
 // cannot escape the target directory (G305 security fix)
 
-// DISABLED: func TestPathTraversalProtection(t *testing.T) {
+func TestPathTraversalProtection(t *testing.T) {
 	tests := []struct {
 		name string
 
@@ -310,7 +310,7 @@ func containsImpl(s, substr string) bool {
 
 // to prevent integer overflow issues
 
-// DISABLED: func TestFileModeValidation(t *testing.T) {
+func TestFileModeValidation(t *testing.T) {
 	tests := []struct {
 		name string
 

@@ -12,7 +12,7 @@ import (
 )
 
 // TestControllerConcurrentReconciliation tests concurrent reconciliation for races
-// DISABLED: func TestControllerConcurrentReconciliation(t *testing.T) {
+func TestControllerConcurrentReconciliation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping race test in short mode")
 	}
@@ -54,7 +54,7 @@ import (
 }
 
 // TestNetworkIntentControllerRace tests NetworkIntent controller for races
-// DISABLED: func TestNetworkIntentControllerRace(t *testing.T) {
+func TestNetworkIntentControllerRace(t *testing.T) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -147,7 +147,7 @@ import (
 }
 
 // TestE2NodeSetControllerConcurrency tests E2NodeSet controller races
-// DISABLED: func TestE2NodeSetControllerConcurrency(t *testing.T) {
+func TestE2NodeSetControllerConcurrency(t *testing.T) {
 	runner := racetest.NewRunner(t, racetest.DefaultConfig())
 
 	// Simulate E2NodeSet state management
@@ -190,7 +190,7 @@ import (
 }
 
 // TestParallelControllerEngine tests parallel controller engine for races
-// DISABLED: func TestParallelControllerEngine(t *testing.T) {
+func TestParallelControllerEngine(t *testing.T) {
 	atomicTest := racetest.NewAtomicRaceTest(t)
 
 	var processedCount atomic.Int64
@@ -203,7 +203,7 @@ import (
 }
 
 // TestControllerQueueRace tests work queue race conditions
-// DISABLED: func TestControllerQueueRace(t *testing.T) {
+func TestControllerQueueRace(t *testing.T) {
 	type workQueue struct {
 		mu       sync.Mutex
 		items    []string
@@ -273,7 +273,7 @@ func BenchmarkControllerConcurrency(b *testing.B) {
 }
 
 // TestControllerLeaderElection tests leader election race conditions
-// DISABLED: func TestControllerLeaderElection(t *testing.T) {
+func TestControllerLeaderElection(t *testing.T) {
 	type leaderElection struct {
 		mu       sync.Mutex
 		leader   string

@@ -152,7 +152,7 @@ func benchmarkJSONProcessing() int64 {
 	processor := performance.NewJSONOptimized()
 
 	// Test data
-	testData := json.RawMessage("{}"){
+	testData := json.RawMessage(`{}`){
 			"networkFunction": "AMF",
 			"parameters":      []string{"param1", "param2", "param3"},
 		},
@@ -438,3 +438,4 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 
 	fmt.Println("?’¾ Current metrics saved as new baseline")
 }
+

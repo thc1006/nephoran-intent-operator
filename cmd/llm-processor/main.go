@@ -99,7 +99,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 		response["type"] = "NetworkFunctionDeployment"
 		response["name"] = "test-deployment"
 		response["namespace"] = "5g-core"
-		response["spec"] = json.RawMessage("{}")
+		response["spec"] = json.RawMessage(`{}`)
 	}
 
 	// Convert back to JSON string
@@ -887,3 +887,4 @@ func getClientIP(r *http.Request) string {
 
 	return r.RemoteAddr
 }
+

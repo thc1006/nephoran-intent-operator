@@ -1168,7 +1168,7 @@ func (oe *OptimizationEngine) GetModelMetrics() map[string]interface{} {
 	metrics := make(map[string]interface{})
 
 	for name, model := range oe.models {
-		metrics[name] = json.RawMessage("{}")
+		metrics[name] = json.RawMessage(`{}`)
 	}
 
 	return metrics
@@ -1393,3 +1393,4 @@ func (icm *IntentClassificationModel) UpdateModel(ctx context.Context) error {
 
 	return nil
 }
+

@@ -32,6 +32,7 @@ package shared
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -334,6 +335,14 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName types.NamespacedName, newPhase interfaces.ProcessingPhase, metadata map[string]interface{}) error {
 	return sm.UpdateIntentState(ctx, namespacedName, func(state *IntentState) error {
 		// Record phase transition.
+		var metadataBytes json.RawMessage
+		if metadata != nil {
+			if bytes, err := json.Marshal(metadata); err == nil {
+				metadataBytes = bytes
+			}
+		} else {
+			metadataBytes = json.RawMessage(`{}`)
+		}
 
 		transition := PhaseTransition{
 			FromPhase: state.CurrentPhase,
@@ -342,7 +351,7 @@ func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName type
 
 			Timestamp: time.Now(),
 
-			Metadata: metadata,
+			Metadata: metadataBytes,
 		}
 
 		state.PhaseTransitions = append(state.PhaseTransitions, transition)
@@ -551,7 +560,7 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 
 		Dependencies: make([]IntentDependency, 0, 3),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Initialize basic condition based on phase.
@@ -573,13 +582,19 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 	// Extract metadata from annotations.
 
 	if intent.Annotations != nil {
+		metadata := make(map[string]interface{})
 		for key, value := range intent.Annotations {
 			if key == "nephoran.io/dependencies" {
 				// Parse dependencies from annotation.
 
 				// This is a simplified implementation.
 
-				state.Metadata["dependencies"] = value
+				metadata["dependencies"] = value
+			}
+		}
+		if len(metadata) > 0 {
+			if metadataBytes, err := json.Marshal(metadata); err == nil {
+				state.Metadata = metadataBytes
 			}
 		}
 	}
@@ -814,3 +829,4 @@ func (sm *StateManager) collectMetrics() {
 
 	sm.metrics.RecordActiveLocks(sm.stateLocks.ActiveLocks())
 }
+

@@ -183,7 +183,7 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 
 		Vectorizer: "text2vec-openai",
 
-		ModuleConfig: json.RawMessage("{}"){
+		ModuleConfig: json.RawMessage(`{}`){
 				"model": "text-embedding-3-small",
 			},
 		},
@@ -350,7 +350,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 
 			Class: "TelecomDocument",
 
-			Properties: json.RawMessage("{}"),
+			Properties: json.RawMessage(`{}`),
 
 			Vector: f.generateMockEmbedding(doc.content),
 
@@ -432,7 +432,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 
 			Class: "NetworkFunction",
 
-			Properties: json.RawMessage("{}"),
+			Properties: json.RawMessage(`{}`),
 
 			Vector: f.generateMockEmbedding(nf.description + " " + nf.deploymentRequirements),
 
@@ -852,3 +852,4 @@ func (f *FakeWeaviateServer) Reset() {
 
 	f.initializeWithTelecomSchema()
 }
+

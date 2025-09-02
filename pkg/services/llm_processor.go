@@ -369,7 +369,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 			}
 		})
 	}
@@ -481,3 +481,4 @@ func (s *LLMProcessorService) GetAsyncProcessor() interface{} {
 }
 
 // Note: Helper functions have been moved to pkg/config/env_helpers.go.
+

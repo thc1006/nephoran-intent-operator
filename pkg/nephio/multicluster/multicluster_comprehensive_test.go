@@ -155,7 +155,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // ClusterManager Tests
-// DISABLED: func TestClusterManager_RegisterCluster(t *testing.T) {
+func TestClusterManager_RegisterCluster(t *testing.T) {
 	tests := []struct {
 		name          string
 		clusterName   types.NamespacedName
@@ -224,7 +224,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	}
 }
 
-// DISABLED: func TestClusterManager_SelectTargetClusters(t *testing.T) {
+func TestClusterManager_SelectTargetClusters(t *testing.T) {
 	tests := []struct {
 		name             string
 		candidates       []types.NamespacedName
@@ -310,7 +310,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	}
 }
 
-// DISABLED: func TestClusterManager_HealthMonitoring(t *testing.T) {
+func TestClusterManager_HealthMonitoring(t *testing.T) {
 	cm := createTestClusterManager(t)
 
 	// Register test clusters
@@ -340,7 +340,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // PackagePropagator Tests
-// DISABLED: func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
+func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 	propagator := createTestPackagePropagator(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 
@@ -382,7 +382,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	assert.Nil(t, status)
 }
 
-// DISABLED: func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
+func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 	propagator := createTestPackagePropagator(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 
@@ -424,7 +424,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	assert.Nil(t, status)
 }
 
-// DISABLED: func TestPackagePropagator_ValidateDeploymentOptions(t *testing.T) {
+func TestPackagePropagator_ValidateDeploymentOptions(t *testing.T) {
 	propagator := createTestPackagePropagator(t)
 
 	tests := []struct {
@@ -475,7 +475,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // SyncEngine Tests
-// DISABLED: func TestSyncEngine_SyncPackageToCluster(t *testing.T) {
+func TestSyncEngine_SyncPackageToCluster(t *testing.T) {
 	syncEngine := createTestSyncEngine(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
@@ -489,7 +489,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	assert.Equal(t, nephiov1alpha1.DeploymentStatusSucceeded, status.Status)
 }
 
-// DISABLED: func TestSyncEngine_ValidatePackage(t *testing.T) {
+func TestSyncEngine_ValidatePackage(t *testing.T) {
 	syncEngine := createTestSyncEngine(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 
@@ -538,7 +538,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	}
 }
 
-// DISABLED: func TestSyncEngine_ExecuteSyncMethod(t *testing.T) {
+func TestSyncEngine_ExecuteSyncMethod(t *testing.T) {
 	syncEngine := createTestSyncEngine(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
@@ -592,7 +592,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // HealthMonitor Tests
-// DISABLED: func TestHealthMonitor_StartHealthMonitoring(t *testing.T) {
+func TestHealthMonitor_StartHealthMonitoring(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 
 	// Register a cluster for monitoring
@@ -620,7 +620,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	assert.True(t, cluster.LastHealthCheck.After(time.Now().Add(-time.Minute)))
 }
 
-// DISABLED: func TestHealthMonitor_RegisterHealthChannel(t *testing.T) {
+func TestHealthMonitor_RegisterHealthChannel(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 	clusterName := createTestClusterName("test-cluster", "default")
 
@@ -638,7 +638,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	healthMonitor.UnregisterHealthChannel(clusterName)
 }
 
-// DISABLED: func TestHealthMonitor_AlertHandling(t *testing.T) {
+func TestHealthMonitor_AlertHandling(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 	mockHandler := &MockAlertHandler{}
 
@@ -670,7 +670,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	assert.Equal(t, 2, mockHandler.GetAlertsCount())
 }
 
-// DISABLED: func TestHealthMonitor_NotifyHealthChannels(t *testing.T) {
+func TestHealthMonitor_NotifyHealthChannels(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 	clusterName := createTestClusterName("test-cluster", "default")
 
@@ -709,7 +709,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // Customizer Tests
-// DISABLED: func TestCustomizer_ExtractCustomizationOptions(t *testing.T) {
+func TestCustomizer_ExtractCustomizationOptions(t *testing.T) {
 	customizer := createTestCustomizer(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
@@ -725,7 +725,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 	assert.Equal(t, 3, options.Resources.Replicas)
 }
 
-// DISABLED: func TestCustomizer_CustomizePackage(t *testing.T) {
+func TestCustomizer_CustomizePackage(t *testing.T) {
 	customizer := createTestCustomizer(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
@@ -739,7 +739,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // Integration Tests
-// DISABLED: func TestMultiCluster_IntegrationFlow(t *testing.T) {
+func TestMultiCluster_IntegrationFlow(t *testing.T) {
 	// Create all components
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
@@ -814,7 +814,7 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 }
 
 // Concurrent Testing
-// DISABLED: func TestMultiCluster_ConcurrentOperations(t *testing.T) {
+func TestMultiCluster_ConcurrentOperations(t *testing.T) {
 	clusterMgr := createTestClusterManager(t)
 	config := createTestClusterConfig()
 

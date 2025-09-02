@@ -1645,7 +1645,7 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "process_intent",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-			return json.RawMessage("{}"), nil
+			return json.RawMessage(`{}`), nil
 		},
 
 		Priority: 1,
@@ -1663,7 +1663,7 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "query",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-			return json.RawMessage("{}"), nil
+			return json.RawMessage(`{}`), nil
 		},
 
 		Priority: 1,
@@ -1756,3 +1756,4 @@ func getDefaultAdvancedRecoveryConfig() *AdvancedRecoveryConfig {
 
 	}
 }
+

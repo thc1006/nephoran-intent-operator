@@ -15,7 +15,7 @@ import (
 )
 
 // TestCrossPlatformFixesValidation validates that our cross-platform fixes work correctly
-// DISABLED: func TestCrossPlatformFixesValidation(t *testing.T) {
+func TestCrossPlatformFixesValidation(t *testing.T) {
 	t.Run("porch_CreateCrossPlatformMock", func(t *testing.T) {
 		tempDir := t.TempDir()
 
@@ -120,7 +120,7 @@ import (
 }
 
 // TestCrossPlatformFixesIntegration tests the actual fixes we made
-// DISABLED: func TestCrossPlatformFixesIntegration(t *testing.T) {
+func TestCrossPlatformFixesIntegration(t *testing.T) {
 	t.Run("no_hardcoded_bat_extensions", func(t *testing.T) {
 		// This test verifies that we don't create .bat files on non-Windows systems
 		if runtime.GOOS == "windows" {
@@ -166,7 +166,7 @@ import (
 }
 
 // TestOriginalIssueFixed tests that the specific CI issue is resolved
-// DISABLED: func TestOriginalIssueFixed(t *testing.T) {
+func TestOriginalIssueFixed(t *testing.T) {
 	t.Run("TestOnceMode_ExitCodes_equivalent", func(t *testing.T) {
 		// This simulates the original failing test scenario
 		tempDir := t.TempDir()

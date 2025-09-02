@@ -1613,7 +1613,7 @@ func (h *A1Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) 
 
 		Version: "1.0.0",
 
-		Components: json.RawMessage("{}"),
+		Components: json.RawMessage(`{}`),
 	}
 
 	w.Header().Set("Content-Type", ContentTypeJSON)
@@ -1690,3 +1690,4 @@ func (h *A1Handlers) ReadinessCheckHandler(w http.ResponseWriter, r *http.Reques
 
 	json.NewEncoder(w).Encode(healthCheck)
 }
+

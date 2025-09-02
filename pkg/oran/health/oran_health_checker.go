@@ -247,7 +247,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-a1",
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 	})
 
@@ -297,7 +297,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-e2",
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 	})
 
@@ -337,7 +337,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-o1",
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 	})
 
@@ -375,7 +375,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-o2",
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 	})
 
@@ -666,3 +666,4 @@ func errorString(err error) string {
 
 	return err.Error()
 }
+

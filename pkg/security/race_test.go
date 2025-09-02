@@ -16,7 +16,7 @@ import (
 )
 
 // TestCertificateManagerRaceConditions tests concurrent certificate operations
-// DISABLED: func TestCertificateManagerRaceConditions(t *testing.T) {
+func TestCertificateManagerRaceConditions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping race test in short mode")
 	}
@@ -77,7 +77,7 @@ import (
 }
 
 // TestTLSSessionCacheRace tests TLS session cache concurrent access
-// DISABLED: func TestTLSSessionCacheRace(t *testing.T) {
+func TestTLSSessionCacheRace(t *testing.T) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -158,7 +158,7 @@ import (
 }
 
 // TestRBACAuthorizationRace tests RBAC authorization under concurrent load
-// DISABLED: func TestRBACAuthorizationRace(t *testing.T) {
+func TestRBACAuthorizationRace(t *testing.T) {
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines: 100,
 		Iterations: 100,
@@ -240,7 +240,7 @@ import (
 }
 
 // TestSecretRotationRace tests secret rotation with concurrent access
-// DISABLED: func TestSecretRotationRace(t *testing.T) {
+func TestSecretRotationRace(t *testing.T) {
 	atomicTest := racetest.NewAtomicRaceTest(t)
 
 	secretManager := &secretRotationManager{
@@ -295,7 +295,7 @@ import (
 }
 
 // TestCryptoKeyPoolRace tests cryptographic key pool management
-// DISABLED: func TestCryptoKeyPoolRace(t *testing.T) {
+func TestCryptoKeyPoolRace(t *testing.T) {
 	mutexTest := racetest.NewMutexRaceTest(t)
 
 	keyPool := &cryptoKeyPool{
@@ -355,7 +355,7 @@ import (
 }
 
 // TestAuditLogRace tests concurrent audit log writes
-// DISABLED: func TestAuditLogRace(t *testing.T) {
+func TestAuditLogRace(t *testing.T) {
 	channelTest := racetest.NewChannelRaceTest(t)
 
 	auditChan := make(chan *auditEntry, 100)
@@ -425,7 +425,7 @@ import (
 }
 
 // TestDeadlockDetectionInSecurity tests for potential deadlocks
-// DISABLED: func TestDeadlockDetectionInSecurity(t *testing.T) {
+func TestDeadlockDetectionInSecurity(t *testing.T) {
 	type multiLockSystem struct {
 		lock1 sync.Mutex
 		lock2 sync.Mutex

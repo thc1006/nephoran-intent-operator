@@ -477,7 +477,7 @@ var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {
 				ServiceID: "5g-data",
 				StartTime: time.Now().Add(-10 * time.Minute),
 				EndTime:   time.Now(),
-				ResourceUsage: json.RawMessage("{}"),
+				ResourceUsage: json.RawMessage(`{}`),
 			}
 
 			isFraud, fraudType, err := accountingMgr.DetectFraud(ctx, fraudulentUsage)
@@ -831,7 +831,8 @@ func handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DISABLED: func TestO1FCAPSIntegration(t *testing.T) {
+func TestO1FCAPSIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "O1 FCAPS Integration Test Suite")
 }
+

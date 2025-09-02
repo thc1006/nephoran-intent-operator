@@ -887,7 +887,7 @@ func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 
 		ValidationSplit: 0.2,
 
-		Hyperparameters: json.RawMessage("{}"),
+		Hyperparameters: json.RawMessage(`{}`),
 	}
 
 	return model, nil
@@ -1659,7 +1659,7 @@ func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLATyp
 
 		Timestamp: time.Now().Add(horizon),
 
-		Components: json.RawMessage("{}"),
+		Components: json.RawMessage(`{}`),
 	}
 
 	pa.logger.DebugWithContext("Generated forecast",
@@ -1831,3 +1831,4 @@ func (pa *PredictiveAlerting) generateForecasts(ctx context.Context) {
 
 	}
 }
+

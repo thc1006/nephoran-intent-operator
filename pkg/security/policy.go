@@ -90,7 +90,7 @@ func NewExecutionSecurityPolicy(name, version string) *ExecutionSecurityPolicy {
 		Name:      name,
 		Version:   version,
 		Rules:     make([]ExecutionPolicyRule, 0),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -210,7 +210,7 @@ func (p *ExecutionSecurityPolicy) Clone() *ExecutionSecurityPolicy {
 		Name:      p.Name,
 		Version:   p.Version,
 		Rules:     make([]ExecutionPolicyRule, len(p.Rules)),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

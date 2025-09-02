@@ -375,7 +375,7 @@ func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.N
 
 		RecoveryActions: make([]RecoveryAction, 0),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Store attempt.
@@ -860,7 +860,7 @@ func (rm *RecoveryManager) executeRestartRecovery(ctx context.Context, attempt *
 
 	// Transition back to the current phase to restart.
 
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	if err := rm.stateManager.TransitionPhase(ctx, attempt.IntentName, attempt.Phase, metadata); err != nil {
 
@@ -894,7 +894,7 @@ func (rm *RecoveryManager) executeRollbackRecovery(ctx context.Context, attempt 
 
 	// Transition to previous phase.
 
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	if err := rm.stateManager.TransitionPhase(ctx, attempt.IntentName, previousPhase, metadata); err != nil {
 
@@ -924,7 +924,7 @@ func (rm *RecoveryManager) executeSkipRecovery(ctx context.Context, attempt *Rec
 
 	// Transition to next phase.
 
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	if err := rm.stateManager.TransitionPhase(ctx, attempt.IntentName, nextPhase, metadata); err != nil {
 
@@ -949,7 +949,7 @@ func (rm *RecoveryManager) addRecoveryAction(attempt *RecoveryAttempt, actionTyp
 
 		Success: success,
 
-		Data: make(map[string]interface{}),
+		Data: json.RawMessage(`{}`),
 	}
 
 	if err != nil {
@@ -1132,3 +1132,4 @@ type RecoveryStats struct {
 
 	AttemptsByStrategy map[string]int `json:"attemptsByStrategy"`
 }
+

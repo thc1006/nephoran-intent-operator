@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestNewValidator(t *testing.T) {
+func TestNewValidator(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
@@ -144,7 +144,7 @@ import (
 	})
 }
 
-// DISABLED: func TestValidatorValidateIntent(t *testing.T) {
+func TestValidatorValidateIntent(t *testing.T) {
 	// Setup validator with valid schema
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
@@ -331,7 +331,7 @@ import (
 	})
 }
 
-// DISABLED: func TestValidatorValidateJSON(t *testing.T) {
+func TestValidatorValidateJSON(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
@@ -423,7 +423,7 @@ import (
 	})
 }
 
-// DISABLED: func TestValidatorMetrics(t *testing.T) {
+func TestValidatorMetrics(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
@@ -504,7 +504,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidatorLogging(t *testing.T) {
+func TestValidatorLogging(t *testing.T) {
 	// Use a custom logger to capture logs
 	var logOutput []string
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -551,7 +551,7 @@ import (
 }
 
 // TestSchemaValidationErrorHandling tests comprehensive error scenarios for schema validation
-// DISABLED: func TestSchemaValidationErrorHandling(t *testing.T) {
+func TestSchemaValidationErrorHandling(t *testing.T) {
 	// Setup validator with valid schema
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
@@ -836,7 +836,7 @@ import (
 }
 
 // TestMalformedJSONInputs tests various malformed JSON scenarios
-// DISABLED: func TestMalformedJSONInputs(t *testing.T) {
+func TestMalformedJSONInputs(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
@@ -918,7 +918,7 @@ import (
 }
 
 // TestSchemaFileCorruption tests various schema file corruption scenarios
-// DISABLED: func TestSchemaFileCorruption(t *testing.T) {
+func TestSchemaFileCorruption(t *testing.T) {
 	tests := []struct {
 		name          string
 		schemaContent string
@@ -1020,7 +1020,7 @@ import (
 }
 
 // TestEdgeCaseValidation tests edge cases in validation logic
-// DISABLED: func TestEdgeCaseValidation(t *testing.T) {
+func TestEdgeCaseValidation(t *testing.T) {
 	// Setup validator
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")

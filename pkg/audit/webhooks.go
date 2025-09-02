@@ -760,7 +760,7 @@ func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.Admissi
 
 	// Example: Add security labels.
 
-	patches = append(patches, json.RawMessage("{}"))
+	patches = append(patches, json.RawMessage(`{}`))
 
 	return patches
 }
@@ -1073,3 +1073,4 @@ func convertExtraValues(extra map[string]authenticationv1.ExtraValue) map[string
 
 	return result
 }
+

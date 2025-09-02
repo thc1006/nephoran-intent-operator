@@ -32,7 +32,7 @@ type ChaosTestSuite struct {
 	networkEmulator *NetworkEmulator
 }
 
-// DISABLED: func TestChaosTestSuite(t *testing.T) {
+func TestChaosTestSuite(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping chaos tests in short mode")
 	}
@@ -784,7 +784,7 @@ func createChaosTestEvent(action string) *AuditEvent {
 		UserContext: &UserContext{
 			UserID: "chaos-test-user",
 		},
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 }
 
@@ -822,7 +822,7 @@ func createSizedChaosEvent(action string, targetSize int) *AuditEvent {
 		Action:    action,
 		Severity:  SeverityInfo,
 		Result:    ResultSuccess,
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 }
 
@@ -1278,3 +1278,4 @@ func (ne *NetworkEmulator) SimulateNetworkCall(ctx context.Context, data []byte)
 
 	return nil
 }
+

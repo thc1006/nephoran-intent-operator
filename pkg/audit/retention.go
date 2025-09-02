@@ -463,7 +463,7 @@ func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 
 	for name, policy := range rm.policies {
 
-		policyStatus := json.RawMessage("{}")
+		policyStatus := json.RawMessage(`{}`)
 
 		// Add legal hold information.
 
@@ -913,3 +913,4 @@ func DefaultRetentionConfig() *RetentionConfig {
 		},
 	}
 }
+

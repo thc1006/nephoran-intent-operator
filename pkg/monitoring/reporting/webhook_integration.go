@@ -700,7 +700,6 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			for _, claim := range event.Report.PerformanceClaims {
 
 				status := "??
-
 				if claim.Status == "FAIL" {
 					status = "??
 				}
@@ -818,7 +817,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			IconEmoji: ":rotating_light:",
 
-			Text: "?”´ Performance Regression Detected",
+			Text: "?š¨ Performance Regression Detected",
 
 			Attachments: []SlackAttachment{
 				{
@@ -1049,7 +1048,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 
 			Sections: []TeamsSection{
 				{
-					ActivityTitle: "?”´ Performance Regression Detected",
+					ActivityTitle: "?š¨ Performance Regression Detected",
 
 					ActivitySubtitle: fmt.Sprintf("Severity: %s", event.Regression.RegressionSeverity),
 
@@ -1141,7 +1140,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 
 				Class: "performance-monitoring",
 
-				Details: json.RawMessage("{}"),
+				Details: json.RawMessage(`{}`),
 			},
 
 			Links: []PagerDutyLink{
@@ -1181,7 +1180,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 
 				Class: "performance-regression",
 
-				Details: json.RawMessage("{}"),
+				Details: json.RawMessage(`{}`),
 			},
 
 			Links: []PagerDutyLink{
@@ -1221,7 +1220,14 @@ func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event Webhook
 
 		Report: event.Report,
 
-		CustomData: event.CustomData,
+		CustomData: func() json.RawMessage {
+			if event.CustomData != nil {
+				if data, err := json.Marshal(event.CustomData); err == nil {
+					return json.RawMessage(data)
+				}
+			}
+			return json.RawMessage(`{}`)
+		}(),
 	}
 
 	// Set severity based on event type.
@@ -1438,3 +1444,4 @@ func parseSeverity(severity string) int {
 
 	}
 }
+

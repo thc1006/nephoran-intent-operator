@@ -12,7 +12,7 @@ import (
 )
 
 // TestSLAAlertingSystemIntegration demonstrates the complete SLA alerting workflow
-// DISABLED: func TestSLAAlertingSystemIntegration(t *testing.T) {
+func TestSLAAlertingSystemIntegration(t *testing.T) {
 	ctx := context.Background()
 	logger := logging.NewLogger("test", "debug")
 
@@ -337,7 +337,7 @@ func testEscalationWorkflow(t *testing.T, ctx context.Context, sam *SLAAlertMana
 }
 
 // TestSLAMetricsAndObservability tests metrics and monitoring capabilities
-// DISABLED: func TestSLAMetricsAndObservability(t *testing.T) {
+func TestSLAMetricsAndObservability(t *testing.T) {
 	ctx := context.Background()
 	logger := logging.NewLogger("test", "debug")
 
@@ -374,7 +374,7 @@ func testEscalationWorkflow(t *testing.T, ctx context.Context, sam *SLAAlertMana
 }
 
 // TestSLAAlertingConfiguration tests configuration management
-// DISABLED: func TestSLAAlertingConfiguration(t *testing.T) {
+func TestSLAAlertingConfiguration(t *testing.T) {
 	// Test default configuration
 	config := DefaultSLAAlertConfig()
 	assert.Equal(t, 30*time.Second, config.EvaluationInterval)

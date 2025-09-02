@@ -107,9 +107,10 @@ func (ah *AuthenticatedLLMProcessorHandler) writeAuthError(w http.ResponseWriter
 
 	w.WriteHeader(http.StatusUnauthorized)
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	// Ignore JSON encoding error - error would be written to response writer anyway.
 
 	_ = json.NewEncoder(w).Encode(response)
 }
+

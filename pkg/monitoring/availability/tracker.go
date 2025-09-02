@@ -972,11 +972,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 		Layer: endpoint.Layer,
 
-		Metadata: json.RawMessage("{}")
-
-				return 0
-			}(),
-		},
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1151,7 +1147,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}, nil
 	}
 
@@ -1202,7 +1198,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 	return &ComponentStatus{
 		Status: status,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1231,7 +1227,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}, nil
 	}
 
@@ -1256,7 +1252,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 	return &ComponentStatus{
 		Status: status,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1285,7 +1281,7 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}, nil
 	}
 
@@ -1298,7 +1294,7 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 	return &ComponentStatus{
 		Status: HealthHealthy,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1433,6 +1429,7 @@ func (ujc *UserJourneyCollector) collectJourneyMetric(ctx context.Context, journ
 
 		Layer: LayerAPI, // Most user journeys are API-driven
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
+

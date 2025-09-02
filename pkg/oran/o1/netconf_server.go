@@ -3,6 +3,7 @@ package o1
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -986,7 +987,7 @@ func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession,
 func (ns *NetconfServer) handleGet(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
 	// Basic get operation - returns operational data.
 
-	response.Data = json.RawMessage("{}")
+	response.Data = json.RawMessage(`{}`)
 
 	response.OK = &struct{}{}
 }
@@ -994,7 +995,7 @@ func (ns *NetconfServer) handleGet(ctx context.Context, session *NetconfSession,
 func (ns *NetconfServer) handleGetConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
 	// Get configuration data.
 
-	response.Data = json.RawMessage("{}")
+	response.Data = json.RawMessage(`{}`)
 
 	response.OK = &struct{}{}
 }
@@ -1219,8 +1220,8 @@ func (ns *NetconfServer) GetSessions() map[string]interface{} {
 
 	sessions := make(map[string]interface{})
 
-	for id, session := range ns.sessions {
-		sessions[id] = json.RawMessage("{}")
+	for id, _ := range ns.sessions {
+		sessions[id] = json.RawMessage(`{}`)
 	}
 
 	return sessions
@@ -1263,3 +1264,4 @@ func NewNetconfDatastore() *NetconfDatastore {
 		locks: make(map[string]string),
 	}
 }
+

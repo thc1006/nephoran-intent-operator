@@ -7,7 +7,7 @@ import (
 )
 
 // TestIntegerOverflowProtection verifies that integer conversions are safe from overflow.
-// DISABLED: func TestIntegerOverflowProtection(t *testing.T) {
+func TestIntegerOverflowProtection(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    int
@@ -54,7 +54,7 @@ import (
 }
 
 // TestDurationToUint64Conversion verifies safe conversion of duration to uint64.
-// DISABLED: func TestDurationToUint64Conversion(t *testing.T) {
+func TestDurationToUint64Conversion(t *testing.T) {
 	tests := []struct {
 		name     string
 		duration time.Duration

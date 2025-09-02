@@ -382,7 +382,7 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 		)
 	}()
 
-	status := json.RawMessage("{}")
+	status := json.RawMessage(`{}`)
 
 	h.writeJSONResponse(w, status, http.StatusOK)
 }
@@ -544,7 +544,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 		)
 	}()
 
-	metrics := json.RawMessage("{}")
+	metrics := json.RawMessage(`{}`)
 
 	// Add token manager metrics.
 
@@ -719,7 +719,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 
 		Status: "success",
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	return processedResult, nil
@@ -849,7 +849,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 }
 
 func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int, requestID string) {
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	if requestID != "" {
 
@@ -861,3 +861,4 @@ func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message 
 
 	h.writeJSONResponse(w, response, statusCode)
 }
+

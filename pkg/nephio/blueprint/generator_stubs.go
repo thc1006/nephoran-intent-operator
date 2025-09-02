@@ -277,26 +277,26 @@ func (g *Generator) generateXAppDescriptor(genCtx *GenerationContext) (string, e
 // Template data building helpers.
 
 func (g *Generator) buildRICTemplateData(genCtx *GenerationContext, ricType string) map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func (g *Generator) buildXAppTemplateData(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func (g *Generator) buildNetworkSliceTemplateData(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage("{}"),
+	return json.RawMessage(`{}`),
 		},
 	}
 }
 
 func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage("{}"){
-			"up_nodes": json.RawMessage("{}"){
+	return json.RawMessage(`{}`){
+			"up_nodes": json.RawMessage(`{}`){
 					"type": "AN",
 				},
 			},
@@ -305,7 +305,7 @@ func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interfa
 }
 
 func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage("{}"){
+	return json.RawMessage(`{}`){
 			"forwarder": "gtp5g",
 		},
 	}
@@ -316,7 +316,7 @@ func (g *Generator) extractResources(deployConfig map[string]interface{}) map[st
 		return resources
 	}
 
-	return json.RawMessage("{}"),
+	return json.RawMessage(`{}`),
 
 		"limits": map[string]string{"cpu": "500m", "memory": "512Mi"},
 	}
@@ -377,3 +377,4 @@ func (g *Generator) generateGrafanaDashboard(genCtx *GenerationContext) (string,
 func (g *Generator) generateAlertRules(genCtx *GenerationContext) (string, error) {
 	return `# Prometheus AlertRules placeholder`, nil
 }
+

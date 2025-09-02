@@ -5,6 +5,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"runtime"
@@ -1049,7 +1050,7 @@ func (w *Worker) processLLMTask(ctx context.Context, task *Task) (interface{}, e
 
 	time.Sleep(time.Millisecond * 100) // Simulate processing time
 
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // Background routines.
@@ -1178,7 +1179,7 @@ func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, e
 
 	time.Sleep(time.Millisecond * 150) // Simulate processing time
 
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // processBatchTask processes batch-specific tasks.
@@ -1190,7 +1191,7 @@ func (w *Worker) processBatchTask(ctx context.Context, task *Task) (interface{},
 
 	time.Sleep(time.Millisecond * 200) // Simulate processing time
 
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 func getDefaultWorkerPoolConfig() *WorkerPoolConfig {
@@ -1525,5 +1526,11 @@ func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 // GetStatus returns current worker pool status information.
 
 func (wp *WorkerPool) GetStatus() map[string]interface{} {
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"min_workers":     wp.config.MinWorkers,
+		"max_workers":     wp.config.MaxWorkers,
+		"current_workers": len(wp.workers),
+		"worker_count":    wp.workerCount,
+	}
 }
+

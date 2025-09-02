@@ -34,7 +34,7 @@ var (
 	mgr       ctrl.Manager
 )
 
-// DISABLED: func TestIntentPipeline(t *testing.T) {
+func TestIntentPipeline(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Intent Pipeline Integration Test Suite")
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// DISABLED: func TestO1Config(t *testing.T) {
+func TestO1Config(t *testing.T) {
 	testCases := []struct {
 		name          string
 		config        *O1Config

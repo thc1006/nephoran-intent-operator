@@ -635,7 +635,7 @@ func (drm *DisasterRecoveryManager) performHealthChecks(ctx context.Context) {
 
 					Timestamp: time.Now(),
 
-					Metadata: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
 				})
 
 			}
@@ -807,7 +807,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 
 			Timestamp: time.Now(),
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		})
 
 		return err
@@ -1273,3 +1273,4 @@ func (drm *DisasterRecoveryManager) waitForStatefulSetReady(ctx context.Context,
 
 	}
 }
+

@@ -139,49 +139,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: json.RawMessage("{}"),
-
-							Children: map[string]*YANGNode{
-								"name": {
-									Name: "name",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Mandatory: true,
-								},
-
-								"class": {
-									Name: "class",
-
-									Type: "leaf",
-
-									DataType: "string",
-								},
-
-								"state": {
-									Name: "state",
-
-									Type: "container",
-
-									Children: map[string]*YANGNode{
-										"name": {
-											Name: "name",
-
-											Type: "leaf",
-
-											DataType: "string",
-
-											Config: false,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Schema: json.RawMessage(`{}`),
 		},
 
 		{
@@ -197,85 +155,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: json.RawMessage("{}"),
-
-							Children: map[string]*YANGNode{
-								"name": {
-									Name: "name",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Mandatory: true,
-								},
-
-								"status": {
-									Name: "status",
-
-									Type: "leaf",
-
-									DataType: "enumeration",
-
-									Constraints: json.RawMessage("{}"),
-									},
-								},
-
-								"active": {
-									Name: "active",
-
-									Type: "leaf",
-
-									DataType: "boolean",
-								},
-
-								"running": {
-									Name: "running",
-
-									Type: "leaf",
-
-									DataType: "boolean",
-								},
-
-								"access": {
-									Name: "access",
-
-									Type: "leaf",
-
-									DataType: "enumeration",
-
-									Constraints: json.RawMessage("{}"),
-									},
-								},
-
-								"build-info": {
-									Name: "build-info",
-
-									Type: "container",
-
-									Children: map[string]*YANGNode{
-										"build-name": {
-											Name: "build-name",
-
-											Type: "leaf",
-
-											DataType: "string",
-										},
-
-										"build-version": {
-											Name: "build-version",
-
-											Type: "leaf",
-
-											DataType: "string",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Schema: json.RawMessage(`{}`),
 		},
 
 		{
@@ -291,67 +171,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: json.RawMessage("{}"),
-
-							Children: map[string]*YANGNode{
-								"measurement-object-id": {
-									Name: "measurement-object-id",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Mandatory: true,
-								},
-
-								"object-unit": {
-									Name: "object-unit",
-
-									Type: "leaf",
-
-									DataType: "string",
-								},
-
-								"function": {
-									Name: "function",
-
-									Type: "leaf",
-
-									DataType: "string",
-								},
-
-								"measurement-type": {
-									Name: "measurement-type",
-
-									Type: "list",
-
-									Keys: []string{"measurement-type-id"},
-
-									Children: map[string]*YANGNode{
-										"measurement-type-id": {
-											Name: "measurement-type-id",
-
-											Type: "leaf",
-
-											DataType: "string",
-
-											Mandatory: true,
-										},
-
-										"measurement-description": {
-											Name: "measurement-description",
-
-											Type: "leaf",
-
-											DataType: "string",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Schema: json.RawMessage(`{}`),
 		},
 
 		{
@@ -367,68 +187,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: json.RawMessage("{}"),
-
-							Children: map[string]*YANGNode{
-								"fault-id": {
-									Name: "fault-id",
-
-									Type: "leaf",
-
-									DataType: "uint16",
-
-									Mandatory: true,
-								},
-
-								"fault-source": {
-									Name: "fault-source",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Mandatory: true,
-								},
-
-								"fault-severity": {
-									Name: "fault-severity",
-
-									Type: "leaf",
-
-									DataType: "enumeration",
-
-									Constraints: json.RawMessage("{}"),
-									},
-								},
-
-								"is-cleared": {
-									Name: "is-cleared",
-
-									Type: "leaf",
-
-									DataType: "boolean",
-								},
-
-								"fault-text": {
-									Name: "fault-text",
-
-									Type: "leaf",
-
-									DataType: "string",
-								},
-
-								"event-time": {
-									Name: "event-time",
-
-									Type: "leaf",
-
-									DataType: "yang:date-and-time",
-								},
-							},
-						},
-					},
-				},
-			},
+			Schema: json.RawMessage(`{}`),
 		},
 
 		{
@@ -444,49 +203,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "IETF",
 
-			Schema: json.RawMessage("{}"),
-
-							Children: map[string]*YANGNode{
-								"name": {
-									Name: "name",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Mandatory: true,
-								},
-
-								"description": {
-									Name: "description",
-
-									Type: "leaf",
-
-									DataType: "string",
-								},
-
-								"type": {
-									Name: "type",
-
-									Type: "leaf",
-
-									DataType: "identityref",
-
-									Mandatory: true,
-								},
-
-								"enabled": {
-									Name: "enabled",
-
-									Type: "leaf",
-
-									DataType: "boolean",
-								},
-							},
-						},
-					},
-				},
-			},
+			Schema: json.RawMessage(`{}`),
 		},
 	}
 
@@ -1163,10 +880,11 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 	modelStats := make(map[string]interface{})
 
 	for name, model := range yr.models {
-		modelStats[name] = json.RawMessage("{}")
+		modelStats[name] = json.RawMessage(`{}`)
 	}
 
 	stats["models"] = modelStats
 
 	return stats
 }
+

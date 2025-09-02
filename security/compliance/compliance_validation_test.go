@@ -12,7 +12,7 @@ import (
 )
 
 // TestComprehensiveComplianceFramework validates the main compliance framework
-// DISABLED: func TestComprehensiveComplianceFramework(t *testing.T) {
+func TestComprehensiveComplianceFramework(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Test with nil config to verify error handling
@@ -42,7 +42,7 @@ import (
 }
 
 // TestAutomatedComplianceMonitor validates the automated monitoring system
-// DISABLED: func TestAutomatedComplianceMonitor(t *testing.T) {
+func TestAutomatedComplianceMonitor(t *testing.T) {
 	// Test alert thresholds
 	thresholds := &ComplianceAlertThresholds{
 		CriticalScore:         80.0,
@@ -60,7 +60,7 @@ import (
 }
 
 // TestOPACompliancePolicyEngine validates the OPA policy engine type
-// DISABLED: func TestOPACompliancePolicyEngine(t *testing.T) {
+func TestOPACompliancePolicyEngine(t *testing.T) {
 	// Test OPA engine structure
 	engine := &OPACompliancePolicyEngine{
 		enabled:                 true,
@@ -87,7 +87,7 @@ import (
 }
 
 // TestComplianceStatus validates compliance status structure
-// DISABLED: func TestComplianceStatus(t *testing.T) {
+func TestComplianceStatus(t *testing.T) {
 	// Test compliance status structure
 	status := &ComplianceStatus{
 		Timestamp:         time.Now(),
@@ -114,7 +114,7 @@ import (
 }
 
 // TestComplianceViolation validates compliance violation structure
-// DISABLED: func TestComplianceViolation(t *testing.T) {
+func TestComplianceViolation(t *testing.T) {
 	// Test compliance violation structure
 	violation := ComplianceViolation{
 		ID:               "violation-001",
@@ -141,7 +141,7 @@ import (
 }
 
 // TestComplianceAlert validates compliance alert structure
-// DISABLED: func TestComplianceAlert(t *testing.T) {
+func TestComplianceAlert(t *testing.T) {
 	// Test compliance alert structure
 	alert := ComplianceAlert{
 		ID:           "alert-001",
@@ -151,7 +151,7 @@ import (
 		Message:      "Vulnerability scan detected critical issues",
 		Acknowledged: false, // Added acknowledged field
 		Actions:      []string{"review", "remediate"},
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	assert.Equal(t, "alert-001", alert.ID)
@@ -163,7 +163,7 @@ import (
 }
 
 // TestComplianceMetricsCollector validates metrics collection
-// DISABLED: func TestComplianceMetricsCollector(t *testing.T) {
+func TestComplianceMetricsCollector(t *testing.T) {
 	metricsCollector := NewComplianceMetricsCollector()
 	require.NotNil(t, metricsCollector)
 
@@ -189,7 +189,7 @@ import (
 }
 
 // TestOPAPolicy validates OPA policy structure
-// DISABLED: func TestOPAPolicy(t *testing.T) {
+func TestOPAPolicy(t *testing.T) {
 	// Test OPA policy structure
 	policy := OPAPolicy{
 		PolicyID:        "test-policy-001",
@@ -206,7 +206,7 @@ import (
 		UpdatedAt:       &time.Time{},
 		EvaluationCount: 100,
 		ViolationCount:  5,
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 		},
 		Dependencies: []string{"base-policy"},
 	}
@@ -228,7 +228,7 @@ import (
 }
 
 // TestRemediationAction validates remediation action structure
-// DISABLED: func TestRemediationAction(t *testing.T) {
+func TestRemediationAction(t *testing.T) {
 	// Test remediation action structure
 	completedTime := time.Now()
 	action := RemediationAction{
@@ -243,7 +243,7 @@ import (
 		ErrorMessage:      "",
 		RollbackPlan:      "Remove network policy if issues occur",
 		ResourcesAffected: []string{"namespace/default"},
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}
 
 	assert.Equal(t, "remediation-001", action.ID)
@@ -257,14 +257,14 @@ import (
 }
 
 // TestPolicyTestCase validates policy test case structure
-// DISABLED: func TestPolicyTestCase(t *testing.T) {
+func TestPolicyTestCase(t *testing.T) {
 	// Test policy test case structure
 	testCase := PolicyTestCase{
 		testID:      "test-001",
 		name:        "Test Pod Security",
 		description: "Test that pods without security context are flagged",
-		input: json.RawMessage("{}"),
-			"spec": json.RawMessage("{}"),
+		input: json.RawMessage(`{}`),
+			"spec": json.RawMessage(`{}`),
 		},
 		expectedOutput:    "violation",
 		expectedViolation: true,
@@ -303,7 +303,7 @@ func BenchmarkComplianceStatusCreation(b *testing.B) {
 }
 
 // TestErrorHandling validates error scenarios
-// DISABLED: func TestErrorHandling(t *testing.T) {
+func TestErrorHandling(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Test with nil config - this should definitely error
@@ -314,7 +314,7 @@ func BenchmarkComplianceStatusCreation(b *testing.B) {
 }
 
 // TestMockMetric validates mock metric implementation
-// DISABLED: func TestMockMetric(t *testing.T) {
+func TestMockMetric(t *testing.T) {
 	metric := &MockMetric{
 		name:   "test_metric",
 		labels: map[string]string{},
@@ -335,7 +335,7 @@ func BenchmarkComplianceStatusCreation(b *testing.B) {
 }
 
 // TestRunComprehensiveComplianceCheck validates the comprehensive compliance check method
-// DISABLED: func TestRunComprehensiveComplianceCheck(t *testing.T) {
+func TestRunComprehensiveComplianceCheck(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Create a mock config for testing
@@ -369,3 +369,4 @@ func BenchmarkComplianceStatusCreation(b *testing.B) {
 	t.Logf("Compliance check completed with score: %.2f%%", status.OverallCompliance)
 	t.Logf("Framework scores: %+v", status.FrameworkScores)
 }
+

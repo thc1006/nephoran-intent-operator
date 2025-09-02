@@ -485,7 +485,7 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 		ProviderID: azureUser.ID,
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	// Add tenant as organization if not multi-tenant.
@@ -1008,3 +1008,4 @@ func (p *AzureADProvider) SetTenantID(tenantID string) {
 
 	p.oidcConfig = nil
 }
+

@@ -418,6 +418,18 @@ func NewPipelineMetrics() *PipelineMetrics {
 func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*PipelineProcessingResult, error) {
 	start := time.Now()
 
+	// Convert map[string]interface{} to json.RawMessage
+	var metadataRaw json.RawMessage
+	if metadata != nil {
+		if metadataBytes, err := json.Marshal(metadata); err == nil {
+			metadataRaw = json.RawMessage(metadataBytes)
+		} else {
+			metadataRaw = json.RawMessage(`{}`)
+		}
+	} else {
+		metadataRaw = json.RawMessage(`{}`)
+	}
+
 	// Create processing context.
 
 	processingCtx := &ProcessingContext{
@@ -427,7 +439,7 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 
 		ProcessingStart: start,
 
-		Metadata: metadata,
+		Metadata: metadataRaw,
 	}
 
 	pp.logger.Info("Starting intent processing",
@@ -1202,7 +1214,7 @@ func (rp *ResponsePostprocessor) Postprocess(response map[string]interface{}, co
 // addMetadataEnrichment adds processing metadata.
 
 func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-	processingMetadata := json.RawMessage("{}")
+	processingMetadata := json.RawMessage(`{}`)
 
 	response["processing_metadata"] = processingMetadata
 
@@ -1213,7 +1225,7 @@ func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]inter
 
 func (rp *ResponsePostprocessor) addValidationEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
 	if context.ValidationResult != nil {
-		response["validation_result"] = json.RawMessage("{}")
+		response["validation_result"] = json.RawMessage(`{}`)
 	}
 
 	return response, nil
@@ -1222,7 +1234,7 @@ func (rp *ResponsePostprocessor) addValidationEnrichment(response map[string]int
 // addTrackingEnrichment adds tracking information.
 
 func (rp *ResponsePostprocessor) addTrackingEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-	response["tracking"] = json.RawMessage("{}")
+	response["tracking"] = json.RawMessage(`{}`)
 
 	return response, nil
 }
@@ -1382,3 +1394,4 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 
 	return specCopy, true
 }
+

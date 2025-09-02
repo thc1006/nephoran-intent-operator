@@ -648,7 +648,7 @@ func (s *NephoranAPIServer) getDashboardOverview(w http.ResponseWriter, r *http.
 // healthCheck handles GET /health.
 
 func (s *NephoranAPIServer) healthCheck(w http.ResponseWriter, r *http.Request) {
-	health := json.RawMessage("{}"){
+	health := json.RawMessage(`{}`){
 			"api_server": "healthy",
 
 			"database": "healthy",
@@ -719,7 +719,7 @@ func (s *NephoranAPIServer) readinessCheck(w http.ResponseWriter, r *http.Reques
 
 	}
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, statusCode, response)
 }
@@ -1075,7 +1075,7 @@ func (s *NephoranAPIServer) checkRateLimiterHealth() string {
 // getSystemInfo handles GET /system/info.
 
 func (s *NephoranAPIServer) getSystemInfo(w http.ResponseWriter, r *http.Request) {
-	info := json.RawMessage("{}"){
+	info := json.RawMessage(`{}`){
 			"port": s.config.Port,
 
 			"tls_enabled": s.config.TLSEnabled,
@@ -1098,23 +1098,23 @@ func (s *NephoranAPIServer) getSystemInfo(w http.ResponseWriter, r *http.Request
 // getSystemHealth handles GET /api/v1/dashboard/health.
 
 func (s *NephoranAPIServer) getSystemHealth(w http.ResponseWriter, r *http.Request) {
-	health := json.RawMessage("{}"){
-			"api_server": json.RawMessage("{}"),
+	health := json.RawMessage(`{}`){
+			"api_server": json.RawMessage(`{}`),
 
-			"database": json.RawMessage("{}"),
+			"database": json.RawMessage(`{}`),
 
-			"cache": json.RawMessage("{}"),
+			"cache": json.RawMessage(`{}`),
 
-			"rate_limiter": json.RawMessage("{}"),
+			"rate_limiter": json.RawMessage(`{}`),
 
-			"auth_service": json.RawMessage("{}")
+			"auth_service": json.RawMessage(`{}`)
 
 					return "disabled"
 				}(),
 			},
 		},
 
-		"resource_usage": json.RawMessage("{}"),
+		"resource_usage": json.RawMessage(`{}`),
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, health)
@@ -1123,7 +1123,7 @@ func (s *NephoranAPIServer) getSystemHealth(w http.ResponseWriter, r *http.Reque
 // getIntentMetrics handles GET /api/v1/dashboard/metrics/intents.
 
 func (s *NephoranAPIServer) getIntentMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage("{}"),
+	metrics := json.RawMessage(`{}`),
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, metrics)
@@ -1132,7 +1132,7 @@ func (s *NephoranAPIServer) getIntentMetrics(w http.ResponseWriter, r *http.Requ
 // getPackageMetrics handles GET /api/v1/dashboard/metrics/packages.
 
 func (s *NephoranAPIServer) getPackageMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage("{}"),
+	metrics := json.RawMessage(`{}`),
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, metrics)
@@ -1141,7 +1141,7 @@ func (s *NephoranAPIServer) getPackageMetrics(w http.ResponseWriter, r *http.Req
 // getClusterMetrics handles GET /api/v1/dashboard/metrics/clusters.
 
 func (s *NephoranAPIServer) getClusterMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage("{}"){
+	metrics := json.RawMessage(`{}`){
 			"cpu_avg": "65%",
 
 			"memory_avg": "72%",
@@ -1156,7 +1156,7 @@ func (s *NephoranAPIServer) getClusterMetrics(w http.ResponseWriter, r *http.Req
 // getNetworkMetrics handles GET /api/v1/dashboard/metrics/network.
 
 func (s *NephoranAPIServer) getNetworkMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage("{}")
+	metrics := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, metrics)
 }
@@ -1164,7 +1164,7 @@ func (s *NephoranAPIServer) getNetworkMetrics(w http.ResponseWriter, r *http.Req
 // getPerformanceMetrics handles GET /api/v1/dashboard/metrics/performance.
 
 func (s *NephoranAPIServer) getPerformanceMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage("{}")
+	metrics := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, metrics)
 }
@@ -1172,7 +1172,7 @@ func (s *NephoranAPIServer) getPerformanceMetrics(w http.ResponseWriter, r *http
 // getActiveAlerts handles GET /api/v1/dashboard/alerts.
 
 func (s *NephoranAPIServer) getActiveAlerts(w http.ResponseWriter, r *http.Request) {
-	alerts := []json.RawMessage("{}"),
+	alerts := []json.RawMessage(`{}`),
 
 		{
 			"id": "alert-002",
@@ -1189,13 +1189,13 @@ func (s *NephoranAPIServer) getActiveAlerts(w http.ResponseWriter, r *http.Reque
 		},
 	}
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // getRecentEvents handles GET /api/v1/dashboard/events.
 
 func (s *NephoranAPIServer) getRecentEvents(w http.ResponseWriter, r *http.Request) {
-	events := []json.RawMessage("{}"),
+	events := []json.RawMessage(`{}`),
 
 		{
 			"id": "event-002",
@@ -1210,7 +1210,7 @@ func (s *NephoranAPIServer) getRecentEvents(w http.ResponseWriter, r *http.Reque
 		},
 	}
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // acknowledgeAlert handles PUT /api/v1/dashboard/alerts/{id}/acknowledge.
@@ -1222,7 +1222,7 @@ func (s *NephoranAPIServer) acknowledgeAlert(w http.ResponseWriter, r *http.Requ
 
 	s.logger.Info("Acknowledging alert", "alert_id", alertID)
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // resolveAlert handles PUT /api/v1/dashboard/alerts/{id}/resolve.
@@ -1234,13 +1234,13 @@ func (s *NephoranAPIServer) resolveAlert(w http.ResponseWriter, r *http.Request)
 
 	s.logger.Info("Resolving alert", "alert_id", alertID)
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // getIntentTrends handles GET /api/v1/dashboard/trends/intents.
 
 func (s *NephoranAPIServer) getIntentTrends(w http.ResponseWriter, r *http.Request) {
-	trends := json.RawMessage("{}"),
+	trends := json.RawMessage(`{}`),
 
 		"weekly_completion_rate": []float64{92.5, 94.2, 89.8, 96.1, 93.7},
 
@@ -1253,7 +1253,7 @@ func (s *NephoranAPIServer) getIntentTrends(w http.ResponseWriter, r *http.Reque
 // getPackageTrends handles GET /api/v1/dashboard/trends/packages.
 
 func (s *NephoranAPIServer) getPackageTrends(w http.ResponseWriter, r *http.Request) {
-	trends := json.RawMessage("{}"),
+	trends := json.RawMessage(`{}`),
 
 		"success_rate": []float64{95.2, 97.1, 94.5, 98.2, 96.8},
 
@@ -1266,7 +1266,7 @@ func (s *NephoranAPIServer) getPackageTrends(w http.ResponseWriter, r *http.Requ
 // getPerformanceTrends handles GET /api/v1/dashboard/trends/performance.
 
 func (s *NephoranAPIServer) getPerformanceTrends(w http.ResponseWriter, r *http.Request) {
-	trends := json.RawMessage("{}"),
+	trends := json.RawMessage(`{}`),
 
 		"throughput": []float64{245.8, 252.3, 238.9, 267.4, 251.2},
 
@@ -1279,7 +1279,7 @@ func (s *NephoranAPIServer) getPerformanceTrends(w http.ResponseWriter, r *http.
 // getComponentTopology handles GET /api/v1/dashboard/topology/components.
 
 func (s *NephoranAPIServer) getComponentTopology(w http.ResponseWriter, r *http.Request) {
-	topology := json.RawMessage("{}"){
+	topology := json.RawMessage(`{}`){
 			{"name": "api-server", "status": "healthy", "connections": []string{"database", "cache"}},
 
 			{"name": "intent-controller", "status": "healthy", "connections": []string{"api-server", "clusters"}},
@@ -1294,7 +1294,7 @@ func (s *NephoranAPIServer) getComponentTopology(w http.ResponseWriter, r *http.
 // getSystemDependencies handles GET /api/v1/dashboard/dependencies.
 
 func (s *NephoranAPIServer) getSystemDependencies(w http.ResponseWriter, r *http.Request) {
-	deps := json.RawMessage("{}"){
+	deps := json.RawMessage(`{}`){
 			{"name": "Kubernetes API", "status": "healthy", "version": "v1.29.0"},
 
 			{"name": "Porch", "status": "healthy", "version": "v0.3.0"},
@@ -1319,7 +1319,7 @@ func (s *NephoranAPIServer) livenessCheck(w http.ResponseWriter, r *http.Request
 // getSystemStats handles GET /api/v1/system/stats.
 
 func (s *NephoranAPIServer) getSystemStats(w http.ResponseWriter, r *http.Request) {
-	stats := json.RawMessage("{}")
+	stats := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, stats)
 }
@@ -1327,7 +1327,7 @@ func (s *NephoranAPIServer) getSystemStats(w http.ResponseWriter, r *http.Reques
 // getSystemConfig handles GET /api/v1/system/config.
 
 func (s *NephoranAPIServer) getSystemConfig(w http.ResponseWriter, r *http.Request) {
-	config := json.RawMessage("{}"){
+	config := json.RawMessage(`{}`){
 			"commit": "abc123def",
 
 			"build_time": "2025-01-01T00:00:00Z",
@@ -1358,7 +1358,7 @@ func (s *NephoranAPIServer) getCacheStats(w http.ResponseWriter, r *http.Request
 
 	}
 
-	stats := json.RawMessage("{}")
+	stats := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, stats)
 }
@@ -1376,13 +1376,14 @@ func (s *NephoranAPIServer) clearCache(w http.ResponseWriter, r *http.Request) {
 
 	// In a real implementation, would clear the cache.
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // getActiveConnections handles GET /api/v1/system/connections.
 
 func (s *NephoranAPIServer) getActiveConnections(w http.ResponseWriter, r *http.Request) {
-	connections := json.RawMessage("{}")
+	connections := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, connections)
 }
+

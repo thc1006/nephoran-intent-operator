@@ -933,7 +933,7 @@ func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 
 		url := fmt.Sprintf("%s/api/%s/services/%s/heartbeat", sr.smoClient.baseURL, "v1", serviceID)
 
-		if err := sr.smoClient.post(ctx, url, json.RawMessage("{}"), nil); err == nil {
+		if err := sr.smoClient.post(ctx, url, json.RawMessage(`{}`), nil); err == nil {
 
 			service.LastHeartbeat = time.Now()
 
@@ -1206,3 +1206,4 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 
 	return nil
 }
+

@@ -451,7 +451,7 @@ func (m *ContinuousSecurityMonitor) detectContainerThreats(ctx context.Context) 
 						},
 					},
 					Remediation: "Remove privileged flag from container security context",
-					Metadata: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
 				}
 				threats = append(threats, threat)
 			}
@@ -523,7 +523,7 @@ func (m *ContinuousSecurityMonitor) detectSecretsExposure(ctx context.Context) [
 									},
 								},
 								Remediation: "Use volume mounts instead of environment variables for secrets",
-								Metadata: json.RawMessage("{}"),
+								Metadata: json.RawMessage(`{}`),
 							}
 							threats = append(threats, threat)
 						}
@@ -562,7 +562,7 @@ func (m *ContinuousSecurityMonitor) detectComplianceDrift(ctx context.Context) [
 			ExpectedState: "All pods should have network policies",
 			Severity:      "MEDIUM",
 			AutoRemediate: false,
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 		drifts = append(drifts, drift)
 	}
@@ -598,7 +598,7 @@ func (m *ContinuousSecurityMonitor) remediateComplianceDrift(ctx context.Context
 		Description: fmt.Sprintf("Auto-remediated compliance drift: %s", drift.Control),
 		Result:      "success",
 		Duration:    2 * time.Second,
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	m.addResponseAction(action)
@@ -615,7 +615,7 @@ func (m *ContinuousSecurityMonitor) handleSecurityAlert(ctx context.Context, ale
 		ActionType:  "automated_response",
 		Status:      "in_progress",
 		Description: fmt.Sprintf("Handling alert: %s", alert.Title),
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	start := time.Now()
@@ -865,3 +865,4 @@ func (m *ContinuousSecurityMonitor) generateMonitoringReport() *MonitoringData {
 
 	return m.monitoringData
 }
+

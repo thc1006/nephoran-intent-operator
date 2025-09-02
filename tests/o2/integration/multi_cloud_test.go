@@ -35,7 +35,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 	ctx := context.Background()
 
 	suite.Run("AWS Provider Initialization", func() {
-		config := json.RawMessage("{}")
+		config := json.RawMessage(`{}`)
 
 		suite.awsProvider.On("Initialize", ctx, config).Return(nil).Once()
 		err := suite.awsProvider.Initialize(ctx, config)
@@ -150,7 +150,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 	ctx := context.Background()
 
 	suite.Run("Azure Provider Initialization", func() {
-		config := json.RawMessage("{}")
+		config := json.RawMessage(`{}`)
 
 		suite.azureProvider.On("Initialize", ctx, config).Return(nil).Once()
 		err := suite.azureProvider.Initialize(ctx, config)
@@ -167,7 +167,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 
 	suite.Run("Azure Resource Pool Lifecycle", func() {
 		testPool := suite.helpers.CreateTestResourcePool("azure", "eastus")
-		testPool.Extensions = json.RawMessage("{}")
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
@@ -218,7 +218,7 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 	ctx := context.Background()
 
 	suite.Run("GCP Provider Initialization", func() {
-		config := json.RawMessage("{}")
+		config := json.RawMessage(`{}`)
 
 		suite.gcpProvider.On("Initialize", ctx, config).Return(nil).Once()
 		err := suite.gcpProvider.Initialize(ctx, config)
@@ -235,7 +235,7 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 
 	suite.Run("GCP Resource Pool with Custom Networking", func() {
 		testPool := suite.helpers.CreateTestResourcePool("gcp", "us-central1")
-		testPool.Extensions = json.RawMessage("{}")
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
@@ -331,7 +331,7 @@ func (suite *MultiCloudTestSuite) TestCrossCloudComparison() {
 	})
 
 	suite.Run("Cross-Provider Resource Pool Consistency", func() {
-		_ = json.RawMessage("{}")
+		_ = json.RawMessage(`{}`)
 
 		regions := map[string]string{
 			"aws":   "us-east-1",
@@ -459,7 +459,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("AWS Specific Features", func() {
 		// Test AWS-specific functionality like spot instances, placement groups, etc.
 		testPool := suite.helpers.CreateTestResourcePool("aws", "us-east-1")
-		testPool.Extensions = json.RawMessage("{}"),
+		testPool.Extensions = json.RawMessage(`{}`),
 		}
 
 		createReq := &providers.CreateResourcePoolRequest{
@@ -483,7 +483,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("Azure Specific Features", func() {
 		// Test Azure-specific functionality like managed disks, availability sets, etc.
 		testPool := suite.helpers.CreateTestResourcePool("azure", "eastus")
-		testPool.Extensions = json.RawMessage("{}")
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:     testPool.Name,
@@ -506,7 +506,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("GCP Specific Features", func() {
 		// Test GCP-specific functionality like preemptible instances, custom machine types, etc.
 		testPool := suite.helpers.CreateTestResourcePool("gcp", "us-central1")
-		testPool.Extensions = json.RawMessage("{}")
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:     testPool.Name,
@@ -540,6 +540,7 @@ func (suite *MultiCloudTestSuite) TearDownSuite() {
 	}
 }
 
-// DISABLED: func TestMultiCloudIntegration(t *testing.T) {
+func TestMultiCloudIntegration(t *testing.T) {
 	suite.Run(t, new(MultiCloudTestSuite))
 }
+

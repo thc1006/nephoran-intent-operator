@@ -15,7 +15,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// DISABLED: func TestNewAzureADProvider(t *testing.T) {
+func TestNewAzureADProvider(t *testing.T) {
 	tests := []struct {
 		name         string
 		clientID     string
@@ -65,12 +65,12 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_GetProviderName(t *testing.T) {
+func TestAzureADProvider_GetProviderName(t *testing.T) {
 	provider := NewAzureADProvider("common", "test-id", "test-secret", "http://localhost:8080/callback")
 	assert.Equal(t, "azuread", provider.GetProviderName())
 }
 
-// DISABLED: func TestAzureADProvider_SupportsFeature(t *testing.T) {
+func TestAzureADProvider_SupportsFeature(t *testing.T) {
 	provider := NewAzureADProvider("common", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
@@ -96,7 +96,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_GetAuthorizationURL(t *testing.T) {
+func TestAzureADProvider_GetAuthorizationURL(t *testing.T) {
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
@@ -191,7 +191,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
+func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/oauth2/v2.0/token") {
@@ -206,12 +206,12 @@ import (
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}"),
+				response := json.RawMessage(`{}`),
 					"timestamp":         "2023-01-01 12:00:00Z",
 					"trace_id":          "test-trace-id",
 					"correlation_id":    "test-correlation-id",
@@ -219,7 +219,7 @@ import (
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -287,7 +287,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_RefreshToken(t *testing.T) {
+func TestAzureADProvider_RefreshToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/oauth2/v2.0/token") {
 			err := r.ParseForm()
@@ -299,17 +299,17 @@ import (
 			refreshToken := r.FormValue("refresh_token")
 			switch refreshToken {
 			case "valid-refresh-token":
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "expired-refresh-token":
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}"),
+				response := json.RawMessage(`{}`),
 				}
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -364,7 +364,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_GetUserInfo(t *testing.T) {
+func TestAzureADProvider_GetUserInfo(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1.0/me" {
 			authHeader := r.Header.Get("Authorization")
@@ -424,7 +424,7 @@ import (
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
 				w.WriteHeader(http.StatusUnauthorized)
-				response := json.RawMessage("{}"){
+				response := map[string]interface{}{
 						"code":    "InvalidAuthenticationToken",
 						"message": "Access token is empty.",
 					},
@@ -432,7 +432,7 @@ import (
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusForbidden)
-				response := json.RawMessage("{}"){
+				response := map[string]interface{}{
 						"code":    "Forbidden",
 						"message": "Insufficient privileges to complete the operation.",
 					},
@@ -528,7 +528,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_GetGroups(t *testing.T) {
+func TestAzureADProvider_GetGroups(t *testing.T) {
 	t.Skip("GetGroups test requires mocking the HTTP client as it uses hardcoded Microsoft Graph URL")
 	// TODO: Implement proper HTTP client mocking or dependency injection for testability
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -538,7 +538,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				groups := json.RawMessage("{}"){
+				groups := map[string]interface{}{
 						{
 							"id":          "group1-1234-5678-9012-123456789012",
 							"displayName": "Engineering Team",
@@ -554,7 +554,7 @@ import (
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(groups)
 			case "no-groups-token":
-				groups := json.RawMessage("{}")"),
+				groups := json.RawMessage(`{}`)"),
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(groups)
@@ -617,7 +617,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_ValidateToken(t *testing.T) {
+func TestAzureADProvider_ValidateToken(t *testing.T) {
 	t.Skip("ValidateToken test requires modifying implementation to use configurable endpoint instead of hardcoded Microsoft Graph URL")
 	// TODO: Update ValidateToken method to use p.config.Endpoints.UserInfoURL instead of hardcoded URL
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -627,7 +627,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				userInfo := json.RawMessage("{}")
+				userInfo := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
@@ -685,7 +685,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_RevokeToken(t *testing.T) {
+func TestAzureADProvider_RevokeToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/oauth2/v2.0/logout") {
 			assert.Equal(t, "POST", r.Method)
@@ -698,7 +698,7 @@ import (
 				w.WriteHeader(http.StatusOK)
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -738,7 +738,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
+func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/.well-known/openid_configuration") {
 			config := OIDCConfiguration{
@@ -794,7 +794,7 @@ import (
 	*/
 }
 
-// DISABLED: func TestAzureADProvider_GetConfiguration(t *testing.T) {
+func TestAzureADProvider_GetConfiguration(t *testing.T) {
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	config := provider.GetConfiguration()
 
@@ -814,7 +814,7 @@ import (
 	assert.Contains(t, config.Features, FeatureGroups)
 }
 
-// DISABLED: func TestAzureADProvider_MultiTenant(t *testing.T) {
+func TestAzureADProvider_MultiTenant(t *testing.T) {
 	provider := NewAzureADProvider("common", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	assert.True(t, provider.isMultiTenant)
@@ -825,7 +825,7 @@ import (
 	assert.Contains(t, authURL, "/common/oauth2")
 }
 
-// DISABLED: func TestAzureADProvider_TenantSpecific(t *testing.T) {
+func TestAzureADProvider_TenantSpecific(t *testing.T) {
 	provider := NewAzureADProvider("specific-tenant-123", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	assert.False(t, provider.isMultiTenant)
@@ -864,7 +864,7 @@ func createMockAzureADServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/test-tenant/oauth2/v2.0/token":
-			response := json.RawMessage("{}")
+			response := json.RawMessage(`{}`)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/v1.0/me":
@@ -896,7 +896,7 @@ func createMockAzureADServer() *httptest.Server {
 }
 
 // Test edge cases and error conditions
-// DISABLED: func TestAzureADProvider_EdgeCases(t *testing.T) {
+func TestAzureADProvider_EdgeCases(t *testing.T) {
 	t.Run("Empty tenant ID is preserved (no default to common)", func(t *testing.T) {
 		provider := NewAzureADProvider("", "test-id", "test-secret", "http://localhost:8080/callback")
 		assert.Equal(t, "", provider.tenantID)  // Implementation doesn't default to "common"
@@ -933,3 +933,4 @@ func createMockAzureADServer() *httptest.Server {
 		assert.Contains(t, err.Error(), "token_exchange_failed")
 	})
 }
+

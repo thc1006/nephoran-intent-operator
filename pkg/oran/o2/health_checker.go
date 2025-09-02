@@ -214,7 +214,7 @@ func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]i
 	components := make(map[string]interface{})
 
 	for _, check := range checks {
-		components[check.Name] = json.RawMessage("{}")
+		components[check.Name] = json.RawMessage(`{}`)
 	}
 
 	return components
@@ -279,3 +279,4 @@ type ComponentCheck struct {
 
 	CheckType string `json:"check_type,omitempty"` // connectivity, resource, dependency
 }
+

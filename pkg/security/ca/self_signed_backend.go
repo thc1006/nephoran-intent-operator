@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -692,7 +693,7 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 
 		Features: b.GetSupportedFeatures(),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1015,3 +1016,4 @@ func (b *SelfSignedBackend) persistData() error {
 
 	return nil
 }
+

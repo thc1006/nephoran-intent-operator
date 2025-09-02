@@ -20,7 +20,7 @@ import (
 // 1. Stop accepting new files
 // 2. Drain existing queued work
 // 3. Stop coordinator and cancel context
-// DISABLED: func TestShutdownSequencing(t *testing.T) {
+func TestShutdownSequencing(t *testing.T) {
 	handoffDir := t.TempDir()
 
 	mockValidator := &MockValidator{}

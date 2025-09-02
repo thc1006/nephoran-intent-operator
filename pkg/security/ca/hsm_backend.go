@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -269,7 +270,7 @@ func NewHSMBackend(config *HSMBackendConfig, logger *logging.StructuredLogger) *
 // Initialize sets up the HSM backend.
 
 func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
-	h.logger.Info("Initializing HSM backend", slog.Any("config", json.RawMessage("{}")))
+	h.logger.Info("Initializing HSM backend", slog.Any("config", json.RawMessage(`{}`)))
 
 	// Create HSM provider based on configuration.
 
@@ -950,13 +951,14 @@ func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 	}
 
 	// Add HSM-specific metrics.
-
 	if b.hsm != nil {
-
-		status, _ := b.hsm.GetStatus()
-
-		info.Metrics = json.RawMessage("{}")
-
+		hsmStatus, _ := b.hsm.GetStatus()
+		metrics := map[string]interface{}{
+			"hsm_status": hsmStatus,
+		}
+		if metricsBytes, err := json.Marshal(metrics); err == nil {
+			info.Metrics = json.RawMessage(metricsBytes)
+		}
 	}
 
 	return info, nil
@@ -1046,3 +1048,4 @@ func (b *HSMBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) 
 func parseIP(ipStr string) net.IP {
 	return net.ParseIP(ipStr)
 }
+

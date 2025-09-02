@@ -683,7 +683,7 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 		Steps: make([]FailoverStep, 0),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Execute failover plan.
@@ -1244,7 +1244,7 @@ func (fm *FailoverManager) setupMonitoring(ctx context.Context, targetRegion str
 
 	// For simulation, we'll update some configuration.
 
-	step.Metadata["monitoring_setup"] = json.RawMessage("{}")
+	step.Metadata["monitoring_setup"] = json.RawMessage(`{}`)
 
 	fm.logger.Info("Monitoring setup completed for new active region", "region", targetRegion)
 
@@ -1619,3 +1619,4 @@ func (ssm *StateSyncManager) performSync(ctx context.Context) {
 
 	// Implementation would sync state between regions.
 }
+

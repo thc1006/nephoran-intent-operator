@@ -419,13 +419,13 @@ func generateComplexIntent() string {
 	return "Deploy " + strings.Join(words, " ") + " network function"
 }
 
-// DISABLED: func TestNetworkIntentWebhook(t *testing.T) {
+func TestNetworkIntentWebhook(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "NetworkIntent Webhook Suite")
 }
 
 // Test individual validation functions
-// DISABLED: func TestValidateIntentContent(t *testing.T) {
+func TestValidateIntentContent(t *testing.T) {
 	validator := NewNetworkIntentValidator()
 
 	tests := []struct {

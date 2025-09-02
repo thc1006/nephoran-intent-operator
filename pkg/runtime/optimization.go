@@ -178,7 +178,7 @@ func GetRuntimeStats() map[string]interface{} {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // bToMb converts bytes to megabytes
@@ -290,3 +290,4 @@ func max(a, b int) int {
 	}
 	return b
 }
+

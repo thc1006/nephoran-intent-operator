@@ -986,7 +986,7 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 	obj, ok := value.(map[string]interface{})
 
 	if !ok {
-		return json.RawMessage("{}"), violations
+		return json.RawMessage(`{}`), violations
 	}
 
 	// Check nesting depth.
@@ -1003,7 +1003,7 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 			Severity: ViolationSeverityError,
 		})
 
-		return json.RawMessage("{}"), violations
+		return json.RawMessage(`{}`), violations
 
 	}
 
@@ -1342,3 +1342,4 @@ func (sm *SanitizationManager) GetStats() *SanitizationStats {
 		Violations: sm.stats.Violations,
 	}
 }
+

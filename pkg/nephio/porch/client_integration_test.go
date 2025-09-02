@@ -29,7 +29,7 @@ import (
 )
 
 // TestClientCreation tests basic client creation scenarios
-// DISABLED: func TestClientCreation(t *testing.T) {
+func TestClientCreation(t *testing.T) {
 	testCases := []struct {
 		name        string
 		opts        porch.ClientOptions
@@ -95,7 +95,7 @@ import (
 }
 
 // TestLifecycleValidation tests package lifecycle validation
-// DISABLED: func TestLifecycleValidation(t *testing.T) {
+func TestLifecycleValidation(t *testing.T) {
 	testCases := []struct {
 		name          string
 		current       porch.PackageRevisionLifecycle
@@ -120,7 +120,7 @@ import (
 }
 
 // TestErrorHandling tests basic error handling scenarios
-// DISABLED: func TestErrorHandling(t *testing.T) {
+func TestErrorHandling(t *testing.T) {
 	t.Run("invalid_config", func(t *testing.T) {
 		_, err := porch.NewClient(porch.ClientOptions{})
 		assert.Error(t, err)
@@ -129,7 +129,7 @@ import (
 }
 
 // TestBasicValidation tests basic validation functions
-// DISABLED: func TestBasicValidation(t *testing.T) {
+func TestBasicValidation(t *testing.T) {
 	t.Run("lifecycle_validation", func(t *testing.T) {
 		assert.True(t, porch.IsValidLifecycle(porch.PackageRevisionLifecycleDraft))
 		assert.True(t, porch.IsValidLifecycle(porch.PackageRevisionLifecycleProposed))

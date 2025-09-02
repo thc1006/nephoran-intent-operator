@@ -7,7 +7,7 @@ import (
 )
 
 // TestNilWatcherSafety validates Fix 1: Nil pointer dereference protection
-// DISABLED: func TestNilWatcherSafety(t *testing.T) {
+func TestNilWatcherSafety(t *testing.T) {
 	t.Run("nil_watcher_close", func(t *testing.T) {
 		// Test that Close() on nil watcher does not panic or error
 		var nilWatcher *Watcher
@@ -31,7 +31,7 @@ import (
 }
 
 // TestIsIntentFileFunction tests the intent file detection function
-// DISABLED: func TestIsIntentFileFunction(t *testing.T) {
+func TestIsIntentFileFunction(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string

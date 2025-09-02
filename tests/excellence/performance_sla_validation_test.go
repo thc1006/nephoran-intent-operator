@@ -371,7 +371,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			GinkgoWriter.Printf("Found %d services that could expose APIs\n", len(services))
 
 			// Simulate API performance tests
-			performanceResults := []json.RawMessage("{}")
+			performanceResults := []json.RawMessage(`{}`)
 
 			// Example endpoints that might exist in a typical operator
 			endpoints := []string{
@@ -391,7 +391,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				endTime := startTime.Add(simulatedResponseTime)
 				duration := endTime.Sub(startTime)
 
-				result := json.RawMessage("{}")
+				result := json.RawMessage(`{}`)
 
 				performanceResults = append(performanceResults, result)
 
@@ -424,13 +424,13 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				"disk":   85.0, // Target 85% average disk utilization
 			}
 
-			utilizationResults := json.RawMessage("{}"){
+			utilizationResults := map[string]interface{}{
 					"current_utilization": 45.5,
 					"target_utilization":  utilizationTargets["cpu"],
 					"efficiency_score":    65, // (45.5/70) * 100
 				},
-				"memory": json.RawMessage("{}"),
-				"disk": json.RawMessage("{}"),
+				"memory": json.RawMessage(`{}`),
+				"disk": json.RawMessage(`{}`),
 			}
 
 			GinkgoWriter.Printf("Resource Utilization Analysis:\n")
@@ -463,7 +463,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			// Simulate scaling behavior analysis
 			// This would normally involve load testing and observing scaling metrics
 
-			scalingScenarios := []json.RawMessage("{}"),
+			scalingScenarios := []json.RawMessage(`{}`),
 				{
 					"scenario":         "Load Decrease",
 					"initial_replicas": 8,
@@ -690,11 +690,11 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 	Describe("Performance SLA Report Generation", func() {
 		It("should generate comprehensive performance SLA report", func() {
-			report := json.RawMessage("{}"){
-					"resource_efficiency": json.RawMessage("{}"),
-					"performance_benchmarks": json.RawMessage("{}"),
-					"monitoring_observability": json.RawMessage("{}"),
-					"sla_compliance": json.RawMessage("{}"),
+			report := map[string]interface{}{
+					"resource_efficiency": json.RawMessage(`{}`),
+					"performance_benchmarks": json.RawMessage(`{}`),
+					"monitoring_observability": json.RawMessage(`{}`),
+					"sla_compliance": json.RawMessage(`{}`),
 				},
 				"recommendations": []string{
 					"Implement resource requests for all workloads",
@@ -759,3 +759,4 @@ func parseResourceQuantity(quantity string) (float64, error) {
 		return 1, nil
 	}
 }
+

@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -18,14 +19,16 @@ func (c *ClientImpl) GetConfig(ctx context.Context, path string) (*ConfigRespons
 	// This is a placeholder implementation
 	// In a real implementation, this would make REST API calls to the O1 interface
 
+	attributes := map[string]interface{}{
+		"example_parameter": "example_value",
+	}
+	attributesJSON, _ := json.Marshal(attributes)
+	
 	response := &ConfigResponse{
 		ObjectInstance: path,
-		Attributes: json.RawMessage("{}"){
-				"example_parameter": "example_value",
-			},
-		},
-		Status:    "success",
-		Timestamp: time.Now(),
+		Attributes:     json.RawMessage(attributesJSON),
+		Status:         "success",
+		Timestamp:      time.Now(),
 	}
 
 	return response, nil
@@ -56,14 +59,14 @@ func (c *ClientImpl) GetPerformanceData(ctx context.Context, request *Performanc
 		{
 			ID:        "perf_data_1",
 			Timestamp: time.Now(),
-			Metrics: json.RawMessage("{}"),
+			Metrics: json.RawMessage(`{}`),
 			Source:   "cell_001",
 			DataType: "RRCConnections",
 		},
 		{
 			ID:        "perf_data_2",
 			Timestamp: time.Now(),
-			Metrics: json.RawMessage("{}"),
+			Metrics: json.RawMessage(`{}`),
 			Source:   "cell_001",
 			DataType: "Throughput",
 		},
@@ -228,7 +231,7 @@ func (c *ClientImpl) UploadFile(ctx context.Context, file *FileUploadRequest) (*
 		FileID:    fmt.Sprintf("file_%d", time.Now().Unix()),
 		Status:    "success",
 		RequestID: fmt.Sprintf("req_%d", time.Now().Unix()),
-		Metadata:  json.RawMessage("{}"),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	return response, nil
@@ -245,7 +248,7 @@ func (c *ClientImpl) DownloadFile(ctx context.Context, fileID string) (*FileDown
 		DownloadURL: "https://example.com/download/" + fileID,
 		Status:      "success",
 		ExpiresAt:   time.Now().Add(24 * time.Hour),
-		Metadata:    json.RawMessage("{}"),
+		Metadata:    json.RawMessage(`{}`),
 	}
 
 	return response, nil
@@ -263,7 +266,7 @@ func (c *ClientImpl) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, err
 		Version:   "1.0.0",
 		Uptime:    time.Since(time.Now().Add(-24 * time.Hour)),
 		Health:    json.RawMessage(`{"status":"healthy"}`),
-		Metadata:  json.RawMessage("{}"),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	return response, nil
@@ -280,21 +283,23 @@ func NewConfigGetRequest(path string) *ConfigRequest {
 		ObjectInstance: path,
 		RequestedAt:    time.Now(),
 		RequestedBy:    "system",
-		Configuration:  json.RawMessage("{}"),
+		Configuration:  json.RawMessage(`{}`),
 	}
 }
 
 // NewConfigSetRequest creates a configuration set request
 func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigRequest {
+	attributesJSON, _ := json.Marshal(data)
+	configurationJSON, _ := json.Marshal(data)
 	return &ConfigRequest{
 		ID:             fmt.Sprintf("set_%d", time.Now().Unix()),
 		Type:           "set",
 		Target:         path,
 		ObjectInstance: path,
-		Attributes:     data,
+		Attributes:     json.RawMessage(attributesJSON),
 		RequestedAt:    time.Now(),
 		RequestedBy:    "system",
-		Configuration:  data,
+		Configuration:  json.RawMessage(configurationJSON),
 	}
 }
 
@@ -302,7 +307,7 @@ func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigReques
 func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity string) *PerformanceRequest {
 	return &PerformanceRequest{
 		MetricType: strings.Join(measurementTypes, ","),
-		TimeRange:  json.RawMessage("{}"),
+		TimeRange:  json.RawMessage(`{}`),
 	}
 }
 
@@ -332,3 +337,4 @@ func (f *AlarmFilter) WithStatus(status string) *AlarmFilter {
 	f.Status = status
 	return f
 }
+

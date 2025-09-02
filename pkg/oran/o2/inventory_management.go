@@ -1207,11 +1207,11 @@ func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset)
 	}
 
 	if !equalMaps(existing.Properties, updated.Properties) {
-		changes["properties"] = json.RawMessage("{}")
+		changes["properties"] = json.RawMessage(`{}`)
 	}
 
 	if !equalStringMaps(existing.Tags, updated.Tags) {
-		changes["tags"] = json.RawMessage("{}")
+		changes["tags"] = json.RawMessage(`{}`)
 	}
 
 	return changes
@@ -1354,3 +1354,4 @@ func (r *RelationshipIndex) AddRelationship(relationship *AssetRelationship) err
 func (r *RelationshipIndex) Clear() error {
 	return nil
 }
+

@@ -440,17 +440,32 @@ func generateNetworkIntentPayload() interface{} {
 		"Enable network slicing for IoT devices",
 	}
 
-	return json.RawMessage("{}"){
+	specs := []map[string]interface{}{
+		{
+			"intent": intents[rand.Intn(len(intents))],
+			"priority": "high",
+		},
+		{
+			"intent": intents[rand.Intn(len(intents))],
+			"priority": "medium",
+		},
+		{
+			"intent": intents[rand.Intn(len(intents))],
+			"priority": "low",
+		},
+	}
+
+	return map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name":      fmt.Sprintf("intent-%d", rand.Intn(100000)),
 			"namespace": "default",
 		},
-		"spec": json.RawMessage("{}")[rand.Intn(3)],
-		},
+		"spec": specs[rand.Intn(len(specs))],
 	}
 }
 
 func generatePolicyPayload() interface{} {
-	return json.RawMessage("{}"){
+	return map[string]interface{}{
 			"max_throughput":    rand.Intn(10000) + 1000,
 			"min_throughput":    rand.Intn(1000) + 100,
 			"latency_target_ms": rand.Intn(50) + 10,
@@ -464,8 +479,17 @@ func generatePolicyPayload() interface{} {
 }
 
 func generateScalingPayload() interface{} {
-	return json.RawMessage("{}")[rand.Intn(2)],
+	payloads := []map[string]interface{}{
+		{
+			"component": "amf",
+			"replicas":  rand.Intn(10) + 1,
+		},
+		{
+			"component": "smf", 
+			"replicas":  rand.Intn(5) + 1,
+		},
 	}
+	return payloads[rand.Intn(len(payloads))]
 }
 
 // Validator functions

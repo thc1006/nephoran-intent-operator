@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
+func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
 	parser := NewRuleBasedIntentParser()
 
 	tests := []struct {
@@ -16,31 +16,31 @@ import (
 		{
 			name:  "Valid scaling intent with namespace",
 			input: "scale nf-sim to 4 in ns ran-a",
-			want: json.RawMessage("{}"),
+			want: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 		{
 			name:  "Valid scaling intent without namespace",
 			input: "scale my-app to 3",
-			want: json.RawMessage("{}"),
+			want: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 		{
 			name:  "Valid deployment intent",
 			input: "deploy nginx in ns production",
-			want: json.RawMessage("{}"),
+			want: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 		{
 			name:  "Valid delete intent",
 			input: "delete old-app from ns staging",
-			want: json.RawMessage("{}"),
+			want: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 		{
 			name:  "Valid update intent",
 			input: "update myapp set replicas=5 in ns prod",
-			want: json.RawMessage("{}"){
+			want: map[string]interface{}{
 					"replicas": "5",
 				},
 				"namespace": "prod",
@@ -68,7 +68,7 @@ import (
 		{
 			name:  "Case insensitive command",
 			input: "SCALE APP TO 2 IN NS TEST",
-			want: json.RawMessage("{}"),
+			want: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 	}
@@ -87,7 +87,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateIntent(t *testing.T) {
+func TestValidateIntent(t *testing.T) {
 	tests := []struct {
 		name    string
 		intent  map[string]interface{}
@@ -95,32 +95,32 @@ import (
 	}{
 		{
 			name: "Valid scaling intent",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 		{
 			name: "Missing intent_type",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			wantErr: true,
 		},
 		{
 			name: "Missing target",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			wantErr: true,
 		},
 		{
 			name: "Invalid replicas (negative)",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			wantErr: true,
 		},
 		{
 			name: "Valid deployment intent",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			wantErr: false,
 		},
 		{
 			name: "Valid configuration intent",
-			intent: json.RawMessage("{}"){
+			intent: map[string]interface{}{
 					"replicas": "5",
 				},
 				"namespace": "prod",
@@ -129,14 +129,14 @@ import (
 		},
 		{
 			name: "Invalid configuration (empty config)",
-			intent: json.RawMessage("{}")"),
+			intent: json.RawMessage(`{}`)"),
 				"namespace":   "prod",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Unknown intent_type",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			wantErr: true,
 		},
 	}
@@ -179,3 +179,4 @@ func compareIntents(a, b map[string]interface{}) bool {
 
 	return true
 }
+

@@ -48,8 +48,8 @@ func (suite *O2APITestSuite) SetupSuite() {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: json.RawMessage("{}"),
-		ProviderConfigs: json.RawMessage("{}"){
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 			},
 		},
@@ -136,7 +136,7 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 					Utilization: 20.0,
 				},
 			},
-			Extensions: json.RawMessage("{}"),
+			Extensions: json.RawMessage(`{}`),
 		}
 
 		poolJSON, err := json.Marshal(pool)
@@ -278,7 +278,7 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL"},
-			Capabilities: json.RawMessage("{}"),
+			Capabilities: json.RawMessage(`{}`),
 		}
 
 		typeJSON, err := json.Marshal(resourceType)
@@ -368,7 +368,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 			OperationalStatus:    "ENABLED",
 			AdministrativeStatus: "UNLOCKED",
 			UsageStatus:          "ACTIVE",
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 
 		instanceJSON, err := json.Marshal(instance)
@@ -683,6 +683,7 @@ func (suite *O2APITestSuite) TestConcurrentOperations() {
 	})
 }
 
-// DISABLED: func TestO2APIIntegration(t *testing.T) {
+func TestO2APIIntegration(t *testing.T) {
 	suite.Run(t, new(O2APITestSuite))
 }
+

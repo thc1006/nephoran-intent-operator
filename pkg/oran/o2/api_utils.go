@@ -288,7 +288,7 @@ func (s *O2APIServer) parseTimeParam(r *http.Request, param string) (*time.Time,
 // buildPaginationResponse builds a paginated response with metadata.
 
 func (s *O2APIServer) buildPaginationResponse(data interface{}, total, limit, offset int) map[string]interface{} {
-	response := json.RawMessage("{}"){
+	response := json.RawMessage(`{}`){
 			"total": total,
 
 			"limit": limit,
@@ -458,3 +458,4 @@ type UserContext struct {
 }
 
 // Supporting types for API utilities.
+

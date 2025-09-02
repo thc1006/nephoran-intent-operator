@@ -531,7 +531,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 				NextPhase: interfaces.PhaseManifestGeneration,
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 
 				Metrics: map[string]float64{
 					"planning_time_ms": float64(time.Since(startTime).Milliseconds()),
@@ -669,7 +669,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 	// Create result.
 
-	resultData := json.RawMessage("{}")
+	resultData := json.RawMessage(`{}`)
 
 	if optimizedPlan != nil {
 		resultData["optimizedPlan"] = optimizedPlan
@@ -708,7 +708,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 				CorrelationID: session.CorrelationID,
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -1818,7 +1818,7 @@ func (c *SpecializedResourcePlanningController) GetHealthStatus(ctx context.Cont
 
 	defer c.mutex.RUnlock()
 
-	c.healthStatus.Metrics = json.RawMessage("{}")
+	c.healthStatus.Metrics = json.RawMessage(`{}`)
 
 	c.healthStatus.LastChecked = time.Now()
 
@@ -2087,7 +2087,7 @@ func (c *SpecializedResourcePlanningController) performHealthCheck() {
 
 		LastChecked: time.Now(),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}
 }
 
@@ -2653,3 +2653,4 @@ func initializePerformanceTargets() map[string]*PerformanceTarget {
 
 	return targets
 }
+

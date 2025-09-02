@@ -14,7 +14,7 @@ import (
 
 // Test A1Interface enum
 
-// DISABLED: func TestA1Interface_String(t *testing.T) {
+func TestA1Interface_String(t *testing.T) {
 	tests := []struct {
 		name       string
 		interface_ A1Interface
@@ -32,7 +32,7 @@ import (
 	}
 }
 
-// DISABLED: func TestA1Interface_JSON_Serialization(t *testing.T) {
+func TestA1Interface_JSON_Serialization(t *testing.T) {
 	tests := []struct {
 		name       string
 		interface_ A1Interface
@@ -59,7 +59,7 @@ import (
 
 // Test A1Version enum
 
-// DISABLED: func TestA1Version_Values(t *testing.T) {
+func TestA1Version_Values(t *testing.T) {
 	tests := []struct {
 		name     string
 		version  A1Version
@@ -79,22 +79,22 @@ import (
 
 // Test PolicyType
 
-// DISABLED: func TestPolicyType_JSON_Serialization(t *testing.T) {
+func TestPolicyType_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	policyType := &PolicyType{
 		PolicyTypeID:   123,
 		PolicyTypeName: "Traffic Steering Policy",
 		Description:    "Policy for managing traffic steering in O-RAN",
-		Schema: json.RawMessage("{}"){
-				"scope": json.RawMessage("{}"){
-						"ue_id": json.RawMessage("{}"),
+		Schema: map[string]interface{}{
+				"scope": map[string]interface{}{
+						"ue_id": json.RawMessage(`{}`),
 					},
 				},
 			},
 		},
-		CreateSchema: json.RawMessage("{}"){
-				"notification_destination": json.RawMessage("{}"),
+		CreateSchema: map[string]interface{}{
+				"notification_destination": json.RawMessage(`{}`),
 			},
 		},
 		CreatedAt:  now,
@@ -117,7 +117,7 @@ import (
 	assert.True(t, policyType.ModifiedAt.Equal(unmarshaled.ModifiedAt))
 }
 
-// DISABLED: func TestPolicyType_Validation_Tags(t *testing.T) {
+func TestPolicyType_Validation_Tags(t *testing.T) {
 	tests := []struct {
 		name        string
 		policyType  PolicyType
@@ -128,7 +128,7 @@ import (
 			name: "valid policy type",
 			policyType: PolicyType{
 				PolicyTypeID: 1,
-				Schema: json.RawMessage("{}"),
+				Schema: json.RawMessage(`{}`),
 			},
 			expectValid: true,
 		},
@@ -136,7 +136,7 @@ import (
 			name: "missing policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				Schema: json.RawMessage("{}"),
+				Schema: json.RawMessage(`{}`),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -145,7 +145,7 @@ import (
 			name: "negative policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: -1, // Invalid: must be >= 1
-				Schema: json.RawMessage("{}"),
+				Schema: json.RawMessage(`{}`),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -168,10 +168,10 @@ import (
 	}
 }
 
-// DISABLED: func TestPolicyType_EmptyOptionalFields(t *testing.T) {
+func TestPolicyType_EmptyOptionalFields(t *testing.T) {
 	policyType := &PolicyType{
 		PolicyTypeID: 1,
-		Schema: json.RawMessage("{}"),
+		Schema: json.RawMessage(`{}`),
 		// Optional fields left empty
 		PolicyTypeName: "",
 		Description:    "",
@@ -193,22 +193,22 @@ import (
 
 // Test PolicyInstance
 
-// DISABLED: func TestPolicyInstance_JSON_Serialization(t *testing.T) {
+func TestPolicyInstance_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	instance := &PolicyInstance{
 		PolicyID:     "traffic-policy-123",
 		PolicyTypeID: 456,
-		PolicyData: json.RawMessage("{}"){
+		PolicyData: map[string]interface{}{
 				"ue_id":   "ue-12345",
 				"cell_id": "cell-abcde",
 			},
-			"statement": json.RawMessage("{}"),
+			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://callback.example.com/policy-notifications",
 			RequestID:               "req-789",
-			AdditionalParams: json.RawMessage("{}"),
+			AdditionalParams: json.RawMessage(`{}`),
 		},
 		CreatedAt:  now,
 		ModifiedAt: now,
@@ -231,7 +231,7 @@ import (
 	assert.True(t, instance.ModifiedAt.Equal(unmarshaled.ModifiedAt))
 }
 
-// DISABLED: func TestPolicyInstance_Validation_Tags(t *testing.T) {
+func TestPolicyInstance_Validation_Tags(t *testing.T) {
 	tests := []struct {
 		name        string
 		instance    PolicyInstance
@@ -243,7 +243,7 @@ import (
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage("{}"),
+				PolicyData: json.RawMessage(`{}`),
 			},
 			expectValid: true,
 		},
@@ -252,7 +252,7 @@ import (
 			instance: PolicyInstance{
 				PolicyID:     "", // Invalid: required
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage("{}"),
+				PolicyData: json.RawMessage(`{}`),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_id"},
@@ -262,7 +262,7 @@ import (
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				PolicyData: json.RawMessage("{}"),
+				PolicyData: json.RawMessage(`{}`),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -285,21 +285,21 @@ import (
 	}
 }
 
-// DISABLED: func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
-	complexData := json.RawMessage("{}"){
+func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
+	complexData := map[string]interface{}{
 			"ue_ids": []interface{}{
 				"ue-001", "ue-002", "ue-003",
 			},
 			"cell_ids": []interface{}{
-				json.RawMessage("{}"),
-				json.RawMessage("{}"),
+				json.RawMessage(`{}`),
+				json.RawMessage(`{}`),
 			},
 		},
 		"statements": []interface{}{
-			json.RawMessage("{}"){
-					"time_window": json.RawMessage("{}"),
+			map[string]interface{}{
+					"time_window": json.RawMessage(`{}`),
 				},
-				"action": json.RawMessage("{}"),
+				"action": json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -335,7 +335,7 @@ import (
 
 // Test PolicyStatus
 
-// DISABLED: func TestPolicyStatus_JSON_Serialization(t *testing.T) {
+func TestPolicyStatus_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	status := &PolicyStatus{
@@ -345,9 +345,9 @@ import (
 		Deleted:           false,
 		CreatedAt:         now,
 		ModifiedAt:        now,
-		AdditionalInfo: json.RawMessage("{}"),
+		AdditionalInfo: json.RawMessage(`{}`),
 			"enforcement_time":   "2023-01-01T12:00:00Z",
-			"metrics": json.RawMessage("{}"),
+			"metrics": json.RawMessage(`{}`),
 		},
 	}
 
@@ -367,7 +367,7 @@ import (
 	assert.Equal(t, status.AdditionalInfo, unmarshaled.AdditionalInfo)
 }
 
-// DISABLED: func TestPolicyStatus_Validation_Tags(t *testing.T) {
+func TestPolicyStatus_Validation_Tags(t *testing.T) {
 	tests := []struct {
 		name        string
 		status      PolicyStatus
@@ -431,17 +431,17 @@ import (
 
 // Test EnrichmentInfoType
 
-// DISABLED: func TestEnrichmentInfoType_JSON_Serialization(t *testing.T) {
+func TestEnrichmentInfoType_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	eiType := &EnrichmentInfoType{
 		EiTypeID:    "throughput-measurement",
 		EiTypeName:  "Throughput Measurement EI Type",
 		Description: "Enrichment Information type for measuring cell throughput",
-		EiJobDataSchema: json.RawMessage("{}"){
-				"measurement_config": json.RawMessage("{}"){
-						"interval_seconds": json.RawMessage("{}"),
-						"target_cells": json.RawMessage("{}"){
+		EiJobDataSchema: map[string]interface{}{
+				"measurement_config": map[string]interface{}{
+						"interval_seconds": json.RawMessage(`{}`),
+						"target_cells": map[string]interface{}{
 								"type": "string",
 							},
 							"minItems": 1,
@@ -452,12 +452,12 @@ import (
 			},
 			"required": []string{"measurement_config"},
 		},
-		EiJobResultSchema: json.RawMessage("{}"){
-				"measurements": json.RawMessage("{}"){
+		EiJobResultSchema: map[string]interface{}{
+				"measurements": map[string]interface{}{
 						"type": "object",
-						"properties": json.RawMessage("{}")`),
+						"properties": json.RawMessage(`{}`)`),
 							"throughput": json.RawMessage(`{"type":"number"}`),
-							"timestamp":  json.RawMessage("{}"),
+							"timestamp":  json.RawMessage(`{}`),
 						},
 					},
 				},
@@ -483,7 +483,7 @@ import (
 	assert.True(t, eiType.ModifiedAt.Equal(unmarshaled.ModifiedAt))
 }
 
-// DISABLED: func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
+func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
 	tests := []struct {
 		name        string
 		eiType      EnrichmentInfoType
@@ -527,18 +527,18 @@ import (
 
 // Test EnrichmentInfoJob
 
-// DISABLED: func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
+func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	job := &EnrichmentInfoJob{
 		EiJobID:  "throughput-job-001",
 		EiTypeID: "throughput-measurement",
-		EiJobData: json.RawMessage("{}"){
+		EiJobData: map[string]interface{}{
 				"interval_seconds": 60,
 				"target_cells":     []interface{}{"cell-001", "cell-002"},
-				"thresholds": json.RawMessage("{}"),
+				"thresholds": json.RawMessage(`{}`),
 			},
-			"reporting": json.RawMessage("{}"),
+			"reporting": json.RawMessage(`{}`),
 		},
 		TargetURI:    "http://ei-consumer.example.com/measurements",
 		JobOwner:     "network-analytics-service",
@@ -554,9 +554,9 @@ import (
 					},
 				},
 			},
-			JobParameters: json.RawMessage("{}"),
-			JobResultSchema: json.RawMessage("{}"){
-					"cell_measurements": json.RawMessage("{}"),
+			JobParameters: json.RawMessage(`{}`),
+			JobResultSchema: map[string]interface{}{
+					"cell_measurements": json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -586,7 +586,7 @@ import (
 	assert.True(t, job.LastExecutedAt.Equal(unmarshaled.LastExecutedAt))
 }
 
-// DISABLED: func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
+func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 	tests := []struct {
 		name        string
 		job         EnrichmentInfoJob
@@ -672,7 +672,7 @@ import (
 
 // Test DeliveryInfo
 
-// DISABLED: func TestDeliveryInfo_JSON_Serialization(t *testing.T) {
+func TestDeliveryInfo_JSON_Serialization(t *testing.T) {
 	deliveryInfo := &DeliveryInfo{
 		DeliveryURL:    "http://callback.example.com/ei-results",
 		DeliveryMethod: "POST",
@@ -708,7 +708,7 @@ import (
 
 // Test Edge Cases and Error Conditions
 
-// DISABLED: func TestTypes_NilMapHandling(t *testing.T) {
+func TestTypes_NilMapHandling(t *testing.T) {
 	tests := []struct {
 		name string
 		data interface{}
@@ -764,12 +764,12 @@ import (
 	}
 }
 
-// DISABLED: func TestTypes_LargeDataHandling(t *testing.T) {
+func TestTypes_LargeDataHandling(t *testing.T) {
 	// Create a large policy data structure
 	largeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		largeData[fmt.Sprintf("field_%d", i)] = json.RawMessage("{}"){i, i + 1, i + 2},
-			"nested": json.RawMessage("{}"),
+		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{i, i + 1, i + 2},
+			"nested": json.RawMessage(`{}`),
 		}
 	}
 
@@ -792,14 +792,14 @@ import (
 	assert.Equal(t, len(instance.PolicyData), len(unmarshaled.PolicyData))
 }
 
-// DISABLED: func TestTypes_UnicodeHandling(t *testing.T) {
+func TestTypes_UnicodeHandling(t *testing.T) {
 	// Test Unicode characters in various fields
 	policyType := &PolicyType{
 		PolicyTypeID:   1,
 		PolicyTypeName: "测�?策略类�? ??",
 		Description:    "?оли?ика дл? ?е??и?овани? ا?عرب?ة हिन�?द�? ?�本�?,
-		Schema: json.RawMessage("{}"){
-				"unicode_field": json.RawMessage("{}"),
+		Schema: map[string]interface{}{
+				"unicode_field": json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -815,7 +815,7 @@ import (
 	assert.Equal(t, policyType.Description, unmarshaled.Description)
 }
 
-// DISABLED: func TestTypes_TimeHandling(t *testing.T) {
+func TestTypes_TimeHandling(t *testing.T) {
 	// Test different time formats and edge cases
 	times := []time.Time{
 		time.Unix(0, 0), // Unix epoch
@@ -849,9 +849,9 @@ import (
 
 // Test Type Conversion and Casting
 
-// DISABLED: func TestTypes_InterfaceConversion(t *testing.T) {
+func TestTypes_InterfaceConversion(t *testing.T) {
 	// Test conversion between interface{} and concrete types
-	data := json.RawMessage("{}"){1, 2, 3},
+	data := map[string]interface{}{1, 2, 3},
 		"object_field": json.RawMessage(`{"nested":"value"}`),
 	}
 
@@ -887,11 +887,11 @@ import (
 
 // Test Concurrent Access
 
-// DISABLED: func TestTypes_ConcurrentAccess(t *testing.T) {
+func TestTypes_ConcurrentAccess(t *testing.T) {
 	instance := &PolicyInstance{
 		PolicyID:     "concurrent-test",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage("{}"),
+		PolicyData: json.RawMessage(`{}`),
 	}
 
 	// Test concurrent read access
@@ -931,7 +931,7 @@ func BenchmarkPolicyType_JSON_Marshal(b *testing.B) {
 		PolicyTypeID:   1,
 		PolicyTypeName: "Benchmark Policy Type",
 		Description:    "Policy type for benchmarking JSON serialization",
-		Schema: json.RawMessage("{}"){
+		Schema: map[string]interface{}{
 				"field1": json.RawMessage(`{"type":"string"}`),
 				"field2": json.RawMessage(`{"type":"integer"}`),
 				"field3": json.RawMessage(`{"type":"boolean"}`),
@@ -951,7 +951,7 @@ func BenchmarkPolicyInstance_JSON_Marshal(b *testing.B) {
 	instance := &PolicyInstance{
 		PolicyID:     "benchmark-policy",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage("{}"){
+		PolicyData: map[string]interface{}{
 				"sub_field": "sub_value",
 			},
 		},
@@ -969,7 +969,7 @@ func BenchmarkLargePolicyData_JSON_Marshal(b *testing.B) {
 	// Create large policy data
 	largeData := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		largeData[fmt.Sprintf("field_%d", i)] = json.RawMessage("{}"){i, i + 1, i + 2},
+		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{i, i + 1, i + 2},
 		}
 	}
 
@@ -1070,3 +1070,4 @@ func ValidateStruct(s interface{}) error {
 
 	return nil
 }
+

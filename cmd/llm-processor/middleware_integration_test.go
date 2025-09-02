@@ -22,7 +22,7 @@ import (
 // Note: createIPAllowlistHandler is defined in main_test.go to avoid duplication
 
 // TestSecurityHeadersMiddleware validates that security headers are correctly set
-// DISABLED: func TestSecurityHeadersMiddleware(t *testing.T) {
+func TestSecurityHeadersMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
@@ -141,7 +141,7 @@ import (
 }
 
 // TestRedactLoggerMiddleware validates that sensitive data is properly redacted in logs
-// DISABLED: func TestRedactLoggerMiddleware(t *testing.T) {
+func TestRedactLoggerMiddleware(t *testing.T) {
 	var logBuffer bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuffer, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -312,7 +312,7 @@ import (
 }
 
 // TestCorrelationIDGeneration validates correlation ID generation and propagation
-// DISABLED: func TestCorrelationIDGeneration(t *testing.T) {
+func TestCorrelationIDGeneration(t *testing.T) {
 	var logBuffer bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuffer, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -435,7 +435,7 @@ import (
 }
 
 // TestMiddlewareOrdering validates that middlewares are applied in the correct order
-// DISABLED: func TestMiddlewareOrdering(t *testing.T) {
+func TestMiddlewareOrdering(t *testing.T) {
 	var logBuffer bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuffer, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -638,7 +638,7 @@ import (
 }
 
 // TestHSTSHeaderBehavior specifically tests HSTS header behavior with different TLS configurations
-// DISABLED: func TestHSTSHeaderBehavior(t *testing.T) {
+func TestHSTSHeaderBehavior(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
@@ -763,7 +763,7 @@ import (
 }
 
 // TestMiddlewareWithExistingEndpoints tests middleware integration with actual endpoints
-// DISABLED: func TestMiddlewareWithExistingEndpoints(t *testing.T) {
+func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 	var logBuffer bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuffer, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -843,7 +843,7 @@ import (
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(json.RawMessage("{}"))
+			json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 		}))
 	router.Handle("/process", processHandler).Methods("POST")
 
@@ -1032,7 +1032,7 @@ import (
 }
 
 // TestMiddlewareErrorHandling tests how middlewares handle various error conditions
-// DISABLED: func TestMiddlewareErrorHandling(t *testing.T) {
+func TestMiddlewareErrorHandling(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
@@ -1132,3 +1132,4 @@ import (
 func init() {
 	// This test file comprehensively covers middleware integration testing
 }
+

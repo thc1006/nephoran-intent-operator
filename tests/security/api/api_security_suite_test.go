@@ -44,7 +44,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestCORSConfiguration tests CORS security configuration
-// DISABLED: func TestCORSConfiguration(t *testing.T) {
+func TestCORSConfiguration(t *testing.T) {
 	suite := NewAPISecuritySuite(t)
 
 	testCases := []struct {
@@ -160,7 +160,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestSecurityHeaders tests security headers implementation
-// DISABLED: func TestSecurityHeaders(t *testing.T) {
+func TestSecurityHeaders(t *testing.T) {
 	suite := NewAPISecuritySuite(t)
 
 	requiredHeaders := []struct {
@@ -259,7 +259,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestTLSEnforcement tests TLS/HTTPS enforcement
-// DISABLED: func TestTLSEnforcement(t *testing.T) {
+func TestTLSEnforcement(t *testing.T) {
 	t.Run("TLS_Version_Check", func(t *testing.T) {
 		// Test minimum TLS version
 		tlsVersions := []struct {
@@ -361,7 +361,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestAPIVersioning tests API versioning security
-// DISABLED: func TestAPIVersioning(t *testing.T) {
+func TestAPIVersioning(t *testing.T) {
 	t.Run("Version_In_URL", func(t *testing.T) {
 		versions := []struct {
 			version    string
@@ -426,7 +426,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestErrorHandlingSecurity tests secure error handling
-// DISABLED: func TestErrorHandlingSecurity(t *testing.T) {
+func TestErrorHandlingSecurity(t *testing.T) {
 	suite := NewAPISecuritySuite(t)
 
 	errorScenarios := []struct {
@@ -503,7 +503,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestSessionSecurity tests session management security
-// DISABLED: func TestSessionSecurity(t *testing.T) {
+func TestSessionSecurity(t *testing.T) {
 	t.Run("Session_Cookie_Security", func(t *testing.T) {
 		w := httptest.NewRecorder()
 
@@ -568,7 +568,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestCSRFProtection tests CSRF protection mechanisms
-// DISABLED: func TestCSRFProtection(t *testing.T) {
+func TestCSRFProtection(t *testing.T) {
 	t.Run("CSRF_Token_Validation", func(t *testing.T) {
 		testCases := []struct {
 			name        string
@@ -668,7 +668,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestAPIThrottling tests API throttling and abuse prevention
-// DISABLED: func TestAPIThrottling(t *testing.T) {
+func TestAPIThrottling(t *testing.T) {
 	_ = NewAPISecuritySuite(t) // Initialize security suite for throttling tests
 
 	t.Run("Expensive_Operation_Throttling", func(t *testing.T) {
@@ -732,7 +732,7 @@ func NewAPISecuritySuite(t *testing.T) *APISecuritySuite {
 }
 
 // TestContentTypeValidation tests content type security
-// DISABLED: func TestContentTypeValidation(t *testing.T) {
+func TestContentTypeValidation(t *testing.T) {
 	_ = NewAPISecuritySuite(t) // Initialize security suite for content type tests
 
 	testCases := []struct {
@@ -893,7 +893,7 @@ func (s *APISecuritySuite) generateSecureErrorResponse(errorType string, statusC
 		message = "An error occurred processing your request."
 	}
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func generateRequestID() string {
@@ -902,7 +902,7 @@ func generateRequestID() string {
 }
 
 // TestTelecommunicationsSpecificSecurity tests telecom-specific security requirements
-// DISABLED: func TestTelecommunicationsSpecificSecurity(t *testing.T) {
+func TestTelecommunicationsSpecificSecurity(t *testing.T) {
 	_ = NewAPISecuritySuite(t) // Initialize security suite for telecom security tests
 
 	t.Run("ORAN_A1_Policy_Security", func(t *testing.T) {
@@ -940,7 +940,7 @@ func generateRequestID() string {
 		for _, test := range policyTests {
 			t.Run(test.name, func(t *testing.T) {
 				// Create policy request
-				policy := json.RawMessage("{}"){
+				policy := map[string]interface{}{
 						"targetCell": "cell-123",
 						"action":     "optimize",
 					},
@@ -1061,7 +1061,7 @@ func generateRequestID() string {
 }
 
 // TestComplianceRequirements tests regulatory compliance requirements
-// DISABLED: func TestComplianceRequirements(t *testing.T) {
+func TestComplianceRequirements(t *testing.T) {
 	_ = NewAPISecuritySuite(t) // Initialize security suite for compliance tests
 
 	t.Run("GDPR_Compliance", func(t *testing.T) {
@@ -1091,3 +1091,4 @@ func generateRequestID() string {
 		assert.True(t, true, "Network segmentation")
 	})
 }
+

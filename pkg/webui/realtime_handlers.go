@@ -252,7 +252,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 		Send: make(chan []byte, 256),
 
-		Filters: json.RawMessage("{}"),
+		Filters: json.RawMessage(`{}`),
 
 		LastSeen: time.Now(),
 	}
@@ -287,7 +287,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 			Source: "nephoran-api-server",
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "welcome",
@@ -462,7 +462,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 
 			Source: "nephoran-api-server",
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "subscribe_response",
@@ -486,7 +486,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection, msg *WebSocketMessage) {
 	// Reset filters to default.
 
-	conn.Filters = json.RawMessage("{}")
+	conn.Filters = json.RawMessage(`{}`)
 
 	// Send unsubscription confirmation.
 
@@ -500,7 +500,7 @@ func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection
 
 			Source: "nephoran-api-server",
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "unsubscribe_response",
@@ -570,7 +570,7 @@ func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, 
 
 			Source: "nephoran-api-server",
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "status_response",
@@ -602,7 +602,7 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 
 			Source: "nephoran-api-server",
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 		},
 
 		Action: "error",
@@ -715,7 +715,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Flusher: flusher,
 
-		Filters: json.RawMessage("{}"),
+		Filters: json.RawMessage(`{}`),
 
 		LastSeen: time.Now(),
 	}
@@ -749,7 +749,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Source: "nephoran-api-server",
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 
 	s.sendSSEMessage(sseConn, &welcomeMsg)
@@ -785,7 +785,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 			// Send keep-alive ping.
 
-			fmt.Fprintf(w, "event: ping\ndata: %s\n\n", mustMarshalString(json.RawMessage("{}")))
+			fmt.Fprintf(w, "event: ping\ndata: %s\n\n", mustMarshalString(json.RawMessage(`{}`)))
 
 			flusher.Flush()
 
@@ -835,16 +835,16 @@ func (s *NephoranAPIServer) listActiveStreams(w http.ResponseWriter, r *http.Req
 	// Add WebSocket connections.
 
 	for id, conn := range s.wsConnections {
-		streams = append(streams, json.RawMessage("{}"))
+		streams = append(streams, json.RawMessage(`{}`))
 	}
 
 	// Add SSE connections.
 
 	for id, conn := range s.sseConnections {
-		streams = append(streams, json.RawMessage("{}"))
+		streams = append(streams, json.RawMessage(`{}`))
 	}
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // Helper functions.
@@ -1016,7 +1016,7 @@ func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request
 
 	// TODO: Implement actual stream info retrieval.
 
-	streamInfo := json.RawMessage("{}")
+	streamInfo := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, streamInfo)
 }
@@ -1032,7 +1032,8 @@ func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) 
 
 	s.logger.Info("Closing stream", "streamID", streamID)
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	s.writeJSONResponse(w, http.StatusOK, response)
 }
+

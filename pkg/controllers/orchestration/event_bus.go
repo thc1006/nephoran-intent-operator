@@ -700,5 +700,6 @@ func (m *EventBusMetrics) GetMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
+

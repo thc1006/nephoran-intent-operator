@@ -11,7 +11,7 @@ import (
 )
 
 // TestGPUAcceleratorIntegration tests the complete GPU accelerator integration
-// DISABLED: func TestGPUAcceleratorIntegration(t *testing.T) {
+func TestGPUAcceleratorIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping GPU integration test in short mode")
 	}
@@ -110,7 +110,7 @@ import (
 }
 
 // TestEnhancedModelCacheIntegration tests the enhanced model cache
-// DISABLED: func TestEnhancedModelCacheIntegration(t *testing.T) {
+func TestEnhancedModelCacheIntegration(t *testing.T) {
 	config := getDefaultEnhancedCacheConfig()
 	config.EnablePrediction = true
 	config.EnablePreloading = true
@@ -165,7 +165,7 @@ import (
 }
 
 // TestVectorSearchAcceleratorIntegration tests vector search acceleration
-// DISABLED: func TestVectorSearchAcceleratorIntegration(t *testing.T) {
+func TestVectorSearchAcceleratorIntegration(t *testing.T) {
 	config := getDefaultVectorSearchConfig()
 	config.VectorDimensions = 768
 	config.EnableSearchCache = true
@@ -236,17 +236,17 @@ import (
 			{
 				id:     "doc1",
 				vector: generateRandomVector(dimensions),
-				metadata: json.RawMessage("{}"),
+				metadata: json.RawMessage(`{}`),
 			},
 			{
 				id:     "doc2",
 				vector: generateRandomVector(dimensions),
-				metadata: json.RawMessage("{}"),
+				metadata: json.RawMessage(`{}`),
 			},
 			{
 				id:     "doc3",
 				vector: generateRandomVector(dimensions),
-				metadata: json.RawMessage("{}"),
+				metadata: json.RawMessage(`{}`),
 			},
 		}
 
@@ -315,7 +315,7 @@ import (
 }
 
 // TestGPUMemoryManagerIntegration tests GPU memory management
-// DISABLED: func TestGPUMemoryManagerIntegration(t *testing.T) {
+func TestGPUMemoryManagerIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping GPU memory test in short mode")
 	}
@@ -418,7 +418,7 @@ import (
 }
 
 // TestConcurrentOperations tests thread safety and concurrent operations
-// DISABLED: func TestConcurrentOperations(t *testing.T) {
+func TestConcurrentOperations(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping concurrent test in short mode")
 	}
@@ -503,7 +503,7 @@ import (
 						// Index operation
 						vectorID := fmt.Sprintf("worker_%d_vec_%d", workerID, j)
 						vector := generateRandomVector(config.VectorDimensions)
-						metadata := json.RawMessage("{}")
+						metadata := json.RawMessage(`{}`)
 
 						err := accelerator.IndexVector(ctx, vectorID, vector, metadata)
 						if err != nil {
@@ -537,7 +537,7 @@ import (
 }
 
 // TestErrorHandling tests error handling and recovery
-// DISABLED: func TestErrorHandling(t *testing.T) {
+func TestErrorHandling(t *testing.T) {
 	t.Run("InvalidGPUConfig", func(t *testing.T) {
 		config := getDefaultGPUConfig()
 		config.EnabledDevices = []int{999} // Non-existent device
@@ -631,7 +631,7 @@ import (
 }
 
 // TestResourceCleanup tests proper resource cleanup
-// DISABLED: func TestResourceCleanup(t *testing.T) {
+func TestResourceCleanup(t *testing.T) {
 	t.Run("GPUAcceleratorCleanup", func(t *testing.T) {
 		config := getDefaultGPUConfig()
 		accelerator, err := NewGPUAccelerator(config)
@@ -678,3 +678,4 @@ import (
 		}
 	})
 }
+

@@ -54,13 +54,13 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 			ServerAddress: "127.0.0.1",
 			ServerPort:    0, // Use dynamic port for testing
 			TLSEnabled:    false,
-			DatabaseConfig: json.RawMessage("{}"),
-			ProviderConfigs: json.RawMessage("{}"){
+			DatabaseConfig: json.RawMessage(`{}`),
+			ProviderConfigs: map[string]interface{}{
 					"enabled": true,
-					"config": json.RawMessage("{}"),
+					"config": json.RawMessage(`{}`),
 				},
 			},
-			MonitoringConfig: json.RawMessage("{}"),
+			MonitoringConfig: json.RawMessage(`{}`),
 		}
 
 		var err error
@@ -396,7 +396,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				alarmID := "test-alarm-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 
 				By("creating a test alarm")
-				alarm := json.RawMessage("{}")
+				alarm := json.RawMessage(`{}`)
 
 				alarmJSON, err := json.Marshal(alarm)
 				Expect(err).NotTo(HaveOccurred())
@@ -424,7 +424,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				Expect(retrievedAlarm["perceivedSeverity"]).To(Equal("MAJOR"))
 
 				By("acknowledging the alarm")
-				ackData := json.RawMessage("{}")
+				ackData := json.RawMessage(`{}`)
 
 				ackJSON, err := json.Marshal(ackData)
 				Expect(err).NotTo(HaveOccurred())
@@ -458,7 +458,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				subscriptionID := "test-subscription-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 
 				By("creating a monitoring subscription")
-				subscription := json.RawMessage("{}")
+				subscription := json.RawMessage(`{}`)
 
 				subJSON, err := json.Marshal(subscription)
 				Expect(err).NotTo(HaveOccurred())
@@ -502,7 +502,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 		Context("when handling invalid requests", func() {
 			It("should return appropriate error responses for invalid resource pool operations", func() {
 				By("attempting to create resource pool with invalid data")
-				invalidPool := json.RawMessage("{}")
+				invalidPool := json.RawMessage(`{}`)
 
 				poolJSON, err := json.Marshal(invalidPool)
 				Expect(err).NotTo(HaveOccurred())
@@ -679,3 +679,4 @@ func CreateTestNamespace() *corev1.Namespace {
 
 	return namespace
 }
+

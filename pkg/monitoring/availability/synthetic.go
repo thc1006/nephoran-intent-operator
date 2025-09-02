@@ -1016,8 +1016,9 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 
 		Layer: LayerAPI, // Most synthetic checks are API-level
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	return metric, nil
 }
+

@@ -406,7 +406,7 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 		ProviderID: googleUser.ID,
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	// Add domain-based groups if hosted domain is present.
@@ -704,7 +704,7 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 		EmailVerified: claims.EmailVerified,
 
-		Extra: json.RawMessage("{}"),
+		Extra: json.RawMessage(`{}`),
 	}
 
 	return standardClaims, nil
@@ -921,3 +921,4 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	return nil
 }
+

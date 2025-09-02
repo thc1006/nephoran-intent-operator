@@ -1877,13 +1877,13 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 
 						for _, iface := range config.Interfaces {
 
-							envVar := json.RawMessage("{}")
+							envVar := json.RawMessage(`{}`)
 
 							envVars = append(envVars, envVar)
 
 							if iface.Endpoint != nil {
 
-								envVar = json.RawMessage("{}")
+								envVar = json.RawMessage(`{}`)
 
 								envVars = append(envVars, envVar)
 
@@ -1924,7 +1924,7 @@ func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMReso
 						for _, iface := range config.Interfaces {
 							if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 
-								port := json.RawMessage("{}")
+								port := json.RawMessage(`{}`)
 
 								if iface.Protocol != nil {
 									port["protocol"] = strings.ToUpper(iface.Protocol.Type)
@@ -1962,7 +1962,7 @@ func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMR
 	for _, iface := range config.Interfaces {
 		if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 
-			port := json.RawMessage("{}")
+			port := json.RawMessage(`{}`)
 
 			if iface.Protocol != nil {
 				port["protocol"] = strings.ToUpper(iface.Protocol.Type)
@@ -1993,7 +1993,7 @@ func (f *ORANInterfaceConfigFunction) generateA1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "A1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2041,14 +2041,14 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "O1",
 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			if len(iface.O1Config.NETCONF.Capabilities) > 0 {
@@ -2078,7 +2078,7 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "O1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2127,14 +2127,14 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "O2",
 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			if len(iface.O2Config.IMS.ResourcePools) > 0 {
@@ -2164,7 +2164,7 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 
 				Kind: "Secret",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "O2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2215,7 +2215,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2252,7 +2252,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2289,14 +2289,14 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage("{}"){
+				Metadata: json.RawMessage(`{}`){
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			resources = append(resources, configMap)
@@ -2320,17 +2320,18 @@ func (f *ORANInterfaceConfigFunction) generateServiceMonitor(config *ORANInterfa
 
 		Kind: "ServiceMonitor",
 
-		Metadata: json.RawMessage("{}"){
+		Metadata: json.RawMessage(`{}`){
 				"nephoran.com/oran-interfaces": "enabled",
 			},
 		},
 
-		Spec: json.RawMessage("{}"){
-				"matchLabels": json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`){
+				"matchLabels": json.RawMessage(`{}`),
 			},
 
-			"endpoints": []json.RawMessage("{}"),
+			"endpoints": []json.RawMessage(`{}`),
 			},
 		},
 	}
 }
+

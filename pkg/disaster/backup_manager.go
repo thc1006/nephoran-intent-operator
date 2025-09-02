@@ -1164,13 +1164,13 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 
 			bm.logger.Error("Failed to backup repository", "name", repo.Name, "error", err)
 
-			repos[repo.Name] = json.RawMessage("{}")
+			repos[repo.Name] = json.RawMessage(`{}`)
 
 			continue
 
 		}
 
-		repos[repo.Name] = json.RawMessage("{}")
+		repos[repo.Name] = json.RawMessage(`{}`)
 
 		totalSize += size
 
@@ -1403,7 +1403,7 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 
 				totalSize += size
 
-				pvcs[fmt.Sprintf("%s/%s", ns, pvc.Name)] = json.RawMessage("{}")
+				pvcs[fmt.Sprintf("%s/%s", ns, pvc.Name)] = json.RawMessage(`{}`)
 
 			}
 		}
@@ -1416,7 +1416,7 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 
 	backupPath := fmt.Sprintf("/tmp/pv-backup-metadata-%d.json", start.Unix())
 
-	metadata := json.RawMessage("{}")
+	metadata := json.RawMessage(`{}`)
 
 	data, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
@@ -1473,7 +1473,7 @@ func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRe
 
 	// Collect system state information.
 
-	systemState := json.RawMessage("{}")
+	systemState := json.RawMessage(`{}`)
 
 	data, err := json.MarshalIndent(systemState, "", "  ")
 	if err != nil {
@@ -1543,7 +1543,7 @@ func (bm *BackupManager) getNodeInfo(ctx context.Context) map[string]interface{}
 
 	for _, node := range nodes.Items {
 
-		nodeInfo := json.RawMessage("{}")
+		nodeInfo := json.RawMessage(`{}`)
 
 		nodeList = append(nodeList, nodeInfo)
 
@@ -2086,3 +2086,4 @@ func (bs *BackupScheduler) stop() {
 
 	bs.manager.logger.Info("Backup scheduler stopped")
 }
+

@@ -313,7 +313,7 @@ func (r *ResourcePlanningController) processResourcePlan(ctx context.Context, re
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseResourcePlanning, EventResourcePlanningStarted,
 
-		string(resourcePlan.UID), false, json.RawMessage("{}")); err != nil {
+		string(resourcePlan.UID), false, json.RawMessage(`{}`)); err != nil {
 		log.Error(err, "Failed to publish planning start event")
 	}
 
@@ -1230,7 +1230,7 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseResourcePlanning, EventResourcePlanningCompleted,
 
-		string(resourcePlan.UID), true, json.RawMessage("{}")); err != nil {
+		string(resourcePlan.UID), true, json.RawMessage(`{}`)); err != nil {
 		log.Error(err, "Failed to publish completion event")
 	}
 
@@ -1320,7 +1320,7 @@ func (r *ResourcePlanningController) handlePlanningError(ctx context.Context, re
 
 	if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseResourcePlanning, EventResourcePlanningFailed,
 
-		string(resourcePlan.UID), false, json.RawMessage("{}")); pubErr != nil {
+		string(resourcePlan.UID), false, json.RawMessage(`{}`)); pubErr != nil {
 		log.Error(pubErr, "Failed to publish failure event")
 	}
 
@@ -1892,3 +1892,4 @@ func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoran
 
 	return status, violations
 }
+

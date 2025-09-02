@@ -78,7 +78,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func
 			Skip("Skipping LLM service interaction until service is available in test environment")
 
 			// This would be enabled when LLM service is running
-			llmRequest := json.RawMessage("{}")
+			llmRequest := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(llmRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -124,7 +124,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func
 			By("Step 5: Verifying RAG knowledge retrieval (if service available)")
 			Skip("Skipping RAG service interaction until service is available in test environment")
 
-			ragQuery := json.RawMessage("{}")
+			ragQuery := json.RawMessage(`{}`)
 
 			ragPayload, err := json.Marshal(ragQuery)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -629,3 +629,4 @@ var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func
 		})
 	})
 })
+

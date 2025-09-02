@@ -12,25 +12,25 @@ import (
 )
 
 // Test schema for validation tests
-var testSchema = json.RawMessage("{}"){
-		"apiVersion": json.RawMessage("{}"),
+var testSchema = map[string]interface{}{
+		"apiVersion": json.RawMessage(`{}`),
 		},
-		"kind": json.RawMessage("{}"),
+		"kind": json.RawMessage(`{}`),
 		},
-		"metadata": json.RawMessage("{}"){
-				"name": json.RawMessage("{}"),
-				"namespace": json.RawMessage("{}"),
+		"metadata": map[string]interface{}{
+				"name": json.RawMessage(`{}`),
+				"namespace": json.RawMessage(`{}`),
 			},
 			"required": []string{"name"},
 		},
-		"spec": json.RawMessage("{}"){
-				"intentType": json.RawMessage("{}"),
+		"spec": map[string]interface{}{
+				"intentType": json.RawMessage(`{}`),
 				},
-				"target": json.RawMessage("{}"),
-				"replicas": json.RawMessage("{}"),
-				"resources": json.RawMessage("{}"){
-						"cpu": json.RawMessage("{}"),
-						"memory": json.RawMessage("{}"),
+				"target": json.RawMessage(`{}`),
+				"replicas": json.RawMessage(`{}`),
+				"resources": map[string]interface{}{
+						"cpu": json.RawMessage(`{}`),
+						"memory": json.RawMessage(`{}`),
 					},
 				},
 			},
@@ -66,7 +66,7 @@ func createTestSchemaFile(t TestingT) string {
 	return schemaFile
 }
 
-// DISABLED: func TestNewIntentSchemaValidator(t *testing.T) {
+func TestNewIntentSchemaValidator(t *testing.T) {
 	t.Run("creates validator with valid schema file", func(t *testing.T) {
 		schemaFile := createTestSchemaFile(t)
 
@@ -122,17 +122,17 @@ func createTestSchemaFile(t TestingT) string {
 	})
 }
 
-// DISABLED: func TestIntentSchemaValidator_Validate(t *testing.T) {
+func TestIntentSchemaValidator_Validate(t *testing.T) {
 	schemaFile := createTestSchemaFile(t)
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(t, err)
 
 	t.Run("validates valid intent successfully", func(t *testing.T) {
-		validIntent := json.RawMessage("{}"){
+		validIntent := map[string]interface{}{
 				"name":      "test-intent",
 				"namespace": "default",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		err := validator.Validate(validIntent)
@@ -140,10 +140,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for invalid apiVersion", func(t *testing.T) {
-		invalidIntent := json.RawMessage("{}"){
+		invalidIntent := map[string]interface{}{
 				"name": "test-intent",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -152,7 +152,7 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for missing required fields", func(t *testing.T) {
-		incompleteIntent := json.RawMessage("{}"){
+		incompleteIntent := map[string]interface{}{
 				"intentType": "scaling",
 				"target":     "nginx-deployment",
 			},
@@ -164,10 +164,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for invalid enum values", func(t *testing.T) {
-		invalidIntent := json.RawMessage("{}"){
+		invalidIntent := map[string]interface{}{
 				"name": "test-intent",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -176,10 +176,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for out-of-range values", func(t *testing.T) {
-		invalidIntent := json.RawMessage("{}"){
+		invalidIntent := map[string]interface{}{
 				"name": "test-intent",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -188,11 +188,11 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("validates optional fields correctly", func(t *testing.T) {
-		intentWithResources := json.RawMessage("{}"){
+		intentWithResources := map[string]interface{}{
 				"name":      "test-intent",
 				"namespace": "default",
 			},
-			"spec": json.RawMessage("{}"){
+			"spec": map[string]interface{}{
 					"cpu":    "100m",
 					"memory": "128Mi",
 				},
@@ -204,10 +204,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for wrong data types", func(t *testing.T) {
-		invalidIntent := json.RawMessage("{}"){
+		invalidIntent := map[string]interface{}{
 				"name": "test-intent",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -216,7 +216,7 @@ func createTestSchemaFile(t TestingT) string {
 	})
 }
 
-// DISABLED: func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
+func TestIntentSchemaValidator_ValidateJSON(t *testing.T) {
 	schemaFile := createTestSchemaFile(t)
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(t, err)
@@ -290,7 +290,7 @@ func createTestSchemaFile(t TestingT) string {
 	})
 }
 
-// DISABLED: func TestIntentSchemaValidator_GetSchema(t *testing.T) {
+func TestIntentSchemaValidator_GetSchema(t *testing.T) {
 	schemaFile := createTestSchemaFile(t)
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(t, err)
@@ -303,15 +303,15 @@ func createTestSchemaFile(t TestingT) string {
 	})
 }
 
-// DISABLED: func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
+func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 	schemaFile := createTestSchemaFile(t)
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(t, err)
 
 	t.Run("updates schema successfully", func(t *testing.T) {
 		// Create an updated schema
-		updatedSchema := json.RawMessage("{}"){
-				"apiVersion": json.RawMessage("{}"), // Updated version
+		updatedSchema := map[string]interface{}{
+				"apiVersion": json.RawMessage(`{}`), // Updated version
 				},
 			},
 			"required": []string{"apiVersion"},
@@ -332,7 +332,7 @@ func createTestSchemaFile(t TestingT) string {
 		assert.Equal(t, "Updated NetworkIntent Schema", schema["title"])
 
 		// Test validation with updated schema
-		intent := json.RawMessage("{}")
+		intent := json.RawMessage(`{}`)
 
 		err = validator.Validate(intent)
 		assert.NoError(t, err)
@@ -349,16 +349,16 @@ func createTestSchemaFile(t TestingT) string {
 	})
 }
 
-// DISABLED: func TestIntentSchemaValidator_ConcurrentAccess(t *testing.T) {
+func TestIntentSchemaValidator_ConcurrentAccess(t *testing.T) {
 	schemaFile := createTestSchemaFile(t)
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(t, err)
 
 	t.Run("handles concurrent validation requests", func(t *testing.T) {
-		validIntent := json.RawMessage("{}"){
+		validIntent := map[string]interface{}{
 				"name": "test-intent",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		// Run multiple validations concurrently
@@ -385,11 +385,11 @@ func BenchmarkIntentSchemaValidator_Validate(b *testing.B) {
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(b, err)
 
-	validIntent := json.RawMessage("{}"){
+	validIntent := map[string]interface{}{
 			"name":      "test-intent",
 			"namespace": "default",
 		},
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	b.ResetTimer()
@@ -445,3 +445,4 @@ func FuzzIntentSchemaValidator_ValidateJSON(f *testing.F) {
 		validator.ValidateJSON(jsonStr)
 	})
 }
+

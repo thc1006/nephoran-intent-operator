@@ -3349,7 +3349,7 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 	if resourceMap, ok := resource.(map[string]interface{}); ok {
 
 		krmRes := KRMResource{
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 
 		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
@@ -3430,13 +3430,13 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 // convertFromKRMResource converts KRMResource to interface{} for storage in multicluster types.
 
 func convertFromKRMResource(resource KRMResource) interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // convertFromFunctionConfig converts FunctionConfig to interface{} for storage in multicluster types.
 
 func convertFromFunctionConfig(function FunctionConfig) interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Helper functions for package content operations.
@@ -3446,7 +3446,7 @@ func convertFromFunctionConfig(function FunctionConfig) interface{} {
 func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 	// Create a map with the resource data.
 
-	resourceMap := json.RawMessage("{}")
+	resourceMap := json.RawMessage(`{}`)
 
 	if resource.Spec != nil {
 		resourceMap["spec"] = resource.Spec
@@ -3655,7 +3655,7 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 
 	for i, resource := range resources {
 
-		resourceMap := json.RawMessage("{}")
+		resourceMap := json.RawMessage(`{}`)
 
 		if resource.Spec != nil {
 			resourceMap["spec"] = resource.Spec
@@ -4110,3 +4110,4 @@ func (f *functionRunnerStub) GetFunctionSchema(ctx context.Context, functionName
 func (f *functionRunnerStub) RegisterFunction(ctx context.Context, info *FunctionInfo) error {
 	return nil
 }
+

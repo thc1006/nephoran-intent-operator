@@ -607,12 +607,12 @@ func minInt(a, b int) int {
 }
 
 // TestMetricsScrapeTestSuite runs the complete test suite
-// DISABLED: func TestMetricsScrapeTestSuite(t *testing.T) {
+func TestMetricsScrapeTestSuite(t *testing.T) {
 	suite.Run(t, new(MetricsScrapeTestSuite))
 }
 
 // TestMetricsScrapeFunctional provides functional validation of metrics scraping
-// DISABLED: func TestMetricsScrapeFunctional(t *testing.T) {
+func TestMetricsScrapeFunctional(t *testing.T) {
 	// Save original environment
 	originalEnv := os.Getenv("METRICS_ENABLED")
 	defer func() {

@@ -291,7 +291,7 @@ func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, re
 // buildRenderingContext creates the context for template rendering.
 
 func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest) map[string]interface{} {
-	context := json.RawMessage("{}")
+	context := json.RawMessage(`{}`)
 
 	// Add intent-specific values.
 
@@ -329,7 +329,7 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 
 	// Add O-RAN specific context.
 
-	context["ORANInterfaces"] = json.RawMessage("{}"){
+	context["ORANInterfaces"] = json.RawMessage(`{}`){
 			"Version": "v1.0.0",
 
 			"Endpoint": "/a1-p",
@@ -337,22 +337,22 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 			"Port": 8080,
 		},
 
-		"O1": json.RawMessage("{}"),
+		"O1": json.RawMessage(`{}`),
 
-		"O2": json.RawMessage("{}"),
+		"O2": json.RawMessage(`{}`),
 
-		"E2": json.RawMessage("{}"),
+		"E2": json.RawMessage(`{}`),
 	}
 
 	// Add 5G Core specific context.
 
-	context["FiveGCore"] = json.RawMessage("{}"){
+	context["FiveGCore"] = json.RawMessage(`{}`){
 			"MCC": "001",
 
 			"MNC": "01",
 		},
 
-		"NetworkSlicing": json.RawMessage("{}"){
+		"NetworkSlicing": json.RawMessage(`{}`){
 				"SST": 1,
 
 				"SD": "000001",
@@ -1093,7 +1093,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	for i, cm := range rendered.ConfigMaps {
 
-		configMap := json.RawMessage("{}"){
+		configMap := json.RawMessage(`{}`){
 				"name": cm.Name,
 
 				"namespace": cm.Namespace,
@@ -1119,7 +1119,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	for i, secret := range rendered.Secrets {
 
-		secretResource := json.RawMessage("{}"){
+		secretResource := json.RawMessage(`{}`){
 				"name": secret.Name,
 
 				"namespace": secret.Namespace,
@@ -1145,7 +1145,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	// Generate metadata file.
 
-	metadataFile := json.RawMessage("{}")
+	metadataFile := json.RawMessage(`{}`)
 
 	content, err := yaml.Marshal(metadataFile)
 	if err != nil {
@@ -1241,3 +1241,4 @@ func getTargetNamespace(intent *v1.NetworkIntent) string {
 
 	return "default"
 }
+

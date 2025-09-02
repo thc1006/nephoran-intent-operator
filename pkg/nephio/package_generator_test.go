@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// DISABLED: func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
+func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 	tests := []struct {
 		name          string
 		intentType    string
@@ -136,7 +136,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
+func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 	// Create a package generator
 	pg, err := NewPackageGenerator()
 	if err != nil {
@@ -182,34 +182,34 @@ import (
 
 // Helper function to create test parameters based on intent type
 func createTestParameters(intentType string) map[string]interface{} {
-	baseParams := json.RawMessage("{}")
+	baseParams := json.RawMessage(`{}`)
 
 	switch intentType {
 	case "deployment", "":
 		baseParams["replicas"] = 3
 		baseParams["image"] = "test-image:latest"
-		baseParams["ports"] = []json.RawMessage("{}"),
+		baseParams["ports"] = []json.RawMessage(`{}`),
 		}
-		baseParams["env"] = []json.RawMessage("{}"),
+		baseParams["env"] = []json.RawMessage(`{}`),
 		}
-		baseParams["resources"] = json.RawMessage("{}"){
+		baseParams["resources"] = map[string]interface{}{
 				"CPU":    "100m",
 				"Memory": "128Mi",
 			},
-			"Limits": json.RawMessage("{}"),
+			"Limits": json.RawMessage(`{}`),
 		}
 	case "scaling":
 		baseParams["target"] = "existing-deployment"
 		baseParams["replicas"] = 5
 	case "policy":
-		baseParams["policy_spec"] = json.RawMessage("{}"){
+		baseParams["policy_spec"] = map[string]interface{}{
 				"matchLabels": map[string]string{
 					"app": "test-app",
 				},
 			},
 			"policyTypes": []string{"Ingress", "Egress"},
 		}
-		baseParams["a1_policy"] = json.RawMessage("{}"){
+		baseParams["a1_policy"] = map[string]interface{}{
 				"scope":  "network-slice",
 				"target": "slice-001",
 			},
@@ -218,3 +218,4 @@ func createTestParameters(intentType string) map[string]interface{} {
 
 	return baseParams
 }
+

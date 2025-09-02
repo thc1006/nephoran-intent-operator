@@ -152,7 +152,7 @@ func (s *LLMProcessorService) processIntentHandler(w http.ResponseWriter, r *htt
 }
 
 func (s *LLMProcessorService) statusHandler(w http.ResponseWriter, r *http.Request) {
-	status := json.RawMessage("{}")
+	status := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
@@ -448,12 +448,12 @@ var _ = Describe("LLM Processor Service Tests", func() {
 	Context("Service Integration with Different LLM Responses", func() {
 		It("Should handle complex JSON responses from LLM", func() {
 			By("Setting up service with complex response")
-			complexResponse := json.RawMessage("{}"){
+			complexResponse := map[string]interface{}{
 					"cpu":    "2000m",
 					"memory": "4Gi",
 				},
-				"networking": json.RawMessage("{}"),
-					"ingress": json.RawMessage("{}"),
+				"networking": json.RawMessage(`{}`),
+					"ingress": json.RawMessage(`{}`),
 				},
 			}
 			complexResponseBytes, _ := json.Marshal(complexResponse)
@@ -629,3 +629,4 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		})
 	})
 })
+

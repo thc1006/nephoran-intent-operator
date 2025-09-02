@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// DISABLED: func TestNewCORSMiddleware(t *testing.T) {
+func TestNewCORSMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -30,7 +30,7 @@ import (
 	assert.Equal(t, 3600, middleware.maxAge)
 }
 
-// DISABLED: func TestCORSMiddleware_AllowedOrigin(t *testing.T) {
+func TestCORSMiddleware_AllowedOrigin(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -58,7 +58,7 @@ import (
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// DISABLED: func TestCORSMiddleware_DisallowedOrigin(t *testing.T) {
+func TestCORSMiddleware_DisallowedOrigin(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -84,7 +84,7 @@ import (
 	assert.Equal(t, http.StatusOK, w.Code) // Request still processed, but no CORS headers
 }
 
-// DISABLED: func TestCORSMiddleware_WildcardOrigin(t *testing.T) {
+func TestCORSMiddleware_WildcardOrigin(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -109,7 +109,7 @@ import (
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// DISABLED: func TestCORSMiddleware_PreflightRequest(t *testing.T) {
+func TestCORSMiddleware_PreflightRequest(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -137,7 +137,7 @@ import (
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// DISABLED: func TestCORSMiddleware_PreflightDisallowedMethod(t *testing.T) {
+func TestCORSMiddleware_PreflightDisallowedMethod(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -163,7 +163,7 @@ import (
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
-// DISABLED: func TestCORSMiddleware_NoOriginHeader(t *testing.T) {
+func TestCORSMiddleware_NoOriginHeader(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -187,7 +187,7 @@ import (
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// DISABLED: func TestCORSMiddleware_WithCredentials(t *testing.T) {
+func TestCORSMiddleware_WithCredentials(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -212,7 +212,7 @@ import (
 	assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
 }
 
-// DISABLED: func TestValidateConfig_WildcardWithCredentials(t *testing.T) {
+func TestValidateConfig_WildcardWithCredentials(t *testing.T) {
 	config := CORSConfig{
 		AllowedOrigins:   []string{"*"},
 		AllowCredentials: true,
@@ -223,7 +223,7 @@ import (
 	assert.Contains(t, err.Error(), "wildcard origin '*' cannot be used with credentials enabled")
 }
 
-// DISABLED: func TestValidateConfig_PartialWildcard(t *testing.T) {
+func TestValidateConfig_PartialWildcard(t *testing.T) {
 	config := CORSConfig{
 		AllowedOrigins: []string{"https://*.example.com"},
 	}
@@ -233,7 +233,7 @@ import (
 	assert.Contains(t, err.Error(), "partial wildcard origins like 'https://*.example.com' are not supported")
 }
 
-// DISABLED: func TestValidateConfig_InvalidOriginFormat(t *testing.T) {
+func TestValidateConfig_InvalidOriginFormat(t *testing.T) {
 	config := CORSConfig{
 		AllowedOrigins: []string{"invalid-origin"},
 	}
@@ -243,7 +243,7 @@ import (
 	assert.Contains(t, err.Error(), "origin 'invalid-origin' must start with http:// or https://")
 }
 
-// DISABLED: func TestValidateConfig_ValidConfiguration(t *testing.T) {
+func TestValidateConfig_ValidConfiguration(t *testing.T) {
 	config := CORSConfig{
 		AllowedOrigins:   []string{"https://example.com", "http://localhost:3000"},
 		AllowCredentials: false,
@@ -253,7 +253,7 @@ import (
 	assert.NoError(t, err)
 }
 
-// DISABLED: func TestCORSMiddleware_ExposedHeaders(t *testing.T) {
+func TestCORSMiddleware_ExposedHeaders(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -277,7 +277,7 @@ import (
 	assert.Equal(t, "X-Custom-Header, X-Another-Header", w.Header().Get("Access-Control-Expose-Headers"))
 }
 
-// DISABLED: func TestIsOriginAllowed(t *testing.T) {
+func TestIsOriginAllowed(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{
@@ -305,7 +305,7 @@ import (
 	}
 }
 
-// DISABLED: func TestIsMethodAllowed(t *testing.T) {
+func TestIsMethodAllowed(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := CORSConfig{

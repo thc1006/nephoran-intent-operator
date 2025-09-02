@@ -734,6 +734,20 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 
 	}
 
+	// Convert map[string]interface{} to json.RawMessage
+	var metadata json.RawMessage
+	if resp.Metadata != nil {
+		metadataBytes, err := json.Marshal(resp.Metadata)
+		if err != nil {
+			// Fall back to empty JSON object on error
+			metadata = json.RawMessage(`{}`)
+		} else {
+			metadata = json.RawMessage(metadataBytes)
+		}
+	} else {
+		metadata = json.RawMessage(`{}`)
+	}
+
 	return &LLMResponse{
 		Content: content,
 
@@ -745,7 +759,7 @@ func (c *OptimizedHTTPClient) parseResponse(resp *OptimizedResponse) (*LLMRespon
 
 		FromCache: resp.FromCache,
 
-		Metadata: resp.Metadata,
+		Metadata: metadata,
 	}, nil
 }
 

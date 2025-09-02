@@ -90,7 +90,7 @@ func (cb *MockContextBuilder) AddDocuments(docs []*shared.TelecomDocument) {
 
 // GetMetrics returns retrieval metrics
 func (cb *MockContextBuilder) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // MockRAGAwarePromptBuilder implements prompt building for testing
@@ -142,7 +142,7 @@ If the context doesn't contain sufficient information, please indicate what addi
 
 // GetMetrics returns prompt building metrics
 func (pb *MockRAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // SetupSuite initializes the test suite
@@ -254,7 +254,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.7,
 			ExpectedKeywords:   []string{"amf", "high availability", "deployment", "configuration"},
 			ExpectedPromptSize: 800,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:              "What are the key features of O-RAN E2 interface?",
@@ -263,7 +263,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.75,
 			ExpectedKeywords:   []string{"o-ran", "e2", "interface", "features"},
 			ExpectedPromptSize: 700,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:              "Create network slice for IoT use case with low latency",
@@ -272,7 +272,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.65,
 			ExpectedKeywords:   []string{"network slice", "iot", "low latency", "create"},
 			ExpectedPromptSize: 600,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:              "Develop xApp for traffic steering optimization",
@@ -281,7 +281,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.6,
 			ExpectedKeywords:   []string{"xapp", "traffic steering", "optimization", "development"},
 			ExpectedPromptSize: 750,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -591,6 +591,7 @@ func min(a, b int) int {
 }
 
 // Test runner
-// DISABLED: func TestEndToEndRAGPipeline(t *testing.T) {
+func TestEndToEndRAGPipeline(t *testing.T) {
 	suite.Run(t, new(EndToEndRAGPipelineTestSuite))
 }
+

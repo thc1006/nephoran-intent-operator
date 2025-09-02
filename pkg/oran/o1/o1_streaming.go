@@ -760,7 +760,7 @@ func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *Stre
 
 	// Send confirmation.
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	s.sendMessage(conn, response)
 
@@ -808,7 +808,7 @@ func (s *StreamingService) handleUnsubscribe(conn *StreamConnection, request *St
 
 	// Send confirmation.
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	s.sendMessage(conn, response)
 
@@ -981,7 +981,7 @@ func (s *StreamingService) sendMessage(conn *StreamConnection, message interface
 // sendError sends an error message to a connection.
 
 func (s *StreamingService) sendError(conn *StreamConnection, message string, err error) {
-	errorMsg := json.RawMessage("{}")
+	errorMsg := json.RawMessage(`{}`)
 
 	if err != nil {
 		errorMsg["details"] = err.Error()
@@ -1147,7 +1147,7 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 
 		// Send to connection.
 
-		message := json.RawMessage("{}")
+		message := json.RawMessage(`{}`)
 
 		// Handle backpressure.
 
@@ -1306,12 +1306,12 @@ func (s *StreamingService) handleListSubscriptions(conn *StreamConnection) {
 	subscriptions := make([]map[string]interface{}, 0, len(conn.Subscriptions))
 
 	for _, sub := range conn.Subscriptions {
-		subscriptions = append(subscriptions, json.RawMessage("{}"))
+		subscriptions = append(subscriptions, json.RawMessage(`{}`))
 	}
 
 	conn.mutex.RUnlock()
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	s.sendMessage(conn, response)
 }
@@ -1329,7 +1329,8 @@ func (s *StreamingService) handleGetStatus(conn *StreamConnection) {
 
 	s.subscriptionsMutex.RUnlock()
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	s.sendMessage(conn, response)
 }
+

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestNewE2APEncoder(t *testing.T) {
+func TestNewE2APEncoder(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	assert.NotNil(t, encoder)
@@ -45,7 +45,7 @@ import (
 	}
 }
 
-// DISABLED: func TestE2APEncoder_EncodeDecodeE2SetupRequest(t *testing.T) {
+func TestE2APEncoder_EncodeDecodeE2SetupRequest(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	// Create test message
@@ -94,7 +94,7 @@ import (
 	assert.Len(t, decodedReq.RANFunctionsList, 1)
 }
 
-// DISABLED: func TestE2APEncoder_EncodeDecodeRICSubscriptionRequest(t *testing.T) {
+func TestE2APEncoder_EncodeDecodeRICSubscriptionRequest(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	req := &RICSubscriptionRequest{
@@ -135,7 +135,7 @@ import (
 	assert.Equal(t, req.RANFunctionID, decodedReq.RANFunctionID)
 }
 
-// DISABLED: func TestE2APEncoder_EncodeDecodeRICControlRequest(t *testing.T) {
+func TestE2APEncoder_EncodeDecodeRICControlRequest(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	req := &RICControlRequest{
@@ -170,7 +170,7 @@ import (
 	assert.Equal(t, req.RICControlMessage, decodedReq.RICControlMessage)
 }
 
-// DISABLED: func TestE2APEncoder_EncodeDecodeRICIndication(t *testing.T) {
+func TestE2APEncoder_EncodeDecodeRICIndication(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	ind := &RICIndication{
@@ -208,7 +208,7 @@ import (
 	assert.Equal(t, ind.RICIndicationMessage, decodedInd.RICIndicationMessage)
 }
 
-// DISABLED: func TestE2APEncoder_EncodeUnregisteredMessageType(t *testing.T) {
+func TestE2APEncoder_EncodeUnregisteredMessageType(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	// Create message with unregistered type
@@ -226,7 +226,7 @@ import (
 	assert.Contains(t, err.Error(), "no codec registered for message type")
 }
 
-// DISABLED: func TestE2APEncoder_DecodeInvalidHeader(t *testing.T) {
+func TestE2APEncoder_DecodeInvalidHeader(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	// Test with data too short
@@ -248,7 +248,7 @@ import (
 	assert.Contains(t, err.Error(), "no codec registered for message type")
 }
 
-// DISABLED: func TestE2APEncoder_TrackPendingMessage(t *testing.T) {
+func TestE2APEncoder_TrackPendingMessage(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	correlationID := "test-correlation-123"
@@ -274,7 +274,7 @@ import (
 	assert.False(t, exists)
 }
 
-// DISABLED: func TestE2APEncoder_ValidationFailure(t *testing.T) {
+func TestE2APEncoder_ValidationFailure(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	// Create invalid message (missing required fields)
@@ -299,7 +299,7 @@ import (
 	assert.Contains(t, err.Error(), "message validation failed")
 }
 
-// DISABLED: func TestE2APEncoder_MessageHeaderFormat(t *testing.T) {
+func TestE2APEncoder_MessageHeaderFormat(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	req := &E2SetupRequest{
@@ -333,7 +333,7 @@ import (
 	assert.Equal(t, message.Criticality, decoded.Criticality)
 }
 
-// DISABLED: func TestE2APEncoder_ConcurrentAccess(t *testing.T) {
+func TestE2APEncoder_ConcurrentAccess(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	// Test concurrent access to correlation map
@@ -377,7 +377,7 @@ import (
 	}
 }
 
-// DISABLED: func TestE2APEncoder_AllMessageTypes(t *testing.T) {
+func TestE2APEncoder_AllMessageTypes(t *testing.T) {
 	encoder := NewE2APEncoder()
 
 	testCases := []struct {

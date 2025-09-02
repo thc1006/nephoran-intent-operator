@@ -700,7 +700,7 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 
 		MetricsB: make(map[string]float64),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	dm.abTests[testID] = result
@@ -909,7 +909,7 @@ func (dm *DashboardManager) checkDashboardHealth(ctx context.Context) {
 
 				PanelCount: len(dashboard.Panels),
 
-				Metadata: make(map[string]interface{}),
+				Metadata: json.RawMessage(`{}`),
 			}
 
 			dm.statuses[uid] = status
@@ -990,7 +990,7 @@ func (dm *DashboardManager) checkDataFlow(ctx context.Context, dashboard *Dashbo
 // createGrafanaDashboard creates a dashboard in Grafana.
 
 func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 }
@@ -998,7 +998,7 @@ func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboar
 // updateGrafanaDashboard updates a dashboard in Grafana.
 
 func (dm *DashboardManager) updateGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 }
@@ -1006,7 +1006,7 @@ func (dm *DashboardManager) updateGrafanaDashboard(ctx context.Context, dashboar
 // createOrUpdateGrafanaDashboard creates or updates a dashboard in Grafana.
 
 func (dm *DashboardManager) createOrUpdateGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 }
@@ -1119,3 +1119,4 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 		"confidence": result.Confidence,
 	}).Info("Completed A/B test")
 }
+

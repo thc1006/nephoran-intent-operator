@@ -502,7 +502,7 @@ func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, int
 
 			Priority: o.getPhasePriority(phase),
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 
 			Context: processingCtx,
 
@@ -940,3 +940,4 @@ func (o *IntentOrchestrator) Stop(ctx context.Context) error {
 
 	return nil
 }
+

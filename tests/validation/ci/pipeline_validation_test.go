@@ -574,12 +574,12 @@ func contains(slice []string, item string) bool {
 }
 
 // TestSuite runner function
-// DISABLED: func TestCIPipelineValidationTestSuite(t *testing.T) {
+func TestCIPipelineValidationTestSuite(t *testing.T) {
 	suite.Run(t, new(CIPipelineValidationTestSuite))
 }
 
 // Additional standalone CI validation tests
-// DISABLED: func TestCIPipeline_BasicWorkflowSyntax(t *testing.T) {
+func TestCIPipeline_BasicWorkflowSyntax(t *testing.T) {
 	// Test basic workflow syntax validation
 	workflowDir := filepath.Join("..", "..", "..", ".github", "workflows")
 
@@ -611,7 +611,7 @@ func contains(slice []string, item string) bool {
 	}
 }
 
-// DISABLED: func TestCIPipeline_MakefileTargets(t *testing.T) {
+func TestCIPipeline_MakefileTargets(t *testing.T) {
 	// Test that Makefile has essential targets for CI
 	makefilePath := filepath.Join("..", "..", "..", "Makefile")
 

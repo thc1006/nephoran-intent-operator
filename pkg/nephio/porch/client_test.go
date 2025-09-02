@@ -18,7 +18,7 @@ type MockPackageRevisionManager struct {
 	mock.Mock
 }
 
-// DISABLED: func TestMockPackageRevisionManager(t *testing.T) {
+func TestMockPackageRevisionManager(t *testing.T) {
 	// Test that our mock implementations compile and work
 	mockPkgManager := &MockPackageRevisionManager{}
 	mockRepoManager := &MockRepositoryManager{}

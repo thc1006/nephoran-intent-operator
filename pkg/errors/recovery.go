@@ -459,7 +459,7 @@ func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 
 		RetryAfter: cb.config.ResetTimeout,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -492,7 +492,7 @@ func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
 
 	cb.windowMutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Reset resets the circuit breaker to its initial state.
@@ -908,14 +908,14 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
 // GetMetrics returns current bulkhead metrics.
 
 func (b *Bulkhead) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Close shuts down the bulkhead.
@@ -1021,7 +1021,7 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 
 				Timestamp: time.Now(),
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 			}
 		}
 
@@ -1029,3 +1029,4 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 
 	}
 }
+

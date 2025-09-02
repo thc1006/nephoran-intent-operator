@@ -16,7 +16,7 @@ type testIntent struct {
 	Replicas   int    `json:"replicas"`
 }
 
-// DISABLED: func TestWriteIntent_FullFormat(t *testing.T) {
+func TestWriteIntent_FullFormat(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	intent := testIntent{
@@ -51,7 +51,7 @@ spec:
 	}
 }
 
-// DISABLED: func TestWriteIntent_SMPFormat(t *testing.T) {
+func TestWriteIntent_SMPFormat(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	intent := testIntent{
@@ -101,7 +101,7 @@ spec:
 	}
 }
 
-// DISABLED: func TestWriteIntent_InvalidIntentType(t *testing.T) {
+func TestWriteIntent_InvalidIntentType(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	intent := testIntent{
@@ -122,7 +122,7 @@ spec:
 	}
 }
 
-// DISABLED: func TestWriteIntent_DefaultFormat(t *testing.T) {
+func TestWriteIntent_DefaultFormat(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	intent := testIntent{
@@ -146,7 +146,7 @@ spec:
 }
 
 // TestWriteIntent_FileSystemErrors tests various filesystem error conditions
-// DISABLED: func TestWriteIntent_FileSystemErrors(t *testing.T) {
+func TestWriteIntent_FileSystemErrors(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func(t *testing.T) string
@@ -271,7 +271,7 @@ spec:
 }
 
 // TestWriteIntent_InvalidIntentData tests handling of malformed intent data
-// DISABLED: func TestWriteIntent_InvalidIntentData(t *testing.T) {
+func TestWriteIntent_InvalidIntentData(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tests := []struct {
@@ -304,12 +304,12 @@ spec:
 		},
 		{
 			name: "intent missing required fields",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			expectError: "failed to unmarshal intent",
 		},
 		{
 			name: "intent with wrong field types",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			expectError: "failed to unmarshal intent",
 		},
 	}
@@ -331,7 +331,7 @@ spec:
 }
 
 // TestWriteIntent_EdgeCases tests edge cases for intent processing
-// DISABLED: func TestWriteIntent_EdgeCases(t *testing.T) {
+func TestWriteIntent_EdgeCases(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tests := []struct {
@@ -445,7 +445,7 @@ spec:
 }
 
 // TestWriteIntent_ConcurrentWrites tests concurrent writes to same directory
-// DISABLED: func TestWriteIntent_ConcurrentWrites(t *testing.T) {
+func TestWriteIntent_ConcurrentWrites(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	intent := testIntent{
@@ -484,7 +484,7 @@ spec:
 }
 
 // TestWriteIntent_LargeIntentData tests handling of very large intent data
-// DISABLED: func TestWriteIntent_LargeIntentData(t *testing.T) {
+func TestWriteIntent_LargeIntentData(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create intent with extremely long target name to test memory usage
@@ -512,3 +512,4 @@ spec:
 		t.Error("Large target name not found in output file")
 	}
 }
+

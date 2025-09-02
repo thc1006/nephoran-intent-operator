@@ -15,7 +15,7 @@ import (
 )
 
 // TestSecuritySuiteIntegration tests the complete security suite
-// DISABLED: func TestSecuritySuiteIntegration(t *testing.T) {
+func TestSecuritySuiteIntegration(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	// Create comprehensive security configuration
@@ -136,7 +136,7 @@ import (
 }
 
 // TestSecuritySuiteWithAuth tests authentication integration
-// DISABLED: func TestSecuritySuiteWithAuth(t *testing.T) {
+func TestSecuritySuiteWithAuth(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	authValidator := func(r *http.Request) (bool, error) {
@@ -193,7 +193,7 @@ import (
 }
 
 // TestSecuritySuiteIPFiltering tests IP whitelist/blacklist
-// DISABLED: func TestSecuritySuiteIPFiltering(t *testing.T) {
+func TestSecuritySuiteIPFiltering(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	t.Run("IP Blacklist", func(t *testing.T) {
@@ -264,7 +264,7 @@ import (
 }
 
 // TestSecuritySuiteCSRF tests CSRF protection
-// DISABLED: func TestSecuritySuiteCSRF(t *testing.T) {
+func TestSecuritySuiteCSRF(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	config := &SecuritySuiteConfig{
@@ -332,7 +332,7 @@ import (
 }
 
 // TestRequestFingerprinting tests request fingerprinting
-// DISABLED: func TestRequestFingerprinting(t *testing.T) {
+func TestRequestFingerprinting(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	config := &SecuritySuiteConfig{
@@ -400,7 +400,7 @@ func BenchmarkSecuritySuite(b *testing.B) {
 }
 
 // TestSecuritySuiteTimeout tests request timeout handling
-// DISABLED: func TestSecuritySuiteTimeout(t *testing.T) {
+func TestSecuritySuiteTimeout(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	config := &SecuritySuiteConfig{
@@ -440,7 +440,7 @@ func BenchmarkSecuritySuite(b *testing.B) {
 }
 
 // TestCleanupExpiredTokens tests CSRF token cleanup
-// DISABLED: func TestCleanupExpiredTokens(t *testing.T) {
+func TestCleanupExpiredTokens(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	config := &SecuritySuiteConfig{

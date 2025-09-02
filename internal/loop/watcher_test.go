@@ -20,7 +20,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
-// DISABLED: func TestNewWatcher(t *testing.T) {
+func TestNewWatcher(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -105,7 +105,7 @@ import (
 	}
 }
 
-// DISABLED: func TestWatcher_ProcessExistingFiles(t *testing.T) {
+func TestWatcher_ProcessExistingFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -157,7 +157,7 @@ import (
 	assert.FileExists(t, filepath.Join(tempDir, "not-intent.txt"))
 }
 
-// DISABLED: func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
+func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -224,7 +224,7 @@ import (
 	}
 }
 
-// DISABLED: func TestWatcher_DebouncingRapidChanges(t *testing.T) {
+func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -276,7 +276,7 @@ import (
 	}
 }
 
-// DISABLED: func TestWatcher_IdempotentProcessing(t *testing.T) {
+func TestWatcher_IdempotentProcessing(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -315,7 +315,7 @@ import (
 	assert.FileExists(t, testFile)
 }
 
-// DISABLED: func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
+func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -361,7 +361,7 @@ import (
 	t.Logf("Processing time: %v, Expected sequential: %v", processingTime, expectedSequentialTime)
 }
 
-// DISABLED: func TestWatcher_FailureScenarios(t *testing.T) {
+func TestWatcher_FailureScenarios(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -453,7 +453,7 @@ import (
 	}
 }
 
-// DISABLED: func TestWatcher_CleanupRoutine(t *testing.T) {
+func TestWatcher_CleanupRoutine(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -490,7 +490,7 @@ import (
 	// without errors
 }
 
-// DISABLED: func TestWatcher_GracefulShutdown(t *testing.T) {
+func TestWatcher_GracefulShutdown(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -545,7 +545,7 @@ import (
 	assert.Greater(t, stats.TotalExecutions, 0)
 }
 
-// DISABLED: func TestWatcher_StatusFileGeneration(t *testing.T) {
+func TestWatcher_StatusFileGeneration(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))
@@ -725,7 +725,7 @@ type WatcherTestSuite struct {
 	porchPath string
 }
 
-// DISABLED: func TestWatcherTestSuite(t *testing.T) {
+func TestWatcherTestSuite(t *testing.T) {
 	suite.Run(t, new(WatcherTestSuite))
 }
 
@@ -1901,7 +1901,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() 
 		},
 		{
 			name:                 "UnicodeCharacters",
-			intentFilename:       "intent-测试.json",
+			intentFilename:       "intent-测�?.json",
 			expectedStatusPrefix: "intent-",
 			shouldProcess:        true,
 			description:          "Should sanitize Unicode characters for Windows compatibility",

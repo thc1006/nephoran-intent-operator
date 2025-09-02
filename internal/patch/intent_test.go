@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestLoadIntent(t *testing.T) {
+func TestLoadIntent(t *testing.T) {
 	// Create test intent file
 	tempDir := t.TempDir()
 	intentPath := filepath.Join(tempDir, "test-intent.json")
@@ -40,7 +40,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadIntentValidation(t *testing.T) {
+func TestLoadIntentValidation(t *testing.T) {
 	tests := []struct {
 		name    string
 		content string

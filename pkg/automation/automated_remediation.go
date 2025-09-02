@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -171,7 +172,7 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 		Actions: make([]*RemediationAction, 0),
 
-		Results: make(map[string]interface{}),
+		Results: json.RawMessage(`{}`),
 	}
 
 	// Create backup if required.
@@ -433,6 +434,19 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 	return fmt.Errorf("action failed after %d attempts: %w", attempts, lastError)
 }
 
+// unmarshallParameters converts json.RawMessage to map[string]interface{}.
+func (ar *AutomatedRemediation) unmarshallParameters(rawParams json.RawMessage) (map[string]interface{}, error) {
+	if len(rawParams) == 0 {
+		return map[string]interface{}{}, nil
+	}
+	
+	var params map[string]interface{}
+	if err := json.Unmarshal(rawParams, &params); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+	return params, nil
+}
+
 // executeAction executes a single remediation action.
 
 func (ar *AutomatedRemediation) executeAction(ctx context.Context, action *RemediationAction) error {
@@ -445,16 +459,22 @@ func (ar *AutomatedRemediation) executeAction(ctx context.Context, action *Remed
 		return ar.restartComponent(ctx, action.Target)
 
 	case "SCALE":
-
-		return ar.scaleComponent(ctx, action.Target, action.Parameters)
+		params, err := ar.unmarshallParameters(action.Parameters)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal scale parameters: %w", err)
+		}
+		return ar.scaleComponent(ctx, action.Target, params)
 
 	case "REDEPLOY":
 
 		return ar.redeployComponent(ctx, action.Target)
 
 	case "UPDATE_CONFIG":
-
-		return ar.updateConfiguration(ctx, action.Target, action.Parameters)
+		params, err := ar.unmarshallParameters(action.Parameters)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal config parameters: %w", err)
+		}
+		return ar.updateConfiguration(ctx, action.Target, params)
 
 	case "CLEAR_CACHE":
 
@@ -465,8 +485,11 @@ func (ar *AutomatedRemediation) executeAction(ctx context.Context, action *Remed
 		return ar.restartDependencies(ctx, action.Target)
 
 	case "CUSTOM_SCRIPT":
-
-		return ar.executeCustomScript(ctx, action.Target, action.Parameters)
+		params, err := ar.unmarshallParameters(action.Parameters)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal script parameters: %w", err)
+		}
+		return ar.executeCustomScript(ctx, action.Target, params)
 
 	default:
 
@@ -626,7 +649,7 @@ func (ar *AutomatedRemediation) clearCache(ctx context.Context, componentName st
 	if componentName == "rag-api" {
 		// Execute cache clear command.
 
-		return ar.executeCustomScript(ctx, componentName, json.RawMessage("{}"))
+		return ar.executeCustomScript(ctx, componentName, map[string]interface{}{})
 	}
 
 	return nil
@@ -1013,7 +1036,7 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 
 				Template: "scale_deployment",
 
-				Parameters: json.RawMessage("{}"),
+				Parameters: json.RawMessage(`{}`),
 
 				Timeout: 3 * time.Minute,
 			},
@@ -1044,3 +1067,4 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 }
 
 // Supporting types and components - implementations moved to specialized files.
+

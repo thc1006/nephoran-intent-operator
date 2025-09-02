@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// DISABLED: func TestO2Manager_DiscoverResources(t *testing.T) {
+func TestO2Manager_DiscoverResources(t *testing.T) {
 	tests := []struct {
 		name            string
 		setupNodes      []corev1.Node
@@ -222,7 +222,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO2Manager_ScaleWorkload(t *testing.T) {
+func TestO2Manager_ScaleWorkload(t *testing.T) {
 	tests := []struct {
 		name            string
 		workloadID      string
@@ -365,7 +365,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO2Manager_DeployVNF(t *testing.T) {
+func TestO2Manager_DeployVNF(t *testing.T) {
 	tests := []struct {
 		name          string
 		vnfSpec       *VNFDescriptor
@@ -505,7 +505,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO2Adaptor_DeployVNF(t *testing.T) {
+func TestO2Adaptor_DeployVNF(t *testing.T) {
 	tests := []struct {
 		name          string
 		deployRequest *VNFDeployRequest
@@ -575,7 +575,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO2Adaptor_ScaleVNF(t *testing.T) {
+func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	// Setup existing deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -677,7 +677,7 @@ import (
 
 // Integration tests
 
-// DISABLED: func TestO2Manager_Integration(t *testing.T) {
+func TestO2Manager_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}

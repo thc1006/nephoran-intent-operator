@@ -245,7 +245,7 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 		Dependencies: []Check{},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Perform internal health checks.
@@ -698,3 +698,4 @@ func MemoryCheck(name string, maxMemoryMB int64) CheckFunc {
 		}
 	}
 }
+

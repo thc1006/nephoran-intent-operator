@@ -499,6 +499,6 @@ func NewChaosMonitor() *ChaosMonitor {
 // Additional method implementations would continue here...
 
 // TestSuite runner function
-// DISABLED: func TestSLAChaosTestSuite(t *testing.T) {
+func TestSLAChaosTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAChaosTestSuite))
 }

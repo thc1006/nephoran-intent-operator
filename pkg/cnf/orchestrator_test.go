@@ -35,7 +35,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// DISABLED: func TestCNFOrchestrator(t *testing.T) {
+func TestCNFOrchestrator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "CNF Orchestrator Suite")
 }
@@ -362,7 +362,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 			template = &CNFTemplate{
 				Function: nephoranv1.CNFFunctionAMF,
-				DefaultValues: json.RawMessage("{}"){
+				DefaultValues: map[string]interface{}{
 						"repository": "5gc/amf",
 						"tag":        "latest",
 					},
@@ -675,7 +675,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 
 			template = &CNFTemplate{
 				Function:      nephoranv1.CNFFunctionAMF,
-				DefaultValues: json.RawMessage("{}"),
+				DefaultValues: json.RawMessage(`{}`),
 			}
 		})
 
@@ -836,3 +836,4 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 		})
 	})
 })
+

@@ -32,6 +32,7 @@ package shared
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -719,7 +720,7 @@ func (im *IntegrationManager) updateSystemHealth(ctx context.Context) {
 
 			LastUpdate: now,
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 
 			Metrics: make(map[string]float64),
 
@@ -789,13 +790,13 @@ func (im *IntegrationManager) collectMetrics(ctx context.Context) {
 	if im.eventBus != nil {
 		// Collect event bus metrics.
 
-		im.metricsCollector.metrics["event_bus"] = json.RawMessage("{}")
+		im.metricsCollector.metrics["event_bus"] = json.RawMessage(`{}`)
 	}
 
 	if im.performanceOptimizer != nil {
 		// Collect performance metrics.
 
-		im.metricsCollector.metrics["performance"] = json.RawMessage("{}")
+		im.metricsCollector.metrics["performance"] = json.RawMessage(`{}`)
 	}
 
 	im.metricsCollector.lastCollection = now
@@ -916,3 +917,4 @@ func (im *IntegrationManager) wrapPerformanceOptimizer(po *PerformanceOptimizer)
 func (im *IntegrationManager) wrapRecoveryManager(rm *RecoveryManager) StartableComponent {
 	return &RecoveryManagerAdapter{RecoveryManager: rm}
 }
+

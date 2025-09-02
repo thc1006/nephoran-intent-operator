@@ -32,7 +32,7 @@ type ValidationTestSuite struct {
 
 // MockValidator is already defined in processor_test.go, we'll use that one
 
-// DISABLED: func TestValidationTestSuite(t *testing.T) {
+func TestValidationTestSuite(t *testing.T) {
 	suite.Run(t, new(ValidationTestSuite))
 }
 
@@ -345,11 +345,11 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 	totalProcessed := atomic.LoadInt64(&processedCount) + atomic.LoadInt64(&errorCount)
 	s.Assert().Equal(int64(numFiles), totalProcessed, "All files should be processed exactly once")
 
-	// CRITICAL FIX: The test requirement states "total send timeouts must be ≤ 5"
+	// CRITICAL FIX: The test requirement states "total send timeouts must be ??5"
 	// With improved channel buffering and shutdown handling, we should see much fewer errors
 	errorCountVal := atomic.LoadInt64(&errorCount)
 	s.Assert().LessOrEqual(errorCountVal, int64(5),
-		"Should have ≤5 send timeout errors (actual: %d). If this fails, coordinator buffering needs adjustment", errorCountVal)
+		"Should have ?? send timeout errors (actual: %d). If this fails, coordinator buffering needs adjustment", errorCountVal)
 }
 
 func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperations() {
@@ -893,7 +893,7 @@ func (s *ValidationTestSuite) createValidationMockPorch() string {
 // RACE DETECTION TEST (Run with -race flag)
 // =============================================================================
 
-// DISABLED: func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
+func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
 	t.Log("Race detection test - run with 'go test -race' to validate all fixes")
 
 	tempDir := t.TempDir()

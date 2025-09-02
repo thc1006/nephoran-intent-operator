@@ -18,7 +18,7 @@ import (
 )
 
 // TestDefaultInputValidationConfig tests the default configuration
-// DISABLED: func TestDefaultInputValidationConfig(t *testing.T) {
+func TestDefaultInputValidationConfig(t *testing.T) {
 	config := DefaultInputValidationConfig()
 
 	assert.Equal(t, int64(10*1024*1024), config.MaxBodySize)
@@ -36,7 +36,7 @@ import (
 }
 
 // TestNewInputValidator tests the constructor
-// DISABLED: func TestNewInputValidator(t *testing.T) {
+func TestNewInputValidator(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("with nil config", func(t *testing.T) {
@@ -65,7 +65,7 @@ import (
 }
 
 // TestSQLInjectionDetection tests SQL injection pattern detection
-// DISABLED: func TestSQLInjectionDetection(t *testing.T) {
+func TestSQLInjectionDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		EnableSQLInjectionProtection: true,
@@ -152,7 +152,7 @@ import (
 }
 
 // TestXSSDetection tests XSS pattern detection
-// DISABLED: func TestXSSDetection(t *testing.T) {
+func TestXSSDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		EnableXSSProtection: true,
@@ -228,7 +228,7 @@ import (
 }
 
 // TestPathTraversalDetection tests path traversal pattern detection
-// DISABLED: func TestPathTraversalDetection(t *testing.T) {
+func TestPathTraversalDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		EnablePathTraversalProtection: true,
@@ -294,7 +294,7 @@ import (
 }
 
 // TestCommandInjectionDetection tests command injection pattern detection
-// DISABLED: func TestCommandInjectionDetection(t *testing.T) {
+func TestCommandInjectionDetection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		EnableCommandInjectionProtection: true,
@@ -365,7 +365,7 @@ import (
 }
 
 // TestBodyValidation tests request body validation
-// DISABLED: func TestBodyValidation(t *testing.T) {
+func TestBodyValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("body size limit", func(t *testing.T) {
@@ -476,7 +476,7 @@ import (
 }
 
 // TestHeaderValidation tests header validation
-// DISABLED: func TestHeaderValidation(t *testing.T) {
+func TestHeaderValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("header size limit", func(t *testing.T) {
@@ -530,7 +530,7 @@ import (
 }
 
 // TestQueryParameterValidation tests query parameter validation
-// DISABLED: func TestQueryParameterValidation(t *testing.T) {
+func TestQueryParameterValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("parameter count limit", func(t *testing.T) {
@@ -588,7 +588,7 @@ import (
 }
 
 // TestContentTypeValidation tests Content-Type validation
-// DISABLED: func TestContentTypeValidation(t *testing.T) {
+func TestContentTypeValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		AllowedContentTypes: []string{"application/json", "text/plain"},
@@ -657,7 +657,7 @@ import (
 }
 
 // TestInputSanitization tests input sanitization functionality
-// DISABLED: func TestInputSanitization(t *testing.T) {
+func TestInputSanitization(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		SanitizeInput:                    true,
@@ -716,7 +716,7 @@ import (
 }
 
 // TestCustomValidators tests custom validation functions
-// DISABLED: func TestCustomValidators(t *testing.T) {
+func TestCustomValidators(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := DefaultInputValidationConfig()
 
@@ -756,7 +756,7 @@ import (
 }
 
 // TestJWTValidation tests JWT validation
-// DISABLED: func TestJWTValidation(t *testing.T) {
+func TestJWTValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := DefaultInputValidationConfig()
 
@@ -808,7 +808,7 @@ import (
 }
 
 // TestValidatorContext tests context operations
-// DISABLED: func TestValidatorContext(t *testing.T) {
+func TestValidatorContext(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	validator, err := NewInputValidator(nil, logger)
 	require.NoError(t, err)
@@ -826,7 +826,7 @@ import (
 }
 
 // TestGetMetrics tests metrics retrieval
-// DISABLED: func TestGetMetrics(t *testing.T) {
+func TestGetMetrics(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := &InputValidationConfig{
 		MaxBodySize:                      5 * 1024 * 1024,
@@ -851,7 +851,7 @@ import (
 }
 
 // TestConcurrentValidation tests the validator under concurrent load
-// DISABLED: func TestConcurrentValidation(t *testing.T) {
+func TestConcurrentValidation(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := DefaultInputValidationConfig()
 

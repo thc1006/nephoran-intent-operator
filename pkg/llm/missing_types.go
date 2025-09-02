@@ -3,6 +3,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"sync"
 	"time"
@@ -226,7 +227,7 @@ func (mi *MissingMetricsIntegrator) GetComprehensiveMetrics() map[string]interfa
 	mi.mutex.RLock()
 	defer mi.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // RecordFallbackAttempt records a fallback attempt (overloaded signatures for compatibility)

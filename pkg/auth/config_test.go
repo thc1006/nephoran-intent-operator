@@ -11,7 +11,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
-// DISABLED: func TestLoadAuthConfig_JWTSecretValidation(t *testing.T) {
+func TestLoadAuthConfig_JWTSecretValidation(t *testing.T) {
 	// Save original environment to restore later
 	originalAuthEnabled := os.Getenv("AUTH_ENABLED")
 	originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
@@ -105,7 +105,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadAuthConfig_AuthDisabled(t *testing.T) {
+func TestLoadAuthConfig_AuthDisabled(t *testing.T) {
 	// Save original environment
 	originalAuthEnabled := os.Getenv("AUTH_ENABLED")
 	originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
@@ -135,7 +135,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadAuthConfig_AuthEnabledWithValidSecret(t *testing.T) {
+func TestLoadAuthConfig_AuthEnabledWithValidSecret(t *testing.T) {
 	// Save original environment
 	originalAuthEnabled := os.Getenv("AUTH_ENABLED")
 	originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
@@ -174,7 +174,7 @@ import (
 }
 
 // TestGetOAuth2ClientSecret_ErrorScenarios tests various error scenarios for OAuth2 client secret loading
-// DISABLED: func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
+func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 	// Save original environment and global audit logger
 	originalAuditLogger := security.GlobalAuditLogger
 	defer func() {
@@ -363,7 +363,7 @@ import (
 }
 
 // TestLoadProviders_ErrorPropagation tests error propagation in loadProviders
-// DISABLED: func TestLoadProviders_ErrorPropagation(t *testing.T) {
+func TestLoadProviders_ErrorPropagation(t *testing.T) {
 	originalAuditLogger := security.GlobalAuditLogger
 	defer func() {
 		security.GlobalAuditLogger = originalAuditLogger
@@ -523,7 +523,7 @@ import (
 }
 
 // TestValidate_EnhancedValidation tests the enhanced validation function
-// DISABLED: func TestValidate_EnhancedValidation(t *testing.T) {
+func TestValidate_EnhancedValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      *Config
@@ -738,7 +738,7 @@ import (
 }
 
 // TestCreateOAuth2Providers_ErrorHandling tests error handling in CreateOAuth2Providers
-// DISABLED: func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
+func TestCreateOAuth2Providers_ErrorHandling(t *testing.T) {
 	tests := []struct {
 		name                string
 		config              *Config
@@ -915,7 +915,7 @@ import (
 }
 
 // TestLoadAuthConfig_IntegrationTests tests the full LoadAuthConfig flow with various error scenarios
-// DISABLED: func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
+func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 	originalAuditLogger := security.GlobalAuditLogger
 	defer func() {
 		security.GlobalAuditLogger = originalAuditLogger
@@ -1059,7 +1059,7 @@ import (
 }
 
 // TestLoadAuthConfigWithCustomPath tests comprehensive custom auth config file path functionality
-// DISABLED: func TestLoadAuthConfigWithCustomPath(t *testing.T) {
+func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 	// Save original audit logger
 	originalAuditLogger := security.GlobalAuditLogger
 	defer func() {
@@ -1414,7 +1414,7 @@ import (
 // Helper functions are defined in config_security_test.go
 
 // TestValidateOAuth2ClientSecret_ProviderSpecific tests provider-specific secret validation
-// DISABLED: func TestValidateOAuth2ClientSecret_ProviderSpecific(t *testing.T) {
+func TestValidateOAuth2ClientSecret_ProviderSpecific(t *testing.T) {
 	tests := []struct {
 		name        string
 		provider    string
@@ -1560,7 +1560,7 @@ import (
 }
 
 // TestValidateJWTSecret_WeakSecrets tests JWT secret validation for weak secrets
-// DISABLED: func TestValidateJWTSecret_WeakSecrets(t *testing.T) {
+func TestValidateJWTSecret_WeakSecrets(t *testing.T) {
 	tests := []struct {
 		name        string
 		secret      string

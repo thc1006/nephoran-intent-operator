@@ -14,7 +14,7 @@ import (
 
 // TestDirectoryErrorHandlingScenarios tests comprehensive error handling
 // for directory creation failures in various scenarios
-// DISABLED: func TestDirectoryErrorHandlingScenarios(t *testing.T) {
+func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 	tempDir := t.TempDir()
 
 	t.Run("StateManager handles directory creation errors gracefully", func(t *testing.T) {
@@ -270,7 +270,7 @@ import (
 }
 
 // TestRobustDirectoryCreation tests that directory creation is robust under various conditions
-// DISABLED: func TestRobustDirectoryCreation(t *testing.T) {
+func TestRobustDirectoryCreation(t *testing.T) {
 	tempDir := t.TempDir()
 
 	t.Run("Concurrent directory creation is safe", func(t *testing.T) {

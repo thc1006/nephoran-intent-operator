@@ -748,7 +748,7 @@ func (e *AutomationEngine) processServiceForProvisioning(service *v1.Service) {
 
 		Priority: PriorityNormal,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Add health check configuration if enabled.
@@ -798,7 +798,7 @@ func (e *AutomationEngine) processServiceForRevocation(service *v1.Service) {
 
 		Priority: PriorityHigh,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Process request.
@@ -915,7 +915,7 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 				CertificateTemplate: cert.Certificate,
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 			}
 
 			// Process renewal request.
@@ -1404,7 +1404,7 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 
 		Duration: time.Since(startTime),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -1437,7 +1437,7 @@ func (e *AutomationEngine) processDiscoveryRequest(req *AutomationRequest) *Auto
 
 		Duration: time.Since(startTime),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -1659,26 +1659,20 @@ func (e *AutomationEngine) sendNotification(req *AutomationRequest, resp *Automa
 
 func (e *AutomationEngine) GetMetrics() map[string]interface{} {
 	e.runningMux.RLock()
-
 	running := e.running
-
 	e.runningMux.RUnlock()
 
 	e.watchersMux.RLock()
-
 	watcherCount := len(e.watchers)
-
 	e.watchersMux.RUnlock()
 
-	return json.RawMessage("{}"){
-			"service_discovery_enabled": e.config.ServiceDiscoveryEnabled,
-
-			"auto_renewal_enabled": e.config.AutoRenewalEnabled,
-
-			"health_check_enabled": e.config.HealthCheckEnabled,
-
-			"notification_enabled": e.config.NotificationEnabled,
-		},
+	return map[string]interface{}{
+		"running":                   running,
+		"watcher_count":             watcherCount,
+		"service_discovery_enabled": e.config.ServiceDiscoveryEnabled,
+		"auto_renewal_enabled":      e.config.AutoRenewalEnabled,
+		"health_check_enabled":      e.config.HealthCheckEnabled,
+		"notification_enabled":      e.config.NotificationEnabled,
 	}
 }
 
@@ -1765,12 +1759,15 @@ func (e *AutomationEngine) RequestProvisioning(req *ProvisioningRequest) error {
 		ServiceName:      req.ServiceName,
 		ServiceNamespace: req.Namespace,
 		Priority:         req.Priority,
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Add metadata from provisioning request
-	for k, v := range req.Metadata {
-		automationReq.Metadata[k] = v
+	if req.Metadata != nil && len(req.Metadata) > 0 {
+		// Convert metadata map to JSON
+		if metadataBytes, err := json.Marshal(req.Metadata); err == nil {
+			automationReq.Metadata = json.RawMessage(metadataBytes)
+		}
 	}
 
 	// Process the request asynchronously

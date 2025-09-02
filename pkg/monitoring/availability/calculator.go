@@ -573,7 +573,7 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 
 		TotalTime: endTime.Sub(startTime),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Calculate core availability metrics.
@@ -617,12 +617,14 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 	ac.calculateIncidentMetrics(calculation, entityMetrics)
 
 	// Add metadata.
-
-	calculation.Metadata["business_impact"] = metric.BusinessImpact
-
-	calculation.Metadata["sample_count"] = len(entityMetrics)
-
-	calculation.Metadata["calculation_time"] = time.Now()
+	metadataMap := map[string]interface{}{
+		"business_impact":    metric.BusinessImpact,
+		"sample_count":       len(entityMetrics),
+		"calculation_time":   time.Now(),
+	}
+	if metadataJSON, err := json.Marshal(metadataMap); err == nil {
+		calculation.Metadata = json.RawMessage(metadataJSON)
+	}
 
 	span.AddEvent("Entity availability calculated",
 
@@ -1644,3 +1646,4 @@ type SLAComplianceStatus struct {
 
 	LastUpdate time.Time `json:"last_update"`
 }
+

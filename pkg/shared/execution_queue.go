@@ -449,12 +449,18 @@ func (eq *ExecutionQueue) CancelTask(intentName types.NamespacedName, phase inte
 	if task, exists := eq.activeTasks[taskKey]; exists {
 
 		// Add cancellation flag to context.
-
-		if task.Context == nil {
-			task.Context = make(map[string]interface{})
+		var contextMap map[string]interface{}
+		if task.Context != nil {
+			if err := json.Unmarshal(task.Context, &contextMap); err != nil {
+				contextMap = make(map[string]interface{})
+			}
+		} else {
+			contextMap = make(map[string]interface{})
 		}
 
-		task.Context["cancelled"] = true
+		contextMap["cancelled"] = true
+		contextBytes, _ := json.Marshal(contextMap)
+		task.Context = json.RawMessage(contextBytes)
 
 		return nil
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestIsIntentFile(t *testing.T) {
+func TestIsIntentFile(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string

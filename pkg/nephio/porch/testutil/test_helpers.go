@@ -215,7 +215,7 @@ func NewTestFunctionConfig(name string) porch.FunctionConfig {
 	return porch.FunctionConfig{
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
 
-		ConfigMap: json.RawMessage("{}"),
+		ConfigMap: json.RawMessage(`{}`),
 	}
 }
 
@@ -248,3 +248,4 @@ func AssertEqual(t *testing.T, expected, actual interface{}) {
 		t.Fatalf("Expected %v, got %v", expected, actual)
 	}
 }
+

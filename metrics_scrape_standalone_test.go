@@ -21,7 +21,7 @@ import (
 )
 
 // TestMetricsEndpointStandalone validates the metrics endpoint functionality
-// DISABLED: func TestMetricsEndpointStandalone(t *testing.T) {
+func TestMetricsEndpointStandalone(t *testing.T) {
 	// Store original environment
 	originalEnv := os.Getenv("METRICS_ENABLED")
 	defer func() {
@@ -185,7 +185,7 @@ import (
 }
 
 // TestMetricsEndpointConditionalBehavior validates conditional exposure behavior
-// DISABLED: func TestMetricsEndpointConditionalBehavior(t *testing.T) {
+func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 	testCases := []struct {
 		name           string
 		metricsEnabled string
@@ -278,7 +278,7 @@ import (
 }
 
 // TestMetricsEndpointPerformanceAndConcurrency validates performance characteristics
-// DISABLED: func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
+func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 	// Create registry with substantial metrics to test performance
 	registry := prometheus.NewRegistry()
 

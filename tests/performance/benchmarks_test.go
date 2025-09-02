@@ -33,7 +33,7 @@ type BenchmarkTestSuite struct {
 }
 
 // TestBenchmarks runs the benchmark test suite
-// DISABLED: func TestBenchmarks(t *testing.T) {
+func TestBenchmarks(t *testing.T) {
 	suite.Run(t, &BenchmarkTestSuite{
 		TestSuite: framework.NewTestSuite(&framework.TestConfig{
 			LoadTestEnabled:  true,
@@ -197,7 +197,7 @@ func BenchmarkContextBuilding(b *testing.B) {
 			Title:   fmt.Sprintf("Telecom Document %d", i),
 			Content: fmt.Sprintf("This is document %d about network functions, AMF, SMF, UPF deployment procedures and 5G SA network configuration details...", i),
 			Source:  "3GPP TS 23.501",
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 	}
 
@@ -689,3 +689,4 @@ var _ = ginkgo.Describe("Performance Benchmarks", func() {
 		testSuite.TestMemoryProfiling()
 	})
 })
+

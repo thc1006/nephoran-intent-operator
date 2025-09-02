@@ -1003,7 +1003,7 @@ func (p *EnhancedLDAPProvider) authenticateWithConnection(ctx context.Context, c
 
 		ProviderID: userDN,
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	return userInfo, nil
@@ -1047,7 +1047,7 @@ func (p *EnhancedLDAPProvider) searchUserWithConnection(ctx context.Context, con
 
 		ProviderID: userDN,
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	return userInfo, nil
@@ -1068,3 +1068,4 @@ func (p *EnhancedLDAPProvider) getUserGroupsWithConnection(ctx context.Context, 
 
 	return []string{}, nil
 }
+

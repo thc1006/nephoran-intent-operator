@@ -94,7 +94,7 @@ func createSampleData(size int) *ComplexStruct {
 			Type:  "type-" + string(rune('A'+i%10)),
 			Value: float64(i) * 3.14159,
 			Tags:  []string{"tag1", "tag2", "tag3"},
-			Settings: json.RawMessage("{}"),
+			Settings: json.RawMessage(`{}`),
 		}
 	}
 
@@ -102,7 +102,7 @@ func createSampleData(size int) *ComplexStruct {
 		ID:        "test-struct-123",
 		Name:      "Test Complex Structure",
 		Timestamp: time.Now(),
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 		Items:   items,
 		Status:  "active",
 		Version: 42,
@@ -286,7 +286,7 @@ func BenchmarkHTTPMiddlewareOverhead(b *testing.B) {
 }
 
 // Test data to verify SONIC compatibility
-// DISABLED: func TestSONICCompatibility(t *testing.T) {
+func TestSONICCompatibility(t *testing.T) {
 	data := createSampleData(50)
 
 	// Marshal with SONIC
@@ -398,3 +398,4 @@ func BenchmarkMetricsRegistryOperations(b *testing.B) {
 		metrics.RecordIntentProcessing("test-intent", "success", time.Millisecond*10)
 	}
 }
+

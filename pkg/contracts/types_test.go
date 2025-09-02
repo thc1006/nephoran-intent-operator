@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-// DISABLED: func TestNetworkIntentValidation(t *testing.T) {
+func TestNetworkIntentValidation(t *testing.T) {
 	tests := []struct {
 		name    string
 		intent  NetworkIntent
@@ -34,7 +34,7 @@ import (
 				Type:            "scaling",
 				Priority:        5,
 				Description:     "Test scaling intent for demo",
-				Parameters:      json.RawMessage("{}"),
+				Parameters:      json.RawMessage(`{}`),
 				TargetResources: []string{"deployment/test"},
 				Status:          "pending",
 				CreatedAt:       time.Now(),
@@ -48,7 +48,7 @@ import (
 				Type:            "scaling",
 				Priority:        5,
 				Description:     "Test scaling intent for demo",
-				Parameters:      json.RawMessage("{}"),
+				Parameters:      json.RawMessage(`{}`),
 				TargetResources: []string{"deployment/test"},
 				Status:          "pending",
 			},
@@ -61,7 +61,7 @@ import (
 				Type:            "scaling",
 				Priority:        5,
 				Description:     "Test scaling intent for demo",
-				Parameters:      json.RawMessage("{}"),
+				Parameters:      json.RawMessage(`{}`),
 				TargetResources: []string{},
 				Status:          "pending",
 			},
@@ -74,7 +74,7 @@ import (
 				Type:            "scaling",
 				Priority:        15, // Invalid: > 10
 				Description:     "Test scaling intent for demo",
-				Parameters:      json.RawMessage("{}"),
+				Parameters:      json.RawMessage(`{}`),
 				TargetResources: []string{"deployment/test"},
 				Status:          "pending",
 			},
@@ -92,7 +92,7 @@ import (
 	}
 }
 
-// DISABLED: func TestScalingIntentValidation(t *testing.T) {
+func TestScalingIntentValidation(t *testing.T) {
 	tests := []struct {
 		name    string
 		intent  ScalingIntent
@@ -155,7 +155,7 @@ import (
 	}
 }
 
-// DISABLED: func TestIntentContractInterface(t *testing.T) {
+func TestIntentContractInterface(t *testing.T) {
 	now := time.Now()
 
 	// Test NetworkIntent implements IntentContract
@@ -200,3 +200,4 @@ import (
 		t.Errorf("ScalingIntent.GetStatus() = %v, want %v", si.GetStatus(), "completed")
 	}
 }
+

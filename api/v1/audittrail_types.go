@@ -786,7 +786,8 @@ func (in *AuditTrailList) DeepCopyObject() runtime.Object {
 
 // Type aliases for compatibility with test files
 type (
-	FilterConfig = FilterConfigSpec
+	// Removed type alias to prevent duplicate deepcopy method generation
+	// FilterConfig = FilterConfigSpec
 	AuthConfig   struct {
 		Enabled  bool   `json:"enabled"`
 		Username string `json:"username"`

@@ -551,6 +551,6 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestRealWorldScenarios() {
 	suite.T().Logf("Real-world scenarios final metrics: %+v", metrics)
 }
 
-// DISABLED: func TestParallelProcessingIntegrationTestSuite(t *testing.T) {
+func TestParallelProcessingIntegrationTestSuite(t *testing.T) {
 	suite.Run(t, new(ParallelProcessingIntegrationTestSuite))
 }

@@ -61,7 +61,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			)
 
 			// Set up mock LLM client for successful processing
-			mockResponse := json.RawMessage("{}")
+			mockResponse := json.RawMessage(`{}`)
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			networkIntentReconciler.LLMClient = &MockLLMClient{
 				Response: string(mockResponseBytes),
@@ -171,7 +171,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			By("Third reconciliation should succeed after LLM recovery")
 			// Setup successful response for third attempt
-			mockResponse := json.RawMessage("{}")
+			mockResponse := json.RawMessage(`{}`)
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			mockLLMClient.Response = string(mockResponseBytes)
 			mockLLMClient.Error = nil
@@ -432,7 +432,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				RetryDelay:    time.Second * 1,
 			}
 
-			mockResponse := json.RawMessage("{}")
+			mockResponse := json.RawMessage(`{}`)
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			networkIntentReconciler.LLMClient = &MockLLMClient{
 				Response: string(mockResponseBytes),
@@ -613,3 +613,4 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 		})
 	})
 })
+

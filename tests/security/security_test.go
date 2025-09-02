@@ -21,7 +21,7 @@ import (
 )
 
 // TestRBACCompliance validates RBAC policies for security compliance
-// DISABLED: func TestRBACCompliance(t *testing.T) {
+func TestRBACCompliance(t *testing.T) {
 	tests := []struct {
 		name        string
 		role        *rbacv1.Role
@@ -120,7 +120,7 @@ import (
 }
 
 // TestNetworkPolicyEnforcement validates network security policies
-// DISABLED: func TestNetworkPolicyEnforcement(t *testing.T) {
+func TestNetworkPolicyEnforcement(t *testing.T) {
 	tests := []struct {
 		name      string
 		policy    *networkingv1.NetworkPolicy
@@ -250,7 +250,7 @@ import (
 }
 
 // TestContainerSecurityContext validates container security configurations
-// DISABLED: func TestContainerSecurityContext(t *testing.T) {
+func TestContainerSecurityContext(t *testing.T) {
 	tests := []struct {
 		name      string
 		container corev1.Container
@@ -357,7 +357,7 @@ import (
 }
 
 // TestSecretsManagement validates secrets security
-// DISABLED: func TestSecretsManagement(t *testing.T) {
+func TestSecretsManagement(t *testing.T) {
 	tests := []struct {
 		name      string
 		secret    *corev1.Secret
@@ -455,7 +455,7 @@ import (
 }
 
 // TestTLSConfiguration validates TLS security settings
-// DISABLED: func TestTLSConfiguration(t *testing.T) {
+func TestTLSConfiguration(t *testing.T) {
 	tests := []struct {
 		name      string
 		tlsConfig *tls.Config
@@ -536,7 +536,7 @@ import (
 }
 
 // TestAPISecurityValidation tests API security controls
-// DISABLED: func TestAPISecurityValidation(t *testing.T) {
+func TestAPISecurityValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		request   *http.Request
@@ -631,7 +631,7 @@ import (
 }
 
 // TestORANSecurityCompliance validates O-RAN specific security requirements
-// DISABLED: func TestORANSecurityCompliance(t *testing.T) {
+func TestORANSecurityCompliance(t *testing.T) {
 	tests := []struct {
 		name      string
 		config    ORANSecurityConfig
@@ -728,7 +728,7 @@ import (
 }
 
 // TestComplianceValidation validates compliance with security standards
-// DISABLED: func TestComplianceValidation(t *testing.T) {
+func TestComplianceValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		standard  string

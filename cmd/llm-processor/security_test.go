@@ -21,7 +21,7 @@ import (
 )
 
 // TestRequestBodySizeLimit tests the 413 response for oversized request bodies
-// DISABLED: func TestRequestBodySizeLimit(t *testing.T) {
+func TestRequestBodySizeLimit(t *testing.T) {
 	tests := []struct {
 		name           string
 		maxBodySize    int64
@@ -86,7 +86,7 @@ import (
 					return
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(json.RawMessage("{}"))
+				json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 			})
 
 			// Apply middleware
@@ -118,7 +118,7 @@ import (
 }
 
 // TestSecurityHeaders tests that security headers are properly set
-// DISABLED: func TestSecurityHeaders(t *testing.T) {
+func TestSecurityHeaders(t *testing.T) {
 	tests := []struct {
 		name       string
 		tlsEnabled bool
@@ -189,7 +189,7 @@ import (
 }
 
 // TestMetricsEndpointControl tests metrics endpoint exposure control
-// DISABLED: func TestMetricsEndpointControl(t *testing.T) {
+func TestMetricsEndpointControl(t *testing.T) {
 	tests := []struct {
 		name           string
 		metricsEnabled bool
@@ -245,7 +245,7 @@ import (
 }
 
 // TestMetricsIPRestriction tests IP-based access control for metrics endpoint
-// DISABLED: func TestMetricsIPRestriction(t *testing.T) {
+func TestMetricsIPRestriction(t *testing.T) {
 	tests := []struct {
 		name           string
 		allowedIPs     string
@@ -354,7 +354,7 @@ import (
 }
 
 // TestIntegrationSecurityStack tests the complete security middleware stack
-// DISABLED: func TestIntegrationSecurityStack(t *testing.T) {
+func TestIntegrationSecurityStack(t *testing.T) {
 	// Set up environment
 	os.Setenv("HTTP_MAX_BODY", "1024")
 	os.Setenv("METRICS_ENABLED", "true")
@@ -442,7 +442,7 @@ import (
 }
 
 // TestEnvironmentVariableDefaults tests default values for security environment variables
-// DISABLED: func TestEnvironmentVariableDefaults(t *testing.T) {
+func TestEnvironmentVariableDefaults(t *testing.T) {
 	// Clear all environment variables
 	os.Unsetenv("HTTP_MAX_BODY")
 	os.Unsetenv("METRICS_ENABLED")
@@ -472,3 +472,4 @@ import (
 	// Verify defaults are secure
 	assert.Equal(t, "false", metricsEnabled, "Metrics should be disabled by default")
 }
+

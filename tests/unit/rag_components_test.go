@@ -76,7 +76,7 @@ func (suite *RAGComponentsTestSuite) testLoadDocumentWithMetadata() {
 		MaxFileSize:      10 * 1024 * 1024,
 	})
 
-	metadata := json.RawMessage("{}"),
+	metadata := json.RawMessage(`{}`),
 	}
 
 	doc, err := loader.LoadDocument(suite.ctx, &rag.DocumentSource{
@@ -259,7 +259,7 @@ func (suite *RAGComponentsTestSuite) testChunkTelecomContent() {
 		Network slicing allows multiple virtual networks to run on a single physical infrastructure. 
 		The Core Network (5GC) includes functions like AMF, SMF, UPF, and PCF for different network operations.`,
 		Type: "technical",
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	chunks, err := chunker.ChunkDocument(suite.ctx, doc)
@@ -592,7 +592,7 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 			{
 				DocumentID: "doc1",
 				Score:      0.9,
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 			},
 		}, nil)
 
@@ -603,7 +603,7 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
 		Query: "5G core network",
-		Filters: json.RawMessage("{}"),
+		Filters: json.RawMessage(`{}`),
 		MaxResults: 5,
 	})
 
@@ -619,7 +619,7 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 }
 
 // Test runner
-// DISABLED: func TestRAGComponents(t *testing.T) {
+func TestRAGComponents(t *testing.T) {
 	suite.Run(t, new(RAGComponentsTestSuite))
 }
 
@@ -647,3 +647,4 @@ func (m *MockWeaviateClient) DeleteDocument(ctx context.Context, docID string) e
 	args := m.Called(ctx, docID)
 	return args.Error(0)
 }
+

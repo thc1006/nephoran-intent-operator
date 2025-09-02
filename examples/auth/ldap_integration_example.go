@@ -254,7 +254,7 @@ func handleAuthInfo(authManager *auth.Manager) http.HandlerFunc {
 
 		providers := authManager.ListProviders()
 
-		info := json.RawMessage("{}"))) > 0,
+		info := json.RawMessage(`{}`))) > 0,
 
 				"oauth2": len(providers["oauth2"].(map[string]interface{})) > 0,
 
@@ -300,7 +300,7 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 
 		// Remove sensitive information.
 
-		response := json.RawMessage("{}")
+		response := json.RawMessage(`{}`)
 
 		w.Header().Set("Content-Type", "application/json")
 
@@ -316,7 +316,7 @@ func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 
 		results := ldapMiddleware.TestLDAPConnection(r.Context())
 
-		response := json.RawMessage("{}")),
+		response := json.RawMessage(`{}`)),
 		}
 
 		allHealthy := true
@@ -325,13 +325,13 @@ func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 
 			if err != nil {
 
-				response["results"].(map[string]interface{})[provider] = json.RawMessage("{}")
+				response["results"].(map[string]interface{})[provider] = json.RawMessage(`{}`)
 
 				allHealthy = false
 
 			} else {
 
-				response["results"].(map[string]interface{})[provider] = json.RawMessage("{}")
+				response["results"].(map[string]interface{})[provider] = json.RawMessage(`{}`)
 
 			}
 
@@ -361,7 +361,7 @@ func handleOAuth2Providers(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 
 		// This would be implemented to list available OAuth2 providers.
 
-		providers := json.RawMessage("{}"),
+		providers := json.RawMessage(`{}`),
 
 			"message": "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
 		}
@@ -434,7 +434,7 @@ func handleTokenRefresh(authManager *auth.Manager) http.HandlerFunc {
 
 		}
 
-		response := json.RawMessage("{}")
+		response := json.RawMessage(`{}`)
 
 		w.Header().Set("Content-Type", "application/json")
 
@@ -470,7 +470,7 @@ func handleSessionInfo(authManager *auth.Manager) http.HandlerFunc {
 
 		}
 
-		response := json.RawMessage("{}")
+		response := json.RawMessage(`{}`)
 
 		w.Header().Set("Content-Type", "application/json")
 
@@ -544,7 +544,7 @@ func handleUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	profile := json.RawMessage("{}")
+	profile := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -558,7 +558,7 @@ func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 
 	// Example intents list - in real implementation, this would query the database.
 
-	intents := []json.RawMessage("{}"),
+	intents := []json.RawMessage(`{}`),
 
 		{
 
@@ -574,7 +574,7 @@ func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -604,7 +604,7 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Example intent creation - in real implementation, this would create the intent.
 
-	intent := json.RawMessage("{}")
+	intent := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -618,7 +618,7 @@ func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 
 	// Example admin endpoint - in real implementation, this would query user data.
 
-	users := []json.RawMessage("{}"),
+	users := []json.RawMessage(`{}`),
 
 			"last_login": time.Now().Add(-1 * time.Hour),
 
@@ -643,7 +643,7 @@ func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -760,3 +760,4 @@ func ExampleLDAPIntegrationTest() {
 	ldapProvider.Close()
 
 }
+

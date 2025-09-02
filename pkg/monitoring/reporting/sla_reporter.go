@@ -380,7 +380,7 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 
 		SLAStatuses: s.GetCurrentStatus(),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Calculate overall SLA score.
@@ -722,7 +722,7 @@ func (s *SLAReporter) detectViolations(ctx context.Context) {
 
 					ImpactValue: status.CurrentValue,
 
-					Metadata: make(map[string]interface{}),
+					Metadata: json.RawMessage(`{}`),
 				}
 
 				if s.violationStore != nil {
@@ -1145,3 +1145,4 @@ func (s *SLAReporter) handleViolations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+

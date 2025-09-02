@@ -45,7 +45,7 @@ func main() {
 
 		// Test cache operations
 		testKey := "performance_test_key"
-		testValue := json.RawMessage("{}"),
+		testValue := json.RawMessage(`{}`),
 		}
 
 		// Set value in cache
@@ -171,3 +171,4 @@ func main() {
 
 	fmt.Println("\n?? Performance optimization demo completed!")
 }
+

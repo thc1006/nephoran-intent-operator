@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestSafeJoin(t *testing.T) {
+func TestSafeJoin(t *testing.T) {
 	tests := []struct {
 		name        string
 		root        string
@@ -170,7 +170,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMustSafeJoin(t *testing.T) {
+func TestMustSafeJoin(t *testing.T) {
 	// Test normal case
 	result := MustSafeJoin("/tmp", "file.txt")
 	expected := filepath.Join("/tmp", "file.txt")
@@ -187,7 +187,7 @@ import (
 	MustSafeJoin("/tmp", "../etc/passwd")
 }
 
-// DISABLED: func TestIsPathSafe(t *testing.T) {
+func TestIsPathSafe(t *testing.T) {
 	tests := []struct {
 		root     string
 		path     string
@@ -207,7 +207,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSafeJoinBenchmark(t *testing.T) {
+func TestSafeJoinBenchmark(t *testing.T) {
 	// This is a simple performance test to ensure the function isn't too slow
 	root := "/tmp"
 	path := "subdir/file.txt"
@@ -234,7 +234,7 @@ func isWithinRoot(root, path string) bool {
 }
 
 // Table-driven test for edge cases specific to different operating systems
-// DISABLED: func TestSafeJoinCrossPlatform(t *testing.T) {
+func TestSafeJoinCrossPlatform(t *testing.T) {
 	tests := []struct {
 		name        string
 		root        string

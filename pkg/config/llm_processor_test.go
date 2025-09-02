@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestDefaultLLMProcessorConfig(t *testing.T) {
+func TestDefaultLLMProcessorConfig(t *testing.T) {
 	cfg := DefaultLLMProcessorConfig()
 
 	// Service Configuration
@@ -59,7 +59,7 @@ import (
 	assert.Equal(t, "nephoran-system", cfg.SecretNamespace)
 }
 
-// DISABLED: func TestLLMProcessorConfig_Validate_RequiredFields(t *testing.T) {
+func TestLLMProcessorConfig_Validate_RequiredFields(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *LLMProcessorConfig
@@ -207,7 +207,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLLMProcessorConfig_Validate_RAGFeatureFlags(t *testing.T) {
+func TestLLMProcessorConfig_Validate_RAGFeatureFlags(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *LLMProcessorConfig
@@ -300,7 +300,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLLMProcessorConfig_Validate_LogicalConstraints(t *testing.T) {
+func TestLLMProcessorConfig_Validate_LogicalConstraints(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *LLMProcessorConfig
@@ -375,7 +375,7 @@ import (
 			},
 			description: "Excessive circuit breaker threshold should be invalid",
 			wantErr:     true,
-			errMsg:      "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)",
+			errMsg:      "CIRCUIT_BREAKER_THRESHOLD should be reasonable (??0)",
 		},
 	}
 
@@ -394,7 +394,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLLMProcessorConfig_Validate_MultipleErrors(t *testing.T) {
+func TestLLMProcessorConfig_Validate_MultipleErrors(t *testing.T) {
 	cfg := DefaultLLMProcessorConfig()
 	cfg.LLMBackendType = "openai"
 	cfg.LLMAPIKey = ""               // Missing required API key
@@ -415,10 +415,10 @@ import (
 	assert.Contains(t, errMsg, "API_KEY is required when API key authentication is enabled")
 	assert.Contains(t, errMsg, "MAX_CONCURRENT_STREAMS should not exceed 1000 for performance reasons")
 	assert.Contains(t, errMsg, "MAX_CONTEXT_TOKENS should not exceed 32000 for most models")
-	assert.Contains(t, errMsg, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)")
+	assert.Contains(t, errMsg, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (??0)")
 }
 
-// DISABLED: func TestLLMProcessorConfig_Validate_CORS(t *testing.T) {
+func TestLLMProcessorConfig_Validate_CORS(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *LLMProcessorConfig
@@ -564,7 +564,7 @@ import (
 	}
 }
 
-// DISABLED: func TestParseAllowedOrigins(t *testing.T) {
+func TestParseAllowedOrigins(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
@@ -681,7 +681,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
+func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 	tests := []struct {
 		name        string
 		envVars     map[string]string
@@ -794,7 +794,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadLLMProcessorConfig_ValidConfiguration(t *testing.T) {
+func TestLoadLLMProcessorConfig_ValidConfiguration(t *testing.T) {
 	// Clean environment
 	cleanupLLMProcessorEnv(t)
 
@@ -809,7 +809,7 @@ import (
 	assert.Equal(t, "mock", cfg.LLMBackendType)
 }
 
-// DISABLED: func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
+func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
 	// Clean environment
 	cleanupLLMProcessorEnv(t)
 
@@ -903,7 +903,7 @@ import (
 	assert.Equal(t, "custom-namespace", cfg.SecretNamespace)
 }
 
-// DISABLED: func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
+func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
 	tests := []struct {
 		name    string
 		envVars map[string]string
@@ -983,7 +983,7 @@ import (
 	}
 }
 
-// DISABLED: func TestParseStringSlice(t *testing.T) {
+func TestParseStringSlice(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -1024,7 +1024,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLLMProcessorConfig_TLSConfiguration(t *testing.T) {
+func TestLLMProcessorConfig_TLSConfiguration(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *LLMProcessorConfig
@@ -1186,7 +1186,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
+func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 	tests := []struct {
 		name        string
 		envVars     map[string]string
@@ -1313,7 +1313,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateTLSFiles(t *testing.T) {
+func TestValidateTLSFiles(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFiles  func(t *testing.T) (certPath, keyPath string, cleanup func())
@@ -1394,7 +1394,7 @@ import (
 	}
 }
 
-// DISABLED: func TestDefaultLLMProcessorConfig_TLSDefaults(t *testing.T) {
+func TestDefaultLLMProcessorConfig_TLSDefaults(t *testing.T) {
 	cfg := DefaultLLMProcessorConfig()
 
 	// TLS Configuration defaults

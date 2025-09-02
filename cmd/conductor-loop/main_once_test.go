@@ -12,7 +12,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
-// DISABLED: func TestOnceMode_ExitCodes(t *testing.T) {
+func TestOnceMode_ExitCodes(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupFiles     func(t *testing.T, handoffDir string)

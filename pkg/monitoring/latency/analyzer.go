@@ -687,7 +687,7 @@ func (a *LatencyAnalyzer) storeHistoricalData(data *IntentProfile) {
 
 			Value: latency.Duration,
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		})
 
 		// Update statistics.
@@ -1851,3 +1851,4 @@ func DefaultAnalyzerConfig() *AnalyzerConfig {
 		EnableAutoOptimization: false,
 	}
 }
+

@@ -87,7 +87,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Uploading test document for indexing")
-			testDocument := json.RawMessage("{}"){
+			testDocument := map[string]interface{}{
 					"source":   "test-doc",
 					"category": "5g-core",
 					"version":  "1.0",
@@ -125,7 +125,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Uploading multiple documents in batch")
-			batchDocuments := json.RawMessage("{}"){
+			batchDocuments := map[string]interface{}{
 					{
 						"content": "URLLC (Ultra-Reliable Low Latency Communication) requires latency below 1ms " +
 							"and reliability of 99.999%. This is critical for industrial automation.",
@@ -186,7 +186,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Querying for 5G core network information")
-			queryRequest := json.RawMessage("{}")
+			queryRequest := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(queryRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -219,7 +219,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 				result := results[0].(map[string]interface{})
 				Expect(result["content"]).ShouldNot(BeEmpty())
 				Expect(result["score"]).Should(BeNumerically(">=", 0))
-				Expect(result["metadata"]).Should(BeAssignableToTypeOf(json.RawMessage("{}")))
+				Expect(result["metadata"]).Should(BeAssignableToTypeOf(json.RawMessage(`{}`)))
 			}
 		})
 
@@ -247,7 +247,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			for _, tc := range intentQueries {
 				By(fmt.Sprintf("Querying for: %s", tc.intent))
 
-				queryRequest := json.RawMessage("{}")
+				queryRequest := json.RawMessage(`{}`)
 
 				jsonPayload, err := json.Marshal(queryRequest)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -279,7 +279,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Performing semantic similarity search")
-			similarityRequest := json.RawMessage("{}")
+			similarityRequest := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(similarityRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -340,7 +340,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Expect(stats["index_size_mb"]).Should(BeNumerically(">=", 0))
 
 			if categories, ok := stats["categories"]; ok {
-				Expect(categories).Should(BeAssignableToTypeOf(json.RawMessage("{}")))
+				Expect(categories).Should(BeAssignableToTypeOf(json.RawMessage(`{}`)))
 			}
 		})
 
@@ -348,7 +348,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Triggering knowledge base refresh")
-			refreshRequest := json.RawMessage("{}")
+			refreshRequest := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(refreshRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -388,17 +388,17 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			}{
 				{
 					name:           "empty query",
-					payload:        json.RawMessage("{}"),
+					payload:        json.RawMessage(`{}`),
 					expectedStatus: http.StatusBadRequest,
 				},
 				{
 					name:           "invalid top_k",
-					payload:        json.RawMessage("{}"),
+					payload:        json.RawMessage(`{}`),
 					expectedStatus: http.StatusBadRequest,
 				},
 				{
 					name:           "invalid threshold",
-					payload:        json.RawMessage("{}"),
+					payload:        json.RawMessage(`{}`),
 					expectedStatus: http.StatusBadRequest,
 				},
 			}
@@ -427,7 +427,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Making query when vector DB might be unavailable")
-			queryRequest := json.RawMessage("{}")
+			queryRequest := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(queryRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -468,7 +468,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 			By("Sending multiple concurrent queries")
 			concurrentQueries := 5
-			queryRequest := json.RawMessage("{}")
+			queryRequest := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(queryRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -512,7 +512,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Skip("Skipping until RAG service is running in test environment")
 
 			By("Measuring response time for complex query")
-			complexQuery := json.RawMessage("{}")
+			complexQuery := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(complexQuery)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -537,3 +537,4 @@ var _ = Describe("RAG Service Integration Tests", func() {
 		})
 	})
 })
+

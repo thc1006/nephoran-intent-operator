@@ -142,7 +142,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Content: "Network slicing enables multiple virtual networks on a single physical infrastructure...",
 			Type:    "technical_specification",
 			Source:  "3GPP TS 23.501",
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		},
 		{
 			ID:      "doc2",
@@ -150,7 +150,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Content: "The O-RAN Alliance defines open interfaces for RAN components...",
 			Type:    "architecture_document",
 			Source:  "O-RAN.WG1.O-RAN-Architecture-Description",
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		},
 		{
 			ID:      "doc3",
@@ -158,7 +158,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Content: "The E2 interface connects the Near-RT RIC to E2 nodes...",
 			Type:    "interface_specification",
 			Source:  "O-RAN.WG3.E2AP",
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 
@@ -170,7 +170,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedSources:  2,
 			ExpectedKeywords: []string{"network", "slicing", "5G", "configuration"},
 			MinConfidence:    0.8,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:            "What is the O-RAN E2 interface?",
@@ -178,7 +178,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedSources:  2,
 			ExpectedKeywords: []string{"O-RAN", "E2", "interface", "RIC"},
 			MinConfidence:    0.75,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 		{
 			Query:            "Create a network slice for IoT devices",
@@ -186,7 +186,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedSources:  1,
 			ExpectedKeywords: []string{"network", "slice", "IoT", "create"},
 			MinConfidence:    0.7,
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		},
 	}
 
@@ -197,7 +197,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			Spec: nephoran.NetworkIntentSpec{
 				IntentType:  "network_slice_creation",
 				Description: "Create a network slice for enhanced mobile broadband",
-				Requirements: json.RawMessage("{}"),
+				Requirements: json.RawMessage(`{}`),
 			},
 			Expected: TestExpectedResult{
 				Status:     "completed",
@@ -653,7 +653,7 @@ type TestResult struct {
 }
 
 // Test runner
-// DISABLED: func TestRAGPipelineIntegration(t *testing.T) {
+func TestRAGPipelineIntegration(t *testing.T) {
 	suite.Run(t, new(RAGPipelineIntegrationTestSuite))
 }
 
@@ -679,3 +679,4 @@ func BenchmarkRAGQuery(b *testing.B) {
 		}
 	})
 }
+

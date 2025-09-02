@@ -874,6 +874,6 @@ func (suite *CNFDeploymentTestSuite) TearDownSuite() {
 	}
 }
 
-// DISABLED: func TestCNFDeployment(t *testing.T) {
+func TestCNFDeployment(t *testing.T) {
 	suite.Run(t, new(CNFDeploymentTestSuite))
 }

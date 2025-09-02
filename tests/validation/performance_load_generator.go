@@ -415,13 +415,13 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 
 	for i, intent := range intents {
 
-		body := json.RawMessage("{}"){
+		body := json.RawMessage(`{}`){
 				"name": fmt.Sprintf("vegeta-test-%d", i),
 
 				"namespace": "default",
 			},
 
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		bodyBytes, _ := json.Marshal(body)
@@ -784,13 +784,13 @@ func (crs *ConstantRateScenario) Generate(ctx context.Context) <-chan *LoadReque
 }
 
 func (crs *ConstantRateScenario) generateIntentBody(id int) []byte {
-	intent := json.RawMessage("{}"){
+	intent := json.RawMessage(`{}`){
 			"name": fmt.Sprintf("constant-rate-%d", id),
 
 			"namespace": "default",
 		},
 
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	body, _ := json.Marshal(intent)
@@ -905,13 +905,13 @@ func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 }
 
 func (rus *RampUpScenario) generateIntentBody(id int) []byte {
-	intent := json.RawMessage("{}"){
+	intent := json.RawMessage(`{}`){
 			"name": fmt.Sprintf("ramp-up-%d", id),
 
 			"namespace": "default",
 		},
 
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	body, _ := json.Marshal(intent)
@@ -1044,13 +1044,13 @@ func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 }
 
 func (ss *SpikeScenario) generateRequest(id, rate int) *LoadRequest {
-	intent := json.RawMessage("{}"){
+	intent := json.RawMessage(`{}`){
 			"name": fmt.Sprintf("spike-%d-rate-%d", id, rate),
 
 			"namespace": "default",
 		},
 
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	body, _ := json.Marshal(intent)
@@ -1217,7 +1217,7 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 
 	intent := intents[id%len(intents)]
 
-	body := json.RawMessage("{}"){
+	body := json.RawMessage(`{}`){
 			"name": fmt.Sprintf("realistic-%d", id),
 
 			"namespace": "default",
@@ -1229,7 +1229,7 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 			},
 		},
 
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	bodyBytes, _ := json.Marshal(body)
@@ -1248,3 +1248,4 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 		ScenarioTag: rts.name,
 	}
 }
+

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// DISABLED: func TestNewGenerator(t *testing.T) {
+func TestNewGenerator(t *testing.T) {
 	testDir := filepath.Join(os.TempDir(), "metrics")
 	g, err := NewGenerator("test-node", testDir)
 	if err != nil {
@@ -35,7 +35,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGenerateMetric(t *testing.T) {
+func TestGenerateMetric(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "kpm-test-*")
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +91,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGeneratorConcurrency(t *testing.T) {
+func TestGeneratorConcurrency(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "kpm-concurrent-*")
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +134,7 @@ import (
 	}
 }
 
-// DISABLED: func TestFilePermissions(t *testing.T) {
+func TestFilePermissions(t *testing.T) {
 	// Skip on Windows as file permissions work differently
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping file permissions test on Windows")

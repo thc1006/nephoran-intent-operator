@@ -862,7 +862,7 @@ func (ms *OAuth2MockServer) handleUserInfo(w http.ResponseWriter, r *http.Reques
 func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.Request) {
 	baseURL := ms.Server.URL
 
-	config := json.RawMessage("{}"),
+	config := json.RawMessage(`{}`),
 
 		"response_types_supported": []string{
 			"code",
@@ -894,7 +894,7 @@ func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.R
 }
 
 func (ms *OAuth2MockServer) handleJWKS(w http.ResponseWriter, r *http.Request) {
-	jwks := json.RawMessage("{}"){
+	jwks := json.RawMessage(`{}`){
 			{
 				"kty": "RSA",
 
@@ -982,3 +982,4 @@ func (ms *OAuth2MockServer) Close() {
 		ms.Server.Close()
 	}
 }
+

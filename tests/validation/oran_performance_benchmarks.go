@@ -528,8 +528,8 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 
 	// Validate Terraform template.
 
-	terraformTemplate := json.RawMessage("{}"){
-			"required_providers": json.RawMessage("{}"){
+	terraformTemplate := json.RawMessage(`{}`){
+			"required_providers": json.RawMessage(`{}`){
 					"source": "hashicorp/kubernetes",
 
 					"version": "~> 2.0",
@@ -537,8 +537,8 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 			},
 		},
 
-		"resource": json.RawMessage("{}"){
-				"test_deployment": json.RawMessage("{}"){
+		"resource": json.RawMessage(`{}`){
+				"test_deployment": json.RawMessage(`{}`){
 						"name": "test-upf",
 					},
 				},
@@ -552,7 +552,7 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 
 	// Validate cloud provider config.
 
-	cloudConfig := json.RawMessage("{}"){
+	cloudConfig := json.RawMessage(`{}`){
 			"ec2_instances": 2,
 
 			"s3_buckets": 1,
@@ -869,3 +869,4 @@ func (opb *ORANPerformanceBenchmarker) GetInterfaceBenchmark(interfaceName strin
 
 	return nil
 }
+

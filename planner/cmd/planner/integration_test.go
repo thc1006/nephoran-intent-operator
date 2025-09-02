@@ -17,7 +17,7 @@ import (
 )
 
 // TestEndToEndScenario tests the complete flow from metrics fetching to intent generation
-// DISABLED: func TestEndToEndScenario(t *testing.T) {
+func TestEndToEndScenario(t *testing.T) {
 	// Create a test server that provides KMP metrics
 	metricsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		kmpData := rules.KPMData{
@@ -104,7 +104,7 @@ import (
 }
 
 // TestConfigurationWithComplexYAML tests loading complex YAML configurations
-// DISABLED: func TestConfigurationWithComplexYAML(t *testing.T) {
+func TestConfigurationWithComplexYAML(t *testing.T) {
 	complexYaml := `# Complex configuration with comments and various data types
 planner:
   # HTTP endpoints
@@ -222,7 +222,7 @@ metadata:
 }
 
 // TestHTTPClientErrorRecovery tests how the HTTP client handles various error conditions
-// DISABLED: func TestHTTPClientErrorRecovery(t *testing.T) {
+func TestHTTPClientErrorRecovery(t *testing.T) {
 	tests := []struct {
 		name           string
 		serverBehavior func(w http.ResponseWriter, r *http.Request)
@@ -292,7 +292,7 @@ metadata:
 }
 
 // TestSimModeIntegration tests simulation mode with actual file loading
-// DISABLED: func TestSimModeIntegration(t *testing.T) {
+func TestSimModeIntegration(t *testing.T) {
 	// Create test KMP data file
 	testKMPData := rules.KPMData{
 		Timestamp:       time.Now(),
@@ -335,7 +335,7 @@ metadata:
 }
 
 // TestMetricsDirIntegration tests loading metrics from a directory
-// DISABLED: func TestMetricsDirIntegration(t *testing.T) {
+func TestMetricsDirIntegration(t *testing.T) {
 	tmpDir := t.TempDir()
 	metricsDir := filepath.Join(tmpDir, "metrics")
 	err := os.MkdirAll(metricsDir, 0755)
@@ -423,7 +423,7 @@ metadata:
 }
 
 // TestConfigValidationWithWarnings tests configuration validation that logs warnings
-// DISABLED: func TestConfigValidationWithWarnings(t *testing.T) {
+func TestConfigValidationWithWarnings(t *testing.T) {
 	// Test configuration with invalid duration values that should generate warnings
 	warningYaml := `planner:
   polling_interval: 30s

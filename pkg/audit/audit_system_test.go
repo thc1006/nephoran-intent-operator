@@ -123,7 +123,7 @@ type AuditSystemTestSuite struct {
 	auditSystem *AuditSystem
 }
 
-// DISABLED: func TestAuditSystemTestSuite(t *testing.T) {
+func TestAuditSystemTestSuite(t *testing.T) {
 	suite.Run(t, new(AuditSystemTestSuite))
 }
 
@@ -492,7 +492,7 @@ func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
 
 // Table-driven tests for various scenarios
 
-// DISABLED: func TestAuditSystemScenarios(t *testing.T) {
+func TestAuditSystemScenarios(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      func() *AuditSystemConfig
@@ -703,7 +703,7 @@ func BenchmarkEventEnrichment(b *testing.B) {
 
 // Test compliance metadata enrichment
 
-// DISABLED: func TestComplianceMetadataEnrichment(t *testing.T) {
+func TestComplianceMetadataEnrichment(t *testing.T) {
 	tests := []struct {
 		name           string
 		complianceMode []ComplianceStandard
@@ -772,7 +772,7 @@ func BenchmarkEventEnrichment(b *testing.B) {
 
 // Test metrics collection
 
-// DISABLED: func TestMetricsCollection(t *testing.T) {
+func TestMetricsCollection(t *testing.T) {
 	// Reset metrics
 	auditEventsTotal.Reset()
 	auditProcessingDuration.Reset()

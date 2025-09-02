@@ -45,7 +45,7 @@ import (
 
 // when converting from string to int32 (G109/G115 security fix)
 
-// DISABLED: func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
+func TestGetNodeIndexFromConfigMapIntegerOverflow(t *testing.T) {
 	r := &E2NodeSetReconciler{}
 
 	tests := []struct {
@@ -175,7 +175,7 @@ import (
 
 // the index label is missing from the ConfigMap
 
-// DISABLED: func TestGetNodeIndexFromConfigMapMissingLabel(t *testing.T) {
+func TestGetNodeIndexFromConfigMapMissingLabel(t *testing.T) {
 	r := &E2NodeSetReconciler{}
 
 	cm := &corev1.ConfigMap{
@@ -201,7 +201,7 @@ import (
 
 // bounds checking works correctly for edge cases
 
-// DISABLED: func TestIntegerBoundsValidation(t *testing.T) {
+func TestIntegerBoundsValidation(t *testing.T) {
 	tests := []struct {
 		name string
 

@@ -659,7 +659,7 @@ func (f *FaultInjector) injectIntermittentCAFailure(duration time.Duration, inte
 		Type:      "INTERMITTENT_CA_FAILURE",
 		StartTime: time.Now(),
 		Duration:  duration,
-		Parameters: json.RawMessage("{}"),
+		Parameters: json.RawMessage(`{}`),
 		StopChannel: make(chan bool),
 	}
 
@@ -700,7 +700,7 @@ func (f *FaultInjector) injectNetworkPartition(target string, duration time.Dura
 		Type:      "NETWORK_PARTITION",
 		StartTime: time.Now(),
 		Duration:  duration,
-		Parameters: json.RawMessage("{}"),
+		Parameters: json.RawMessage(`{}`),
 		StopChannel: make(chan bool),
 	}
 
@@ -721,7 +721,7 @@ func (f *FaultInjector) injectNetworkDegradation(packetLoss int, latency time.Du
 		Type:      "NETWORK_DEGRADATION",
 		StartTime: time.Now(),
 		Duration:  duration,
-		Parameters: json.RawMessage("{}"),
+		Parameters: json.RawMessage(`{}`),
 		StopChannel: make(chan bool),
 	}
 
@@ -878,3 +878,4 @@ func (c *ChaosEngineeringTestSuite) compareSystemStates(baseline, current map[st
 func (c *ChaosEngineeringTestSuite) injectFailure(failureType string, duration time.Duration) string {
 	return "fault-id"
 }
+

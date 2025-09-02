@@ -24,7 +24,7 @@ import (
 )
 
 // TestMain_FlagParsing tests the command-line flag parsing functionality
-// DISABLED: func TestMain_FlagParsing(t *testing.T) {
+func TestMain_FlagParsing(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -92,7 +92,7 @@ import (
 }
 
 // TestMain_EndToEndWorkflow tests the complete end-to-end workflow
-// DISABLED: func TestMain_EndToEndWorkflow(t *testing.T) {
+func TestMain_EndToEndWorkflow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping end-to-end test in short mode")
 	}
@@ -257,7 +257,7 @@ import (
 }
 
 // TestMain_SignalHandling tests graceful shutdown on signals
-// DISABLED: func TestMain_SignalHandling(t *testing.T) {
+func TestMain_SignalHandling(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping signal handling test in short mode")
 	}
@@ -324,7 +324,7 @@ import (
 }
 
 // TestMain_WindowsPathHandling tests Windows-specific path handling
-// DISABLED: func TestMain_WindowsPathHandling(t *testing.T) {
+func TestMain_WindowsPathHandling(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows path test on non-Windows system")
 	}
@@ -362,7 +362,7 @@ import (
 }
 
 // TestMain_ExitCodes tests various exit scenarios
-// DISABLED: func TestMain_ExitCodes(t *testing.T) {
+func TestMain_ExitCodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping exit code test in short mode")
 	}

@@ -14,7 +14,7 @@ import (
 
 // TestFixedOnceMode demonstrates how to fix race conditions in once mode tests.
 
-// DISABLED: func TestFixedOnceMode(t *testing.T) {
+func TestFixedOnceMode(t *testing.T) {
 	// Create test synchronization helper.
 
 	syncHelper := NewTestSyncHelper(t)
@@ -111,7 +111,7 @@ import (
 
 // TestConcurrentFileProcessing demonstrates race condition-free concurrent testing.
 
-// DISABLED: func TestConcurrentFileProcessing(t *testing.T) {
+func TestConcurrentFileProcessing(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -205,7 +205,7 @@ import (
 
 // TestFailureHandling demonstrates proper failure handling synchronization.
 
-// DISABLED: func TestFailureHandling(t *testing.T) {
+func TestFailureHandling(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -283,7 +283,7 @@ import (
 
 // TestCrossPlatformTiming demonstrates cross-platform timing considerations.
 
-// DISABLED: func TestCrossPlatformTiming(t *testing.T) {
+func TestCrossPlatformTiming(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -365,7 +365,7 @@ import (
 
 // TestFilePatternValidation demonstrates fixing filename pattern issues.
 
-// DISABLED: func TestFilePatternValidation(t *testing.T) {
+func TestFilePatternValidation(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -462,7 +462,7 @@ import (
 
 // TestDebugTracking demonstrates comprehensive debug tracking.
 
-// DISABLED: func TestDebugTracking(t *testing.T) {
+func TestDebugTracking(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 
 	defer syncHelper.Cleanup()
@@ -561,7 +561,7 @@ import (
 
 // TestSynchronizationTimeoutError tests the custom timeout error.
 
-// DISABLED: func TestSynchronizationTimeoutError(t *testing.T) {
+func TestSynchronizationTimeoutError(t *testing.T) {
 	err := &SynchronizationTimeoutError{
 		Operation: "test operation",
 

@@ -91,7 +91,7 @@ func (s *IMSService) GetSystemInfo(ctx context.Context) (*models.SystemInfo, err
 			"deployment", "service", "configmap", "secret",
 		},
 
-		Extensions: json.RawMessage("{}"),
+		Extensions: json.RawMessage(`{}`),
 
 		Timestamp: time.Now(),
 	}, nil
@@ -339,7 +339,7 @@ func (s *InventoryService) GetNodes(ctx context.Context, filter *models.NodeFilt
 
 			Architecture: node.Status.NodeInfo.Architecture,
 
-			Extensions: json.RawMessage("{}"),
+			Extensions: json.RawMessage(`{}`),
 
 			CreatedAt: node.CreationTimestamp.Time,
 
@@ -876,3 +876,4 @@ func NewO2Error(code, message string) *O2Error {
 		Message: message,
 	}
 }
+

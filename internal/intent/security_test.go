@@ -8,7 +8,7 @@ import (
 
 // TestSecuritySchemaValidationHardening verifies that schema validation failures
 // are treated as critical security errors and not silently ignored
-// DISABLED: func TestSecuritySchemaValidationHardening(t *testing.T) {
+func TestSecuritySchemaValidationHardening(t *testing.T) {
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
 	if err := os.MkdirAll(contractsDir, 0o755); err != nil {
@@ -204,7 +204,7 @@ import (
 }
 
 // TestSecurityValidationBypass attempts various bypass techniques
-// DISABLED: func TestSecurityValidationBypass(t *testing.T) {
+func TestSecurityValidationBypass(t *testing.T) {
 	tempDir := t.TempDir()
 	contractsDir := filepath.Join(tempDir, "docs", "contracts")
 	if err := os.MkdirAll(contractsDir, 0o755); err != nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestStateManager_BasicOperations(t *testing.T) {
+func TestStateManager_BasicOperations(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ import (
 	assert.False(t, processed)
 }
 
-// DISABLED: func TestStateManager_FileModification(t *testing.T) {
+func TestStateManager_FileModification(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)

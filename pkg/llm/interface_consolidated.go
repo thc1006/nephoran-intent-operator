@@ -49,10 +49,10 @@ type ConsolidatedStreamingProcessor struct {
 
 func (sp *ConsolidatedStreamingProcessor) GetMetrics() map[string]interface{} {
 	if sp == nil {
-		return json.RawMessage("{}")
+		return make(map[string]interface{})
 	}
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // Shutdown gracefully shuts down the streaming processor (stub implementation).
@@ -455,16 +455,19 @@ func (tt *ConsolidatedSimpleTokenTracker) RecordUsage(tokens int) {
 
 func (tt *ConsolidatedSimpleTokenTracker) GetStats() map[string]interface{} {
 	tt.mutex.RLock()
-
 	defer tt.mutex.RUnlock()
 
 	avgTokensPerRequest := float64(0)
-
 	if tt.requestCount > 0 {
 		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
 	}
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"total_tokens": tt.totalTokens,
+		"request_count": tt.requestCount,
+		"avg_tokens_per_request": avgTokensPerRequest,
+		"total_cost": tt.totalCost,
+	}
 }
 
 // RequestContext contains context for LLM requests.
@@ -665,14 +668,13 @@ func (scm *StreamingContextManager) Close() {
 
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	if cb == nil || cb.metrics == nil {
-		return json.RawMessage("{}")
+		return make(map[string]interface{})
 	}
 
 	cb.metrics.mutex.RLock()
-
 	defer cb.metrics.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // Document represents a document for context building.
@@ -693,14 +695,13 @@ type Document struct {
 
 func (rs *ConsolidatedRelevanceScorer) GetMetrics() map[string]interface{} {
 	if rs == nil || rs.metrics == nil {
-		return json.RawMessage("{}")
+		return make(map[string]interface{})
 	}
 
 	rs.metrics.mutex.RLock()
-
 	defer rs.metrics.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // IntentRequest represents a legacy request structure (backward compatibility).
@@ -721,5 +722,5 @@ func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
 
 // GetMetrics returns metrics for the RAG-aware prompt builder stub
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }

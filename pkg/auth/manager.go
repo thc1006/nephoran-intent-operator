@@ -296,7 +296,7 @@ func (am *Manager) ListProviders() map[string]interface{} {
 	ldapProviders := make(map[string]interface{})
 
 	for name := range am.ldapProviders {
-		ldapProviders[name] = json.RawMessage("{}")
+		ldapProviders[name] = json.RawMessage(`{}`)
 	}
 
 	result["ldap"] = ldapProviders
@@ -306,7 +306,7 @@ func (am *Manager) ListProviders() map[string]interface{} {
 	oauth2Providers := make(map[string]interface{})
 
 	for name := range am.oauthProviders {
-		oauth2Providers[name] = json.RawMessage("{}")
+		oauth2Providers[name] = json.RawMessage(`{}`)
 	}
 
 	result["oauth2"] = oauth2Providers
@@ -435,3 +435,4 @@ func (am *Manager) Shutdown(ctx context.Context) error {
 
 	return nil
 }
+

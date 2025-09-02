@@ -375,7 +375,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Va
 
 		SanitizedInput: input,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Update metrics.
@@ -793,7 +793,7 @@ func (sv *SecurityValidator) removePII(input string) string {
 func (sv *SecurityValidator) auditLog(r *http.Request, result *ValidationResult) {
 	if !result.Valid || (result.Valid && sv.config.LogSuccessfulRequests) || (!result.Valid && sv.config.LogFailedRequests) {
 
-		logData := json.RawMessage("{}")
+		logData := json.RawMessage(`{}`)
 
 		if result.Valid {
 			sv.logger.Info("Security validation passed", "audit", logData)
@@ -1192,3 +1192,4 @@ func (cf *ContentFilter) initializeProfanityFilter() {
 		cf.profanityWords[strings.ToLower(word)] = true
 	}
 }
+

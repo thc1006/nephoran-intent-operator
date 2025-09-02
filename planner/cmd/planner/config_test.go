@@ -14,7 +14,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/planner/internal/security"
 )
 
-// DISABLED: func TestLoadConfig(t *testing.T) {
+func TestLoadConfig(t *testing.T) {
 	// Test with valid YAML config
 	yamlContent := `planner:
   metrics_url: "http://test:9090/metrics"
@@ -98,7 +98,7 @@ logging:
 	}
 }
 
-// DISABLED: func TestLoadConfigInvalidFile(t *testing.T) {
+func TestLoadConfigInvalidFile(t *testing.T) {
 	cfg := &Config{}
 	validator := security.NewValidator(security.DefaultValidationConfig())
 	err := loadConfig("nonexistent.yaml", cfg, validator)
@@ -107,7 +107,7 @@ logging:
 	}
 }
 
-// DISABLED: func TestLoadConfigInvalidYAML(t *testing.T) {
+func TestLoadConfigInvalidYAML(t *testing.T) {
 	invalidYaml := `invalid: yaml: content
   - missing
   [ brackets`
@@ -127,7 +127,7 @@ logging:
 	}
 }
 
-// DISABLED: func TestCreateRuleEngineConfig(t *testing.T) {
+func TestCreateRuleEngineConfig(t *testing.T) {
 	cfg := &Config{
 		StateFile: "/tmp/test-state.json",
 	}
@@ -182,7 +182,7 @@ logging:
 	}
 }
 
-// DISABLED: func TestCreateRuleEngineConfigDefaults(t *testing.T) {
+func TestCreateRuleEngineConfigDefaults(t *testing.T) {
 	cfg := &Config{
 		StateFile: "/tmp/test-state.json",
 	}
@@ -205,7 +205,7 @@ logging:
 }
 
 // TestHTTPClientConnectionReuse tests HTTP client connection pooling
-// DISABLED: func TestHTTPClientConnectionReuse(t *testing.T) {
+func TestHTTPClientConnectionReuse(t *testing.T) {
 	// Test that the client is configured for connection reuse
 	if httpClient.Transport == nil {
 		t.Fatal("HTTP client should have a custom transport")
@@ -246,7 +246,7 @@ logging:
 }
 
 // TestHTTPClientConcurrentUsage tests concurrent HTTP requests
-// DISABLED: func TestHTTPClientConcurrentUsage(t *testing.T) {
+func TestHTTPClientConcurrentUsage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate some processing time
 		time.Sleep(10 * time.Millisecond)
@@ -297,7 +297,7 @@ logging:
 }
 
 // TestHTTPClientTimeouts tests various timeout scenarios
-// DISABLED: func TestHTTPClientTimeouts(t *testing.T) {
+func TestHTTPClientTimeouts(t *testing.T) {
 	tests := []struct {
 		name          string
 		serverDelay   time.Duration
@@ -339,7 +339,7 @@ logging:
 }
 
 // TestConfigurationValidationEdgeCases tests invalid configuration values
-// DISABLED: func TestConfigurationValidationEdgeCases(t *testing.T) {
+func TestConfigurationValidationEdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
 		yamlContent string
@@ -436,7 +436,7 @@ scaling_rules:
 }
 
 // TestConcurrentConfigurationLoading tests loading config from multiple goroutines
-// DISABLED: func TestConcurrentConfigurationLoading(t *testing.T) {
+func TestConcurrentConfigurationLoading(t *testing.T) {
 	yamlContent := `planner:
   metrics_url: "http://test:9090/metrics"
   events_url: "http://test:9091/events"
@@ -536,7 +536,7 @@ logging:
 }
 
 // TestIntegrationWithRealConfigFiles tests loading actual config files
-// DISABLED: func TestIntegrationWithRealConfigFiles(t *testing.T) {
+func TestIntegrationWithRealConfigFiles(t *testing.T) {
 	tests := []struct {
 		name             string
 		configPath       string
@@ -607,7 +607,7 @@ logging:
 }
 
 // TestYAMLParsingErrorScenarios tests various YAML parsing failure cases
-// DISABLED: func TestYAMLParsingErrorScenarios(t *testing.T) {
+func TestYAMLParsingErrorScenarios(t *testing.T) {
 	tests := []struct {
 		name        string
 		content     string
@@ -639,8 +639,8 @@ logging:
 		{
 			"Unicode content",
 			`planner:
-  metrics_url: "http://测试:9090/metrics"
-  output_dir: "./输出目录"`,
+  metrics_url: "http://测�?:9090/metrics"
+  output_dir: "./输出?��?"`,
 			false,
 		},
 		{
@@ -694,7 +694,7 @@ logging:
 }
 
 // TestFileSystemErrorHandling tests file system related error scenarios
-// DISABLED: func TestFileSystemErrorHandling(t *testing.T) {
+func TestFileSystemErrorHandling(t *testing.T) {
 	tests := []struct {
 		name        string
 		setup       func(t *testing.T) string
@@ -760,7 +760,7 @@ logging:
 }
 
 // TestEnvironmentVariableOverrides tests environment variable precedence
-// DISABLED: func TestEnvironmentVariableOverrides(t *testing.T) {
+func TestEnvironmentVariableOverrides(t *testing.T) {
 	// Save current environment
 	oldMetricsURL := os.Getenv("PLANNER_METRICS_URL")
 	oldOutputDir := os.Getenv("PLANNER_OUTPUT_DIR")

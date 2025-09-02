@@ -382,7 +382,7 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Priority:     1,
 			Dependencies: []string{"dep-task-root"},
 			Status:       TaskStatusPending,
-			InputData:    json.RawMessage("{}"),
+			InputData:    json.RawMessage(`{}`),
 			Timeout:      5 * time.Second,
 		},
 		{
@@ -392,7 +392,7 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Priority:     1,
 			Dependencies: []string{"dep-task-child1", "dep-task-child2"},
 			Status:       TaskStatusPending,
-			InputData:    json.RawMessage("{}"),
+			InputData:    json.RawMessage(`{}`),
 			Timeout:      5 * time.Second,
 		},
 	}
@@ -559,7 +559,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorReporting() {
 }
 
 // TestRunSuite runs the error recovery test suite
-// DISABLED: func TestErrorRecoveryTestSuite(t *testing.T) {
+func TestErrorRecoveryTestSuite(t *testing.T) {
 	suite.Run(t, new(ErrorRecoveryTestSuite))
 }
 
@@ -601,7 +601,7 @@ func (fp *FailingProcessor) HealthCheck(ctx context.Context) error {
 }
 
 func (fp *FailingProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // RetryableProcessor fails a specific number of times then succeeds
@@ -637,7 +637,7 @@ func (rp *RetryableProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 	return &TaskResult{
 		TaskID:  task.ID,
 		Success: true,
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -653,5 +653,6 @@ func (rp *RetryableProcessor) GetMetrics() map[string]interface{} {
 	rp.mutex.Lock()
 	defer rp.mutex.Unlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
+

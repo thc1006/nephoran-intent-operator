@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -307,25 +308,26 @@ func (mr *MetricsRecorder) convertMetricsData(data *MetricsData) []MetricsRecord
 	records := make([]MetricsRecord, 0, len(data.Metrics))
 
 	for metricName, value := range data.Metrics {
+		// Convert string value to float64
+		floatValue := 0.0
+		if parsedValue, err := strconv.ParseFloat(value, 64); err == nil {
+			floatValue = parsedValue
+		}
+
 		record := MetricsRecord{
 			ID:        fmt.Sprintf("%s-%s-%d", data.Source, metricName, data.Timestamp.UnixNano()),
 			Timestamp: data.Timestamp,
 			Source:    data.Source,
 			Namespace: data.Namespace,
 			Metric:    metricName,
-			Value:     value,
+			Value:     floatValue,
 			Labels:    make(map[string]string),
-			Metadata:  make(map[string]interface{}),
+			Metadata:  data.Metadata, // Use existing RawMessage
 		}
 
 		// Copy labels
 		for k, v := range data.Labels {
 			record.Labels[k] = v
-		}
-
-		// Copy metadata
-		for k, v := range data.Metadata {
-			record.Metadata[k] = v
 		}
 
 		// Add pod and container info if available
@@ -568,7 +570,7 @@ func (ims *InMemoryMetricsStorage) GetStorageStats() map[string]interface{} {
 	ims.mu.RLock()
 	defer ims.mu.RUnlock()
 
-	stats := json.RawMessage("{}")
+	stats := make(map[string]interface{})
 
 	// Calculate memory usage estimation
 	var memoryUsage int
@@ -588,6 +590,9 @@ func (ims *InMemoryMetricsStorage) GetStorageStats() map[string]interface{} {
 	}
 
 	stats["estimated_memory_bytes"] = memoryUsage
+	stats["record_count"] = len(ims.records)
+	stats["metric_count"] = len(ims.indices)
 
 	return stats
 }
+

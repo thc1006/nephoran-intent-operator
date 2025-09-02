@@ -1194,7 +1194,7 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 
 	defer cb.mutex.Unlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Reset manually resets the circuit breaker.
@@ -1208,3 +1208,4 @@ func (cb *CircuitBreaker) Reset() {
 
 	cb.state = StateClosed
 }
+

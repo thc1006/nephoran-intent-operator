@@ -185,7 +185,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 					}
 
 					// Subsequent requests succeed
-					response := json.RawMessage("{}"){
+					response := map[string]interface{}{
 							"replicas": float64(1),
 							"image":    "recovery:latest",
 						},

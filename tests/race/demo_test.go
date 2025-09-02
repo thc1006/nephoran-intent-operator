@@ -13,7 +13,7 @@ import (
 )
 
 // TestRaceDetectionDemo demonstrates our race condition testing framework
-// DISABLED: func TestRaceDetectionDemo(t *testing.T) {
+func TestRaceDetectionDemo(t *testing.T) {
 	t.Run("AtomicOperations", func(t *testing.T) {
 		atomicTest := racetest.NewAtomicRaceTest(t)
 		counter := &atomic.Int64{}
@@ -48,7 +48,7 @@ import (
 }
 
 // TestHighConcurrencyScenario tests extreme concurrency
-// DISABLED: func TestHighConcurrencyScenario(t *testing.T) {
+func TestHighConcurrencyScenario(t *testing.T) {
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines:        runtime.NumCPU() * 10,
 		Iterations:        1000,

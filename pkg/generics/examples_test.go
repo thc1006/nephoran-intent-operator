@@ -451,7 +451,7 @@ func ExampleAdvancedValidation() {
 }
 
 // Integration test demonstrating all components working together
-// DISABLED: func TestFullIntegration(t *testing.T) {
+func TestFullIntegration(t *testing.T) {
 	// This would be a comprehensive integration test
 	// combining all the generic components in a realistic scenario
 

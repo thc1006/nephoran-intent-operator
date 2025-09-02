@@ -162,7 +162,7 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 			"Internal configuration details",
 		},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -455,3 +455,4 @@ func containsIgnoreCaseHelper(s, substr string) bool {
 
 	return false
 }
+

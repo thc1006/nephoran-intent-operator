@@ -874,7 +874,7 @@ func generateAuthorizationRequests(resourceTypes, count int) []AuthorizationRequ
 		requests[i] = AuthorizationRequest{
 			Resource: fmt.Sprintf("resource-%d", i%resourceTypes),
 			Action:   actions[i%len(actions)],
-			Context:  json.RawMessage("{}"),
+			Context:  json.RawMessage(`{}`),
 		}
 	}
 
@@ -890,7 +890,7 @@ func generateTestUser(username string, groupCount int) User {
 	return User{
 		Username: username,
 		Groups:   groups,
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 }
 
@@ -1309,3 +1309,4 @@ type (
 	BenchmarkTokenCache     interface{}
 	BenchmarkAuthMetrics    interface{}
 )
+

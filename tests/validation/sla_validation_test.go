@@ -860,6 +860,6 @@ func (s *SLAValidationTestSuite) TearDownSuite() {
 }
 
 // TestSuite runner function
-// DISABLED: func TestSLAValidationTestSuite(t *testing.T) {
+func TestSLAValidationTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAValidationTestSuite))
 }

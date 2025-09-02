@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// DISABLED: func TestRuleEngine_ScaleOut(t *testing.T) {
+func TestRuleEngine_ScaleOut(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), "test-state.json")
 	defer os.Remove(tmpFile)
 
@@ -52,7 +52,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRuleEngine_ScaleIn(t *testing.T) {
+func TestRuleEngine_ScaleIn(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), "test-state2.json")
 	defer os.Remove(tmpFile)
 
@@ -95,7 +95,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRuleEngine_Cooldown(t *testing.T) {
+func TestRuleEngine_Cooldown(t *testing.T) {
 	tmpFile := filepath.Join(os.TempDir(), "test-state3.json")
 	defer os.Remove(tmpFile)
 
@@ -142,7 +142,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRuleEngine_MaxReplicas(t *testing.T) {
+func TestRuleEngine_MaxReplicas(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     1 * time.Second,
 		MinReplicas:          1,
@@ -173,7 +173,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRuleEngine_MinReplicas(t *testing.T) {
+func TestRuleEngine_MinReplicas(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     1 * time.Second,
 		MinReplicas:          1,
@@ -205,7 +205,7 @@ import (
 }
 
 // TestRuleEngine_MemoryOptimization verifies that memory management optimizations work correctly
-// DISABLED: func TestRuleEngine_MemoryOptimization(t *testing.T) {
+func TestRuleEngine_MemoryOptimization(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     1 * time.Second,
 		MinReplicas:          1,
@@ -250,7 +250,7 @@ import (
 }
 
 // TestRuleEngine_InPlacePruning verifies that pruning works without excessive allocations
-// DISABLED: func TestRuleEngine_InPlacePruning(t *testing.T) {
+func TestRuleEngine_InPlacePruning(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     1 * time.Second,
 		MinReplicas:          1,
@@ -314,7 +314,7 @@ import (
 }
 
 // TestRuleEngine_DefaultConfig verifies that default performance settings are applied
-// DISABLED: func TestRuleEngine_DefaultConfig(t *testing.T) {
+func TestRuleEngine_DefaultConfig(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     1 * time.Second,
 		MinReplicas:          1,
@@ -578,7 +578,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 }
 
 // TestRuleEngine_CapacityLimitEnforcement tests that capacity limits are strictly enforced
-// DISABLED: func TestRuleEngine_CapacityLimitEnforcement(t *testing.T) {
+func TestRuleEngine_CapacityLimitEnforcement(t *testing.T) {
 	tests := []struct {
 		name           string
 		maxHistorySize int
@@ -643,7 +643,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 }
 
 // TestRuleEngine_PruningAccuracy tests that pruning correctly removes old data
-// DISABLED: func TestRuleEngine_PruningAccuracy(t *testing.T) {
+func TestRuleEngine_PruningAccuracy(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     1 * time.Second,
 		MinReplicas:          1,
@@ -728,7 +728,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 }
 
 // TestRuleEngine_LongRunningMemoryStability tests memory stability over extended operation
-// DISABLED: func TestRuleEngine_LongRunningMemoryStability(t *testing.T) {
+func TestRuleEngine_LongRunningMemoryStability(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping long-running test in short mode")
 	}
@@ -811,7 +811,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 }
 
 // TestRuleEngine_ThreadSafety tests concurrent access to the rule engine
-// DISABLED: func TestRuleEngine_ThreadSafety(t *testing.T) {
+func TestRuleEngine_ThreadSafety(t *testing.T) {
 	engine := NewRuleEngine(Config{
 		CooldownDuration:     100 * time.Millisecond,
 		MinReplicas:          1,
@@ -904,7 +904,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 }
 
 // TestRuleEngine_EdgeCases tests boundary conditions and error scenarios
-// DISABLED: func TestRuleEngine_EdgeCases(t *testing.T) {
+func TestRuleEngine_EdgeCases(t *testing.T) {
 	t.Run("ZeroMaxHistorySize", func(t *testing.T) {
 		engine := NewRuleEngine(Config{
 			MaxHistorySize: 0, // Should default to 300
@@ -1071,7 +1071,7 @@ func BenchmarkRuleEngine_PruningComparison(b *testing.B) {
 }
 
 // TestRuleEngine_BackwardCompatibility ensures existing functionality still works
-// DISABLED: func TestRuleEngine_BackwardCompatibility(t *testing.T) {
+func TestRuleEngine_BackwardCompatibility(t *testing.T) {
 	t.Run("LegacyConfigValues", func(t *testing.T) {
 		// Test with config that doesn't include new performance parameters
 		engine := NewRuleEngine(Config{

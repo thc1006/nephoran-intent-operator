@@ -429,7 +429,7 @@ func (s *ServiceLifecycleManager) DeployService(req ServiceDeploymentRequest) (*
 		EventType:  "deployment_started",
 		WorkflowID: workflowID,
 		Timestamp:  time.Now(),
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 	s.eventStore.RecordEvent(event)
 
@@ -514,7 +514,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "validate_request",
 			StepType: "validation",
 			Action:   "validate_deployment_request",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 			Timeout: 30 * time.Second,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      3,
@@ -525,7 +525,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "allocate_resources",
 			StepType: "resource_management",
 			Action:   "allocate_cluster_resources",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 			Timeout: 2 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      2,
@@ -536,7 +536,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "create_nephio_packages",
 			StepType: "package_management",
 			Action:   "create_and_publish_packages",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 			Timeout: 5 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      3,
@@ -547,7 +547,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "deploy_oran_components",
 			StepType: "deployment",
 			Action:   "deploy_oran_network_functions",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 			Timeout: 10 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      2,
@@ -558,7 +558,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "configure_network_slices",
 			StepType: "configuration",
 			Action:   "setup_network_slices",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 			Timeout: 3 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      3,
@@ -569,7 +569,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "verify_deployment",
 			StepType: "validation",
 			Action:   "verify_service_health",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 			Timeout: 5 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      5,
@@ -582,27 +582,27 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 		{
 			StepID: "cleanup_verification",
 			Action: "cleanup_health_checks",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		},
 		{
 			StepID: "remove_network_slices",
 			Action: "cleanup_network_slices",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		},
 		{
 			StepID: "undeploy_components",
 			Action: "undeploy_oran_components",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		},
 		{
 			StepID: "delete_packages",
 			Action: "delete_nephio_packages",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		},
 		{
 			StepID: "release_resources",
 			Action: "deallocate_cluster_resources",
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		},
 	}
 
@@ -925,3 +925,4 @@ func NewTraceManager(config *OrchestrationConfig, logger logr.Logger) *TraceMana
 func NewAuditLogger(config *OrchestrationConfig, logger logr.Logger) *AuditLogger {
 	return &AuditLogger{}
 }
+

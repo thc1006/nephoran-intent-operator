@@ -106,7 +106,7 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-// DISABLED: func TestServer_HealthCheck(t *testing.T) {
+func TestServer_HealthCheck(t *testing.T) {
 	server, _, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -130,7 +130,7 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_Intent_ValidJSON_Success(t *testing.T) {
+func TestServer_Intent_ValidJSON_Success(t *testing.T) {
 	server, handoffDir, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -143,7 +143,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "valid scaling intent",
 			contentType: "application/json",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 3,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -158,7 +158,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "minimal valid intent",
 			contentType: "application/json",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "minimal-app",
 					"namespace":       "production",
@@ -171,7 +171,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "text/json content type",
 			contentType: "text/json",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 2,
 					"target":          "text-json-app",
 					"namespace":       "staging",
@@ -184,7 +184,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "application/json with charset",
 			contentType: "application/json; charset=utf-8",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 1,
 					"target":          "charset-app",
 					"namespace":       "testing",
@@ -283,7 +283,7 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
+func TestServer_Intent_ValidPlainText_Success(t *testing.T) {
 	server, handoffDir, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -295,7 +295,7 @@ func copyFile(src, dst string) error {
 		{
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
-			expected: json.RawMessage("{}"){
+			expected: map[string]interface{}{
 					"target_replicas": float64(5),
 					"target":          "my-app",
 					"namespace":       "production",
@@ -308,7 +308,7 @@ func copyFile(src, dst string) error {
 		{
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
-			expected: json.RawMessage("{}"){
+			expected: map[string]interface{}{
 					"target_replicas": float64(10),
 					"target":          "nf-sim",
 					"namespace":       "ran-a",
@@ -321,7 +321,7 @@ func copyFile(src, dst string) error {
 		{
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
-			expected: json.RawMessage("{}"){
+			expected: map[string]interface{}{
 					"target_replicas": float64(3),
 					"target":          "MY-SERVICE",
 					"namespace":       "DEFAULT",
@@ -419,7 +419,7 @@ func copyFile(src, dst string) error {
 	t.Logf("Created %d files from %d tests (some may have been overwritten due to timestamp collisions)", len(files), len(tests))
 }
 
-// DISABLED: func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
+func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 	server, _, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -564,7 +564,7 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_Intent_MethodNotAllowed(t *testing.T) {
+func TestServer_Intent_MethodNotAllowed(t *testing.T) {
 	server, _, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -590,12 +590,12 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_Intent_CorrelationIdPassthrough(t *testing.T) {
+func TestServer_Intent_CorrelationIdPassthrough(t *testing.T) {
 	server, _, cleanup := setupTestServer(t)
 	defer cleanup()
 
 	correlationID := "test-correlation-123"
-	payload := json.RawMessage("{}"){
+	payload := map[string]interface{}{
 			"target_replicas": 3,
 			"target":          "test-deployment",
 			"namespace":       "default",
@@ -646,11 +646,11 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_Intent_FileCreation(t *testing.T) {
+func TestServer_Intent_FileCreation(t *testing.T) {
 	server, handoffDir, cleanup := setupTestServer(t)
 	defer cleanup()
 
-	payload := json.RawMessage("{}"){
+	payload := map[string]interface{}{
 			"target_replicas": 3,
 			"target":          "file-test-deployment",
 			"namespace":       "default",
@@ -718,7 +718,7 @@ func copyFile(src, dst string) error {
 		t.Fatalf("Expected parameters to be a map, got %T", savedIntent["parameters"])
 	}
 
-	expectedParams := json.RawMessage("{}")
+	expectedParams := json.RawMessage(`{}`)
 
 	for key, expected := range expectedParams {
 		if params[key] != expected {
@@ -738,7 +738,7 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_Intent_ConcurrentRequests(t *testing.T) {
+func TestServer_Intent_ConcurrentRequests(t *testing.T) {
 	server, handoffDir, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -750,7 +750,7 @@ func copyFile(src, dst string) error {
 			// Add small delay to avoid identical timestamps
 			time.Sleep(time.Duration(id) * time.Millisecond)
 
-			payload := json.RawMessage("{}"){
+			payload := map[string]interface{}{
 					"target_replicas": 3,
 					"target":          fmt.Sprintf("concurrent-test-%d", id),
 					"namespace":       "default",
@@ -811,7 +811,7 @@ func copyFile(src, dst string) error {
 	t.Logf("Created %d files from %d concurrent requests", len(files), numRequests)
 }
 
-// DISABLED: func TestServer_EdgeCases(t *testing.T) {
+func TestServer_EdgeCases(t *testing.T) {
 	server, _, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -881,7 +881,7 @@ func copyFile(src, dst string) error {
 	}
 }
 
-// DISABLED: func TestServer_RealSchemaValidation(t *testing.T) {
+func TestServer_RealSchemaValidation(t *testing.T) {
 	server, _, cleanup := setupTestServer(t)
 	defer cleanup()
 
@@ -894,7 +894,7 @@ func copyFile(src, dst string) error {
 	}{
 		{
 			name: "valid with all optional fields",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 50,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -910,7 +910,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "replicas at minimum boundary",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 1,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -923,7 +923,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "replicas at maximum boundary",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 100,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -936,7 +936,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "valid source enum values",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -950,7 +950,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "reason at max length",
-			payload: json.RawMessage("{}"){
+			payload: map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -990,14 +990,14 @@ func copyFile(src, dst string) error {
 }
 
 // TestServer_IntegrationFlow tests the complete flow from request to file creation
-// DISABLED: func TestServer_IntegrationFlow(t *testing.T) {
+func TestServer_IntegrationFlow(t *testing.T) {
 	server, handoffDir, cleanup := setupTestServer(t)
 	defer cleanup()
 
 	// Test complete flow with correlation ID tracking
 	correlationID := fmt.Sprintf("integration-test-%d", time.Now().Unix())
 
-	payload := json.RawMessage("{}"){
+	payload := map[string]interface{}{
 			"target_replicas": 7,
 			"target":          "integration-test-app",
 			"namespace":       "integration",
@@ -1145,3 +1145,4 @@ func copyFile(src, dst string) error {
 		t.Errorf("Invalid timestamp in filename %s: %v", timestampPart, err)
 	}
 }
+

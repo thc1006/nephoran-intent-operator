@@ -17,7 +17,7 @@ import (
 )
 
 // TestO1AdaptorIntegrationWithManagedElement tests the integration between O1Adaptor and ManagedElement CRD
-// DISABLED: func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
+func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 	// Setup test environment
 	ctx := context.Background()
 	logger := log.FromContext(ctx)
@@ -276,7 +276,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 }
 
 // TestO1AdaptorControllerCompatibility tests compatibility with Kubernetes controllers
-// DISABLED: func TestO1AdaptorControllerCompatibility(t *testing.T) {
+func TestO1AdaptorControllerCompatibility(t *testing.T) {
 	ctx := context.Background()
 
 	// Create fake Kubernetes client
@@ -349,7 +349,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 }
 
 // TestO1AdaptorWithMockNetconfServer simulates NETCONF server interactions
-// DISABLED: func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
+func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 	ctx := context.Background()
 
 	// Note: This would ideally use a mock NETCONF server
@@ -410,7 +410,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 }
 
 // TestO1AdaptorFCAPSOperations tests comprehensive FCAPS operations
-// DISABLED: func TestO1AdaptorFCAPSOperations(t *testing.T) {
+func TestO1AdaptorFCAPSOperations(t *testing.T) {
 	ctx := context.Background()
 
 	// Create fake Kubernetes client
@@ -521,7 +521,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 				{
 					RuleID: "rule-001",
 					Action: "ALLOW",
-					Conditions: json.RawMessage("{}"),
+					Conditions: json.RawMessage(`{}`),
 				},
 			},
 		}
@@ -538,7 +538,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 }
 
 // TestO1AdaptorResourceManagement tests resource cleanup and management
-// DISABLED: func TestO1AdaptorResourceManagement(t *testing.T) {
+func TestO1AdaptorResourceManagement(t *testing.T) {
 	ctx := context.Background()
 
 	// Create fake Kubernetes client
@@ -685,3 +685,4 @@ func BenchmarkO1AdaptorParseAlarmData(b *testing.B) {
 		_, _ = adaptor.parseAlarmData(xmlData, "test-element")
 	}
 }
+

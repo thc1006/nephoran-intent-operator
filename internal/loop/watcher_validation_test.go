@@ -30,7 +30,7 @@ type WatcherValidationTestSuite struct {
 	porchPath string
 }
 
-// DISABLED: func TestWatcherValidationSuite(t *testing.T) {
+func TestWatcherValidationSuite(t *testing.T) {
 	suite.Run(t, new(WatcherValidationTestSuite))
 }
 

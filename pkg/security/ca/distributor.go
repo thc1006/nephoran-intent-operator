@@ -1077,7 +1077,7 @@ func (n *CertificateNotifier) sendNotification(message string, data interface{})
 }
 
 func (n *CertificateNotifier) sendWebhook(url, message string, data interface{}) {
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -1119,3 +1119,4 @@ func (n *CertificateNotifier) sendSlack(message string, data interface{}) {
 
 	n.logger.Debug("sending Slack notification", "message", message)
 }
+

@@ -743,7 +743,7 @@ func (h *CloudProviderTestHelpers) CreateTestComputeInstance(provider, instanceT
 
 		UpdatedAt: time.Now(),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -842,3 +842,4 @@ func (h *CloudProviderTestHelpers) ValidateComputeInstance(instance *models.Reso
 func NewCloudProviderTestHelpers() *CloudProviderTestHelpers {
 	return &CloudProviderTestHelpers{}
 }
+

@@ -409,7 +409,7 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 
 				// Use optimized processing.
 
-				parameters := json.RawMessage("{}")
+				parameters := map[string]interface{}{}
 
 				_, err := pb.optimizedController.ProcessLLMPhaseOptimized(
 
@@ -852,11 +852,11 @@ Performance Benchmark Results:
 
 
 
-▶ CPU OPTIMIZATION:
+??CPU OPTIMIZATION:
 
-  • CPU Usage Reduction: %.1f%% (Target: 60%%)
+  ??CPU Usage Reduction: %.1f%% (Target: 60%%)
 
-  • Connection Reuse Rate: %.1f%%
+  ??Connection Reuse Rate: %.1f%%
 
 
 
@@ -880,11 +880,11 @@ Performance Benchmark Results:
 
 
 
-▶ BATCH PROCESSING:
+??BATCH PROCESSING:
 
-  • Batching Efficiency: %.1f%%
+  ??Batching Efficiency: %.1f%%
 
-  • Average Batch Size: %.1f requests
+  ??Average Batch Size: %.1f requests
 
 
 
@@ -950,12 +950,13 @@ STATUS: %s
 
 func (pb *PerformanceBenchmarks) getOverallStatus() string {
 	if pb.results.TotalLatencyReduction >= 30.0 && pb.results.TotalCPUReduction >= 60.0 {
-		return "✓ ALL TARGETS ACHIEVED"
+		return "??ALL TARGETS ACHIEVED"
 	} else if pb.results.TotalLatencyReduction >= 30.0 {
-		return "⚠ LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
+		return "??LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
 	} else if pb.results.TotalCPUReduction >= 60.0 {
-		return "⚠ CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
+		return "??CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
 	} else {
-		return "⏳ OPTIMIZATION IN PROGRESS"
+		return "??OPTIMIZATION IN PROGRESS"
 	}
 }
+

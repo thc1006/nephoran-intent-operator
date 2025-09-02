@@ -340,7 +340,7 @@ func (eb *EnhancedEventBus) PublishStateChange(ctx context.Context, event StateC
 
 		Success: true,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Timestamp: time.Now().UnixNano(),
 
@@ -350,10 +350,14 @@ func (eb *EnhancedEventBus) PublishStateChange(ctx context.Context, event StateC
 	}
 
 	// Add metadata from event.
-
-	for key, value := range event.Metadata {
-		if strValue, ok := value.(string); ok {
-			processingEvent.Metadata[key] = strValue
+	if event.Metadata != nil {
+		var metadataMap map[string]interface{}
+		if err := json.Unmarshal(event.Metadata, &metadataMap); err == nil {
+			for key, value := range metadataMap {
+				if strValue, ok := value.(string); ok {
+					processingEvent.Metadata[key] = strValue
+				}
+			}
 		}
 	}
 
@@ -556,7 +560,18 @@ func (eb *EnhancedEventBus) Publish(ctx context.Context, event ProcessingEvent) 
 
 	eb.sequenceNumber++
 
-	event.Data["sequenceNumber"] = eb.sequenceNumber
+	// Parse existing data and add sequence number
+	var dataMap map[string]interface{}
+	if event.Data != nil {
+		if err := json.Unmarshal(event.Data, &dataMap); err != nil {
+			dataMap = make(map[string]interface{})
+		}
+	} else {
+		dataMap = make(map[string]interface{})
+	}
+	dataMap["sequenceNumber"] = eb.sequenceNumber
+	dataBytes, _ := json.Marshal(dataMap)
+	event.Data = json.RawMessage(dataBytes)
 
 	eb.mutex.Unlock()
 
@@ -930,3 +945,4 @@ func (f *SimpleEventFilter) ShouldProcess(event ProcessingEvent) bool {
 
 	return true
 }
+

@@ -19,7 +19,7 @@ import (
 )
 
 // TestPathTraversalSecurity tests protection against path traversal attacks
-// DISABLED: func TestPathTraversalSecurity(t *testing.T) {
+func TestPathTraversalSecurity(t *testing.T) {
 	tests := []struct {
 		name          string
 		intentContent string
@@ -122,7 +122,7 @@ import (
 }
 
 // TestCommandInjectionSecurity tests protection against command injection
-// DISABLED: func TestCommandInjectionSecurity(t *testing.T) {
+func TestCommandInjectionSecurity(t *testing.T) {
 	tests := []struct {
 		name          string
 		porchPath     string
@@ -227,7 +227,7 @@ import (
 }
 
 // TestResourceExhaustionResilience tests protection against resource exhaustion attacks
-// DISABLED: func TestResourceExhaustionResilience(t *testing.T) {
+func TestResourceExhaustionResilience(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupFunc      func(t *testing.T, handoffDir string)
@@ -350,7 +350,7 @@ import (
 }
 
 // TestFilePermissionValidation tests that created files have correct permissions
-// DISABLED: func TestFilePermissionValidation(t *testing.T) {
+func TestFilePermissionValidation(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("File permission tests not applicable on Windows")
 	}
@@ -430,7 +430,7 @@ import (
 }
 
 // TestInputValidation tests handling of malformed and invalid inputs
-// DISABLED: func TestInputValidation(t *testing.T) {
+func TestInputValidation(t *testing.T) {
 	tests := []struct {
 		name           string
 		intentContent  string
@@ -599,7 +599,7 @@ import (
 }
 
 // TestConcurrentFileProcessing tests race conditions and atomic operations
-// DISABLED: func TestConcurrentFileProcessing(t *testing.T) {
+func TestConcurrentFileProcessing(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")

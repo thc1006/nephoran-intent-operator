@@ -1032,7 +1032,7 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 // handleHealth handles health check endpoint.
 
 func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request) {
-	health := json.RawMessage("{}")
+	health := json.RawMessage(`{}`)
 
 	writer.Header().Set("Content-Type", "application/json")
 
@@ -3162,7 +3162,7 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
 	}
 
-	statusData := json.RawMessage("{}")
+	statusData := json.RawMessage(`{}`)
 
 	// Use safe JSON marshaling with size limits.
 
@@ -3293,3 +3293,4 @@ func (w *Watcher) isFileStable(filePath string) bool {
 
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
 }
+

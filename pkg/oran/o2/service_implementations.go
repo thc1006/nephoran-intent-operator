@@ -305,7 +305,7 @@ func (s *O2IMSServiceImpl) DeleteResourcePool(ctx context.Context, resourcePoolI
 	// Check if pool has resources.
 
 	// Check if pool has resources using filter map
-	filterMap := json.RawMessage("{}"),
+	filterMap := json.RawMessage(`{}`),
 		"limit":             1,
 	}
 	resources, err := s.storage.ListResources(ctx, filterMap)
@@ -529,7 +529,7 @@ func (s *O2IMSServiceImpl) DeleteResourceType(ctx context.Context, resourceTypeI
 	// Check if type is in use by any resources.
 
 	// Check if type is in use using filter map
-	filterMap := json.RawMessage("{}"),
+	filterMap := json.RawMessage(`{}`),
 		"limit":             1,
 	}
 	resources, err := s.storage.ListResources(ctx, filterMap)
@@ -1403,11 +1403,11 @@ func (is *InventoryServiceImpl) DiscoverInfrastructure(ctx context.Context, prov
 
 	// Create discovery result.
 
-	discovery := json.RawMessage("{}"){},
+	discovery := json.RawMessage(`{}`){},
 
 		"resourcePools": []interface{}{},
 
-		"summary": json.RawMessage("{}"),
+		"summary": json.RawMessage(`{}`),
 	}
 
 	// In a real implementation, this would discover actual infrastructure.
@@ -1452,7 +1452,7 @@ func (is *InventoryServiceImpl) UpdateInventory(ctx context.Context, request int
 
 	logger.Info("inventory update completed", "updates_processed", len(updates))
 
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // TrackAsset tracks an asset in the inventory.
@@ -1697,3 +1697,4 @@ func (s *O2IMSServiceImpl) convertResourceFilterToMap(filter *models.ResourceFil
 }
 
 // Supporting types.
+

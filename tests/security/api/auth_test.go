@@ -64,7 +64,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestJWTTokenValidation tests JWT token validation across all endpoints
-// DISABLED: func TestJWTTokenValidation(t *testing.T) {
+func TestJWTTokenValidation(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	testCases := []struct {
@@ -162,7 +162,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestOAuth2Flow tests OAuth2 authentication flow
-// DISABLED: func TestOAuth2Flow(t *testing.T) {
+func TestOAuth2Flow(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	// Test OAuth2 providers
@@ -246,7 +246,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestAPIKeyAuthentication tests API key authentication
-// DISABLED: func TestAPIKeyAuthentication(t *testing.T) {
+func TestAPIKeyAuthentication(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	testCases := []struct {
@@ -313,7 +313,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestTokenExpiryAndRefresh tests token expiry and refresh mechanisms
-// DISABLED: func TestTokenExpiryAndRefresh(t *testing.T) {
+func TestTokenExpiryAndRefresh(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	t.Run("TokenExpiry", func(t *testing.T) {
@@ -381,7 +381,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestMultiFactorAuthentication tests MFA scenarios
-// DISABLED: func TestMultiFactorAuthentication(t *testing.T) {
+func TestMultiFactorAuthentication(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	t.Run("TOTP_Authentication", func(t *testing.T) {
@@ -464,7 +464,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestSessionManagement tests session security
-// DISABLED: func TestSessionManagement(t *testing.T) {
+func TestSessionManagement(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	t.Run("SessionCreation", func(t *testing.T) {
@@ -524,7 +524,7 @@ func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 }
 
 // TestAuthorizationHeaders tests various authorization header formats
-// DISABLED: func TestAuthorizationHeaders(t *testing.T) {
+func TestAuthorizationHeaders(t *testing.T) {
 	suite := NewAuthTestSuite(t)
 
 	testCases := []struct {

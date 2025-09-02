@@ -629,7 +629,7 @@ func (b *VaultBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 
 		Features: b.GetSupportedFeatures(),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -771,7 +771,10 @@ func (b *VaultBackend) authenticateAppRole(ctx context.Context, authConfig *Vaul
 		path = fmt.Sprintf("auth/%s/login", authConfig.MountPath)
 	}
 
-	data := json.RawMessage("{}")
+	data := map[string]interface{}{
+		"role_id":   authConfig.RoleID,
+		"secret_id": authConfig.SecretID,
+	}
 
 	resp, err := b.client.Logical().Write(path, data)
 	if err != nil {
@@ -794,7 +797,10 @@ func (b *VaultBackend) authenticateKubernetes(ctx context.Context, authConfig *V
 		path = fmt.Sprintf("auth/%s/login", authConfig.MountPath)
 	}
 
-	data := json.RawMessage("{}")
+	data := map[string]interface{}{
+		"role": authConfig.Role,
+		"jwt":  authConfig.JWT,
+	}
 
 	resp, err := b.client.Logical().Write(path, data)
 	if err != nil {
@@ -911,3 +917,4 @@ func (b *VaultBackend) mapToStruct(data map[string]interface{}, s interface{}) e
 
 	return json.Unmarshal(jsonData, s)
 }
+

@@ -13,7 +13,7 @@ import (
 )
 
 // TestUnixPathSecurityValidation tests Unix-specific path security scenarios
-// DISABLED: func TestUnixPathSecurityValidation(t *testing.T) {
+func TestUnixPathSecurityValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func(t *testing.T) string
@@ -148,7 +148,7 @@ import (
 }
 
 // TestUnixPathNormalization tests that paths are properly normalized on Unix
-// DISABLED: func TestUnixPathNormalization(t *testing.T) {
+func TestUnixPathNormalization(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -207,7 +207,7 @@ import (
 }
 
 // TestUnixFilePermissions tests Unix-specific file permission scenarios
-// DISABLED: func TestUnixFilePermissions(t *testing.T) {
+func TestUnixFilePermissions(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("Skipping permission tests when running as root")
 	}

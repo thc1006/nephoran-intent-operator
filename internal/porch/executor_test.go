@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestNewExecutor(t *testing.T) {
+func TestNewExecutor(t *testing.T) {
 	tests := []struct {
 		name            string
 		config          ExecutorConfig
@@ -69,7 +69,7 @@ import (
 	}
 }
 
-// DISABLED: func TestExecutor_BuildCommand(t *testing.T) {
+func TestExecutor_BuildCommand(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
@@ -156,7 +156,7 @@ import (
 	}
 }
 
-// DISABLED: func TestExecutor_Execute_MockCommand(t *testing.T) {
+func TestExecutor_Execute_MockCommand(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
@@ -249,7 +249,7 @@ import (
 	}
 }
 
-// DISABLED: func TestExecutor_Execute_ContextCancellation(t *testing.T) {
+func TestExecutor_Execute_ContextCancellation(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
@@ -287,7 +287,7 @@ import (
 	assert.NotNil(t, result.Error)
 }
 
-// DISABLED: func TestStatefulExecutor(t *testing.T) {
+func TestStatefulExecutor(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
@@ -345,7 +345,7 @@ import (
 	assert.Equal(t, 0, stats.FailedExecs)
 }
 
-// DISABLED: func TestStatefulExecutor_TimeoutTracking(t *testing.T) {
+func TestStatefulExecutor_TimeoutTracking(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "test-intent.json")
 	outDir := filepath.Join(tempDir, "out")
@@ -377,7 +377,7 @@ import (
 	assert.Equal(t, 1, stats.TimeoutCount)
 }
 
-// DISABLED: func TestGetExitCode(t *testing.T) {
+func TestGetExitCode(t *testing.T) {
 	tests := []struct {
 		name         string
 		setupCmd     func() (*exec.Cmd, error)
@@ -431,7 +431,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidatePorchPath(t *testing.T) {
+func TestValidatePorchPath(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -476,7 +476,7 @@ import (
 	}
 }
 
-// DISABLED: func TestExecutor_ConcurrentExecutions(t *testing.T) {
+func TestExecutor_ConcurrentExecutions(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "out")
 	require.NoError(t, os.MkdirAll(outDir, 0o755))

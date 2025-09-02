@@ -222,7 +222,7 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 			{
 				TriggerType: "periodic",
 
-				Conditions: json.RawMessage("{}"),
+				Conditions: json.RawMessage(`{}`),
 
 					"granularity_period": "1000ms",
 
@@ -241,7 +241,7 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 
 				ActionType: "report",
 
-				ActionDefinition: json.RawMessage("{}"),
+				ActionDefinition: json.RawMessage(`{}`),
 			},
 		},
 
@@ -649,7 +649,7 @@ func (x *KMPAnalyticsXApp) analyzeTrends() map[string]interface{} {
 			trend = "stable"
 		}
 
-		results[metricName] = json.RawMessage("{}")
+		results[metricName] = json.RawMessage(`{}`)
 
 	}
 
@@ -671,7 +671,7 @@ func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
 
 		correlation := x.calculateCorrelation(throughputDL.Values, prbUsedDL.Values)
 
-		results["throughput_prb_correlation"] = json.RawMessage("{}")
+		results["throughput_prb_correlation"] = json.RawMessage(`{}`)
 
 	}
 
@@ -826,3 +826,4 @@ func main() {
 
 	log.Println("KMP Analytics xApp stopped")
 }
+

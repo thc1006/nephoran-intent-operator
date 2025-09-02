@@ -383,32 +383,38 @@ func (p *CertificatePool) GetCertificateByRequestID(requestID string) (*Certific
 
 func (p *CertificatePool) GetStatistics() map[string]interface{} {
 	p.mu.RLock()
-
 	defer p.mu.RUnlock()
 
-	stats := json.RawMessage("{}")
+	stats := map[string]interface{}{
+		"by_status":     make(map[string]int),
+		"by_tenant":     make(map[string]int),
+		"expiring_soon": 0,
+		"total":         len(p.certificates),
+	}
 
 	// Count by status.
-
+	byStatus := make(map[string]int)
 	for status, certs := range p.indices.ByStatus {
-		stats["by_status"].(map[string]int)[string(status)] = len(certs)
+		byStatus[string(status)] = len(certs)
 	}
+	stats["by_status"] = byStatus
 
 	// Count by tenant.
-
+	byTenant := make(map[string]int)
 	for tenant, certs := range p.indices.ByTenant {
-		stats["by_tenant"].(map[string]int)[tenant] = len(certs)
+		byTenant[tenant] = len(certs)
 	}
+	stats["by_tenant"] = byTenant
 
 	// Count expiring certificates (next 30 days).
-
 	threshold := time.Now().Add(30 * 24 * time.Hour)
-
+	expiringCount := 0
 	for _, cert := range p.certificates {
 		if cert.ExpiresAt.Before(threshold) {
-			stats["expiring_soon"] = stats["expiring_soon"].(int) + 1
+			expiringCount++
 		}
 	}
+	stats["expiring_soon"] = expiringCount
 
 	return stats
 }
@@ -889,3 +895,4 @@ func (e *CertificateEncryptor) Decrypt(data []byte) ([]byte, error) {
 
 	return data, nil
 }
+

@@ -10,7 +10,7 @@ import (
 	configPkg "github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
-// DISABLED: func TestCalculateExponentialBackoff(t *testing.T) {
+func TestCalculateExponentialBackoff(t *testing.T) {
 	config := &BackoffConfig{
 		BaseDelay:    1 * time.Second,
 		MaxDelay:     5 * time.Minute,
@@ -31,7 +31,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCalculateExponentialBackoffForE2NodeSetOperation(t *testing.T) {
+func TestCalculateExponentialBackoffForE2NodeSetOperation(t *testing.T) {
 	tests := []struct {
 		operation string
 		minDelay  time.Duration
@@ -52,7 +52,7 @@ import (
 	}
 }
 
-// DISABLED: func TestNetworkIntentRetryCount(t *testing.T) {
+func TestNetworkIntentRetryCount(t *testing.T) {
 	networkIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -83,7 +83,7 @@ import (
 	}
 }
 
-// DISABLED: func TestE2NodeSetRetryCount(t *testing.T) {
+func TestE2NodeSetRetryCount(t *testing.T) {
 	e2nodeSet := &nephoranv1.E2NodeSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -114,7 +114,7 @@ import (
 	}
 }
 
-// DISABLED: func TestUpdateCondition(t *testing.T) {
+func TestUpdateCondition(t *testing.T) {
 	conditions := []metav1.Condition{}
 
 	// Test adding new condition
@@ -155,7 +155,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCalculateExponentialBackoffWithConstants(t *testing.T) {
+func TestCalculateExponentialBackoffWithConstants(t *testing.T) {
 	constants := &configPkg.Constants{
 		BaseBackoffDelay:  2 * time.Second,
 		MaxBackoffDelay:   10 * time.Minute,

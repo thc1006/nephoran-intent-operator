@@ -29,7 +29,7 @@ type AvailabilityTrackingTestSuite struct {
 	mockPrometheus    *MockPrometheusServer
 }
 
-// DISABLED: func TestAvailabilityTrackingTestSuite(t *testing.T) {
+func TestAvailabilityTrackingTestSuite(t *testing.T) {
 	suite.Run(t, new(AvailabilityTrackingTestSuite))
 }
 
@@ -394,7 +394,7 @@ func (suite *AvailabilityTrackingTestSuite) TestSyntheticMonitoring() {
 			BusinessImpact: availability.ImpactCritical,
 			Region:         "test-region",
 			Config: availability.CheckConfig{
-				IntentPayload: json.RawMessage("{}"),
+				IntentPayload: json.RawMessage(`{}`),
 				FlowSteps: []availability.IntentFlowStep{
 					{
 						Name:           "create-intent",
@@ -943,3 +943,4 @@ func (m *MockAlertManager) EvaluateThresholds(ctx context.Context, check *availa
 	}
 	return false, nil
 }
+

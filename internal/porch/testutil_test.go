@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestCreateCrossPlatformMock_BasicFunctionality(t *testing.T) {
+func TestCreateCrossPlatformMock_BasicFunctionality(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Test basic mock creation
@@ -38,7 +38,7 @@ import (
 	assert.Contains(t, string(output), "Mock porch help")
 }
 
-// DISABLED: func TestCreateCrossPlatformMock_FailOnPattern(t *testing.T) {
+func TestCreateCrossPlatformMock_FailOnPattern(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create mock that fails on "invalid" pattern
@@ -64,7 +64,7 @@ import (
 	// The main goal of cross-platform compatibility is achieved.
 }
 
-// DISABLED: func TestCreateCrossPlatformMock_Sleep(t *testing.T) {
+func TestCreateCrossPlatformMock_Sleep(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping sleep test in short mode")
 	}
@@ -91,7 +91,7 @@ import (
 	assert.GreaterOrEqual(t, elapsed, 80*time.Millisecond, "Mock should sleep for specified duration")
 }
 
-// DISABLED: func TestCreateCrossPlatformMock_CustomScript(t *testing.T) {
+func TestCreateCrossPlatformMock_CustomScript(t *testing.T) {
 	tempDir := t.TempDir()
 
 	customOutput := "Custom script executed successfully"
@@ -117,7 +117,7 @@ exit 0`,
 	assert.Contains(t, string(output), customOutput)
 }
 
-// DISABLED: func TestCreateSimpleMock(t *testing.T) {
+func TestCreateSimpleMock(t *testing.T) {
 	tempDir := t.TempDir()
 
 	mockPath, err := CreateSimpleMock(tempDir)

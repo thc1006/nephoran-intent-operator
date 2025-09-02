@@ -16,7 +16,7 @@ import (
 
 // TestConcurrentStateStress performs heavy concurrent operations to stress test the state manager
 // This test specifically targets Windows filesystem race conditions
-// DISABLED: func TestConcurrentStateStress(t *testing.T) {
+func TestConcurrentStateStress(t *testing.T) {
 	t.Skip("GetStats method not available in StateManager")
 	if testing.Short() {
 		t.Skip("Skipping stress test in short mode")
@@ -147,7 +147,7 @@ import (
 }
 
 // TestRapidFileChurn tests handling of files that rapidly appear and disappear
-// DISABLED: func TestRapidFileChurn(t *testing.T) {
+func TestRapidFileChurn(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
@@ -209,7 +209,7 @@ import (
 }
 
 // TestConcurrentHashCalculation tests concurrent hash calculation with file modifications
-// DISABLED: func TestConcurrentHashCalculation(t *testing.T) {
+func TestConcurrentHashCalculation(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
@@ -263,7 +263,7 @@ import (
 }
 
 // TestWindowsSpecificRaceConditions tests Windows-specific filesystem behaviors
-// DISABLED: func TestWindowsSpecificRaceConditions(t *testing.T) {
+func TestWindowsSpecificRaceConditions(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)

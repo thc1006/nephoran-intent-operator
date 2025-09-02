@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// DISABLED: func TestDefaultPorchConfig(t *testing.T) {
+func TestDefaultPorchConfig(t *testing.T) {
 	config := DefaultPorchConfig()
 
 	assert.NotNil(t, config)
@@ -39,7 +39,7 @@ import (
 	assert.Equal(t, "128Mi", config.PorchConfig.FunctionExecution.ResourceLimits["memory"])
 }
 
-// DISABLED: func TestClientConfigWithEndpoint(t *testing.T) {
+func TestClientConfigWithEndpoint(t *testing.T) {
 	config := &ClientConfig{
 		Endpoint: "https://custom-porch-server.example.com",
 		AuthConfig: &AuthConfig{

@@ -202,7 +202,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 											}
 
 											if isAllowed {
-												By(fmt.Sprintf("✓ %s correctly allows communication to %s",
+												By(fmt.Sprintf("??%s correctly allows communication to %s",
 													sourceComponent, targetApp))
 											} else {
 												By(fmt.Sprintf("Warning: %s has unexpected communication to %s",
@@ -623,7 +623,7 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 }
 
 // Test network connectivity with policies
-// DISABLED: func TestNetworkConnectivity(t *testing.T) {
+func TestNetworkConnectivity(t *testing.T) {
 	_ = context.Background()
 	// This would test actual network connectivity between pods
 	// given the current network policies

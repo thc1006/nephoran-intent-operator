@@ -466,9 +466,9 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		},
 		"resources": csc.getResourceFileNames(content),
 
-		"commonLabels": json.RawMessage("{}"),
+		"commonLabels": json.RawMessage(`{}`),
 
-		"commonAnnotations": json.RawMessage("{}"),
+		"commonAnnotations": json.RawMessage(`{}`),
 	}
 
 	kustomizationYAML, err := yaml.Marshal(kustomization)
@@ -813,3 +813,4 @@ func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, cl
 
 	return nil
 }
+

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestResult_Ok(t *testing.T) {
+func TestResult_Ok(t *testing.T) {
 	tests := []struct {
 		name  string
 		value string
@@ -36,7 +36,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResult_Err(t *testing.T) {
+func TestResult_Err(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
@@ -64,7 +64,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResult_Map(t *testing.T) {
+func TestResult_Map(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    Result[int, error]
@@ -103,7 +103,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResult_FlatMap(t *testing.T) {
+func TestResult_FlatMap(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    Result[int, error]
@@ -155,7 +155,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResult_Filter(t *testing.T) {
+func TestResult_Filter(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        Result[int, error]
@@ -197,7 +197,7 @@ import (
 	}
 }
 
-// DISABLED: func TestOption_Some(t *testing.T) {
+func TestOption_Some(t *testing.T) {
 	tests := []struct {
 		name  string
 		value int
@@ -226,7 +226,7 @@ import (
 	}
 }
 
-// DISABLED: func TestOption_None(t *testing.T) {
+func TestOption_None(t *testing.T) {
 	option := None[string]()
 
 	if option.IsSome() {
@@ -238,7 +238,7 @@ import (
 	}
 }
 
-// DISABLED: func TestOption_ValueOr(t *testing.T) {
+func TestOption_ValueOr(t *testing.T) {
 	tests := []struct {
 		name         string
 		option       Option[string]
@@ -270,7 +270,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMapOption(t *testing.T) {
+func TestMapOption(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    Option[int]
@@ -308,7 +308,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAll(t *testing.T) {
+func TestAll(t *testing.T) {
 	tests := []struct {
 		name     string
 		results  []Result[int, error]
@@ -367,7 +367,7 @@ import (
 	}
 }
 
-// DISABLED: func TestAny(t *testing.T) {
+func TestAny(t *testing.T) {
 	tests := []struct {
 		name     string
 		results  []Result[int, error]
@@ -411,7 +411,7 @@ import (
 	}
 }
 
-// DISABLED: func TestChain(t *testing.T) {
+func TestChain(t *testing.T) {
 	multiply := func(x int) int { return x * 2 }
 	add := func(x int) int { return x + 10 }
 
@@ -453,7 +453,7 @@ import (
 	}
 }
 
-// DISABLED: func TestTry(t *testing.T) {
+func TestTry(t *testing.T) {
 	tests := []struct {
 		name string
 		fn   func() int
@@ -482,7 +482,7 @@ import (
 	}
 }
 
-// DISABLED: func TestPartition(t *testing.T) {
+func TestPartition(t *testing.T) {
 	results := []Result[int, string]{
 		Ok[int, string](1),
 		Err[int, string]("error1"),

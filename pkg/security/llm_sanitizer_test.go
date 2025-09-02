@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestNewLLMSanitizer(t *testing.T) {
+func TestNewLLMSanitizer(t *testing.T) {
 	tests := []struct {
 		name   string
 		config *SanitizerConfig
@@ -56,7 +56,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSanitizeInput_PromptInjectionDetection(t *testing.T) {
+func TestSanitizeInput_PromptInjectionDetection(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt: "You are a network orchestrator",
 	})
@@ -204,7 +204,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSanitizeInput_BlockedKeywords(t *testing.T) {
+func TestSanitizeInput_BlockedKeywords(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt:    "You are a network orchestrator",
 		BlockedKeywords: []string{"exploit", "hack", "backdoor", "cryptominer"},
@@ -251,7 +251,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSanitizeInput_Sanitization(t *testing.T) {
+func TestSanitizeInput_Sanitization(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt: "You are a network orchestrator",
 	})
@@ -295,7 +295,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateOutput_MaliciousManifests(t *testing.T) {
+func TestValidateOutput_MaliciousManifests(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt: "You are a network orchestrator",
 	})
@@ -462,7 +462,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateOutput_SuspiciousURLs(t *testing.T) {
+func TestValidateOutput_SuspiciousURLs(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt:   "You are a network orchestrator",
 		AllowedDomains: []string{"kubernetes.io", "example.com", "github.com"},
@@ -519,7 +519,7 @@ import (
 	}
 }
 
-// DISABLED: func TestBuildSecurePrompt(t *testing.T) {
+func TestBuildSecurePrompt(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt:    "Original system prompt",
 		ContextBoundary: "===BOUNDARY===",
@@ -546,7 +546,7 @@ import (
 	assert.Contains(t, result, userInput)
 }
 
-// DISABLED: func TestValidateJSONStructure(t *testing.T) {
+func TestValidateJSONStructure(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt: "Test",
 	})
@@ -605,7 +605,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSystemPromptIntegrity(t *testing.T) {
+func TestSystemPromptIntegrity(t *testing.T) {
 	systemPrompt := "You are a secure network orchestrator"
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt: systemPrompt,
@@ -621,7 +621,7 @@ import (
 	assert.Contains(t, err.Error(), "integrity check failed")
 }
 
-// DISABLED: func TestGetMetrics(t *testing.T) {
+func TestGetMetrics(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt: "Test",
 	})
@@ -643,7 +643,7 @@ import (
 	assert.Greater(t, totalRequests, int64(0))
 }
 
-// DISABLED: func TestInputLengthValidation(t *testing.T) {
+func TestInputLengthValidation(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt:   "Test",
 		MaxInputLength: 100,
@@ -667,7 +667,7 @@ import (
 	assert.Contains(t, err.Error(), "cannot be empty")
 }
 
-// DISABLED: func TestOutputLengthValidation(t *testing.T) {
+func TestOutputLengthValidation(t *testing.T) {
 	sanitizer := NewLLMSanitizer(&SanitizerConfig{
 		SystemPrompt:    "Test",
 		MaxOutputLength: 100,

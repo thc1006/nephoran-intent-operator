@@ -50,7 +50,7 @@ func (m *MockIntentProvider) Name() string {
 	return "mock-provider"
 }
 
-// DISABLED: func TestNewHandler(t *testing.T) {
+func TestNewHandler(t *testing.T) {
 	tempDir := t.TempDir()
 	outDir := filepath.Join(tempDir, "handoff")
 
@@ -75,7 +75,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_MethodNotAllowed(t *testing.T) {
+func TestHandleIntent_MethodNotAllowed(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -96,7 +96,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_JSONInput_Success(t *testing.T) {
+func TestHandleIntent_JSONInput_Success(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -226,7 +226,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_PlainTextInput_Success(t *testing.T) {
+func TestHandleIntent_PlainTextInput_Success(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -239,22 +239,22 @@ func (m *MockIntentProvider) Name() string {
 		{
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
-			expected: json.RawMessage("{}"),
+			expected: json.RawMessage(`{}`),
 		},
 		{
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
-			expected: json.RawMessage("{}"),
+			expected: json.RawMessage(`{}`),
 		},
 		{
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
-			expected: json.RawMessage("{}"),
+			expected: json.RawMessage(`{}`),
 		},
 		{
 			name:  "with extra whitespace",
 			input: "  scale   web-frontend   to   8   in   ns   backend  ",
-			expected: json.RawMessage("{}"),
+			expected: json.RawMessage(`{}`),
 		},
 	}
 
@@ -298,7 +298,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_PlainTextInput_BadFormat(t *testing.T) {
+func TestHandleIntent_PlainTextInput_BadFormat(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -363,7 +363,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_UnsupportedContentType(t *testing.T) {
+func TestHandleIntent_UnsupportedContentType(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -398,7 +398,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_ValidationError(t *testing.T) {
+func TestHandleIntent_ValidationError(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -459,7 +459,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_FileWriteError(t *testing.T) {
+func TestHandleIntent_FileWriteError(t *testing.T) {
 	// Skip this test on Windows as permission handling is different
 	if os.PathSeparator == '\\' {
 		t.Skip("Skipping file write error test on Windows due to different permission model")
@@ -501,7 +501,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_FileCreation(t *testing.T) {
+func TestHandleIntent_FileCreation(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -539,7 +539,7 @@ func (m *MockIntentProvider) Name() string {
 		t.Fatalf("Failed to parse saved JSON: %v", err)
 	}
 
-	expectedFields := json.RawMessage("{}")
+	expectedFields := json.RawMessage(`{}`)
 
 	for key, expected := range expectedFields {
 		if savedIntent[key] != expected {
@@ -554,7 +554,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_ConcurrentRequests(t *testing.T) {
+func TestHandleIntent_ConcurrentRequests(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -611,7 +611,7 @@ func (m *MockIntentProvider) Name() string {
 	t.Logf("Created %d files from %d concurrent requests", len(files), numRequests)
 }
 
-// DISABLED: func TestHandleIntent_CorrelationIdPassthrough(t *testing.T) {
+func TestHandleIntent_CorrelationIdPassthrough(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -658,7 +658,7 @@ func (m *MockIntentProvider) Name() string {
 	}
 }
 
-// DISABLED: func TestHandleIntent_EdgeCases(t *testing.T) {
+func TestHandleIntent_EdgeCases(t *testing.T) {
 	tempDir := t.TempDir()
 	mockValidator := &MockValidator{}
 	mockProvider := &MockIntentProvider{}
@@ -725,3 +725,4 @@ func (m *MockIntentProvider) Name() string {
 		})
 	}
 }
+

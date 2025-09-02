@@ -491,7 +491,7 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	sp.sendChunk(session, completionChunk)
@@ -560,7 +560,7 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 
 			Timestamp: time.Now(),
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 
 		sp.sendChunk(session, contextChunk)
@@ -1253,3 +1253,4 @@ func (sp *StreamingProcessorImpl) getResponseForStreaming(ctx context.Context, p
 
 	return sp.baseClient.ProcessIntent(ctx, prompt)
 }
+

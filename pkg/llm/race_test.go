@@ -12,7 +12,7 @@ import (
 )
 
 // TestLLMClientConcurrentRequests tests concurrent LLM requests for races
-// DISABLED: func TestLLMClientConcurrentRequests(t *testing.T) {
+func TestLLMClientConcurrentRequests(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping race test in short mode")
 	}
@@ -66,7 +66,7 @@ import (
 }
 
 // TestCircuitBreakerRaceConditions tests circuit breaker state transitions
-// DISABLED: func TestCircuitBreakerRaceConditions(t *testing.T) {
+func TestCircuitBreakerRaceConditions(t *testing.T) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -145,7 +145,7 @@ import (
 }
 
 // TestBatchProcessorConcurrency tests batch processing with concurrent submissions
-// DISABLED: func TestBatchProcessorConcurrency(t *testing.T) {
+func TestBatchProcessorConcurrency(t *testing.T) {
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines: 100,
 		Iterations: 50,
@@ -210,7 +210,7 @@ import (
 }
 
 // TestTokenManagerRaceConditions tests token management under concurrent load
-// DISABLED: func TestTokenManagerRaceConditions(t *testing.T) {
+func TestTokenManagerRaceConditions(t *testing.T) {
 	atomicTest := racetest.NewAtomicRaceTest(t)
 
 	tm := &tokenManager{
@@ -259,7 +259,7 @@ import (
 }
 
 // TestRAGPipelineConcurrency tests RAG pipeline concurrent operations
-// DISABLED: func TestRAGPipelineConcurrency(t *testing.T) {
+func TestRAGPipelineConcurrency(t *testing.T) {
 	pipeline := &ragPipeline{
 		embeddings:   &sync.Map{},
 		vectorStore:  &sync.Map{},
@@ -327,7 +327,7 @@ import (
 }
 
 // TestHTTPClientPoolRace tests HTTP client pool concurrent access
-// DISABLED: func TestHTTPClientPoolRace(t *testing.T) {
+func TestHTTPClientPoolRace(t *testing.T) {
 	mutexTest := racetest.NewMutexRaceTest(t)
 
 	pool := &clientPool{
@@ -406,7 +406,7 @@ func BenchmarkLLMConcurrentOperations(b *testing.B) {
 }
 
 // TestMemoryBarrierValidation tests memory ordering in LLM operations
-// DISABLED: func TestMemoryBarrierValidation(t *testing.T) {
+func TestMemoryBarrierValidation(t *testing.T) {
 	memTest := racetest.NewMemoryBarrierTest(t)
 	memTest.TestStoreLoadOrdering()
 }

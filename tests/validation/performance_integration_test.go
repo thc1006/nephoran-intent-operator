@@ -608,7 +608,7 @@ func NewPerformanceDashboardGenerator() *PerformanceDashboardGenerator {
 }
 
 func (pdg *PerformanceDashboardGenerator) GenerateDashboard(title string) map[string]interface{} {
-	return json.RawMessage("{}"){
+	return map[string]interface{}{
 			map[string]string{"title": "P95 Latency", "type": "graph"},
 			map[string]string{"title": "Throughput", "type": "graph"},
 			map[string]string{"title": "Error Rate", "type": "graph"},

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// DISABLED: func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {
+func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    5,
 		FailureRate:         0.5,
@@ -31,7 +31,7 @@ import (
 	assert.Equal(t, int64(0), cb.requestCount)
 }
 
-// DISABLED: func TestCircuitBreaker_Execute_Success(t *testing.T) {
+func TestCircuitBreaker_Execute_Success(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    3,
 		FailureRate:         0.5,
@@ -56,7 +56,7 @@ import (
 	assert.Equal(t, int64(0), cb.failureCount)
 }
 
-// DISABLED: func TestCircuitBreaker_Execute_Failure(t *testing.T) {
+func TestCircuitBreaker_Execute_Failure(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    2,
 		FailureRate:         0.5,
@@ -84,7 +84,7 @@ import (
 	assert.Equal(t, int64(1), cb.failureCount)
 }
 
-// DISABLED: func TestCircuitBreaker_StateTransition_ClosedToOpen(t *testing.T) {
+func TestCircuitBreaker_StateTransition_ClosedToOpen(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    2,
 		FailureRate:         0.6,
@@ -117,7 +117,7 @@ import (
 	assert.True(t, state == StateClosed || state == StateOpen, "Expected Closed or Open state, got %v", state)
 }
 
-// DISABLED: func TestCircuitBreaker_StateTransition_OpenToHalfOpen(t *testing.T) {
+func TestCircuitBreaker_StateTransition_OpenToHalfOpen(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
@@ -153,7 +153,7 @@ import (
 	assert.Equal(t, StateClosed, cb.getState()) // Should close after successful half-open
 }
 
-// DISABLED: func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
+func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
@@ -197,7 +197,7 @@ import (
 	assert.Equal(t, StateClosed, cb.getState())
 }
 
-// DISABLED: func TestCircuitBreaker_StateTransition_HalfOpenToOpen(t *testing.T) {
+func TestCircuitBreaker_StateTransition_HalfOpenToOpen(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
@@ -236,7 +236,7 @@ import (
 	assert.True(t, state == StateOpen || state == StateHalfOpen, "Expected Open or HalfOpen, got %v", state)
 }
 
-// DISABLED: func TestCircuitBreaker_OpenState_RejectsRequests(t *testing.T) {
+func TestCircuitBreaker_OpenState_RejectsRequests(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
@@ -270,7 +270,7 @@ import (
 	assert.Nil(t, result)
 }
 
-// DISABLED: func TestCircuitBreaker_Timeout(t *testing.T) {
+func TestCircuitBreaker_Timeout(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    5,
 		FailureRate:         0.5,
@@ -299,7 +299,7 @@ import (
 	assert.Equal(t, int64(1), cb.failureCount) // Timeout counts as failure
 }
 
-// DISABLED: func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
+func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    10,
 		FailureRate:         0.8,
@@ -358,7 +358,7 @@ import (
 	assert.True(t, state == StateClosed || state == StateOpen, "Expected Closed or Open state due to concurrent execution, got %v", state)
 }
 
-// DISABLED: func TestCircuitBreaker_GetMetrics(t *testing.T) {
+func TestCircuitBreaker_GetMetrics(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    3,
 		FailureRate:         0.5,
@@ -390,7 +390,7 @@ import (
 	assert.True(t, !metrics.LastStateChange.IsZero())
 }
 
-// DISABLED: func TestCircuitBreaker_Reset(t *testing.T) {
+func TestCircuitBreaker_Reset(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		FailureThreshold:    1,
 		FailureRate:         0.5,
@@ -430,7 +430,7 @@ import (
 	assert.Equal(t, "reset success", result)
 }
 
-// DISABLED: func TestCircuitBreakerManager(t *testing.T) {
+func TestCircuitBreakerManager(t *testing.T) {
 	mgr := NewCircuitBreakerManager(nil)
 
 	// Get or create circuit breaker

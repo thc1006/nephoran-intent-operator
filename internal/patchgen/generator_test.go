@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// DISABLED: func TestNewPatchPackage(t *testing.T) {
+func TestNewPatchPackage(t *testing.T) {
 	intent := &Intent{
 		IntentType:    "scaling",
 		Target:        "test-app",
@@ -60,7 +60,7 @@ import (
 	assert.Contains(t, annotations, "nephoran.io/generated-at")
 }
 
-// DISABLED: func TestPatchPackageGenerate(t *testing.T) {
+func TestPatchPackageGenerate(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -134,7 +134,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGenerateKptfile(t *testing.T) {
+func TestGenerateKptfile(t *testing.T) {
 	tempDir := t.TempDir()
 
 	intent := &Intent{
@@ -170,7 +170,7 @@ import (
 	assert.Contains(t, kptfile.Info.Description, "7 replicas")
 }
 
-// DISABLED: func TestGeneratePatchFile(t *testing.T) {
+func TestGeneratePatchFile(t *testing.T) {
 	tempDir := t.TempDir()
 
 	intent := &Intent{
@@ -220,7 +220,7 @@ import (
 	assert.NoError(t, err, "Generated timestamp should be in RFC3339 format")
 }
 
-// DISABLED: func TestGenerateReadme(t *testing.T) {
+func TestGenerateReadme(t *testing.T) {
 	tempDir := t.TempDir()
 
 	intent := &Intent{
@@ -261,7 +261,7 @@ import (
 	assert.Contains(t, content, "Generated at:")
 }
 
-// DISABLED: func TestGetPackagePath(t *testing.T) {
+func TestGetPackagePath(t *testing.T) {
 	tests := []struct {
 		name               string
 		target             string
@@ -305,7 +305,7 @@ import (
 	}
 }
 
-// DISABLED: func TestFileIOErrorHandling(t *testing.T) {
+func TestFileIOErrorHandling(t *testing.T) {
 	intent := &Intent{
 		IntentType: "scaling",
 		Target:     "test-app",
@@ -325,7 +325,7 @@ import (
 	})
 }
 
-// DISABLED: func TestHelperFunctions(t *testing.T) {
+func TestHelperFunctions(t *testing.T) {
 	tempDir := t.TempDir()
 
 	t.Run("writeFile creates directories", func(t *testing.T) {
@@ -360,7 +360,7 @@ import (
 	})
 }
 
-// DISABLED: func TestPackageNameGeneration(t *testing.T) {
+func TestPackageNameGeneration(t *testing.T) {
 	tests := []struct {
 		name                string
 		target              string
@@ -403,7 +403,7 @@ import (
 	}
 }
 
-// DISABLED: func TestYAMLMarshaling(t *testing.T) {
+func TestYAMLMarshaling(t *testing.T) {
 	intent := &Intent{
 		IntentType: "scaling",
 		Target:     "test-marshal",
@@ -436,7 +436,7 @@ import (
 	})
 }
 
-// DISABLED: func TestConcurrentGeneration(t *testing.T) {
+func TestConcurrentGeneration(t *testing.T) {
 	tempDir := t.TempDir()
 	const numGoroutines = 5
 
@@ -469,7 +469,7 @@ import (
 	}
 }
 
-// DISABLED: func TestTimestampGeneration(t *testing.T) {
+func TestTimestampGeneration(t *testing.T) {
 	intent := &Intent{
 		IntentType: "scaling",
 		Target:     "timestamp-test",

@@ -509,40 +509,34 @@ func (m *CAMonitor) UpdatePoolMetrics(poolSize int, hitRate float64) {
 
 func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 	m.mu.RLock()
-
 	defer m.mu.RUnlock()
 
-	status := json.RawMessage("{}")),
-
-		"last_check": time.Now(),
-
+	status := map[string]interface{}{
+		"healthy":     true,
+		"checks":      make(map[string]interface{}),
+		"last_check":  time.Now(),
 		"alert_count": 0,
 	}
 
 	// Check all health checks.
-
 	for name, check := range m.checks {
-
 		err := check.Check(m.ctx)
 
-		checkStatus := json.RawMessage("{}")
+		checkStatus := map[string]interface{}{
+			"healthy": err == nil,
+		}
 
 		if err != nil {
-
 			checkStatus["error"] = err.Error()
-
 			if check.Critical() {
 				status["healthy"] = false
 			}
-
 		}
 
 		status["checks"].(map[string]interface{})[name] = checkStatus
-
 	}
 
 	// Add alert count.
-
 	if m.alerts != nil {
 		status["alert_count"] = len(m.alerts.GetActiveAlerts())
 	}
@@ -1082,3 +1076,4 @@ func (am *AlertManager) sendSlackNotification(channel NotificationChannel, alert
 func (am *AlertManager) generateAlertID(rule *AlertRule, labels map[string]string) string {
 	return fmt.Sprintf("%s-%x", rule.Name, time.Now().Unix())
 }
+

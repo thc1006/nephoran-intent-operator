@@ -68,7 +68,7 @@ func (ip *IntentProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 	}
 
 	return result, nil
@@ -91,7 +91,7 @@ func (ip *IntentProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (ip *IntentProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // LLMProcessor processes LLM tasks.
@@ -127,11 +127,11 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 	// Simulate LLM response.
 
-	llmResponse := json.RawMessage("{}"),
+	llmResponse := json.RawMessage(`{}`),
 
 		"deployment_pattern": "high_availability",
 
-		"resources": json.RawMessage("{}"),
+		"resources": json.RawMessage(`{}`),
 
 		"confidence": 0.95,
 
@@ -143,7 +143,7 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 
 		ProcessingResult: &contracts.ProcessingResult{
 			Success: true,
@@ -182,7 +182,7 @@ func (lp *LLMProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (lp *LLMProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // RAGProcessor processes RAG retrieval tasks.
@@ -218,7 +218,7 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 	// Simulate RAG response.
 
-	ragResponse := json.RawMessage("{}"){
+	ragResponse := json.RawMessage(`{}`){
 			{
 				"title": "5G Network Functions Deployment Guide",
 
@@ -246,7 +246,7 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 		"avg_similarity": 0.86,
 
-		"query_metadata": json.RawMessage("{}"),
+		"query_metadata": json.RawMessage(`{}`),
 	}
 
 	result := &TaskResult{
@@ -254,7 +254,7 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 
 		ProcessingResult: &contracts.ProcessingResult{
 			Success: true,
@@ -295,7 +295,7 @@ func (rp *RAGProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (rp *RAGProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // ResourceProcessor processes resource planning tasks.
@@ -323,7 +323,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 	// Create resource plan based on previous processing results.
 
-	resourcePlan := json.RawMessage("{}"){
+	resourcePlan := json.RawMessage(`{}`){
 			{
 				"name": "amf-instance",
 
@@ -333,12 +333,12 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 				"replicas": 2,
 
-				"resources": json.RawMessage("{}"),
+				"resources": json.RawMessage(`{}`),
 
 					"limits": map[string]string{"cpu": "2000m", "memory": "4Gi"},
 				},
 
-				"ports": []json.RawMessage("{}"),
+				"ports": []json.RawMessage(`{}`),
 
 					{"name": "metrics", "port": 9090, "protocol": "HTTP"},
 				},
@@ -353,7 +353,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 				"replicas": 2,
 
-				"resources": json.RawMessage("{}"),
+				"resources": json.RawMessage(`{}`),
 
 					"limits": map[string]string{"cpu": "1500m", "memory": "3Gi"},
 				},
@@ -362,7 +362,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 		"deployment_pattern": "high_availability",
 
-		"estimated_cost": json.RawMessage("{}"),
+		"estimated_cost": json.RawMessage(`{}`),
 		},
 
 		"constraints": []string{
@@ -377,7 +377,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 
 		ProcessingResult: &contracts.ProcessingResult{
 			Success: true,
@@ -414,7 +414,7 @@ func (rsp *ResourceProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (rsp *ResourceProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // ManifestProcessor processes manifest generation tasks.
@@ -605,14 +605,14 @@ spec:
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 
 		ProcessingResult: &contracts.ProcessingResult{
 			Success: true,
 
 			NextPhase: contracts.PhaseGitOpsCommit,
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 
 			Metrics: map[string]float64{
 				"manifest_count": float64(len(manifests)),
@@ -640,7 +640,7 @@ func (mp *ManifestProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (mp *ManifestProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // GitOpsProcessor processes GitOps commit tasks.
@@ -668,7 +668,7 @@ func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 
 	// Simulate Git operations.
 
-	commitResult := json.RawMessage("{}"),
+	commitResult := json.RawMessage(`{}`),
 
 		"pr_created": false,
 
@@ -680,7 +680,7 @@ func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 
 		ProcessingResult: &contracts.ProcessingResult{
 			Success: true,
@@ -717,7 +717,7 @@ func (gp *GitOpsProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (gp *GitOpsProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // DeploymentProcessor processes deployment verification tasks.
@@ -745,7 +745,7 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 
 	// Simulate verification results.
 
-	verificationResult := json.RawMessage("{}"),
+	verificationResult := json.RawMessage(`{}`),
 
 		"services_ready": []string{
 			"amf-service",
@@ -753,7 +753,7 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 			"smf-service",
 		},
 
-		"health_checks": json.RawMessage("{}"){
+		"health_checks": json.RawMessage(`{}`){
 				"status": "healthy",
 
 				"response_time": "45ms",
@@ -761,10 +761,10 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 				"uptime": "100%",
 			},
 
-			"smf": json.RawMessage("{}"),
+			"smf": json.RawMessage(`{}`),
 		},
 
-		"sla_compliance": json.RawMessage("{}"),
+		"sla_compliance": json.RawMessage(`{}`),
 
 		"verification_time": "800ms",
 
@@ -776,7 +776,7 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 
 		Success: true,
 
-		OutputData: json.RawMessage("{}"),
+		OutputData: json.RawMessage(`{}`),
 
 		ProcessingResult: &contracts.ProcessingResult{
 			Success: true,
@@ -815,5 +815,6 @@ func (dp *DeploymentProcessor) HealthCheck(ctx context.Context) error {
 // GetMetrics returns processor metrics.
 
 func (dp *DeploymentProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
+

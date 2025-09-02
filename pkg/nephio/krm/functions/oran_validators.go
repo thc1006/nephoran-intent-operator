@@ -467,7 +467,7 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 
 func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return json.RawMessage("{}"),
+		return json.RawMessage(`{}`),
 
 			"strictMode": false,
 
@@ -1197,3 +1197,4 @@ func (v *FiveGCoreValidator) isValidUUID(uuid string) bool {
 
 	return uuidRegex.MatchString(uuid)
 }
+

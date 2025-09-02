@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestRequestSizeLimiter(t *testing.T) {
+func TestRequestSizeLimiter(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -28,7 +28,7 @@ import (
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		response := json.RawMessage("{}")
+		response := json.RawMessage(`{}`)
 		json.NewEncoder(w).Encode(response)
 	})
 
@@ -101,7 +101,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMaxBytesHandler(t *testing.T) {
+func TestMaxBytesHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -198,7 +198,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMaxBytesHandlerMethods(t *testing.T) {
+func TestMaxBytesHandlerMethods(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -251,7 +251,7 @@ import (
 	}
 }
 
-// DISABLED: func TestWritePayloadTooLargeResponse(t *testing.T) {
+func TestWritePayloadTooLargeResponse(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -295,7 +295,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMaxBytesHandlerPanicRecovery(t *testing.T) {
+func TestMaxBytesHandlerPanicRecovery(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -417,3 +417,4 @@ import (
 		})
 	}
 }
+

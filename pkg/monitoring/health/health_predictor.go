@@ -1152,7 +1152,7 @@ func (hp *HealthPredictor) createModel(component string) (*PredictionModel, erro
 
 		TrainingDataSize: 0,
 
-		Hyperparameters: json.RawMessage("{}"),
+		Hyperparameters: json.RawMessage(`{}`),
 
 		weights: []float64{},
 
@@ -1365,8 +1365,13 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 func (hp *HealthPredictor) trainMovingAverage(model *PredictionModel, trainingData *ModelTrainingData) error {
 	windowSize := 10 // Default window size
 
-	if ws, exists := model.Hyperparameters["window_size"].(int); exists {
-		windowSize = ws
+	var hyperparams map[string]interface{}
+	if err := json.Unmarshal(model.Hyperparameters, &hyperparams); err == nil {
+		if ws, exists := hyperparams["window_size"].(int); exists {
+			windowSize = ws
+		} else if wsFloat, exists := hyperparams["window_size"].(float64); exists {
+			windowSize = int(wsFloat)
+		}
 	}
 
 	// Store window size in weights for prediction.
@@ -1385,8 +1390,11 @@ func (hp *HealthPredictor) trainMovingAverage(model *PredictionModel, trainingDa
 func (hp *HealthPredictor) trainExponentialSmoothing(model *PredictionModel, trainingData *ModelTrainingData) error {
 	alpha := 0.3 // Default smoothing parameter
 
-	if a, exists := model.Hyperparameters["alpha"].(float64); exists {
-		alpha = a
+	var hyperparams map[string]interface{}
+	if err := json.Unmarshal(model.Hyperparameters, &hyperparams); err == nil {
+		if a, exists := hyperparams["alpha"].(float64); exists {
+			alpha = a
+		}
 	}
 
 	// Store alpha in weights for prediction.
@@ -2317,3 +2325,4 @@ func (hp *HealthPredictor) UpdateResourceUsage(component string, resourceType Re
 		tracker.History = tracker.History[len(tracker.History)-100:]
 	}
 }
+

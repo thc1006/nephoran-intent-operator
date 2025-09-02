@@ -18,7 +18,7 @@ type FakeIntentProvider struct {
 // NewFakeIntentProvider creates a new FakeIntentProvider with default values
 func NewFakeIntentProvider() *FakeIntentProvider {
 	return &FakeIntentProvider{
-		ParseResult: json.RawMessage("{}"),
+		ParseResult: json.RawMessage(`{}`),
 		ParseError:   nil,
 		ProviderName: "fake",
 	}
@@ -65,3 +65,4 @@ func (f *FakeIntentProvider) WithName(name string) *FakeIntentProvider {
 	f.ProviderName = name
 	return f
 }
+

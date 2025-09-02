@@ -9,7 +9,7 @@ import (
 )
 
 // TestBatchRequestContract verifies BatchRequest has required fields
-// DISABLED: func TestBatchRequestContract(t *testing.T) {
+func TestBatchRequestContract(t *testing.T) {
 	// Test that BatchRequest has both ResultChan and ResponseCh fields
 	request := &BatchRequest{
 		ID:         "test-id",
@@ -32,7 +32,7 @@ import (
 }
 
 // TestBatchResultContract verifies BatchResult has required fields
-// DISABLED: func TestBatchResultContract(t *testing.T) {
+func TestBatchResultContract(t *testing.T) {
 	result := &BatchResult{
 		RequestID:   "test-request-id",
 		Response:    "test response",
@@ -48,7 +48,7 @@ import (
 }
 
 // TestProcessingResultContract verifies ProcessingResult has required fields
-// DISABLED: func TestProcessingResultContract(t *testing.T) {
+func TestProcessingResultContract(t *testing.T) {
 	result := &ProcessingResult{
 		Content:        "test content",
 		TokensUsed:     100,
@@ -67,7 +67,7 @@ import (
 }
 
 // TestOptimizedClientConfigContract verifies OptimizedClientConfig has required fields
-// DISABLED: func TestOptimizedClientConfigContract(t *testing.T) {
+func TestOptimizedClientConfigContract(t *testing.T) {
 	config := &OptimizedClientConfig{
 		MaxConnsPerHost: 10,
 		ConnectTimeout:  30 * time.Second,
@@ -87,7 +87,7 @@ import (
 }
 
 // TestCircuitBreakerConfigContract verifies the shared CircuitBreakerConfig has MaxConcurrentRequests
-// DISABLED: func TestCircuitBreakerConfigContract(t *testing.T) {
+func TestCircuitBreakerConfigContract(t *testing.T) {
 	// Import the shared package config
 	// This test verifies that MaxConcurrentRequests field exists
 	// and can be used in performance_optimizer.go

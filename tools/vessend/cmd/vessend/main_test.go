@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// DISABLED: func TestEventGeneration(t *testing.T) {
+func TestEventGeneration(t *testing.T) {
 	config := Config{
 		CollectorURL: "http://localhost:9990/eventListener/v7",
 		EventType:    "heartbeat",
@@ -85,7 +85,7 @@ import (
 	}
 }
 
-// DISABLED: func TestEventIDGeneration(t *testing.T) {
+func TestEventIDGeneration(t *testing.T) {
 	config := Config{
 		EventType: "test",
 		Source:    "test-source",
@@ -114,7 +114,7 @@ import (
 	t.Logf("Generated event IDs: %s, %s", eventID, eventID2)
 }
 
-// DISABLED: func TestConfigValidation(t *testing.T) {
+func TestConfigValidation(t *testing.T) {
 	// Test valid event types
 	validTypes := map[string]bool{
 		"fault":       true,

@@ -362,6 +362,7 @@ func (c *MTLSGitClient) GetHealth() (*HealthStatus, error) {
 
 		Timestamp: time.Now(),
 
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}, nil
 }
+

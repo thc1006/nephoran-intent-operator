@@ -1477,11 +1477,16 @@ func (de *DataDogExporter) convertToDataDogFormat(batch MetricBatch) map[string]
 
 		points := [][]float64{{float64(metric.Timestamp.Unix()), metric.Value}}
 
-		series[i] = json.RawMessage("{}")
-
+		series[i] = map[string]interface{}{
+			"metric": metric.Name,
+			"points": points,
+			"tags":   tags,
+		}
 	}
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"series": series,
+	}
 }
 
 // NewRelicExporter exports metrics to New Relic.
@@ -1568,10 +1573,14 @@ func (nr *NewRelicExporter) convertToNewRelicFormat(batch MetricBatch) []map[str
 
 	for i, metric := range batch.Metrics {
 
-		event := json.RawMessage("{}")
+		event := map[string]interface{}{
+			"eventType": "NephoranMetric",
+			"timestamp": metric.Timestamp.Unix(),
+			"metric":    metric.Name,
+			"value":     metric.Value,
+		}
 
 		// Add labels as attributes.
-
 		for k, v := range metric.Labels {
 			event[k] = v
 		}

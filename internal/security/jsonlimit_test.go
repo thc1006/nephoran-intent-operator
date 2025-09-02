@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestValidateAndLimitJSON(t *testing.T) {
+func TestValidateAndLimitJSON(t *testing.T) {
 	tests := []struct {
 		name          string
 		input         string
@@ -78,7 +78,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateAndLimitJSON_FileHandles(t *testing.T) {
+func TestValidateAndLimitJSON_FileHandles(t *testing.T) {
 	// Create a temporary file
 	tempFile, err := os.CreateTemp("", "test_json_*.json")
 	require.NoError(t, err)
@@ -112,7 +112,7 @@ import (
 	})
 }
 
-// DISABLED: func TestValidateAndLimitJSON_LargeFile(t *testing.T) {
+func TestValidateAndLimitJSON_LargeFile(t *testing.T) {
 	// Create a temporary file with content larger than 1MB
 	tempFile, err := os.CreateTemp("", "large_test_*.json")
 	require.NoError(t, err)
@@ -136,7 +136,7 @@ import (
 	})
 }
 
-// DISABLED: func TestValidateAndLimitJSON_StreamReader(t *testing.T) {
+func TestValidateAndLimitJSON_StreamReader(t *testing.T) {
 	t.Run("stream under limit", func(t *testing.T) {
 		content := `{"test": "stream data"}`
 		reader := strings.NewReader(content)
@@ -158,7 +158,7 @@ import (
 	})
 }
 
-// DISABLED: func TestCountingReader(t *testing.T) {
+func TestCountingReader(t *testing.T) {
 	t.Run("normal read under limit", func(t *testing.T) {
 		content := "hello world"
 		reader := strings.NewReader(content)
@@ -197,7 +197,7 @@ import (
 	})
 }
 
-// DISABLED: func TestMaxJSONBytesConstant(t *testing.T) {
+func TestMaxJSONBytesConstant(t *testing.T) {
 	// Verify the constant is set to 1MB
 	assert.Equal(t, int64(1<<20), MaxJSONBytes)
 	assert.Equal(t, int64(1024*1024), MaxJSONBytes)

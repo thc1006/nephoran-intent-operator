@@ -520,7 +520,7 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/register", e.ricURL, e.apiVersion, nodeID)
 
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -686,7 +686,7 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/update", e.ricURL, e.apiVersion, nodeID)
 
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -1494,7 +1494,7 @@ func CreateKPMServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: json.RawMessage("{}"),
+		Configuration: json.RawMessage(`{}`),
 
 			"granularity_period": "1000ms",
 
@@ -1523,7 +1523,7 @@ func CreateRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_FAILURE",
 		},
 
-		Configuration: json.RawMessage("{}"),
+		Configuration: json.RawMessage(`{}`),
 
 			"control_outcomes": []string{
 				"successful",
@@ -1769,3 +1769,4 @@ func (e *E2Adaptor) GetCircuitBreakerStats() map[string]interface{} {
 func (e *E2Adaptor) ResetCircuitBreaker() {
 	e.circuitBreaker.Reset()
 }
+

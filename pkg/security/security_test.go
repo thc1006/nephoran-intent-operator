@@ -10,7 +10,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
-// DISABLED: func TestAuditLogger(t *testing.T) {
+func TestAuditLogger(t *testing.T) {
 	tmpFile := "/tmp/audit-test.log"
 	defer os.Remove(tmpFile)
 
@@ -36,7 +36,7 @@ import (
 	assert.Greater(t, info.Size(), int64(0))
 }
 
-// DISABLED: func TestSecretRotationManager(t *testing.T) {
+func TestSecretRotationManager(t *testing.T) {
 	// This test requires a running Kubernetes cluster for full functionality
 	// For now, we'll test the validation and helper functions
 
@@ -85,7 +85,7 @@ import (
 	})
 }
 
-// DISABLED: func TestFileSecretLoader(t *testing.T) {
+func TestFileSecretLoader(t *testing.T) {
 	// Create temporary directory structure
 	tmpDir := "/tmp/secrets-test"
 	err := os.MkdirAll(tmpDir+"/llm", 0o700)
@@ -106,7 +106,7 @@ import (
 	assert.Equal(t, secretContent, secret)
 }
 
-// DISABLED: func TestSecretValidation(t *testing.T) {
+func TestSecretValidation(t *testing.T) {
 	t.Run("OpenAI Key Validation", func(t *testing.T) {
 		// Valid OpenAI key
 		validKey := "sk-1234567890abcdef1234567890abcdef1234567890"
@@ -119,7 +119,7 @@ import (
 	})
 }
 
-// DISABLED: func TestSecretMemoryClearing(t *testing.T) {
+func TestSecretMemoryClearing(t *testing.T) {
 	secret := "sensitive-secret-data"
 	originalLen := len(secret)
 
@@ -130,7 +130,7 @@ import (
 	assert.NotEqual(t, originalLen, len(secret))
 }
 
-// DISABLED: func TestSecureCompare(t *testing.T) {
+func TestSecureCompare(t *testing.T) {
 	secret1 := "secret123"
 	secret2 := "secret123"
 	secret3 := "different"
@@ -145,7 +145,7 @@ import (
 	assert.True(t, config.SecureCompare("", ""))
 }
 
-// DISABLED: func TestAuditLevels(t *testing.T) {
+func TestAuditLevels(t *testing.T) {
 	tmpFile := "/tmp/audit-level-test.log"
 	defer os.Remove(tmpFile)
 
@@ -209,7 +209,7 @@ func BenchmarkJWTSecretGeneration(b *testing.B) {
 }
 
 // Integration test that would require actual Kubernetes cluster
-// DISABLED: func TestSecretRotationIntegration(t *testing.T) {
+func TestSecretRotationIntegration(t *testing.T) {
 	t.Skip("Integration test - requires Kubernetes cluster")
 
 	// This test would be run in a real environment with:
@@ -221,7 +221,7 @@ func BenchmarkJWTSecretGeneration(b *testing.B) {
 }
 
 // Security-focused test cases
-// DISABLED: func TestSecurityFeatures(t *testing.T) {
+func TestSecurityFeatures(t *testing.T) {
 	t.Run("PathTraversalPrevention", func(t *testing.T) {
 		t.Skip("Temporarily disabled due to nil pointer - needs investigation")
 		// Test that path traversal is prevented

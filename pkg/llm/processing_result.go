@@ -34,7 +34,7 @@ func NewProcessingResult(content string) *ProcessingResult {
 		ProcessingTime: time.Duration(0),
 		CacheHit:       false,
 		Batched:        false,
-		Metadata:       make(map[string]interface{}),
+		Metadata:       json.RawMessage(`{}`),
 		Success:        true,
 	}
 }
@@ -48,10 +48,27 @@ func (pr *ProcessingResult) WithError(err error) *ProcessingResult {
 
 // WithMetadata adds metadata to the processing result
 func (pr *ProcessingResult) WithMetadata(key string, value interface{}) *ProcessingResult {
-	if pr.Metadata == nil {
-		pr.Metadata = make(map[string]interface{})
+	// Parse existing metadata
+	var metadata map[string]interface{}
+	if pr.Metadata != nil && len(pr.Metadata) > 0 && string(pr.Metadata) != "{}" {
+		if err := json.Unmarshal(pr.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
-	pr.Metadata[key] = value
+	
+	// Add new key-value pair
+	metadata[key] = value
+	
+	// Convert back to json.RawMessage
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		pr.Metadata = json.RawMessage(metadataBytes)
+	} else {
+		// Fallback to empty JSON object on error
+		pr.Metadata = json.RawMessage(`{}`)
+	}
+	
 	return pr
 }
 

@@ -876,7 +876,7 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 
 	// Add network slice specification.
 
-	resource.Spec["networkSlice"] = json.RawMessage("{}")
+	resource.Spec["networkSlice"] = json.RawMessage(`{}`)
 
 	// Add labels for slice identification.
 
@@ -1283,12 +1283,12 @@ func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceC
 
 		Kind: "ResourceQuota",
 
-		Metadata: json.RawMessage("{}"){
+		Metadata: json.RawMessage(`{}`){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: json.RawMessage("{}"){
+		Spec: json.RawMessage(`{}`){
 				"requests.cpu": config.Resources.CPU,
 
 				"requests.memory": config.Resources.Memory,
@@ -1307,20 +1307,20 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 
 		Kind: "NetworkPolicy",
 
-		Metadata: json.RawMessage("{}"){
+		Metadata: json.RawMessage(`{}`){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: json.RawMessage("{}"){
-				"matchLabels": json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`){
+				"matchLabels": json.RawMessage(`{}`),
 			},
 
 			"policyTypes": []string{"Ingress", "Egress"},
 
-			"ingress": []json.RawMessage("{}"){
+			"ingress": []json.RawMessage(`{}`){
 						{
-							"podSelector": json.RawMessage("{}"){
+							"podSelector": json.RawMessage(`{}`){
 									"nephoran.com/network-slice-id": config.SliceID,
 								},
 							},
@@ -1329,9 +1329,9 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 				},
 			},
 
-			"egress": []json.RawMessage("{}"){
+			"egress": []json.RawMessage(`{}`){
 						{
-							"podSelector": json.RawMessage("{}"){
+							"podSelector": json.RawMessage(`{}`){
 									"nephoran.com/network-slice-id": config.SliceID,
 								},
 							},
@@ -1349,16 +1349,16 @@ func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSlice
 
 		Kind: "ServiceMonitor",
 
-		Metadata: json.RawMessage("{}"){
+		Metadata: json.RawMessage(`{}`){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: json.RawMessage("{}"){
-				"matchLabels": json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`){
+				"matchLabels": json.RawMessage(`{}`),
 			},
 
-			"endpoints": []json.RawMessage("{}"),
+			"endpoints": []json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -1380,14 +1380,15 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 
 		Kind: "PodDisruptionBudget",
 
-		Metadata: json.RawMessage("{}"){
+		Metadata: json.RawMessage(`{}`){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: json.RawMessage("{}"){
-				"matchLabels": json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`){
+				"matchLabels": json.RawMessage(`{}`),
 			},
 		},
 	}
 }
+

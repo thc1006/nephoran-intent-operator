@@ -792,7 +792,7 @@ func (dht *DependencyHealthTracker) RegisterDependency(config *DependencyConfig)
 
 		AvailabilityRate: 0.0,
 
-		Details: make(map[string]interface{}),
+		Details: json.RawMessage(`{}`),
 	}
 
 	// Create circuit breaker if enabled.
@@ -930,7 +930,7 @@ func (dht *DependencyHealthTracker) CheckDependencyHealth(ctx context.Context, d
 
 			LastErrorTime: time.Now(),
 
-			Details: make(map[string]interface{}),
+			Details: json.RawMessage(`{}`),
 		}
 
 		// Update consecutive errors.
@@ -1065,7 +1065,7 @@ func (dht *DependencyHealthTracker) checkLLMAPI(ctx context.Context, config *Dep
 
 	status := health.StatusUnhealthy
 
-	message := fmt.Sprintf("HTTP %d", resp.StatusCode)
+	_ = fmt.Sprintf("HTTP %d", resp.StatusCode) // Status message placeholder
 
 	// Check if status code is expected.
 
@@ -1098,7 +1098,7 @@ func (dht *DependencyHealthTracker) checkLLMAPI(ctx context.Context, config *Dep
 
 		ResponseTime: time.Since(start),
 
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1113,7 +1113,7 @@ func (dht *DependencyHealthTracker) checkKubernetesAPI(ctx context.Context, conf
 
 	// Try to get server version.
 
-	version, err := dht.kubeClient.Discovery().ServerVersion()
+	_, err := dht.kubeClient.Discovery().ServerVersion()
 	if err != nil {
 		return nil, fmt.Errorf("kubernetes API check failed: %w", err)
 	}
@@ -1129,7 +1129,7 @@ func (dht *DependencyHealthTracker) checkKubernetesAPI(ctx context.Context, conf
 
 		ResponseTime: time.Since(start),
 
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -1216,7 +1216,7 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 
 	status := health.StatusUnhealthy
 
-	message := fmt.Sprintf("HTTP %d", resp.StatusCode)
+	_ = fmt.Sprintf("HTTP %d", resp.StatusCode) // Status message placeholder
 
 	// Check if status code is expected.
 
@@ -1249,7 +1249,7 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 
 		ResponseTime: time.Since(start),
 
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}, nil
 }
 

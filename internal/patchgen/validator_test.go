@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestValidatorInitialization(t *testing.T) {
+func TestValidatorInitialization(t *testing.T) {
 	logger := logr.Discard()
 	validator, err := NewValidator(logger)
 
@@ -19,7 +19,7 @@ import (
 	assert.NotNil(t, validator)
 }
 
-// DISABLED: func TestValidIntent(t *testing.T) {
+func TestValidIntent(t *testing.T) {
 	testCases := []struct {
 		name        string
 		intentJSON  string
@@ -107,7 +107,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateIntentFile(t *testing.T) {
+func TestValidateIntentFile(t *testing.T) {
 	tempDir := t.TempDir()
 	logger := logr.Discard()
 	validator, _ := NewValidator(logger)
@@ -137,7 +137,7 @@ import (
 	})
 }
 
-// DISABLED: func TestValidateIntentMap(t *testing.T) {
+func TestValidateIntentMap(t *testing.T) {
 	logger := logr.Discard()
 	validator, _ := NewValidator(logger)
 
@@ -148,12 +148,12 @@ import (
 	}{
 		{
 			name: "Valid Intent Map",
-			intentMap: json.RawMessage("{}"),
+			intentMap: json.RawMessage(`{}`),
 			expectError: false,
 		},
 		{
 			name: "Invalid Intent Map",
-			intentMap: json.RawMessage("{}"),
+			intentMap: json.RawMessage(`{}`),
 			expectError: true,
 		},
 	}
@@ -171,7 +171,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadIntent(t *testing.T) {
+func TestLoadIntent(t *testing.T) {
 	tempDir := t.TempDir()
 
 	testCases := []struct {
@@ -229,7 +229,7 @@ import (
 	}
 }
 
-// DISABLED: func TestIntentJSONRoundTrip(t *testing.T) {
+func TestIntentJSONRoundTrip(t *testing.T) {
 	originalIntent := &Intent{
 		IntentType:    "scaling",
 		Target:        "web-app",
@@ -258,3 +258,4 @@ import (
 	assert.Equal(t, originalIntent.Source, reconstructedIntent.Source)
 	assert.Equal(t, originalIntent.CorrelationID, reconstructedIntent.CorrelationID)
 }
+

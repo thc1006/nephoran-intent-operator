@@ -81,7 +81,7 @@ func loadYAMLFile(relativePath string, obj runtime.Object) error {
 	return nil
 }
 
-// DISABLED: func TestAPIConsistency(t *testing.T) {
+func TestAPIConsistency(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "API Consistency Test Suite")
 }

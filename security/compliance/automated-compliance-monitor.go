@@ -328,7 +328,7 @@ func (acm *AutomatedComplianceMonitor) executeRemediation(ctx context.Context, v
 		Success:           false,
 		RollbackPlan:      acm.generateRollbackPlan(violation, rule),
 		ResourcesAffected: []string{violation.AffectedResource},
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}
 
 	acm.mutex.Lock()
@@ -1072,3 +1072,4 @@ func (acm *AutomatedComplianceMonitor) configureAdmissionControl(ctx context.Con
 	acm.logger.Info("Configuring admission control", "resource", resource)
 	return true, nil
 }
+

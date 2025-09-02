@@ -253,7 +253,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	// Create request.
 
-	reqBody := json.RawMessage("{}")
+	reqBody := json.RawMessage(`{}`)
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
@@ -532,3 +532,4 @@ func getDefaultClientConfig() *ClientConfig {
 func (c *Client) GetEndpoint() string {
 	return c.url
 }
+

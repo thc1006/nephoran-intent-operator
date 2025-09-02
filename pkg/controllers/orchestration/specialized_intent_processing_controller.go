@@ -564,7 +564,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 		NextPhase: interfaces.PhaseResourcePlanning,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Metrics: map[string]float64{
 			"processing_time_ms": float64(time.Since(startTime).Milliseconds()),
@@ -588,7 +588,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 				CorrelationID: session.CorrelationID,
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -1229,7 +1229,7 @@ func (c *SpecializedIntentProcessingController) GetHealthStatus(ctx context.Cont
 
 	// Update metrics in health status.
 
-	c.healthStatus.Metrics = json.RawMessage("{}")
+	c.healthStatus.Metrics = json.RawMessage(`{}`)
 
 	c.healthStatus.LastChecked = time.Now()
 
@@ -1522,7 +1522,7 @@ func (c *SpecializedIntentProcessingController) performHealthCheck() {
 
 		LastChecked: time.Now(),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}
 }
 
@@ -1549,3 +1549,4 @@ func (c *SpecializedIntentProcessingController) getActiveProcessingCount() int {
 
 	return count
 }
+

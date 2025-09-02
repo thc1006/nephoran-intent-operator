@@ -47,7 +47,7 @@
 //	// Create provider instances
 //	config := providers.ProviderConfig{
 //		Type: "aws",
-//		Config: json.RawMessage("{}"),
+//		Config: json.RawMessage(`{}`),
 //		Credentials: map[string]string{
 //			"accessKey": "...",
 //			"secretKey": "...",
@@ -71,7 +71,7 @@
 //	req := providers.ResourceRequest{
 //		Name: "my-cluster",
 //		Type: providers.ResourceTypeCluster,
-//		Spec: json.RawMessage("{}"),
+//		Spec: json.RawMessage(`{}`),
 //	}
 //
 //	resource, err := provider.CreateResource(ctx, req)
@@ -147,3 +147,4 @@
 // and integrates with the broader Nephio ecosystem for cloud-native network
 // function management.
 package providers
+

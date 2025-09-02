@@ -38,7 +38,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestEndpointRateLimiting tests rate limiting per endpoint
-// DISABLED: func TestEndpointRateLimiting(t *testing.T) {
+func TestEndpointRateLimiting(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	endpointLimits := map[string]struct {
@@ -92,7 +92,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestPerUserRateLimiting tests rate limiting per user
-// DISABLED: func TestPerUserRateLimiting(t *testing.T) {
+func TestPerUserRateLimiting(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	userLimiters := make(map[string]*rate.Limiter)
@@ -168,7 +168,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestDistributedRateLimiting tests distributed rate limiting across multiple instances
-// DISABLED: func TestDistributedRateLimiting(t *testing.T) {
+func TestDistributedRateLimiting(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	// Simulate distributed rate limiter with shared state
@@ -248,7 +248,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestRateLimitHeaders tests rate limit headers in responses
-// DISABLED: func TestRateLimitHeaders(t *testing.T) {
+func TestRateLimitHeaders(t *testing.T) {
 	suite := NewRateLimitTestSuite(t)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -289,7 +289,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestDDoSProtection tests DDoS protection mechanisms
-// DISABLED: func TestDDoSProtection(t *testing.T) {
+func TestDDoSProtection(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	t.Run("SYN_Flood_Protection", func(t *testing.T) {
@@ -462,7 +462,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestBurstHandling tests burst request handling
-// DISABLED: func TestBurstHandling(t *testing.T) {
+func TestBurstHandling(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	t.Run("Token_Bucket_Algorithm", func(t *testing.T) {
@@ -665,7 +665,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestGracefulDegradation tests graceful degradation under load
-// DISABLED: func TestGracefulDegradation(t *testing.T) {
+func TestGracefulDegradation(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	t.Run("Priority_Based_Rate_Limiting", func(t *testing.T) {
@@ -880,7 +880,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestIPBasedRateLimiting tests IP-based rate limiting
-// DISABLED: func TestIPBasedRateLimiting(t *testing.T) {
+func TestIPBasedRateLimiting(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	type IPRateLimiter struct {
@@ -964,7 +964,7 @@ func NewRateLimitTestSuite(t *testing.T) *RateLimitTestSuite {
 }
 
 // TestRateLimitingMetrics tests rate limiting metrics and monitoring
-// DISABLED: func TestRateLimitingMetrics(t *testing.T) {
+func TestRateLimitingMetrics(t *testing.T) {
 	_ = NewRateLimitTestSuite(t)
 
 	type RateLimitMetrics struct {

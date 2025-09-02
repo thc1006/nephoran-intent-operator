@@ -10,7 +10,7 @@ import (
 )
 
 // TestFixedRaceConditions demonstrates the fixes for the main race condition issues
-// DISABLED: func TestFixedRaceConditions(t *testing.T) {
+func TestFixedRaceConditions(t *testing.T) {
 	t.Run("FixedFilenamePattern", func(t *testing.T) {
 		// BEFORE: Tests created files like 'concurrent-N.json'
 		// AFTER: Ensure files follow 'intent-*.json' pattern
@@ -217,7 +217,7 @@ import (
 }
 
 // TestSynchronizationPrimitives tests the individual synchronization components
-// DISABLED: func TestSynchronizationPrimitives(t *testing.T) {
+func TestSynchronizationPrimitives(t *testing.T) {
 	t.Run("FileCreationSynchronizer", func(t *testing.T) {
 		expectedFiles := []string{"file1.json", "file2.json"}
 		fcs := NewFileCreationSynchronizer("/tmp", expectedFiles, 1*time.Second)
@@ -285,7 +285,7 @@ import (
 }
 
 // TestErrorHandling tests error scenarios
-// DISABLED: func TestErrorHandling(t *testing.T) {
+func TestErrorHandling(t *testing.T) {
 	t.Run("SynchronizationTimeout", func(t *testing.T) {
 		expectedFiles := []string{"file1.json", "file2.json"}
 		fcs := NewFileCreationSynchronizer("/tmp", expectedFiles, 100*time.Millisecond)

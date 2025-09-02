@@ -95,7 +95,7 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 		UseRAG: true, // Enable RAG by default for intent processing
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Make request to LLM processor.
@@ -140,7 +140,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 		UseRAG: true,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Create HTTP request.
@@ -634,3 +634,4 @@ type HealthStatus struct {
 
 	Details json.RawMessage `json:"details,omitempty"`
 }
+

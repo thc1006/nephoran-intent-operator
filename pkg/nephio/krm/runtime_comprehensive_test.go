@@ -240,7 +240,7 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				Description: "Set basic labels on resources",
 				Config: &FunctionConfig{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-					ConfigMap: json.RawMessage("{}"),
+					ConfigMap: json.RawMessage(`{}`),
 					},
 				},
 				Input: []KRMResource{
@@ -758,8 +758,8 @@ func generateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata: json.RawMessage("{}"),
-		Spec: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
+		Spec: json.RawMessage(`{}`),
 	}
 }
 
@@ -773,7 +773,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 // Test Cases
 
 // TestKRMRuntimeCreation tests KRM runtime creation
-// DISABLED: func TestKRMRuntimeCreation(t *testing.T) {
+func TestKRMRuntimeCreation(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 
 	assert.NotNil(t, runtime)
@@ -785,7 +785,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestFunctionRegistration tests function registration
-// DISABLED: func TestFunctionRegistration(t *testing.T) {
+func TestFunctionRegistration(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 
 	testFunction := &RegisteredFunction{
@@ -816,7 +816,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestFunctionRegistrationValidation tests function registration validation
-// DISABLED: func TestFunctionRegistrationValidation(t *testing.T) {
+func TestFunctionRegistrationValidation(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 
 	testCases := []struct {
@@ -873,7 +873,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestStandardFunctions tests standard KRM functions
-// DISABLED: func TestStandardFunctions(t *testing.T) {
+func TestStandardFunctions(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -886,7 +886,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}"){
+				ConfigMap: map[string]interface{}{
 						"app": "test-app",
 						"env": "production",
 					},
@@ -921,7 +921,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage("{}"),
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: resources,
 		}
@@ -947,7 +947,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
-				ConfigMap: json.RawMessage("{}"),
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: resources,
 		}
@@ -966,7 +966,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestORANFunctions tests O-RAN specific functions
-// DISABLED: func TestORANFunctions(t *testing.T) {
+func TestORANFunctions(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -978,9 +978,9 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
-				ConfigMap: json.RawMessage("{}"){
-						json.RawMessage("{}"),
-						json.RawMessage("{}"),
+				ConfigMap: map[string]interface{}{
+						json.RawMessage(`{}`),
+						json.RawMessage(`{}`),
 					},
 				},
 			},
@@ -1012,7 +1012,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
-				ConfigMap: json.RawMessage("{}"){
+				ConfigMap: map[string]interface{}{
 						"sliceType": "eMBB",
 						"sst":       1,
 						"sd":        "000001",
@@ -1041,7 +1041,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestPipelineExecution tests pipeline execution
-// DISABLED: func TestPipelineExecution(t *testing.T) {
+func TestPipelineExecution(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1055,11 +1055,11 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage("{}"),
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}"){
+				ConfigMap: map[string]interface{}{
 						"app": "test-app",
 						"env": "production",
 					},
@@ -1103,7 +1103,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestPipelineExecutionFailure tests pipeline execution with failures
-// DISABLED: func TestPipelineExecutionFailure(t *testing.T) {
+func TestPipelineExecutionFailure(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1125,7 +1125,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage("{}"),
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "test/failing-function:v1.0.0",
@@ -1146,7 +1146,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestFunctionValidation tests function configuration validation
-// DISABLED: func TestFunctionValidation(t *testing.T) {
+func TestFunctionValidation(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1154,7 +1154,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}"){
+				ConfigMap: map[string]interface{}{
 						"app": "test",
 					},
 				},
@@ -1174,7 +1174,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}"), // Missing required 'labels' field
+				ConfigMap: json.RawMessage(`{}`), // Missing required 'labels' field
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1193,7 +1193,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}"), // Missing required field, but validation is disabled
+				ConfigMap: json.RawMessage(`{}`), // Missing required field, but validation is disabled
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1212,7 +1212,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestConcurrentExecution tests concurrent function execution
-// DISABLED: func TestConcurrentExecution(t *testing.T) {
+func TestConcurrentExecution(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1235,7 +1235,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 				req := &FunctionRequest{
 					FunctionConfig: FunctionConfig{
 						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-						ConfigMap: json.RawMessage("{}"){
+						ConfigMap: map[string]interface{}{
 								"worker": fmt.Sprintf("worker-%d", id),
 								"job":    fmt.Sprintf("job-%d", j),
 							},
@@ -1272,7 +1272,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestExecutionHistory tests execution history tracking
-// DISABLED: func TestExecutionHistory(t *testing.T) {
+func TestExecutionHistory(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1293,7 +1293,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: funcImage,
-				ConfigMap: json.RawMessage("{}")`),
+				ConfigMap: json.RawMessage(`{}`)`),
 					"namespace": "test-namespace",
 				},
 			},
@@ -1323,7 +1323,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestErrorHandling tests error handling scenarios
-// DISABLED: func TestErrorHandling(t *testing.T) {
+func TestErrorHandling(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1369,7 +1369,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}")`),
+				ConfigMap: json.RawMessage(`{}`)`),
 				},
 			},
 			Resources: []KRMResource{
@@ -1387,7 +1387,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 }
 
 // TestPerformanceCharacteristics tests performance aspects
-// DISABLED: func TestPerformanceCharacteristics(t *testing.T) {
+func TestPerformanceCharacteristics(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
 
@@ -1398,7 +1398,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}")`),
+				ConfigMap: json.RawMessage(`{}`)`),
 				},
 			},
 			Resources: []KRMResource{
@@ -1431,7 +1431,7 @@ func BenchmarkFunctionExecution(b *testing.B) {
 	req := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-			ConfigMap: json.RawMessage("{}"){
+			ConfigMap: map[string]interface{}{
 					"app": "test-app",
 					"env": "production",
 				},
@@ -1466,11 +1466,11 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: json.RawMessage("{}"),
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage("{}"){
+				ConfigMap: map[string]interface{}{
 						"app": "test-app",
 						"env": "production",
 					},
@@ -1492,3 +1492,4 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		}
 	}
 }
+

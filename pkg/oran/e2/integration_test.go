@@ -132,7 +132,7 @@ func (m *MockNearRTRIC) GetConnections() map[string]*E2ConnectionInfo {
 }
 
 // Test E2Manager integration
-// DISABLED: func TestE2ManagerIntegration(t *testing.T) {
+func TestE2ManagerIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	// Create mock RIC
@@ -181,7 +181,7 @@ func (m *MockNearRTRIC) GetConnections() map[string]*E2ConnectionInfo {
 			EventTriggers: []E2EventTrigger{
 				{
 					TriggerType: "periodic",
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 						"granularity_period": "1000ms",
 					},
 				},
@@ -232,7 +232,7 @@ func (m *MockNearRTRIC) GetConnections() map[string]*E2ConnectionInfo {
 }
 
 // Test E2NodeSet Controller integration with E2Manager
-// DISABLED: func TestE2NodeSetControllerIntegration(t *testing.T) {
+func TestE2NodeSetControllerIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	// Create mock E2Manager
@@ -295,7 +295,7 @@ func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, funct
 }
 
 // Test xApp SDK integration
-// DISABLED: func TestXAppSDKIntegration(t *testing.T) {
+func TestXAppSDKIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	// Create mock E2Manager
@@ -377,7 +377,7 @@ func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, funct
 }
 
 // Test service model plugins
-// DISABLED: func TestServiceModelPluginIntegration(t *testing.T) {
+func TestServiceModelPluginIntegration(t *testing.T) {
 	// Create service model registry
 	registry := NewE2ServiceModelRegistry()
 
@@ -450,7 +450,7 @@ func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, funct
 }
 
 // Test E2AP message codecs
-// DISABLED: func TestE2APCodecIntegration(t *testing.T) {
+func TestE2APCodecIntegration(t *testing.T) {
 	t.Run("TestE2SetupRequestCodec", func(t *testing.T) {
 		codec := &E2SetupRequestCodec{}
 
@@ -528,7 +528,7 @@ func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, funct
 }
 
 // End-to-end integration test
-// DISABLED: func TestE2EndToEndIntegration(t *testing.T) {
+func TestE2EndToEndIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -615,7 +615,7 @@ func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, funct
 }
 
 // Performance and stress tests
-// DISABLED: func TestE2PerformanceIntegration(t *testing.T) {
+func TestE2PerformanceIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance tests in short mode")
 	}
@@ -713,3 +713,4 @@ func (m *MockE2Manager) RegisterE2Node(ctx context.Context, nodeID string, funct
 		assert.Greater(t, throughput, 1000.0, "Indication processing throughput too low")
 	})
 }
+

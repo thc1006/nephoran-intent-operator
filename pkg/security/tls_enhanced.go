@@ -575,7 +575,7 @@ func (c *TLSEnhancedConfig) verifyPeerCertificate(rawCerts [][]byte, verifiedCha
 
 			atomic.AddUint64(&c.MetricsCollector.certificateErrors, 1)
 
-			c.reportSecurityFailure("OCSP_CHECK_FAILED", "", err, json.RawMessage("{}"))
+			c.reportSecurityFailure("OCSP_CHECK_FAILED", "", err, make(map[string]interface{}))
 
 			return err
 
@@ -598,7 +598,7 @@ func (c *TLSEnhancedConfig) verifyPeerCertificate(rawCerts [][]byte, verifiedCha
 
 	// Report successful connection.
 
-	c.reportSecurityEvent("TLS_HANDSHAKE_SUCCESS", "", cert, 0, 0, json.RawMessage("{}"))
+	c.reportSecurityEvent("TLS_HANDSHAKE_SUCCESS", "", cert, 0, 0, make(map[string]interface{}))
 
 	return nil
 }
@@ -939,3 +939,4 @@ func (c *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16
 func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
 	return c.GetTLSConfig()
 }
+

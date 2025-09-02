@@ -610,7 +610,7 @@ func (m *MTLSManager) GetCertificateInfo() map[string]interface{} {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // Helper functions
@@ -684,3 +684,4 @@ func (hc *MTLSHealthChecker) CheckHealth() error {
 
 	return nil
 }
+

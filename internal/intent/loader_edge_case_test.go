@@ -12,7 +12,7 @@ import (
 )
 
 // TestLoader_MalformedJSONEdgeCases tests edge cases with malformed JSON data
-// DISABLED: func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
+func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
 	loader, cleanup := createTestLoader(t)
 	defer cleanup()
 
@@ -36,7 +36,7 @@ import (
 		},
 		{
 			name:        "JSON with unicode characters",
-			jsonData:    []byte(`{"intent_type": "scaling", "target": "测试-应用", "namespace": "命名空间", "replicas": 3}`),
+			jsonData:    []byte(`{"intent_type": "scaling", "target": "测�?-应用", "namespace": "?��?空间", "replicas": 3}`),
 			expectError: true,
 			description: "Unicode characters should be handled properly",
 		},
@@ -129,7 +129,7 @@ import (
 }
 
 // TestLoader_ExtremeValueEdgeCases tests extreme values that could cause issues
-// DISABLED: func TestLoader_ExtremeValueEdgeCases(t *testing.T) {
+func TestLoader_ExtremeValueEdgeCases(t *testing.T) {
 	loader, cleanup := createTestLoader(t)
 	defer cleanup()
 
@@ -176,7 +176,7 @@ import (
 			name: "target with emoji",
 			intent: ScalingIntent{
 				IntentType: "scaling",
-				Target:     "test-app-😀",
+				Target:     "test-app-??",
 				Namespace:  "default",
 				Replicas:   3,
 			},
@@ -290,7 +290,7 @@ import (
 }
 
 // TestLoader_FileSystemEdgeCases tests filesystem-related edge cases
-// DISABLED: func TestLoader_FileSystemEdgeCases(t *testing.T) {
+func TestLoader_FileSystemEdgeCases(t *testing.T) {
 	loader, cleanup := createTestLoader(t)
 	defer cleanup()
 
@@ -436,7 +436,7 @@ import (
 }
 
 // TestLoader_ConcurrencyEdgeCases tests concurrent access scenarios
-// DISABLED: func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
+func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 	loader, cleanup := createTestLoader(t)
 	defer cleanup()
 
@@ -499,7 +499,7 @@ import (
 }
 
 // TestLoader_MemoryExhaustionEdgeCases tests memory-related edge cases
-// DISABLED: func TestLoader_MemoryExhaustionEdgeCases(t *testing.T) {
+func TestLoader_MemoryExhaustionEdgeCases(t *testing.T) {
 	loader, cleanup := createTestLoader(t)
 	defer cleanup()
 
@@ -667,7 +667,7 @@ func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 }
 
 // TestLoader_UnicodeEdgeCases tests Unicode handling edge cases
-// DISABLED: func TestLoader_UnicodeEdgeCases(t *testing.T) {
+func TestLoader_UnicodeEdgeCases(t *testing.T) {
 	loader, cleanup := createTestLoader(t)
 	defer cleanup()
 

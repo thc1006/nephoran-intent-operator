@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-// DISABLED: func TestWatchReconcilerLogging(t *testing.T) {
+func TestWatchReconcilerLogging(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -84,7 +84,7 @@ import (
 }
 
 // TestWatchReconcilerIntegration tests the complete flow from NetworkIntent to JSON to porch execution
-// DISABLED: func TestWatchReconcilerIntegration(t *testing.T) {
+func TestWatchReconcilerIntegration(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nephoranv1.AddToScheme(scheme)
@@ -263,7 +263,7 @@ import (
 }
 
 // TestWatchReconcilerWithPorchErrors tests error handling in porch execution
-// DISABLED: func TestWatchReconcilerWithPorchErrors(t *testing.T) {
+func TestWatchReconcilerWithPorchErrors(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nephoranv1.AddToScheme(scheme)
@@ -348,7 +348,7 @@ import (
 }
 
 // TestWatchReconcilerDryRun tests dry-run mode
-// DISABLED: func TestWatchReconcilerDryRun(t *testing.T) {
+func TestWatchReconcilerDryRun(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = nephoranv1.AddToScheme(scheme)

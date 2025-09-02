@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestDefaultOptimizationConfig(t *testing.T) {
+func TestDefaultOptimizationConfig(t *testing.T) {
 	config := DefaultOptimizationConfig()
 
 	if config == nil {
@@ -31,7 +31,7 @@ import (
 	}
 }
 
-// DISABLED: func TestApplyOptimizations(t *testing.T) {
+func TestApplyOptimizations(t *testing.T) {
 	config := &OptimizationConfig{
 		MaxProcs:           2,
 		AutoTuneMaxProcs:   false,
@@ -54,7 +54,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCalculateOptimalGOMAXPROCS(t *testing.T) {
+func TestCalculateOptimalGOMAXPROCS(t *testing.T) {
 	optimal := calculateOptimalGOMAXPROCS()
 
 	if optimal <= 0 {
@@ -66,7 +66,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGetRuntimeStats(t *testing.T) {
+func TestGetRuntimeStats(t *testing.T) {
 	stats := GetRuntimeStats()
 
 	expectedKeys := []string{
@@ -91,7 +91,7 @@ import (
 	}
 }
 
-// DISABLED: func TestTuneForTelcoWorkloads(t *testing.T) {
+func TestTuneForTelcoWorkloads(t *testing.T) {
 	originalMaxProcs := runtime.GOMAXPROCS(0)
 	defer runtime.GOMAXPROCS(originalMaxProcs)
 
@@ -107,7 +107,7 @@ import (
 	}
 }
 
-// DISABLED: func TestPerformanceMonitor(t *testing.T) {
+func TestPerformanceMonitor(t *testing.T) {
 	config := DefaultOptimizationConfig()
 	monitor := NewPerformanceMonitor(config)
 

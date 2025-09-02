@@ -52,7 +52,7 @@ func (f *UserFactory) CreateBasicUser() *providers.UserInfo {
 
 		Roles: []string{"viewer"},
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 }
 
@@ -666,7 +666,7 @@ func (f *SessionFactory) CreateBasicSession(userID string) *TestSession {
 
 		UserAgent: "test-user-agent",
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -757,7 +757,7 @@ func CreateTestData() map[string]interface{} {
 
 	sf := NewSessionFactory()
 
-	data := json.RawMessage("{}"),
+	data := json.RawMessage(`{}`),
 
 		"tokens": map[string]jwt.MapClaims{
 			"valid": tf.CreateBasicToken("test-user"),
@@ -794,3 +794,4 @@ func CreateTestData() map[string]interface{} {
 // If circular dependencies arise, they should be resolved through proper.
 
 // package restructuring rather than type duplication.
+

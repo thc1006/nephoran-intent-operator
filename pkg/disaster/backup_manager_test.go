@@ -29,7 +29,7 @@ type BackupManagerTestSuite struct {
 	tempDir   string
 }
 
-// DISABLED: func TestBackupManagerSuite(t *testing.T) {
+func TestBackupManagerSuite(t *testing.T) {
 	suite.Run(t, new(BackupManagerTestSuite))
 }
 

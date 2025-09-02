@@ -66,7 +66,7 @@ func demonstrateO2APIServer(ctx context.Context, logger *logging.StructuredLogge
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0, // Use dynamic port
 		TLSEnabled:    false,
-		DatabaseConfig: json.RawMessage("{}"),
+		DatabaseConfig: json.RawMessage(`{}`),
 		ComplianceMode:       true,
 		SpecificationVersion: "O-RAN.WG6.O2ims-Interface-v01.01",
 	}
@@ -114,3 +114,4 @@ func init() {
 	os.Setenv("TEST_ENV", "true")
 	os.Setenv("LOG_LEVEL", "info")
 }
+

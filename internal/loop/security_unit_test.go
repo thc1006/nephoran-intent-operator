@@ -15,7 +15,7 @@ import (
 )
 
 // TestIsIntentFile_SecurityValidation tests security aspects of intent file validation
-// DISABLED: func TestIsIntentFile_SecurityValidation(t *testing.T) {
+func TestIsIntentFile_SecurityValidation(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string
@@ -54,7 +54,7 @@ import (
 		},
 		{
 			name:     "unicode filename",
-			filename: "intent-файл.json",
+			filename: "intent-?айл.json",
 			expected: true,
 			reason:   "should handle unicode filenames",
 		},
@@ -87,7 +87,7 @@ import (
 }
 
 // TestStateManager_SecurityBehavior tests security aspects of state management
-// DISABLED: func TestStateManager_SecurityBehavior(t *testing.T) {
+func TestStateManager_SecurityBehavior(t *testing.T) {
 	tempDir := t.TempDir()
 
 	sm, err := NewStateManager(tempDir)
@@ -191,7 +191,7 @@ import (
 		},
 		{
 			name:     "unicode file path",
-			filePath: filepath.Join(tempDir, "пуṫь", "файл-интент.json"),
+			filePath: filepath.Join(tempDir, "п?ṫ�?, "?айл-ин?ен?.json"),
 			testFunc: func(t *testing.T, sm *StateManager, filePath string) {
 				// Create the directory structure and file first
 				parentDir := filepath.Dir(filePath)
@@ -264,7 +264,7 @@ func generateLongPath(baseDir string) string {
 }
 
 // TestFileManager_SecurityBehavior tests security aspects of file management
-// DISABLED: func TestFileManager_SecurityBehavior(t *testing.T) {
+func TestFileManager_SecurityBehavior(t *testing.T) {
 	tempDir := t.TempDir()
 
 	fm, err := NewFileManager(tempDir)
@@ -405,7 +405,7 @@ func generateLongPath(baseDir string) string {
 }
 
 // TestConfig_SecurityValidation tests security validation of configuration
-// DISABLED: func TestConfig_SecurityValidation(t *testing.T) {
+func TestConfig_SecurityValidation(t *testing.T) {
 	tests := []struct {
 		name     string
 		config   Config
@@ -508,7 +508,7 @@ func generateLongPath(baseDir string) string {
 }
 
 // TestSanitizeInput tests input sanitization functions
-// DISABLED: func TestSanitizeInput(t *testing.T) {
+func TestSanitizeInput(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -531,8 +531,8 @@ func generateLongPath(baseDir string) string {
 		},
 		{
 			name:     "string with unicode",
-			input:    "приложение-名前",
-			expected: "приложение-名前", // Unicode should be preserved
+			input:    "п?иложение-?��?",
+			expected: "п?иложение-?��?", // Unicode should be preserved
 		},
 		{
 			name:     "empty string",
@@ -555,7 +555,7 @@ func generateLongPath(baseDir string) string {
 }
 
 // TestWindowsPathValidation tests Windows-specific path validation
-// DISABLED: func TestWindowsPathValidation(t *testing.T) {
+func TestWindowsPathValidation(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Windows-specific test")
 	}
@@ -660,7 +660,7 @@ func generateLongPath(baseDir string) string {
 }
 
 // TestValidateIntentContent tests validation of intent file content
-// DISABLED: func TestValidateIntentContent(t *testing.T) {
+func TestValidateIntentContent(t *testing.T) {
 	tests := []struct {
 		name         string
 		content      string

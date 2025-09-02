@@ -14,7 +14,7 @@ import (
 )
 
 // TestJWTClaimsStructure verifies that NephoranJWTClaims has all required time fields
-// DISABLED: func TestJWTClaimsStructure(t *testing.T) {
+func TestJWTClaimsStructure(t *testing.T) {
 	claims := &NephoranJWTClaims{}
 
 	// Verify embedded RegisteredClaims provides time fields
@@ -50,7 +50,7 @@ import (
 }
 
 // TestJWTManagerTimeFieldHandling verifies proper time field handling in JWT operations
-// DISABLED: func TestJWTManagerTimeFieldHandling(t *testing.T) {
+func TestJWTManagerTimeFieldHandling(t *testing.T) {
 	// Create test JWT manager
 	config := &JWTConfig{
 		Issuer:     "test-issuer",
@@ -202,7 +202,7 @@ import (
 }
 
 // TestJWTManagerBackwardCompatibility tests that legacy token generation still works
-// DISABLED: func TestJWTManagerBackwardCompatibility(t *testing.T) {
+func TestJWTManagerBackwardCompatibility(t *testing.T) {
 	config := &JWTConfig{
 		Issuer:     "test-issuer",
 		DefaultTTL: time.Hour,
@@ -224,7 +224,7 @@ import (
 	}
 
 	// Test legacy GenerateToken method
-	customClaims := json.RawMessage("{}")
+	customClaims := json.RawMessage(`{}`)
 
 	tokenString, err := manager.GenerateToken(userInfo, customClaims)
 	require.NoError(t, err)
@@ -252,3 +252,4 @@ import (
 	assert.True(t, exp > iat, "exp should be after iat")
 	assert.True(t, exp > float64(time.Now().Unix()), "exp should be in the future")
 }
+

@@ -825,7 +825,7 @@ func (cm *MultiLevelCacheManager) performMaintenance(ctx context.Context) {
 		// Trigger cache optimization.
 
 		go func() {
-			if err := cm.OptimizeCache(ctx, json.RawMessage("{}")); err != nil {
+			if err := cm.OptimizeCache(ctx, json.RawMessage(`{}`)); err != nil {
 				cm.logger.Error(err, "Failed to optimize cache")
 			}
 		}()
@@ -1222,3 +1222,4 @@ func (c *L3Cache) GetSize() int64 { return 0 }
 // GetItemCount performs getitemcount operation.
 
 func (c *L3Cache) GetItemCount() int64 { return 0 }
+

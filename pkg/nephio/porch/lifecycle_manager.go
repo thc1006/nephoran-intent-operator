@@ -977,7 +977,7 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	lm.TriggerEvent(ctx, lockEvent)
@@ -1035,7 +1035,7 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	lm.TriggerEvent(ctx, releaseEvent)
@@ -2464,3 +2464,4 @@ type (
 
 	RollbackManagerConfig struct{}
 )
+

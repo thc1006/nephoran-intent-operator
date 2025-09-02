@@ -342,5 +342,11 @@ func (srs *SimpleRelevanceScorer) GetMetrics() map[string]interface{} {
 		successRate = float64(srs.metrics.SuccessfulScores) / float64(srs.metrics.TotalScores) * 100.0
 	}
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"total_scores":      srs.metrics.TotalScores,
+		"successful_scores": srs.metrics.SuccessfulScores,
+		"success_rate":      successRate,
+		"average_time":      srs.metrics.AverageLatency.String(),
+	}
 }
+

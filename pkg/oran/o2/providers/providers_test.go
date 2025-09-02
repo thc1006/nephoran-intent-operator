@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// DISABLED: func TestProviderFactory(t *testing.T) {
+func TestProviderFactory(t *testing.T) {
 	factory := NewDefaultProviderFactory()
 
 	// Test registering a provider
@@ -33,7 +33,7 @@ import (
 	// Test creating provider
 	config := ProviderConfig{
 		Type: "test",
-		Config: json.RawMessage("{}"),
+		Config: json.RawMessage(`{}`),
 	}
 
 	provider, err := factory.CreateProvider("test", config)
@@ -49,7 +49,7 @@ import (
 	provider.Close()
 }
 
-// DISABLED: func TestMockProvider(t *testing.T) {
+func TestMockProvider(t *testing.T) {
 	provider := NewMockProvider("test-provider")
 
 	// Test GetInfo before initialization
@@ -71,7 +71,7 @@ import (
 	// Initialize provider
 	config := ProviderConfig{
 		Type: "mock",
-		Config: json.RawMessage("{}"),
+		Config: json.RawMessage(`{}`),
 	}
 
 	err = provider.Initialize(ctx, config)
@@ -86,14 +86,14 @@ import (
 	}
 }
 
-// DISABLED: func TestResourceOperations(t *testing.T) {
+func TestResourceOperations(t *testing.T) {
 	provider := NewMockProvider("test-provider")
 	ctx := context.Background()
 
 	// Initialize provider
 	config := ProviderConfig{
 		Type: "mock",
-		Config: json.RawMessage("{}"),
+		Config: json.RawMessage(`{}`),
 	}
 
 	err := provider.Initialize(ctx, config)
@@ -106,7 +106,7 @@ import (
 	req := ResourceRequest{
 		Name: "test-deployment",
 		Type: ResourceTypeDeployment,
-		Spec: json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -152,7 +152,7 @@ import (
 	updateReq := ResourceRequest{
 		Name: "updated-deployment",
 		Type: ResourceTypeDeployment,
-		Spec: json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"env":     "test",
 			"updated": "true",
@@ -220,7 +220,7 @@ import (
 	}
 }
 
-// DISABLED: func TestProviderRegistry(t *testing.T) {
+func TestProviderRegistry(t *testing.T) {
 	factory := NewDefaultProviderFactory()
 	registry := NewProviderRegistry()
 
@@ -233,7 +233,7 @@ import (
 	// Test CreateAndRegisterProvider
 	config := ProviderConfig{
 		Type: "mock",
-		Config: json.RawMessage("{}"),
+		Config: json.RawMessage(`{}`),
 	}
 
 	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)
@@ -276,7 +276,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResourceTypes(t *testing.T) {
+func TestResourceTypes(t *testing.T) {
 	// Test that all resource types are defined
 	types := []ResourceType{
 		ResourceTypeCluster,
@@ -296,7 +296,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResourceStatuses(t *testing.T) {
+func TestResourceStatuses(t *testing.T) {
 	// Test that all resource statuses are defined
 	statuses := []ResourceStatus{
 		StatusPending,
@@ -315,7 +315,7 @@ import (
 	}
 }
 
-// DISABLED: func TestEventTypes(t *testing.T) {
+func TestEventTypes(t *testing.T) {
 	// Test that all event types are defined
 	eventTypes := []EventType{
 		EventTypeResourceCreated,
@@ -338,7 +338,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGlobalFactory(t *testing.T) {
+func TestGlobalFactory(t *testing.T) {
 	// Test that global factory works
 	factory := GetGlobalFactory()
 	if factory == nil {
@@ -362,7 +362,7 @@ import (
 	// Test creating provider using global factory
 	config := ProviderConfig{
 		Type: "mock",
-		Config: json.RawMessage("{}"),
+		Config: json.RawMessage(`{}`),
 	}
 
 	provider, err := CreateGlobalProvider("mock", config)
@@ -377,3 +377,4 @@ import (
 	// Clean up
 	provider.Close()
 }
+

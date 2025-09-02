@@ -413,7 +413,7 @@ func (oits *ORANInterfaceTestSuite) testA1PolicySecurity(ctx context.Context) bo
 
 	// Add security metadata.
 
-	policy.PolicyData["security"] = json.RawMessage("{}")
+	policy.PolicyData["security"] = json.RawMessage(`{}`)
 
 	err := oits.validator.ricMockService.CreatePolicy(policy)
 	if err != nil {
@@ -449,7 +449,7 @@ func (oits *ORANInterfaceTestSuite) testE2Security(ctx context.Context) bool {
 
 	node := oits.testFactory.CreateE2Node("gnodeb")
 
-	node.Capabilities["security"] = json.RawMessage("{}")
+	node.Capabilities["security"] = json.RawMessage(`{}`)
 
 	err := oits.validator.e2MockService.RegisterNode(node)
 	if err != nil {
@@ -552,3 +552,4 @@ func ExampleORANIntegration() {
 
 	*/
 }
+

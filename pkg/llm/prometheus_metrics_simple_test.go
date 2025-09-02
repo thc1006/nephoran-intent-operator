@@ -10,7 +10,7 @@ import (
 )
 
 // Simple test for prometheus metrics without full integration
-// DISABLED: func TestPrometheusMetricsBasic(t *testing.T) {
+func TestPrometheusMetricsBasic(t *testing.T) {
 	// Save and restore original environment and test state
 	originalEnv := os.Getenv("METRICS_ENABLED")
 	defer func() {
@@ -102,7 +102,7 @@ import (
 }
 
 // Test error categorization functionality
-// DISABLED: func TestErrorCategorizationBasic(t *testing.T) {
+func TestErrorCategorizationBasic(t *testing.T) {
 	testCases := []struct {
 		name         string
 		errorMsg     string

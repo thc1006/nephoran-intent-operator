@@ -1069,7 +1069,7 @@ func (p *SecurityRegressionPipeline) processTriggerEvent(ctx context.Context, ev
 }
 
 func (p *SecurityRegressionPipeline) generateCICDReport(ctx context.Context) interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func (p *SecurityRegressionPipeline) publishPipelineStatus(ctx context.Context) bool {
@@ -1120,3 +1120,4 @@ func (p *SecurityRegressionPipeline) generatePipelineReport(ctx context.Context)
 
 	return p.executionResults
 }
+

@@ -22,7 +22,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// DISABLED: func TestParseIntentString(t *testing.T) {
+func TestParseIntentString(t *testing.T) {
 	reconciler := &NetworkIntentReconciler{
 		Log: logr.Discard(),
 	}
@@ -132,7 +132,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCreateIntentFile(t *testing.T) {
+func TestCreateIntentFile(t *testing.T) {
 	reconciler := &NetworkIntentReconciler{
 		Log:       logr.Discard(),
 		OutputDir: t.TempDir(),

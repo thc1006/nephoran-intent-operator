@@ -117,7 +117,7 @@ func (lt *LoadTester) executeRequest(ctx context.Context) {
 		ID:          fmt.Sprintf("load-test-%d", rand.Int63()),
 		Description: "Load test intent",
 		Priority:    randomPriority(),
-		Parameters: json.RawMessage("{}"),
+		Parameters: json.RawMessage(`{}`),
 		Timestamp: time.Now(),
 	}
 
@@ -211,7 +211,7 @@ func sortInt64s(a []int64) {
 }
 
 // TestLoadScenarios runs various load test scenarios
-// DISABLED: func TestLoadScenarios(t *testing.T) {
+func TestLoadScenarios(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping load test in short mode")
 	}
@@ -366,3 +366,4 @@ func ExampleLoadTestReport() {
 	fmt.Println("  Memory Usage: 2.3GB")
 	fmt.Println("  Goroutines: 50")
 }
+

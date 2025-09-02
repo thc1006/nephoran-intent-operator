@@ -543,6 +543,6 @@ func (suite *ChaosTestSuite) monitorSystemDuringChaos(ctx context.Context) {
 	}
 }
 
-// DISABLED: func TestChaosTestSuite(t *testing.T) {
+func TestChaosTestSuite(t *testing.T) {
 	suite.Run(t, new(ChaosTestSuite))
 }

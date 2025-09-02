@@ -561,7 +561,7 @@ func detectCIEnvironment() bool {
 // GetRegressionMetrics returns current regression metrics for monitoring.
 
 func (rts *RegressionTestSuite) GetRegressionMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func (rts *RegressionTestSuite) getBaselineCount() int {
@@ -572,3 +572,4 @@ func (rts *RegressionTestSuite) getBaselineCount() int {
 
 	return len(baselines)
 }
+

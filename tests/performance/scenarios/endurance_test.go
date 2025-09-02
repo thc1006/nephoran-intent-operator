@@ -14,7 +14,7 @@ import (
 )
 
 // TestLongRunningStability tests system stability over extended periods
-// DISABLED: func TestLongRunningStability(t *testing.T) {
+func TestLongRunningStability(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -101,7 +101,7 @@ import (
 }
 
 // TestMemoryLeakDetection specifically tests for memory leaks
-// DISABLED: func TestMemoryLeakDetection(t *testing.T) {
+func TestMemoryLeakDetection(t *testing.T) {
 	ctx := context.Background()
 
 	// Run memory-intensive operations
@@ -152,7 +152,7 @@ import (
 }
 
 // TestGoroutineLeakDetection tests for goroutine leaks
-// DISABLED: func TestGoroutineLeakDetection(t *testing.T) {
+func TestGoroutineLeakDetection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	initialGoroutines := runtime.NumGoroutine()
 
@@ -207,7 +207,7 @@ import (
 }
 
 // TestResourceExhaustion tests system behavior under resource exhaustion
-// DISABLED: func TestResourceExhaustion(t *testing.T) {
+func TestResourceExhaustion(t *testing.T) {
 	ctx := context.Background()
 
 	scenarios := []struct {
@@ -272,7 +272,7 @@ import (
 }
 
 // TestPerformanceDegradation tests for gradual performance degradation
-// DISABLED: func TestPerformanceDegradation(t *testing.T) {
+func TestPerformanceDegradation(t *testing.T) {
 	ctx := context.Background()
 	suite := performance.NewBenchmarkSuite()
 

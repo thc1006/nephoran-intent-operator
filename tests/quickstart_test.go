@@ -13,7 +13,7 @@ import (
 )
 
 // TestQuickstartTutorial validates that the quickstart tutorial completes in under 15 minutes
-// DISABLED: func TestQuickstartTutorial(t *testing.T) {
+func TestQuickstartTutorial(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping quickstart test in short mode")
 	}
@@ -82,7 +82,7 @@ import (
 	if elapsed > maxDuration {
 		t.Errorf("Quickstart took %v, exceeding 15-minute target", elapsed)
 	} else {
-		t.Logf("✅ Quickstart completed in %v (under 15-minute target)", elapsed)
+		t.Logf("??Quickstart completed in %v (under 15-minute target)", elapsed)
 	}
 
 	// Run validation checks
@@ -97,7 +97,7 @@ import (
 }
 
 // TestQuickstartPrerequisites verifies all required tools are available
-// DISABLED: func TestQuickstartPrerequisites(t *testing.T) {
+func TestQuickstartPrerequisites(t *testing.T) {
 	requiredTools := []struct {
 		name    string
 		command string
@@ -117,14 +117,14 @@ import (
 			if err != nil {
 				t.Errorf("%s not found or not working: %v", tool.name, err)
 			} else {
-				t.Logf("✅ %s: %s", tool.name, strings.TrimSpace(string(output)))
+				t.Logf("??%s: %s", tool.name, strings.TrimSpace(string(output)))
 			}
 		})
 	}
 }
 
 // TestQuickstartSteps validates each step of the quickstart independently
-// DISABLED: func TestQuickstartSteps(t *testing.T) {
+func TestQuickstartSteps(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping detailed quickstart steps test in short mode")
 	}
@@ -187,7 +187,7 @@ import (
 				if elapsed > step.maxDuration {
 					t.Errorf("Step took %v, exceeding target of %v", elapsed, step.maxDuration)
 				} else {
-					t.Logf("✅ Completed in %v (target: %v)", elapsed, step.maxDuration)
+					t.Logf("??Completed in %v (target: %v)", elapsed, step.maxDuration)
 				}
 			case <-time.After(step.maxDuration + 30*time.Second):
 				t.Fatalf("Step timed out after %v", step.maxDuration)
@@ -350,7 +350,7 @@ func cleanupQuickstart(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Logf("Warning: Cleanup failed: %v", err)
 	} else {
-		t.Log("✅ Cleanup completed successfully")
+		t.Log("??Cleanup completed successfully")
 	}
 }
 
@@ -397,7 +397,7 @@ func BenchmarkQuickstart(b *testing.B) {
 }
 
 // TestQuickstartDocumentation ensures the QUICKSTART.md file is present and valid
-// DISABLED: func TestQuickstartDocumentation(t *testing.T) {
+func TestQuickstartDocumentation(t *testing.T) {
 	projectRoot := findProjectRoot(t)
 	quickstartPath := filepath.Join(projectRoot, "QUICKSTART.md")
 
@@ -438,5 +438,5 @@ func BenchmarkQuickstart(b *testing.B) {
 		}
 	}
 
-	t.Logf("✅ QUICKSTART.md validated (%d bytes, all required sections present)", info.Size())
+	t.Logf("??QUICKSTART.md validated (%d bytes, all required sections present)", info.Size())
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
-// DISABLED: func TestA1AdaptorPolicyTypeOperations(t *testing.T) {
+func TestA1AdaptorPolicyTypeOperations(t *testing.T) {
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -83,7 +83,7 @@ import (
 	})
 }
 
-// DISABLED: func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
+func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -92,7 +92,7 @@ import (
 			case http.MethodPut:
 				w.WriteHeader(http.StatusCreated)
 			case http.MethodGet:
-				json.NewEncoder(w).Encode(json.RawMessage("{}"){
+				json.NewEncoder(w).Encode(map[string]interface{}{
 						"latency_ms":      10,
 						"throughput_mbps": 100,
 					},
@@ -128,7 +128,7 @@ import (
 		instance := &A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1000,
-			PolicyData: json.RawMessage("{}"){
+			PolicyData: map[string]interface{}{
 					"latency_ms":      10,
 					"throughput_mbps": 100,
 				},
@@ -161,7 +161,7 @@ import (
 	})
 }
 
-// DISABLED: func TestA1AdaptorApplyPolicy(t *testing.T) {
+func TestA1AdaptorApplyPolicy(t *testing.T) {
 	// Track enforcement status
 	enforced := false
 
@@ -225,7 +225,7 @@ import (
 	assert.True(t, enforced)
 }
 
-// DISABLED: func TestA1AdaptorRemovePolicy(t *testing.T) {
+func TestA1AdaptorRemovePolicy(t *testing.T) {
 	deleted := false
 
 	// Create test server
@@ -269,7 +269,7 @@ import (
 	assert.True(t, deleted)
 }
 
-// DISABLED: func TestA1AdaptorNoPolicyScenarios(t *testing.T) {
+func TestA1AdaptorNoPolicyScenarios(t *testing.T) {
 	adaptor, err := NewA1Adaptor(nil)
 	require.NoError(t, err)
 
@@ -300,7 +300,7 @@ import (
 
 // Additional comprehensive tests for enhanced A1 adaptor functionality
 
-// DISABLED: func TestNewA1Adaptor_EnhancedFeatures(t *testing.T) {
+func TestNewA1Adaptor_EnhancedFeatures(t *testing.T) {
 	tests := []struct {
 		name   string
 		config *A1AdaptorConfig
@@ -337,7 +337,7 @@ import (
 	}
 }
 
-// DISABLED: func TestA1Adaptor_RetryMechanism(t *testing.T) {
+func TestA1Adaptor_RetryMechanism(t *testing.T) {
 	// Create server that fails first few times then succeeds
 	attemptCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -371,7 +371,7 @@ import (
 		PolicyTypeID: 1,
 		Name:         "Test Policy Type",
 		Description:  "Test retry mechanism",
-		PolicySchema: json.RawMessage("{}"),
+		PolicySchema: json.RawMessage(`{}`),
 	}
 
 	ctx := context.Background()
@@ -380,7 +380,7 @@ import (
 	assert.True(t, attemptCount >= 3, "Should have retried multiple times")
 }
 
-// DISABLED: func TestA1Adaptor_CircuitBreakerFunctionality(t *testing.T) {
+func TestA1Adaptor_CircuitBreakerFunctionality(t *testing.T) {
 	adaptor, err := NewA1Adaptor(nil)
 	require.NoError(t, err)
 
@@ -400,7 +400,7 @@ import (
 	assert.True(t, adaptor.circuitBreaker.IsClosed())
 }
 
-// DISABLED: func TestA1Adaptor_BackoffDelayCalculation(t *testing.T) {
+func TestA1Adaptor_BackoffDelayCalculation(t *testing.T) {
 	config := &A1AdaptorConfig{
 		RetryConfig: &RetryConfig{
 			InitialDelay:  1 * time.Second,
@@ -433,7 +433,7 @@ import (
 	}
 }
 
-// DISABLED: func TestA1Adaptor_BackoffDelayWithJitter(t *testing.T) {
+func TestA1Adaptor_BackoffDelayWithJitter(t *testing.T) {
 	config := &A1AdaptorConfig{
 		RetryConfig: &RetryConfig{
 			InitialDelay:  1 * time.Second,
@@ -462,7 +462,7 @@ import (
 	}
 }
 
-// DISABLED: func TestA1Adaptor_RetryableErrorDetection(t *testing.T) {
+func TestA1Adaptor_RetryableErrorDetection(t *testing.T) {
 	config := &A1AdaptorConfig{
 		RetryConfig: &RetryConfig{
 			RetryableErrors: []string{"connection refused", "timeout", "temporary failure"},
@@ -493,7 +493,7 @@ import (
 	}
 }
 
-// DISABLED: func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
+func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
 		assert.Contains(t, r.URL.Path, "/a1-p/policytypes/1/policies/policy-1")
@@ -510,7 +510,7 @@ import (
 	adaptor, err := NewA1Adaptor(config)
 	require.NoError(t, err)
 
-	policyData := json.RawMessage("{}")
+	policyData := json.RawMessage(`{}`)
 
 	ctx := context.Background()
 	err = adaptor.createPolicyInstanceWithRetry(ctx, 1, "policy-1", policyData)
@@ -528,7 +528,7 @@ import (
 	assert.Equal(t, "ENFORCED", cachedPolicyInstance.Status.EnforcementStatus)
 }
 
-// DISABLED: func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
+func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
 	// Server that always returns error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -569,7 +569,7 @@ import (
 	assert.False(t, exists)
 }
 
-// DISABLED: func TestA1Adaptor_ContextCancellation(t *testing.T) {
+func TestA1Adaptor_ContextCancellation(t *testing.T) {
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
 		RetryConfig: &RetryConfig{
 			MaxRetries:    5,
@@ -593,7 +593,7 @@ import (
 	assert.Contains(t, err.Error(), "context deadline exceeded")
 }
 
-// DISABLED: func TestA1Adaptor_NonRetryableErrorHandling(t *testing.T) {
+func TestA1Adaptor_NonRetryableErrorHandling(t *testing.T) {
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
 		RetryConfig: &RetryConfig{
 			MaxRetries:      3,
@@ -616,7 +616,7 @@ import (
 	assert.NotContains(t, err.Error(), "operation failed after")
 }
 
-// DISABLED: func TestA1Adaptor_ConcurrentPolicyAccess(t *testing.T) {
+func TestA1Adaptor_ConcurrentPolicyAccess(t *testing.T) {
 	adaptor, err := NewA1Adaptor(nil)
 	require.NoError(t, err)
 
@@ -657,18 +657,18 @@ import (
 	adaptor.mutex.RUnlock()
 }
 
-// DISABLED: func TestA1PolicyStructures(t *testing.T) {
+func TestA1PolicyStructures(t *testing.T) {
 	t.Run("A1PolicyType validation", func(t *testing.T) {
 		policyType := A1PolicyType{
 			PolicyTypeID: 1,
 			Name:         "Test Policy",
 			Description:  "A test policy type",
-			PolicySchema: json.RawMessage("{}"){
-					"param1": json.RawMessage("{}"),
+			PolicySchema: map[string]interface{}{
+					"param1": json.RawMessage(`{}`),
 				},
 				"required": []string{"param1"},
 			},
-			CreateSchema: json.RawMessage("{}"),
+			CreateSchema: json.RawMessage(`{}`),
 		}
 
 		assert.Equal(t, 1, policyType.PolicyTypeID)
@@ -683,7 +683,7 @@ import (
 		instance := A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1,
-			PolicyData: json.RawMessage("{}"),
+			PolicyData: json.RawMessage(`{}`),
 			Status: A1PolicyStatus{
 				EnforcementStatus: "ENFORCED",
 				EnforcementReason: "Policy applied successfully",
@@ -701,7 +701,7 @@ import (
 	})
 }
 
-// DISABLED: func TestRetryConfig_Structure(t *testing.T) {
+func TestRetryConfig_Structure(t *testing.T) {
 	config := &RetryConfig{
 		MaxRetries:      5,
 		InitialDelay:    2 * time.Second,
@@ -720,3 +720,4 @@ import (
 	assert.Contains(t, config.RetryableErrors, "error1")
 	assert.Contains(t, config.RetryableErrors, "error2")
 }
+

@@ -19,7 +19,7 @@ import (
 // Returns a legacy-format scaling intent with all required fields populated.
 // Uses stable, cross-platform-safe values.
 func generateValidIntent(t testing.TB) map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // generateValidIntentJSON creates a valid intent JSON string for testing
@@ -32,7 +32,7 @@ func generateValidIntentJSON(t testing.TB) string {
 
 // TestOnceModeProperDrainage verifies that once mode waits for all queued files
 // to be processed before shutting down, not just until the queue is populated
-// DISABLED: func TestOnceModeProperDrainage(t *testing.T) {
+func TestOnceModeProperDrainage(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create a simple mock porch with processing delay
@@ -82,7 +82,7 @@ func generateValidIntentJSON(t testing.TB) string {
 
 // TestOnceModeDoesNotExitPrematurely verifies that once mode doesn't exit
 // immediately after queuing files, but waits for actual processing
-// DISABLED: func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
+func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Track processing stages
@@ -143,7 +143,7 @@ func generateValidIntentJSON(t testing.TB) string {
 }
 
 // TestOnceModeWithEmptyDirectory verifies once mode handles empty directories correctly
-// DISABLED: func TestOnceModeWithEmptyDirectory(t *testing.T) {
+func TestOnceModeWithEmptyDirectory(t *testing.T) {
 	tempDir := t.TempDir()
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
 
@@ -164,7 +164,7 @@ func generateValidIntentJSON(t testing.TB) string {
 }
 
 // TestOnceModeQueueDrainageUnderLoad verifies the queue properly drains even with many files
-// DISABLED: func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
+func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 	tempDir := t.TempDir()
 
 	var processedCount int32
@@ -322,3 +322,4 @@ exit 0
 
 	return mockPath
 }
+

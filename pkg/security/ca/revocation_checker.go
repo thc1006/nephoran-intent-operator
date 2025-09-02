@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -1081,7 +1082,7 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 
 		rc.crlCache.mu.RLock()
 
-		stats["crl_cache"] = json.RawMessage("{}")
+		stats["crl_cache"] = json.RawMessage(`{}`)
 
 		rc.crlCache.mu.RUnlock()
 
@@ -1091,7 +1092,7 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 
 		rc.ocspCache.mu.RLock()
 
-		stats["ocsp_cache"] = json.RawMessage("{}")
+		stats["ocsp_cache"] = json.RawMessage(`{}`)
 
 		rc.ocspCache.mu.RUnlock()
 
@@ -1125,3 +1126,4 @@ func (rc *RevocationChecker) ClearCache() {
 
 	rc.logger.Info("revocation caches cleared")
 }
+

@@ -26,7 +26,7 @@ type LLMTestSuite struct {
 }
 
 // TestLLMComponents runs the LLM test suite
-// DISABLED: func TestLLMComponents(t *testing.T) {
+func TestLLMComponents(t *testing.T) {
 	suite.Run(t, &LLMTestSuite{
 		TestSuite: framework.NewTestSuite(nil),
 	})
@@ -61,7 +61,7 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 
 	// Setup standard successful response
 	llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-		json.RawMessage("{}"){
+		map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "1000m",
 					"memory": "2Gi",
@@ -71,7 +71,7 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 					"memory": "4Gi",
 				},
 			},
-			"config": json.RawMessage("{}"),
+			"config": json.RawMessage(`{}`),
 				"slice_support": []string{"eMBB", "URLLC"},
 			},
 		}, nil)
@@ -202,14 +202,14 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						Title:   "AMF Configuration Guide",
 						Content: "Access and Mobility Management Function configuration procedures...",
 						Source:  "3GPP TS 23.501",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 					{
 						ID:      "doc2",
 						Title:   "SMF Deployment",
 						Content: "Session Management Function deployment in Kubernetes...",
 						Source:  "O-RAN WG4",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 				}
 
@@ -230,14 +230,14 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						Title:   "Network Function Guide",
 						Content: "General network function information...",
 						Source:  "3GPP TS 23.501",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 					{
 						ID:      "doc2",
 						Title:   "Network Function Guide",
 						Content: "General network function information...",
 						Source:  "Blog Post",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 				}
 
@@ -258,19 +258,19 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						ID:      "doc1",
 						Content: "AMF configuration details for 5G SA networks...",
 						Source:  "3GPP TS 23.501",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 					{
 						ID:      "doc2",
 						Content: "SMF session management procedures...",
 						Source:  "3GPP TS 23.502",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 					{
 						ID:      "doc3",
 						Content: "Another AMF configuration example...",
 						Source:  "O-RAN WG4",
-						Metadata: json.RawMessage("{}"),
+						Metadata: json.RawMessage(`{}`),
 					},
 				}
 

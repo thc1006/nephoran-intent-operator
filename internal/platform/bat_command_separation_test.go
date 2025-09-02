@@ -13,7 +13,7 @@ import (
 
 // TestBatCommandSeparation validates that BAT script commands are properly separated
 // to prevent concatenation issues like '50echo' instead of proper command separation.
-// DISABLED: func TestBatCommandSeparation(t *testing.T) {
+func TestBatCommandSeparation(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("BAT script test only applies to Windows")
 	}

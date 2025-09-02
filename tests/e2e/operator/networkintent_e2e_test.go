@@ -513,7 +513,7 @@ func contains(s, substr string) bool {
 }
 
 // TestSuite runner function
-// DISABLED: func TestE2EOperatorTestSuite(t *testing.T) {
+func TestE2EOperatorTestSuite(t *testing.T) {
 	suite.Run(t, new(E2EOperatorTestSuite))
 }
 

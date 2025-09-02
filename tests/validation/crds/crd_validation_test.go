@@ -447,12 +447,12 @@ func (suite *CRDValidationTestSuite) TestValidation_GeneratedCRDConsistency() {
 }
 
 // TestSuite runner function
-// DISABLED: func TestCRDValidationTestSuite(t *testing.T) {
+func TestCRDValidationTestSuite(t *testing.T) {
 	suite.Run(t, new(CRDValidationTestSuite))
 }
 
 // Additional standalone CRD validation tests
-// DISABLED: func TestCRDValidation_NetworkIntentBasic(t *testing.T) {
+func TestCRDValidation_NetworkIntentBasic(t *testing.T) {
 	// Basic validation test that doesn't require CRD files
 	scheme := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(scheme)
@@ -473,7 +473,7 @@ func (suite *CRDValidationTestSuite) TestValidation_GeneratedCRDConsistency() {
 	assert.Equal(t, "nephoran.io/v1", intent.APIVersion)
 }
 
-// DISABLED: func TestCRDValidation_RequiredFields(t *testing.T) {
+func TestCRDValidation_RequiredFields(t *testing.T) {
 	// Test that required fields are properly defined
 	intent := &nephoranv1.NetworkIntent{}
 

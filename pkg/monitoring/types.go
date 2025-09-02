@@ -362,7 +362,7 @@ type MetricsCollector interface {
 	UpdateGitOpsSyncStatus(repository, branch string, inSync bool)
 
 	// System metrics
-	UpdateResourceUtilization(resourceType, unit string, value string)
+	UpdateResourceUtilization(resourceType, unit string, value float64)
 	UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration)
 
 	// Missing HTTP and streaming metrics methods

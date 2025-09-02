@@ -510,7 +510,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 
 			PolicyTypeID: "traffic-steering",
 
-			PolicyData: json.RawMessage("{}"),
+			PolicyData: json.RawMessage(`{}`),
 
 			Status: "ACTIVE",
 
@@ -621,7 +621,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 		Version: "1.0.0",
 
-		ConfigData: json.RawMessage("{}"),
+		ConfigData: json.RawMessage(`{}`),
 
 		Status: "RUNNING",
 
@@ -645,7 +645,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 		PolicyTypeID: "qoe-optimization",
 
-		PolicyData: json.RawMessage("{}"),
+		PolicyData: json.RawMessage(`{}`),
 
 		Status: "ACTIVE",
 
@@ -805,7 +805,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 			ServiceModel: "KPM",
 
-			EventTrigger: json.RawMessage("{}"),
+			EventTrigger: json.RawMessage(`{}`),
 
 			Actions: []E2Action{
 				{
@@ -813,7 +813,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 					ActionType: "REPORT",
 
-					Definition: json.RawMessage("{}"),
+					Definition: json.RawMessage(`{}`),
 				},
 			},
 
@@ -886,7 +886,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: json.RawMessage("{}"),
+			Capabilities: json.RawMessage(`{}`),
 
 				"granularityPeriods": []int{100, 1000, 10000},
 			},
@@ -901,7 +901,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"CONTROL", "POLICY"},
 
-			Capabilities: json.RawMessage("{}"),
+			Capabilities: json.RawMessage(`{}`),
 
 				"policyTypes": []string{"ADMISSION_CONTROL", "LOAD_BALANCING"},
 			},
@@ -916,7 +916,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: json.RawMessage("{}"),
+			Capabilities: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -980,7 +980,7 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 
 		ServiceModel: "KPM",
 
-		EventTrigger: json.RawMessage("{}"),
+		EventTrigger: json.RawMessage(`{}`),
 
 		Actions: []E2Action{
 			{
@@ -988,7 +988,7 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 
 				ActionType: "REPORT",
 
-				Definition: json.RawMessage("{}"),
+				Definition: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -1023,7 +1023,7 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 
 		ServiceModel: "RC",
 
-		EventTrigger: json.RawMessage("{}"),
+		EventTrigger: json.RawMessage(`{}`),
 
 		Actions: []E2Action{
 			{
@@ -1031,7 +1031,7 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 
 				ActionType: "CONTROL",
 
-				Definition: json.RawMessage("{}"){
+				Definition: json.RawMessage(`{}`){
 						"5qi": 1,
 
 						"arp": 1,
@@ -1070,7 +1070,7 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 
 		ServiceModel: "NI",
 
-		EventTrigger: json.RawMessage("{}"),
+		EventTrigger: json.RawMessage(`{}`),
 
 		Actions: []E2Action{
 			{
@@ -1078,7 +1078,7 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 
 				ActionType: "REPORT",
 
-				Definition: json.RawMessage("{}"),
+				Definition: json.RawMessage(`{}`),
 			},
 		},
 
@@ -1195,7 +1195,7 @@ func (oiv *ORANInterfaceValidator) testO1FaultManagement(ctx context.Context) bo
 
 		ElementType: "AMF",
 
-		Configuration: json.RawMessage("{}"){
+		Configuration: json.RawMessage(`{}`){
 				"enabled": true,
 
 				"severity": []string{"CRITICAL", "MAJOR", "MINOR"},
@@ -1240,7 +1240,7 @@ func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Con
 
 		ConfigType: "FCAPS",
 
-		ConfigData: json.RawMessage("{}"){
+		ConfigData: json.RawMessage(`{}`){
 				"collection_interval": "15m",
 
 				"counters": []string{
@@ -1307,16 +1307,16 @@ func (oiv *ORANInterfaceValidator) testO1PerformanceManagement(ctx context.Conte
 func (oiv *ORANInterfaceValidator) testO1SecurityManagement(ctx context.Context) bool {
 	// Test security configuration.
 
-	securityConfig := json.RawMessage("{}"){
+	securityConfig := json.RawMessage(`{}`){
 			"enabled": true,
 
 			"method": "certificate",
 		},
 
-		"authorization": json.RawMessage("{}"),
+		"authorization": json.RawMessage(`{}`),
 		},
 
-		"encryption": json.RawMessage("{}"),
+		"encryption": json.RawMessage(`{}`),
 	}
 
 	// Apply security configuration through SMO.
@@ -1384,8 +1384,8 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 
 	// Test YANG model validation.
 
-	yangModel := json.RawMessage("{}"){
-			"container": json.RawMessage("{}"){
+	yangModel := json.RawMessage(`{}`){
+			"container": json.RawMessage(`{}`){
 					{
 						"name": "ric-id",
 
@@ -1466,7 +1466,7 @@ func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{
 func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bool {
 	// Simulate NETCONF session establishment.
 
-	session := json.RawMessage("{}"),
+	session := json.RawMessage(`{}`),
 
 		"transport": "SSH",
 
@@ -1481,7 +1481,7 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 
 	// Test get operation.
 
-	getConfig := json.RawMessage("{}"){
+	getConfig := json.RawMessage(`{}`){
 			"type": "xpath",
 
 			"xpath": "/ric-config",
@@ -1490,18 +1490,18 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 
 	// Test edit-config operation.
 
-	editConfig := json.RawMessage("{}"){
-			"ric-config": json.RawMessage("{}"),
+	editConfig := json.RawMessage(`{}`){
+			"ric-config": json.RawMessage(`{}`),
 		},
 	}
 
 	// Test commit operation.
 
-	commit := json.RawMessage("{}")
+	commit := json.RawMessage(`{}`)
 
 	// Simulate NETCONF operations execution.
 
-	operations := []json.RawMessage("{}")
+	operations := []json.RawMessage(`{}`)
 
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {
@@ -1608,8 +1608,8 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context) bool {
 	// Test Terraform template generation.
 
-	terraformTemplate := json.RawMessage("{}"){
-			"required_providers": json.RawMessage("{}"){
+	terraformTemplate := json.RawMessage(`{}`){
+			"required_providers": json.RawMessage(`{}`){
 					"source": "hashicorp/kubernetes",
 
 					"version": "~> 2.0",
@@ -1617,8 +1617,8 @@ func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context)
 			},
 		},
 
-		"resource": json.RawMessage("{}"){
-				"upf_namespace": json.RawMessage("{}"){
+		"resource": json.RawMessage(`{}`){
+				"upf_namespace": json.RawMessage(`{}`){
 						"name": "upf-production",
 
 						"labels": map[string]string{
@@ -1630,11 +1630,11 @@ func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context)
 				},
 			},
 
-			"kubernetes_deployment": json.RawMessage("{}"){
-					"metadata": json.RawMessage("{}")",
+			"kubernetes_deployment": json.RawMessage(`{}`){
+					"metadata": json.RawMessage(`{}`)",
 					},
 
-					"spec": json.RawMessage("{}"){
+					"spec": json.RawMessage(`{}`){
 							"match_labels": map[string]string{
 								"app": "upf",
 							},
@@ -1685,7 +1685,7 @@ func (oiv *ORANInterfaceValidator) validateTerraformTemplate(template map[string
 func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context) bool {
 	// Test cloud provider configurations.
 
-	cloudProviders := []json.RawMessage("{}"){
+	cloudProviders := []json.RawMessage(`{}`){
 				"ec2_instances": 3,
 
 				"rds_instances": 1,
@@ -1699,7 +1699,7 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 
 			"region": "West US 2",
 
-			"resources": json.RawMessage("{}"),
+			"resources": json.RawMessage(`{}`),
 		},
 
 		{
@@ -1707,7 +1707,7 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 
 			"region": "us-west1",
 
-			"resources": json.RawMessage("{}"),
+			"resources": json.RawMessage(`{}`),
 		},
 	}
 
@@ -1753,7 +1753,7 @@ func (oiv *ORANInterfaceValidator) testResourceLifecycleManagement(ctx context.C
 
 	// Create resource.
 
-	resource := json.RawMessage("{}")
+	resource := json.RawMessage(`{}`)
 
 	// Simulate provisioning time.
 
@@ -1855,3 +1855,4 @@ func (oiv *ORANInterfaceValidator) Cleanup() {
 		oiv.e2MockService.Cleanup()
 	}
 }
+

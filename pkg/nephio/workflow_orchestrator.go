@@ -1261,7 +1261,7 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 
 	execution.BlueprintPackage = blueprint
 
-	phaseExec.Results = json.RawMessage("{}"){
+	phaseExec.Results = json.RawMessage(`{}`){
 			"name": blueprint.Name,
 
 			"repository": blueprint.Repository,
@@ -1365,7 +1365,7 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 
 	}
 
-	phaseExec.Results = json.RawMessage("{}")
+	phaseExec.Results = json.RawMessage(`{}`)
 
 	span.SetAttributes(
 
@@ -1443,7 +1443,7 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 	execution.Results.ValidationResults = validationResults
 
-	phaseExec.Results = json.RawMessage("{}")
+	phaseExec.Results = json.RawMessage(`{}`)
 
 	if len(validationErrors) > 0 {
 
@@ -1505,7 +1505,7 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 			}
 		}
 
-		phaseExec.Results = json.RawMessage("{}")
+		phaseExec.Results = json.RawMessage(`{}`)
 
 		return nil
 
@@ -1517,7 +1517,7 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 
 	logger.Info("Manual approval required", "variants", len(execution.PackageVariants))
 
-	phaseExec.Results = json.RawMessage("{}")
+	phaseExec.Results = json.RawMessage(`{}`)
 
 	// For now, we'll simulate approval.
 
@@ -1626,7 +1626,7 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 	execution.Results.DeploymentResults = deploymentResults
 
-	phaseExec.Results = json.RawMessage("{}")
+	phaseExec.Results = json.RawMessage(`{}`)
 
 	logger.Info("Deployment phase completed",
 
@@ -1685,7 +1685,7 @@ func (nwo *NephioWorkflowOrchestrator) executeMonitoringPhase(ctx context.Contex
 
 	execution.Results.ClusterHealth = clusterHealthMap
 
-	phaseExec.Results = json.RawMessage("{}")
+	phaseExec.Results = json.RawMessage(`{}`)
 
 	logger.Info("Monitoring phase completed",
 
@@ -1742,7 +1742,7 @@ func (nwo *NephioWorkflowOrchestrator) executeRollbackPhase(ctx context.Context,
 
 	}
 
-	phaseExec.Results = json.RawMessage("{}")
+	phaseExec.Results = json.RawMessage(`{}`)
 
 	logger.Info("Rollback phase completed", "rolledBack", rollbackCount)
 
@@ -1864,7 +1864,7 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 		pr := execution.PackageVariants[0].PackageRevision
 
-		_ = json.RawMessage("{}")
+		_ = json.RawMessage(`{}`)
 
 		packageInfoJSON := fmt.Sprintf(`{"repository":"%s","packageName":"%s","revision":"%s"}`, pr.Spec.Repository, pr.Spec.PackageName, pr.Spec.Revision)
 
@@ -1876,12 +1876,12 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	if len(execution.Deployments) > 0 {
 
-		deploymentInfo := json.RawMessage("{}"), 0, len(execution.Deployments)),
+		deploymentInfo := json.RawMessage(`{}`), 0, len(execution.Deployments)),
 		}
 
 		for _, deployment := range execution.Deployments {
 
-			target := json.RawMessage("{}")
+			target := json.RawMessage(`{}`)
 
 			deploymentInfo["targets"] = append(deploymentInfo["targets"].([]map[string]interface{}), target)
 
@@ -1901,3 +1901,4 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	return nwo.client.Status().Update(ctx, intent)
 }
+

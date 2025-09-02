@@ -814,7 +814,7 @@ func (m *MTLSMonitor) checkCertificateExpiryAlert(rule *AlertRule) *Alert {
 
 				Timestamp: time.Now(),
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 			}
 		}
 	}
@@ -841,7 +841,7 @@ func (m *MTLSMonitor) checkConnectionFailureAlert(rule *AlertRule) *Alert {
 
 			Timestamp: time.Now(),
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 	}
 
@@ -992,3 +992,4 @@ type CertificateStats struct {
 
 	RoleCounts map[ServiceRole]int `json:"role_counts"`
 }
+

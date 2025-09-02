@@ -29,7 +29,7 @@ type ControllerTestSuite struct {
 }
 
 // TestControllers runs the controller test suite
-// DISABLED: func TestControllers(t *testing.T) {
+func TestControllers(t *testing.T) {
 	suite.Run(t, &ControllerTestSuite{
 		TestSuite: framework.NewTestSuite(nil),
 	})
@@ -48,7 +48,7 @@ func (suite *ControllerTestSuite) setupControllerMocks() {
 	// Setup LLM mock responses
 	llmMock := suite.GetMocks().GetLLMMock()
 	llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-		json.RawMessage("{}"){
+		map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "1000m",
 					"memory": "2Gi",
@@ -123,7 +123,7 @@ func (suite *ControllerTestSuite) TestNetworkIntentController() {
 				llmMock := suite.GetMocks().GetLLMMock()
 				llmMock.ExpectedCalls = nil // Reset expectations
 				llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-					json.RawMessage("{}"), fmt.Errorf("LLM service unavailable"))
+					json.RawMessage(`{}`), fmt.Errorf("LLM service unavailable"))
 
 				// Create the NetworkIntent
 				err := suite.GetK8sClient().Create(ctx, intent)

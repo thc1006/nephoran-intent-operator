@@ -672,6 +672,20 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 
 		if strings.Contains(notificationXML, "<notification") {
 
+			dataMap := make(map[string]interface{})
+
+			// Extract basic event data (in production, implement proper XML parsing).
+			if strings.Contains(notificationXML, "alarm") {
+				dataMap["event_type"] = "alarm"
+			} else if strings.Contains(notificationXML, "config-change") {
+				dataMap["event_type"] = "config-change"
+			}
+
+			dataJSON, err := json.Marshal(dataMap)
+			if err != nil {
+				continue
+			}
+
 			event := &NetconfEvent{
 				Type: "notification",
 
@@ -681,15 +695,7 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 
 				XML: notificationXML,
 
-				Data: make(map[string]interface{}),
-			}
-
-			// Extract basic event data (in production, implement proper XML parsing).
-
-			if strings.Contains(notificationXML, "alarm") {
-				event.Data["event_type"] = "alarm"
-			} else if strings.Contains(notificationXML, "config-change") {
-				event.Data["event_type"] = "config-change"
+				Data: json.RawMessage(dataJSON),
 			}
 
 			callback(event)

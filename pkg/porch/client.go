@@ -141,7 +141,7 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 	url := fmt.Sprintf("%s/api/v1/proposals", c.baseURL)
 
-	body := json.RawMessage("{}")
+	body := json.RawMessage(`{}`)
 
 	data, err := json.Marshal(body)
 	if err != nil {
@@ -342,7 +342,7 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 	for path, content := range overlays {
 
-		body := json.RawMessage("{}")
+		body := json.RawMessage(`{}`)
 
 		data, err := json.Marshal(body)
 		if err != nil {
@@ -473,3 +473,4 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 func isNotFound(err error) bool {
 	return err != nil && err.Error() == "package not found"
 }
+

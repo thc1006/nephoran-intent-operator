@@ -117,8 +117,8 @@ func ExamplePorchClientUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: json.RawMessage("{}"),
-					Data: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
+					Data: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -201,14 +201,14 @@ data:
 	functionReq := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-			ConfigMap: json.RawMessage("{}"),
+			ConfigMap: json.RawMessage(`{}`),
 		},
 		Resources: []KRMResource{
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: json.RawMessage("{}"),
-				Data: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -311,13 +311,13 @@ func ExampleAdvancedUsage() error {
 				},
 				{
 					Image: "gcr.io/kpt-fn/apply-replacements:v0.1.1",
-					ConfigMap: json.RawMessage("{}"){
-							json.RawMessage("{}"){
-									"objref": json.RawMessage("{}"),
+					ConfigMap: json.RawMessage(`{}`){
+							json.RawMessage(`{}`){
+									"objref": json.RawMessage(`{}`),
 									"fieldref": "data.app-name",
 								},
 								"targets": []interface{}{
-									json.RawMessage("{}"){
+									json.RawMessage(`{}`){
 											"kind": "Deployment",
 										},
 										"fieldPaths": []string{"metadata.name"},
@@ -332,22 +332,22 @@ func ExampleAdvancedUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: json.RawMessage("{}"),
-					Data: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
+					Data: json.RawMessage(`{}`),
 				},
 				{
 					APIVersion: "apps/v1",
 					Kind:       "Deployment",
-					Metadata: json.RawMessage("{}"),
-					Spec: json.RawMessage("{}"){
-							"matchLabels": json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
+					Spec: json.RawMessage(`{}`){
+							"matchLabels": json.RawMessage(`{}`),
 						},
-						"template": json.RawMessage("{}"){
-								"labels": json.RawMessage("{}"),
+						"template": json.RawMessage(`{}`){
+								"labels": json.RawMessage(`{}`),
 							},
-							"spec": json.RawMessage("{}"){
-									json.RawMessage("{}"){
-											json.RawMessage("{}"),
+							"spec": json.RawMessage(`{}`){
+									json.RawMessage(`{}`){
+											json.RawMessage(`{}`),
 										},
 									},
 								},
@@ -420,12 +420,12 @@ func ExampleWorkflowUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "Service",
-					Metadata: json.RawMessage("{}"),
-					Spec: json.RawMessage("{}"){
+					Metadata: json.RawMessage(`{}`),
+					Spec: json.RawMessage(`{}`){
 							"app": "example",
 						},
 						"ports": []interface{}{
-							json.RawMessage("{}"),
+							json.RawMessage(`{}`),
 						},
 					},
 				},
@@ -487,3 +487,4 @@ func ExampleWorkflowUsage() error {
 	fmt.Println("Workflow example completed successfully!")
 	return nil
 }
+

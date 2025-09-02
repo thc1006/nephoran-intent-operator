@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestValidator(t *testing.T) {
+func TestValidator(t *testing.T) {
 	// Create temporary schema file
 	tempDir := t.TempDir()
 	schemaPath := filepath.Join(tempDir, "test-schema.json")
@@ -123,7 +123,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidatorReload(t *testing.T) {
+func TestValidatorReload(t *testing.T) {
 	// Create temporary schema file
 	tempDir := t.TempDir()
 	schemaPath := filepath.Join(tempDir, "reload-schema.json")
@@ -186,7 +186,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidatorConcurrency(t *testing.T) {
+func TestValidatorConcurrency(t *testing.T) {
 	// Create temporary schema file
 	tempDir := t.TempDir()
 	schemaPath := filepath.Join(tempDir, "concurrent-schema.json")

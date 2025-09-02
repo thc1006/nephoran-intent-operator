@@ -445,7 +445,7 @@ func SetupDefaultProviders(config *O2IMSConfig) {
 
 			Status: "ACTIVE",
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 
 			CreatedAt: time.Now(),
 
@@ -520,3 +520,4 @@ func TestConfiguration() *O2IMSConfig {
 
 	return config
 }
+

@@ -787,7 +787,7 @@ func (m *MetricsCollector) GetAllMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Supporting data structures.
@@ -813,3 +813,4 @@ type WorkerStatus struct {
 
 	Started bool `json:"started"`
 }
+

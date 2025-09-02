@@ -666,13 +666,13 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 	// Configure storage if specified.
 
 	if cnf.Spec.Resources.Storage != nil {
-		config["persistence"] = json.RawMessage("{}")
+		config["persistence"] = json.RawMessage(`{}`)
 	}
 
 	// Configure DPDK if specified.
 
 	if cnf.Spec.Resources.DPDK != nil && cnf.Spec.Resources.DPDK.Enabled {
-		config["dpdk"] = json.RawMessage("{}")
+		config["dpdk"] = json.RawMessage(`{}`)
 	}
 
 	// Configure hugepages if specified.
@@ -1063,13 +1063,13 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage("{}"){
+		DefaultValues: json.RawMessage(`{}`){
 				"repository": "5gc/smf",
 
 				"tag": "latest",
 			},
 
-			"service": json.RawMessage("{}"){
+			"service": json.RawMessage(`{}`){
 					"sbi": 8080,
 				},
 			},
@@ -1139,20 +1139,20 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage("{}"){
+		DefaultValues: json.RawMessage(`{}`){
 				"repository": "5gc/upf",
 
 				"tag": "latest",
 			},
 
-			"service": json.RawMessage("{}"){
+			"service": json.RawMessage(`{}`){
 					"pfcp": 8805,
 
 					"gtpu": 2152,
 				},
 			},
 
-			"dpdk": json.RawMessage("{}"),
+			"dpdk": json.RawMessage(`{}`),
 		},
 
 		RequiredConfigs: []string{"dnn", "pfcpAddress", "gtpuAddress"},
@@ -1231,13 +1231,13 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage("{}"){
+		DefaultValues: json.RawMessage(`{}`){
 				"repository": "oran/near-rt-ric",
 
 				"tag": "latest",
 			},
 
-			"service": json.RawMessage("{}"){
+			"service": json.RawMessage(`{}`){
 					"a1": 10000,
 
 					"e2": 36421,
@@ -1307,13 +1307,13 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage("{}"){
+		DefaultValues: json.RawMessage(`{}`){
 				"repository": "oran/o-du",
 
 				"tag": "latest",
 			},
 
-			"service": json.RawMessage("{}"){
+			"service": json.RawMessage(`{}`){
 					"f1": 38472,
 
 					"e2": 36421,
@@ -1399,13 +1399,13 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage("{}"){
+		DefaultValues: json.RawMessage(`{}`){
 				"repository": "edge/ue-simulator",
 
 				"tag": "latest",
 			},
 
-			"ues": json.RawMessage("{}"),
+			"ues": json.RawMessage(`{}`),
 		},
 
 		RequiredConfigs: []string{"amfAddress", "gnbAddress"},
@@ -1441,3 +1441,4 @@ func (c *CNFOrchestrator) applyManifest(ctx context.Context, manifest client.Obj
 
 	return nil
 }
+

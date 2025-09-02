@@ -521,7 +521,7 @@ func (x *KMPMonitorXApp) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	metrics := x.sdk.GetMetrics()
 
-	health := json.RawMessage("{}"){
+	health := json.RawMessage(`{}`){
 
 			"subscriptions_active": metrics.SubscriptionsActive,
 
@@ -593,7 +593,7 @@ func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	config := x.sdk.GetConfig()
 
-	info := json.RawMessage("{}")
+	info := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -602,3 +602,4 @@ func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // Note: Helper functions have been moved to pkg/config/env_helpers.go.
+

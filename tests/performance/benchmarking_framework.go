@@ -658,7 +658,7 @@ func (bf *BenchmarkFramework) collectEnvironmentInfo() EnvironmentInfo {
 		CPUCores:     runtime.NumCPU(),
 		Memory:       int64(memStats.Sys / 1024 / 1024), // MB
 		GoVersion:    runtime.Version(),
-		Configuration: json.RawMessage("{}"),
+		Configuration: json.RawMessage(`{}`),
 	}
 }
 
@@ -775,3 +775,4 @@ func GetDefaultBenchmarkConfig() *BenchmarkConfig {
 		},
 	}
 }
+

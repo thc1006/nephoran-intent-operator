@@ -24,7 +24,7 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
-// DISABLED: func TestNewClient(t *testing.T) {
+func TestNewClient(t *testing.T) {
 	tests := []struct {
 		name  string
 		store CredentialStore
@@ -52,7 +52,7 @@ import (
 	}
 }
 
-// DISABLED: func TestClient_Login(t *testing.T) {
+func TestClient_Login(t *testing.T) {
 	tests := []struct {
 		name    string
 		config  *LoginConfig
@@ -98,7 +98,7 @@ import (
 	}
 }
 
-// DISABLED: func TestClient_LoginWithToken(t *testing.T) {
+func TestClient_LoginWithToken(t *testing.T) {
 	client := NewClient(nil)
 
 	err := client.LoginWithToken(context.Background(), "docker.io", "testtoken")
@@ -107,7 +107,7 @@ import (
 	}
 }
 
-// DISABLED: func TestClient_GetAuthClient(t *testing.T) {
+func TestClient_GetAuthClient(t *testing.T) {
 	client := NewClient(nil)
 	authClient := client.GetAuthClient()
 
@@ -120,7 +120,7 @@ import (
 	}
 }
 
-// DISABLED: func TestClient_IsLoggedIn(t *testing.T) {
+func TestClient_IsLoggedIn(t *testing.T) {
 	client := NewClient(nil)
 
 	// With no credential store, should return false
@@ -133,7 +133,7 @@ import (
 	}
 }
 
-// DISABLED: func TestClient_GetCredential(t *testing.T) {
+func TestClient_GetCredential(t *testing.T) {
 	client := NewClient(nil)
 
 	// With no credential store, should return error
@@ -143,7 +143,7 @@ import (
 	}
 }
 
-// DISABLED: func TestDefaultCredentialStore(t *testing.T) {
+func TestDefaultCredentialStore(t *testing.T) {
 	store := DefaultCredentialStore()
 	if store == nil {
 		t.Errorf("DefaultCredentialStore() returned nil store")
@@ -178,7 +178,7 @@ func (m *mockCredStore) Delete(ctx context.Context, serverURL string) error {
 	return nil
 }
 
-// DISABLED: func TestClientWithMockStore(t *testing.T) {
+func TestClientWithMockStore(t *testing.T) {
 	mockStore := newMockCredStore()
 	client := NewClient(mockStore)
 

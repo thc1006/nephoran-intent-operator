@@ -36,7 +36,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	return jwtManagerMock, sessionManager, rbacManager
 }
 
-// DISABLED: func TestAuthHandlers_Login(t *testing.T) {
+func TestAuthHandlers_Login(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -72,7 +72,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Valid login request",
 			method: "POST",
 			path:   "/auth/login",
-			body: json.RawMessage("{}"),
+			body: json.RawMessage(`{}`),
 			expectStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -86,7 +86,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Login with PKCE",
 			method: "POST",
 			path:   "/auth/login",
-			body: json.RawMessage("{}"),
+			body: json.RawMessage(`{}`),
 			expectStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -101,7 +101,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Missing provider",
 			method: "POST",
 			path:   "/auth/login",
-			body: json.RawMessage("{}"),
+			body: json.RawMessage(`{}`),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -114,7 +114,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Invalid provider",
 			method: "POST",
 			path:   "/auth/login",
-			body: json.RawMessage("{}"),
+			body: json.RawMessage(`{}`),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -127,7 +127,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Invalid redirect URI",
 			method: "POST",
 			path:   "/auth/login",
-			body: json.RawMessage("{}"),
+			body: json.RawMessage(`{}`),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -181,7 +181,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	}
 }
 
-// DISABLED: func TestAuthHandlers_Callback(t *testing.T) {
+func TestAuthHandlers_Callback(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -327,7 +327,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	}
 }
 
-// DISABLED: func TestAuthHandlers_RefreshToken(t *testing.T) {
+func TestAuthHandlers_RefreshToken(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -433,7 +433,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	}
 }
 
-// DISABLED: func TestAuthHandlers_Logout(t *testing.T) {
+func TestAuthHandlers_Logout(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -557,7 +557,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	}
 }
 
-// DISABLED: func TestAuthHandlers_UserInfo(t *testing.T) {
+func TestAuthHandlers_UserInfo(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -646,7 +646,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	}
 }
 
-// DISABLED: func TestAuthHandlers_HealthCheck_DISABLED(t *testing.T) {
+func TestAuthHandlers_HealthCheck_DISABLED(t *testing.T) {
 	t.Skip("HealthCheckHandler method not available in current implementation")
 	/*
 		tc := authtestutil.NewTestContext(t)
@@ -717,7 +717,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	*/
 }
 
-// DISABLED: func TestAuthHandlers_JWKS_DISABLED(t *testing.T) {
+func TestAuthHandlers_JWKS_DISABLED(t *testing.T) {
 	t.Skip("JWKSHandler method not available in current implementation")
 	/*
 		tc := authtestutil.NewTestContext(t)
@@ -760,7 +760,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	*/
 }
 
-// DISABLED: func TestAuthHandlers_ErrorHandling(t *testing.T) {
+func TestAuthHandlers_ErrorHandling(t *testing.T) {
 	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -835,7 +835,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 	}
 }
 
-// DISABLED: func TestAuthHandlers_CSRF_DISABLED(t *testing.T) {
+func TestAuthHandlers_CSRF_DISABLED(t *testing.T) {
 	t.Skip("CSRF functionality not available in current implementation")
 	/*
 		tc := authtestutil.NewTestContext(t)
@@ -983,7 +983,7 @@ func BenchmarkAuthHandlers_JWKS_DISABLED(b *testing.B) {
 }
 
 // Integration test with real HTTP server
-// DISABLED: func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
+func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 	t.Skip("Integration test disabled due to missing handler methods")
 	/*
 		tc := authtestutil.NewTestContext(t)
@@ -1041,3 +1041,4 @@ func BenchmarkAuthHandlers_JWKS_DISABLED(b *testing.B) {
 		assert.Contains(t, jwks, "keys")
 	*/
 }
+

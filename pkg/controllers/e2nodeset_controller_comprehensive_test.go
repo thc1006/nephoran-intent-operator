@@ -22,7 +22,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
-// DISABLED: func TestE2NodeSetController_Reconcile(t *testing.T) {
+func TestE2NodeSetController_Reconcile(t *testing.T) {
 	testCases := []struct {
 		name            string
 		e2nodeSet       *nephoranv1.E2NodeSet
@@ -399,7 +399,7 @@ import (
 	}
 }
 
-// DISABLED: func TestE2NodeSetController_EdgeCases(t *testing.T) {
+func TestE2NodeSetController_EdgeCases(t *testing.T) {
 	testCases := []struct {
 		name          string
 		setup         func() (*E2NodeSetReconciler, *nephoranv1.E2NodeSet, context.Context)
@@ -500,7 +500,7 @@ import (
 	}
 }
 
-// DISABLED: func TestE2NodeSetController_ConcurrentUpdates(t *testing.T) {
+func TestE2NodeSetController_ConcurrentUpdates(t *testing.T) {
 	// Test to ensure controller handles concurrent updates properly
 	s := scheme.Scheme
 	err := nephoranv1.AddToScheme(s)
@@ -575,7 +575,7 @@ import (
 	assert.Contains(t, finalE2NodeSet.Finalizers, E2NodeSetFinalizer, "Finalizer should be present")
 }
 
-// DISABLED: func TestE2NodeSetController_FinalizerHandling(t *testing.T) {
+func TestE2NodeSetController_FinalizerHandling(t *testing.T) {
 	testCases := []struct {
 		name               string
 		initialState       *nephoranv1.E2NodeSet

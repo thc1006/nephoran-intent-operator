@@ -304,7 +304,7 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 			Raw: []byte(`{"replicas": 1, "image": "nginx:latest"}`),
 		},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	resource, err := service.CreateResource(ctx, createReq)
@@ -360,7 +360,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 			MinMemory: "512Mi",
 		},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	_, err := manager.ProvisionResource(ctx, provisionReq)
@@ -439,7 +439,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error {
 	// Register additional cloud provider - using map for compatibility with interface{}.
 
-	awsProvider := json.RawMessage("{}"){
+	awsProvider := json.RawMessage(`{}`){
 			"access_key_id": "example-key",
 
 			"secret_access_key": "example-secret",
@@ -449,7 +449,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 
 		"status": "ACTIVE",
 
-		"properties": json.RawMessage("{}"),
+		"properties": json.RawMessage(`{}`),
 
 			"storage_types": []string{"gp2", "gp3", "io1"},
 		},
@@ -597,7 +597,7 @@ func RESTAPIClientExample() {
 
 			description: "Create resource pool",
 
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 		},
 
 		{
@@ -615,7 +615,7 @@ func RESTAPIClientExample() {
 
 			description: "Create resource",
 
-			payload: json.RawMessage("{}"){
+			payload: json.RawMessage(`{}`){
 					"replicas": 1,
 
 					"image": "nginx:latest",
@@ -814,3 +814,4 @@ func ComplianceExample() {
 func int32Ptr(i int32) *int32 {
 	return &i
 }
+

@@ -489,8 +489,8 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(k8sClient.Create(ctx, netconfIntent)).To(Succeed())
 
 				By("Testing YANG model validation")
-				yangModel := json.RawMessage("{}"){
-						"container": json.RawMessage("{}"){
+				yangModel := map[string]interface{}{
+						"container": map[string]interface{}{
 								{
 									"name":      "ric-id",
 									"type":      "string",
@@ -520,7 +520,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 			It("should handle NETCONF session management", func() {
 				By("Testing NETCONF session capabilities")
-				session := json.RawMessage("{}"),
+				session := json.RawMessage(`{}`),
 					"transport": "SSH",
 					"status":    "active",
 				}
@@ -544,15 +544,15 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(k8sClient.Create(ctx, cloudIntent)).To(Succeed())
 
 				By("Testing Infrastructure as Code template generation")
-				terraformTemplate := json.RawMessage("{}"){
-						"required_providers": json.RawMessage("{}"){
+				terraformTemplate := map[string]interface{}{
+						"required_providers": map[string]interface{}{
 								"source":  "hashicorp/kubernetes",
 								"version": "~> 2.0",
 							},
 						},
 					},
-					"resource": json.RawMessage("{}"){
-							"upf_namespace": json.RawMessage("{}"){
+					"resource": map[string]interface{}{
+							"upf_namespace": map[string]interface{}{
 									"name": "upf-production",
 									"labels": map[string]string{
 										"app.kubernetes.io/name":      "upf",
@@ -569,7 +569,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(isValid).To(BeTrue())
 
 				By("Testing multi-cloud provider configurations")
-				cloudProviders := []json.RawMessage("{}"){
+				cloudProviders := []map[string]interface{}{
 							"ec2_instances": 3,
 							"rds_instances": 1,
 							"s3_buckets":    2,
@@ -578,12 +578,12 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					{
 						"provider": "azure",
 						"region":   "West US 2",
-						"resources": json.RawMessage("{}"),
+						"resources": json.RawMessage(`{}`),
 					},
 					{
 						"provider": "gcp",
 						"region":   "us-west1",
-						"resources": json.RawMessage("{}"),
+						"resources": json.RawMessage(`{}`),
 					},
 				}
 
@@ -594,7 +594,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				}
 
 				By("Testing resource lifecycle management")
-				resource := json.RawMessage("{}")
+				resource := json.RawMessage(`{}`)
 
 				By("Simulating resource lifecycle operations")
 				// Provisioning
@@ -783,3 +783,4 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 		Expect(finalScore).To(BeNumerically(">=", targetScore-1), "Should achieve near-complete O-RAN compliance")
 	})
 })
+

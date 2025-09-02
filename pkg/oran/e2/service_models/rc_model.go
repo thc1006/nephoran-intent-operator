@@ -393,9 +393,9 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: json.RawMessage("{}"),
+		ControlHeader: json.RawMessage(`{}`),
 
-		ControlMessage: json.RawMessage("{}"),
+		ControlMessage: json.RawMessage(`{}`),
 
 		ControlAckRequest: true,
 	}
@@ -499,9 +499,9 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: json.RawMessage("{}"),
+		ControlHeader: json.RawMessage(`{}`),
 
-		ControlMessage: json.RawMessage("{}"),
+		ControlMessage: json.RawMessage(`{}`),
 
 		ControlAckRequest: true,
 	}
@@ -584,9 +584,9 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: json.RawMessage("{}"),
+		ControlHeader: json.RawMessage(`{}`),
 
-		ControlMessage: json.RawMessage("{}"),
+		ControlMessage: json.RawMessage(`{}`),
 
 		ControlAckRequest: true,
 	}
@@ -668,9 +668,9 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: json.RawMessage("{}"),
+		ControlHeader: json.RawMessage(`{}`),
 
-		ControlMessage: json.RawMessage("{}"),
+		ControlMessage: json.RawMessage(`{}`),
 
 		ControlAckRequest: true,
 	}
@@ -693,3 +693,4 @@ func (rc *RCServiceModel) GetSupportedControlTypes() []RCControlType {
 		RCControlTypeRadioResourceAlloc,
 	}
 }
+

@@ -415,7 +415,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 
 		Priority: priority,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Submit provisioning request.
@@ -642,7 +642,7 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 		ServiceNamespace: certAutomation.Spec.Namespace,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	resp := r.AutomationEngine.ProcessManualRequest(ctx, req)
@@ -784,3 +784,4 @@ func (r *CertificateAutomationReconciler) findCertificateAutomationsForService(c
 
 	return requests
 }
+

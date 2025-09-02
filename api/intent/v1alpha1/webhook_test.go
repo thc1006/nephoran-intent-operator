@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DISABLED: func TestWebhookValidation(t *testing.T) {
+func TestWebhookValidation(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "NetworkIntent Webhook Suite")
 }

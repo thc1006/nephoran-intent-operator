@@ -194,7 +194,7 @@ func BenchmarkOptimizeNetworkDeployment(b *testing.B) {
 				ID:          "test-intent",
 				Description: "Benchmark test intent",
 				Priority:    "high",
-				Parameters: json.RawMessage("{}"),
+				Parameters: json.RawMessage(`{}`),
 			}
 
 			ctx := context.Background()
@@ -453,3 +453,4 @@ func BenchmarkConfidenceScoreCalculation(b *testing.B) {
 		_ = engine.calculateConfidenceScore(recommendations)
 	}
 }
+

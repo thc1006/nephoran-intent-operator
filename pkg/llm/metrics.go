@@ -4,6 +4,7 @@
 package llm
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -418,7 +419,7 @@ func (mc *MetricsCollector) GetAllCircuitBreakerMetrics() map[string]*CircuitMet
 // GetComprehensiveMetrics returns all metrics in a single structure.
 
 func (mc *MetricsCollector) GetComprehensiveMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // Reset resets all metrics.
@@ -557,12 +558,17 @@ func (mc *MetricsCollector) GetHealthStatus() map[string]interface{} {
 	}
 
 	status := "healthy"
-
 	if !healthy {
 		status = "unhealthy"
 	}
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"status": status,
+		"healthy": healthy,
+		"issues": issues,
+		"error_rate": globalMetrics.ErrorRate,
+		"average_response_time": globalMetrics.AverageResponseTime,
+	}
 }
 
 // ExportPrometheusMetrics exports metrics in Prometheus format (placeholder).

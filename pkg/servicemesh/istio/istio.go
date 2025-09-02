@@ -394,7 +394,7 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 		portLevelMtls := make(map[string]interface{})
 
 		for _, portMtls := range policy.Spec.PortLevelMTLS {
-			portLevelMtls[fmt.Sprintf("%d", portMtls.Port)] = json.RawMessage("{}")
+			portLevelMtls[fmt.Sprintf("%d", portMtls.Port)] = json.RawMessage(`{}`)
 		}
 
 		peerAuth.Object["spec"].(map[string]interface{})["portLevelMtls"] = portLevelMtls
@@ -485,7 +485,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 		for _, dest := range policy.Spec.TrafficShifting.Destinations {
 
-			route := json.RawMessage("{}"){
+			route := json.RawMessage(`{}`){
 					"host": dest.Service,
 				},
 
@@ -496,7 +496,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 				route["destination"].(map[string]interface{})["subset"] = dest.Version
 			}
 
-			http = append(http, json.RawMessage("{}"){route},
+			http = append(http, json.RawMessage(`{}`){route},
 			})
 
 		}
@@ -508,13 +508,13 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 	// Create DestinationRule for circuit breaker, load balancing, etc.
 
 	dr := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
+		Object: json.RawMessage(`{}`){
 				"name": policy.Name + "-dr",
 
 				"namespace": policy.Namespace,
 			},
 
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		},
 	}
 
@@ -524,12 +524,12 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 	if policy.Spec.CircuitBreaker != nil {
 
-		trafficPolicy["connectionPool"] = json.RawMessage("{}"){
+		trafficPolicy["connectionPool"] = json.RawMessage(`{}`){
 				"maxConnections": 100,
 			},
 		}
 
-		trafficPolicy["outlierDetection"] = json.RawMessage("{}")
+		trafficPolicy["outlierDetection"] = json.RawMessage(`{}`)
 
 	}
 
@@ -540,7 +540,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 		if vs.Object["spec"].(map[string]interface{})["http"] != nil {
 			for _, http := range vs.Object["spec"].(map[string]interface{})["http"].([]interface{}) {
-				http.(map[string]interface{})["retries"] = json.RawMessage("{}")
+				http.(map[string]interface{})["retries"] = json.RawMessage(`{}`)
 			}
 		}
 	}
@@ -564,20 +564,20 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 		case "round-robin":
 
-			trafficPolicy["loadBalancer"] = json.RawMessage("{}")
+			trafficPolicy["loadBalancer"] = json.RawMessage(`{}`)
 
 		case "least-conn":
 
-			trafficPolicy["loadBalancer"] = json.RawMessage("{}")
+			trafficPolicy["loadBalancer"] = json.RawMessage(`{}`)
 
 		case "random":
 
-			trafficPolicy["loadBalancer"] = json.RawMessage("{}")
+			trafficPolicy["loadBalancer"] = json.RawMessage(`{}`)
 
 		case "consistent-hash":
 
 			if policy.Spec.LoadBalancer.ConsistentHash != nil {
-				trafficPolicy["loadBalancer"] = json.RawMessage("{}"){
+				trafficPolicy["loadBalancer"] = json.RawMessage(`{}`){
 						"httpHeaderName": policy.Spec.LoadBalancer.ConsistentHash.HashKey,
 
 						"minimumRingSize": policy.Spec.LoadBalancer.ConsistentHash.MinimumRingSize,
@@ -1272,7 +1272,7 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 					fromSource["namespaces"] = source.Namespaces
 				}
 
-				from = append(from, json.RawMessage("{}"))
+				from = append(from, json.RawMessage(`{}`))
 
 			}
 
@@ -1298,7 +1298,7 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 					toOp["paths"] = operation.Paths
 				}
 
-				to = append(to, json.RawMessage("{}"))
+				to = append(to, json.RawMessage(`{}`))
 
 			}
 
@@ -1314,7 +1314,7 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 
 			for _, condition := range rule.When {
 
-				whenCond := json.RawMessage("{}")
+				whenCond := json.RawMessage(`{}`)
 
 				if len(condition.Values) > 0 {
 					whenCond["values"] = condition.Values
@@ -1354,3 +1354,4 @@ func (m *IstioMesh) convertServicePorts(ports []abstraction.ServicePort) []corev
 
 	return result
 }
+

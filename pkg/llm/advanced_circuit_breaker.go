@@ -547,6 +547,12 @@ func (cb *AdvancedCircuitBreaker) GetSuccessRate() float64 {
 
 func (cb *AdvancedCircuitBreaker) HealthCheck() map[string]interface{} {
 	stats := cb.GetStats()
-
-	return json.RawMessage("{}")
+	
+	return map[string]interface{}{
+		"state": atomic.LoadInt32(&cb.state),
+		"failure_rate": cb.GetFailureRate(),
+		"success_rate": cb.GetSuccessRate(),
+		"requests": stats.TotalRequests,
+		"failures": stats.TotalFailures,
+	}
 }

@@ -541,14 +541,14 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
 	if !ic.enabled {
-		return json.RawMessage("{}")
+		return json.RawMessage(`{}`)
 	}
 
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // ExportChain exports the integrity chain for backup or transfer.
@@ -1154,3 +1154,4 @@ func (cr *ChainRecoverer) RecoverChain(events []*types.AuditEvent) (*RecoveryRes
 		RepairedEvents: repairedEvents,
 	}, nil
 }
+

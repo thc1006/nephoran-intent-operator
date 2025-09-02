@@ -1220,14 +1220,14 @@ func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 
 		Confidence: confidence,
 
-		Parameters: json.RawMessage("{}"),
+		Parameters: json.RawMessage(`{}`),
 
-		Manifests: json.RawMessage("{}"){
+		Manifests: json.RawMessage(`{}`){
 				"apiVersion": "apps/v1",
 
 				"kind": "Deployment",
 
-				"metadata": json.RawMessage("{}"),
+				"metadata": json.RawMessage(`{}`),
 			},
 		},
 
@@ -1430,3 +1430,4 @@ func (m *MemoryTracker) Stop() uint64 {
 
 	return m.peakMem
 }
+

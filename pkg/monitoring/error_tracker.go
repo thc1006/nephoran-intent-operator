@@ -287,6 +287,14 @@ func (et *ErrorTracker) TrackError(ctx context.Context, err error, component, er
 		}
 	}()
 
+	// Convert context map to JSON
+	contextJSON := json.RawMessage(`{}`)
+	if context != nil && len(context) > 0 {
+		if contextBytes, err := json.Marshal(context); err == nil {
+			contextJSON = contextBytes
+		}
+	}
+
 	record := ErrorRecord{
 		ID:        fmt.Sprintf("%s-%d", component, time.Now().UnixNano()),
 		Timestamp: time.Now(),
@@ -294,7 +302,7 @@ func (et *ErrorTracker) TrackError(ctx context.Context, err error, component, er
 		ErrorType: errorType,
 		Message:   err.Error(),
 		Severity:  et.determineSeverity(err, errorType),
-		Context:   context,
+		Context:   contextJSON,
 		Tags:      et.generateTags(component, errorType, err),
 	}
 
@@ -631,3 +639,4 @@ func contains(s string, substrings []string) bool {
 	}
 	return false
 }
+

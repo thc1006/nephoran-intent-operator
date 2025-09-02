@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DISABLED: func TestParseIntentToJSON(t *testing.T) {
+func TestParseIntentToJSON(t *testing.T) {
 	reconciler := &WatchReconciler{}
 
 	testCases := []struct {
@@ -24,7 +24,7 @@ import (
 			name:      "simple-scale-to-format",
 			intent:    "scale deployment nginx to 3 replicas",
 			namespace: "default",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Standard scale deployment to N replicas format",
 		},
@@ -32,7 +32,7 @@ import (
 			name:      "app-scale-format",
 			intent:    "scale app frontend to 5 replicas",
 			namespace: "production",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Scale app variant",
 		},
@@ -40,7 +40,7 @@ import (
 			name:      "service-scale-format",
 			intent:    "scale service backend to 2 replicas",
 			namespace: "staging",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Scale service variant",
 		},
@@ -48,7 +48,7 @@ import (
 			name:      "simple-scale-format",
 			intent:    "scale nginx to 4 replicas",
 			namespace: "default",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Simple scale without deployment/app/service keyword",
 		},
@@ -56,7 +56,7 @@ import (
 			name:      "colon-format",
 			intent:    "scale deployment api replicas: 8",
 			namespace: "api",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Colon-separated format",
 		},
@@ -64,7 +64,7 @@ import (
 			name:      "instances-format",
 			intent:    "scale web 6 instances",
 			namespace: "default",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Instances instead of replicas",
 		},
@@ -107,7 +107,7 @@ import (
 			name:      "boundary-max-replicas",
 			intent:    "scale nginx to 100 replicas",
 			namespace: "default",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Maximum allowed replicas (100)",
 		},
@@ -115,7 +115,7 @@ import (
 			name:      "boundary-min-replicas",
 			intent:    "scale nginx to 1 replica",
 			namespace: "default",
-			expectedJSON: json.RawMessage("{}"),
+			expectedJSON: json.RawMessage(`{}`),
 			expectError: false,
 			description: "Minimum allowed replicas (1) - singular form",
 		},
@@ -179,7 +179,7 @@ import (
 	}
 }
 
-// DISABLED: func TestParseIntentToJSONSchemaCompliance(t *testing.T) {
+func TestParseIntentToJSONSchemaCompliance(t *testing.T) {
 	reconciler := &WatchReconciler{}
 
 	ni := &nephoranv1.NetworkIntent{
@@ -261,7 +261,7 @@ import (
 	}
 }
 
-// DISABLED: func TestParseIntentToJSONCorrelationID(t *testing.T) {
+func TestParseIntentToJSONCorrelationID(t *testing.T) {
 	reconciler := &WatchReconciler{}
 
 	ni := &nephoranv1.NetworkIntent{
@@ -306,3 +306,4 @@ import (
 func containsPrefix(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
+

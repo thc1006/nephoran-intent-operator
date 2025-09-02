@@ -757,5 +757,6 @@ func (tm *TimeoutManager) GetHealthReport() map[string]interface{} {
 
 	metrics := tm.GetMetrics()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
+

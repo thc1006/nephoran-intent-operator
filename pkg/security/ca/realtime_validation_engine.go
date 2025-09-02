@@ -1483,7 +1483,7 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 
 		Severity: "high",
 
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	}
 
 	select {
@@ -1998,3 +1998,4 @@ func (e *RealtimeValidationEngine) validateSCTs(ctx context.Context, cert *x509.
 
 	return false
 }
+

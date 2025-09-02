@@ -1004,28 +1004,24 @@ func (brc *BurnRateCalculator) calculateTimeToExhaustion(burnRate, budgetRemaini
 
 func (brc *BurnRateCalculator) GetStats() map[string]interface{} {
 	brc.mu.RLock()
-
 	defer brc.mu.RUnlock()
 
 	var avgLatency time.Duration
-
 	if len(brc.queryLatencies) > 0 {
-
 		var total time.Duration
-
 		for _, latency := range brc.queryLatencies {
 			total += latency
 		}
-
 		avgLatency = total / time.Duration(len(brc.queryLatencies))
-
 	}
 
 	brc.cacheMutex.RLock()
-
 	cacheSize := len(brc.metricCache)
-
 	brc.cacheMutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"avg_latency": avgLatency.String(),
+		"cache_size":  cacheSize,
+		"metrics":     len(brc.queryLatencies),
+	}
 }

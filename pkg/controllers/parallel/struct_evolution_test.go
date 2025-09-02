@@ -7,7 +7,7 @@ import (
 )
 
 // TestTaskStructEvolution tests Go 1.24+ struct evolution patterns
-// DISABLED: func TestTaskStructEvolution(t *testing.T) {
+func TestTaskStructEvolution(t *testing.T) {
 	t.Run("Task with CorrelationID field", func(t *testing.T) {
 		// Create a task using the new builder pattern
 		task := NewTaskBuilder("test-task-1", "intent-123").
@@ -92,7 +92,7 @@ import (
 
 	t.Run("Migration from legacy format", func(t *testing.T) {
 		// Simulate a legacy task from external storage/API
-		legacyData := json.RawMessage("{}")
+		legacyData := json.RawMessage(`{}`)
 
 		// Use the evolution layer to migrate
 		evolution := &TaskEvolution{}
@@ -117,7 +117,7 @@ import (
 }
 
 // TestRetryConfigEvolution tests retry configuration evolution
-// DISABLED: func TestRetryConfigEvolution(t *testing.T) {
+func TestRetryConfigEvolution(t *testing.T) {
 	t.Run("New retry configuration", func(t *testing.T) {
 		retryConfig := &TaskRetryConfig{
 			MaxAttempts:   5,
@@ -157,3 +157,4 @@ import (
 		}
 	})
 }
+

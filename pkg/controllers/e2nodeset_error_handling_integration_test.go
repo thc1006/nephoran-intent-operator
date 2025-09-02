@@ -40,7 +40,7 @@ func (f *FakeEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	f.Events = append(f.Events, fmt.Sprintf("Annotated %s: %s - %s", eventtype, reason, message))
 }
 
-// DISABLED: func TestCompleteErrorHandlingWorkflow(t *testing.T) {
+func TestCompleteErrorHandlingWorkflow(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -114,7 +114,7 @@ func (f *FakeEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	})
 }
 
-// DISABLED: func TestErrorHandlingWithRetryLogic(t *testing.T) {
+func TestErrorHandlingWithRetryLogic(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -232,7 +232,7 @@ func (f *FakeEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	})
 }
 
-// DISABLED: func TestCleanupErrorHandlingWithFinalizers(t *testing.T) {
+func TestCleanupErrorHandlingWithFinalizers(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -392,7 +392,7 @@ func (f *FakeEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	})
 }
 
-// DISABLED: func TestIdempotentReconciliation(t *testing.T) {
+func TestIdempotentReconciliation(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -478,7 +478,7 @@ func (f *FakeEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	assert.Equal(t, result1.RequeueAfter, result3.RequeueAfter, "Third reconciliation should also be idempotent")
 }
 
-// DISABLED: func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
+func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)

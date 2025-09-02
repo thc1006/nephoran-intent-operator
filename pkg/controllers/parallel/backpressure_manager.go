@@ -139,7 +139,8 @@ func (bm *BackpressureManager) GetStats() (map[string]interface{}, error) {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 
-	stats := json.RawMessage("{}")
+	stats := json.RawMessage(`{}`)
 
 	return stats, nil
 }
+

@@ -176,14 +176,14 @@ func (mm *MockManager) setupWeaviateMock() {
 
 		// Mock response for semantic search.
 
-		response := json.RawMessage("{}"){
-				"Get": json.RawMessage("{}"){
+		response := json.RawMessage(`{}`){
+				"Get": json.RawMessage(`{}`){
 						{
 							"title": "AMF Configuration Guide",
 
 							"content": "Access and Mobility Management Function configuration for 5G networks...",
 
-							"_additional": json.RawMessage("{}"),
+							"_additional": json.RawMessage(`{}`),
 						},
 
 						{
@@ -191,7 +191,7 @@ func (mm *MockManager) setupWeaviateMock() {
 
 							"content": "Session Management Function deployment in containerized environments...",
 
-							"_additional": json.RawMessage("{}"),
+							"_additional": json.RawMessage(`{}`),
 						},
 					},
 				},
@@ -252,11 +252,11 @@ func (mm *MockManager) setupLLMMock() {
 
 		// Mock structured response for network intent processing.
 
-		response := json.RawMessage("{}"){
+		response := json.RawMessage(`{}`){
 				{
 					"index": 0,
 
-					"message": json.RawMessage("{}"),
+					"message": json.RawMessage(`{}`),
 
 								"limits": {"cpu": "2000m", "memory": "4Gi"}
 
@@ -312,7 +312,7 @@ func (mm *MockManager) setupLLMMock() {
 
 		// Mock embedding response.
 
-		response := json.RawMessage("{}"){
+		response := json.RawMessage(`{}`){
 				{
 					"object": "embedding",
 
@@ -351,7 +351,7 @@ func (mm *MockManager) setupORANMock() {
 	router.HandleFunc("/a1-p/v2/policytypes", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_a1_policy_types")
 
-		response := []json.RawMessage("{}"),
+		response := []json.RawMessage(`{}`),
 
 			{
 				"policy_type_id": 2000,
@@ -372,8 +372,8 @@ func (mm *MockManager) setupORANMock() {
 	router.HandleFunc("/restconf/data/ietf-interfaces:interfaces", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o1_interfaces")
 
-		response := json.RawMessage("{}"){
-				"interface": []json.RawMessage("{}"),
+		response := json.RawMessage(`{}`){
+				"interface": []json.RawMessage(`{}`),
 				},
 			},
 		}
@@ -392,11 +392,11 @@ func (mm *MockManager) setupORANMock() {
 
 			w.WriteHeader(http.StatusCreated)
 
-			json.NewEncoder(w).Encode(json.RawMessage("{}"))
+			json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 
 		} else {
 
-			response := []json.RawMessage("{}"),
+			response := []json.RawMessage(`{}`),
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -419,10 +419,10 @@ func (mm *MockManager) setupPrometheusMock() {
 	router.HandleFunc("/api/v1/query", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("prometheus_query")
 
-		response := json.RawMessage("{}"){
+		response := json.RawMessage(`{}`){
 				"resultType": "vector",
 
-				"result": []json.RawMessage("{}"),
+				"result": []json.RawMessage(`{}`),
 
 						"value": []interface{}{
 							time.Now().Unix(),
@@ -733,3 +733,4 @@ func (mm *MockManager) GetRedisMock() *MockRedisClient {
 func (mm *MockManager) GetK8sMock() *MockK8sClient {
 	return mm.k8sMock
 }
+

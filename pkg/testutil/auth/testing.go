@@ -711,8 +711,8 @@ func (j *JWTManagerMock) GetJWKS() (map[string]interface{}, error) {
 	}
 
 	// Mock JWKS response matching real implementation format
-	return json.RawMessage("{}"){
-			json.RawMessage("{}"),
+	return json.RawMessage(`{}`){
+			json.RawMessage(`{}`),
 		},
 	}, nil
 }
@@ -1913,7 +1913,7 @@ func (tc *TestContext) CreateTestUser(userID string) *providers.UserInfo {
 
 		Roles: []string{"viewer"},
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 }
 
@@ -2058,3 +2058,4 @@ type (
 
 	MockRBACManager = RBACManagerMock
 )
+

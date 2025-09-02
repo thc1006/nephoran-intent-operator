@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestPostIntent_OK(t *testing.T) {
+func TestPostIntent_OK(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var in Intent
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {

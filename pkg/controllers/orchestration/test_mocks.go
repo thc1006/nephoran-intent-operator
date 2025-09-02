@@ -42,12 +42,12 @@ type SharedMockRAGService struct {
 func NewSharedMockRAGService() *SharedMockRAGService {
 	return &SharedMockRAGService{
 		responses: make(map[string]*rag.RetrievalResponse),
-		documents: []json.RawMessage("{}"){"source": "3GPP TS 23.501", "section": "6.2.2"},
+		documents: []json.RawMessage(`{}`){"source": "3GPP TS 23.501", "section": "6.2.2"},
 				"similarity": 0.9,
 			},
 			{
 				"content":    "SMF (Session Management Function) handles PDU sessions in 5G networks",
-				"metadata":   json.RawMessage("{}"),
+				"metadata":   json.RawMessage(`{}`),
 				"similarity": 0.85,
 			},
 		},
@@ -98,7 +98,7 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 
 	// Convert rag.Doc to map[string]interface{}
 	for i, doc := range documents {
-		response.Documents[i] = json.RawMessage("{}")
+		response.Documents[i] = json.RawMessage(`{}`)
 	}
 
 	if args.Error(1) != nil {
@@ -220,7 +220,7 @@ func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, 
 	}
 
 	// Return mock calculation result
-	result := json.RawMessage("{}"),
+	result := json.RawMessage(`{}`),
 	}
 
 	if args.Error(1) != nil {
@@ -275,3 +275,4 @@ type MockTelecomCostEstimator struct {
 func NewMockTelecomCostEstimator() *MockTelecomCostEstimator {
 	return &MockTelecomCostEstimator{}
 }
+

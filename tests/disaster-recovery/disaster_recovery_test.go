@@ -687,7 +687,7 @@ func (suite *DisasterRecoveryTestSuite) TestParallelDisasterRecovery() {
 	suite.T().Log("Parallel disaster recovery scenarios completed")
 }
 
-// DISABLED: func TestDisasterRecoveryTestSuite(t *testing.T) {
+func TestDisasterRecoveryTestSuite(t *testing.T) {
 	suite.Run(t, new(DisasterRecoveryTestSuite))
 }
 
@@ -728,9 +728,10 @@ func (suite *DisasterRecoveryTestSuite) estimateRecoveryTime(scenario *DisasterS
 func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *DisasterScenario, metrics *RecoveryMetrics) error {
 	reportPath := filepath.Join(suite.backupDir, fmt.Sprintf("disaster-report-%s.json", scenario.Name))
 
-	report := json.RawMessage("{}")
+	report := json.RawMessage(`{}`)
 
 	suite.T().Logf("Generated disaster recovery report: %s", reportPath)
 	_ = report // In real implementation, would write to file
 	return nil
 }
+

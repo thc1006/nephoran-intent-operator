@@ -11,7 +11,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
-// DISABLED: func TestNewContainer(t *testing.T) {
+func TestNewContainer(t *testing.T) {
 	// Test with nil constants (should load defaults)
 	container := NewContainer(nil)
 	if container == nil {
@@ -32,7 +32,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerProviderRegistration(t *testing.T) {
+func TestContainerProviderRegistration(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Test that providers are registered
@@ -54,7 +54,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerSingletonBehavior(t *testing.T) {
+func TestContainerSingletonBehavior(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Test that multiple calls return the same instance
@@ -82,7 +82,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerDependencyInterfaces(t *testing.T) {
+func TestContainerDependencyInterfaces(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Test Dependencies interface compliance
@@ -132,7 +132,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerEventRecorderManagement(t *testing.T) {
+func TestContainerEventRecorderManagement(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Create a fake event recorder
@@ -153,7 +153,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerConfigAccess(t *testing.T) {
+func TestContainerConfigAccess(t *testing.T) {
 	constants := &config.Constants{
 		DefaultTimeout: 45 * time.Second,
 		MaxRetries:     5,
@@ -166,7 +166,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerConcurrentAccess(t *testing.T) {
+func TestContainerConcurrentAccess(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Test concurrent access to same dependency
@@ -201,7 +201,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerCustomProvider(t *testing.T) {
+func TestContainerCustomProvider(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Register a custom provider
@@ -236,7 +236,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerProviderError(t *testing.T) {
+func TestContainerProviderError(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Register a provider that returns an error
@@ -251,7 +251,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerUnregisteredProvider(t *testing.T) {
+func TestContainerUnregisteredProvider(t *testing.T) {
 	container := NewContainer(nil)
 
 	// Try to get non-existent provider
@@ -261,7 +261,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerWithEnvironmentVariables(t *testing.T) {
+func TestContainerWithEnvironmentVariables(t *testing.T) {
 	// Set up test environment variables
 	oldGitURL := os.Getenv("GIT_REPO_URL")
 	oldLLMURL := os.Getenv("LLM_PROCESSOR_URL")
@@ -299,7 +299,7 @@ import (
 	}
 }
 
-// DISABLED: func TestContainerLLMSanitizerWithConfig(t *testing.T) {
+func TestContainerLLMSanitizerWithConfig(t *testing.T) {
 	constants := &config.Constants{
 		MaxInputLength:  1000,
 		MaxOutputLength: 2000,

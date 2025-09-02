@@ -218,7 +218,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 
 // Test Server Creation and Configuration
 
-// DISABLED: func TestNewA1Server(t *testing.T) {
+func TestNewA1Server(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      *A1ServerConfig
@@ -266,7 +266,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	}
 }
 
-// DISABLED: func TestA1Server_Configuration(t *testing.T) {
+func TestA1Server_Configuration(t *testing.T) {
 	config := createTestConfig()
 	config.EnableA1P = false
 	config.EnableA1C = false
@@ -286,7 +286,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 
 // Test Server Lifecycle
 
-// DISABLED: func TestA1Server_StartAndStop(t *testing.T) {
+func TestA1Server_StartAndStop(t *testing.T) {
 	server, _, _, _ := setupTestServer(t, nil)
 
 	// Test initial state
@@ -320,7 +320,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.False(t, server.IsReady())
 }
 
-// DISABLED: func TestA1Server_ConcurrentStartStop(t *testing.T) {
+func TestA1Server_ConcurrentStartStop(t *testing.T) {
 	server, _, _, _ := setupTestServer(t, nil)
 
 	var wg sync.WaitGroup
@@ -367,7 +367,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 
 // Test Middleware
 
-// DISABLED: func TestA1Server_MiddlewareSetup(t *testing.T) {
+func TestA1Server_MiddlewareSetup(t *testing.T) {
 	config := createTestConfig()
 	config.AuthenticationConfig.Enabled = true
 	config.RateLimitConfig.Enabled = true
@@ -379,7 +379,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Greater(t, len(server.middleware), 5) // Should have multiple middleware
 }
 
-// DISABLED: func TestMiddleware_RequestLogging(t *testing.T) {
+func TestMiddleware_RequestLogging(t *testing.T) {
 	server, _, _, _ := setupTestServer(t, nil)
 
 	// Create test handler
@@ -407,7 +407,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Greater(t, rr.bytesWritten, int64(0))
 }
 
-// DISABLED: func TestMiddleware_RequestID(t *testing.T) {
+func TestMiddleware_RequestID(t *testing.T) {
 	server, _, _, _ := setupTestServer(t, nil)
 
 	// Create test handler that checks for request ID
@@ -437,7 +437,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Equal(t, "existing-id", capturedRequestID)
 }
 
-// DISABLED: func TestMiddleware_CORS(t *testing.T) {
+func TestMiddleware_CORS(t *testing.T) {
 	server, _, _, _ := setupTestServer(t, nil)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -467,7 +467,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Equal(t, http.StatusNoContent, rr.statusCode)
 }
 
-// DISABLED: func TestMiddleware_Authentication(t *testing.T) {
+func TestMiddleware_Authentication(t *testing.T) {
 	config := createTestConfig()
 	config.AuthenticationConfig.Enabled = true
 
@@ -502,7 +502,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Equal(t, http.StatusOK, rr.statusCode)
 }
 
-// DISABLED: func TestMiddleware_RequestSizeLimit(t *testing.T) {
+func TestMiddleware_RequestSizeLimit(t *testing.T) {
 	config := createTestConfig()
 	config.MaxHeaderBytes = 100 // Very small limit for testing
 
@@ -530,7 +530,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Equal(t, http.StatusBadRequest, rr.statusCode)
 }
 
-// DISABLED: func TestMiddleware_PanicRecovery(t *testing.T) {
+func TestMiddleware_PanicRecovery(t *testing.T) {
 	server, _, _, _ := setupTestServer(t, nil)
 
 	// Create handler that panics
@@ -555,7 +555,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 
 // Test Route Setup
 
-// DISABLED: func TestA1Server_RouteSetup(t *testing.T) {
+func TestA1Server_RouteSetup(t *testing.T) {
 	tests := []struct {
 		name           string
 		enableA1P      bool
@@ -623,7 +623,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 
 // Test Circuit Breaker
 
-// DISABLED: func TestCircuitBreaker_States(t *testing.T) {
+func TestCircuitBreaker_States(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		MaxRequests: 3,
 		Interval:    1 * time.Second,
@@ -667,7 +667,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Equal(t, "success", result)
 }
 
-// DISABLED: func TestCircuitBreaker_Stats(t *testing.T) {
+func TestCircuitBreaker_Stats(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		MaxRequests: 10,
 		Interval:    1 * time.Second,
@@ -694,7 +694,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	assert.Equal(t, uint64(0), stats["total_failures"])
 }
 
-// DISABLED: func TestCircuitBreaker_Reset(t *testing.T) {
+func TestCircuitBreaker_Reset(t *testing.T) {
 	config := &CircuitBreakerConfig{
 		MaxRequests: 2,
 		Interval:    1 * time.Second,
@@ -725,7 +725,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 
 // Test Metrics Collection
 
-// DISABLED: func TestA1MetricsCollector(t *testing.T) {
+func TestA1MetricsCollector(t *testing.T) {
 	config := &MetricsConfig{
 		Enabled:   true,
 		Namespace: "test",
@@ -751,7 +751,7 @@ func setupTestServer(t *testing.T, config *A1ServerConfig) (*A1Server, *MockA1Se
 	// In real tests, you'd use prometheus testutil to check values
 }
 
-// DISABLED: func TestNoopMetrics(t *testing.T) {
+func TestNoopMetrics(t *testing.T) {
 	config := &MetricsConfig{
 		Enabled: false,
 	}

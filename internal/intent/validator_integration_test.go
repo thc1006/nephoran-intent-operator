@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestValidatorWithActualSchema(t *testing.T) {
+func TestValidatorWithActualSchema(t *testing.T) {
 	// Test with the actual project schema
 	projectRoot := filepath.Join("..", "..")
 

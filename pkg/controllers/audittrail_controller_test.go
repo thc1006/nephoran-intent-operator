@@ -33,7 +33,7 @@ type AuditTrailControllerTestSuite struct {
 	controller *AuditTrailController
 }
 
-// DISABLED: func TestAuditTrailControllerTestSuite(t *testing.T) {
+func TestAuditTrailControllerTestSuite(t *testing.T) {
 	suite.Run(t, new(AuditTrailControllerTestSuite))
 }
 
@@ -732,7 +732,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 
 	suite.Run("configmap reference handling", func() {
 		// Create a configmap for backend configuration
-		configData := json.RawMessage("{}"){
+		configData := map[string]interface{}{
 				"urls":  []string{"http://elasticsearch:9200"},
 				"index": "audit-logs",
 			},
@@ -849,7 +849,7 @@ func int64Ptr(i int64) *int64 {
 
 // Table-driven tests for various scenarios
 
-// DISABLED: func TestAuditTrailControllerScenarios(t *testing.T) {
+func TestAuditTrailControllerScenarios(t *testing.T) {
 	tests := []struct {
 		name           string
 		spec           nephv1.AuditTrailSpec

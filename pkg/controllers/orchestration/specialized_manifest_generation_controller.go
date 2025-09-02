@@ -601,7 +601,7 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 				NextPhase: interfaces.PhaseGitOpsCommit,
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 
 				Metrics: map[string]float64{
 					"generation_time_ms": float64(time.Since(startTime).Milliseconds()),
@@ -774,7 +774,7 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	// Create result.
 
-	resultData := json.RawMessage("{}")
+	resultData := json.RawMessage(`{}`)
 
 	if len(session.ValidationResults) > 0 {
 		resultData["validationResults"] = session.ValidationResults
@@ -819,7 +819,7 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 				CorrelationID: session.CorrelationID,
 
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -1000,7 +1000,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 		manifests[manifestName] = deploymentManifest
 
-		metadata[manifestName] = json.RawMessage("{}")
+		metadata[manifestName] = json.RawMessage(`{}`)
 
 	} else {
 		return nil, nil, fmt.Errorf("failed to generate deployment manifest: %w", err)
@@ -1015,7 +1015,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 			manifests[manifestName] = serviceManifest
 
-			metadata[manifestName] = json.RawMessage("{}")
+			metadata[manifestName] = json.RawMessage(`{}`)
 
 		} else {
 			c.Logger.Info("Failed to generate service manifest", "nf", nf.Name, "error", err)
@@ -1031,7 +1031,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 			manifests[manifestName] = configMapManifest
 
-			metadata[manifestName] = json.RawMessage("{}")
+			metadata[manifestName] = json.RawMessage(`{}`)
 
 		} else {
 			c.Logger.Info("Failed to generate configmap manifest", "nf", nf.Name, "error", err)
@@ -1046,7 +1046,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 				manifests[name] = manifest
 
-				metadata[name] = json.RawMessage("{}")
+				metadata[name] = json.RawMessage(`{}`)
 
 			}
 		} else {
@@ -1060,7 +1060,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 // prepareTemplateVariables prepares variables for template processing.
 
 func (c *SpecializedManifestGenerationController) prepareTemplateVariables(nf *interfaces.PlannedNetworkFunction, resourcePlan *interfaces.ResourcePlan) map[string]interface{} {
-	return json.RawMessage("{}"),
+	return json.RawMessage(`{}`),
 	}
 }
 
@@ -1632,7 +1632,7 @@ func (c *SpecializedManifestGenerationController) GetHealthStatus(ctx context.Co
 
 	defer c.mutex.RUnlock()
 
-	c.healthStatus.Metrics = json.RawMessage("{}")
+	c.healthStatus.Metrics = json.RawMessage(`{}`)
 
 	c.healthStatus.LastChecked = time.Now()
 
@@ -1915,7 +1915,7 @@ func (c *SpecializedManifestGenerationController) performHealthCheck() {
 
 		LastChecked: time.Now(),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}
 }
 
@@ -2547,3 +2547,4 @@ func initializeManifestPolicyRules() []*ManifestPolicyRule {
 
 	return rules
 }
+

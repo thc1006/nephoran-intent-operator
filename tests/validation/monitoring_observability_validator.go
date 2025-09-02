@@ -485,7 +485,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 		}
 	}
 
-	health.Metrics = json.RawMessage("{}")
+	health.Metrics = json.RawMessage(`{}`)
 }
 
 // validateServiceMonitors checks for ServiceMonitor configurations.
@@ -1257,3 +1257,4 @@ PERFORMANCE & RETENTION:
 
 	return report
 }
+

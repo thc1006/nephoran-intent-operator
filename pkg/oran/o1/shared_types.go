@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -48,5 +49,6 @@ func (brg *BaseReportGenerator) GetGeneratorType() string {
 
 func (brg *BaseReportGenerator) GenerateReport(ctx context.Context, template interface{}, data interface{}) (interface{}, error) {
 	// Base implementation - to be overridden by specific generators
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
+

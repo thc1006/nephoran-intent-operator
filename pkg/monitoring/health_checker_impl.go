@@ -3,6 +3,7 @@ package monitoring
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -126,7 +127,7 @@ func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 		OverallStatus: overallStatus,
 		Components:    components,
 		LastUpdated:   time.Now(),
-		HealthScore:   healthScore,
+		HealthScore:   strconv.FormatFloat(healthScore, 'f', 2, 64),
 		Issues:        issues,
 	}, nil
 }

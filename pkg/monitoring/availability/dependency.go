@@ -1703,8 +1703,9 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 
 		Layer: layer,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	return metric, nil
 }
+

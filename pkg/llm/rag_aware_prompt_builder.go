@@ -447,7 +447,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 
 		CacheUsed: false, // Cache implementation available but not used in this context
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Update metrics.
@@ -1461,3 +1461,4 @@ func initializeFewShotExamples() map[string][]FewShotExample {
 		},
 	}
 }
+

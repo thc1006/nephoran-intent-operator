@@ -12,7 +12,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
-// DISABLED: func TestNewORANHealthChecker(t *testing.T) {
+func TestNewORANHealthChecker(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
@@ -76,7 +76,7 @@ import (
 	}
 }
 
-// DISABLED: func TestORANHealthChecker_HealthCheck(t *testing.T) {
+func TestORANHealthChecker_HealthCheck(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
@@ -103,7 +103,7 @@ import (
 	}
 }
 
-// DISABLED: func TestORANHealthChecker_InterfaceHealthChecks(t *testing.T) {
+func TestORANHealthChecker_InterfaceHealthChecks(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
@@ -147,7 +147,7 @@ import (
 	assert.True(t, foundE2, "E2 interface check should be registered")
 }
 
-// DISABLED: func TestORANHealthChecker_CircuitBreakerStats(t *testing.T) {
+func TestORANHealthChecker_CircuitBreakerStats(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
@@ -174,7 +174,7 @@ import (
 	assert.NotNil(t, e2Stats)
 }
 
-// DISABLED: func TestORANHealthChecker_ResetCircuitBreakers(t *testing.T) {
+func TestORANHealthChecker_ResetCircuitBreakers(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
@@ -207,7 +207,7 @@ import (
 	}
 }
 
-// DISABLED: func TestORANHealthChecker_HealthHistory(t *testing.T) {
+func TestORANHealthChecker_HealthHistory(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 
@@ -240,7 +240,7 @@ import (
 	}
 }
 
-// DISABLED: func TestORANHealthChecker_IsHealthy(t *testing.T) {
+func TestORANHealthChecker_IsHealthy(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
@@ -266,7 +266,7 @@ import (
 	assert.IsType(t, true, isHealthy) // Just check the type is boolean
 }
 
-// DISABLED: func TestDependencyCheck_Structure(t *testing.T) {
+func TestDependencyCheck_Structure(t *testing.T) {
 	depCheck := DependencyCheck{
 		Name:               "test-dependency",
 		URL:                "http://test-service/health",
@@ -292,7 +292,7 @@ import (
 	assert.Empty(t, depCheck.LastError)
 }
 
-// DISABLED: func TestHealthSnapshot_Structure(t *testing.T) {
+func TestHealthSnapshot_Structure(t *testing.T) {
 	now := time.Now()
 
 	snapshot := HealthSnapshot{
@@ -305,7 +305,7 @@ import (
 		DependencyStatus: map[string]health.Status{
 			"ric": health.StatusHealthy,
 		},
-		CircuitBreakerStats: json.RawMessage("{}"){
+		CircuitBreakerStats: map[string]interface{}{
 				"state": "closed",
 			},
 		},
@@ -328,7 +328,7 @@ import (
 	assert.Equal(t, int64(1), snapshot.Metrics.UnhealthyChecks)
 }
 
-// DISABLED: func TestHealthMetrics_Structure(t *testing.T) {
+func TestHealthMetrics_Structure(t *testing.T) {
 	metrics := HealthMetrics{
 		TotalChecks:         100,
 		HealthyChecks:       95,
@@ -350,7 +350,7 @@ import (
 	assert.Equal(t, int64(3), metrics.DependencyFailures)
 }
 
-// DISABLED: func TestAlertingThresholds_Structure(t *testing.T) {
+func TestAlertingThresholds_Structure(t *testing.T) {
 	thresholds := AlertingThresholds{
 		ConsecutiveFailures:    5,
 		DependencyFailureRate:  0.8,
@@ -364,7 +364,7 @@ import (
 	assert.Equal(t, 5*time.Second, thresholds.ResponseTimeThreshold)
 }
 
-// DISABLED: func TestORANHealthConfig_Structure(t *testing.T) {
+func TestORANHealthConfig_Structure(t *testing.T) {
 	config := ORANHealthConfig{
 		CheckInterval: 30 * time.Second,
 		HistorySize:   100,
@@ -385,7 +385,7 @@ import (
 	assert.Equal(t, 3, config.AlertingThresholds.ConsecutiveFailures)
 }
 
-// DISABLED: func TestORANHealthChecker_NilAdaptors(t *testing.T) {
+func TestORANHealthChecker_NilAdaptors(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 
 	// Test with nil adaptors
@@ -410,7 +410,7 @@ import (
 	assert.Len(t, stats, 0)
 }
 
-// DISABLED: func TestORANHealthChecker_ConsecutiveFailures(t *testing.T) {
+func TestORANHealthChecker_ConsecutiveFailures(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 
@@ -438,7 +438,7 @@ import (
 	assert.Equal(t, 5, failures)
 }
 
-// DISABLED: func TestORANHealthChecker_PartialFailures(t *testing.T) {
+func TestORANHealthChecker_PartialFailures(t *testing.T) {
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", nil)
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 

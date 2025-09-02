@@ -447,7 +447,7 @@ func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList
 
 func (o *FiveGCoreOptimizer) parseOptimizationConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return json.RawMessage("{}"){
+		return json.RawMessage(`{}`){
 				"peakUsers": 100000,
 
 				"averageUsers": 50000,
@@ -1028,7 +1028,7 @@ func (o *NetworkSliceOptimizer) findResourceIndex(resources []porch.KRMResource,
 
 func (n *MultiVendorNormalizer) parseNormalizationConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return json.RawMessage("{}")
+		return json.RawMessage(`{}`)
 	}
 
 	return config
@@ -1208,7 +1208,7 @@ func (n *MultiVendorNormalizer) convertEricssonToGeneric(ericssonConfig interfac
 
 	// For now, return a placeholder.
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func (n *MultiVendorNormalizer) normalizeInterfaceMap(interfaces map[string]interface{}) map[string]interface{} {
@@ -1268,3 +1268,4 @@ func maxInt(a, b int) int {
 
 	return b
 }
+

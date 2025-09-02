@@ -1048,7 +1048,7 @@ func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedE
 
 			EndTime: filter.EndTime,
 
-			ResourceUsage: json.RawMessage("{}"),
+			ResourceUsage: json.RawMessage(`{}`),
 		},
 	}
 
@@ -1137,7 +1137,7 @@ func (a *O1Adaptor) GetSecurityStatus(ctx context.Context, me *nephoranv1.Manage
 
 		LastAudit: time.Now().Add(-24 * time.Hour),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}
 
 	logger.Info("retrieved security status", "managedElement", me.Name)
@@ -1174,3 +1174,4 @@ func parseNetconfResponse(response string) (string, error) {
 
 	return response, nil
 }
+

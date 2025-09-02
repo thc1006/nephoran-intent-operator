@@ -309,7 +309,7 @@ func (rm *RollbackManager) CreateRollbackPlan(session *RemediationSession) *Roll
 
 		Steps: make([]RollbackStep, 0),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Generate rollback steps based on the failed actions.
@@ -337,38 +337,27 @@ func (rm *RollbackManager) CreateRollbackPlan(session *RemediationSession) *Roll
 
 func (rm *RollbackManager) createRollbackStep(action *RemediationAction) RollbackStep {
 	step := RollbackStep{
-		ID: "step-" + action.Type + "-rollback",
-
+		ID:     "step-" + action.Type + "-rollback",
 		Status: "PENDING",
+	}
 
-		Parameters: make(map[string]interface{}),
+	// Build parameters map
+	params := map[string]interface{}{
+		"target": action.Target,
 	}
 
 	switch action.Type {
-
 	case "SCALE":
-
 		step.Type = "RESTORE_SCALE"
-
 		step.Description = "Restore original scaling configuration"
 
-		step.Parameters["target"] = action.Target
-
 	case "RESTART":
-
 		step.Type = "RESTORE_STATE"
-
 		step.Description = "Restore service to previous state"
 
-		step.Parameters["target"] = action.Target
-
 	case "REDEPLOY":
-
 		step.Type = "RESTORE_DEPLOYMENT"
-
 		step.Description = "Restore previous deployment version"
-
-		step.Parameters["target"] = action.Target
 
 	default:
 
@@ -376,6 +365,13 @@ func (rm *RollbackManager) createRollbackStep(action *RemediationAction) Rollbac
 
 		step.Description = "Manual intervention required for rollback"
 
+	}
+
+	// Marshal parameters to JSON
+	if paramBytes, err := json.Marshal(params); err == nil {
+		step.Parameters = paramBytes
+	} else {
+		step.Parameters = json.RawMessage(`{}`)
 	}
 
 	return step
@@ -448,3 +444,4 @@ func (rm *RollbackManager) executeRollbackStep(step *RollbackStep) {
 
 	step.EndTime = &endTime
 }
+

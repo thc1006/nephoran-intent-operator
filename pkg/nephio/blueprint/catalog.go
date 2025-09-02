@@ -1063,7 +1063,7 @@ func (c *Catalog) buildCacheKey(criteria *SearchCriteria) string {
 }
 
 func (c *Catalog) cacheSearchResults(key string, results []*Template) {
-	c.repoCache.Store(key, json.RawMessage("{}"))
+	c.repoCache.Store(key, json.RawMessage(`{}`))
 }
 
 func (c *Catalog) calculateChecksum(template *Template) string {
@@ -1695,3 +1695,4 @@ func (dg *DependencyGraph) RemoveTemplate(template *Template) {
 		}
 	}
 }
+

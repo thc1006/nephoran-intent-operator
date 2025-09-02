@@ -14,7 +14,7 @@ import (
 )
 
 // TestSpikeLoad tests system behavior under sudden load increases
-// DISABLED: func TestSpikeLoad(t *testing.T) {
+func TestSpikeLoad(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 
@@ -102,7 +102,7 @@ import (
 }
 
 // TestCascadingFailure tests system resilience to cascading failures
-// DISABLED: func TestCascadingFailure(t *testing.T) {
+func TestCascadingFailure(t *testing.T) {
 	ctx := context.Background()
 
 	// Simulate component failures
@@ -176,7 +176,7 @@ import (
 }
 
 // TestBurstPattern tests handling of burst traffic patterns
-// DISABLED: func TestBurstPattern(t *testing.T) {
+func TestBurstPattern(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
 

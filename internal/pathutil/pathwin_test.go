@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestNormalizeWindowsPath(t *testing.T) {
+func TestNormalizeWindowsPath(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows-specific tests on non-Windows platform")
 	}
@@ -121,7 +121,7 @@ import (
 	}
 }
 
-// DISABLED: func TestNormalizeWindowsPath_LongPath(t *testing.T) {
+func TestNormalizeWindowsPath_LongPath(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows-specific tests on non-Windows platform")
 	}
@@ -140,7 +140,7 @@ import (
 	}
 }
 
-// DISABLED: func TestIsValidWindowsPath(t *testing.T) {
+func TestIsValidWindowsPath(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows-specific tests on non-Windows platform")
 	}
@@ -177,7 +177,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResolveDriveRelativePath(t *testing.T) {
+func TestResolveDriveRelativePath(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows-specific tests on non-Windows platform")
 	}
@@ -232,7 +232,7 @@ import (
 	}
 }
 
-// DISABLED: func TestEnsureParentDirectory(t *testing.T) {
+func TestEnsureParentDirectory(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows-specific tests on non-Windows platform")
 	}
@@ -283,7 +283,7 @@ import (
 	}
 }
 
-// DISABLED: func TestIsExtendedLengthPath(t *testing.T) {
+func TestIsExtendedLengthPath(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -304,7 +304,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRelaxedTraversalChecks(t *testing.T) {
+func TestRelaxedTraversalChecks(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("Skipping Windows-specific tests on non-Windows platform")
 	}

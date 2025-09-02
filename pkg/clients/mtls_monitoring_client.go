@@ -123,7 +123,7 @@ func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*Metri
 
 	// Prepare metrics payload.
 
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
@@ -151,7 +151,7 @@ func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, 
 
 	// Prepare alert payload.
 
-	payload := json.RawMessage("{}"),
+	payload := json.RawMessage(`{}`),
 
 		"source": "nephoran-intent-operator",
 	}
@@ -178,7 +178,7 @@ func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, en
 
 	// Prepare logs payload.
 
-	payload := json.RawMessage("{}")
+	payload := json.RawMessage(`{}`)
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
@@ -483,3 +483,4 @@ type SilenceMatcher struct {
 type SilenceResponse struct {
 	SilenceID string `json:"silenceID"`
 }
+

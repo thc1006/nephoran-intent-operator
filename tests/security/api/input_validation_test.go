@@ -39,7 +39,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestSQLInjectionPrevention tests SQL injection prevention
-// DISABLED: func TestSQLInjectionPrevention(t *testing.T) {
+func TestSQLInjectionPrevention(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	sqlInjectionPayloads := []struct {
@@ -128,7 +128,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 						{
 							name: "JSON_Body",
 							testFunc: func(payload string) *http.Request {
-								body := json.RawMessage("{}")
+								body := json.RawMessage(`{}`)
 								jsonBody, _ := json.Marshal(body)
 								req := httptest.NewRequest("POST", "/api/v1/query", bytes.NewReader(jsonBody))
 								req.Header.Set("Content-Type", "application/json")
@@ -185,7 +185,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestXSSPrevention tests Cross-Site Scripting prevention
-// DISABLED: func TestXSSPrevention(t *testing.T) {
+func TestXSSPrevention(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	xssPayloads := []struct {
@@ -301,7 +301,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestCommandInjection tests command injection prevention
-// DISABLED: func TestCommandInjection(t *testing.T) {
+func TestCommandInjection(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	commandInjectionPayloads := []struct {
@@ -447,7 +447,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestPathTraversal tests path traversal prevention
-// DISABLED: func TestPathTraversal(t *testing.T) {
+func TestPathTraversal(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	pathTraversalPayloads := []struct {
@@ -573,7 +573,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestXXEInjection tests XML External Entity injection prevention
-// DISABLED: func TestXXEInjection(t *testing.T) {
+func TestXXEInjection(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	xxePayloads := []struct {
@@ -660,7 +660,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestJSONSchemaValidation tests JSON schema validation
-// DISABLED: func TestJSONSchemaValidation(t *testing.T) {
+func TestJSONSchemaValidation(t *testing.T) {
 	_ = NewInputValidationTestSuite(t)
 
 	// Define schema for intent processing
@@ -706,49 +706,49 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 	}{
 		{
 			name: "Valid_Intent",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  true,
 			description: "Valid intent should pass",
 		},
 		{
 			name: "Missing_Required_Field",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Missing required 'intent' field",
 		},
 		{
 			name: "Invalid_Type",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Invalid field types",
 		},
 		{
 			name: "Extra_Properties",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Additional properties not allowed",
 		},
 		{
 			name: "Invalid_Enum_Value",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Invalid enum value for priority",
 		},
 		{
 			name: "Exceeds_Max_Length",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Intent exceeds maximum length",
 		},
 		{
 			name: "Invalid_Pattern",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Intent contains invalid characters",
 		},
 		{
 			name: "Out_Of_Range",
-			payload: json.RawMessage("{}"),
+			payload: json.RawMessage(`{}`),
 			shouldPass:  false,
 			description: "Timeout exceeds maximum value",
 		},
@@ -776,7 +776,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestRequestSizeLimits tests request size limit enforcement
-// DISABLED: func TestRequestSizeLimits(t *testing.T) {
+func TestRequestSizeLimits(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	testCases := []struct {
@@ -877,7 +877,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestLDAPInjection tests LDAP injection prevention
-// DISABLED: func TestLDAPInjection(t *testing.T) {
+func TestLDAPInjection(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	ldapPayloads := []struct {
@@ -921,7 +921,7 @@ func NewInputValidationTestSuite(t *testing.T) *InputValidationTestSuite {
 }
 
 // TestSSRF tests Server-Side Request Forgery prevention
-// DISABLED: func TestSSRF(t *testing.T) {
+func TestSSRF(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	ssrfPayloads := []struct {
@@ -1227,3 +1227,4 @@ func (s *InputValidationTestSuite) getMaxSizeForContentType(contentType string) 
 
 	return 1 * 1024 * 1024 // Default 1MB
 }
+

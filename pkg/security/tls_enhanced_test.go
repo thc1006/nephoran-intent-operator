@@ -8,7 +8,7 @@ import (
 )
 
 // TestTLSEnhancedConfig validates the enhanced TLS configuration.
-// DISABLED: func TestTLSEnhancedConfig(t *testing.T) {
+func TestTLSEnhancedConfig(t *testing.T) {
 	tests := []struct {
 		name      string
 		config    *TLSEnhancedConfig
@@ -120,7 +120,7 @@ import (
 }
 
 // TestOCSPStapling validates OCSP stapling functionality.
-// DISABLED: func TestOCSPStapling(t *testing.T) {
+func TestOCSPStapling(t *testing.T) {
 	config := &TLSEnhancedConfig{
 		OCSPStaplingEnabled: true,
 		OCSPResponderURL:    "http://ocsp.example.com",
@@ -142,7 +142,7 @@ import (
 }
 
 // TestPostQuantumReadiness validates post-quantum configuration.
-// DISABLED: func TestPostQuantumReadiness(t *testing.T) {
+func TestPostQuantumReadiness(t *testing.T) {
 	config := &TLSEnhancedConfig{
 		PostQuantumEnabled: true,
 		HybridMode:         true,
@@ -164,7 +164,7 @@ import (
 }
 
 // TestZeroRTTSecurity validates 0-RTT configuration security.
-// DISABLED: func TestZeroRTTSecurity(t *testing.T) {
+func TestZeroRTTSecurity(t *testing.T) {
 	tests := []struct {
 		name        string
 		enable0RTT  bool

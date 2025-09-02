@@ -1178,5 +1178,6 @@ func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} 
 
 	defer r.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
+

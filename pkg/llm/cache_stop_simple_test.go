@@ -10,7 +10,7 @@ import (
 )
 
 // TestResponseCacheStop tests the Stop() method functionality
-// DISABLED: func TestResponseCacheStop(t *testing.T) {
+func TestResponseCacheStop(t *testing.T) {
 	t.Run("Stop should cause cleanup goroutine to exit", func(t *testing.T) {
 		// Get initial goroutine count
 		initialGoroutines := runtime.NumGoroutine()
@@ -105,7 +105,7 @@ import (
 }
 
 // TestResponseCacheFunctionalityBeforeStop tests normal operations
-// DISABLED: func TestResponseCacheFunctionalityBeforeStop(t *testing.T) {
+func TestResponseCacheFunctionalityBeforeStop(t *testing.T) {
 	t.Run("Basic cache operations should work", func(t *testing.T) {
 		cache := NewResponseCache(5*time.Minute, 10)
 		defer cache.Stop()
@@ -174,7 +174,7 @@ import (
 }
 
 // TestResponseCacheConcurrentAccess tests concurrent access scenarios
-// DISABLED: func TestResponseCacheConcurrentAccess(t *testing.T) {
+func TestResponseCacheConcurrentAccess(t *testing.T) {
 	t.Run("Concurrent Get/Set operations should be safe", func(t *testing.T) {
 		cache := NewResponseCache(5*time.Minute, 100)
 		defer cache.Stop()
@@ -253,7 +253,7 @@ import (
 }
 
 // TestResponseCacheGoroutineTermination verifies goroutine actually terminates
-// DISABLED: func TestResponseCacheGoroutineTermination(t *testing.T) {
+func TestResponseCacheGoroutineTermination(t *testing.T) {
 	t.Run("Cleanup goroutine should actually terminate", func(t *testing.T) {
 		// Create cache with very short cleanup interval
 		cache := NewResponseCache(10*time.Millisecond, 10)
@@ -328,7 +328,7 @@ import (
 }
 
 // TestResponseCacheTTL tests TTL functionality
-// DISABLED: func TestResponseCacheTTL(t *testing.T) {
+func TestResponseCacheTTL(t *testing.T) {
 	t.Run("Entries should expire after TTL", func(t *testing.T) {
 		// Create cache with very short TTL
 		cache := NewResponseCache(50*time.Millisecond, 10)
@@ -358,7 +358,7 @@ import (
 }
 
 // TestResponseCacheMaxSize tests max size enforcement
-// DISABLED: func TestResponseCacheMaxSize(t *testing.T) {
+func TestResponseCacheMaxSize(t *testing.T) {
 	t.Run("Should enforce max size limit", func(t *testing.T) {
 		cache := NewResponseCache(5*time.Minute, 2)
 		defer cache.Stop()

@@ -1056,7 +1056,7 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 
 			Kind: template.Kind,
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 
 			Spec: specializedResource,
 		}
@@ -1109,7 +1109,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		oranFunction := porch.FunctionConfig{
 			Image: "krm/oran-validator:latest",
 
-			ConfigMap: json.RawMessage("{}"),
+			ConfigMap: json.RawMessage(`{}`),
 		}
 
 		functions = append(functions, oranFunction)
@@ -1121,7 +1121,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		sliceFunction := porch.FunctionConfig{
 			Image: "krm/network-slice-optimizer:latest",
 
-			ConfigMap: json.RawMessage("{}"),
+			ConfigMap: json.RawMessage(`{}`),
 		}
 
 		functions = append(functions, sliceFunction)
@@ -1192,9 +1192,9 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 
 	resources = append(resources, configMapResource)
@@ -1591,3 +1591,4 @@ func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.Funct
 
 	return result
 }
+

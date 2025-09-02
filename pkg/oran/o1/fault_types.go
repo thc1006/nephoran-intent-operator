@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 )
@@ -43,7 +44,7 @@ func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context
 			return time.Now()
 		}(),
 		AckRequired: true,
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	return f.SendNotification(ctx, notification)
@@ -75,3 +76,4 @@ func (f *FaultNotificationChannelImpl) formatMessage(alarm *EnhancedAlarm, templ
 
 	return message
 }
+

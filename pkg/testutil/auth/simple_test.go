@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestUserFactory(t *testing.T) {
+func TestUserFactory(t *testing.T) {
 	uf := NewUserFactory()
 	require.NotNil(t, uf)
 
@@ -21,7 +21,7 @@ import (
 	assert.Equal(t, "test", user.Provider)
 }
 
-// DISABLED: func TestTokenFactory(t *testing.T) {
+func TestTokenFactory(t *testing.T) {
 	tf := NewTokenFactory("test-issuer")
 	require.NotNil(t, tf)
 
@@ -34,7 +34,7 @@ import (
 	assert.NotNil(t, claims["iat"])
 }
 
-// DISABLED: func TestOAuthResponseFactory(t *testing.T) {
+func TestOAuthResponseFactory(t *testing.T) {
 	of := NewOAuthResponseFactory()
 	require.NotNil(t, of)
 
@@ -47,7 +47,7 @@ import (
 	assert.Equal(t, int64(3600), tokenResponse.ExpiresIn)
 }
 
-// DISABLED: func TestJWTManagerMock(t *testing.T) {
+func TestJWTManagerMock(t *testing.T) {
 	jwtManager := NewJWTManagerMock()
 	require.NotNil(t, jwtManager)
 
@@ -56,7 +56,7 @@ import (
 	assert.NotNil(t, jwtManager.tokenStore)
 }
 
-// DISABLED: func TestRBACManagerMock(t *testing.T) {
+func TestRBACManagerMock(t *testing.T) {
 	rbacManager := NewRBACManagerMock()
 	require.NotNil(t, rbacManager)
 
@@ -67,7 +67,7 @@ import (
 	assert.NotNil(t, rbacManager.permissionStore)
 }
 
-// DISABLED: func TestSessionManagerMock(t *testing.T) {
+func TestSessionManagerMock(t *testing.T) {
 	sessionManager := NewSessionManagerMock()
 	require.NotNil(t, sessionManager)
 
@@ -76,7 +76,7 @@ import (
 	assert.Equal(t, 1*60*60, int(sessionManager.config.SessionTTL.Seconds())) // 1 hour
 }
 
-// DISABLED: func TestCompleteTestSetup(t *testing.T) {
+func TestCompleteTestSetup(t *testing.T) {
 	uf, tf, of, cf, rf, pf, sf := CreateCompleteTestSetup()
 
 	assert.NotNil(t, uf)
@@ -88,7 +88,7 @@ import (
 	assert.NotNil(t, sf)
 }
 
-// DISABLED: func TestCreateTestData(t *testing.T) {
+func TestCreateTestData(t *testing.T) {
 	data := CreateTestData()
 	require.NotNil(t, data)
 

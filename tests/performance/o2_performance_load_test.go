@@ -84,7 +84,7 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	defer pm.mutex.RUnlock()
 
 	if len(pm.durations) == 0 {
-		return json.RawMessage("{}")
+		return json.RawMessage(`{}`)
 	}
 
 	// Sort durations for percentile calculations
@@ -105,7 +105,7 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	p95 := sortedDurations[count*95/100]
 	p99 := sortedDurations[count*99/100]
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 var _ = Describe("O2 Performance and Load Testing Suite", func() {
@@ -133,8 +133,8 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 			ServerAddress: "127.0.0.1",
 			ServerPort:    0,
 			TLSEnabled:    false,
-			DatabaseConfig: json.RawMessage("{}"),
-			PerformanceConfig: json.RawMessage("{}"),
+			DatabaseConfig: json.RawMessage(`{}`),
+			PerformanceConfig: json.RawMessage(`{}`),
 		}
 
 		var err error
@@ -236,7 +236,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								Utilization: 20.0,
 							},
 						},
-						Extensions: json.RawMessage("{}"),
+						Extensions: json.RawMessage(`{}`),
 					}
 
 					poolJSON, err := json.Marshal(pool)
@@ -500,7 +500,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								metrics.RecordRequest(readDuration, readSuccess)
 
 								// UPDATE operation
-								updateData := json.RawMessage("{}")
+								updateData := json.RawMessage(`{}`)
 								updateJSON, err := json.Marshal(updateData)
 								if err == nil {
 									start = time.Now()
@@ -575,7 +575,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 						Name:           fmt.Sprintf("Memory Test Pool %d", i),
 						Provider:       "kubernetes",
 						OCloudID:       "memory-test-ocloud",
-						Extensions: json.RawMessage("{}"){
+						Extensions: map[string]interface{}{
 								"createdAt": time.Now().Format(time.RFC3339),
 								"testType":  "memory-stress",
 							},
@@ -710,7 +710,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 							Name:           fmt.Sprintf("Intent Pool %d", intentID),
 							Provider:       "kubernetes",
 							OCloudID:       "scalability-test-ocloud",
-							Extensions: json.RawMessage("{}"),
+							Extensions: json.RawMessage(`{}`),
 						}
 
 						poolJSON, err := json.Marshal(pool)
@@ -745,7 +745,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 						}
 
 						// Update resource (intent processing step 3)
-						updateData := json.RawMessage("{}"){
+						updateData := map[string]interface{}{
 								"intentID":           intentID,
 								"processingComplete": time.Now().Format(time.RFC3339),
 								"status":             "processed",
@@ -818,3 +818,4 @@ func CreateTestNamespace() *corev1.Namespace {
 	// For testing, we'll just return the namespace object
 	return namespace
 }
+

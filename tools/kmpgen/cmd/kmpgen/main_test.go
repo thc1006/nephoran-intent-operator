@@ -13,7 +13,7 @@ import (
 )
 
 // TestParseProfiles tests the parseProfiles function (accessing global profiles map)
-// DISABLED: func TestParseProfiles(t *testing.T) {
+func TestParseProfiles(t *testing.T) {
 	tests := []struct {
 		name     string
 		profile  string
@@ -62,7 +62,7 @@ import (
 }
 
 // TestProfileConfigurations validates the profile configurations match specifications
-// DISABLED: func TestProfileConfigurations(t *testing.T) {
+func TestProfileConfigurations(t *testing.T) {
 	tests := []struct {
 		name    string
 		profile ProfileConfig
@@ -117,7 +117,7 @@ import (
 }
 
 // TestGenerateWindow tests the generateWindow function
-// DISABLED: func TestGenerateWindow(t *testing.T) {
+func TestGenerateWindow(t *testing.T) {
 	// Use local random generator for reproducible tests (Go 1.20+)
 	rng := rand.New(rand.NewSource(12345))
 	_ = rng // Will be used when implementing actual test logic
@@ -198,7 +198,7 @@ import (
 }
 
 // TestGenerateWindowBoundaryConditions tests edge cases for generateWindow
-// DISABLED: func TestGenerateWindowBoundaryConditions(t *testing.T) {
+func TestGenerateWindowBoundaryConditions(t *testing.T) {
 	tests := []struct {
 		name     string
 		profile  ProfileConfig
@@ -261,7 +261,7 @@ import (
 }
 
 // TestWriteWindow tests the writeWindow function
-// DISABLED: func TestWriteWindow(t *testing.T) {
+func TestWriteWindow(t *testing.T) {
 	// Create a temporary directory for test outputs
 	tempDir := t.TempDir()
 
@@ -355,7 +355,7 @@ import (
 }
 
 // TestWriteWindowPermissionError tests write permission errors
-// DISABLED: func TestWriteWindowPermissionError(t *testing.T) {
+func TestWriteWindowPermissionError(t *testing.T) {
 	// Skip this test on Windows as permission handling is different
 	if os.Getenv("OS") != "" && strings.Contains(strings.ToLower(os.Getenv("OS")), "windows") {
 		t.Skip("Skipping permission test on Windows")
@@ -393,7 +393,7 @@ import (
 }
 
 // TestJSONValidation tests JSON schema compliance
-// DISABLED: func TestJSONValidation(t *testing.T) {
+func TestJSONValidation(t *testing.T) {
 	window := &KMPWindow{
 		P95LatencyMs:   123.45,
 		PRBUtilization: 0.678,
@@ -457,7 +457,7 @@ import (
 }
 
 // TestBurstConditions tests burst parameter edge cases
-// DISABLED: func TestBurstConditions(t *testing.T) {
+func TestBurstConditions(t *testing.T) {
 	tests := []struct {
 		name  string
 		burst int
@@ -501,7 +501,7 @@ import (
 }
 
 // TestSignalHandling tests graceful shutdown on signals
-// DISABLED: func TestSignalHandling(t *testing.T) {
+func TestSignalHandling(t *testing.T) {
 	// This test is challenging to implement reliably in a unit test
 	// because it involves signal handling and timing
 
@@ -536,7 +536,7 @@ import (
 }
 
 // TestRunGeneratorIntegration tests the complete runGenerator flow
-// DISABLED: func TestRunGeneratorIntegration(t *testing.T) {
+func TestRunGeneratorIntegration(t *testing.T) {
 	tempDir := t.TempDir()
 
 	config := &Config{
@@ -580,7 +580,7 @@ import (
 }
 
 // TestParseFlagsValidation tests the parseFlags function indirectly by testing config validation
-// DISABLED: func TestParseFlagsValidation(t *testing.T) {
+func TestParseFlagsValidation(t *testing.T) {
 	// Test config creation with different values
 	tests := []struct {
 		name    string
@@ -635,7 +635,7 @@ import (
 }
 
 // TestMainFunctionEntryPoint tests that main function components are accessible
-// DISABLED: func TestMainFunctionEntryPoint(t *testing.T) {
+func TestMainFunctionEntryPoint(t *testing.T) {
 	// Test that global variables are accessible and properly initialized
 	if len(profiles) == 0 {
 		t.Error("Profiles map should not be empty")

@@ -40,7 +40,7 @@ func (m *MockValidator) ValidateBytes(data []byte) (*ingest.Intent, error) {
 }
 
 // TestProcessorBasic tests basic processor functionality
-// DISABLED: func TestProcessorBasic(t *testing.T) {
+func TestProcessorBasic(t *testing.T) {
 	// Create temp directories
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
@@ -131,7 +131,7 @@ func (m *MockValidator) ValidateBytes(data []byte) (*ingest.Intent, error) {
 }
 
 // TestProcessorValidationError tests validation error handling
-// DISABLED: func TestProcessorValidationError(t *testing.T) {
+func TestProcessorValidationError(t *testing.T) {
 	// Create temp directories
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
@@ -209,7 +209,7 @@ func (m *MockValidator) ValidateBytes(data []byte) (*ingest.Intent, error) {
 }
 
 // TestProcessorPorchError tests porch submission error handling
-// DISABLED: func TestProcessorPorchError(t *testing.T) {
+func TestProcessorPorchError(t *testing.T) {
 	// Create temp directories
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
@@ -293,7 +293,7 @@ func (m *MockValidator) ValidateBytes(data []byte) (*ingest.Intent, error) {
 }
 
 // TestProcessorBatching tests batch processing
-// DISABLED: func TestProcessorBatching(t *testing.T) {
+func TestProcessorBatching(t *testing.T) {
 	// Create temp directories
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")

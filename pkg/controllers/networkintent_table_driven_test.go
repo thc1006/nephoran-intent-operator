@@ -23,7 +23,7 @@ import (
 )
 
 // Comprehensive table-driven test suite
-// DISABLED: func TestNetworkIntentTableDriven(t *testing.T) {
+func TestNetworkIntentTableDriven(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -66,7 +66,7 @@ import (
 			intentText:       "Deploy AMF network function for 5G core",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}"){
+			llmResponse: mustMarshal(map[string]interface{}{
 					"cpu":    "500m",
 					"memory": "1Gi",
 				},
@@ -77,7 +77,7 @@ import (
 				{Type: "Validated", Status: metav1.ConditionTrue},
 				{Type: "Processed", Status: metav1.ConditionTrue},
 			},
-			expectedParameters: json.RawMessage("{}"),
+			expectedParameters: json.RawMessage(`{}`),
 			description: "Successful AMF deployment with LLM processing",
 			tags:        []string{"5gc", "amf", "deployment"},
 		},
@@ -87,7 +87,7 @@ import (
 			intentText:       "Configure SMF with UPF integration and session management policies",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}"){
+			llmResponse: mustMarshal(map[string]interface{}{
 					"upf_integration":  true,
 					"session_policies": []string{"policy1", "policy2"},
 				},
@@ -107,7 +107,7 @@ import (
 			intentText:       "Deploy O-RAN components including O-CU and O-DU for edge deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}"),
+			llmResponse: mustMarshal(json.RawMessage(`{}`),
 				"deployment_type": "edge",
 			}),
 			expectedPhase:   "Processing",
@@ -125,7 +125,7 @@ import (
 			intentText:       "Deploy eMBB network slice for enhanced mobile broadband with high throughput",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}"){
+			llmResponse: mustMarshal(map[string]interface{}{
 					"throughput": "10Gbps",
 					"latency":    "10ms",
 				},
@@ -192,7 +192,7 @@ import (
 			intentText:       "Deploy comprehensive 5G network",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}")),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			gitShouldFail:   true,
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -220,7 +220,7 @@ import (
 				},
 			},
 			llmFailCount: 1, // Fail first attempt, succeed second
-			llmResponse: mustMarshal(json.RawMessage("{}")),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			expectedConditions: []ExpectedCondition{
@@ -297,7 +297,7 @@ import (
 			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�? deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}")),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			expectedConditions: []ExpectedCondition{
@@ -313,7 +313,7 @@ import (
 			intentText:       "Deploy SMF with config: {cpu: '500m', memory: '1Gi', ports: [8080, 8443]}",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}"){
+			llmResponse: mustMarshal(map[string]interface{}{
 					"cpu":    "500m",
 					"memory": "1Gi",
 					"ports":  []int{8080, 8443},
@@ -350,7 +350,7 @@ import (
 			intentText:       "Deploy UPF for user plane processing",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage("{}")),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
@@ -377,7 +377,7 @@ import (
 				},
 			},
 			llmFailCount: 1, // Recover on retry
-			llmResponse: mustMarshal(json.RawMessage("{}")),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
@@ -554,19 +554,19 @@ func mustMarshal(v interface{}) string {
 }
 
 // Test suite for specific categories
-// DISABLED: func TestNetworkIntentHappyPath(t *testing.T) {
+func TestNetworkIntentHappyPath(t *testing.T) {
 	// Run only happy path scenarios for focused testing
 	t.Parallel()
 	// Implementation can filter test cases by category
 }
 
-// DISABLED: func TestNetworkIntentErrorHandling(t *testing.T) {
+func TestNetworkIntentErrorHandling(t *testing.T) {
 	// Run only error handling scenarios
 	t.Parallel()
 	// Implementation can filter test cases by category
 }
 
-// DISABLED: func TestNetworkIntentRetryLogic(t *testing.T) {
+func TestNetworkIntentRetryLogic(t *testing.T) {
 	// Run only retry logic scenarios
 	t.Parallel()
 	// Implementation can filter test cases by category
@@ -587,7 +587,7 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		{
 			name:       "HappyPath",
 			intentText: "Deploy AMF network function",
-			llmResponse: mustMarshal(json.RawMessage("{}")),
+			llmResponse: mustMarshal(json.RawMessage(`{}`)),
 			mockSetup: func(deps *MockDependencies) {},
 		},
 		{
@@ -600,7 +600,7 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		{
 			name:       "ComplexIntent",
 			intentText: "Deploy comprehensive 5G core with AMF, SMF, UPF, and network slicing",
-			llmResponse: mustMarshal(json.RawMessage("{}"),
+			llmResponse: mustMarshal(json.RawMessage(`{}`),
 				"slicing":    true,
 			}),
 			mockSetup: func(deps *MockDependencies) {},
@@ -639,3 +639,4 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		})
 	}
 }
+

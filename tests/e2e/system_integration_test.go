@@ -32,7 +32,7 @@ type E2ETestSuite struct {
 	cleanup         func()
 }
 
-// DISABLED: func TestE2ETestSuite(t *testing.T) {
+func TestE2ETestSuite(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping E2E tests in short mode")
 	}
@@ -74,11 +74,11 @@ func (s *E2ETestSuite) TearDownSuite() {
 func (s *E2ETestSuite) TestFullWorkflow_IntentIngestionToHandoff() {
 	s.T().Run("ingests intent and creates handoff file", func(t *testing.T) {
 		// Prepare test intent
-		intent := json.RawMessage("{}"){
+		intent := map[string]interface{}{
 				"name":      "e2e-test-intent",
 				"namespace": "default",
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		}
 
 		intentJSON, err := json.Marshal(intent)
@@ -139,7 +139,7 @@ func (s *E2ETestSuite) TestMetricsCollection() {
 	s.T().Run("metrics endpoints provide Prometheus metrics", func(t *testing.T) {
 		// Send a few requests first to generate metrics
 		for i := 0; i < 5; i++ {
-			intent := json.RawMessage("{}"){
+			intent := map[string]interface{}{
 					"intent": fmt.Sprintf("Metrics test intent %d", i),
 				},
 			}
@@ -228,7 +228,7 @@ func (s *E2ETestSuite) TestLoadHandling() {
 			requests    = 50
 		)
 
-		intent := json.RawMessage("{}"){
+		intent := map[string]interface{}{
 				"intentType": "scaling",
 				"target":     "load-test-deployment",
 				"replicas":   2,
@@ -284,7 +284,7 @@ func (s *E2ETestSuite) TestLoadHandling() {
 func (s *E2ETestSuite) TestServiceRecovery() {
 	s.T().Run("service recovers gracefully from simulated failures", func(t *testing.T) {
 		// Verify service is working
-		intent := json.RawMessage("{}"){
+		intent := map[string]interface{}{
 				"intent": "Recovery test intent",
 			},
 		}
@@ -330,10 +330,10 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 		for workerID := 0; workerID < numWorkers; workerID++ {
 			go func(id int) {
 				for i := 0; i < requestsPerWorker; i++ {
-					intent := json.RawMessage("{}"){
+					intent := map[string]interface{}{
 							"name": fmt.Sprintf("integrity-test-w%d-r%d", id, i),
 						},
-						"spec": json.RawMessage("{}"),
+						"spec": json.RawMessage(`{}`),
 					}
 
 					intentJSON, err := json.Marshal(intent)
@@ -401,22 +401,22 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 func (s *E2ETestSuite) createTestSchema() {
 	schemaFile := filepath.Join(s.tempDir, "intent.schema.json")
 
-	schema := json.RawMessage("{}"){
-			"apiVersion": json.RawMessage("{}"),
+	schema := map[string]interface{}{
+			"apiVersion": json.RawMessage(`{}`),
 			},
-			"kind": json.RawMessage("{}"),
+			"kind": json.RawMessage(`{}`),
 			},
-			"metadata": json.RawMessage("{}"){
-					"name": json.RawMessage("{}"),
-					"namespace": json.RawMessage("{}"),
+			"metadata": map[string]interface{}{
+					"name": json.RawMessage(`{}`),
+					"namespace": json.RawMessage(`{}`),
 				},
 			},
-			"spec": json.RawMessage("{}"){
-					"intentType": json.RawMessage("{}"),
+			"spec": map[string]interface{}{
+					"intentType": json.RawMessage(`{}`),
 					},
-					"target": json.RawMessage("{}"),
-					"replicas": json.RawMessage("{}"),
-					"intent": json.RawMessage("{}"),
+					"target": json.RawMessage(`{}`),
+					"replicas": json.RawMessage(`{}`),
+					"intent": json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -534,3 +534,4 @@ func (s *E2ETestSuite) Eventually(condition func() bool, timeout, interval time.
 		}
 	}
 }
+

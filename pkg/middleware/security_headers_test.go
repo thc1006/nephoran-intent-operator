@@ -12,7 +12,7 @@ import (
 )
 
 // TestDefaultSecurityHeadersConfig tests the default configuration
-// DISABLED: func TestDefaultSecurityHeadersConfig(t *testing.T) {
+func TestDefaultSecurityHeadersConfig(t *testing.T) {
 	config := DefaultSecurityHeadersConfig()
 
 	assert.False(t, config.EnableHSTS, "HSTS should be disabled by default")
@@ -29,7 +29,7 @@ import (
 }
 
 // TestNewSecurityHeaders tests the constructor
-// DISABLED: func TestNewSecurityHeaders(t *testing.T) {
+func TestNewSecurityHeaders(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("with nil config", func(t *testing.T) {
@@ -65,7 +65,7 @@ import (
 }
 
 // TestSecurityHeadersMiddleware tests the middleware functionality
-// DISABLED: func TestSecurityHeadersMiddleware(t *testing.T) {
+func TestSecurityHeadersMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Create a test handler that just returns 200 OK
@@ -161,7 +161,7 @@ import (
 }
 
 // TestIsSecureConnection tests the secure connection detection
-// DISABLED: func TestIsSecureConnection(t *testing.T) {
+func TestIsSecureConnection(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	sh := NewSecurityHeaders(nil, logger)
 
@@ -195,7 +195,7 @@ import (
 }
 
 // TestBuildHSTSHeader tests HSTS header construction
-// DISABLED: func TestBuildHSTSHeader(t *testing.T) {
+func TestBuildHSTSHeader(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	tests := []struct {
@@ -248,7 +248,7 @@ import (
 }
 
 // TestValidateConfig tests configuration validation
-// DISABLED: func TestValidateConfig(t *testing.T) {
+func TestValidateConfig(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	t.Run("valid configuration", func(t *testing.T) {
@@ -311,7 +311,7 @@ import (
 }
 
 // TestGetActiveHeaders tests getting active headers
-// DISABLED: func TestGetActiveHeaders(t *testing.T) {
+func TestGetActiveHeaders(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	config := &SecurityHeadersConfig{
@@ -348,7 +348,7 @@ import (
 }
 
 // TestReportOnlyCSP tests CSP report-only mode
-// DISABLED: func TestReportOnlyCSP(t *testing.T) {
+func TestReportOnlyCSP(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	sh := NewSecurityHeaders(nil, logger)
 
@@ -401,7 +401,7 @@ func BenchmarkSecurityHeadersMiddleware(b *testing.B) {
 }
 
 // TestSecurityHeadersIntegration tests the middleware in a more realistic scenario
-// DISABLED: func TestSecurityHeadersIntegration(t *testing.T) {
+func TestSecurityHeadersIntegration(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Create a chain of middleware
@@ -479,7 +479,7 @@ func BenchmarkSecurityHeadersMiddleware(b *testing.B) {
 }
 
 // TestSecurityHeadersConcurrency tests the middleware under concurrent load
-// DISABLED: func TestSecurityHeadersConcurrency(t *testing.T) {
+func TestSecurityHeadersConcurrency(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	config := DefaultSecurityHeadersConfig()
 	config.EnableHSTS = true

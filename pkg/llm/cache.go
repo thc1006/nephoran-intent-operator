@@ -6,6 +6,7 @@ package llm
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"log/slog"
 	"strings"
 	"sync"
@@ -1108,26 +1109,29 @@ func (c *ResponseCache) GetMetrics() *CacheMetrics {
 
 func (c *ResponseCache) GetStats() map[string]interface{} {
 	c.l1Mutex.RLock()
-
 	l1Size := len(c.l1Entries)
-
 	c.l1Mutex.RUnlock()
 
 	c.l2Mutex.RLock()
-
 	l2Size := len(c.l2Entries)
-
 	c.l2Mutex.RUnlock()
 
 	c.semanticMutex.RLock()
-
 	semanticIndexSize := len(c.semanticIndex)
-
 	c.semanticMutex.RUnlock()
 
 	metrics := c.GetMetrics()
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"l1_size": l1Size,
+		"l2_size": l2Size,
+		"semantic_index_size": semanticIndexSize,
+		"hit_rate": metrics.HitRate,
+		"l1_hits": metrics.L1Hits,
+		"l2_hits": metrics.L2Hits,
+		"misses": metrics.Misses,
+		"evictions": metrics.Evictions,
+	}
 }
 
 // Stop gracefully shuts down the cache.

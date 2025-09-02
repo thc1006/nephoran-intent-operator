@@ -52,7 +52,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 			ServerAddress: "127.0.0.1",
 			ServerPort:    0,
 			TLSEnabled:    false,
-			DatabaseConfig: json.RawMessage("{}"),
+			DatabaseConfig: json.RawMessage(`{}`),
 			ComplianceMode: true, // Enable strict compliance validation
 		}
 
@@ -249,7 +249,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 					OCloudID:         "test-ocloud-id",
 					GlobalLocationID: "test-global-location",
 					Provider:         "kubernetes",
-					Extensions: json.RawMessage("{}"),
+					Extensions: json.RawMessage(`{}`),
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				}
@@ -1125,3 +1125,4 @@ func CreateTestNamespace() *corev1.Namespace {
 		},
 	}
 }
+

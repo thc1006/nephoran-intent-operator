@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestGetScriptExtension(t *testing.T) {
+func TestGetScriptExtension(t *testing.T) {
 	ext := GetScriptExtension()
 
 	if runtime.GOOS == "windows" {
@@ -23,7 +23,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGetScriptPath(t *testing.T) {
+func TestGetScriptPath(t *testing.T) {
 	tempDir := t.TempDir()
 
 	path := GetScriptPath(tempDir, "test-script")
@@ -33,7 +33,7 @@ import (
 	assert.True(t, strings.HasPrefix(path, tempDir))
 }
 
-// DISABLED: func TestGetExecutablePath(t *testing.T) {
+func TestGetExecutablePath(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -78,7 +78,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCreateCrossPlatformScript_MockPorch(t *testing.T) {
+func TestCreateCrossPlatformScript_MockPorch(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-mock-porch")
 
@@ -112,7 +112,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCreateCrossPlatformScript_GenericScript(t *testing.T) {
+func TestCreateCrossPlatformScript_GenericScript(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-generic")
 
@@ -135,7 +135,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCreateCrossPlatformScript_WithFailOnPattern(t *testing.T) {
+func TestCreateCrossPlatformScript_WithFailOnPattern(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-pattern-fail")
 
@@ -161,7 +161,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCreateCrossPlatformScript_WithCustomCommands(t *testing.T) {
+func TestCreateCrossPlatformScript_WithCustomCommands(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "test-custom")
 
@@ -191,7 +191,7 @@ import (
 	}
 }
 
-// DISABLED: func TestIsExecutable(t *testing.T) {
+func TestIsExecutable(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -263,7 +263,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMakeExecutable(t *testing.T) {
+func TestMakeExecutable(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "test-file")
 
@@ -292,7 +292,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMockPorchScriptBehavior(t *testing.T) {
+func TestMockPorchScriptBehavior(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := GetScriptPath(tempDir, "behavior-test")
 
@@ -352,7 +352,7 @@ import (
 }
 
 // Integration test that verifies the complete workflow
-// DISABLED: func TestCrossPlatformWorkflow(t *testing.T) {
+func TestCrossPlatformWorkflow(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create a mock porch script

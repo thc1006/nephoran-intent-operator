@@ -190,7 +190,7 @@ func BenchmarkBackendPerformance(b *testing.B) {
 				Type:    backends.BackendTypeFile,
 				Enabled: true,
 				Name:    "benchmark-file",
-				Settings: json.RawMessage("{}"),
+				Settings: json.RawMessage(`{}`),
 			},
 		},
 		{
@@ -200,7 +200,7 @@ func BenchmarkBackendPerformance(b *testing.B) {
 				Enabled:     true,
 				Name:        "benchmark-compressed",
 				Compression: true,
-				Settings: json.RawMessage("{}"),
+				Settings: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -353,7 +353,7 @@ func BenchmarkIntegrityProcessing(b *testing.B) {
 }
 
 // StressTestAuditSystem performs stress testing under various conditions
-// DISABLED: func TestAuditSystemStress(t *testing.T) {
+func TestAuditSystemStress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping stress tests in short mode")
 	}
@@ -508,7 +508,7 @@ func BenchmarkIntegrityProcessing(b *testing.B) {
 }
 
 // LoadTestAuditSystem performs realistic load testing
-// DISABLED: func TestAuditSystemLoad(t *testing.T) {
+func TestAuditSystemLoad(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping load tests in short mode")
 	}
@@ -661,7 +661,7 @@ func createMediumEvent() *AuditEvent {
 			ResourceID:   "data123",
 			Operation:    "read",
 		},
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 	}
 }
 
@@ -714,7 +714,7 @@ func createExtraLargeEvent() *AuditEvent {
 	// Create extra large data payload
 	extraLargeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		extraLargeData[fmt.Sprintf("field_%d", i)] = json.RawMessage("{}"),
+		extraLargeData[fmt.Sprintf("field_%d", i)] = json.RawMessage(`{}`),
 			"nested_data": []string{"item1", "item2", "item3"},
 			"timestamp":   time.Now(),
 		}
@@ -961,3 +961,4 @@ func BenchmarkComplianceMetadataGeneration(b *testing.B) {
 		auditSystem.enrichEvent(event)
 	}
 }
+

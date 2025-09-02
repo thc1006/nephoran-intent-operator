@@ -128,7 +128,7 @@ func (m *MockPorchExecutor) Reset() {
 	m.FailOnCall = 0
 }
 
-// DISABLED: func TestConductorIntegration(t *testing.T) {
+func TestConductorIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Conductor Integration Suite")
 }

@@ -157,7 +157,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 
 		ExpandQuery: query.ExpandQuery,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Set defaults.
@@ -556,3 +556,4 @@ func (c *MTLSRAGClient) Close() error {
 
 	return nil
 }
+

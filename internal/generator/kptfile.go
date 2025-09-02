@@ -143,13 +143,13 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 				{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 
-					ConfigMap: json.RawMessage("{}"),
+					ConfigMap: json.RawMessage(`{}`),
 				},
 
 				{
 					Image: "gcr.io/kpt-fn/set-annotations:v0.1.4",
 
-					ConfigMap: json.RawMessage("{}"),
+					ConfigMap: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -225,3 +225,4 @@ func (g *KptfileGenerator) GenerateMinimal(intent *intent.ScalingIntent) ([]byte
 
 	return yamlData, nil
 }
+

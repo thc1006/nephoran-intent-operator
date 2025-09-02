@@ -15,7 +15,7 @@ import (
 )
 
 // TestPathTraversalAttacks simulates various path traversal attack scenarios
-// DISABLED: func TestPathTraversalAttacks(t *testing.T) {
+func TestPathTraversalAttacks(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	// Create a temporary directory structure for testing
@@ -152,7 +152,7 @@ import (
 }
 
 // TestInjectionAttacks simulates various injection attack scenarios
-// DISABLED: func TestInjectionAttacks(t *testing.T) {
+func TestInjectionAttacks(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	// SQL Injection attacks through KMP data
@@ -281,7 +281,7 @@ import (
 }
 
 // TestLogInjectionAttacks simulates log injection and log forging attacks
-// DISABLED: func TestLogInjectionAttacks(t *testing.T) {
+func TestLogInjectionAttacks(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	logInjectionScenarios := []struct {
@@ -373,7 +373,7 @@ import (
 }
 
 // TestSSRFPrevention simulates Server-Side Request Forgery attacks
-// DISABLED: func TestSSRFPrevention(t *testing.T) {
+func TestSSRFPrevention(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	ssrfScenarios := []struct {
@@ -464,7 +464,7 @@ import (
 }
 
 // TestDeserializationAttacks simulates attacks through malicious JSON/YAML data
-// DISABLED: func TestDeserializationAttacks(t *testing.T) {
+func TestDeserializationAttacks(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	// Create a temporary directory for testing malicious files
@@ -587,7 +587,7 @@ import (
 }
 
 // TestTimingAttacks simulates timing-based attacks
-// DISABLED: func TestTimingAttacks(t *testing.T) {
+func TestTimingAttacks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping timing attack tests in short mode")
 	}
@@ -653,7 +653,7 @@ import (
 }
 
 // TestHTTPHeaderInjection simulates HTTP header injection attacks
-// DISABLED: func TestHTTPHeaderInjection(t *testing.T) {
+func TestHTTPHeaderInjection(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	// Create a test HTTP server that logs headers
@@ -661,7 +661,7 @@ import (
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(json.RawMessage("{}"))
+		json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 	}))
 	defer server.Close()
 
@@ -736,7 +736,7 @@ import (
 }
 
 // TestResourceExhaustionAttacks simulates resource exhaustion attacks
-// DISABLED: func TestResourceExhaustionAttacks(t *testing.T) {
+func TestResourceExhaustionAttacks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping resource exhaustion tests in short mode")
 	}
@@ -845,7 +845,7 @@ func BenchmarkAttackScenarios(b *testing.B) {
 }
 
 // TestConcurrentAttacks simulates concurrent attack scenarios
-// DISABLED: func TestConcurrentAttacks(t *testing.T) {
+func TestConcurrentAttacks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping concurrent attack tests in short mode")
 	}
@@ -896,3 +896,4 @@ func BenchmarkAttackScenarios(b *testing.B) {
 		}
 	})
 }
+

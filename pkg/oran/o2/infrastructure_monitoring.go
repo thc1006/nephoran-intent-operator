@@ -1307,7 +1307,7 @@ type stubMetricsCollector struct {
 // CollectMetrics performs collectmetrics operation.
 
 func (c *stubMetricsCollector) CollectMetrics(ctx context.Context) (map[string]interface{}, error) {
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // GetName performs getname operation.
@@ -1349,3 +1349,4 @@ func getProviderType(provider providers.CloudProvider) string {
 
 	return providerInfo.Type
 }
+

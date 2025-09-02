@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestNewValidator(t *testing.T) {
+func TestNewValidator(t *testing.T) {
 	// Create a temporary schema file for testing
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
@@ -119,7 +119,7 @@ func createInvalidSchemaFile(t *testing.T, dir string) string {
 	return invalidSchemaPath
 }
 
-// DISABLED: func TestValidateBytes_ValidCases(t *testing.T) {
+func TestValidateBytes_ValidCases(t *testing.T) {
 	validator := createTestValidator(t)
 
 	tests := []struct {
@@ -253,7 +253,7 @@ func createInvalidSchemaFile(t *testing.T, dir string) string {
 	}
 }
 
-// DISABLED: func TestValidateBytes_InvalidJSON(t *testing.T) {
+func TestValidateBytes_InvalidJSON(t *testing.T) {
 	validator := createTestValidator(t)
 
 	tests := []struct {
@@ -300,7 +300,7 @@ func createInvalidSchemaFile(t *testing.T, dir string) string {
 	}
 }
 
-// DISABLED: func TestValidateBytes_SchemaViolations(t *testing.T) {
+func TestValidateBytes_SchemaViolations(t *testing.T) {
 	validator := createTestValidator(t)
 
 	tests := []struct {
@@ -476,7 +476,7 @@ func createInvalidSchemaFile(t *testing.T, dir string) string {
 	}
 }
 
-// DISABLED: func TestValidateBytes_EdgeCases(t *testing.T) {
+func TestValidateBytes_EdgeCases(t *testing.T) {
 	validator := createTestValidator(t)
 
 	tests := []struct {
@@ -654,7 +654,7 @@ func createTestValidator(t *testing.T) *Validator {
 }
 
 // TestValidateBytes_RealSchema tests the validator using the actual schema file
-// DISABLED: func TestValidateBytes_RealSchema(t *testing.T) {
+func TestValidateBytes_RealSchema(t *testing.T) {
 	// Try to find the real schema file
 	// This test will be skipped if the schema file is not found
 	schemaPath := "../../docs/contracts/intent.schema.json"
@@ -703,7 +703,7 @@ func createTestValidator(t *testing.T) *Validator {
 }
 
 // TestNewValidator_FileSystemErrors tests error handling for filesystem issues
-// DISABLED: func TestNewValidator_FileSystemErrors(t *testing.T) {
+func TestNewValidator_FileSystemErrors(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func(t *testing.T) string
@@ -823,7 +823,7 @@ func createTestValidator(t *testing.T) *Validator {
 }
 
 // TestValidateBytes_ExtremeCases tests extreme input cases for validation
-// DISABLED: func TestValidateBytes_ExtremeCases(t *testing.T) {
+func TestValidateBytes_ExtremeCases(t *testing.T) {
 	validator := createTestValidator(t)
 
 	tests := []struct {
@@ -846,7 +846,7 @@ func createTestValidator(t *testing.T) *Validator {
 		},
 		{
 			name:        "unicode in json",
-			input:       []byte(`{"intent_type": "scaling", "target": "测试-deployment", "namespace": "default", "replicas": 3}`),
+			input:       []byte(`{"intent_type": "scaling", "target": "测�?-deployment", "namespace": "default", "replicas": 3}`),
 			expectError: false,
 			description: "Unicode characters should be allowed",
 		},
@@ -912,7 +912,7 @@ func createTestValidator(t *testing.T) *Validator {
 }
 
 // TestValidateBytes_MemoryExhaustion tests memory handling with large inputs
-// DISABLED: func TestValidateBytes_MemoryExhaustion(t *testing.T) {
+func TestValidateBytes_MemoryExhaustion(t *testing.T) {
 	validator := createTestValidator(t)
 
 	// Test with extremely large JSON array
@@ -936,7 +936,7 @@ func createTestValidator(t *testing.T) *Validator {
 }
 
 // TestValidateBytes_ConcurrentAccess tests thread safety of validator
-// DISABLED: func TestValidateBytes_ConcurrentAccess(t *testing.T) {
+func TestValidateBytes_ConcurrentAccess(t *testing.T) {
 	validator := createTestValidator(t)
 
 	validJSON := `{

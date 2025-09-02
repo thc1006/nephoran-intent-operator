@@ -13,7 +13,7 @@ import (
 )
 
 // TestMetricsCollectorRaceConditions tests concurrent metrics collection
-// DISABLED: func TestMetricsCollectorRaceConditions(t *testing.T) {
+func TestMetricsCollectorRaceConditions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping race test in short mode")
 	}
@@ -85,7 +85,7 @@ import (
 }
 
 // TestHealthCheckerDeadlockDetection tests for deadlocks in health checking
-// DISABLED: func TestHealthCheckerDeadlockDetection(t *testing.T) {
+func TestHealthCheckerDeadlockDetection(t *testing.T) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
@@ -149,7 +149,7 @@ import (
 }
 
 // TestPrometheusExporterRace tests Prometheus metrics exporter concurrency
-// DISABLED: func TestPrometheusExporterRace(t *testing.T) {
+func TestPrometheusExporterRace(t *testing.T) {
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines: 50,
 		Iterations: 100,
@@ -223,7 +223,7 @@ import (
 }
 
 // TestDistributedTracingRace tests distributed tracing with concurrent spans
-// DISABLED: func TestDistributedTracingRace(t *testing.T) {
+func TestDistributedTracingRace(t *testing.T) {
 	atomicTest := racetest.NewAtomicRaceTest(t)
 
 	tracer := &distributedTracer{
@@ -296,7 +296,7 @@ import (
 }
 
 // TestAlertManagerConcurrency tests alert manager with concurrent alerts
-// DISABLED: func TestAlertManagerConcurrency(t *testing.T) {
+func TestAlertManagerConcurrency(t *testing.T) {
 	channelTest := racetest.NewChannelRaceTest(t)
 
 	alertChan := make(chan *alert, 100)
@@ -377,7 +377,7 @@ import (
 }
 
 // TestSLAMonitoringRace tests SLA monitoring with concurrent updates
-// DISABLED: func TestSLAMonitoringRace(t *testing.T) {
+func TestSLAMonitoringRace(t *testing.T) {
 	mutexTest := racetest.NewMutexRaceTest(t)
 
 	slaMonitor := &slaMonitor{

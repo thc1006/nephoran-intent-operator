@@ -90,7 +90,7 @@ func (r *dependencyResolver) extractResolvedPackages(resCtx *ResolutionContext) 
 // buildResultMetadata builds metadata for the resolution result.
 
 func (r *dependencyResolver) buildResultMetadata(resCtx *ResolutionContext) map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // updateResolutionMetrics updates metrics based on resolution result.
@@ -245,3 +245,4 @@ func (r *dependencyResolver) ResolveConflicts(ctx context.Context, conflicts *Co
 
 	return resolution, nil
 }
+

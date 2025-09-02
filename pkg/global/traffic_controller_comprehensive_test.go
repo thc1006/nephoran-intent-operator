@@ -138,7 +138,7 @@ func (f *fakePrometheusAPI) Reset() {
 	f.queriedMetrics = []string{}
 }
 
-// DISABLED: func TestTrafficController_Start(t *testing.T) {
+func TestTrafficController_Start(t *testing.T) {
 	testCases := []struct {
 		name          string
 		configMapData map[string]string
@@ -275,7 +275,7 @@ func (f *fakePrometheusAPI) Reset() {
 	}
 }
 
-// DISABLED: func TestTrafficController_HealthChecks(t *testing.T) {
+func TestTrafficController_HealthChecks(t *testing.T) {
 	testCases := []struct {
 		name                string
 		regions             map[string]*RegionInfo
@@ -412,7 +412,7 @@ func (f *fakePrometheusAPI) Reset() {
 	}
 }
 
-// DISABLED: func TestTrafficController_RoutingDecisions(t *testing.T) {
+func TestTrafficController_RoutingDecisions(t *testing.T) {
 	testCases := []struct {
 		name            string
 		regions         map[string]*RegionInfo
@@ -619,7 +619,7 @@ func (f *fakePrometheusAPI) Reset() {
 	}
 }
 
-// DISABLED: func TestTrafficController_MetricsCollection(t *testing.T) {
+func TestTrafficController_MetricsCollection(t *testing.T) {
 	testCases := []struct {
 		name                string
 		regions             []string
@@ -704,7 +704,7 @@ func (f *fakePrometheusAPI) Reset() {
 	}
 }
 
-// DISABLED: func TestTrafficController_ConfidenceScoring(t *testing.T) {
+func TestTrafficController_ConfidenceScoring(t *testing.T) {
 	testCases := []struct {
 		name           string
 		healthyRegions map[string]*RegionHealth
@@ -770,7 +770,7 @@ func (f *fakePrometheusAPI) Reset() {
 	}
 }
 
-// DISABLED: func TestTrafficController_LatencyAndCostCalculation(t *testing.T) {
+func TestTrafficController_LatencyAndCostCalculation(t *testing.T) {
 	testCases := []struct {
 		name            string
 		healthyRegions  map[string]*RegionHealth
@@ -851,7 +851,7 @@ func (f *fakePrometheusAPI) Reset() {
 	}
 }
 
-// DISABLED: func TestTrafficController_ConcurrentOperations(t *testing.T) {
+func TestTrafficController_ConcurrentOperations(t *testing.T) {
 	// Test concurrent health checks and routing decisions
 	fakePrometheusAPI := &fakePrometheusAPI{
 		queryResponses: map[string]model.Value{

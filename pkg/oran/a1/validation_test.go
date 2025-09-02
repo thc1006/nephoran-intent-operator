@@ -12,18 +12,18 @@ import (
 // Test fixtures for validation
 
 func createValidPolicyTypeSchema() map[string]interface{} {
-	return json.RawMessage("{}"){
-			"scope": json.RawMessage("{}"){
-					"ue_id": json.RawMessage("{}"),
-					"cell_id": json.RawMessage("{}")$",
+	return map[string]interface{}{
+			"scope": map[string]interface{}{
+					"ue_id": json.RawMessage(`{}`),
+					"cell_id": json.RawMessage(`{}`)$",
 					},
 				},
 				"required": []string{"ue_id"},
 			},
-			"statement": json.RawMessage("{}"){
-					"qos_class": json.RawMessage("{}"),
-					"bitrate": json.RawMessage("{}"),
-					"action": json.RawMessage("{}"),
+			"statement": map[string]interface{}{
+					"qos_class": json.RawMessage(`{}`),
+					"bitrate": json.RawMessage(`{}`),
+					"action": json.RawMessage(`{}`),
 					},
 				},
 				"required": []string{"qos_class", "action"},
@@ -34,17 +34,17 @@ func createValidPolicyTypeSchema() map[string]interface{} {
 }
 
 func createValidEIJobDataSchema() map[string]interface{} {
-	return json.RawMessage("{}"){
-			"config": json.RawMessage("{}"){
-					"measurement_type": json.RawMessage("{}"),
+	return map[string]interface{}{
+			"config": map[string]interface{}{
+					"measurement_type": json.RawMessage(`{}`),
 					},
-					"reporting_period": json.RawMessage("{}"),
-					"targets": json.RawMessage("{}"){
+					"reporting_period": json.RawMessage(`{}`),
+					"targets": map[string]interface{}{
 							"type": "object",
-							"properties": json.RawMessage("{}"){
+							"properties": map[string]interface{}{
 									"type": "string",
 								},
-								"threshold": json.RawMessage("{}"),
+								"threshold": json.RawMessage(`{}`),
 							},
 							"required": []string{"cell_id", "threshold"},
 						},
@@ -116,7 +116,7 @@ func (v *TestA1Validator) ValidatePolicyInstance(policyType *PolicyType, instanc
 
 	if instance.PolicyTypeID != policyType.PolicyTypeID {
 		return NewValidationError("policy_type_id mismatch", "policy_type_id",
-			json.RawMessage("{}"))
+			json.RawMessage(`{}`))
 	}
 
 	if instance.PolicyData == nil || len(instance.PolicyData) == 0 {
@@ -182,7 +182,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 	if job.EiTypeID != eiType.EiTypeID {
 		return NewValidationError("ei_type_id mismatch", "ei_type_id",
-			json.RawMessage("{}"))
+			json.RawMessage(`{}`))
 	}
 
 	if job.EiJobData == nil || len(job.EiJobData) == 0 {
@@ -218,7 +218,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 // Test Policy Type Validation
 
-// DISABLED: func TestValidatePolicyType_Success(t *testing.T) {
+func TestValidatePolicyType_Success(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	validPolicyType := &PolicyType{
@@ -232,7 +232,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.NoError(t, err)
 }
 
-// DISABLED: func TestValidatePolicyType_NilPolicyType(t *testing.T) {
+func TestValidatePolicyType_NilPolicyType(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	err := validator.ValidatePolicyType(nil)
@@ -240,7 +240,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.Contains(t, err.Error(), "policy type cannot be nil")
 }
 
-// DISABLED: func TestValidatePolicyType_InvalidPolicyTypeID(t *testing.T) {
+func TestValidatePolicyType_InvalidPolicyTypeID(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	tests := []struct {
@@ -265,7 +265,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}
 }
 
-// DISABLED: func TestValidatePolicyType_MissingSchema(t *testing.T) {
+func TestValidatePolicyType_MissingSchema(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	tests := []struct {
@@ -290,7 +290,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}
 }
 
-// DISABLED: func TestValidatePolicyType_InvalidSchema(t *testing.T) {
+func TestValidatePolicyType_InvalidSchema(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	invalidSchemas := []struct {
@@ -299,18 +299,18 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}{
 		{
 			"invalid type",
-			json.RawMessage("{}"),
+			json.RawMessage(`{}`),
 		},
 		{
 			"circular reference",
-			json.RawMessage("{}"){
-					"self": json.RawMessage("{}"),
+			map[string]interface{}{
+					"self": json.RawMessage(`{}`),
 				},
 			},
 		},
 		{
 			"invalid enum values",
-			json.RawMessage("{}"), // Empty enum
+			json.RawMessage(`{}`), // Empty enum
 			},
 		},
 	}
@@ -331,7 +331,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 // Test Policy Instance Validation
 
-// DISABLED: func TestValidatePolicyInstance_Success(t *testing.T) {
+func TestValidatePolicyInstance_Success(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	policyType := &PolicyType{
@@ -342,11 +342,11 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	validInstance := &PolicyInstance{
 		PolicyID:     "test-policy-1",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage("{}"){
+		PolicyData: map[string]interface{}{
 				"ue_id":   "test-ue-123",
 				"cell_id": "ABCD1234",
 			},
-			"statement": json.RawMessage("{}"),
+			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://callback.example.com/notify",
@@ -358,7 +358,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.NoError(t, err)
 }
 
-// DISABLED: func TestValidatePolicyInstance_NilInputs(t *testing.T) {
+func TestValidatePolicyInstance_NilInputs(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	tests := []struct {
@@ -390,7 +390,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}
 }
 
-// DISABLED: func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
+func TestValidatePolicyInstance_InvalidFields(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	policyType := &PolicyType{
@@ -459,7 +459,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}
 }
 
-// DISABLED: func TestValidatePolicyInstance_SchemaValidation(t *testing.T) {
+func TestValidatePolicyInstance_SchemaValidation(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	policyType := &PolicyType{
@@ -473,7 +473,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}{
 		{
 			"missing required scope",
-			json.RawMessage("{}"){
+			map[string]interface{}{
 					"qos_class": 5,
 					"action":    "allow",
 				},
@@ -481,42 +481,42 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 		},
 		{
 			"missing required statement",
-			json.RawMessage("{}"){
+			map[string]interface{}{
 					"ue_id": "test-ue-123",
 				},
 			},
 		},
 		{
 			"invalid qos_class type",
-			json.RawMessage("{}"){
+			map[string]interface{}{
 					"ue_id": "test-ue-123",
 				},
-				"statement": json.RawMessage("{}"),
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"qos_class out of range",
-			json.RawMessage("{}"){
+			map[string]interface{}{
 					"ue_id": "test-ue-123",
 				},
-				"statement": json.RawMessage("{}"),
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid action enum",
-			json.RawMessage("{}"){
+			map[string]interface{}{
 					"ue_id": "test-ue-123",
 				},
-				"statement": json.RawMessage("{}"),
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid cell_id pattern",
-			json.RawMessage("{}"){
+			map[string]interface{}{
 					"ue_id":   "test-ue-123",
 					"cell_id": "INVALID",
 				},
-				"statement": json.RawMessage("{}"),
+				"statement": json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -536,7 +536,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}
 }
 
-// DISABLED: func TestValidatePolicyInstance_InvalidNotificationURL(t *testing.T) {
+func TestValidatePolicyInstance_InvalidNotificationURL(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	policyType := &PolicyType{
@@ -547,10 +547,10 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	instance := &PolicyInstance{
 		PolicyID:     "test-policy",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage("{}"){
+		PolicyData: map[string]interface{}{
 				"ue_id": "test-ue-123",
 			},
-			"statement": json.RawMessage("{}"),
+			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "invalid-url",
@@ -564,7 +564,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 // Test EI Type Validation
 
-// DISABLED: func TestValidateEIType_Success(t *testing.T) {
+func TestValidateEIType_Success(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	validEIType := &EnrichmentInfoType{
@@ -572,8 +572,8 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 		EiTypeName:      "Test EI Type",
 		Description:     "Test enrichment information type",
 		EiJobDataSchema: createValidEIJobDataSchema(),
-		EiJobResultSchema: json.RawMessage("{}"){
-				"results": json.RawMessage("{}"),
+		EiJobResultSchema: map[string]interface{}{
+				"results": json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -582,7 +582,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.NoError(t, err)
 }
 
-// DISABLED: func TestValidateEIType_InvalidFields(t *testing.T) {
+func TestValidateEIType_InvalidFields(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	tests := []struct {
@@ -640,7 +640,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 // Test EI Job Validation
 
-// DISABLED: func TestValidateEIJob_Success(t *testing.T) {
+func TestValidateEIJob_Success(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	eiType := &EnrichmentInfoType{
@@ -651,11 +651,11 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	validJob := &EnrichmentInfoJob{
 		EiJobID:  "test-job-1",
 		EiTypeID: "test-ei-type-1",
-		EiJobData: json.RawMessage("{}"){
+		EiJobData: map[string]interface{}{
 				"measurement_type": "throughput",
 				"reporting_period": 5000,
 				"targets": []interface{}{
-					json.RawMessage("{}"),
+					json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -668,7 +668,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.NoError(t, err)
 }
 
-// DISABLED: func TestValidateEIJob_InvalidFields(t *testing.T) {
+func TestValidateEIJob_InvalidFields(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	eiType := &EnrichmentInfoType{
@@ -753,7 +753,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	}
 }
 
-// DISABLED: func TestValidateEIJob_InvalidURLs(t *testing.T) {
+func TestValidateEIJob_InvalidURLs(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	eiType := &EnrichmentInfoType{
@@ -801,13 +801,13 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 // Test Schema Validation Edge Cases
 
-// DISABLED: func TestSchemaValidation_ComplexTypes(t *testing.T) {
+func TestSchemaValidation_ComplexTypes(t *testing.T) {
 	validator := NewTestA1Validator()
 
-	complexSchema := json.RawMessage("{}"){
-			"array_field": json.RawMessage("{}"){
+	complexSchema := map[string]interface{}{
+			"array_field": map[string]interface{}{
 					"type": "object",
-					"properties": json.RawMessage("{}"){
+					"properties": map[string]interface{}{
 							"type": "string",
 						},
 					},
@@ -815,19 +815,19 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 				"minItems": 1,
 				"maxItems": 10,
 			},
-			"oneOf_field": json.RawMessage("{}"){
+			"oneOf_field": map[string]interface{}{
 					json.RawMessage(`{"type":"string"}`),
 					json.RawMessage(`{"type":"number"}`),
 				},
 			},
-			"conditional_field": json.RawMessage("{}"){
-					"properties": json.RawMessage("{}"){
+			"conditional_field": map[string]interface{}{
+					"properties": map[string]interface{}{
 							"const": "special",
 						},
 					},
 				},
-				"then": json.RawMessage("{}"){
-						"special_value": json.RawMessage("{}"),
+				"then": map[string]interface{}{
+						"special_value": json.RawMessage(`{}`),
 					},
 					"required": []string{"special_value"},
 				},
@@ -844,8 +844,8 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.NoError(t, err)
 
 	// Test valid data
-	validData := json.RawMessage("{}"){
-			json.RawMessage("{}"),
+	validData := map[string]interface{}{
+			json.RawMessage(`{}`),
 		},
 		"oneOf_field": "string_value",
 	}
@@ -860,16 +860,16 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 	assert.NoError(t, err)
 }
 
-// DISABLED: func TestSchemaValidation_Performance(t *testing.T) {
+func TestSchemaValidation_Performance(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	// Create a large schema
-	largeSchema := json.RawMessage("{}")),
+	largeSchema := json.RawMessage(`{}`)),
 	}
 
 	properties := largeSchema["properties"].(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		properties[fmt.Sprintf("field_%d", i)] = json.RawMessage("{}")
+		properties[fmt.Sprintf("field_%d", i)] = json.RawMessage(`{}`)
 	}
 
 	policyType := &PolicyType{
@@ -900,7 +900,7 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 
 // Test Concurrent Validation
 
-// DISABLED: func TestValidation_Concurrent(t *testing.T) {
+func TestValidation_Concurrent(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	policyType := &PolicyType{
@@ -917,10 +917,10 @@ func (v *TestA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *Enrichm
 			instance := &PolicyInstance{
 				PolicyID:     fmt.Sprintf("policy-%d", id),
 				PolicyTypeID: 1,
-				PolicyData: json.RawMessage("{}"){
+				PolicyData: map[string]interface{}{
 						"ue_id": fmt.Sprintf("ue-%d", id),
 					},
-					"statement": json.RawMessage("{}"),
+					"statement": json.RawMessage(`{}`),
 				},
 			}
 
@@ -962,10 +962,10 @@ func BenchmarkValidatePolicyInstance(b *testing.B) {
 	instance := &PolicyInstance{
 		PolicyID:     "test-policy",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage("{}"){
+		PolicyData: map[string]interface{}{
 				"ue_id": "test-ue-123",
 			},
-			"statement": json.RawMessage("{}"),
+			"statement": json.RawMessage(`{}`),
 		},
 	}
 
@@ -1194,3 +1194,4 @@ func NewValidationError(message, field string, value interface{}) error {
 func (e *ValidationError) Error() string {
 	return fmt.Sprintf("validation error in field '%s': %s (value: %v)", e.Field, e.Message, e.Value)
 }
+

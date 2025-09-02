@@ -18,10 +18,8 @@ package security
 
 import (
 	"context"
-	// "crypto/sha256" // Removed unused import
 	"crypto/x509"
-	// "encoding/hex" // Removed unused import
-	// "encoding/json" // Removed unused import
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -274,7 +272,7 @@ func (o *ORANSecurityComplianceEngine) ValidateCompliance(nodeID string) (*ORANC
 		Recommendations: []string{},
 		CheckTimestamp:  startTime,
 		ValidUntil:      startTime.Add(24 * time.Hour),
-		Evidence:        make(map[string]interface{}),
+		Evidence:        json.RawMessage(`{}`),
 	}
 
 	totalScore := 0.0
@@ -314,10 +312,18 @@ func (o *ORANSecurityComplianceEngine) ValidateCompliance(nodeID string) (*ORANC
 		result.ComplianceStatus = StatusNonCompliant
 	}
 
-	// Add evidence
-	result.Evidence["validation_duration"] = time.Since(startTime)
-	result.Evidence["total_policies_checked"] = totalRequirements
-	result.Evidence["total_violations"] = len(result.Violations)
+	// Build evidence map and marshal to JSON
+	evidenceMap := map[string]interface{}{
+		"validation_duration":     time.Since(startTime),
+		"total_policies_checked":  totalRequirements,
+		"total_violations":        len(result.Violations),
+	}
+	
+	if evidenceBytes, err := json.Marshal(evidenceMap); err == nil {
+		result.Evidence = evidenceBytes
+	} else {
+		result.Evidence = json.RawMessage(`{}`)
+	}
 
 	o.logger.Info("Compliance validation completed",
 		"node_id", nodeID,
@@ -364,7 +370,7 @@ func (o *ORANSecurityComplianceEngine) validateORANSecurityPolicy(policy ORANSec
 		Violations:      []ComplianceViolation{},
 		Recommendations: []string{},
 		CheckTimestamp:  time.Now(),
-		Evidence:        make(map[string]interface{}),
+		Evidence:        json.RawMessage(`{}`),
 	}
 
 	passedRequirements := 0
@@ -393,7 +399,7 @@ func (o *ORANSecurityComplianceEngine) validateORANSecurityPolicy(policy ORANSec
 					DetectedAt:       time.Now(),
 					AffectedResource: nodeID,
 					RemediationSteps: o.getRemediationSteps(requirement.Category),
-					Context:          json.RawMessage("{}"),
+					Context:          json.RawMessage(`{}`),
 				})
 			}
 		}
@@ -411,7 +417,7 @@ func (o *ORANSecurityComplianceEngine) validateORANSecurityPolicy(policy ORANSec
 
 // validateSecurityRequirement validates a specific security requirement
 func (o *ORANSecurityComplianceEngine) validateSecurityRequirement(requirement SecurityRequirement, nodeID string) (bool, []string, error) {
-	context := json.RawMessage("{}")
+	context := make(map[string]interface{})
 
 	// Execute requirement-specific validation
 	switch requirement.Category {
@@ -696,7 +702,7 @@ func NewAuthenticationEngine(config *ComplianceConfig, logger logr.Logger) *Auth
 func (a *AuthenticationEngine) Start() error { return nil }
 func (a *AuthenticationEngine) Stop()        {}
 func (a *AuthenticationEngine) ValidateCredentials(creds interface{}) (bool, map[string]interface{}, error) {
-	return true, json.RawMessage("{}"), nil
+	return true, make(map[string]interface{}), nil
 }
 
 func (a *AuthenticationEngine) GetNodeCertificate(nodeID string) (*x509.Certificate, error) {
@@ -824,7 +830,7 @@ func (c *ComplianceMonitor) GenerateReport() (*ORANComplianceReport, error) {
 		ComplianceScore: 0.95,
 		NodeResults:     []ORANComplianceResult{},
 		TotalViolations: 0,
-		Summary:         json.RawMessage("{}"),
+		Summary:         json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -843,3 +849,4 @@ func (t *ORANThreatDetector) DetectThreats(nodeID string, context map[string]int
 	return []ThreatDetectionResult{}, nil
 }
 func (t *ORANThreatDetector) PerformThreatScan() {}
+

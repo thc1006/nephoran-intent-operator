@@ -392,7 +392,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "scale_up",
 
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		})
 	}
 
@@ -408,7 +408,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "optimize_cache",
 
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		})
 	}
 
@@ -424,7 +424,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "scale_up",
 
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		})
 	}
 
@@ -440,7 +440,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "optimize_performance",
 
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		})
 	}
 
@@ -457,7 +457,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "optimize_cache",
 
-			Parameters: json.RawMessage("{}"),
+			Parameters: json.RawMessage(`{}`),
 		})
 	}
 
@@ -1087,3 +1087,4 @@ type ScalingDecision struct {
 
 	Timestamp time.Time `json:"timestamp"`
 }
+

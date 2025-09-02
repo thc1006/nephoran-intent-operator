@@ -27,13 +27,13 @@ func createTestPolicyType() *PolicyType {
 		PolicyTypeID:   1,
 		PolicyTypeName: "test-policy-type",
 		Description:    "Test policy type for unit tests",
-		Schema: json.RawMessage("{}"){
-				"scope": json.RawMessage("{}"){
-						"ue_id": json.RawMessage("{}"),
+		Schema: map[string]interface{}{
+				"scope": map[string]interface{}{
+						"ue_id": json.RawMessage(`{}`),
 					},
 				},
-				"statement": json.RawMessage("{}"){
-						"qos_class": json.RawMessage("{}"),
+				"statement": map[string]interface{}{
+						"qos_class": json.RawMessage(`{}`),
 					},
 				},
 			},
@@ -47,10 +47,10 @@ func createTestPolicyInstance() *PolicyInstance {
 	return &PolicyInstance{
 		PolicyID:     "test-policy-1",
 		PolicyTypeID: 1,
-		PolicyData: json.RawMessage("{}"){
+		PolicyData: map[string]interface{}{
 				"ue_id": "test-ue-123",
 			},
-			"statement": json.RawMessage("{}"),
+			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://test-callback.com",
@@ -69,7 +69,7 @@ func createTestPolicyStatus() *PolicyStatus {
 		Deleted:           false,
 		CreatedAt:         time.Now(),
 		ModifiedAt:        time.Now(),
-		AdditionalInfo: json.RawMessage("{}"),
+		AdditionalInfo: json.RawMessage(`{}`),
 	}
 }
 
@@ -78,11 +78,11 @@ func createTestEIType() *EnrichmentInfoType {
 		EiTypeID:    "test-ei-type-1",
 		EiTypeName:  "Test EI Type",
 		Description: "Test enrichment information type",
-		EiJobDataSchema: json.RawMessage("{}"){
-				"config": json.RawMessage("{}"),
+		EiJobDataSchema: map[string]interface{}{
+				"config": json.RawMessage(`{}`),
 			},
 		},
-		EiJobResultSchema: json.RawMessage("{}"),
+		EiJobResultSchema: json.RawMessage(`{}`),
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
 	}
@@ -92,7 +92,7 @@ func createTestEIJob() *EnrichmentInfoJob {
 	return &EnrichmentInfoJob{
 		EiJobID:  "test-ei-job-1",
 		EiTypeID: "test-ei-type-1",
-		EiJobData: json.RawMessage("{}"){
+		EiJobData: map[string]interface{}{
 				"param1": "value1",
 			},
 		},
@@ -158,7 +158,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 
 // Test Health and Readiness Endpoints
 
-// DISABLED: func TestHealthCheckHandler(t *testing.T) {
+func TestHealthCheckHandler(t *testing.T) {
 	handlers, _, _, _ := setupHandlerTest(t)
 
 	req := httptest.NewRequest("GET", "/health", nil)
@@ -170,7 +170,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	assert.Contains(t, rr.Body.String(), "healthy")
 }
 
-// DISABLED: func TestReadinessCheckHandler(t *testing.T) {
+func TestReadinessCheckHandler(t *testing.T) {
 	handlers, _, _, _ := setupHandlerTest(t)
 
 	req := httptest.NewRequest("GET", "/ready", nil)
@@ -184,7 +184,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 
 // Test A1-P Policy Interface Handlers
 
-// DISABLED: func TestHandleGetPolicyTypes(t *testing.T) {
+func TestHandleGetPolicyTypes(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupMocks     func(*MockA1Storage)
@@ -242,7 +242,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandleGetPolicyType(t *testing.T) {
+func TestHandleGetPolicyType(t *testing.T) {
 	tests := []struct {
 		name           string
 		policyTypeID   string
@@ -304,7 +304,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandleCreatePolicyType(t *testing.T) {
+func TestHandleCreatePolicyType(t *testing.T) {
 	tests := []struct {
 		name           string
 		policyTypeID   string
@@ -385,7 +385,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandleDeletePolicyType(t *testing.T) {
+func TestHandleDeletePolicyType(t *testing.T) {
 	tests := []struct {
 		name           string
 		policyTypeID   string
@@ -450,7 +450,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandleGetPolicyInstances(t *testing.T) {
+func TestHandleGetPolicyInstances(t *testing.T) {
 	tests := []struct {
 		name           string
 		policyTypeID   string
@@ -520,7 +520,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandleCreatePolicyInstance(t *testing.T) {
+func TestHandleCreatePolicyInstance(t *testing.T) {
 	tests := []struct {
 		name           string
 		policyTypeID   string
@@ -602,7 +602,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandleGetPolicyStatus(t *testing.T) {
+func TestHandleGetPolicyStatus(t *testing.T) {
 	tests := []struct {
 		name           string
 		policyTypeID   string
@@ -671,7 +671,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 
 // Test A1-C Consumer Interface Handlers
 
-// DISABLED: func TestHandleListConsumers(t *testing.T) {
+func TestHandleListConsumers(t *testing.T) {
 	handlers, _, _, storage := setupHandlerTest(t)
 
 	consumers := []Consumer{
@@ -701,7 +701,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	storage.AssertExpectations(t)
 }
 
-// DISABLED: func TestHandleRegisterConsumer(t *testing.T) {
+func TestHandleRegisterConsumer(t *testing.T) {
 	tests := []struct {
 		name           string
 		consumerID     string
@@ -713,7 +713,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:       "successful register consumer",
 			consumerID: "new-consumer",
-			requestBody: json.RawMessage("{}"),
+			requestBody: json.RawMessage(`{}`),
 			setupMocks: func(service *MockA1Service, storage *MockA1Storage) {
 				// Check consumer doesn't exist
 				storage.On("GetConsumer", mock.AnythingOfType("*context.valueCtx"), "new-consumer").Return((*Consumer)(nil), NewA1Error(ErrorTypeConsumerNotFound, "Not found", http.StatusNotFound, nil))
@@ -726,7 +726,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:       "consumer already exists",
 			consumerID: "existing-consumer",
-			requestBody: json.RawMessage("{}"),
+			requestBody: json.RawMessage(`{}`),
 			setupMocks: func(service *MockA1Service, storage *MockA1Storage) {
 				existingConsumer := createTestConsumer()
 				existingConsumer.ConsumerID = "existing-consumer"
@@ -762,7 +762,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 
 // Test A1-EI Enrichment Interface Handlers
 
-// DISABLED: func TestHandleGetEITypes(t *testing.T) {
+func TestHandleGetEITypes(t *testing.T) {
 	handlers, _, _, storage := setupHandlerTest(t)
 
 	eiTypes := []string{"ei-type-1", "ei-type-2"}
@@ -783,7 +783,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	storage.AssertExpectations(t)
 }
 
-// DISABLED: func TestHandleCreateEIJob(t *testing.T) {
+func TestHandleCreateEIJob(t *testing.T) {
 	tests := []struct {
 		name           string
 		eiJobID        string
@@ -795,8 +795,8 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:    "successful create EI job",
 			eiJobID: "new-ei-job",
-			requestBody: json.RawMessage("{}"){
-					"config": json.RawMessage("{}"),
+			requestBody: map[string]interface{}{
+					"config": json.RawMessage(`{}`),
 				},
 				"target_uri": "http://consumer.com/ei",
 				"job_owner":  "test-owner",
@@ -820,7 +820,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:    "EI type not found",
 			eiJobID: "new-ei-job",
-			requestBody: json.RawMessage("{}")"),
+			requestBody: json.RawMessage(`{}`)"),
 				"target_uri":  "http://consumer.com/ei",
 				"job_owner":   "test-owner",
 			},
@@ -858,7 +858,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 
 // Test Error Handling and Edge Cases
 
-// DISABLED: func TestHandlers_InvalidHTTPMethods(t *testing.T) {
+func TestHandlers_InvalidHTTPMethods(t *testing.T) {
 	handlers, _, _, _ := setupHandlerTest(t)
 
 	tests := []struct {
@@ -884,7 +884,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	}
 }
 
-// DISABLED: func TestHandlers_InvalidContentType(t *testing.T) {
+func TestHandlers_InvalidContentType(t *testing.T) {
 	handlers, _, _, _ := setupHandlerTest(t)
 
 	req := httptest.NewRequest("PUT", "/A1-P/v2/policytypes/1", strings.NewReader("test data"))
@@ -897,7 +897,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	assert.Equal(t, http.StatusUnsupportedMediaType, rr.Code)
 }
 
-// DISABLED: func TestHandlers_LargeRequestBody(t *testing.T) {
+func TestHandlers_LargeRequestBody(t *testing.T) {
 	handlers, _, _, _ := setupHandlerTest(t)
 
 	// Create a large request body
@@ -916,7 +916,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 	assert.NotEqual(t, http.StatusInternalServerError, rr.Code)
 }
 
-// DISABLED: func TestHandlers_ConcurrentRequests(t *testing.T) {
+func TestHandlers_ConcurrentRequests(t *testing.T) {
 	handlers, _, _, storage := setupHandlerTest(t)
 
 	// Setup mock to be called multiple times
@@ -1061,3 +1061,4 @@ type A1Error struct {
 func (e *A1Error) Error() string {
 	return fmt.Sprintf("[%s] %s: %s", e.Type, e.Title, e.Detail)
 }
+

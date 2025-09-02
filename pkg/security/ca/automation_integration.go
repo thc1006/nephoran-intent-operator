@@ -212,8 +212,7 @@ func (ai *AutomationIntegration) GetAutomationEngine() *AutomationEngine {
 // GetHealthStatus returns the overall health status.
 
 func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
-	status := json.RawMessage("{}")"),
-	}
+	status := make(map[string]interface{})
 
 	// Check CA Manager health.
 
@@ -221,7 +220,10 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 		caHealth := ai.caManager.HealthCheck(context.Background())
 
-		caStatus := json.RawMessage("{}")
+		caStatus := map[string]interface{}{
+			"healthy": len(caHealth) == 0,
+			"errors": caHealth,
+		}
 
 		if len(caHealth) > 0 {
 			status["healthy"] = false
@@ -235,7 +237,9 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 	if ai.automationEngine != nil {
 
-		engineStatus := json.RawMessage("{}")
+		engineStatus := map[string]interface{}{
+			"running": ai.automationEngine.IsRunning(),
+		}
 
 		status["components"].(map[string]interface{})["automation_engine"] = engineStatus
 
@@ -247,9 +251,8 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 // GetMetrics returns integration metrics.
 
 func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
-	metrics := json.RawMessage("{}")"),
-
-		"automation_engine": json.RawMessage("{}"),
+	metrics := map[string]interface{}{
+		"automation_engine": make(map[string]interface{}),
 	}
 
 	// Add CA Manager metrics if available.
@@ -257,14 +260,13 @@ func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 	if ai.caManager != nil && ai.caManager.monitor != nil {
 		// This would collect CA manager metrics.
 
-		metrics["ca_manager"] = json.RawMessage("{}"),
-		}
+		metrics["ca_manager"] = make(map[string]interface{})
 	}
 
 	// Add Automation Engine metrics.
 
 	if ai.automationEngine != nil {
-		metrics["automation_engine"] = json.RawMessage("{}")
+		metrics["automation_engine"] = make(map[string]interface{})
 	}
 
 	return metrics
@@ -589,3 +591,4 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 		EnableAuditLogging: true,
 	}
 }
+

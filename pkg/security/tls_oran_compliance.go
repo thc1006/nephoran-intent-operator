@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -315,7 +314,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 
 	if !limiter.Allow() {
 		if c.AuditLogger != nil {
-			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", json.RawMessage("{}"))
+			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", make(map[string]interface{}))
 		}
 		return errors.New("rate limit exceeded")
 	}
@@ -341,7 +340,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 
 	// Log handshake attempt
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("tls_handshake_started", json.RawMessage("{}"))
+		c.AuditLogger.LogSecurityEvent("tls_handshake_started", make(map[string]interface{}))
 	}
 
 	return nil
@@ -370,7 +369,7 @@ func (c *ORANTLSCompliance) defaultPostHandshakeHook(state tls.ConnectionState) 
 
 	// Log successful handshake
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", json.RawMessage("{}"))
+		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", make(map[string]interface{}))
 	}
 
 	// Update metrics
@@ -414,7 +413,7 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 			}
 			// Log but continue if soft fail is enabled
 			if c.AuditLogger != nil {
-				c.AuditLogger.LogSecurityEvent("ocsp_soft_fail", json.RawMessage("{}"))
+				c.AuditLogger.LogSecurityEvent("ocsp_soft_fail", make(map[string]interface{}))
 			}
 		}
 	}
@@ -427,7 +426,7 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 
 	// Log successful verification
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("certificate_verified", json.RawMessage("{}"))
+		c.AuditLogger.LogSecurityEvent("certificate_verified", make(map[string]interface{}))
 	}
 
 	return nil
@@ -591,3 +590,4 @@ func (c *ORANTLSCompliance) ValidateCompliance() error {
 type TLSAuditLogger interface {
 	LogSecurityEvent(event string, details map[string]interface{})
 }
+

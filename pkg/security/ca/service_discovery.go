@@ -2,6 +2,7 @@ package ca
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -711,21 +712,26 @@ func (sd *ServiceDiscovery) provisionCertificateForService(ctx context.Context, 
 	}
 
 	// Generate DNS names.
-
 	dnsNames := sd.generateDNSNames(discovered, template)
 
 	// Create provisioning request.
-
 	req := &AutomationRequest{
-		Type: RequestTypeProvisioning,
-
-		ServiceName: discovered.Name,
-
+		Type:             RequestTypeProvisioning,
+		ServiceName:      discovered.Name,
 		ServiceNamespace: discovered.Namespace,
+		Priority:         PriorityNormal,
+		Metadata:         json.RawMessage(`{}`),
+	}
 
-		Priority: PriorityNormal,
-
-		Metadata: json.RawMessage("{}"),
+	// Add DNS names to metadata
+	if len(dnsNames) > 0 {
+		metadata := map[string]interface{}{
+			"dns_names":  dnsNames,
+			"request_id": fmt.Sprintf("sd-%d", time.Now().Unix()),
+		}
+		if metadataBytes, err := json.Marshal(metadata); err == nil {
+			req.Metadata = json.RawMessage(metadataBytes)
+		}
 	}
 
 	// Submit provisioning request.
@@ -757,12 +763,9 @@ func (sd *ServiceDiscovery) provisionCertificateForService(ctx context.Context, 
 	discovered.Status = StatusProvisioned
 
 	sd.logger.Info("certificate provisioning requested",
-
 		"service", discovered.Name,
-
 		"namespace", discovered.Namespace,
-
-		"request_id", req.Metadata["request_id"])
+		"response", response)
 }
 
 // generateDNSNames generates DNS names for the certificate.
@@ -1120,3 +1123,4 @@ func (sd *ServiceDiscovery) countTLSPorts(ports []DiscoveryServicePort) int {
 
 	return count
 }
+

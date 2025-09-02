@@ -939,7 +939,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 				Image: "5g-core-validator", // Use existing validator function
 
-				Config: json.RawMessage("{}"),
+				Config: json.RawMessage(`{}`),
 			},
 		},
 
@@ -975,7 +975,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 					Image: "network-slice-optimizer",
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1003,7 +1003,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 				Image: "multi-vendor-normalizer",
 
-				Config: json.RawMessage("{}"),
+				Config: json.RawMessage(`{}`),
 
 				// Optional optimization.
 
@@ -1034,7 +1034,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 					Image: "5g-core-validator",
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1075,7 +1075,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-optimizer", // Use 5G optimizer for deployments
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1097,7 +1097,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-validator", // Use 5G validator for configuration
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1119,7 +1119,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-optimizer", // Use 5G optimizer for scaling
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1143,7 +1143,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-validator", // Use validator as default
 
-					Config: json.RawMessage("{}"),
+					Config: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1256,7 +1256,7 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	for stageName := range execution.Stages {
 
-		functionConfig := json.RawMessage("{}"){
+		functionConfig := json.RawMessage(`{}`){
 				"executedAt": time.Now().Format(time.RFC3339),
 
 				"status": "completed",
@@ -1545,3 +1545,4 @@ func (pim *PorchIntegrationManager) calculatePackageSize(packageRevision *porch.
 
 	return size
 }
+

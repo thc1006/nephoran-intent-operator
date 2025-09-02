@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DISABLED: func TestNewO1Adaptor(t *testing.T) {
+func TestNewO1Adaptor(t *testing.T) {
 	_ = testr.New(t) // logger not needed for compat tests
 	config := O1AdaptorConfig{
 		Timeout:    10 * time.Second,
@@ -32,7 +32,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_ConnectElement(t *testing.T) {
+func TestO1Adaptor_ConnectElement(t *testing.T) {
 	_ = testr.New(t) // logger not needed for compat tests
 	adapter := NewO1AdaptorCompat(O1AdaptorConfig{})
 
@@ -55,7 +55,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_ConnectElement_NoEndpoint(t *testing.T) {
+func TestO1Adaptor_ConnectElement_NoEndpoint(t *testing.T) {
 	_ = testr.New(t) // logger not needed for compat tests
 	adapter := NewO1AdaptorCompat(O1AdaptorConfig{})
 
@@ -78,7 +78,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_GetElementStatus(t *testing.T) {
+func TestO1Adaptor_GetElementStatus(t *testing.T) {
 	_ = testr.New(t) // logger not needed for compat tests
 	adapter := NewO1AdaptorCompat(O1AdaptorConfig{})
 

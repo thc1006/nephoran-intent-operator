@@ -5,6 +5,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -1111,34 +1112,47 @@ func (cc *CostCalculator) CalculateCost(modelName string, tokenCount int) float6
 
 func (c *EnhancedPerformanceClient) GetHealthStatus() map[string]interface{} {
 	c.healthCheckMutex.RLock()
-
 	defer c.healthCheckMutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"status": "healthy",
+		"last_check": c.lastHealthCheck,
+	}
 }
 
 // GetMetrics returns comprehensive metrics.
 
 func (c *EnhancedPerformanceClient) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"active_requests": len(c.activeRequests),
+		"healthy": c.isHealthy,
+		"last_health_check": c.lastHealthCheck,
+	}
 }
 
 func (c *EnhancedPerformanceClient) getTokenUsageStats() map[string]interface{} {
 	c.tokenTracker.mutex.RLock()
-
 	defer c.tokenTracker.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"total_tokens": c.tokenTracker.totalTokens,
+		"tokens_by_model": c.tokenTracker.tokensByModel,
+		"tokens_by_intent": c.tokenTracker.tokensByIntent,
+	}
 }
 
 func (c *EnhancedPerformanceClient) getCostTrackingStats() map[string]interface{} {
 	c.costCalculator.mutex.RLock()
-
 	defer c.costCalculator.mutex.RUnlock()
 
 	utilization := (c.costCalculator.totalCost / c.costCalculator.budgetLimit) * 100
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"total_cost": c.costCalculator.totalCost,
+		"budget_limit": c.costCalculator.budgetLimit,
+		"utilization_percent": utilization,
+		"alert_threshold": c.costCalculator.alertThreshold,
+	}
 }
 
 // Close gracefully shuts down the client.

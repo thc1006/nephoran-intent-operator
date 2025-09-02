@@ -7,14 +7,14 @@ func createTestFunctionRequest() *FunctionRequest {
 	return &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			ConfigMap: json.RawMessage("{}"),
+			ConfigMap: json.RawMessage(`{}`),
 		},
 		Resources: []KRMResource{
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: json.RawMessage("{}"),
-				Data: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 		Context: &FunctionContext{
@@ -28,3 +28,4 @@ func createTestFunctionRequest() *FunctionRequest {
 // Rest of the function_runner_test.go follows the previous implementation...
 // The only change is the createTestFunctionRequest implementation to use KRMResource
 // instead of map[string]interface{}
+

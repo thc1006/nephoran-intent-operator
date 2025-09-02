@@ -203,7 +203,7 @@ func createTestConfig() *Config {
 }
 
 // Comprehensive unit tests for NetworkIntent controller
-// DISABLED: func TestNewNetworkIntentReconciler(t *testing.T) {
+func TestNewNetworkIntentReconciler(t *testing.T) {
 	tests := []struct {
 		name          string
 		client        client.Client
@@ -273,7 +273,7 @@ func createTestConfig() *Config {
 	}
 }
 
-// DISABLED: func TestReconcile(t *testing.T) {
+func TestReconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -291,7 +291,7 @@ func createTestConfig() *Config {
 			name:          "successful reconciliation with LLM processing",
 			networkIntent: createTestNetworkIntent("test-intent", "default", "Deploy AMF network function"),
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := json.RawMessage("{}"){
+				llmResponse := map[string]interface{}{
 						"cpu":    "500m",
 						"memory": "512Mi",
 					},
@@ -436,7 +436,7 @@ func createTestConfig() *Config {
 	}
 }
 
-// DISABLED: func TestExtractIntentType(t *testing.T) {
+func TestExtractIntentType(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -464,7 +464,7 @@ func createTestConfig() *Config {
 	}
 }
 
-// DISABLED: func TestUpdatePhase(t *testing.T) {
+func TestUpdatePhase(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -545,7 +545,7 @@ func getConditionMessage(conditions []metav1.Condition, conditionType string) st
 	return ""
 }
 
-// DISABLED: func TestProcessingContext(t *testing.T) {
+func TestProcessingContext(t *testing.T) {
 	tests := []struct {
 		name              string
 		intentType        string
@@ -556,8 +556,8 @@ func getConditionMessage(conditions []metav1.Condition, conditionType string) st
 		{
 			name:       "valid 5gc context",
 			intentType: "5gc",
-			extractedEntities: json.RawMessage("{}"),
-			telecomContext: json.RawMessage("{}"),
+			extractedEntities: json.RawMessage(`{}`),
+			telecomContext: json.RawMessage(`{}`),
 				"deployment_type":   "production",
 			},
 			expectedValid: true,
@@ -565,8 +565,8 @@ func getConditionMessage(conditions []metav1.Condition, conditionType string) st
 		{
 			name:              "empty context",
 			intentType:        "unknown",
-			extractedEntities: json.RawMessage("{}"),
-			telecomContext:    json.RawMessage("{}"),
+			extractedEntities: json.RawMessage(`{}`),
+			telecomContext:    json.RawMessage(`{}`),
 			expectedValid:     true, // Empty context is still valid
 		},
 	}
@@ -598,7 +598,7 @@ func BenchmarkReconcile(b *testing.B) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ni).Build()
 
 	mockDeps := NewMockDependencies()
-	llmResponse := json.RawMessage("{}")
+	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
 	mockDeps.llmClient.SetResponse(string(responseJSON))
 
@@ -643,3 +643,4 @@ func BenchmarkExtractIntentType(b *testing.B) {
 		}
 	}
 }
+

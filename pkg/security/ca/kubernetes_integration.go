@@ -565,7 +565,11 @@ func (e *AutomationEngine) mutateDeployment(req *admissionv1.AdmissionRequest) (
 	// Check if deployment pods should have certificates injected
 	if e.shouldInjectCertificateIntoDeployment(&deployment) {
 		// Add annotations to pod template
-		patches := []json.RawMessage("{}"),
+		patches := []map[string]interface{}{
+			{
+				"op":    "add",
+				"path":  "/spec/template/metadata/annotations",
+				"value": map[string]string{},
 			},
 		}
 		return json.Marshal(patches)
@@ -584,7 +588,11 @@ func (e *AutomationEngine) mutateService(req *admissionv1.AdmissionRequest) ([]b
 	// Check if service should have automatic certificate provisioning
 	if e.shouldProvisionCertificateForService(&service) {
 		// Add annotation to trigger certificate provisioning
-		patches := []json.RawMessage("{}"),
+		patches := []map[string]interface{}{
+			{
+				"op":    "add",
+				"path":  "/metadata/annotations",
+				"value": map[string]string{},
 			},
 		}
 		return json.Marshal(patches)
@@ -644,28 +652,47 @@ func (e *AutomationEngine) shouldProvisionCertificateForService(service *v1.Serv
 func (e *AutomationEngine) createCertificateVolumePatches(pod *v1.Pod) []map[string]interface{} {
 	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, pod.Name)
 
-	volume := json.RawMessage("{}"){
+	volume := map[string]interface{}{
+		"name": "tls-cert",
+		"secret": map[string]interface{}{
 			"secretName": secretName,
 		},
 	}
 
-	return []json.RawMessage("{}"),
+	return []map[string]interface{}{
+		{
+			"op":    "add",
+			"path":  "/spec/volumes/-",
+			"value": volume,
+		},
 	}
 }
 
 func (e *AutomationEngine) createCertificateVolumeMountPatches(pod *v1.Pod) []map[string]interface{} {
-	volumeMount := json.RawMessage("{}")
+	volumeMount := map[string]interface{}{
+		"name":      "tls-cert",
+		"mountPath": "/etc/tls",
+		"readOnly":  true,
+	}
 
 	var patches []map[string]interface{}
 	for i := range pod.Spec.Containers {
-		patches = append(patches, json.RawMessage("{}"))
+		patches = append(patches, map[string]interface{}{
+			"op":    "add",
+			"path":  fmt.Sprintf("/spec/containers/%d/volumeMounts/-", i),
+			"value": volumeMount,
+		})
 	}
 
 	return patches
 }
 
 func (e *AutomationEngine) createCertificateEnvPatches(pod *v1.Pod) []map[string]interface{} {
-	envVars := []json.RawMessage("{}"),
+	envVars := []map[string]string{
+		{
+			"name":  "TLS_CERT_PATH",
+			"value": "/etc/ssl/certs/service/tls.crt",
+		},
 		{
 			"name":  "TLS_KEY_PATH",
 			"value": "/etc/ssl/certs/service/tls.key",
@@ -679,7 +706,11 @@ func (e *AutomationEngine) createCertificateEnvPatches(pod *v1.Pod) []map[string
 	var patches []map[string]interface{}
 	for i := range pod.Spec.Containers {
 		for _, envVar := range envVars {
-			patches = append(patches, json.RawMessage("{}"))
+			patches = append(patches, map[string]interface{}{
+				"op":    "add",
+				"path":  fmt.Sprintf("/spec/containers/%d/env/-", i),
+				"value": envVar,
+			})
 		}
 	}
 
@@ -691,3 +722,4 @@ func (e *AutomationEngine) validateCertificateData(certData []byte) error {
 	// This would implement comprehensive certificate validation
 	return nil
 }
+

@@ -16,7 +16,7 @@ import (
 )
 
 // TestProcessIntentHandlerMetrics tests that metrics are recorded for the ProcessIntentHandler
-// DISABLED: func TestProcessIntentHandlerMetrics(t *testing.T) {
+func TestProcessIntentHandlerMetrics(t *testing.T) {
 	// Create a mock metrics collector for testing
 	metricsCollector := monitoring.NewMetricsCollector()
 
@@ -95,7 +95,7 @@ import (
 }
 
 // TestStatusHandlerMetrics tests that metrics are recorded for the StatusHandler
-// DISABLED: func TestStatusHandlerMetrics(t *testing.T) {
+func TestStatusHandlerMetrics(t *testing.T) {
 	metricsCollector := monitoring.NewMetricsCollector()
 
 	handler := NewLLMProcessorHandlerWithMetrics(
@@ -142,7 +142,7 @@ import (
 }
 
 // TestStreamingHandlerMetrics tests that metrics are recorded for SSE streaming
-// DISABLED: func TestStreamingHandlerMetrics(t *testing.T) {
+func TestStreamingHandlerMetrics(t *testing.T) {
 	metricsCollector := monitoring.NewMetricsCollector()
 
 	// Create a mock streaming processor
@@ -199,7 +199,7 @@ import (
 }
 
 // TestMetricsHandlerMetrics tests that the metrics endpoint itself is instrumented
-// DISABLED: func TestMetricsHandlerMetrics(t *testing.T) {
+func TestMetricsHandlerMetrics(t *testing.T) {
 	metricsCollector := monitoring.NewMetricsCollector()
 
 	handler := NewLLMProcessorHandlerWithMetrics(
@@ -231,7 +231,7 @@ import (
 }
 
 // TestCircuitBreakerStatusHandlerMetrics tests circuit breaker handler metrics
-// DISABLED: func TestCircuitBreakerStatusHandlerMetrics(t *testing.T) {
+func TestCircuitBreakerStatusHandlerMetrics(t *testing.T) {
 	metricsCollector := monitoring.NewMetricsCollector()
 
 	handler := NewLLMProcessorHandlerWithMetrics(

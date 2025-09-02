@@ -61,7 +61,7 @@ func (m *MockSecurityLLMClient) Close() error {
 	return nil
 }
 
-// DISABLED: func TestNetworkIntentController_LLMInjectionProtection(t *testing.T) {
+func TestNetworkIntentController_LLMInjectionProtection(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -243,7 +243,7 @@ func (m *MockSecurityLLMClient) Close() error {
 	}
 }
 
-// DISABLED: func TestNetworkIntentController_MaliciousOutputValidation(t *testing.T) {
+func TestNetworkIntentController_MaliciousOutputValidation(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -401,7 +401,7 @@ func (m *MockSecurityLLMClient) Close() error {
 	}
 }
 
-// DISABLED: func TestLLMSanitizer_MetricsCollection(t *testing.T) {
+func TestLLMSanitizer_MetricsCollection(t *testing.T) {
 	// Create sanitizer
 	sanitizer := security.NewLLMSanitizer(&security.SanitizerConfig{
 		SystemPrompt:    "Test prompt",
@@ -446,7 +446,7 @@ func (m *MockSecurityLLMClient) Close() error {
 	assert.NotEmpty(t, patterns)
 }
 
-// DISABLED: func TestSecurePromptConstruction(t *testing.T) {
+func TestSecurePromptConstruction(t *testing.T) {
 	// Create sanitizer
 	sanitizer := security.NewLLMSanitizer(&security.SanitizerConfig{
 		SystemPrompt:    "Original system prompt",
@@ -469,7 +469,7 @@ func (m *MockSecurityLLMClient) Close() error {
 	assert.Contains(t, securePrompt, userInput)
 }
 
-// DISABLED: func TestIntentWithBlockedKeywords(t *testing.T) {
+func TestIntentWithBlockedKeywords(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 

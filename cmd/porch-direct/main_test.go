@@ -23,7 +23,7 @@ type TestData struct {
 	expectNS       string
 }
 
-// DISABLED: func TestRunWithSampleIntent(t *testing.T) {
+func TestRunWithSampleIntent(t *testing.T) {
 	tests := []TestData{
 		{
 			name: "valid_sample_intent",
@@ -114,50 +114,50 @@ type TestData struct {
 	}
 }
 
-// DISABLED: func TestRunWithInvalidIntents(t *testing.T) {
+func TestRunWithInvalidIntents(t *testing.T) {
 	invalidTests := []struct {
 		name   string
 		intent map[string]interface{}
 	}{
 		{
 			name: "negative_replicas",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "zero_replicas",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "missing_target",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "missing_namespace",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "missing_intent_type",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "invalid_intent_type",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "too_many_replicas",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "empty_target",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "empty_namespace",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 		{
 			name: "invalid_source",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 		},
 	}
 
@@ -199,7 +199,7 @@ type TestData struct {
 	}
 }
 
-// DISABLED: func TestIdempotency(t *testing.T) {
+func TestIdempotency(t *testing.T) {
 	// Create sample intent
 	intent := intent.ScalingIntent{
 		IntentType: "scaling",
@@ -278,7 +278,7 @@ type TestData struct {
 	}
 }
 
-// DISABLED: func TestMinimalPackageGeneration(t *testing.T) {
+func TestMinimalPackageGeneration(t *testing.T) {
 	intent := intent.ScalingIntent{
 		IntentType: "scaling",
 		Target:     "minimal-test",
@@ -336,7 +336,7 @@ type TestData struct {
 	}
 }
 
-// DISABLED: func TestDryRun(t *testing.T) {
+func TestDryRun(t *testing.T) {
 	intent := intent.ScalingIntent{
 		IntentType: "scaling",
 		Target:     "dry-run-test",
@@ -618,7 +618,7 @@ func validateReadme(t *testing.T, readmePath string, expected TestData) {
 	}
 }
 
-// DISABLED: func TestFindProjectRoot(t *testing.T) {
+func TestFindProjectRoot(t *testing.T) {
 	// Test findProjectRoot function
 	root, err := findProjectRoot()
 	if err != nil {
@@ -643,7 +643,7 @@ func validateReadme(t *testing.T, readmePath string, expected TestData) {
 }
 
 // TestRunWithFileSystemErrors tests filesystem error conditions
-// DISABLED: func TestRunWithFileSystemErrors(t *testing.T) {
+func TestRunWithFileSystemErrors(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func(t *testing.T) (string, string) // returns intentFile, outDir
@@ -841,7 +841,7 @@ func validateReadme(t *testing.T, readmePath string, expected TestData) {
 }
 
 // TestRunWithMalformedIntentFiles tests handling of malformed intent files
-// DISABLED: func TestRunWithMalformedIntentFiles(t *testing.T) {
+func TestRunWithMalformedIntentFiles(t *testing.T) {
 	tests := []struct {
 		name        string
 		fileContent string
@@ -927,7 +927,7 @@ func validateReadme(t *testing.T, readmePath string, expected TestData) {
 }
 
 // TestRunWithResourceExhaustion tests resource exhaustion scenarios
-// DISABLED: func TestRunWithResourceExhaustion(t *testing.T) {
+func TestRunWithResourceExhaustion(t *testing.T) {
 	// Test with many concurrent runs to potentially exhaust resources
 	const numConcurrentRuns = 100
 
@@ -992,7 +992,7 @@ func validateReadme(t *testing.T, readmePath string, expected TestData) {
 }
 
 // TestRunProjectRootDiscovery tests project root discovery errors
-// DISABLED: func TestRunProjectRootDiscovery(t *testing.T) {
+func TestRunProjectRootDiscovery(t *testing.T) {
 	// Save original working directory
 	origWd, err := os.Getwd()
 	if err != nil {
@@ -1095,3 +1095,4 @@ func BenchmarkRunValidIntent(b *testing.B) {
 		}
 	}
 }
+

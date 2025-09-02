@@ -328,12 +328,20 @@ func (rs *RelevanceScorerImpl) CalculateRelevance(ctx context.Context, request *
 	explanation := rs.generateExplanation(scores, request)
 
 	// Create factors map
-	factors := map[string]interface{}{
+	factorsMap := map[string]interface{}{
 		"semantic_weight":  scores.semantic,
 		"authority_weight": scores.authority,
 		"recency_weight":   scores.recency,
 		"domain_weight":    scores.domain,
 		"intent_weight":    scores.intent,
+	}
+
+	// Convert factors to json.RawMessage
+	var factors json.RawMessage
+	if factorsBytes, err := json.Marshal(factorsMap); err == nil {
+		factors = json.RawMessage(factorsBytes)
+	} else {
+		factors = json.RawMessage(`{}`)
 	}
 
 	processingTime := time.Since(startTime)

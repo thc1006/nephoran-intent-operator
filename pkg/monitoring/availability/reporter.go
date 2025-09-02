@@ -1147,10 +1147,7 @@ func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, re
 
 	// Add audit trail metadata.
 
-	report.Metadata = json.RawMessage("{}"),
-
-		"calculation_method": "weighted_business_impact",
-	}
+	report.Metadata = json.RawMessage(`{"calculation_method": "weighted_business_impact"}`)
 
 	return nil
 }

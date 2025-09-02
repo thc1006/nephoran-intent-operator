@@ -131,7 +131,7 @@ func (s *O2APIServer) handleScaleResource(w http.ResponseWriter, r *http.Request
 
 	s.metrics.RecordResourceOperation("scale", "resource", "unknown", "success")
 
-	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage("{}"))
+	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage(`{}`))
 }
 
 // handleMigrateResource migrates a resource.
@@ -171,7 +171,7 @@ func (s *O2APIServer) handleMigrateResource(w http.ResponseWriter, r *http.Reque
 
 	s.metrics.RecordResourceOperation("migrate", "resource", req.TargetProvider, "success")
 
-	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage("{}"))
+	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage(`{}`))
 }
 
 // handleBackupResource creates a backup of a resource.
@@ -236,7 +236,7 @@ func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Reque
 
 	// Create a restore request with backupID.
 
-	restoreReq := json.RawMessage("{}")
+	restoreReq := json.RawMessage(`{}`)
 
 	result, err := s.resourceManager.RestoreResource(r.Context(), resourceID, restoreReq)
 
@@ -358,7 +358,7 @@ func (s *O2APIServer) handleSyncInventory(w http.ResponseWriter, r *http.Request
 
 	}
 
-	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage("{}"))
+	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage(`{}`))
 }
 
 // handleGetAssets retrieves inventory assets.
@@ -632,3 +632,4 @@ func (s *O2APIServer) parseQueryParamArray(r *http.Request, param string) []stri
 
 	return []string{value}
 }
+

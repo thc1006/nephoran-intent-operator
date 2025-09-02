@@ -14,7 +14,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// DISABLED: func TestNewGitHubProvider(t *testing.T) {
+func TestNewGitHubProvider(t *testing.T) {
 	tests := []struct {
 		name         string
 		clientID     string
@@ -49,12 +49,12 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_GetProviderName(t *testing.T) {
+func TestGitHubProvider_GetProviderName(t *testing.T) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	assert.Equal(t, "github", provider.GetProviderName())
 }
 
-// DISABLED: func TestGitHubProvider_SupportsFeature(t *testing.T) {
+func TestGitHubProvider_SupportsFeature(t *testing.T) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
@@ -78,7 +78,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_GetAuthorizationURL(t *testing.T) {
+func TestGitHubProvider_GetAuthorizationURL(t *testing.T) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
@@ -167,7 +167,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_ExchangeCodeForToken(t *testing.T) {
+func TestGitHubProvider_ExchangeCodeForToken(t *testing.T) {
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/login/oauth/access_token" {
@@ -182,7 +182,7 @@ import (
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
@@ -245,7 +245,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_GetUserInfo(t *testing.T) {
+func TestGitHubProvider_GetUserInfo(t *testing.T) {
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/user" {
@@ -299,7 +299,7 @@ import (
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
 			if token == "no-email-token" {
-				emails := []json.RawMessage("{}"),
+				emails := []json.RawMessage(`{}`),
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(emails)
@@ -371,7 +371,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_ValidateToken(t *testing.T) {
+func TestGitHubProvider_ValidateToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/user" {
 			authHeader := r.Header.Get("Authorization")
@@ -379,7 +379,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				userInfo := json.RawMessage("{}")
+				userInfo := json.RawMessage(`{}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
@@ -437,7 +437,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_RevokeToken(t *testing.T) {
+func TestGitHubProvider_RevokeToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/applications/test-id/token" {
 			assert.Equal(t, "DELETE", r.Method)
@@ -497,7 +497,7 @@ import (
 }
 
 // Test Enterprise Provider methods if GitHubProvider implements EnterpriseProvider
-// DISABLED: func TestGitHubProvider_GetOrganizations(t *testing.T) {
+func TestGitHubProvider_GetOrganizations(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/user/orgs" {
 			authHeader := r.Header.Get("Authorization")
@@ -594,7 +594,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGitHubProvider_RefreshToken(t *testing.T) {
+func TestGitHubProvider_RefreshToken(t *testing.T) {
 	// GitHub doesn't support token refresh in the traditional OAuth2 sense
 	// This test verifies the behavior when refresh is not supported
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
@@ -608,7 +608,7 @@ import (
 	assert.Contains(t, err.Error(), "not supported")
 }
 
-// DISABLED: func TestGitHubProvider_GetConfiguration(t *testing.T) {
+func TestGitHubProvider_GetConfiguration(t *testing.T) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	config := provider.GetConfiguration()
 
@@ -651,7 +651,7 @@ func createMockGitHubServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/login/oauth/access_token":
-			response := json.RawMessage("{}")
+			response := json.RawMessage(`{}`)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/user":
@@ -668,3 +668,4 @@ func createMockGitHubServer() *httptest.Server {
 		}
 	}))
 }
+

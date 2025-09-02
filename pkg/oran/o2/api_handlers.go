@@ -32,7 +32,7 @@ type ProblemDetail struct {
 // handleGetServiceInfo returns service information.
 
 func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Request) {
-	serviceInfo := json.RawMessage("{}"),
+	serviceInfo := json.RawMessage(`{}`),
 
 		"supported_providers": s.providerRegistry.GetSupportedProviders(),
 
@@ -61,7 +61,7 @@ func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 // handleReadinessCheck returns readiness status.
 
 func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Request) {
-	ready := json.RawMessage("{}"),
+	ready := json.RawMessage(`{}`),
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, ready)
@@ -1071,3 +1071,4 @@ func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.R
 
 	w.WriteHeader(StatusNoContent)
 }
+

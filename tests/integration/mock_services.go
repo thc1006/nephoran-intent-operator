@@ -109,7 +109,7 @@ func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.Intent
 
 		CacheHit: false,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -594,7 +594,7 @@ func (m *MockRedisService) GetStats() map[string]interface{} {
 
 	defer m.mu.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // SetError configures an error for a specific operation.
@@ -816,3 +816,4 @@ func (m *MockEmbeddingService) SetLatency(latency time.Duration) {
 
 	m.latency = latency
 }
+

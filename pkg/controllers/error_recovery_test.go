@@ -510,7 +510,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Setting up LLM client for concurrent processing")
-			successResponse := json.RawMessage("{}")
+			successResponse := json.RawMessage(`{}`)
 			successResponseBytes, _ := json.Marshal(successResponse)
 			// Update mock dependencies for concurrent processing test
 			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
@@ -921,7 +921,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			)
 
 			// Set up successful LLM processing
-			mockResponse := json.RawMessage("{}")
+			mockResponse := json.RawMessage(`{}`)
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			// Update mock dependencies for cascading failure test
 			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
@@ -1067,3 +1067,4 @@ func testGetRetryCount(ni *nephoranv1.NetworkIntent, operation string) int {
 	}
 	return 0
 }
+

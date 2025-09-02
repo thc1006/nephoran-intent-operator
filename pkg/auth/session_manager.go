@@ -918,7 +918,7 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 		}
 	}
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Helper methods.
@@ -1182,3 +1182,4 @@ func (sm *SessionManager) InvalidateSession(ctx context.Context, sessionID strin
 
 	return nil
 }
+

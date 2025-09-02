@@ -8,6 +8,7 @@ package health
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -360,7 +361,7 @@ func (ehc *EnhancedHealthChecker) RegisterEnhancedCheck(config *CheckConfig, che
 
 		Dependencies: config.Dependencies,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	ehc.logger.Info("Enhanced health check registered",
@@ -1132,3 +1133,4 @@ func (ehc *EnhancedHealthChecker) GetCheckHistory(checkName string, limit int) [
 
 	return history
 }
+

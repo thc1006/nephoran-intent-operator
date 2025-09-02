@@ -125,7 +125,7 @@ func (m *LoadTestMetrics) Finalize() {
 	}
 }
 
-// DISABLED: func TestO2APILoadPerformance(t *testing.T) {
+func TestO2APILoadPerformance(t *testing.T) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
@@ -138,8 +138,8 @@ func (m *LoadTestMetrics) Finalize() {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: json.RawMessage("{}"),
-		ProviderConfigs: json.RawMessage("{}"){
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 			},
 		},
@@ -627,8 +627,8 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: json.RawMessage("{}"),
-		ProviderConfigs: json.RawMessage("{}"){
+		DatabaseConfig: json.RawMessage(`{}`),
+		ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 			},
 		},
@@ -733,7 +733,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 }
 
 // Memory usage and GC pressure tests
-// DISABLED: func TestMemoryUsage(t *testing.T) {
+func TestMemoryUsage(t *testing.T) {
 	// This test would typically require additional tooling for memory profiling
 	// For now, we'll simulate high-volume operations and ensure no memory leaks
 
@@ -747,7 +747,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: json.RawMessage("{}"),
+		DatabaseConfig: json.RawMessage(`{}`),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -813,3 +813,4 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		t.Logf("Retrieved 1000 resource pools in %v", latency)
 	})
 }
+

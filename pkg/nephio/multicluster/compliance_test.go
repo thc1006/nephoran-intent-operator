@@ -232,7 +232,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 }
 
 // O-RAN Compliance Tests
-// DISABLED: func TestORanCompliance_5GCoreDeployment(t *testing.T) {
+func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 	requirement := ComplianceRequirement{
 		Standard:     "3GPP TS 23.501",
 		Requirement:  "5G Core Network Functions Deployment",
@@ -324,7 +324,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 	})
 }
 
-// DISABLED: func TestORanCompliance_NetworkSlicing(t *testing.T) {
+func TestORanCompliance_NetworkSlicing(t *testing.T) {
 	requirement := ComplianceRequirement{
 		Standard:     "3GPP TS 28.531",
 		Requirement:  "Network Slice Management",
@@ -434,7 +434,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 	})
 }
 
-// DISABLED: func TestORanCompliance_InterfaceSupport(t *testing.T) {
+func TestORanCompliance_InterfaceSupport(t *testing.T) {
 	requirement := ComplianceRequirement{
 		Standard:     "O-RAN Alliance WG2",
 		Requirement:  "O-RAN Interface Support",
@@ -514,7 +514,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 	})
 }
 
-// DISABLED: func TestORanCompliance_ResourceManagement(t *testing.T) {
+func TestORanCompliance_ResourceManagement(t *testing.T) {
 	requirement := ComplianceRequirement{
 		Standard:     "O-RAN Alliance WG6",
 		Requirement:  "Cloud Platform Resource Management",
@@ -576,7 +576,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 	})
 }
 
-// DISABLED: func TestORanCompliance_SecurityRequirements(t *testing.T) {
+func TestORanCompliance_SecurityRequirements(t *testing.T) {
 	requirement := ComplianceRequirement{
 		Standard:     "O-RAN Alliance WG11",
 		Requirement:  "Security Requirements",

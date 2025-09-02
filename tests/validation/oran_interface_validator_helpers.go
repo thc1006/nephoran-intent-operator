@@ -62,7 +62,7 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bool {
 	// Simulate NETCONF session establishment.
 
-	session := json.RawMessage("{}"),
+	session := json.RawMessage(`{}`),
 
 		"transport": "SSH",
 
@@ -77,7 +77,7 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 	// Test get operation.
 
-	getConfig := json.RawMessage("{}"){
+	getConfig := json.RawMessage(`{}`){
 			"type": "xpath",
 
 			"xpath": "/ric-config",
@@ -86,18 +86,18 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 	// Test edit-config operation.
 
-	editConfig := json.RawMessage("{}"){
-			"ric-config": json.RawMessage("{}"),
+	editConfig := json.RawMessage(`{}`){
+			"ric-config": json.RawMessage(`{}`),
 		},
 	}
 
 	// Test commit operation.
 
-	commit := json.RawMessage("{}")
+	commit := json.RawMessage(`{}`)
 
 	// Simulate NETCONF operations execution.
 
-	operations := []json.RawMessage("{}")
+	operations := []json.RawMessage(`{}`)
 
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {
@@ -173,3 +173,4 @@ func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string
 
 	return true
 }
+

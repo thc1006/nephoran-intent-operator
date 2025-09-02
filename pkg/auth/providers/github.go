@@ -412,7 +412,7 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 		ProviderID: fmt.Sprintf("%d", githubUser.ID),
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	return userInfo, nil
@@ -734,3 +734,4 @@ func (p *GitHubProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	return nil
 }
+

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestNewLDAPProvider(t *testing.T) {
+func TestNewLDAPProvider(t *testing.T) {
 	tests := []struct {
 		name           string
 		config         *LDAPConfig
@@ -83,7 +83,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLDAPConfig_AttributeMapping(t *testing.T) {
+func TestLDAPConfig_AttributeMapping(t *testing.T) {
 	tests := []struct {
 		name          string
 		isAD          bool
@@ -147,7 +147,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLDAPConfig_FilterDefaults(t *testing.T) {
+func TestLDAPConfig_FilterDefaults(t *testing.T) {
 	tests := []struct {
 		name          string
 		isAD          bool
@@ -185,7 +185,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLDAPProvider_MapGroupsToRoles(t *testing.T) {
+func TestLDAPProvider_MapGroupsToRoles(t *testing.T) {
 	config := &LDAPConfig{
 		Host:   "test.example.com",
 		BaseDN: "dc=test,dc=com",
@@ -247,7 +247,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLDAPProvider_ExtractGroupNameFromDN(t *testing.T) {
+func TestLDAPProvider_ExtractGroupNameFromDN(t *testing.T) {
 	config := &LDAPConfig{
 		Host:   "test.example.com",
 		BaseDN: "dc=test,dc=com",
@@ -301,7 +301,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLDAPProvider_ContainsString(t *testing.T) {
+func TestLDAPProvider_ContainsString(t *testing.T) {
 	config := &LDAPConfig{
 		Host:   "test.example.com",
 		BaseDN: "dc=test,dc=com",
@@ -358,7 +358,7 @@ import (
 // Mock LDAP server tests would require an actual LDAP server or mock
 // For integration tests, consider using testcontainers with OpenLDAP
 
-// DISABLED: func TestLDAPProvider_ConfigValidation(t *testing.T) {
+func TestLDAPProvider_ConfigValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      *LDAPConfig
@@ -415,7 +415,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLDAPProvider_ConnectionConfiguration(t *testing.T) {
+func TestLDAPProvider_ConnectionConfiguration(t *testing.T) {
 	tests := []struct {
 		name         string
 		config       *LDAPConfig
@@ -534,7 +534,7 @@ func BenchmarkLDAPProvider_ExtractGroupNameFromDN(b *testing.B) {
 }
 
 // Table-driven test for comprehensive configuration scenarios
-// DISABLED: func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
+func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 	testCases := []struct {
 		name       string
 		config     *LDAPConfig
@@ -625,7 +625,7 @@ func BenchmarkLDAPProvider_ExtractGroupNameFromDN(b *testing.B) {
 }
 
 // Error handling tests
-// DISABLED: func TestLDAPProvider_ErrorScenarios(t *testing.T) {
+func TestLDAPProvider_ErrorScenarios(t *testing.T) {
 	tests := []struct {
 		name              string
 		config            *LDAPConfig

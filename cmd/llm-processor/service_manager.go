@@ -332,7 +332,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
 
-				Metadata: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
 			}
 		})
 	}
@@ -636,7 +636,7 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 // statusHandler provides service status information.
 
 func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) {
-	status := json.RawMessage("{}")
+	status := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -654,7 +654,7 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 // metricsHandler provides comprehensive metrics.
 
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage("{}")
+	metrics := json.RawMessage(`{}`)
 
 	// Add token manager metrics.
 
@@ -864,3 +864,4 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 
 	}
 }
+

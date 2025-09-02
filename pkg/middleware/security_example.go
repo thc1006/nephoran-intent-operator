@@ -187,7 +187,7 @@ func setupAPIRoutes(router *mux.Router, logger *slog.Logger) {
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(json.RawMessage("{}"))
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
@@ -290,7 +290,7 @@ func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Deleting intent: %s", intentID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(json.RawMessage("{}"))
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -314,7 +314,7 @@ func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(json.RawMessage("{}"))
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -351,7 +351,7 @@ func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	// Example metrics response
-	metrics := json.RawMessage("{}")
+	metrics := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)
@@ -388,3 +388,4 @@ func ExampleCustomValidation() {
 	// Use validator in your middleware chain
 	_ = validator
 }
+

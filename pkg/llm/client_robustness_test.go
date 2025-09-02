@@ -13,7 +13,7 @@ import (
 )
 
 // TestProcessIntentWithTimeout tests that ProcessIntent respects timeout settings
-// DISABLED: func TestProcessIntentWithTimeout(t *testing.T) {
+func TestProcessIntentWithTimeout(t *testing.T) {
 	// Set environment variable for timeout
 	os.Setenv("LLM_TIMEOUT_SECS", "2")
 	defer os.Unsetenv("LLM_TIMEOUT_SECS")
@@ -23,7 +23,7 @@ import (
 		// Delay longer than timeout
 		time.Sleep(3 * time.Second)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(json.RawMessage("{}"){
+		json.NewEncoder(w).Encode(map[string]interface{}{
 				"replicas": 1,
 				"image":    "test:latest",
 			},
@@ -51,7 +51,7 @@ import (
 }
 
 // TestProcessIntentWithRetry tests retry behavior with LLM_MAX_RETRIES
-// DISABLED: func TestProcessIntentWithRetryRobustness(t *testing.T) {
+func TestProcessIntentWithRetryRobustness(t *testing.T) {
 	// Set environment variable for max retries
 	os.Setenv("LLM_MAX_RETRIES", "3")
 	defer os.Unsetenv("LLM_MAX_RETRIES")
@@ -72,7 +72,7 @@ import (
 			w.Write([]byte("temporary error"))
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(json.RawMessage("{}"){
+			json.NewEncoder(w).Encode(map[string]interface{}{
 					"replicas": 1,
 					"image":    "test:latest",
 				},
@@ -105,7 +105,7 @@ import (
 }
 
 // TestProcessIntentRejectsNonJSON tests Content-Type validation
-// DISABLED: func TestProcessIntentRejectsNonJSON(t *testing.T) {
+func TestProcessIntentRejectsNonJSON(t *testing.T) {
 	tests := []struct {
 		name        string
 		contentType string
@@ -164,7 +164,7 @@ import (
 }
 
 // TestValidatorStructuredErrors tests ValidationError with missing fields
-// DISABLED: func TestValidatorStructuredErrors(t *testing.T) {
+func TestValidatorStructuredErrors(t *testing.T) {
 	validator := &ResponseValidator{
 		requiredFields: map[string]bool{
 			"type":      true,
@@ -181,17 +181,17 @@ import (
 	}{
 		{
 			name:           "All fields missing",
-			response:       json.RawMessage("{}"),
+			response:       json.RawMessage(`{}`),
 			expectedFields: []string{"type", "name", "namespace", "spec"},
 		},
 		{
 			name: "Some fields missing",
-			response: json.RawMessage("{}"),
+			response: json.RawMessage(`{}`),
 			expectedFields: []string{"namespace", "spec"},
 		},
 		{
 			name: "Only spec missing",
-			response: json.RawMessage("{}"),
+			response: json.RawMessage(`{}`),
 			expectedFields: []string{"spec"},
 		},
 	}
@@ -238,7 +238,7 @@ import (
 }
 
 // TestCacheLRUEviction tests cache eviction with capacity bounds
-// DISABLED: func TestCacheLRUEviction(t *testing.T) {
+func TestCacheLRUEviction(t *testing.T) {
 	// Set small cache size for testing
 	os.Setenv("LLM_CACHE_MAX_ENTRIES", "3")
 	defer os.Unsetenv("LLM_CACHE_MAX_ENTRIES")
@@ -284,7 +284,7 @@ import (
 }
 
 // TestFallbackURLs tests fallback URL behavior
-// DISABLED: func TestFallbackURLs(t *testing.T) {
+func TestFallbackURLs(t *testing.T) {
 	primaryCalled := false
 	fallbackCalled := false
 
@@ -299,7 +299,7 @@ import (
 	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fallbackCalled = true
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(json.RawMessage("{}"){
+		json.NewEncoder(w).Encode(map[string]interface{}{
 				"replicas": 1,
 				"image":    "test:latest",
 			},
@@ -328,7 +328,7 @@ import (
 }
 
 // TestLoggingLevels tests that logging respects Info/Debug levels
-// DISABLED: func TestLoggingLevels(t *testing.T) {
+func TestLoggingLevels(t *testing.T) {
 	// This test would typically use a custom logger to capture output
 	// For demonstration, we'll just verify the code path works
 
@@ -341,7 +341,7 @@ import (
 			longText += "This is a very long response text. "
 		}
 
-		json.NewEncoder(w).Encode(json.RawMessage("{}"){
+		json.NewEncoder(w).Encode(map[string]interface{}{
 				"replicas":    1,
 				"image":       "test:latest",
 				"description": longText,
@@ -375,3 +375,4 @@ func contains(s, substr string) bool {
 		len(substr) > 0 && len(s) > 0 && s[:len(substr)] == substr ||
 		fmt.Sprintf("%s", s) != s
 }
+

@@ -194,7 +194,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Type:        "scan_results",
 					Source:      "security-scanner",
 					Description: "Comprehensive security scan results",
-					Data: json.RawMessage("{}"),
+					Data: json.RawMessage(`{}`),
 				}
 
 				err = incidentResp.AddEvidence(incident.ID, evidence)
@@ -247,7 +247,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Type:        "remediation_guidance",
 					Source:      "ai-assistant",
 					Description: "AI-generated remediation recommendations",
-					Data: json.RawMessage("{}"),
+					Data: json.RawMessage(`{}`),
 				}
 
 				err = incidentResp.AddEvidence(incident.ID, evidence)
@@ -480,3 +480,4 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	}
 	return m.processResponse, nil
 }
+

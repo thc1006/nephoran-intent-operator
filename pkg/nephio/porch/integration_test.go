@@ -132,8 +132,8 @@ func (suite *IntegrationTestSuite) TestCompleteWorkflow() {
 		{
 			APIVersion: "v1",
 			Kind:       "ConfigMap",
-			Metadata: json.RawMessage("{}"),
-			Data: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
+			Data: json.RawMessage(`{}`),
 		},
 	}
 
@@ -279,8 +279,8 @@ func (suite *IntegrationTestSuite) TestFunctionOperations() {
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: json.RawMessage("{}"),
-				Data: json.RawMessage("{}"),
+				Metadata: json.RawMessage(`{}`),
+				Data: json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -332,8 +332,8 @@ func (suite *IntegrationTestSuite) TestPackageOperations() {
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: json.RawMessage("{}"),
-			Spec: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
+			Spec: json.RawMessage(`{}`),
 		},
 	}
 
@@ -526,8 +526,8 @@ func (suite *IntegrationTestSuite) TestORANCompliance() {
 				{
 					APIVersion: "o-ran.org/v1alpha1",
 					Kind:       "O1Interface",
-					Metadata: json.RawMessage("{}"),
-					Spec: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
+					Spec: json.RawMessage(`{}`),
 				},
 			},
 			InterfaceTypes: []string{"O1", "A1"},
@@ -548,7 +548,7 @@ func (suite *IntegrationTestSuite) TestORANCompliance() {
 				Spec: NetworkIntentSpec{
 					NetworkFunction: NetworkFunctionSpec{
 						Type: "AMF",
-						Resources: json.RawMessage("{}"),
+						Resources: json.RawMessage(`{}`),
 					},
 					Intent: "Deploy high-availability AMF with auto-scaling",
 					Requirements: NetworkRequirements{
@@ -601,13 +601,13 @@ func (suite *IntegrationTestSuite) TestConfigurationManagement() {
 }
 
 // Run the integration test suite
-// DISABLED: func TestIntegrationSuite(t *testing.T) {
+func TestIntegrationSuite(t *testing.T) {
 	suite.Run(t, new(IntegrationTestSuite))
 }
 
 // Additional standalone integration tests
 
-// DISABLED: func TestClientLifecycle(t *testing.T) {
+func TestClientLifecycle(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration tests in short mode")
 	}
@@ -633,7 +633,7 @@ func (suite *IntegrationTestSuite) TestConfigurationManagement() {
 	}
 }
 
-// DISABLED: func TestStressTest(t *testing.T) {
+func TestStressTest(t *testing.T) {
 	if testing.Short() || os.Getenv("SKIP_STRESS_TESTS") == "true" {
 		t.Skip("Skipping stress tests")
 	}
@@ -693,3 +693,4 @@ func (suite *IntegrationTestSuite) TestConfigurationManagement() {
 	assert.Less(t, errorRate, 5.0, "Error rate should be less than 5%% under stress")
 	assert.Greater(t, successCount, int64(0), "Should have some successful operations")
 }
+

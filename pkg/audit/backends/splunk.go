@@ -511,83 +511,80 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 	timestamp := float64(event.Timestamp.UnixNano()) / 1e9
 
 	// Create the main event data.
-
-	eventData := json.RawMessage("{}")
+	eventDataMap := make(map[string]interface{})
 
 	// Add context information.
-
 	if event.UserContext != nil {
-		eventData["user_context"] = event.UserContext
+		eventDataMap["user_context"] = event.UserContext
 	}
 
 	if event.NetworkContext != nil {
-		eventData["network_context"] = event.NetworkContext
+		eventDataMap["network_context"] = event.NetworkContext
 	}
 
 	if event.SystemContext != nil {
-		eventData["system_context"] = event.SystemContext
+		eventDataMap["system_context"] = event.SystemContext
 	}
 
 	if event.ResourceContext != nil {
-		eventData["resource_context"] = event.ResourceContext
+		eventDataMap["resource_context"] = event.ResourceContext
 	}
 
 	// Add additional data.
-
 	if event.Data != nil {
-		eventData["data"] = event.Data
+		eventDataMap["data"] = event.Data
 	}
 
 	// Add error information.
-
 	if event.Error != "" {
-		eventData["error"] = event.Error
+		eventDataMap["error"] = event.Error
 	}
 
 	if event.ErrorCode != "" {
-		eventData["error_code"] = event.ErrorCode
+		eventDataMap["error_code"] = event.ErrorCode
 	}
 
 	// Create fields for indexing.
-
-	fields := json.RawMessage("{}")
+	fieldsMap := make(map[string]interface{})
 
 	if event.UserContext != nil {
-
-		fields["user_id"] = event.UserContext.UserID
-
-		fields["username"] = event.UserContext.Username
-
-		fields["user_role"] = event.UserContext.Role
-
+		fieldsMap["user_id"] = event.UserContext.UserID
+		fieldsMap["username"] = event.UserContext.Username
+		fieldsMap["user_role"] = event.UserContext.Role
 	}
 
 	if event.NetworkContext != nil && event.NetworkContext.SourceIP != nil {
-		fields["source_ip"] = event.NetworkContext.SourceIP.String()
+		fieldsMap["source_ip"] = event.NetworkContext.SourceIP.String()
 	}
 
 	// Add compliance metadata as fields.
-
 	if event.ComplianceMetadata != nil {
 		for key, value := range event.ComplianceMetadata {
-			fields["compliance_"+key] = value
+			fieldsMap["compliance_"+key] = value
 		}
 	}
 
+	// Marshal the maps to json.RawMessage
+	eventData, err := json.Marshal(eventDataMap)
+	if err != nil {
+		// If marshaling fails, use empty JSON object
+		eventData = json.RawMessage(`{}`)
+	}
+
+	fields, err := json.Marshal(fieldsMap)
+	if err != nil {
+		// If marshaling fails, use empty JSON object
+		fields = json.RawMessage(`{}`)
+	}
+
 	return SplunkEvent{
-		Time: &timestamp,
-
-		Host: sb.host,
-
-		Source: sb.source,
-
+		Time:       &timestamp,
+		Host:       sb.host,
+		Source:     sb.source,
 		SourceType: sb.sourceType,
-
-		Index: sb.index,
-
-		Event: eventData,
-
-		Fields: fields,
+		Index:      sb.index,
+		Event:      eventData,
+		Fields:     fields,
 	}
 }
 
@@ -667,3 +664,4 @@ func parseSplunkConfig(settings map[string]interface{}) (*SplunkConfig, error) {
 
 	return &config, nil
 }
+

@@ -49,7 +49,7 @@ func (e *HTTPCheckExecutor) Execute(ctx context.Context, check *SyntheticCheck) 
 
 		Region: check.Region,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -123,7 +123,7 @@ func (e *IntentFlowExecutor) Execute(ctx context.Context, check *SyntheticCheck)
 			},
 		},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -163,7 +163,7 @@ func (e *DatabaseCheckExecutor) Execute(ctx context.Context, check *SyntheticChe
 
 		Region: check.Region,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -209,7 +209,7 @@ func (e *ExternalServiceExecutor) Execute(ctx context.Context, check *SyntheticC
 
 		Region: check.Region,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -249,7 +249,7 @@ func (e *ChaosCheckExecutor) Execute(ctx context.Context, check *SyntheticCheck)
 
 		Region: check.Region,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -258,3 +258,4 @@ func (e *ChaosCheckExecutor) Execute(ctx context.Context, check *SyntheticCheck)
 func (e *ChaosCheckExecutor) Type() SyntheticCheckType {
 	return CheckTypeChaos
 }
+

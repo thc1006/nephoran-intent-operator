@@ -10,7 +10,7 @@ import (
 	"github.com/bep/debounce"
 )
 
-// DISABLED: func TestDebounceRaceCondition(t *testing.T) {
+func TestDebounceRaceCondition(t *testing.T) {
 	// Create temporary directory for test files
 	tempDir := t.TempDir()
 
@@ -82,7 +82,7 @@ import (
 	}
 }
 
-// DISABLED: func TestDebounceMultipleFiles(t *testing.T) {
+func TestDebounceMultipleFiles(t *testing.T) {
 	// Create temporary directory for test files
 	tempDir := t.TempDir()
 

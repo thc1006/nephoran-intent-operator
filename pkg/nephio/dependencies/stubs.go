@@ -147,9 +147,10 @@ func (s *stubDependencyProvider) GetDependency(ctx context.Context, ref *Package
 }
 
 func (s *stubDependencyProvider) GetMetadata(ctx context.Context, ref *PackageReference) (map[string]interface{}, error) {
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 func (s *stubDependencyProvider) ListVersions(ctx context.Context, name string) ([]string, error) {
 	return []string{"v1.0.0", "v1.1.0", "v2.0.0"}, nil
 }
+

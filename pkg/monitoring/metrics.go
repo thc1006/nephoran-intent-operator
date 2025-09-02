@@ -3,6 +3,7 @@ package monitoring
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -145,9 +146,9 @@ func (pmc *PrometheusMetricsCollector) CollectMetrics(ctx context.Context, sourc
 		Timestamp: time.Now(),
 		Source:    source,
 		Namespace: collector.namespace,
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	// Execute queries
@@ -187,7 +188,7 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 		// Handle vector results (instant vector)
 		for _, sample := range v {
 			metricName := fmt.Sprintf("%s_%s", name, string(sample.Metric[model.MetricNameLabel]))
-			data.Metrics[metricName] = float64(sample.Value)
+			data.Metrics[metricName] = fmt.Sprintf("%.6f", float64(sample.Value))
 
 			// Add labels from the metric
 			for labelName, labelValue := range sample.Metric {
@@ -203,7 +204,7 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 				// Use the latest value
 				latest := sampleStream.Values[len(sampleStream.Values)-1]
 				metricName := fmt.Sprintf("%s_%s", name, string(sampleStream.Metric[model.MetricNameLabel]))
-				data.Metrics[metricName] = float64(latest.Value)
+				data.Metrics[metricName] = fmt.Sprintf("%.6f", float64(latest.Value))
 
 				// Add labels from the metric
 				for labelName, labelValue := range sampleStream.Metric {
@@ -215,10 +216,14 @@ func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result mo
 		}
 	case *model.Scalar:
 		// Handle scalar results
-		data.Metrics[name] = float64(v.Value)
+		data.Metrics[name] = fmt.Sprintf("%.6f", float64(v.Value))
 	case *model.String:
 		// Handle string results (not common for metrics)
-		data.Metadata[name] = string(v.Value)
+		// Create a map and marshal to JSON for metadata
+		metadata := map[string]interface{}{name: string(v.Value)}
+		if metadataJSON, err := json.Marshal(metadata); err == nil {
+			data.Metadata = metadataJSON
+		}
 	default:
 		return fmt.Errorf("unsupported result type: %T", result)
 	}
@@ -382,9 +387,9 @@ func (kmc *KubernetesMetricsCollector) CollectMetrics(ctx context.Context, sourc
 	_ = &MetricsData{
 		Timestamp: time.Now(),
 		Source:    source,
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	// Collect different types of metrics based on source
@@ -445,9 +450,9 @@ func (kmc *KubernetesMetricsCollector) collectPodMetricsData(ctx context.Context
 	return &MetricsData{
 		Timestamp: time.Now(),
 		Source:    "pods",
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -459,9 +464,9 @@ func (kmc *KubernetesMetricsCollector) collectNodeMetricsData(ctx context.Contex
 	return &MetricsData{
 		Timestamp: time.Now(),
 		Source:    "nodes",
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -473,9 +478,9 @@ func (kmc *KubernetesMetricsCollector) collectServiceMetricsData(ctx context.Con
 	return &MetricsData{
 		Timestamp: time.Now(),
 		Source:    "services",
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -607,9 +612,9 @@ func (ma *MetricsAggregator) CollectMetrics(ctx context.Context, source string) 
 	aggregated := &MetricsData{
 		Timestamp: time.Now(),
 		Source:    source,
-		Metrics:   make(map[string]float64),
+		Metrics:   make(map[string]string),
 		Labels:    make(map[string]string),
-		Metadata:  make(map[string]interface{}),
+		Metadata:  json.RawMessage(`{}`),
 	}
 
 	for _, collector := range collectors {
@@ -678,3 +683,4 @@ func (ma *MetricsAggregator) GetCachedMetrics(source string) (*MetricsData, bool
 	data, exists := ma.cache[source]
 	return data, exists
 }
+

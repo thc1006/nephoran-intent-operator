@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DISABLED: func TestNewO1AdaptorConstruction(t *testing.T) {
+func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
 		config *O1Config
@@ -67,7 +67,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_IsConnected(t *testing.T) {
+func TestO1Adaptor_IsConnected(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	me := &nephoranv1.ManagedElement{
@@ -85,7 +85,7 @@ import (
 	assert.False(t, connected)
 }
 
-// DISABLED: func TestO1Adaptor_ValidateConfiguration(t *testing.T) {
+func TestO1Adaptor_ValidateConfiguration(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 	ctx := context.Background()
 
@@ -133,7 +133,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_parseAlarmData(t *testing.T) {
+func TestO1Adaptor_parseAlarmData(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
@@ -216,7 +216,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
+func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
@@ -237,7 +237,7 @@ import (
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,
@@ -271,7 +271,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_parseMetricValue(t *testing.T) {
+func TestO1Adaptor_parseMetricValue(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
@@ -332,7 +332,7 @@ import (
 	}
 }
 
-// DISABLED: func TestO1Adaptor_buildSecurityConfiguration(t *testing.T) {
+func TestO1Adaptor_buildSecurityConfiguration(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
@@ -388,7 +388,7 @@ import (
 	}
 }
 
-// DISABLED: func TestMetricCollector(t *testing.T) {
+func TestMetricCollector(t *testing.T) {
 	collector := &MetricCollector{
 		ID:               "test-collector",
 		ManagedElement:   "test-element",
@@ -405,7 +405,7 @@ import (
 	assert.True(t, collector.Active)
 }
 
-// DISABLED: func TestAlarmStruct(t *testing.T) {
+func TestAlarmStruct(t *testing.T) {
 	alarm := &Alarm{
 		ID:               "alarm-123",
 		ManagedElementID: "test-element",
@@ -455,3 +455,4 @@ func BenchmarkO1Adaptor_parseMetricValue(b *testing.B) {
 		_, _ = adaptor.parseMetricValue(xmlData, "cpu_usage")
 	}
 }
+

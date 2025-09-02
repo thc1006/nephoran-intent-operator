@@ -920,7 +920,7 @@ func (sm *SecurityMiddleware) sendErrorResponse(w http.ResponseWriter, statusCod
 
 	w.WriteHeader(statusCode)
 
-	response := json.RawMessage("{}"){
+	response := json.RawMessage(`{}`){
 			"code": statusCode,
 
 			"message": message,
@@ -1034,3 +1034,4 @@ func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) h
 
 	return middleware.CreateMiddlewareChain(), nil
 }
+

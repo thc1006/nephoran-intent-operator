@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestSavePolicyHandler_OK(t *testing.T) {
+func TestSavePolicyHandler_OK(t *testing.T) {
 	tmp := t.TempDir()
 	h := SavePolicyHandler(tmp)
 

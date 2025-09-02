@@ -1120,7 +1120,7 @@ func (opt *LLMProcessorOptimizer) shouldOptimizeTokens(analysis *ComponentAnalys
 func (opt *LLMProcessorOptimizer) optimizeTokenUsage(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
 	// Implementation logic for token optimization.
 
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // Additional placeholder methods would be implemented similarly...
@@ -1261,3 +1261,4 @@ func (opt *KubernetesOptimizer) calculateExpectedImpact(strategies []string) *Ex
 }
 
 // ValidateOptimization and RollbackOptimization are already implemented above
+

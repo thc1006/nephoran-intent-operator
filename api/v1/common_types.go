@@ -199,7 +199,7 @@ type ProcessedParameters struct {
 
 	// ScaleParameters for scaling-related parameters
 	// +optional
-	ScaleParameters *ScaleParameters `json:"scaleParameters,omitempty"`
+	ScaleParameters *ScalingParameters `json:"scaleParameters,omitempty"`
 }
 
 // ScalingParameters defines scaling-related parameters
@@ -225,7 +225,8 @@ type ScalingTrigger struct {
 }
 
 // ScaleParameters defines scaling parameters (alias for ScalingParameters for compatibility)
-type ScaleParameters = ScalingParameters
+// Removed type alias to prevent duplicate deepcopy method generation
+// type ScaleParameters = ScalingParameters
 
 // ResourceParameters defines resource-related parameters
 type ResourceParameters struct {

@@ -1038,5 +1038,6 @@ func (m *WorkQueueMetrics) GetMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
+

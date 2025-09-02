@@ -815,6 +815,6 @@ func (rm *RealtimeMetrics) collectMetrics() {
 // Additional helper method implementations would continue here...
 
 // TestSuite runner function
-// DISABLED: func TestSLAPerformanceTestSuite(t *testing.T) {
+func TestSLAPerformanceTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAPerformanceTestSuite))
 }

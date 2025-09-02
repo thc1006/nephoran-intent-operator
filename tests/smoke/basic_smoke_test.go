@@ -228,12 +228,12 @@ func (suite *SmokeTestSuite) TestSmoke_Performance() {
 }
 
 // TestSuite runner function
-// DISABLED: func TestSmokeTestSuite(t *testing.T) {
+func TestSmokeTestSuite(t *testing.T) {
 	suite.Run(t, new(SmokeTestSuite))
 }
 
 // Individual smoke tests using standard testing approach
-// DISABLED: func TestSmoke_BasicNetworkIntentCreation(t *testing.T) {
+func TestSmoke_BasicNetworkIntentCreation(t *testing.T) {
 	// Quick standalone smoke test
 	scheme := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(scheme)
@@ -261,7 +261,7 @@ func (suite *SmokeTestSuite) TestSmoke_Performance() {
 	assert.Equal(t, intent.Spec.Intent, retrieved.Spec.Intent, "Smoke test: Intent should match")
 }
 
-// DISABLED: func TestSmoke_QuickValidation(t *testing.T) {
+func TestSmoke_QuickValidation(t *testing.T) {
 	// Test that can be run in seconds
 	start := time.Now()
 
@@ -278,7 +278,7 @@ func (suite *SmokeTestSuite) TestSmoke_Performance() {
 	assert.Less(t, duration, 100*time.Millisecond, "Quick validation should complete very fast")
 }
 
-// DISABLED: func TestSmoke_ErrorHandling(t *testing.T) {
+func TestSmoke_ErrorHandling(t *testing.T) {
 	// Test basic error handling scenarios
 	scheme := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(scheme)

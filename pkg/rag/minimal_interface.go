@@ -177,7 +177,10 @@ func (s *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RA
 
 // GetHealth returns the health status of the RAG service
 func (s *RAGService) GetHealth() map[string]interface{} {
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"status": "ok",
+		"service": "rag",
+	}
 }
 
 // GenerateEmbedding generates an embedding for the given text
@@ -428,7 +431,10 @@ func (c *NoopWeaviateClient) AddDocument(ctx context.Context, doc *Document) err
 
 // GetHealthStatus implements WeaviateClient
 func (c *NoopWeaviateClient) GetHealthStatus() map[string]interface{} {
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"status": "ok",
+		"client": "noop-weaviate",
+	}
 }
 
 // HealthCheck implements WeaviateClient

@@ -130,11 +130,11 @@ func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) 
 
 		config := provider.GetConfiguration()
 
-		providers[name] = json.RawMessage("{}")
+		providers[name] = json.RawMessage(`{}`)
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // InitiateLoginHandler initiates OAuth2 login flow.
@@ -314,7 +314,7 @@ func (ah *Handlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	ah.sessionManager.ClearSessionCookie(w)
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // GetUserInfoHandler returns current user information.
@@ -341,7 +341,7 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	userInfo := json.RawMessage("{}")
+	userInfo := json.RawMessage(`{}`)
 
 	ah.writeJSONResponse(w, http.StatusOK, userInfo)
 }
@@ -393,7 +393,7 @@ func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // RevokeSessionHandler revokes a specific session.
@@ -444,7 +444,7 @@ func (ah *Handlers) RevokeSessionHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // GenerateTokenHandler generates API tokens.
@@ -518,7 +518,7 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // RefreshTokenHandler refreshes a token.
@@ -553,7 +553,7 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // RevokeTokenHandler revokes a token.
@@ -587,7 +587,7 @@ func (ah *Handlers) RevokeTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // RBAC Handlers.
@@ -601,7 +601,7 @@ func (ah *Handlers) ListRolesHandler(w http.ResponseWriter, r *http.Request) {
 
 	roles := ah.rbacManager.ListRoles(r.Context())
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // CreateRoleHandler creates a new role (admin only).
@@ -708,7 +708,7 @@ func (ah *Handlers) DeleteRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // GetUserRolesHandler gets user roles.
@@ -740,7 +740,7 @@ func (ah *Handlers) GetUserRolesHandler(w http.ResponseWriter, r *http.Request) 
 
 	roles := ah.rbacManager.GetUserRoles(r.Context(), userID)
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // AssignRoleHandler assigns a role to a user (admin only).
@@ -774,7 +774,7 @@ func (ah *Handlers) AssignRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // RevokeRoleHandler revokes a role from a user (admin only).
@@ -798,7 +798,7 @@ func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // ListPermissionsHandler lists all permissions.
@@ -806,7 +806,7 @@ func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 func (ah *Handlers) ListPermissionsHandler(w http.ResponseWriter, r *http.Request) {
 	permissions := ah.rbacManager.ListPermissions(r.Context())
 
-	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // Helper methods.
@@ -864,7 +864,7 @@ func (ah *Handlers) writeErrorResponse(w http.ResponseWriter, status int, code, 
 
 	w.WriteHeader(status)
 
-	errorResponse := json.RawMessage("{}")
+	errorResponse := json.RawMessage(`{}`)
 
 	json.NewEncoder(w).Encode(errorResponse)
 }
@@ -892,3 +892,4 @@ func isAPIRequest(r *http.Request) bool {
 }
 
 // getClientIP is defined in middleware.go
+

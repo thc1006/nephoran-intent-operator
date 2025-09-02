@@ -1695,7 +1695,7 @@ func (oe *OptimizationEngine) SuggestConfiguration(ctx context.Context, history 
 	return &SystemConfiguration{
 		ID: fmt.Sprintf("config_%d", time.Now().Unix()),
 
-		Parameters: json.RawMessage("{}"),
+		Parameters: json.RawMessage(`{}`),
 
 		Timestamp: time.Now(),
 
@@ -1722,3 +1722,4 @@ func (sc *SafetyConstraints) ValidateConfiguration(config *SystemConfiguration) 
 // EmergencyRollback performs emergencyrollback operation.
 
 func (rm *RollbackManager) EmergencyRollback(ctx context.Context) error { return nil }
+

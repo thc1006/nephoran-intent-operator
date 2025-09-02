@@ -205,12 +205,12 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 	}
 
-	response := json.RawMessage("{}"){
+	response := json.RawMessage(`{}`){
 			"replicas": 1,
 
 			"image": fmt.Sprintf("registry.local/%s:latest", nfType),
 
-			"resources": json.RawMessage("{}"),
+			"resources": json.RawMessage(`{}`),
 
 				"limits": map[string]string{"cpu": "1000m", "memory": "2Gi"},
 			},
@@ -248,8 +248,8 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 
 	}
 
-	response := json.RawMessage("{}"){
-			"scaling": json.RawMessage("{}"){
+	response := json.RawMessage(`{}`){
+			"scaling": json.RawMessage(`{}`){
 					"replicas": 3,
 				},
 			},
@@ -1186,3 +1186,4 @@ var (
 
 	_ git.ClientInterface = (*MockGitClient)(nil)
 )
+

@@ -15,7 +15,7 @@ import (
 )
 
 // TestPathTraversalPrevention tests protection against path traversal attacks
-// DISABLED: func TestPathTraversalPrevention(t *testing.T) {
+func TestPathTraversalPrevention(t *testing.T) {
 	tests := []struct {
 		name        string
 		baseDir     string
@@ -83,7 +83,7 @@ import (
 }
 
 // TestJSONBombProtection tests protection against JSON-based DoS attacks
-// DISABLED: func TestJSONBombProtection(t *testing.T) {
+func TestJSONBombProtection(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -138,7 +138,7 @@ import (
 }
 
 // TestCommandInjectionPrevention tests protection against command injection
-// DISABLED: func TestCommandInjectionPrevention(t *testing.T) {
+func TestCommandInjectionPrevention(t *testing.T) {
 	tests := []struct {
 		name        string
 		path        string
@@ -197,7 +197,7 @@ import (
 }
 
 // TestRateLimiting tests rate limiting functionality
-// DISABLED: func TestRateLimiting(t *testing.T) {
+func TestRateLimiting(t *testing.T) {
 	tempDir := t.TempDir()
 
 	config := Config{
@@ -220,7 +220,7 @@ import (
 }
 
 // TestFilePermissions tests that files are created with secure permissions
-// DISABLED: func TestFilePermissions(t *testing.T) {
+func TestFilePermissions(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping permission test in CI environment")
 	}
@@ -252,7 +252,7 @@ import (
 }
 
 // TestIntentValidation tests intent content validation
-// DISABLED: func TestIntentValidation(t *testing.T) {
+func TestIntentValidation(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -263,35 +263,35 @@ import (
 	}{
 		{
 			name: "valid intent",
-			intent: json.RawMessage("{}"){"count": 3},
+			intent: map[string]interface{}{"count": 3},
 			},
 			shouldError: false,
 			description: "should accept valid intent",
 		},
 		{
 			name: "command injection in target",
-			intent: json.RawMessage("{}")"),
+			intent: json.RawMessage(`{}`)"),
 			},
 			shouldError: true,
 			description: "should reject command injection in target",
 		},
 		{
 			name: "path traversal in target",
-			intent: json.RawMessage("{}")"),
+			intent: json.RawMessage(`{}`)"),
 			},
 			shouldError: true,
 			description: "should reject path traversal in target",
 		},
 		{
 			name: "invalid action",
-			intent: json.RawMessage("{}")"),
+			intent: json.RawMessage(`{}`)"),
 			},
 			shouldError: true,
 			description: "should reject invalid actions",
 		},
 		{
 			name: "missing required fields",
-			intent: json.RawMessage("{}"),
+			intent: json.RawMessage(`{}`),
 			shouldError: true,
 			description: "should reject intent with missing fields",
 		},
@@ -545,3 +545,4 @@ func (rw *RateLimitedWatcher) handleIntentFileWithRateLimit(filePath string) {
 	// Simplified rate limiting for testing
 	rw.metrics.filesRejected++
 }
+

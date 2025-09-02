@@ -14,7 +14,7 @@ import (
 
 // TestStatusFilenameGeneration verifies that status files follow the canonical pattern
 // in their filename as expected: <base>-YYYYMMDD-HHMMSS.status (without .json extension)
-// DISABLED: func TestStatusFilenameGeneration(t *testing.T) {
+func TestStatusFilenameGeneration(t *testing.T) {
 	testCases := []struct {
 		name           string
 		intentFile     string
@@ -117,7 +117,7 @@ import (
 
 // TestStatusFilenameConsistency verifies that multiple status files for the same
 // intent follow the canonical naming pattern without .json extension
-// DISABLED: func TestStatusFilenameConsistency(t *testing.T) {
+func TestStatusFilenameConsistency(t *testing.T) {
 	tempDir := t.TempDir()
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
 

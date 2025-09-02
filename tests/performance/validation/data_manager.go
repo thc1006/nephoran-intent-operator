@@ -864,7 +864,7 @@ func (dm *DataManager) extractMetadata(results *ValidationResults) map[string]in
 		metadata["duration"] = results.Metadata.Duration
 
 		if results.Metadata.Environment != nil {
-			metadata["environment"] = json.RawMessage("{}")
+			metadata["environment"] = json.RawMessage(`{}`)
 		}
 
 	}
@@ -1007,3 +1007,4 @@ func (dm *DataManager) detectClaimRegression(claim string, records []ArchivalRec
 
 	return nil
 }
+

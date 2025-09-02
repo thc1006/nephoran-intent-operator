@@ -168,7 +168,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			// Handle conflict detection
@@ -188,7 +188,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			// Handle conflict resolution
@@ -216,7 +216,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			// Handle lock acquisition
@@ -235,7 +235,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			// Handle lock release
@@ -262,7 +262,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseLLMProcessing,
 				Success:  true,
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			// Handle recovery initiation
@@ -283,7 +283,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseLLMProcessing,
 				Success:  true,
-				Data: json.RawMessage("{}"),
+				Data: json.RawMessage(`{}`),
 			}
 
 			// Handle recovery completion
@@ -565,7 +565,8 @@ var _ = Describe("EventDrivenCoordinator", func() {
 	})
 })
 
-// DISABLED: func TestEventDrivenCoordinator(t *testing.T) {
+func TestEventDrivenCoordinator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "EventDrivenCoordinator Suite")
 }
+

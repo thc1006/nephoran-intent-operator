@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// DISABLED: func TestDefaultSecurityConfig(t *testing.T) {
+func TestDefaultSecurityConfig(t *testing.T) {
 	config := DefaultSecurityConfig()
 
 	if config.ImageConfig.DefaultVersion == "latest" {
@@ -23,7 +23,7 @@ import (
 	}
 }
 
-// DISABLED: func TestGetSecureImage(t *testing.T) {
+func TestGetSecureImage(t *testing.T) {
 	tests := []struct {
 		name      string
 		baseImage string
@@ -72,7 +72,7 @@ import (
 	}
 }
 
-// DISABLED: func TestValidateTarget(t *testing.T) {
+func TestValidateTarget(t *testing.T) {
 	tests := []struct {
 		name      string
 		target    string
@@ -183,7 +183,7 @@ import (
 	}
 }
 
-// DISABLED: func TestResolveRepository(t *testing.T) {
+func TestResolveRepository(t *testing.T) {
 	tests := []struct {
 		name      string
 		target    string
@@ -312,7 +312,7 @@ import (
 	}
 }
 
-// DISABLED: func TestHashTarget(t *testing.T) {
+func TestHashTarget(t *testing.T) {
 	tests := []struct {
 		name   string
 		target string
@@ -351,7 +351,7 @@ import (
 	}
 }
 
-// DISABLED: func TestEnvironmentConfiguration(t *testing.T) {
+func TestEnvironmentConfiguration(t *testing.T) {
 	// Test environment variable configuration
 	testCases := []struct {
 		envVar   string
@@ -403,7 +403,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSecurityPatternDetection(t *testing.T) {
+func TestSecurityPatternDetection(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
@@ -487,7 +487,7 @@ import (
 }
 
 // TestAdvancedSecurityVulnerabilities tests comprehensive security attack scenarios
-// DISABLED: func TestAdvancedSecurityVulnerabilities(t *testing.T) {
+func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 	tests := []struct {
 		name          string
 		target        string
@@ -736,7 +736,7 @@ import (
 }
 
 // TestMaliciousImageReferences tests security validation for container images
-// DISABLED: func TestMaliciousImageReferences(t *testing.T) {
+func TestMaliciousImageReferences(t *testing.T) {
 	tests := []struct {
 		name          string
 		baseImage     string
@@ -824,7 +824,7 @@ import (
 }
 
 // TestInvalidDigestFormats tests various invalid digest formats
-// DISABLED: func TestInvalidDigestFormats(t *testing.T) {
+func TestInvalidDigestFormats(t *testing.T) {
 	tests := []struct {
 		name      string
 		imageName string
@@ -891,7 +891,7 @@ import (
 }
 
 // TestSecurityConfigurationEdgeCases tests edge cases in security configuration
-// DISABLED: func TestSecurityConfigurationEdgeCases(t *testing.T) {
+func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("EmptySecurityConfig", func(t *testing.T) {
 		config := &SecurityConfig{}
 

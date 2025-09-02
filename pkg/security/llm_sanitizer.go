@@ -705,7 +705,7 @@ func (s *LLMSanitizer) GetMetrics() map[string]interface{} {
 
 	defer s.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // ValidateSystemPromptIntegrity verifies the system prompt hasn't been tampered with.
@@ -723,3 +723,4 @@ func (s *LLMSanitizer) ValidateSystemPromptIntegrity(systemPrompt string) error 
 
 	return nil
 }
+

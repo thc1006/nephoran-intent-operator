@@ -676,6 +676,10 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 	}
 
 	// Create configuration version.
+	configDataJSON, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal config data: %w", err)
+	}
 
 	version := &ConfigurationVersion{
 		ID: acm.generateVersionID(),
@@ -686,7 +690,7 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 
 		Timestamp: time.Now(),
 
-		ConfigData: config,
+		ConfigData: json.RawMessage(configDataJSON),
 
 		Metadata: metadata,
 
@@ -720,13 +724,17 @@ func (acm *AdvancedConfigurationManager) ApplyConfiguration(ctx context.Context,
 	// Update baseline if drift detection is enabled.
 
 	if acm.driftDetector != nil {
+		baselineDataJSON, err := json.Marshal(config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal baseline data: %w", err)
+		}
 
 		baseline := &ConfigurationBaseline{
 			ID: acm.generateBaselineID(),
 
 			ElementID: elementID,
 
-			BaselineData: config,
+			BaselineData: json.RawMessage(baselineDataJSON),
 
 			CreatedAt: time.Now(),
 
@@ -781,6 +789,10 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 
 	if latestVersion == nil {
 		// Create initial version.
+		configDataJSON, err := json.Marshal(config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal initial config data: %w", err)
+		}
 
 		latestVersion = &ConfigurationVersion{
 			ID: acm.generateVersionID(),
@@ -791,7 +803,7 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 
 			Timestamp: time.Now(),
 
-			ConfigData: config,
+			ConfigData: json.RawMessage(configDataJSON),
 
 			ChecksumSHA256: acm.calculateChecksum(config),
 
@@ -800,8 +812,12 @@ func (acm *AdvancedConfigurationManager) GetConfiguration(ctx context.Context, e
 	} else {
 
 		// Update with current data.
+		configDataJSON, err := json.Marshal(config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal updated config data: %w", err)
+		}
 
-		latestVersion.ConfigData = config
+		latestVersion.ConfigData = json.RawMessage(configDataJSON)
 
 		latestVersion.ChecksumSHA256 = acm.calculateChecksum(config)
 
@@ -895,6 +911,11 @@ func (acm *AdvancedConfigurationManager) CreateConfigurationSnapshot(ctx context
 
 	logger.Info("creating configuration snapshot", "elements", len(elementIDs))
 
+	systemStateJSON, err := json.Marshal(make(map[string]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal system state: %w", err)
+	}
+
 	snapshot := &ConfigurationSnapshot{
 		ID: acm.generateSnapshotID(),
 
@@ -904,7 +925,7 @@ func (acm *AdvancedConfigurationManager) CreateConfigurationSnapshot(ctx context
 
 		Elements: make(map[string]*ConfigurationVersion),
 
-		SystemState: make(map[string]interface{}),
+		SystemState: json.RawMessage(systemStateJSON),
 
 		Creator: acm.getAuthorFromContext(ctx),
 	}
@@ -953,6 +974,10 @@ func (acm *AdvancedConfigurationManager) RollbackConfiguration(ctx context.Conte
 	}
 
 	// Create rollback operation.
+	metadataJSON, err := json.Marshal(make(map[string]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal rollback metadata: %w", err)
+	}
 
 	rollback := &RollbackOperation{
 		ID: acm.generateRollbackID(),
@@ -969,12 +994,16 @@ func (acm *AdvancedConfigurationManager) RollbackConfiguration(ctx context.Conte
 
 		Reason: reason,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(metadataJSON),
 	}
 
 	// Start rollback process.
+	var configData map[string]interface{}
+	if err := json.Unmarshal(targetVersion.ConfigData, &configData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal target config data: %w", err)
+	}
 
-	if err := acm.rollbackManager.StartRollback(ctx, rollback, targetVersion.ConfigData); err != nil {
+	if err := acm.rollbackManager.StartRollback(ctx, rollback, configData); err != nil {
 
 		rollback.Status = "FAILED"
 
@@ -1344,8 +1373,12 @@ func (cpm *ConfigurationProfileManager) GetProfile(profileID string) *Configurat
 
 func (cpm *ConfigurationProfileManager) ResolveProfileConfiguration(profile *ConfigurationProfile) (map[string]interface{}, error) {
 	// Placeholder - would implement profile inheritance resolution.
+	var config map[string]interface{}
+	if err := json.Unmarshal(profile.Configuration, &config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal profile configuration: %w", err)
+	}
 
-	return profile.Configuration, nil
+	return config, nil
 }
 
 // NewConfigurationValidationEngine performs newconfigurationvalidationengine operation.
@@ -1438,6 +1471,10 @@ type DriftItem struct {
 
 func (cdd *ConfigurationDriftDetector) DetectDrift(ctx context.Context, elementID string) (*DriftDetectionResult, error) {
 	// Placeholder - would implement drift detection logic.
+	metadataJSON, err := json.Marshal(make(map[string]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal drift detection metadata: %w", err)
+	}
 
 	return &DriftDetectionResult{
 		ElementID: elementID,
@@ -1448,7 +1485,7 @@ func (cdd *ConfigurationDriftDetector) DetectDrift(ctx context.Context, elementI
 
 		DetectedAt: time.Now(),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(metadataJSON),
 	}, nil
 }
 

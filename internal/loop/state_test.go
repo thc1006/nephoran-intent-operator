@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestNewStateManager(t *testing.T) {
+func TestNewStateManager(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupFunc func(t *testing.T) string // returns test directory
@@ -33,7 +33,7 @@ import (
 			setupFunc: func(t *testing.T) string {
 				dir := t.TempDir()
 				stateFile := filepath.Join(dir, StateFileName)
-				stateData := json.RawMessage("{}"),
+				stateData := json.RawMessage(`{}`),
 					},
 				}
 				data, _ := json.Marshal(stateData)
@@ -75,7 +75,7 @@ import (
 	}
 }
 
-// DISABLED: func TestStateManager_IsProcessed(t *testing.T) {
+func TestStateManager_IsProcessed(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -156,7 +156,7 @@ import (
 	}
 }
 
-// DISABLED: func TestStateManager_MarkProcessed(t *testing.T) {
+func TestStateManager_MarkProcessed(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -204,7 +204,7 @@ import (
 	assert.NotEmpty(t, state.SHA256)
 }
 
-// DISABLED: func TestStateManager_MarkFailed(t *testing.T) {
+func TestStateManager_MarkFailed(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -229,7 +229,7 @@ import (
 	assert.Contains(t, failedFiles, filepath.Clean(testFile))
 }
 
-// DISABLED: func TestStateManager_ConcurrentAccess(t *testing.T) {
+func TestStateManager_ConcurrentAccess(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -296,7 +296,7 @@ import (
 	assert.Equal(t, 5, len(failedFiles))
 }
 
-// DISABLED: func TestStateManager_CleanupOldEntries(t *testing.T) {
+func TestStateManager_CleanupOldEntries(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -337,7 +337,7 @@ import (
 	assert.True(t, processed2)
 }
 
-// DISABLED: func TestStateManager_LoadStateWithCorruption(t *testing.T) {
+func TestStateManager_LoadStateWithCorruption(t *testing.T) {
 	dir := t.TempDir()
 	stateFile := filepath.Join(dir, StateFileName)
 
@@ -397,7 +397,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCalculateFileHash(t *testing.T) {
+func TestCalculateFileHash(t *testing.T) {
 	dir := t.TempDir()
 
 	tests := []struct {
@@ -450,7 +450,7 @@ import (
 	assert.Error(t, err)
 }
 
-// DISABLED: func TestCreateStateKey(t *testing.T) {
+func TestCreateStateKey(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
@@ -481,7 +481,7 @@ import (
 	}
 }
 
-// DISABLED: func TestStateManager_GetProcessedAndFailedFiles(t *testing.T) {
+func TestStateManager_GetProcessedAndFailedFiles(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -527,7 +527,7 @@ import (
 	}
 }
 
-// DISABLED: func TestStateManager_AutoSave(t *testing.T) {
+func TestStateManager_AutoSave(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
@@ -601,3 +601,4 @@ func BenchmarkStateManager_MarkProcessed(b *testing.B) {
 		_ = sm.MarkProcessed(testFile)
 	}
 }
+

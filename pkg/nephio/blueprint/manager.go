@@ -1075,7 +1075,7 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 // GetMetrics returns current metrics.
 
 func (m *Manager) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")) bool {
+	return json.RawMessage(`{}`)) bool {
 				size++
 
 				return true
@@ -1119,3 +1119,4 @@ func (m *Manager) Stop() error {
 
 	return nil
 }
+

@@ -5,6 +5,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -939,7 +940,7 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 
 		RelevantDocs: []string{},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: make(map[string]interface{}),
 
 		ConfidenceScore: confidence,
 	}, nil
@@ -1256,7 +1257,7 @@ func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest
 
 		RelevantDocs: []string{},
 
-		Metadata: json.RawMessage(`{"domain":"o-ran"}`),
+		Metadata: map[string]interface{}{"domain": "o-ran"},
 
 		ConfidenceScore: 0.8,
 	}, nil
@@ -1308,7 +1309,7 @@ func (s *FiveGCoreContextStrategy) select5GCoreContext(request *ContextInjection
 
 		RelevantDocs: []string{},
 
-		Metadata: json.RawMessage(`{"domain":"5gc"}`),
+		Metadata: map[string]interface{}{"domain": "5gc"},
 
 		ConfidenceScore: 0.8,
 	}, nil

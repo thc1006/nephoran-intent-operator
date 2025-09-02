@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"net"
@@ -4243,7 +4244,7 @@ func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) 
 
 		LastAudit: time.Now().Add(-24 * time.Hour),
 
-		Metrics: json.RawMessage("{}"),
+		Metrics: json.RawMessage(`{}`),
 	}
 
 	return status, nil
@@ -4676,3 +4677,4 @@ type SecureChannelConfig struct {
 
 	IdleTimeout time.Duration
 }
+

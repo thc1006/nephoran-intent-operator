@@ -128,7 +128,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-// DISABLED: func TestCalculateExponentialBackoffForOperation(t *testing.T) {
+func TestCalculateExponentialBackoffForOperation(t *testing.T) {
 	tests := []struct {
 		name          string
 		operation     string
@@ -202,7 +202,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-// DISABLED: func TestRetryCountManagement(t *testing.T) {
+func TestRetryCountManagement(t *testing.T) {
 	tests := []struct {
 		name               string
 		initialAnnotations map[string]string
@@ -252,7 +252,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-// DISABLED: func TestSetRetryCount(t *testing.T) {
+func TestSetRetryCount(t *testing.T) {
 	e2nodeSet := createTestE2NodeSet("test", "default", 1)
 	operation := "configmap-operations"
 	count := 3
@@ -268,7 +268,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	assert.Equal(t, count, retrievedCount)
 }
 
-// DISABLED: func TestClearRetryCount(t *testing.T) {
+func TestClearRetryCount(t *testing.T) {
 	e2nodeSet := createTestE2NodeSet("test", "default", 1)
 	operation := "configmap-operations"
 
@@ -286,7 +286,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	assert.False(t, exists)
 }
 
-// DISABLED: func TestConfigMapCreationErrorHandling(t *testing.T) {
+func TestConfigMapCreationErrorHandling(t *testing.T) {
 	tests := []struct {
 		name           string
 		simulateError  error
@@ -361,7 +361,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-// DISABLED: func TestConfigMapUpdateErrorHandling(t *testing.T) {
+func TestConfigMapUpdateErrorHandling(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -428,7 +428,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	mockClient.AssertExpectations(t)
 }
 
-// DISABLED: func TestE2ProvisioningErrorHandling(t *testing.T) {
+func TestE2ProvisioningErrorHandling(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -477,7 +477,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	mockRecorder.AssertExpectations(t)
 }
 
-// DISABLED: func TestMaxRetriesExceeded(t *testing.T) {
+func TestMaxRetriesExceeded(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -514,7 +514,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	mockRecorder.AssertExpectations(t)
 }
 
-// DISABLED: func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
+func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -601,7 +601,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	mockRecorder.AssertExpectations(t)
 }
 
-// DISABLED: func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
+func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -662,7 +662,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	mockRecorder.AssertExpectations(t)
 }
 
-// DISABLED: func TestIdempotentReconciliation(t *testing.T) {
+func TestIdempotentReconciliation(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -716,7 +716,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	assert.Equal(t, result1, result3, "Third reconciliation should also be idempotent")
 }
 
-// DISABLED: func TestSetReadyCondition(t *testing.T) {
+func TestSetReadyCondition(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -781,7 +781,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-// DISABLED: func TestReconcileWithPartialFailures(t *testing.T) {
+func TestReconcileWithPartialFailures(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -835,7 +835,7 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	mockClient.AssertExpectations(t)
 }
 
-// DISABLED: func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
+func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)

@@ -7,7 +7,7 @@ import (
 )
 
 // TestSanitizePath tests path sanitization against directory traversal
-// DISABLED: func TestSanitizePath(t *testing.T) {
+func TestSanitizePath(t *testing.T) {
 	tests := []struct {
 		name             string
 		input            string
@@ -77,7 +77,7 @@ import (
 }
 
 // TestSanitizeCommand tests command sanitization against injection
-// DISABLED: func TestSanitizeCommand(t *testing.T) {
+func TestSanitizeCommand(t *testing.T) {
 	// Test dangerous characters are removed - these should all be detected and removed
 	dangerousChars := []string{";", "&", "|", "<", ">", "(", ")", "$", "`"}
 	dangerousCharsRegex := regexp.MustCompile("[;&|<>()$`]")
@@ -183,7 +183,7 @@ import (
 }
 
 // TestValidateBinaryContent tests binary content validation
-// DISABLED: func TestValidateBinaryContent(t *testing.T) {
+func TestValidateBinaryContent(t *testing.T) {
 	// Test valid YAML content
 	validYAMLTests := []struct {
 		name    string
@@ -299,7 +299,7 @@ import (
 }
 
 // TestYAMLValidationRegex tests the YAML validation regex directly
-// DISABLED: func TestYAMLValidationRegex(t *testing.T) {
+func TestYAMLValidationRegex(t *testing.T) {
 	yamlValidationRegex := regexp.MustCompile(`^(\s*[a-zA-Z0-9_-]+\s*:\s*[^\n]+\n)*$`)
 
 	validCases := []string{

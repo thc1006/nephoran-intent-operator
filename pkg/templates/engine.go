@@ -1981,7 +1981,7 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 	if resourceTemplate.Metadata != nil {
 
-		metadata := json.RawMessage("{}")
+		metadata := json.RawMessage(`{}`)
 
 		if resourceTemplate.Metadata.Namespace != "" {
 			metadata["namespace"] = e.renderString(resourceTemplate.Metadata.Namespace, parameters)
@@ -2703,20 +2703,20 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 					},
 				},
 
-				Spec: json.RawMessage("{}")}",
+				Spec: json.RawMessage(`{}`)}",
 
-					"selector": json.RawMessage("{}"),
+					"selector": json.RawMessage(`{}`),
 					},
 
-					"template": json.RawMessage("{}"){
+					"template": json.RawMessage(`{}`){
 							"labels": map[string]string{
 								"app": "amf",
 							},
 						},
 
-						"spec": json.RawMessage("{}"){
-								json.RawMessage("{}"){
-										json.RawMessage("{}"),
+						"spec": json.RawMessage(`{}`){
+								json.RawMessage(`{}`){
+										json.RawMessage(`{}`),
 									},
 								},
 							},
@@ -2733,8 +2733,8 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 					Version: "rel-16",
 
-					Configuration: json.RawMessage("{}"){
-							json.RawMessage("{}"){
+					Configuration: json.RawMessage(`{}`){
+							json.RawMessage(`{}`){
 									"mcc": "001",
 
 									"mnc": "01",
@@ -2753,7 +2753,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 							Protocol: "HTTP/2",
 
-							Config: json.RawMessage("{}"),
+							Config: json.RawMessage(`{}`),
 						},
 
 						{
@@ -2834,3 +2834,4 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 	return templates
 }
+

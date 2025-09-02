@@ -819,7 +819,7 @@ func (i *IntegratedO2IMS) GetIntegratedMetrics(ctx context.Context) (*Integrated
 func (i *IntegratedO2IMS) GetResourceTopology(ctx context.Context) (map[string]interface{}, error) {
 	// This would return a comprehensive view of all resources and their relationships.
 
-	topology := json.RawMessage("{}"){
+	topology := json.RawMessage(`{}`){
 			{
 				"id": "infra-1",
 
@@ -837,10 +837,10 @@ func (i *IntegratedO2IMS) GetResourceTopology(ctx context.Context) (map[string]i
 			},
 		},
 
-		"edges": []json.RawMessage("{}"),
+		"edges": []json.RawMessage(`{}`),
 		},
 
-		"metadata": json.RawMessage("{}"),
+		"metadata": json.RawMessage(`{}`),
 	}
 
 	return topology, nil
@@ -879,7 +879,7 @@ func (i *IntegratedO2IMS) GetPredictiveAnalytics(ctx context.Context) (map[strin
 
 	// This would return predictive insights based on historical data.
 
-	analytics := json.RawMessage("{}"){
+	analytics := json.RawMessage(`{}`){
 			"cpu_exhaustion_eta": "14 days",
 
 			"memory_exhaustion_eta": "21 days",
@@ -887,13 +887,13 @@ func (i *IntegratedO2IMS) GetPredictiveAnalytics(ctx context.Context) (map[strin
 			"storage_exhaustion_eta": "45 days",
 		},
 
-		"failure_predictions": []json.RawMessage("{}"),
+		"failure_predictions": []json.RawMessage(`{}`),
 		},
 
-		"cost_projections": json.RawMessage("{}"),
+		"cost_projections": json.RawMessage(`{}`),
 		},
 
-		"performance_trends": json.RawMessage("{}"),
+		"performance_trends": json.RawMessage(`{}`),
 	}
 
 	return analytics, nil
@@ -906,7 +906,7 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 
 	// This would analyze current usage trends and project future capacity needs.
 
-	planning := json.RawMessage("{}"){
+	planning := json.RawMessage(`{}`){
 			"cpu": "68%",
 
 			"memory": "74%",
@@ -916,9 +916,9 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 			"network": "34%",
 		},
 
-		"projected_utilization": json.RawMessage("{}"),
+		"projected_utilization": json.RawMessage(`{}`),
 
-		"recommendations": []json.RawMessage("{}"),
+		"recommendations": []json.RawMessage(`{}`),
 
 			{
 				"action": "expand_storage",
@@ -931,7 +931,7 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 			},
 		},
 
-		"risk_assessment": json.RawMessage("{}"),
+		"risk_assessment": json.RawMessage(`{}`),
 	}
 
 	return planning, nil
@@ -944,22 +944,23 @@ func (i *IntegratedO2IMS) GetComplianceReport(ctx context.Context) (map[string]i
 
 	// This would generate a comprehensive compliance report.
 
-	report := json.RawMessage("{}"){
-			"security": json.RawMessage("{}"),
+	report := json.RawMessage(`{}`){
+			"security": json.RawMessage(`{}`),
 
 				"recommendations": []string{
 					"enable_pod_security_policies",
 				},
 			},
 
-			"performance": json.RawMessage("{}"),
+			"performance": json.RawMessage(`{}`),
 			},
 
-			"availability": json.RawMessage("{}"),
+			"availability": json.RawMessage(`{}`),
 
-			"cost": json.RawMessage("{}"),
+			"cost": json.RawMessage(`{}`),
 		},
 	}
 
 	return report, nil
 }
+

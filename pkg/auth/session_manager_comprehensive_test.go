@@ -12,7 +12,7 @@ import (
 	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
-// DISABLED: func TestSessionManager_CreateSession(t *testing.T) {
+func TestSessionManager_CreateSession(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -29,7 +29,7 @@ import (
 		{
 			name:     "Valid session creation",
 			userInfo: uf.CreateBasicUser(),
-			metadata: json.RawMessage("{}"),
+			metadata: json.RawMessage(`{}`),
 			expectError: false,
 			checkSession: func(t *testing.T, session *Session) {
 				assert.NotEmpty(t, session.ID)
@@ -77,7 +77,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_GetSession(t *testing.T) {
+func TestSessionManager_GetSession(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -147,7 +147,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_ValidateSession(t *testing.T) {
+func TestSessionManager_ValidateSession(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -206,7 +206,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_RefreshSession(t *testing.T) {
+func TestSessionManager_RefreshSession(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -266,7 +266,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_RevokeSession(t *testing.T) {
+func TestSessionManager_RevokeSession(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -325,7 +325,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_RevokeAllUserSessions(t *testing.T) {
+func TestSessionManager_RevokeAllUserSessions(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -402,7 +402,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
+func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -461,7 +461,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_HTTPIntegration(t *testing.T) {
+func TestSessionManager_HTTPIntegration(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -550,7 +550,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_ClearSessionCookie(t *testing.T) {
+func TestSessionManager_ClearSessionCookie(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -569,7 +569,7 @@ import (
 	assert.Equal(t, -1, cookie.MaxAge)
 }
 
-// DISABLED: func TestSessionManager_UpdateSessionMetadata(t *testing.T) {
+func TestSessionManager_UpdateSessionMetadata(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -577,7 +577,7 @@ import (
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	session, err := manager.CreateSession(context.Background(), user, json.RawMessage("{}"))
+	session, err := manager.CreateSession(context.Background(), user, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -590,7 +590,7 @@ import (
 		{
 			name:      "Update existing session metadata",
 			sessionID: session.ID,
-			metadata: json.RawMessage("{}"),
+			metadata: json.RawMessage(`{}`),
 			expectError: false,
 			checkSession: func(t *testing.T, updatedSession *Session) {
 				assert.Equal(t, "updated_value", updatedSession.Metadata["updated_key"])
@@ -642,7 +642,7 @@ import (
 	}
 }
 
-// DISABLED: func TestSessionManager_GetUserSessions(t *testing.T) {
+func TestSessionManager_GetUserSessions(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -653,10 +653,10 @@ import (
 	otherUser := uf.CreateBasicUser()
 
 	// Create multiple sessions for the user
-	_, err = manager.CreateSession(context.Background(), user, json.RawMessage("{}"))
+	_, err = manager.CreateSession(context.Background(), user, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
-	_, err = manager.CreateSession(context.Background(), user, json.RawMessage("{}"))
+	_, err = manager.CreateSession(context.Background(), user, json.RawMessage(`{}`))
 	require.NoError(t, err)
 
 	// Create session for other user
@@ -799,7 +799,7 @@ func BenchmarkSessionManager_RefreshSession(b *testing.B) {
 }
 
 // Test concurrent access to sessions
-// DISABLED: func TestSessionManager_ConcurrentAccess(t *testing.T) {
+func TestSessionManager_ConcurrentAccess(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -845,7 +845,7 @@ func BenchmarkSessionManager_RefreshSession(b *testing.B) {
 }
 
 // Test session security features
-// DISABLED: func TestSessionManager_SecurityFeatures(t *testing.T) {
+func TestSessionManager_SecurityFeatures(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -911,3 +911,4 @@ func BenchmarkSessionManager_RefreshSession(b *testing.B) {
 		})
 	}
 }
+

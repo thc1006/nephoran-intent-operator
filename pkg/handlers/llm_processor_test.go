@@ -11,7 +11,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
-// DISABLED: func TestNLToIntentHandler(t *testing.T) {
+func TestNLToIntentHandler(t *testing.T) {
 	// Create a test handler
 	handler := &LLMProcessorHandler{
 		config: &config.LLMProcessorConfig{
@@ -157,7 +157,7 @@ import (
 }
 
 // TestIntentParserEdgeCases tests edge cases for the intent parser
-// DISABLED: func TestIntentParserEdgeCases(t *testing.T) {
+func TestIntentParserEdgeCases(t *testing.T) {
 	handler := &LLMProcessorHandler{
 		config: &config.LLMProcessorConfig{
 			ServiceVersion: "test-1.0.0",

@@ -485,7 +485,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 
 	// Create request payload.
 
-	reqPayload := json.RawMessage("{}")
+	reqPayload := json.RawMessage(`{}`)
 
 	reqBody, err := json.Marshal(reqPayload)
 	if err != nil {
@@ -556,7 +556,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 
 		Batched: false,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -579,7 +579,7 @@ func (pe *ProcessingEngine) processWithBaseClient(ctx context.Context, intent st
 
 		Batched: false,
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -915,3 +915,4 @@ func (bp *batchProcessor) processingWorker() {
 		}
 	}
 }
+

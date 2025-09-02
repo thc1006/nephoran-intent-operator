@@ -568,7 +568,7 @@ func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
 // GetMetrics performs getmetrics operation.
 
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // generateMockHybridSearchResults generates mock search results for hybrid search.
@@ -732,3 +732,4 @@ func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []s
 }
 
 // StreamingProcessor type alias for compatibility - defined in interface_consolidated.go
+

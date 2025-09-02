@@ -1223,7 +1223,7 @@ func (s *SLAComplianceTestSuite) generateTestAuditEvents(ctx context.Context, co
 			Action:       "measure_sla",
 			Resource:     "availability_metric",
 			Result:       ResultSuccess,
-			Details:      json.RawMessage("{}"),
+			Details:      json.RawMessage(`{}`),
 			PreviousHash: previousHash,
 		}
 
@@ -1873,7 +1873,7 @@ func (s *SLAComplianceTestSuite) validateEvidenceIntegrity(ctx context.Context, 
 }
 
 func (s *SLAComplianceTestSuite) generateTestDataForAttestation() interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Framework-specific evidence collection methods
@@ -1941,6 +1941,7 @@ func (s *SLAComplianceTestSuite) testExecutiveDashboard(ctx context.Context, rep
 }
 
 // TestSuite runner function
-// DISABLED: func TestSLAComplianceTestSuite(t *testing.T) {
+func TestSLAComplianceTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAComplianceTestSuite))
 }
+

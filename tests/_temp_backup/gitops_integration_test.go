@@ -689,7 +689,7 @@ func handleGitClone(w http.ResponseWriter, r *http.Request, tracker *GitRequestT
 		return
 	}
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -702,7 +702,7 @@ func handleGitCommit(w http.ResponseWriter, r *http.Request, tracker *GitRequest
 	}
 
 	commitHash := fmt.Sprintf("commit-%d-%d", time.Now().Unix(), tracker.GetRequestCount("git-commit"))
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	// Set deployment status to pending
 	tracker.SetDeploymentStatus(commitHash, "pending")
@@ -718,7 +718,7 @@ func handleGitPush(w http.ResponseWriter, r *http.Request, tracker *GitRequestTr
 		return
 	}
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -750,14 +750,14 @@ func handleNephioPackageGen(w http.ResponseWriter, r *http.Request, tracker *Git
 	packageName := fmt.Sprintf("%s-%s", request.NetworkFunction, request.TargetCluster)
 	tracker.generatedPackages[packageName] = "generated"
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 	json.NewEncoder(w).Encode(response)
 }
 
 func handleNephioPackageRevision(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("nephio-package-revision")
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -1069,3 +1069,4 @@ spec:
 		strings.ToLower(networkFunction),
 		strings.ToLower(networkFunction))
 }
+

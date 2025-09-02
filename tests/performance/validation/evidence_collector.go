@@ -942,7 +942,7 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 
 			Labels: map[string]string{},
 
-			Context: json.RawMessage("{}"),
+			Context: json.RawMessage(`{}`),
 		}
 	}
 
@@ -965,7 +965,7 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 			Duration: dataPoints[len(dataPoints)-1].Timestamp.Sub(dataPoints[0].Timestamp),
 		},
 
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}
 }
 
@@ -1357,3 +1357,4 @@ func (ec *EvidenceCollector) saveEvidenceReport(report *EvidenceReport) error {
 
 	return nil
 }
+

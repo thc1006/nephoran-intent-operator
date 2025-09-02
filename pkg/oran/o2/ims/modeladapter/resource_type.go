@@ -359,7 +359,7 @@ func CreateDefaultNetworkResourceType() *InternalResourceType {
 		Specifications: &InternalResourceTypeSpec{
 			Category: models.ResourceCategoryNetwork,
 
-			Properties: json.RawMessage("{}"),
+			Properties: json.RawMessage(`{}`),
 
 				"protocols": []string{"TCP", "UDP"},
 			},
@@ -394,7 +394,7 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 		Specifications: &InternalResourceTypeSpec{
 			Category: models.ResourceCategoryStorage,
 
-			Properties: json.RawMessage("{}"),
+			Properties: json.RawMessage(`{}`),
 
 				"volumeModes": []string{"Filesystem", "Block"},
 			},
@@ -409,3 +409,4 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 		UpdatedAt: time.Now(),
 	}
 }
+

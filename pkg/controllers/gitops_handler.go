@@ -320,7 +320,7 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 	// Update deployment status.
 
-	deploymentStatus := json.RawMessage("{}")
+	deploymentStatus := json.RawMessage(`{}`)
 
 	processingCtx.DeploymentStatus = deploymentStatus
 
@@ -498,3 +498,4 @@ func (g *GitOpsHandler) IsPhaseComplete(networkIntent *nephoranv1.NetworkIntent)
 
 		isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified")
 }
+

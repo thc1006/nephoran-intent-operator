@@ -59,7 +59,7 @@ func NewSecurityTestSuite(t *testing.T) *SecurityTestSuite {
 }
 
 // TestComprehensiveSecuritySuite runs the complete security test suite
-// DISABLED: func TestComprehensiveSecuritySuite(t *testing.T) {
+func TestComprehensiveSecuritySuite(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 
 	// Run all security test categories
@@ -567,9 +567,9 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 	stateFile := filepath.Join(s.handoffDir, ".conductor-state.json")
 
 	// Create malicious state file with correct structure
-	maliciousState := json.RawMessage("{}"){
-			"../../../etc/passwd": json.RawMessage("{}"),
-			"$(whoami)": json.RawMessage("{}"),
+	maliciousState := map[string]interface{}{
+			"../../../etc/passwd": json.RawMessage(`{}`),
+			"$(whoami)": json.RawMessage(`{}`),
 		},
 	}
 
@@ -882,3 +882,4 @@ func generateDeepNestedJSON(depth int) string {
 	}
 	return fmt.Sprintf(`{"level": %s}`, generateDeepNestedJSON(depth-1))
 }
+

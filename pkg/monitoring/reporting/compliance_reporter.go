@@ -821,7 +821,7 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 
 		AuditTrail: cr.getAuditTrailForPeriod(period),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Calculate overall status and score.
@@ -1022,7 +1022,7 @@ func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(0, 3, 0), // Quarterly
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 
 		{
@@ -1048,7 +1048,7 @@ func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(1, 0, 0), // Annual
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1080,7 +1080,7 @@ func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(0, 3, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 
 		{
@@ -1106,7 +1106,7 @@ func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(0, 3, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1138,7 +1138,7 @@ func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement 
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 
 		{
@@ -1164,7 +1164,7 @@ func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement 
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1196,7 +1196,7 @@ func (cr *ComplianceReporter) getHIPAARequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1228,7 +1228,7 @@ func (cr *ComplianceReporter) getGDPRRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1260,7 +1260,7 @@ func (cr *ComplianceReporter) getNISTRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1292,7 +1292,7 @@ func (cr *ComplianceReporter) getFedRAMPRequirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1324,7 +1324,7 @@ func (cr *ComplianceReporter) getSOC2Requirements() []ComplianceRequirement {
 
 			NextAssessment: time.Now().AddDate(1, 0, 0),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		},
 	}
 }
@@ -1878,3 +1878,4 @@ func isFirstDayOfQuarter(t time.Time) bool {
 
 	return day == 1 && (month == time.January || month == time.April || month == time.July || month == time.October)
 }
+

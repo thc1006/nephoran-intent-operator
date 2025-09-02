@@ -57,7 +57,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 	})
 }
 
-// DISABLED: func TestRequestSizeLimits(t *testing.T) {
+func TestRequestSizeLimits(t *testing.T) {
 	// Set up test configuration with a small request size limit for testing
 	testMaxSize := int64(1024) // 1KB limit for testing
 
@@ -130,7 +130,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 				}
 
 				// Simulate successful processing
-				response := json.RawMessage("{}")
+				response := json.RawMessage(`{}`)
 
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
@@ -177,7 +177,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 	}
 }
 
-// DISABLED: func TestRequestSizeLimitMiddleware(t *testing.T) {
+func TestRequestSizeLimitMiddleware(t *testing.T) {
 	testMaxSize := int64(512) // Very small limit for testing
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -245,7 +245,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 	}
 }
 
-// DISABLED: func TestConfigurationValidation(t *testing.T) {
+func TestConfigurationValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		maxSize     int64
@@ -310,7 +310,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 	}
 }
 
-// DISABLED: func TestMaxBytesHandlerWithContentLength(t *testing.T) {
+func TestMaxBytesHandlerWithContentLength(t *testing.T) {
 	testMaxSize := int64(1000)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -382,7 +382,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 	}
 }
 
-// DISABLED: func TestIntegrationWithRealHandlers(t *testing.T) {
+func TestIntegrationWithRealHandlers(t *testing.T) {
 	// This test simulates integration with actual LLM processor handlers
 	// Set up minimal configuration
 	cfg := config.DefaultLLMProcessorConfig()
@@ -480,7 +480,7 @@ func (h *MockLLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	response := json.RawMessage("{}")
+	response := json.RawMessage(`{}`)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
@@ -571,7 +571,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestTLSServerStartup tests server startup with and without TLS configuration
-// DISABLED: func TestTLSServerStartup(t *testing.T) {
+func TestTLSServerStartup(t *testing.T) {
 	tests := []struct {
 		name                string
 		tlsEnabled          bool
@@ -737,7 +737,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestTLSCertificateValidation tests certificate validation during server startup
-// DISABLED: func TestTLSCertificateValidation(t *testing.T) {
+func TestTLSCertificateValidation(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupCert      func(t *testing.T) (string, string, func())
@@ -842,7 +842,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestGracefulShutdownWithTLS tests graceful shutdown works correctly with and without TLS
-// DISABLED: func TestGracefulShutdownWithTLS(t *testing.T) {
+func TestGracefulShutdownWithTLS(t *testing.T) {
 	tests := []struct {
 		name       string
 		tlsEnabled bool
@@ -979,7 +979,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestEndToEndTLSConnections tests actual HTTPS connections and certificate validation
-// DISABLED: func TestEndToEndTLSConnections(t *testing.T) {
+func TestEndToEndTLSConnections(t *testing.T) {
 	tests := []struct {
 		name                  string
 		clientTLSConfig       *tls.Config
@@ -1081,7 +1081,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestTLSConfigurationIntegration tests the complete TLS configuration flow
-// DISABLED: func TestTLSConfigurationIntegration(t *testing.T) {
+func TestTLSConfigurationIntegration(t *testing.T) {
 	// Create test certificates
 	certPath, keyPath, cleanup := createTestTLSCertificates(t)
 	defer cleanup()
@@ -1187,7 +1187,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestIPAllowlistMiddleware tests the IP allowlist middleware functionality
-// DISABLED: func TestIPAllowlistMiddleware(t *testing.T) {
+func TestIPAllowlistMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelError, // Only show errors in tests
 	}))
@@ -1313,7 +1313,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 }
 
 // TestMetricsEndpointConfiguration tests the conditional configuration of metrics endpoint
-// DISABLED: func TestMetricsEndpointConfiguration(t *testing.T) {
+func TestMetricsEndpointConfiguration(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelError,
 	}))
@@ -1402,3 +1402,4 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 		})
 	}
 }
+

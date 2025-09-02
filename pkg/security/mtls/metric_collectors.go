@@ -351,7 +351,7 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 				"health_status": string(cert.HealthStatus),
 			},
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		})
 
 	}
@@ -756,3 +756,4 @@ func (c *PerformanceMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 
 	return metrics, nil
 }
+

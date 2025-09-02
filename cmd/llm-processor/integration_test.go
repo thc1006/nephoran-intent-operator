@@ -224,7 +224,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	return "", fmt.Errorf("no mock response testConfigured for intent: %s", intent)
 }
 
-// DISABLED: func TestLLMProcessorIntegration(t *testing.T) {
+func TestLLMProcessorIntegration(t *testing.T) {
 	// Setup test testConfiguration
 	testConfig := &Config{
 		Port:             "8080",
@@ -349,7 +349,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	})
 }
 
-// DISABLED: func TestHTTPEndpoints(t *testing.T) {
+func TestHTTPEndpoints(t *testing.T) {
 	// Setup test server
 	testConfig = &Config{
 		Port:                    "8080",
@@ -463,7 +463,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	})
 }
 
-// DISABLED: func TestCircuitBreakerIntegration(t *testing.T) {
+func TestCircuitBreakerIntegration(t *testing.T) {
 	// Create circuit breaker with low threshold for testing
 	cb := NewCircuitBreaker(2, 1*time.Second)
 
@@ -506,7 +506,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	})
 }
 
-// DISABLED: func TestTelecomPromptEngineIntegration(t *testing.T) {
+func TestTelecomPromptEngineIntegration(t *testing.T) {
 	engine := llm.NewTelecomPromptEngine()
 
 	t.Run("Test UPF Intent Processing", func(t *testing.T) {

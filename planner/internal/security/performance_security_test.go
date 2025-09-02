@@ -494,7 +494,7 @@ func BenchmarkSecurity_RegexPerformance(b *testing.B) {
 }
 
 // TestSecurity_PerformanceRegression tests for performance regressions in security functions
-// DISABLED: func TestSecurity_PerformanceRegression(t *testing.T) {
+func TestSecurity_PerformanceRegression(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance regression tests in short mode")
 	}
@@ -589,7 +589,7 @@ func BenchmarkSecurity_RegexPerformance(b *testing.B) {
 					test.name, avgDuration, baseline)
 			} else {
 				margin := float64(baseline-avgDuration) / float64(baseline) * 100
-				t.Logf("✓ Performance within baseline with %.1f%% margin", margin)
+				t.Logf("??Performance within baseline with %.1f%% margin", margin)
 			}
 		})
 	}
@@ -694,7 +694,7 @@ func BenchmarkSecurity_WorstCaseScenarios(b *testing.B) {
 }
 
 // TestSecurity_PerformanceStability tests that security performance remains stable over time
-// DISABLED: func TestSecurity_PerformanceStability(t *testing.T) {
+func TestSecurity_PerformanceStability(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance stability tests in short mode")
 	}
@@ -751,7 +751,7 @@ func BenchmarkSecurity_WorstCaseScenarios(b *testing.B) {
 		if variance > maxAcceptableVariance {
 			t.Errorf("Performance is unstable: variance %v exceeds 50%% of average %v", variance, avg)
 		} else {
-			t.Logf("✓ Performance is stable over %d rounds", numRounds)
+			t.Logf("??Performance is stable over %d rounds", numRounds)
 		}
 	})
 }

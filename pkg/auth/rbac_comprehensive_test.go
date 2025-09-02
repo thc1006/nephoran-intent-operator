@@ -10,7 +10,7 @@ import (
 	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
-// DISABLED: func TestRBACManager_CreateRole(t *testing.T) {
+func TestRBACManager_CreateRole(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -104,7 +104,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_GetRole(t *testing.T) {
+func TestRBACManager_GetRole(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -180,7 +180,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_UpdateRole(t *testing.T) {
+func TestRBACManager_UpdateRole(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -268,7 +268,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_DeleteRole(t *testing.T) {
+func TestRBACManager_DeleteRole(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -361,7 +361,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_CreatePermission(t *testing.T) {
+func TestRBACManager_CreatePermission(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -441,7 +441,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_AssignRoleToUser(t *testing.T) {
+func TestRBACManager_AssignRoleToUser(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -570,7 +570,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_RevokeRoleFromUser(t *testing.T) {
+func TestRBACManager_RevokeRoleFromUser(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -644,7 +644,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_CheckPermission(t *testing.T) {
+func TestRBACManager_CheckPermission(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -784,7 +784,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_HierarchicalRoles(t *testing.T) {
+func TestRBACManager_HierarchicalRoles(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -916,7 +916,7 @@ import (
 	}
 }
 
-// DISABLED: func TestRBACManager_ListOperations(t *testing.T) {
+func TestRBACManager_ListOperations(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -1087,7 +1087,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 }
 
 // Test caching functionality
-// DISABLED: func TestRBACManager_Caching(t *testing.T) {
+func TestRBACManager_Caching(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -1129,7 +1129,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 }
 
 // Test concurrent access
-// DISABLED: func TestRBACManager_ConcurrentAccess(t *testing.T) {
+func TestRBACManager_ConcurrentAccess(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -1177,7 +1177,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 	}
 }
 
-// DISABLED: func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
+func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
@@ -1197,7 +1197,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 			policyRules: []string{
 				"allow read on sensitive-data if time between 09:00 and 17:00",
 			},
-			userContext: json.RawMessage("{}"),
+			userContext: json.RawMessage(`{}`),
 			resource:      "sensitive-data",
 			action:        "read",
 			expectAllowed: true,
@@ -1207,7 +1207,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 			policyRules: []string{
 				"allow * on internal-resource if ip in 192.168.1.0/24",
 			},
-			userContext: json.RawMessage("{}"),
+			userContext: json.RawMessage(`{}`),
 			resource:      "internal-resource",
 			action:        "write",
 			expectAllowed: true,
@@ -1241,3 +1241,4 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 		})
 	}
 }
+

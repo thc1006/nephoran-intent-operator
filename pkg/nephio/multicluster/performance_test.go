@@ -278,7 +278,7 @@ func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 }
 
 // Concurrency Performance Tests
-// DISABLED: func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
+func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 	clusterMgr := setupPerformanceTestEnvironment(t, 50)
 	packageRevision := createTestPackageRevision("concurrent-test", "v1.0.0")
 
@@ -361,7 +361,7 @@ func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	t.Logf("  Goroutines: %d", metrics.GoroutineCount)
 }
 
-// DISABLED: func TestPerformance_HealthMonitoringScalability(t *testing.T) {
+func TestPerformance_HealthMonitoringScalability(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 
@@ -427,7 +427,7 @@ func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	t.Logf("  Health Check Cycles: %d", totalCycles)
 }
 
-// DISABLED: func TestPerformance_AlertProcessingThroughput(t *testing.T) {
+func TestPerformance_AlertProcessingThroughput(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 
@@ -475,7 +475,7 @@ func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	t.Logf("  Alerts/Second: %.2f", alertsPerSecond)
 }
 
-// DISABLED: func TestPerformance_MemoryLeaks(t *testing.T) {
+func TestPerformance_MemoryLeaks(t *testing.T) {
 	// Monitor memory usage during prolonged operations
 	runtime.GC()
 	initialMemory := getMemoryUsage()
@@ -524,7 +524,7 @@ func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	t.Logf("  Iterations: %d", numIterations)
 }
 
-// DISABLED: func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
+func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 

@@ -5,6 +5,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -697,10 +698,18 @@ func (cb *CircuitBreaker) getState() CircuitState {
 
 func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 	cb.mutex.RLock()
-
 	defer cb.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"state": cb.state,
+		"failure_count": cb.failureCount,
+		"success_count": cb.successCount,
+		"request_count": cb.requestCount,
+		"last_failure_time": cb.lastFailureTime,
+		"last_success_time": cb.lastSuccessTime,
+		"state_change_time": cb.stateChangeTime,
+		"half_open_requests": cb.halfOpenRequests,
+	}
 }
 
 // updateMetrics safely updates metrics.

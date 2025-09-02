@@ -916,15 +916,15 @@ func CreateQoSPolicyType() *A1PolicyType {
 
 		Description: "Policy for managing QoS parameters in network slices",
 
-		PolicySchema: json.RawMessage("{}"){
-				"slice_id": json.RawMessage("{}"),
+		PolicySchema: json.RawMessage(`{}`){
+				"slice_id": json.RawMessage(`{}`),
 
-				"qos_parameters": json.RawMessage("{}"){
-						"latency_ms": json.RawMessage("{}"),
+				"qos_parameters": json.RawMessage(`{}`){
+						"latency_ms": json.RawMessage(`{}`),
 
-						"throughput_mbps": json.RawMessage("{}"),
+						"throughput_mbps": json.RawMessage(`{}`),
 
-						"reliability": json.RawMessage("{}"),
+						"reliability": json.RawMessage(`{}`),
 					},
 				},
 			},
@@ -944,12 +944,12 @@ func CreateTrafficSteeringPolicyType() *A1PolicyType {
 
 		Description: "Policy for steering traffic between cells or network functions",
 
-		PolicySchema: json.RawMessage("{}"){
-				"ue_id": json.RawMessage("{}"),
+		PolicySchema: json.RawMessage(`{}`){
+				"ue_id": json.RawMessage(`{}`),
 
-				"target_cell": json.RawMessage("{}"),
+				"target_cell": json.RawMessage(`{}`),
 
-				"traffic_percentage": json.RawMessage("{}"),
+				"traffic_percentage": json.RawMessage(`{}`),
 			},
 
 			"required": []string{"target_cell", "traffic_percentage"},
@@ -1223,7 +1223,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 			Target: event.Source,
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 
 			Timestamp: time.Now(),
 
@@ -1249,7 +1249,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 		Target: event.Source,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Timestamp: time.Now(),
 
@@ -1348,7 +1348,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 		Target: event.Source,
 
-		Data: json.RawMessage("{}"),
+		Data: json.RawMessage(`{}`),
 
 		Timestamp: time.Now(),
 
@@ -1610,7 +1610,7 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 
 			Target: "smo",
 
-			Data: json.RawMessage("{}"),
+			Data: json.RawMessage(`{}`),
 
 			Timestamp: time.Now(),
 
@@ -1924,3 +1924,4 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 		return nil
 	})
 }
+

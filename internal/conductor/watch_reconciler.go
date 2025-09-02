@@ -342,7 +342,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	// Create intent JSON matching docs/contracts/intent.schema.json.
 
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // writeIntentJSON writes the intent data to a JSON file.
@@ -450,3 +450,4 @@ func (r *WatchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(r)
 }
+

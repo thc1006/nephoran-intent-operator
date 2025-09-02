@@ -42,7 +42,7 @@ func (h *BufferLogHandler) Enabled(ctx context.Context, level slog.Level) bool {
 // Handle implements slog.Handler.Handle
 func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Create a structured log entry
-	entry := json.RawMessage("{}")
+	entry := json.RawMessage(`{}`)
 
 	// Add record attributes
 	record.Attrs(func(attr slog.Attr) bool {
@@ -144,11 +144,11 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 	if m.getMetricsFunc != nil {
 		return m.getMetricsFunc()
 	}
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // TestStructuredLoggingInStreamingHandler tests that structured logging works correctly
-// DISABLED: func TestStructuredLoggingInStreamingHandler(t *testing.T) {
+func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 	tests := []struct {
 		name              string
 		request           StreamingRequest
@@ -401,7 +401,7 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 }
 
 // TestStreamingHandlerLoggingEdgeCases tests edge cases for structured logging
-// DISABLED: func TestStreamingHandlerLoggingEdgeCases(t *testing.T) {
+func TestStreamingHandlerLoggingEdgeCases(t *testing.T) {
 	t.Run("malformed_json_request", func(t *testing.T) {
 		logBuffer := &bytes.Buffer{}
 		bufferHandler := NewBufferLogHandler(logBuffer)
@@ -501,7 +501,7 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 }
 
 // TestBufferLogHandlerFunctionality tests the custom buffer log handler implementation
-// DISABLED: func TestBufferLogHandlerFunctionality(t *testing.T) {
+func TestBufferLogHandlerFunctionality(t *testing.T) {
 	t.Run("basic_logging", func(t *testing.T) {
 		buffer := &bytes.Buffer{}
 		handler := NewBufferLogHandler(buffer)
@@ -570,7 +570,7 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 }
 
 // TestStreamingRequestStructValidation tests the StreamingRequest structure
-// DISABLED: func TestStreamingRequestStructValidation(t *testing.T) {
+func TestStreamingRequestStructValidation(t *testing.T) {
 	t.Run("complete_request", func(t *testing.T) {
 		request := StreamingRequest{
 			Query:       "Deploy 5G core network",
@@ -734,7 +734,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 }
 
 // TestCircuitBreakerHealthValidation tests the circuit breaker health check functionality
-// DISABLED: func TestCircuitBreakerHealthValidation(t *testing.T) {
+func TestCircuitBreakerHealthValidation(t *testing.T) {
 	tests := []struct {
 		name            string
 		stats           map[string]interface{}
@@ -744,18 +744,18 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 	}{
 		{
 			name:            "No circuit breakers registered",
-			stats:           json.RawMessage("{}"),
+			stats:           json.RawMessage(`{}`),
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "No circuit breakers registered",
 			expectUnhealthy: false,
 		},
 		{
 			name: "All circuit breakers operational (closed)",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
-				"service-b": json.RawMessage("{}"),
+				"service-b": json.RawMessage(`{}`),
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -763,7 +763,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "All circuit breakers half-open (should be operational)",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "half-open",
 					"failures": 2,
 				},
@@ -774,7 +774,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Single circuit breaker open",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "open",
 					"failures": 5,
 				},
@@ -785,12 +785,12 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Multiple circuit breakers with one open",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
-				"service-b": json.RawMessage("{}"),
-				"service-c": json.RawMessage("{}"),
+				"service-b": json.RawMessage(`{}`),
+				"service-c": json.RawMessage(`{}`),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
@@ -798,11 +798,11 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Multiple open circuit breakers (should return all open breakers)",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "open",
 					"failures": 3,
 				},
-				"service-b": json.RawMessage("{}"),
+				"service-b": json.RawMessage(`{}`),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectUnhealthy: true,
@@ -810,7 +810,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Circuit breaker with malformed stats (missing state)",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"failures": 0,
 					// Missing "state" field
 				},
@@ -821,7 +821,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Circuit breaker with non-map stats (should be ignored)",
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -883,10 +883,10 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 }
 
 // TestRegisterHealthChecksIntegration tests the integration of health checks registration
-// DISABLED: func TestRegisterHealthChecksIntegration(t *testing.T) {
+func TestRegisterHealthChecksIntegration(t *testing.T) {
 	t.Run("with_circuit_breaker_manager", func(t *testing.T) {
 		mockCBMgr := &MockCircuitBreakerManager{
-			stats: json.RawMessage("{}"){
+			stats: map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -935,7 +935,7 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 	// Create a large number of circuit breakers for benchmarking
 	stats := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		stats[fmt.Sprintf("service-%d", i)] = json.RawMessage("{}")
+		stats[fmt.Sprintf("service-%d", i)] = json.RawMessage(`{}`)
 	}
 
 	mockCBMgr := &MockCircuitBreakerManager{stats: stats}
@@ -953,3 +953,4 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 		sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 	}
 }
+

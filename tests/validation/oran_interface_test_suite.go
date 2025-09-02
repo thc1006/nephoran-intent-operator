@@ -491,7 +491,7 @@ func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
 
 	// Test cloud provider failover scenario.
 
-	primaryCloudConfig := json.RawMessage("{}"){
+	primaryCloudConfig := json.RawMessage(`{}`){
 			"ec2_instances": 3,
 		},
 	}
@@ -504,7 +504,7 @@ func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
 
 	// Simulate primary cloud failure and failover to secondary.
 
-	secondaryCloudConfig := json.RawMessage("{}"){
+	secondaryCloudConfig := json.RawMessage(`{}`){
 			"virtual_machines": 3,
 		},
 	}
@@ -650,7 +650,7 @@ func (oits *ORANInterfaceTestSuite) testMultiCloudO2(ctx context.Context) bool {
 
 	for _, provider := range cloudProviders {
 
-		cloudConfig := json.RawMessage("{}"){
+		cloudConfig := json.RawMessage(`{}`){
 				"instances": 2,
 
 				"storage": 1,
@@ -869,3 +869,4 @@ type ORANValidationReport struct {
 
 	OverallPassed bool `json:"overallPassed"`
 }
+

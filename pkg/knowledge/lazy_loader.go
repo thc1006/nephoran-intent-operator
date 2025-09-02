@@ -1184,7 +1184,7 @@ func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 		hitRate = float64(l.stats.Hits) / float64(total) * 100
 	}
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // ClearCache clears all caches.
@@ -1318,7 +1318,7 @@ func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
 
 	defer l.mu.RUnlock()
 
-	data := json.RawMessage("{}")
+	data := json.RawMessage(`{}`)
 
 	compressed, err := l.compress(data)
 	if err != nil {
@@ -1343,3 +1343,4 @@ func (l *LazyKnowledgeLoader) LoadFromFile(filename string) error {
 
 	return nil
 }
+

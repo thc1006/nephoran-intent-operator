@@ -882,7 +882,7 @@ func (dashboard *OptimizationDashboard) healthHandler(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(json.RawMessage("{}"))
+	json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 }
 
 func (dashboard *OptimizationDashboard) overviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -1844,3 +1844,4 @@ func GetDefaultDashboardConfig() *DashboardConfig {
 		AlertingEnabled: false,
 	}
 }
+

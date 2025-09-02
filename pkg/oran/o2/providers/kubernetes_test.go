@@ -14,7 +14,7 @@ import (
 )
 
 // TestKubernetesProviderBasics tests basic provider functionality
-// DISABLED: func TestKubernetesProviderBasics(t *testing.T) {
+func TestKubernetesProviderBasics(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	provider, err := NewKubernetesProvider(nil, fakeClient, map[string]string{
@@ -48,7 +48,7 @@ import (
 }
 
 // TestKubernetesProviderGetDeployment tests the getDeployment method
-// DISABLED: func TestKubernetesProviderGetDeployment(t *testing.T) {
+func TestKubernetesProviderGetDeployment(t *testing.T) {
 	// Create a fake deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -93,7 +93,7 @@ import (
 }
 
 // TestKubernetesProviderGetService tests the getService method
-// DISABLED: func TestKubernetesProviderGetService(t *testing.T) {
+func TestKubernetesProviderGetService(t *testing.T) {
 	// Create a fake service
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -130,7 +130,7 @@ import (
 }
 
 // TestKubernetesProviderGetConfigMap tests the getConfigMap method
-// DISABLED: func TestKubernetesProviderGetConfigMap(t *testing.T) {
+func TestKubernetesProviderGetConfigMap(t *testing.T) {
 	// Create a fake configmap
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -167,7 +167,7 @@ import (
 }
 
 // TestKubernetesProviderGetSecret tests the getSecret method
-// DISABLED: func TestKubernetesProviderGetSecret(t *testing.T) {
+func TestKubernetesProviderGetSecret(t *testing.T) {
 	// Create a fake secret
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -219,7 +219,7 @@ import (
 }
 
 // TestKubernetesProviderGetPVC tests the getPersistentVolumeClaim method
-// DISABLED: func TestKubernetesProviderGetPVC(t *testing.T) {
+func TestKubernetesProviderGetPVC(t *testing.T) {
 	// Create a fake PVC
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -258,7 +258,7 @@ import (
 }
 
 // TestKubernetesProviderUpdateDeployment tests the updateDeployment method
-// DISABLED: func TestKubernetesProviderUpdateDeployment(t *testing.T) {
+func TestKubernetesProviderUpdateDeployment(t *testing.T) {
 	// Create a fake deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -281,7 +281,7 @@ import (
 
 	// Test updateDeployment with replica update
 	updateReq := &UpdateResourceRequest{
-		Specification: json.RawMessage("{}"),
+		Specification: json.RawMessage(`{}`),
 		Labels: map[string]string{
 			"updated": "true",
 		},
@@ -298,7 +298,7 @@ import (
 }
 
 // TestKubernetesProviderScaling tests the scaling functionality
-// DISABLED: func TestKubernetesProviderScaling(t *testing.T) {
+func TestKubernetesProviderScaling(t *testing.T) {
 	// Create a fake deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -353,3 +353,4 @@ import (
 func int32Ptr(i int32) *int32 {
 	return &i
 }
+

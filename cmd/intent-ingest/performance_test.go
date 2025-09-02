@@ -24,7 +24,7 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := json.RawMessage("{}"){
+	intent := map[string]interface{}{
 			"intent": "Deploy nginx with 3 replicas",
 		},
 	}
@@ -89,11 +89,11 @@ func BenchmarkHTTPHandler_MetricsEndpoint(b *testing.B) {
 
 // BenchmarkJSONMarshal benchmarks JSON marshaling performance
 func BenchmarkJSONMarshal(b *testing.B) {
-	intent := json.RawMessage("{}"){
+	intent := map[string]interface{}{
 			"name":      "test-intent",
 			"namespace": "default",
 		},
-		"spec": json.RawMessage("{}"){
+		"spec": map[string]interface{}{
 				"cpu":    "100m",
 				"memory": "128Mi",
 			},
@@ -146,7 +146,7 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := json.RawMessage("{}"){
+	intent := map[string]interface{}{
 			"intent": "Benchmark concurrent processing",
 		},
 	}
@@ -197,7 +197,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	defer server.Close()
 
 	// Create large intent payload to test memory usage
-	largeIntent := json.RawMessage("{}"){
+	largeIntent := map[string]interface{}{
 			"intent":   "Large intent for memory testing",
 			"metadata": make(map[string]interface{}),
 		},
@@ -233,7 +233,7 @@ func BenchmarkResponseTime(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := json.RawMessage("{}"){
+	intent := map[string]interface{}{
 			"intent": "Response time benchmark",
 		},
 	}
@@ -281,7 +281,7 @@ func BenchmarkThroughput(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := json.RawMessage("{}"){
+	intent := map[string]interface{}{
 			"intent": "Throughput benchmark",
 		},
 	}
@@ -390,7 +390,7 @@ intent_ingest_request_duration_seconds_count %d
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		response := json.RawMessage("{}")
+		response := json.RawMessage(`{}`)
 
 		json.NewEncoder(w).Encode(response)
 	})
@@ -446,7 +446,7 @@ func FuzzHTTPIngest(f *testing.F) {
 }
 
 // Test specific performance characteristics
-// DISABLED: func TestPerformanceCharacteristics(t *testing.T) {
+func TestPerformanceCharacteristics(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 
@@ -454,7 +454,7 @@ func FuzzHTTPIngest(f *testing.F) {
 	defer server.Close()
 
 	t.Run("response time is under 100ms", func(t *testing.T) {
-		intent := json.RawMessage("{}"){
+		intent := map[string]interface{}{
 				"intent": "Performance test intent",
 			},
 		}
@@ -478,7 +478,7 @@ func FuzzHTTPIngest(f *testing.F) {
 		const concurrency = 50
 		const requestsPerWorker = 10
 
-		intent := json.RawMessage("{}"){
+		intent := map[string]interface{}{
 				"intent": "Concurrency test intent",
 			},
 		}
@@ -524,3 +524,4 @@ func FuzzHTTPIngest(f *testing.F) {
 		}
 	})
 }
+

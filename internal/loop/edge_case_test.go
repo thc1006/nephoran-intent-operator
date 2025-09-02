@@ -16,7 +16,7 @@ import (
 )
 
 // TestFileSystemEdgeCases tests handling of various file system edge cases
-// DISABLED: func TestFileSystemEdgeCases(t *testing.T) {
+func TestFileSystemEdgeCases(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Symlink tests require admin privileges on Windows")
 	}
@@ -88,11 +88,11 @@ import (
 			name: "unicode filename",
 			setupFunc: func(t *testing.T, tempDir string) string {
 				// Create file with unicode characters
-				unicodeFile := filepath.Join(tempDir, "файл-интент-🚀.json")
+				unicodeFile := filepath.Join(tempDir, "?айл-ин?ен?-??.json")
 				content := `{
 					"intent_type": "scaling",
-					"target": "my-app-🔧",
-					"namespace": "пространство",
+					"target": "my-app-?��",
+					"namespace": "п?о???ан??во",
 					"replicas": 3
 				}`
 				require.NoError(t, os.WriteFile(unicodeFile, []byte(content), 0o644))
@@ -166,7 +166,7 @@ import (
 }
 
 // TestNetworkDiskFailureSimulation tests behavior under resource constraints
-// DISABLED: func TestNetworkDiskFailureSimulation(t *testing.T) {
+func TestNetworkDiskFailureSimulation(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupFunc func(t *testing.T, tempDir string) (string, string)
@@ -305,7 +305,7 @@ import (
 }
 
 // TestSignalHandlingGracefulShutdown tests graceful shutdown under various conditions
-// DISABLED: func TestSignalHandlingGracefulShutdown(t *testing.T) {
+func TestSignalHandlingGracefulShutdown(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupFunc func(t *testing.T, tempDir string) (string, int)
@@ -425,7 +425,7 @@ import (
 }
 
 // TestStateCorruptionRecovery tests recovery from corrupted state files
-// DISABLED: func TestStateCorruptionRecovery(t *testing.T) {
+func TestStateCorruptionRecovery(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupFunc func(t *testing.T, tempDir string) string
@@ -603,7 +603,7 @@ import (
 }
 
 // TestConcurrentStateManagement tests concurrent access to state management
-// DISABLED: func TestConcurrentStateManagement(t *testing.T) {
+func TestConcurrentStateManagement(t *testing.T) {
 	tempDir := t.TempDir()
 
 	sm, err := NewStateManager(tempDir)
@@ -808,7 +808,7 @@ func isProcessRunning(pid int) bool {
 
 // TestWindowsFileHashRetry tests the retry mechanism for file hash calculation
 // on Windows where concurrent operations can cause transient ENOENT errors
-// DISABLED: func TestWindowsFileHashRetry(t *testing.T) {
+func TestWindowsFileHashRetry(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)

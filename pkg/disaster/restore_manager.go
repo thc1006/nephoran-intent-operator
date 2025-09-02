@@ -736,7 +736,7 @@ func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 
 			Size: info.Size(),
 
-			Metadata: json.RawMessage("{}"),
+			Metadata: json.RawMessage(`{}`),
 		}
 
 		backups = append(backups, backup)
@@ -825,3 +825,4 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 		},
 	}
 }
+

@@ -433,12 +433,12 @@ func (suite *LLMProcessorServiceTestSuite) setupMinimalConfig() *config.LLMProce
 }
 
 // Run the test suite
-// DISABLED: func TestLLMProcessorServiceSuite(t *testing.T) {
+func TestLLMProcessorServiceSuite(t *testing.T) {
 	suite.Run(t, new(LLMProcessorServiceTestSuite))
 }
 
 // Additional standalone tests
-// DISABLED: func TestNewLLMProcessorService(t *testing.T) {
+func TestNewLLMProcessorService(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -455,7 +455,7 @@ func (suite *LLMProcessorServiceTestSuite) setupMinimalConfig() *config.LLMProce
 	assert.Equal(t, logger, service.logger)
 }
 
-// DISABLED: func TestNewLLMProcessor(t *testing.T) {
+func TestNewLLMProcessor(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))

@@ -351,13 +351,13 @@ func (m *MockProvider) GetScalingCapabilities(ctx context.Context, resourceID st
 // GetMetrics returns provider metrics (CloudProvider interface)
 func (m *MockProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 	// Mock implementation
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // GetResourceMetrics returns resource-specific metrics (CloudProvider interface)
 func (m *MockProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
 	// Mock implementation
-	return json.RawMessage("{}"), nil
+	return json.RawMessage(`{}`), nil
 }
 
 // GetResourceHealth returns resource health (CloudProvider interface)
@@ -549,7 +549,7 @@ func (a *ProviderAdapter) CreateResource(ctx context.Context, req ResourceReques
 	cloudReq := &CreateResourceRequest{
 		Name:          req.Name,
 		Type:          string(req.Type),
-		Specification: json.RawMessage("{}"),
+		Specification: json.RawMessage(`{}`),
 		Labels:        req.Labels,
 	}
 
@@ -627,7 +627,7 @@ func (a *ProviderAdapter) ListResources(ctx context.Context, filter ResourceFilt
 func (a *ProviderAdapter) UpdateResource(ctx context.Context, id string, req ResourceRequest) (*Resource, error) {
 	// Convert to CloudProvider request format
 	cloudReq := &UpdateResourceRequest{
-		Specification: json.RawMessage("{}"),
+		Specification: json.RawMessage(`{}`),
 		Labels:        req.Labels,
 	}
 
@@ -700,10 +700,10 @@ func MockProviderConstructor(config ProviderConfig) (Provider, error) {
 
 // GetMockProviderSchema returns the configuration schema for mock provider
 func GetMockProviderSchema() map[string]interface{} {
-	return json.RawMessage("{}"){
-			"name": json.RawMessage("{}"),
-			"simulateLatency": json.RawMessage("{}"),
-			"errorRate": json.RawMessage("{}"),
+	return json.RawMessage(`{}`){
+			"name": json.RawMessage(`{}`),
+			"simulateLatency": json.RawMessage(`{}`),
+			"errorRate": json.RawMessage(`{}`),
 		},
 	}
 }
@@ -712,3 +712,4 @@ func GetMockProviderSchema() map[string]interface{} {
 func init() {
 	RegisterGlobalProvider("mock", MockProviderConstructor, GetMockProviderSchema())
 }
+

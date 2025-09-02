@@ -711,7 +711,7 @@ func (a *O2Adaptor) getSupportedResourceTypes() []string {
 }
 
 func (a *O2Adaptor) getSystemExtensions() map[string]interface{} {
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 // Background monitoring services.
@@ -838,3 +838,4 @@ func (a *O2Adaptor) performHealthChecks() {
 
 	}
 }
+

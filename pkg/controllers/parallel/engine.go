@@ -826,7 +826,7 @@ func (e *ParallelProcessingEngine) handleTaskResult(task *Task) {
 				task.Error,
 				string(task.Type),
 				"task_execution",
-				json.RawMessage("{}"))
+				json.RawMessage(`{}`))
 		}
 	} else {
 		e.logger.V(1).Info("Task completed successfully",
@@ -952,7 +952,7 @@ func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, inte
 		Type:     TaskTypeIntentParsing,
 		Priority: priorityToInt(intent.Spec.Priority),
 		Status:   TaskStatusPending,
-		InputData: json.RawMessage("{}"),
+		InputData: json.RawMessage(`{}`),
 		Timeout:   e.config.IntentTimeout,
 		CreatedAt: time.Now(),
 		Metadata: map[string]string{
@@ -971,7 +971,7 @@ func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, inte
 		Priority:     priorityToInt(intent.Spec.Priority),
 		Status:       TaskStatusPending,
 		Dependencies: []string{intentTask.ID},
-		InputData: json.RawMessage("{}"),
+		InputData: json.RawMessage(`{}`),
 		Timeout:   e.config.LLMTimeout,
 		CreatedAt: time.Now(),
 		Metadata: map[string]string{
@@ -1095,7 +1095,7 @@ func (w *Worker) processIntentParsing(ctx context.Context, task *Task) error {
 	// Simulate intent parsing work
 	select {
 	case <-time.After(100 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}")
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1106,7 +1106,7 @@ func (w *Worker) processLLMTask(ctx context.Context, task *Task) error {
 	// Simulate LLM processing work
 	select {
 	case <-time.After(500 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}")
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1117,7 +1117,7 @@ func (w *Worker) processRAGQuery(ctx context.Context, task *Task) error {
 	// Simulate RAG query work
 	select {
 	case <-time.After(200 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}"),
+		task.OutputData = json.RawMessage(`{}`),
 		}
 		return nil
 	case <-ctx.Done():
@@ -1129,7 +1129,7 @@ func (w *Worker) processResourcePlanning(ctx context.Context, task *Task) error 
 	// Simulate resource planning work
 	select {
 	case <-time.After(300 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}")
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1140,7 +1140,7 @@ func (w *Worker) processManifestGeneration(ctx context.Context, task *Task) erro
 	// Simulate manifest generation work
 	select {
 	case <-time.After(400 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}"),
+		task.OutputData = json.RawMessage(`{}`),
 		}
 		return nil
 	case <-ctx.Done():
@@ -1152,7 +1152,7 @@ func (w *Worker) processGitOpsCommit(ctx context.Context, task *Task) error {
 	// Simulate GitOps commit work
 	select {
 	case <-time.After(1000 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}")
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1163,7 +1163,7 @@ func (w *Worker) processDeployment(ctx context.Context, task *Task) error {
 	// Simulate deployment work
 	select {
 	case <-time.After(2000 * time.Millisecond):
-		task.OutputData = json.RawMessage("{}")
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1221,3 +1221,4 @@ func priorityToInt(priority v1.NetworkPriority) int {
 		return 2 // Default to normal priority
 	}
 }
+

@@ -102,6 +102,10 @@ type MultiLevelCacheMetrics struct {
 
 	L2Sets int64 `json:"l2_sets"`
 
+	L2Evictions int64 `json:"l2_evictions"`
+
+	L2Size int64 `json:"l2_size"`
+
 	L2Errors int64 `json:"l2_errors"`
 
 	// Combined metrics.
@@ -407,7 +411,7 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 
 		Compressed: false,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Store in L1 cache.
@@ -988,3 +992,4 @@ func (el *EvictionList) MoveToFront(key string) {
 
 	el.AddToFront(key)
 }
+

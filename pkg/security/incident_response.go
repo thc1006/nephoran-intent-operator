@@ -496,7 +496,7 @@ func (ir *IncidentResponse) CreateIncident(ctx context.Context, request *CreateI
 
 		Actions: make([]*ResponseAction, 0),
 
-		Artifacts: make(map[string]interface{}),
+		Artifacts: json.RawMessage(`{}`),
 
 		Impact: request.Impact,
 	}
@@ -948,23 +948,30 @@ func (ir *IncidentResponse) playbookMatches(incident *SecurityIncident, playbook
 }
 
 func (ir *IncidentResponse) evaluateTrigger(incident *SecurityIncident, trigger *PlaybookTrigger) bool {
+	// Unmarshal conditions from JSON
+	var conditions map[string]interface{}
+	if len(trigger.Conditions) > 0 {
+		if err := json.Unmarshal(trigger.Conditions, &conditions); err != nil {
+			return false
+		}
+	}
+
 	switch trigger.Type {
 
 	case "severity":
-
-		if severity, ok := trigger.Conditions["severity"].(string); ok {
+		if severity, ok := conditions["severity"].(string); ok {
 			return incident.Severity == severity
 		}
 
 	case "category":
 
-		if category, ok := trigger.Conditions["category"].(string); ok {
+		if category, ok := conditions["category"].(string); ok {
 			return incident.Category == category
 		}
 
 	case "source":
 
-		if source, ok := trigger.Conditions["source"].(string); ok {
+		if source, ok := conditions["source"].(string); ok {
 			return incident.Source == source
 		}
 
@@ -974,27 +981,30 @@ func (ir *IncidentResponse) evaluateTrigger(incident *SecurityIncident, trigger 
 }
 
 func (ir *IncidentResponse) executeAction(ctx context.Context, action *PlaybookAction, incident *SecurityIncident) error {
+	// Unmarshal parameters from JSON
+	var params map[string]interface{}
+	if len(action.Parameters) > 0 {
+		if err := json.Unmarshal(action.Parameters, &params); err != nil {
+			return fmt.Errorf("failed to unmarshal action parameters: %w", err)
+		}
+	}
+
 	switch action.Type {
 
 	case "isolate_system":
-
-		return ir.isolateSystem(ctx, action.Parameters, incident)
+		return ir.isolateSystem(ctx, params, incident)
 
 	case "block_ip":
-
-		return ir.blockIP(ctx, action.Parameters, incident)
+		return ir.blockIP(ctx, params, incident)
 
 	case "disable_user":
-
-		return ir.disableUser(ctx, action.Parameters, incident)
+		return ir.disableUser(ctx, params, incident)
 
 	case "create_ticket":
-
-		return ir.createTicket(ctx, action.Parameters, incident)
+		return ir.createTicket(ctx, params, incident)
 
 	case "send_notification":
-
-		return ir.sendNotification(ctx, action.Parameters, incident)
+		return ir.sendNotification(ctx, params, incident)
 
 	default:
 
@@ -1212,7 +1222,7 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 				{
 					Type: "category",
 
-					Conditions: json.RawMessage("{}"),
+					Conditions: json.RawMessage(`{}`),
 				},
 			},
 
@@ -1224,7 +1234,7 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 
 					Description: "Isolate infected host",
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 
 					Timeout: 5 * time.Minute,
 				},
@@ -1236,7 +1246,7 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 
 					Description: "Collect forensic evidence",
 
-					Parameters: json.RawMessage("{}"),
+					Parameters: json.RawMessage(`{}`),
 
 					Timeout: 30 * time.Minute,
 				},
@@ -1424,47 +1434,41 @@ func (fc *ForensicsCollector) CollectEvidence(ctx context.Context, incident *Sec
 
 func (fc *ForensicsCollector) collectEvidenceType(ctx context.Context, incident *SecurityIncident, evidenceType string) (*Evidence, error) {
 	evidence := &Evidence{
-		ID: generateEvidenceID(),
-
-		Type: evidenceType,
-
-		Source: "forensics-collector",
-
-		Timestamp: time.Now(),
-
+		ID:          generateEvidenceID(),
+		Type:        evidenceType,
+		Source:      "forensics-collector",
+		Timestamp:   time.Now(),
 		Description: fmt.Sprintf("Collected %s evidence for incident %s", evidenceType, incident.ID),
-
-		Data: make(map[string]interface{}),
-
-		Collected: true,
+		Collected:   true,
 	}
 
+	// Build data map
+	dataMap := make(map[string]interface{})
+
 	switch evidenceType {
-
 	case "logs":
-
 		// Collect relevant logs.
-
-		evidence.Data["log_entries"] = []string{"Sample log entry 1", "Sample log entry 2"}
+		dataMap["log_entries"] = []string{"Sample log entry 1", "Sample log entry 2"}
 
 	case "network":
-
 		// Collect network data.
-
-		evidence.Data["connections"] = []string{"192.168.1.100:443", "10.0.0.50:80"}
+		dataMap["connections"] = []string{"192.168.1.100:443", "10.0.0.50:80"}
 
 	case "system":
-
 		// Collect system information.
-
-		evidence.Data["processes"] = []string{"process1", "process2"}
+		dataMap["processes"] = []string{"process1", "process2"}
 
 	case "memory":
-
 		// Collect memory dumps (simulated).
+		dataMap["memory_regions"] = []string{"region1", "region2"}
 
-		evidence.Data["memory_regions"] = []string{"region1", "region2"}
+	}
 
+	// Marshal data map to JSON
+	if dataBytes, err := json.Marshal(dataMap); err == nil {
+		evidence.Data = dataBytes
+	} else {
+		evidence.Data = json.RawMessage(`{}`)
 	}
 
 	return evidence, nil
@@ -1786,3 +1790,4 @@ func copyStringInt64Map(original map[string]int64) map[string]int64 {
 
 	return result
 }
+

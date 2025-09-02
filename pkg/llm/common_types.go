@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 )
@@ -54,5 +55,9 @@ func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
 	}
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{
+		"total_tokens": tt.totalTokens,
+		"request_count": tt.requestCount,
+		"avg_tokens_per_request": avgTokensPerRequest,
+	}
 }

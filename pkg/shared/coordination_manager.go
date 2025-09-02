@@ -32,6 +32,7 @@ package shared
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -437,6 +438,8 @@ func (cm *CoordinationManager) ProcessIntent(ctx context.Context, intentName typ
 	}
 
 	// Create execution task.
+	contextData := make(map[string]interface{})
+	contextBytes, _ := json.Marshal(contextData)
 
 	task := &ExecutionTask{
 		IntentName: intentName,
@@ -447,7 +450,7 @@ func (cm *CoordinationManager) ProcessIntent(ctx context.Context, intentName typ
 
 		Timestamp: time.Now(),
 
-		Context: make(map[string]interface{}),
+		Context: json.RawMessage(contextBytes),
 	}
 
 	// Add to execution queue.
@@ -760,7 +763,7 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 
 	if nextPhase != "" {
 
-		metadata := json.RawMessage("{}")
+		metadata := map[string]interface{}{}
 
 		return cm.stateManager.TransitionPhase(ctx, intentName, nextPhase, metadata)
 
@@ -845,7 +848,7 @@ func (cm *CoordinationManager) isPhaseSatisfied(state *IntentState, phase interf
 func (cm *CoordinationManager) executePhaseTransition(ctx context.Context, intentName types.NamespacedName, fromPhase, toPhase interfaces.ProcessingPhase, data interface{}) error {
 	// Update state.
 
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, toPhase, metadata)
 }
@@ -973,13 +976,13 @@ func (cm *CoordinationManager) skipPhase(ctx context.Context, intentName types.N
 		return cm.failIntent(ctx, intentName, fmt.Errorf("no next phase after skip"))
 	}
 
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, nextPhase, metadata)
 }
 
 func (cm *CoordinationManager) failIntent(ctx context.Context, intentName types.NamespacedName, err error) error {
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, interfaces.PhaseFailed, metadata)
 }
@@ -989,7 +992,7 @@ func (cm *CoordinationManager) rollbackIntent(ctx context.Context, intentName ty
 
 	// This is a simplified implementation.
 
-	metadata := json.RawMessage("{}")
+	metadata := map[string]interface{}{}
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, interfaces.PhaseFailed, metadata)
 }

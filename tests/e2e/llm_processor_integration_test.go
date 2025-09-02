@@ -108,7 +108,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			}, 10*time.Second, 1*time.Second).Should(BeTrue())
 
 			By("Sending processing request to LLM processor")
-			requestPayload := json.RawMessage("{}")
+			requestPayload := json.RawMessage(`{}`)
 
 			jsonPayload, err := json.Marshal(requestPayload)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -145,7 +145,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
 
 			By("Creating complex intent for streaming test")
-			complexIntent := json.RawMessage("{}"),
+			complexIntent := json.RawMessage(`{}`),
 				"priority":          1,
 				"streaming":         true,
 			}
@@ -186,19 +186,19 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			}{
 				{
 					name: "empty intent",
-					payload: json.RawMessage("{}"),
+					payload: json.RawMessage(`{}`),
 					},
 					expectedStatus: http.StatusBadRequest,
 				},
 				{
 					name: "invalid intent type",
-					payload: json.RawMessage("{}"),
+					payload: json.RawMessage(`{}`),
 					},
 					expectedStatus: http.StatusBadRequest,
 				},
 				{
 					name: "missing required fields",
-					payload: json.RawMessage("{}"),
+					payload: json.RawMessage(`{}`),
 					expectedStatus: http.StatusBadRequest,
 				},
 			}
@@ -227,7 +227,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
 
 			By("Creating a very complex intent that might timeout")
-			timeoutIntent := json.RawMessage("{}"),
+			timeoutIntent := json.RawMessage(`{}`),
 				"priority":          1,
 				"timeout":           1, // 1 second timeout to force timeout
 			}
@@ -264,7 +264,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
 
 			By("Sending multiple invalid requests to trigger circuit breaker")
-			invalidPayload := json.RawMessage("{}")
+			invalidPayload := json.RawMessage(`{}`)
 			jsonPayload, err := json.Marshal(invalidPayload)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -317,7 +317,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
 
 			By("Sending rapid requests to test rate limiting")
-			validPayload := json.RawMessage("{}"),
+			validPayload := json.RawMessage(`{}`),
 				"priority":          1,
 			}
 			jsonPayload, err := json.Marshal(validPayload)
@@ -352,7 +352,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			Skip("Skipping until LLM processor service is running with auth enabled")
 
 			By("Making request without authentication token")
-			payload := json.RawMessage("{}"),
+			payload := json.RawMessage(`{}`),
 			}
 			jsonPayload, err := json.Marshal(payload)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -375,7 +375,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			Skip("Skipping until LLM processor service is running with auth enabled")
 
 			By("Making request with valid authentication token")
-			payload := json.RawMessage("{}"),
+			payload := json.RawMessage(`{}`),
 			}
 			jsonPayload, err := json.Marshal(payload)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -396,3 +396,4 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 		})
 	})
 })
+

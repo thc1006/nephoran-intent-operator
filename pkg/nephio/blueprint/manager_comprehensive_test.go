@@ -394,7 +394,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestManagerCreation tests blueprint manager creation
-// DISABLED: func TestManagerCreation(t *testing.T) {
+func TestManagerCreation(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -452,7 +452,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestProcessNetworkIntent tests the main blueprint processing flow
-// DISABLED: func TestProcessNetworkIntent(t *testing.T) {
+func TestProcessNetworkIntent(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 	config := DefaultBlueprintConfig()
@@ -569,7 +569,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestConcurrentProcessing tests concurrent blueprint processing
-// DISABLED: func TestConcurrentProcessing(t *testing.T) {
+func TestConcurrentProcessing(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 	config := DefaultBlueprintConfig()
@@ -642,7 +642,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestBlueprintTemplates tests different blueprint templates
-// DISABLED: func TestBlueprintTemplates(t *testing.T) {
+func TestBlueprintTemplates(t *testing.T) {
 	testCases := []struct {
 		name          string
 		intentType    v1.IntentType
@@ -725,7 +725,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestHealthChecks tests health checking functionality
-// DISABLED: func TestHealthChecks(t *testing.T) {
+func TestHealthChecks(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -765,7 +765,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestMetricsCollection tests metrics collection
-// DISABLED: func TestMetricsCollection(t *testing.T) {
+func TestMetricsCollection(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -812,7 +812,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestPackageRevisionCreation tests PackageRevision creation
-// DISABLED: func TestPackageRevisionCreation(t *testing.T) {
+func TestPackageRevisionCreation(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -855,7 +855,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestComponentExtraction tests component extraction from NetworkIntent
-// DISABLED: func TestComponentExtraction(t *testing.T) {
+func TestComponentExtraction(t *testing.T) {
 	_ = newMockManager() // Mock manager available but not needed for component extraction
 	logger := zaptest.NewLogger(t)
 
@@ -906,7 +906,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestErrorHandling tests error handling scenarios
-// DISABLED: func TestErrorHandling(t *testing.T) {
+func TestErrorHandling(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -960,7 +960,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestCacheOperations tests cache functionality
-// DISABLED: func TestCacheOperations(t *testing.T) {
+func TestCacheOperations(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -976,7 +976,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 
 	// Test cache operations
 	testKey := "test-key"
-	testValue := json.RawMessage("{}")
+	testValue := json.RawMessage(`{}`)
 
 	// Store in cache
 	manager.cache.Store(testKey, testValue)
@@ -988,7 +988,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 
 	// Test cache cleanup
 	expiredKey := "expired-key"
-	expiredValue := json.RawMessage("{}")
+	expiredValue := json.RawMessage(`{}`)
 	manager.cache.Store(expiredKey, expiredValue)
 
 	// Run cleanup
@@ -1004,7 +1004,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 }
 
 // TestManagerLifecycle tests manager lifecycle operations
-// DISABLED: func TestManagerLifecycle(t *testing.T) {
+func TestManagerLifecycle(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -1063,7 +1063,7 @@ func BenchmarkBlueprintProcessing(b *testing.B) {
 }
 
 // TestValidationScenarios tests various validation scenarios
-// DISABLED: func TestValidationScenarios(t *testing.T) {
+func TestValidationScenarios(t *testing.T) {
 	testCases := []struct {
 		name           string
 		intent         *v1.NetworkIntent
@@ -1120,7 +1120,7 @@ func BenchmarkBlueprintProcessing(b *testing.B) {
 }
 
 // TestComplexScenarios tests complex real-world scenarios
-// DISABLED: func TestComplexScenarios(t *testing.T) {
+func TestComplexScenarios(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 
@@ -1217,3 +1217,4 @@ func BenchmarkBlueprintProcessing(b *testing.B) {
 		}
 	})
 }
+

@@ -22,7 +22,7 @@ import (
 )
 
 // TestIntegration_EndToEndSecurity tests complete security validation in realistic planner scenarios
-// DISABLED: func TestIntegration_EndToEndSecurity(t *testing.T) {
+func TestIntegration_EndToEndSecurity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration security tests in short mode")
 	}
@@ -136,7 +136,7 @@ import (
 			}
 		}
 
-		t.Log("✓ Normal operation with security validations completed successfully")
+		t.Log("??Normal operation with security validations completed successfully")
 	})
 
 	// Test scenario 2: Attack mitigation during operation
@@ -208,7 +208,7 @@ import (
 				}
 
 				if scenario.shouldFail && failed {
-					t.Logf("✓ Successfully blocked attack: %s", scenario.name)
+					t.Logf("??Successfully blocked attack: %s", scenario.name)
 				}
 			})
 		}
@@ -269,7 +269,7 @@ import (
 				}
 
 				if test.shouldFail && hasErrors {
-					t.Logf("✓ Successfully blocked malicious configuration: %s", test.name)
+					t.Logf("??Successfully blocked malicious configuration: %s", test.name)
 				}
 			})
 		}
@@ -277,7 +277,7 @@ import (
 }
 
 // TestIntegration_HTTPSecurityHeaders tests HTTP security in metrics endpoints
-// DISABLED: func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
+func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 	// Create a mock metrics server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set security headers
@@ -347,12 +347,12 @@ import (
 			t.Fatalf("Received KMP data failed validation: %v", err)
 		}
 
-		t.Log("✓ HTTP security headers and data validation completed")
+		t.Log("??HTTP security headers and data validation completed")
 	})
 }
 
 // TestIntegration_ConcurrentSecurityOperations tests security under concurrent load
-// DISABLED: func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
+func TestIntegration_ConcurrentSecurityOperations(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping concurrent security tests in short mode")
 	}
@@ -468,7 +468,7 @@ import (
 			}
 		}
 
-		t.Logf("✓ Successfully completed %d concurrent secure file operations", len(files))
+		t.Logf("??Successfully completed %d concurrent secure file operations", len(files))
 	})
 
 	// Test concurrent validation operations
@@ -539,13 +539,13 @@ import (
 			errorCount++
 		}
 
-		t.Logf("✓ Completed %d concurrent validation operations with %d expected rejections",
+		t.Logf("??Completed %d concurrent validation operations with %d expected rejections",
 			numWorkers*operationsPerWorker, errorCount)
 	})
 }
 
 // TestIntegration_SecurityEventLogging tests security event logging and monitoring
-// DISABLED: func TestIntegration_SecurityEventLogging(t *testing.T) {
+func TestIntegration_SecurityEventLogging(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	// Create a buffer to capture log-like output
@@ -618,14 +618,14 @@ import (
 			}
 
 			if event.expectLog && (err != nil || hasLog) {
-				t.Logf("✓ Security event logged: %s", event.name)
+				t.Logf("??Security event logged: %s", event.name)
 			}
 		})
 	}
 }
 
 // TestIntegration_SecurityConfigurationValidation tests security configuration edge cases
-// DISABLED: func TestIntegration_SecurityConfigurationValidation(t *testing.T) {
+func TestIntegration_SecurityConfigurationValidation(t *testing.T) {
 	// Test custom security configurations
 	customConfigs := []struct {
 		name       string
@@ -707,16 +707,16 @@ import (
 			}
 
 			if configTest.shouldWork && works {
-				t.Logf("✓ Configuration works as expected: %s", configTest.name)
+				t.Logf("??Configuration works as expected: %s", configTest.name)
 			} else if !configTest.shouldWork && !works {
-				t.Logf("✓ Configuration properly restrictive: %s", configTest.name)
+				t.Logf("??Configuration properly restrictive: %s", configTest.name)
 			}
 		})
 	}
 }
 
 // TestIntegration_CrossPlatformSecurity tests security features across different platforms
-// DISABLED: func TestIntegration_CrossPlatformSecurity(t *testing.T) {
+func TestIntegration_CrossPlatformSecurity(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	// Create temporary directory
@@ -802,9 +802,9 @@ import (
 					err := validator.ValidateFilePath(path, "cross-platform test")
 					// Most of these should be blocked on their respective platforms
 					if err == nil {
-						t.Logf("⚠ Path validation allowed potentially sensitive path: %s", path)
+						t.Logf("??Path validation allowed potentially sensitive path: %s", path)
 					} else {
-						t.Logf("✓ Path validation blocked sensitive path: %s", path)
+						t.Logf("??Path validation blocked sensitive path: %s", path)
 					}
 				}
 			},
@@ -898,7 +898,7 @@ func BenchmarkIntegration_SecurityOverhead(b *testing.B) {
 }
 
 // TestIntegration_SecurityRecovery tests system recovery after security incidents
-// DISABLED: func TestIntegration_SecurityRecovery(t *testing.T) {
+func TestIntegration_SecurityRecovery(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping security recovery tests in short mode")
 	}
@@ -939,7 +939,7 @@ func BenchmarkIntegration_SecurityOverhead(b *testing.B) {
 		if err := validator.ValidateKMPData(normalKMP); err != nil {
 			t.Errorf("System failed to recover after attacks: %v", err)
 		} else {
-			t.Log("✓ System successfully recovered and processes normal data")
+			t.Log("??System successfully recovered and processes normal data")
 		}
 	})
 
@@ -997,6 +997,6 @@ func BenchmarkIntegration_SecurityOverhead(b *testing.B) {
 		cancel()
 		wg.Wait()
 
-		t.Logf("✓ System maintained functionality under load (validation time: %v)", elapsed)
+		t.Logf("??System maintained functionality under load (validation time: %v)", elapsed)
 	})
 }

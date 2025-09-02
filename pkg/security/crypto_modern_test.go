@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// DISABLED: func TestCryptoModern_NewCryptoModern(t *testing.T) {
+func TestCryptoModern_NewCryptoModern(t *testing.T) {
 	t.Run("creates crypto modern with default entropy pool", func(t *testing.T) {
 		crypto := NewCryptoModern()
 
@@ -21,7 +21,7 @@ import (
 	})
 }
 
-// DISABLED: func TestCryptoModern_GenerateRandomBytes(t *testing.T) {
+func TestCryptoModern_GenerateRandomBytes(t *testing.T) {
 	crypto := NewCryptoModern()
 
 	tests := []struct {
@@ -60,7 +60,7 @@ import (
 	})
 }
 
-// DISABLED: func TestCryptoModern_DeriveKey(t *testing.T) {
+func TestCryptoModern_DeriveKey(t *testing.T) {
 	crypto := NewCryptoModern()
 	password := []byte("test-password-123")
 	salt := make([]byte, 32)
@@ -105,7 +105,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCryptoModern_EncryptDecrypt(t *testing.T) {
+func TestCryptoModern_EncryptDecrypt(t *testing.T) {
 	crypto := NewCryptoModern()
 
 	tests := []struct {
@@ -173,7 +173,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCryptoModern_Hash(t *testing.T) {
+func TestCryptoModern_Hash(t *testing.T) {
 	crypto := NewCryptoModern()
 	testData := []byte("test data for hashing")
 
@@ -217,7 +217,7 @@ import (
 	})
 }
 
-// DISABLED: func TestCryptoModern_GenerateKeyPair(t *testing.T) {
+func TestCryptoModern_GenerateKeyPair(t *testing.T) {
 	crypto := NewCryptoModern()
 
 	tests := []struct {
@@ -249,7 +249,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCryptoModern_SignVerify(t *testing.T) {
+func TestCryptoModern_SignVerify(t *testing.T) {
 	crypto := NewCryptoModern()
 	message := []byte("message to sign")
 
@@ -288,7 +288,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCryptoModern_SecureCompare(t *testing.T) {
+func TestCryptoModern_SecureCompare(t *testing.T) {
 	crypto := NewCryptoModern()
 
 	tests := []struct {
@@ -313,7 +313,7 @@ import (
 	}
 }
 
-// DISABLED: func TestCryptoModern_Performance(t *testing.T) {
+func TestCryptoModern_Performance(t *testing.T) {
 	crypto := NewCryptoModern()
 
 	t.Run("key derivation performance", func(t *testing.T) {

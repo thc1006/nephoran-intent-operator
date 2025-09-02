@@ -305,11 +305,16 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 	}
 
 	// Add telecom-specific filters
-	ragRequest.SearchFilters = map[string]interface{}{
+	searchFiltersMap := map[string]interface{}{
 		"confidence": map[string]interface{}{
 			"operator": "GreaterThan",
 			"value":    rep.config.RAGConfidenceThreshold,
 		},
+	}
+	if searchFiltersBytes, err := json.Marshal(searchFiltersMap); err == nil {
+		ragRequest.SearchFilters = json.RawMessage(searchFiltersBytes)
+	} else {
+		ragRequest.SearchFilters = json.RawMessage(`{}`)
 	}
 
 	// Process with RAG
@@ -336,7 +341,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 		Confidence: ragResponse.Confidence,
 		Sources:    ragResponse.SourceDocuments,
 		IntentType: intentType,
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -362,7 +367,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithBase(ctx context.Context, intent
 		UsedRAG:    false,
 		Confidence: 0.8, // Default confidence for base responses
 		IntentType: rep.classifyIntentType(intent),
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 	}, nil
 }
 
@@ -415,7 +420,7 @@ func (rep *RAGEnhancedProcessorImpl) SearchKnowledgeBase(ctx context.Context, qu
 
 // GetHealth returns the health status of the processor and its dependencies
 func (rep *RAGEnhancedProcessorImpl) GetHealth() map[string]interface{} {
-	health := json.RawMessage("{}")
+	health := make(map[string]interface{})
 
 	// Add base client health if available
 	if healthChecker, ok := rep.baseClient.(interface{ GetHealth() map[string]interface{} }); ok {
@@ -430,7 +435,7 @@ func (rep *RAGEnhancedProcessorImpl) GetHealth() map[string]interface{} {
 	// Add Weaviate health
 	if rep.weaviateClient != nil {
 		weaviateHealth := rep.weaviateClient.GetHealthStatus()
-		health["weaviate"] = json.RawMessage("{}")
+		health["weaviate"] = weaviateHealth
 	}
 
 	return health
@@ -511,3 +516,4 @@ func (rep *RAGEnhancedProcessorImpl) Close() error {
 
 // RAGEnhancedProcessorImpl provides RAG-enhanced processing capabilities
 // Note: This is a separate type that wraps a Client, not implementing the Client interface itself
+

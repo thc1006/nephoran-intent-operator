@@ -1187,7 +1187,7 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 
 	}
 
-	resourceData := json.RawMessage("{}")
+	resourceData := json.RawMessage(`{}`)
 
 	resourceDataBytes, err := json.Marshal(resourceData)
 	if err != nil {
@@ -1413,3 +1413,4 @@ func (p *CNFIntentProcessor) initializeCostModels() {
 		ScalingCostFactor: 1.5,
 	}
 }
+

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// DISABLED: func TestComputeStatusFileName(t *testing.T) {
+func TestComputeStatusFileName(t *testing.T) {
 	// Fixed timestamp for consistent testing
 	fixedTime := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
 	expectedTimestamp := "20250821-143022"
@@ -105,7 +105,7 @@ import (
 		},
 		{
 			name:             "UnicodeCharacters",
-			srcPath:          "intent-测试-файл.json",
+			srcPath:          "intent-测�?-?айл.json",
 			expectedFilename: "intent-" + expectedTimestamp + ".status",
 			description:      "Should sanitize Unicode characters for ASCII-only cross-platform compatibility",
 		},
@@ -126,7 +126,7 @@ import (
 	}
 }
 
-// DISABLED: func TestComputeStatusFileNameTimestampFormat(t *testing.T) {
+func TestComputeStatusFileNameTimestampFormat(t *testing.T) {
 	testCases := []struct {
 		name      string
 		timestamp time.Time
@@ -157,7 +157,7 @@ import (
 	}
 }
 
-// DISABLED: func TestComputeStatusFileNameConsistency(t *testing.T) {
+func TestComputeStatusFileNameConsistency(t *testing.T) {
 	// Test that the same input always produces the same output
 	srcPath := "intent-consistency-test.json"
 	timestamp := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
@@ -171,7 +171,7 @@ import (
 	}
 }
 
-// DISABLED: func TestComputeStatusFileNameEdgeCases(t *testing.T) {
+func TestComputeStatusFileNameEdgeCases(t *testing.T) {
 	fixedTime := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
 
 	testCases := []struct {
@@ -219,7 +219,7 @@ import (
 	}
 }
 
-// DISABLED: func TestComputeStatusFileNameExtensionHandling(t *testing.T) {
+func TestComputeStatusFileNameExtensionHandling(t *testing.T) {
 	fixedTime := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
 
 	testCases := []struct {

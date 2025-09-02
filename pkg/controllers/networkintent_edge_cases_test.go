@@ -24,7 +24,7 @@ import (
 )
 
 // Table-driven tests for edge cases and error scenarios
-// DISABLED: func TestNetworkIntentEdgeCases(t *testing.T) {
+func TestNetworkIntentEdgeCases(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -148,7 +148,7 @@ import (
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
 				// Valid LLM response but Git failure
-				llmResponse := json.RawMessage("{}")
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 				deps.gitClient.SetShouldFail(true)
@@ -171,7 +171,7 @@ import (
 			initialPhase:     "Processing",
 			mockSetup: func(deps *MockDependencies) {
 				// Mock will simulate long processing time
-				llmResponse := json.RawMessage("{}")
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -190,7 +190,7 @@ import (
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := json.RawMessage("{}")
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -210,7 +210,7 @@ import (
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := json.RawMessage("{}"){
+				llmResponse := map[string]interface{}{
 						"cpu":    "500m",
 						"memory": "512Mi",
 						"ports":  []int{8080, 8443},
@@ -234,7 +234,7 @@ import (
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := json.RawMessage("{}")
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -360,7 +360,7 @@ import (
 }
 
 // Test concurrent reconciliation scenarios
-// DISABLED: func TestConcurrentReconciliation(t *testing.T) {
+func TestConcurrentReconciliation(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -380,7 +380,7 @@ import (
 
 	// Setup mock dependencies
 	mockDeps := NewMockDependencies()
-	llmResponse := json.RawMessage("{}")
+	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
 	mockDeps.llmClient.SetResponse(string(responseJSON))
 
@@ -434,7 +434,7 @@ import (
 }
 
 // Test resource constraint scenarios
-// DISABLED: func TestResourceConstraints(t *testing.T) {
+func TestResourceConstraints(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -479,7 +479,7 @@ import (
 
 			// Setup mock dependencies
 			mockDeps := NewMockDependencies()
-			llmResponse := json.RawMessage("{}")
+			llmResponse := json.RawMessage(`{}`)
 			responseJSON, _ := json.Marshal(llmResponse)
 			mockDeps.llmClient.SetResponse(string(responseJSON))
 
@@ -510,7 +510,7 @@ import (
 }
 
 // Test network partition scenarios
-// DISABLED: func TestNetworkPartitionScenarios(t *testing.T) {
+func TestNetworkPartitionScenarios(t *testing.T) {
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 
@@ -546,7 +546,7 @@ import (
 	assert.Equal(t, "Error", errorNI.Status.Phase)
 
 	// Simulate network recovery
-	llmResponse := json.RawMessage("{}")
+	llmResponse := json.RawMessage(`{}`)
 	responseJSON, _ := json.Marshal(llmResponse)
 	mockDeps.llmClient.SetError(nil)
 	mockDeps.llmClient.SetResponse(string(responseJSON))
@@ -589,7 +589,7 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 			name:   "LongIntent",
 			intent: strings.Repeat("Deploy comprehensive 5G network ", 50),
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := json.RawMessage("{}")
+				llmResponse := json.RawMessage(`{}`)
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
 			},
@@ -625,3 +625,4 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 		})
 	}
 }
+

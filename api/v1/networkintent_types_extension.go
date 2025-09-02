@@ -490,7 +490,7 @@ type IndividualCNFDeploymentStatus struct {
 
 	// ResourceUtilization current resource utilization.
 
-	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
 
 	// Errors any errors related to this CNF deployment.
 

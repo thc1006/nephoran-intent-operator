@@ -15,7 +15,7 @@ import (
 // TestIsProcessedRobustToENOENT verifies that IsProcessed handles missing files gracefully
 // without returning errors, as required for concurrent operations where files may be
 // moved or deleted by other workers.
-// DISABLED: func TestIsProcessedRobustToENOENT(t *testing.T) {
+func TestIsProcessedRobustToENOENT(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)

@@ -16,7 +16,7 @@ import (
 )
 
 // TestExecutor_CommandInjectionPrevention tests protection against command injection
-// DISABLED: func TestExecutor_CommandInjectionPrevention(t *testing.T) {
+func TestExecutor_CommandInjectionPrevention(t *testing.T) {
 	tests := []struct {
 		name           string
 		porchPath      string
@@ -133,7 +133,7 @@ import (
 }
 
 // TestExecutor_ResourceExhaustionPrevention tests protection against resource exhaustion
-// DISABLED: func TestExecutor_ResourceExhaustionPrevention(t *testing.T) {
+func TestExecutor_ResourceExhaustionPrevention(t *testing.T) {
 	tests := []struct {
 		name            string
 		setupFunc       func(t *testing.T, tempDir string) ExecutorConfig
@@ -253,7 +253,7 @@ import (
 }
 
 // TestExecutor_PathTraversalPrevention tests handling of malicious paths
-// DISABLED: func TestExecutor_PathTraversalPrevention(t *testing.T) {
+func TestExecutor_PathTraversalPrevention(t *testing.T) {
 	tests := []struct {
 		name       string
 		intentPath string
@@ -295,8 +295,8 @@ import (
 		},
 		{
 			name:       "unicode in paths",
-			intentPath: "интент-файл.json",
-			outDir:     "выход",
+			intentPath: "ин?ен?-?айл.json",
+			outDir:     "в??од",
 			testFunc: func(t *testing.T, result *ExecutionResult, tempDir string) {
 				// Should handle unicode paths correctly
 				assert.NotNil(t, result, "Should handle unicode paths")
@@ -337,7 +337,7 @@ import (
 }
 
 // TestExecutor_FilePermissionsSecurity tests that created files have secure permissions
-// DISABLED: func TestExecutor_FilePermissionsSecurity(t *testing.T) {
+func TestExecutor_FilePermissionsSecurity(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("File permission tests not applicable on Windows")
 	}
@@ -395,7 +395,7 @@ import (
 }
 
 // TestValidatePorchPath_Security tests security aspects of porch path validation
-// DISABLED: func TestValidatePorchPath_Security(t *testing.T) {
+func TestValidatePorchPath_Security(t *testing.T) {
 	tests := []struct {
 		name      string
 		porchPath string
@@ -456,7 +456,7 @@ import (
 }
 
 // TestStatefulExecutor_SecurityStats tests that statistics don't leak sensitive information
-// DISABLED: func TestStatefulExecutor_SecurityStats(t *testing.T) {
+func TestStatefulExecutor_SecurityStats(t *testing.T) {
 	tempDir := t.TempDir()
 	intentFile := filepath.Join(tempDir, "intent.json")
 	outDir := filepath.Join(tempDir, "out")

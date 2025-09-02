@@ -2467,7 +2467,7 @@ func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context
 
 					Message: conflict.Description,
 
-					Context: json.RawMessage("{}"),
+					Context: json.RawMessage(`{}`),
 				})
 
 			}
@@ -2794,3 +2794,4 @@ type ConflictResolutionStrategy struct {
 	Type        string `json:"type"`
 	Description string `json:"description"`
 }
+

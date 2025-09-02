@@ -1234,7 +1234,7 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 
 		Timestamp: time.Now(),
 
-		Details: json.RawMessage("{}"),
+		Details: json.RawMessage(`{}`),
 	})
 
 	// Start escalation process.
@@ -1639,3 +1639,4 @@ func (ee *EscalationEngine) recordEscalationEvent(event *EscalationEvent) {
 		ee.escalationHistory = ee.escalationHistory[1000:]
 	}
 }
+

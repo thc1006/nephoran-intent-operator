@@ -10,7 +10,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutil"
 )
 
-// DISABLED: func TestDefaultConfig(t *testing.T) {
+func TestDefaultConfig(t *testing.T) {
 	// Ensure test isolation
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
@@ -47,7 +47,7 @@ import (
 	_ = envGuard
 }
 
-// DISABLED: func TestConfig_Validate_RequiredFields(t *testing.T) {
+func TestConfig_Validate_RequiredFields(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *Config
@@ -90,7 +90,7 @@ import (
 	}
 }
 
-// DISABLED: func TestConfig_Validate_EnhancedValidation(t *testing.T) {
+func TestConfig_Validate_EnhancedValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupConfig func() *Config
@@ -219,7 +219,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadFromEnv_ValidConfiguration(t *testing.T) {
+func TestLoadFromEnv_ValidConfiguration(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
 
@@ -240,7 +240,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
+func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
 
@@ -303,7 +303,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadFromEnv_InvalidConfiguration(t *testing.T) {
+func TestLoadFromEnv_InvalidConfiguration(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
 
@@ -323,7 +323,7 @@ import (
 	_ = envGuard
 }
 
-// DISABLED: func TestLoadFromEnv_InvalidDurationValues(t *testing.T) {
+func TestLoadFromEnv_InvalidDurationValues(t *testing.T) {
 	_ = testutil.NewEnvironmentGuard(t) // Guard environment variables for this test
 	testutil.CleanupCommonEnvVars(t)
 
@@ -375,7 +375,7 @@ import (
 	}
 }
 
-// DISABLED: func TestLoadFromEnv_InvalidBooleanValues(t *testing.T) {
+func TestLoadFromEnv_InvalidBooleanValues(t *testing.T) {
 	// Clean environment
 	cleanupEnv(t)
 
@@ -423,7 +423,7 @@ import (
 	}
 }
 
-// DISABLED: func TestConfig_GetRAGAPIURL(t *testing.T) {
+func TestConfig_GetRAGAPIURL(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.RAGAPIURLInternal = "http://internal-rag:5001"
 	cfg.RAGAPIURLExternal = "http://external-rag:5001"
@@ -454,7 +454,7 @@ import (
 }
 
 // TestEnvironmentVariables tests the 8 specific environment variables
-// DISABLED: func TestEnvironmentVariables(t *testing.T) {
+func TestEnvironmentVariables(t *testing.T) {
 	tests := []struct {
 		name      string
 		envVar    string
@@ -683,7 +683,7 @@ import (
 }
 
 // TestEnvironmentVariablesDefaultValues specifically tests that default values are correct
-// DISABLED: func TestEnvironmentVariablesDefaultValues(t *testing.T) {
+func TestEnvironmentVariablesDefaultValues(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
 	envGuard.Set("OPENAI_API_KEY", "sk-test-key")
@@ -704,7 +704,7 @@ import (
 }
 
 // TestEnvironmentVariablesEdgeCases tests edge cases for the 8 environment variables
-// DISABLED: func TestEnvironmentVariablesEdgeCases(t *testing.T) {
+func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupEnv    func()
@@ -800,7 +800,7 @@ import (
 }
 
 // TestSpecialLLMTimeoutSecsConversion tests the specific conversion logic for LLM_TIMEOUT_SECS
-// DISABLED: func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
+func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
 	tests := []struct {
 		name           string
 		envValue       string

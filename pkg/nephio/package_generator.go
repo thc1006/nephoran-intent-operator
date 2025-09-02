@@ -464,7 +464,7 @@ data:
 // generateKptfile generates the Kptfile for the package.
 
 func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, error) {
-	data := json.RawMessage("{}")
+	data := json.RawMessage(`{}`)
 
 	var buf bytes.Buffer
 
@@ -648,7 +648,7 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 // generateReadme generates the README for the package.
 
 func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, error) {
-	data := json.RawMessage("{}")
+	data := json.RawMessage(`{}`)
 
 	var buf bytes.Buffer
 
@@ -706,7 +706,7 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 			},
 		},
 
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	yamlData, err := yaml.Marshal(fnConfig)
@@ -724,7 +724,7 @@ func extractDeploymentData(params map[string]interface{}) map[string]interface{}
 
 	// This would parse the structured output from the LLM.
 
-	data := json.RawMessage("{}")
+	data := json.RawMessage(`{}`)
 
 	return data
 }
@@ -732,7 +732,7 @@ func extractDeploymentData(params map[string]interface{}) map[string]interface{}
 func extractServiceData(params map[string]interface{}) map[string]interface{} {
 	// Extract service configuration from parameters.
 
-	return json.RawMessage("{}")
+	return json.RawMessage(`{}`)
 }
 
 func extractORANConfig(params map[string]interface{}) map[string]interface{} {
@@ -749,7 +749,7 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 func generateSetters(params map[string]interface{}) string {
 	// Generate setters.yaml for Kpt functions.
 
-	setters := json.RawMessage("{}"){
+	setters := json.RawMessage(`{}`){
 			"name": "setters",
 
 			"annotations": map[string]string{
@@ -757,7 +757,7 @@ func generateSetters(params map[string]interface{}) string {
 			},
 		},
 
-		"data": json.RawMessage("{}"),
+		"data": json.RawMessage(`{}`),
 	}
 
 	yamlData, _ := yaml.Marshal(setters)
@@ -768,21 +768,21 @@ func generateSetters(params map[string]interface{}) string {
 func generateScalingPatch(params map[string]interface{}) string {
 	// Generate a structured patch for scaling operations with enhanced metadata.
 
-	patch := json.RawMessage("{}"){
+	patch := json.RawMessage(`{}`){
 			"name": params["target"],
 
-			"annotations": json.RawMessage("{}"),
+			"annotations": json.RawMessage(`{}`),
 		},
 
-		"spec": json.RawMessage("{}"),
+		"spec": json.RawMessage(`{}`),
 	}
 
 	// Add resource requests/limits if provided.
 
 	if resources, ok := params["resources"].(map[string]interface{}); ok {
 		if patch["spec"].(map[string]interface{})["template"] == nil {
-			patch["spec"].(map[string]interface{})["template"] = json.RawMessage("{}"){
-					"containers": []json.RawMessage("{}"),
+			patch["spec"].(map[string]interface{})["template"] = json.RawMessage(`{}`){
+					"containers": []json.RawMessage(`{}`),
 					},
 				},
 			}
@@ -803,7 +803,7 @@ func generateScalingPatch(params map[string]interface{}) string {
 }
 
 func generateScalingSetters(params map[string]interface{}) string {
-	setters := json.RawMessage("{}"){
+	setters := json.RawMessage(`{}`){
 			"name": "scaling-setters",
 
 			"annotations": map[string]string{
@@ -811,7 +811,7 @@ func generateScalingSetters(params map[string]interface{}) string {
 			},
 		},
 
-		"data": json.RawMessage("{}"),
+		"data": json.RawMessage(`{}`),
 	}
 
 	yamlData, _ := yaml.Marshal(setters)
@@ -822,7 +822,7 @@ func generateScalingSetters(params map[string]interface{}) string {
 func generatePolicyResource(params map[string]interface{}) string {
 	// Generate network policy or other policy resources.
 
-	policy := json.RawMessage("{}"){
+	policy := json.RawMessage(`{}`){
 			"name": params["name"],
 
 			"namespace": params["namespace"],
@@ -938,13 +938,13 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	// Create Kptfile for the package.
 
-	kptfile := json.RawMessage("{}"){
+	kptfile := json.RawMessage(`{}`){
 			"name": fmt.Sprintf("%s-scaling-patch", intent.Name),
 
-			"annotations": json.RawMessage("{}"),
+			"annotations": json.RawMessage(`{}`),
 		},
 
-		"info": json.RawMessage("{}"),
+		"info": json.RawMessage(`{}`),
 	}
 
 	kptfileYAML, _ := yaml.Marshal(kptfile)
@@ -1030,3 +1030,4 @@ func (pg *PackageGenerator) GenerateCNFPackage(cnf *v1.CNFDeployment, config map
 
 	return []byte(packageContent), nil
 }
+

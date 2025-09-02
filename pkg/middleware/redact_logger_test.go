@@ -55,7 +55,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	return h
 }
 
-// DISABLED: func TestRedactLogger_HeaderRedaction(t *testing.T) {
+func TestRedactLogger_HeaderRedaction(t *testing.T) {
 	tests := []struct {
 		name           string
 		headers        map[string]string
@@ -144,7 +144,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// DISABLED: func TestRedactLogger_QueryParamRedaction(t *testing.T) {
+func TestRedactLogger_QueryParamRedaction(t *testing.T) {
 	tests := []struct {
 		name           string
 		query          string
@@ -217,7 +217,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// DISABLED: func TestRedactLogger_BodyRedaction(t *testing.T) {
+func TestRedactLogger_BodyRedaction(t *testing.T) {
 	tests := []struct {
 		name         string
 		body         string
@@ -289,7 +289,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// DISABLED: func TestRedactLogger_Middleware(t *testing.T) {
+func TestRedactLogger_Middleware(t *testing.T) {
 	tests := []struct {
 		name              string
 		method            string
@@ -422,7 +422,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// DISABLED: func TestRedactLogger_SlowRequests(t *testing.T) {
+func TestRedactLogger_SlowRequests(t *testing.T) {
 	config := DefaultRedactLoggerConfig()
 	config.SlowRequestThreshold = 100 * time.Millisecond
 	mockHandler := &mockLogHandler{}
@@ -459,7 +459,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	assert.True(t, found, "Expected slow request warning")
 }
 
-// DISABLED: func TestRedactLogger_ErrorStatus(t *testing.T) {
+func TestRedactLogger_ErrorStatus(t *testing.T) {
 	tests := []struct {
 		name          string
 		statusCode    int
@@ -522,7 +522,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// DISABLED: func TestRedactLogger_UpdateConfig(t *testing.T) {
+func TestRedactLogger_UpdateConfig(t *testing.T) {
 	config := DefaultRedactLoggerConfig()
 	mockHandler := &mockLogHandler{}
 	logger := slog.New(mockHandler)
@@ -549,7 +549,7 @@ func (h *mockLogHandler) WithGroup(name string) slog.Handler {
 	assert.True(t, rl.shouldSkipPath("/custom/test"))
 }
 
-// DISABLED: func TestRedactLogger_ClientIPExtraction(t *testing.T) {
+func TestRedactLogger_ClientIPExtraction(t *testing.T) {
 	tests := []struct {
 		name       string
 		headers    map[string]string

@@ -542,7 +542,7 @@ func (vsa *VectorSearchAccelerator) selectTopKResults(similarities []float32, to
 		matches[i] = &VectorMatch{
 			VectorID: fmt.Sprintf("vec_%d", i),
 			Score:    sim,
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		}
 	}
 

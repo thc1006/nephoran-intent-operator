@@ -304,11 +304,11 @@ func (suite *CRDIntegrationTestSuite) TestCRD_CreateNetworkIntentWithDynamicClie
 
 	// Create unstructured NetworkIntent
 	intent := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
+		Object: map[string]interface{}{
 				"name":      "dynamic-test-intent",
 				"namespace": suite.namespace,
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		},
 	}
 
@@ -425,11 +425,11 @@ func (suite *CRDIntegrationTestSuite) TestCRD_ValidationFailure() {
 
 	// Test with missing required field
 	intentWithoutIntent := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
+		Object: map[string]interface{}{
 				"name":      "validation-failure",
 				"namespace": suite.namespace,
 			},
-			"spec": json.RawMessage("{}"),
+			"spec": json.RawMessage(`{}`),
 		},
 	}
 
@@ -570,12 +570,12 @@ func (suite *CRDIntegrationTestSuite) TestCRD_CrossNamespaceOperations() {
 }
 
 // TestSuite runner function
-// DISABLED: func TestCRDIntegrationTestSuite(t *testing.T) {
+func TestCRDIntegrationTestSuite(t *testing.T) {
 	suite.Run(t, new(CRDIntegrationTestSuite))
 }
 
 // Benchmark tests for CRD operations
-// DISABLED: func TestCRDOperationsBenchmark(t *testing.T) {
+func TestCRDOperationsBenchmark(t *testing.T) {
 	if os.Getenv("RUN_INTEGRATION_TESTS") != "true" {
 		t.Skip("Integration tests skipped. Set RUN_INTEGRATION_TESTS=true to run.")
 	}
@@ -584,3 +584,4 @@ func (suite *CRDIntegrationTestSuite) TestCRD_CrossNamespaceOperations() {
 	// For now, we'll create a placeholder that could be implemented later
 	t.Skip("CRD benchmarks require full cluster setup - implement when needed")
 }
+

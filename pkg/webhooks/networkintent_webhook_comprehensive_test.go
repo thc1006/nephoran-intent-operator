@@ -63,7 +63,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 }
 
 // Comprehensive unit tests for NetworkIntent webhook validation
-// DISABLED: func TestNetworkIntentValidator_Handle(t *testing.T) {
+func TestNetworkIntentValidator_Handle(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -221,7 +221,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	}
 }
 
-// DISABLED: func TestValidateIntentContentComprehensive(t *testing.T) {
+func TestValidateIntentContentComprehensive(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -261,7 +261,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 		},
 		{
 			name:          "intent with unicode",
-			intent:        "Deploy AMF with π characters",
+			intent:        "Deploy AMF with ? characters",
 			expectedError: false,
 		},
 		{
@@ -288,7 +288,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	}
 }
 
-// DISABLED: func TestValidateSecurity(t *testing.T) {
+func TestValidateSecurity(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -368,7 +368,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	}
 }
 
-// DISABLED: func TestValidateTelecomRelevance(t *testing.T) {
+func TestValidateTelecomRelevance(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -439,7 +439,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	}
 }
 
-// DISABLED: func TestValidateComplexity(t *testing.T) {
+func TestValidateComplexity(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -501,7 +501,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	}
 }
 
-// DISABLED: func TestValidateResourceNaming(t *testing.T) {
+func TestValidateResourceNaming(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -563,7 +563,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	}
 }
 
-// DISABLED: func TestValidateIntentCoherence(t *testing.T) {
+func TestValidateIntentCoherence(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 
@@ -648,7 +648,7 @@ func createTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 }
 
 // Edge case tests
-// DISABLED: func TestValidatorEdgeCases(t *testing.T) {
+func TestValidatorEdgeCases(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 

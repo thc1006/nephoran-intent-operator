@@ -434,8 +434,8 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: json.RawMessage("{}"),
-					Data: json.RawMessage("{}"),
+					Metadata: json.RawMessage(`{}`),
+					Data: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -525,7 +525,7 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *W
 					Actions: []WorkflowAction{
 						{
 							Type:   "validate",
-							Config: json.RawMessage("{}"),
+							Config: json.RawMessage(`{}`),
 						},
 					},
 				},
@@ -535,7 +535,7 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *W
 					Actions: []WorkflowAction{
 						{
 							Type:   "approve",
-							Config: json.RawMessage("{}"),
+							Config: json.RawMessage(`{}`),
 						},
 					},
 					Approvers: []Approver{
@@ -698,9 +698,9 @@ func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata: json.RawMessage("{}"),
+		Metadata: json.RawMessage(`{}`),
 		},
-		Spec: json.RawMessage("{}"),
+		Spec: json.RawMessage(`{}`),
 	}
 }
 
@@ -708,7 +708,7 @@ func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 func GenerateTestFunction(image string) FunctionConfig {
 	return FunctionConfig{
 		Image: image,
-		ConfigMap: json.RawMessage("{}"),
+		ConfigMap: json.RawMessage(`{}`),
 	}
 }
 
@@ -884,3 +884,4 @@ func ValidateRepository(repo *Repository) []string {
 
 	return errors
 }
+
