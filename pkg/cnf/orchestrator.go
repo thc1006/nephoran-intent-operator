@@ -987,7 +987,6 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 				},
 			},
 		},
-		},
 
 		RequiredConfigs: []string{"plmnId", "amfId", "guami"},
 
@@ -1063,13 +1062,13 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage(`{}`){
+		DefaultValues: map[string]interface{}{
+			"image": map[string]interface{}{
 				"repository": "5gc/smf",
-
 				"tag": "latest",
 			},
-
-			"service": json.RawMessage(`{}`){
+			"service": map[string]interface{}{
+				"ports": map[string]interface{}{
 					"sbi": 8080,
 				},
 			},
@@ -1139,20 +1138,18 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage(`{}`){
+		DefaultValues: map[string]interface{}{
+			"image": map[string]interface{}{
 				"repository": "5gc/upf",
-
 				"tag": "latest",
 			},
-
-			"service": json.RawMessage(`{}`){
+			"service": map[string]interface{}{
+				"ports": map[string]interface{}{
 					"pfcp": 8805,
-
 					"gtpu": 2152,
 				},
 			},
-
-			"dpdk": json.RawMessage(`{}`),
+			"dpdk": map[string]interface{}{},
 		},
 
 		RequiredConfigs: []string{"dnn", "pfcpAddress", "gtpuAddress"},
@@ -1231,15 +1228,14 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage(`{}`){
+		DefaultValues: map[string]interface{}{
+			"image": map[string]interface{}{
 				"repository": "oran/near-rt-ric",
-
 				"tag": "latest",
 			},
-
-			"service": json.RawMessage(`{}`){
+			"service": map[string]interface{}{
+				"ports": map[string]interface{}{
 					"a1": 10000,
-
 					"e2": 36421,
 				},
 			},
@@ -1307,15 +1303,14 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage(`{}`){
+		DefaultValues: map[string]interface{}{
+			"image": map[string]interface{}{
 				"repository": "oran/o-du",
-
 				"tag": "latest",
 			},
-
-			"service": json.RawMessage(`{}`){
+			"service": map[string]interface{}{
+				"ports": map[string]interface{}{
 					"f1": 38472,
-
 					"e2": 36421,
 				},
 			},
@@ -1399,13 +1394,12 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage(`{}`){
+		DefaultValues: map[string]interface{}{
+			"image": map[string]interface{}{
 				"repository": "edge/ue-simulator",
-
 				"tag": "latest",
 			},
-
-			"ues": json.RawMessage(`{}`),
+			"ues": map[string]interface{}{},
 		},
 
 		RequiredConfigs: []string{"amfAddress", "gnbAddress"},

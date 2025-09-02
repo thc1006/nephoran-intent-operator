@@ -3,7 +3,6 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"sync"
 	"time"

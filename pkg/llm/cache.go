@@ -6,7 +6,6 @@ package llm
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"log/slog"
 	"strings"
 	"sync"
