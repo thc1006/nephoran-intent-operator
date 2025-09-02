@@ -224,15 +224,12 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 						Settings: runtime.RawExtension{
 							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs"}`),
 						},
-						RetryPolicy: &nephv1.RetryPolicy{
-							Limit: int64Ptr(5),
-							Backoff: &nephv1.RetryBackoff{
-								Duration:    "2s",
-								Factor:      int64Ptr(2),
-								MaxDuration: "30s",
-							},
+						RetryPolicy: &nephv1.RetryPolicySpec{
+							MaxRetries:   5,
+							InitialDelay: 2,
+							MaxDelay:     30,
 						},
-						TLS: &nephv1.TLSConfig{
+						TLS: &nephv1.TLSConfigSpec{
 							Enabled:    true,
 							ServerName: "elasticsearch.local",
 						},
@@ -710,18 +707,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Enabled: true,
 						Name:    "secret-webhook",
 						Settings: runtime.RawExtension{
-							Raw: []byte(`{"url": "https://webhook.example.com/audit"}`),
-						},
-						Auth: nephv1.AuthConfig{
-							Type: "basic",
-							SecretRef: &nephv1.SecretReference{
-								Name: "audit-backend-secret",
-								Key:  "username",
-							},
-							PasswordSecretRef: &nephv1.SecretReference{
-								Name: "audit-backend-secret",
-								Key:  "password",
-							},
+							Raw: []byte(`{"url": "https://webhook.example.com/audit", "auth": {"type": "basic", "username_secret": "audit-backend-secret", "password_secret": "audit-backend-secret"}}`),
 						},
 					},
 				},
@@ -780,9 +766,8 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Type:    "elasticsearch",
 						Enabled: true,
 						Name:    "configmap-elasticsearch",
-						ConfigMapRef: &nephv1.ConfigMapReference{
-							Name: "audit-backend-config",
-							Key:  "elasticsearch.json",
+						Settings: runtime.RawExtension{
+							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs", "config_from_configmap": {"name": "audit-backend-config", "key": "elasticsearch.json"}}`),
 						},
 					},
 				},

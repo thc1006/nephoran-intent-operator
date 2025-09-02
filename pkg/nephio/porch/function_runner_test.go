@@ -33,5 +33,5 @@ func createTestFunctionRequest() *FunctionRequest {
 }
 
 // Rest of the function_runner_test.go follows the previous implementation...
-// The only change is the createTestFunctionRequest implementation to use KRMResource 
+// The only change is the createTestFunctionRequest implementation to use KRMResource
 // instead of map[string]interface{}

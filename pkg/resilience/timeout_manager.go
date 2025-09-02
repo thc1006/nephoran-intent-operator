@@ -531,7 +531,7 @@ func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration ti
 	if tm.metricsCollector != nil {
 		// Record operation duration as a histogram metric
 		_ = duration // Keep the duration for potential future use
-		
+
 		// For now, we don't have a direct interface method for generic operation metrics
 		// This would need to be added to the MetricsCollector interface if needed
 	}
@@ -556,7 +556,7 @@ func (tm *TimeoutManager) recordError(operationType OperationType, duration time
 		// Record operation duration as a histogram metric
 		_ = duration // Keep the duration for potential future use
 		_ = err      // Keep the error for potential future use
-		
+
 		// For now, we don't have a direct interface method for generic operation metrics
 		// This would need to be added to the MetricsCollector interface if needed
 	}
@@ -580,7 +580,7 @@ func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration ti
 	if tm.metricsCollector != nil {
 		// Record timeout operation duration
 		_ = duration // Keep the duration for potential future use
-		
+
 		// For now, we don't have a direct interface method for generic operation metrics
 		// This would need to be added to the MetricsCollector interface if needed
 	}

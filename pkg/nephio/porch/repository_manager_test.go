@@ -25,13 +25,13 @@ import (
 func createTestRepositoryManager(client *Client) RepositoryManager {
 	// Return a mock implementation instead of trying to create the struct directly
 	mockRM := &MockRepositoryManager{}
-	
+
 	// Set up default behaviors for the mock
 	mockRM.On("RegisterRepository", mock.Anything, mock.Anything).Return(&Repository{}, nil)
 	mockRM.On("UnregisterRepository", mock.Anything, mock.Anything).Return(nil)
 	mockRM.On("CreateBranch", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mockRM.On("DeleteBranch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	
+
 	return mockRM
 }
 

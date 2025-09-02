@@ -42,29 +42,29 @@ type LLMConfig struct {
 
 // LLMResponse represents a response from an LLM service
 type LLMResponse struct {
-	Content      string     `json:"content"`
-	Model        string     `json:"model"`
-	Usage        TokenUsage `json:"usage"`
-	FinishReason string     `json:"finish_reason"`
-	Error        string     `json:"error,omitempty"`
+	Content      string        `json:"content"`
+	Model        string        `json:"model"`
+	Usage        TokenUsage    `json:"usage"`
+	FinishReason string        `json:"finish_reason"`
+	Error        string        `json:"error,omitempty"`
 	Duration     time.Duration `json:"duration"`
-	RequestID    string     `json:"request_id"`
+	RequestID    string        `json:"request_id"`
 }
 
 // LLMRequest represents a request to an LLM service
 type LLMRequest struct {
-	Model       string            `json:"model"`
-	Messages    []ChatMessage     `json:"messages"`
-	MaxTokens   int               `json:"max_tokens"`
-	Temperature float32           `json:"temperature"`
-	TopP        float32           `json:"top_p"`
-	Stream      bool              `json:"stream"`
-	Stop        []string          `json:"stop"`
+	Model       string                 `json:"model"`
+	Messages    []ChatMessage          `json:"messages"`
+	MaxTokens   int                    `json:"max_tokens"`
+	Temperature float32                `json:"temperature"`
+	TopP        float32                `json:"top_p"`
+	Stream      bool                   `json:"stream"`
+	Stop        []string               `json:"stop"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // ChatMessage represents a chat message
 type ChatMessage struct {
-	Role    string `json:"role"`    // "system", "user", "assistant"
+	Role    string `json:"role"` // "system", "user", "assistant"
 	Content string `json:"content"`
 }

@@ -29,6 +29,8 @@ type TokenManager interface {
 	GetTokenCount(text string) int
 	ValidateModel(model string) error
 	GetSupportedModels() []string
+	// Budget calculation method
+	CalculateTokenBudget(context string, requirements map[string]interface{}) (int, error)
 }
 
 // RelevanceScorer interface for backwards compatibility with handlers
@@ -107,13 +109,12 @@ func (s *Service) ProcessIntent(ctx context.Context, request *ProcessingRequest)
 		Response:            result.Reasoning,
 		ProcessedParameters: structuredParams,
 		Confidence:          float32(result.Confidence),
-		TokensUsed:         result.Metadata.TokensUsed,
-		ProcessingTime:     time.Duration(result.Metadata.ProcessingTime * float64(time.Millisecond)),
-		Cost:               result.Metadata.Cost,
-		ModelUsed:          result.Metadata.ModelUsed,
+		TokensUsed:          result.Metadata.TokensUsed,
+		ProcessingTime:      time.Duration(result.Metadata.ProcessingTime * float64(time.Millisecond)),
+		Cost:                result.Metadata.Cost,
+		ModelUsed:           result.Metadata.ModelUsed,
 	}, nil
 }
-
 
 // TokenUsageInfo provides token usage statistics
 type TokenUsageInfo struct {

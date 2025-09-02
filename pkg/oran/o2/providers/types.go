@@ -5,7 +5,7 @@ package providers
 import (
 	"context"
 	"time"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
@@ -72,8 +72,6 @@ type ResourceRequest struct {
 	Spec   map[string]interface{} `json:"spec"`
 	Labels map[string]string      `json:"labels,omitempty"`
 }
-
-
 
 // ProviderConfig represents configuration for a provider
 type ProviderConfig struct {

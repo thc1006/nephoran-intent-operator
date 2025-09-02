@@ -248,12 +248,12 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 
 		// Support for multiple auth methods with fallback
 		authMethods := []ssh.AuthMethod{ssh.PublicKeys(signer)}
-		
+
 		// Add password as fallback if provided
 		if auth.Password != "" {
 			authMethods = append(authMethods, ssh.Password(auth.Password))
 		}
-		
+
 		sshConfig.Auth = authMethods
 
 	} else if auth.Password != "" {
@@ -271,28 +271,28 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 	// Enhanced TLS configuration for O-RAN 2025 compliance
 
 	if auth.TLSConfig != nil {
-		
+
 		// Ensure TLS config meets O-RAN WG11 security requirements
 		if auth.TLSConfig.MinVersion == 0 {
 			auth.TLSConfig.MinVersion = tls.VersionTLS12 // Minimum TLS 1.2 for O-RAN
 		}
-		
+
 		// Prefer TLS 1.3 for O-RAN 2025+ deployments
 		if auth.TLSConfig.MaxVersion == 0 {
 			auth.TLSConfig.MaxVersion = tls.VersionTLS13
 		}
-		
+
 		// Set secure cipher suites for O-RAN compliance
 		if len(auth.TLSConfig.CipherSuites) == 0 {
 			auth.TLSConfig.CipherSuites = []uint16{
-				tls.TLS_AES_256_GCM_SHA384,       // TLS 1.3
-				tls.TLS_CHACHA20_POLY1305_SHA256, // TLS 1.3
-				tls.TLS_AES_128_GCM_SHA256,       // TLS 1.3
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,    // TLS 1.2
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,  // TLS 1.2
+				tls.TLS_AES_256_GCM_SHA384,                  // TLS 1.3
+				tls.TLS_CHACHA20_POLY1305_SHA256,            // TLS 1.3
+				tls.TLS_AES_128_GCM_SHA256,                  // TLS 1.3
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,   // TLS 1.2
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, // TLS 1.2
 			}
 		}
-		
+
 		// Log TLS configuration for compliance auditing
 		logger := log.Log.WithName("netconf-tls")
 		logger.Info("Establishing TLS connection for NETCONF",
@@ -309,7 +309,7 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 			return fmt.Errorf("failed to establish TLS connection: %w", err)
 
 		}
-		
+
 		// Verify TLS connection state for compliance
 		state := tlsConn.ConnectionState()
 		logger.Info("TLS connection established",
@@ -1000,12 +1000,12 @@ func (nc *NetconfClient) Unlock(target string) error {
 // Following 2025 O-RAN security practices with proper host key validation
 func (nc *NetconfClient) getHostKeyCallback() ssh.HostKeyCallback {
 	logger := log.Log.WithName("netconf-client-hostkey")
-	
+
 	// Return a more secure implementation that follows O-RAN WG11 security guidelines
 	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 		// For production environments, implement proper host key verification
 		// This implementation provides better security than InsecureIgnoreHostKey
-		
+
 		// 1. Log the key for security auditing (O-RAN requirement)
 		keyFingerprint := ssh.FingerprintSHA256(key)
 		logger.Info("NETCONF host key verification",
@@ -1014,16 +1014,16 @@ func (nc *NetconfClient) getHostKeyCallback() ssh.HostKeyCallback {
 			"key_type", key.Type(),
 			"fingerprint", keyFingerprint,
 			"algorithm", key.Type())
-			
+
 		// 2. For production, check against known_hosts or certificate store
 		// For now, accept all keys but ensure they're logged for compliance
-		
+
 		// TODO: In production, implement:
 		// - Load known_hosts file from ~/.ssh/known_hosts
-		// - Verify against O-RAN security certificate store 
+		// - Verify against O-RAN security certificate store
 		// - Support SPIFFE/SPIRE trust domains for O-RAN workloads
 		// - Implement certificate pinning for critical network functions
-		
+
 		// 3. Validate key strength (O-RAN WG11 requirement)
 		switch key.Type() {
 		case "ssh-rsa":
@@ -1040,7 +1040,7 @@ func (nc *NetconfClient) getHostKeyCallback() ssh.HostKeyCallback {
 		default:
 			logger.Info("Unknown key type - accepting with audit log", "type", key.Type())
 		}
-		
+
 		return nil // Accept all keys for now, but with comprehensive logging
 	}
 }

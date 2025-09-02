@@ -8,11 +8,11 @@ import (
 // Final missing types for updater.go
 
 type RolloutResult struct {
-	RolloutID   string    `json:"rolloutId"`
-	Plan        *UpdatePlan `json:"plan"`
-	Status      string    `json:"status"`
-	StartedAt   time.Time `json:"startedAt"`
-	CompletedAt time.Time `json:"completedAt,omitempty"`
+	RolloutID   string        `json:"rolloutId"`
+	Plan        *UpdatePlan   `json:"plan"`
+	Status      string        `json:"status"`
+	StartedAt   time.Time     `json:"startedAt"`
+	CompletedAt time.Time     `json:"completedAt,omitempty"`
 	Duration    time.Duration `json:"duration"`
 }
 
@@ -31,10 +31,10 @@ type UpdateQueue interface {
 }
 
 type QueueStatus struct {
-	Size         int       `json:"size"`
-	PendingCount int       `json:"pendingCount"`
-	ProcessingCount int    `json:"processingCount"`
-	LastUpdated  time.Time `json:"lastUpdated"`
+	Size            int       `json:"size"`
+	PendingCount    int       `json:"pendingCount"`
+	ProcessingCount int       `json:"processingCount"`
+	LastUpdated     time.Time `json:"lastUpdated"`
 }
 
 func NewUpdateQueue() UpdateQueue {
@@ -87,7 +87,6 @@ func (u *updateHistoryStore) GetUpdateRecord(ctx context.Context, updateID strin
 func (u *updateHistoryStore) Close() error {
 	return nil
 }
-
 
 // Simple printf logger wrapper for cron
 type cronLogger struct {

@@ -587,7 +587,6 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 }
 
-
 // GetChainInfo returns information about the integrity chain.
 
 func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
@@ -969,10 +968,10 @@ func (ic *IntegrityChain) GetCurrentHash() string {
 	if !ic.enabled {
 		return ""
 	}
-	
+
 	ic.mutex.RLock()
 	defer ic.mutex.RUnlock()
-	
+
 	return ic.lastHash
 }
 
@@ -981,10 +980,10 @@ func (ic *IntegrityChain) GetSequenceNumber() int64 {
 	if !ic.enabled {
 		return 0
 	}
-	
+
 	ic.mutex.RLock()
 	defer ic.mutex.RUnlock()
-	
+
 	return int64(ic.sequenceNum)
 }
 
@@ -1145,7 +1144,7 @@ func (iv *IntegrityValidator) ValidateEventChain(events []*types.AuditEvent) *Va
 	var previousHash string
 	for i, event := range events {
 		eventResult := iv.ValidateEvent(event)
-		
+
 		// Check chain linkage
 		if i > 0 && event.PreviousHash != previousHash {
 			eventResult.IsValid = false
@@ -1220,7 +1219,7 @@ func (fa *ForensicAnalyzer) AnalyzeEvent(event *types.AuditEvent) *ForensicAnaly
 // ReconstructTimeline reconstructs a timeline from events
 func (fa *ForensicAnalyzer) ReconstructTimeline(events []*types.AuditEvent) []TimelineEvent {
 	timeline := make([]TimelineEvent, 0, len(events))
-	
+
 	// Sort events by timestamp
 	for _, event := range events {
 		timeline = append(timeline, TimelineEvent{
@@ -1229,7 +1228,7 @@ func (fa *ForensicAnalyzer) ReconstructTimeline(events []*types.AuditEvent) []Ti
 			Action:    event.Action,
 		})
 	}
-	
+
 	// Sort timeline by timestamp
 	for i := 0; i < len(timeline); i++ {
 		for j := i + 1; j < len(timeline); j++ {
@@ -1238,7 +1237,7 @@ func (fa *ForensicAnalyzer) ReconstructTimeline(events []*types.AuditEvent) []Ti
 			}
 		}
 	}
-	
+
 	return timeline
 }
 
@@ -1278,7 +1277,7 @@ func (cr *ChainRecoverer) RecoverChain(events []*types.AuditEvent) (*RecoveryRes
 	// Mock recovery - fix one broken hash
 	repairedEvents := make([]*types.AuditEvent, len(events))
 	copy(repairedEvents, events)
-	
+
 	eventsRepaired := 0
 	for i, event := range repairedEvents {
 		if event.Hash == "broken-hash" {

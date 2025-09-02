@@ -639,9 +639,6 @@ func (suite *DisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace s
 	}
 }
 
-func int32Ptr(i int32) *int32 {
-	return &i
-}
 
 // Comprehensive disaster recovery testing
 func (suite *DisasterRecoveryTestSuite) TestComprehensiveDisasterRecovery() {
@@ -749,3 +746,4 @@ func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *Disaste
 	_ = report // In real implementation, would write to file
 	return nil
 }
+

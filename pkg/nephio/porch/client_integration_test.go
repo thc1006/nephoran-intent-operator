@@ -79,13 +79,13 @@ func TestClientCreation(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, client)
-				
+
 				// Only test basic operations if client creation succeeded
 				if client != nil {
 					// Test that we can call basic operations
 					_, _ = client.Health(context.Background())
 					// Note: This might fail in unit tests without a real server, which is expected
-					
+
 					// Cleanup
 					defer client.Close()
 				}

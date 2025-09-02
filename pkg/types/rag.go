@@ -22,28 +22,28 @@ import (
 
 // SearchQuery represents a search query for RAG
 type SearchQuery struct {
-	Text         string                 `json:"text"`
-	MaxResults   int                    `json:"max_results"`
-	Threshold    float64                `json:"threshold"`
-	Filters      map[string]interface{} `json:"filters"`
-	Namespace    string                 `json:"namespace"`
+	Text       string                 `json:"text"`
+	MaxResults int                    `json:"max_results"`
+	Threshold  float64                `json:"threshold"`
+	Filters    map[string]interface{} `json:"filters"`
+	Namespace  string                 `json:"namespace"`
 }
 
 // SearchResponse represents a response to a search query
 type SearchResponse struct {
-	Query         string         `json:"query"`
+	Query         string          `json:"query"`
 	Results       []*SearchResult `json:"results"`
-	TotalResults  int            `json:"total_results"`
-	ProcessedTime time.Duration  `json:"processed_time"`
+	TotalResults  int             `json:"total_results"`
+	ProcessedTime time.Duration   `json:"processed_time"`
 }
 
 // SearchResult represents a single search result
 type SearchResult struct {
-	ID          string                 `json:"id"`
-	Content     string                 `json:"content"`
-	Score       float64                `json:"score"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Embedding   []float32              `json:"embedding,omitempty"`
+	ID        string                 `json:"id"`
+	Content   string                 `json:"content"`
+	Score     float64                `json:"score"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	Embedding []float32              `json:"embedding,omitempty"`
 }
 
 // BatchSearchRequest represents a batch of search requests
@@ -113,12 +113,12 @@ type PoolConfig struct {
 
 // PoolMetrics represents metrics for connection pools
 type PoolMetrics struct {
-	ActiveConnections int64         `json:"active_connections"`
-	IdleConnections   int64         `json:"idle_connections"`
-	TotalConnections  int64         `json:"total_connections"`
-	ConnectionsCreated int64        `json:"connections_created"`
-	ConnectionsDestroyed int64      `json:"connections_destroyed"`
-	HealthChecksRun   int64         `json:"health_checks_run"`
-	HealthChecksFailed int64        `json:"health_checks_failed"`
-	AverageLatency    time.Duration `json:"average_latency"`
+	ActiveConnections    int64         `json:"active_connections"`
+	IdleConnections      int64         `json:"idle_connections"`
+	TotalConnections     int64         `json:"total_connections"`
+	ConnectionsCreated   int64         `json:"connections_created"`
+	ConnectionsDestroyed int64         `json:"connections_destroyed"`
+	HealthChecksRun      int64         `json:"health_checks_run"`
+	HealthChecksFailed   int64         `json:"health_checks_failed"`
+	AverageLatency       time.Duration `json:"average_latency"`
 }

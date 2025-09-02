@@ -129,12 +129,12 @@ type AutomationConfig struct {
 
 type KubernetesIntegrationConfig struct {
 	// Service monitoring
-	ServiceSelector   string   `yaml:"service_selector"`
-	PodSelector       string   `yaml:"pod_selector"`
-	IngressSelector   string   `yaml:"ingress_selector"`
-	Namespaces        []string `yaml:"namespaces"`
-	AnnotationPrefix  string   `yaml:"annotation_prefix"`
-	SecretPrefix      string   `yaml:"secret_prefix"`
+	ServiceSelector  string   `yaml:"service_selector"`
+	PodSelector      string   `yaml:"pod_selector"`
+	IngressSelector  string   `yaml:"ingress_selector"`
+	Namespaces       []string `yaml:"namespaces"`
+	AnnotationPrefix string   `yaml:"annotation_prefix"`
+	SecretPrefix     string   `yaml:"secret_prefix"`
 
 	// Admission webhook configuration
 	AdmissionWebhook AdmissionWebhookConfig `yaml:"admission_webhook"`
@@ -2040,9 +2040,9 @@ func (e *AutomationEngine) RequestProvisioning(req *ProvisioningRequest) error {
 		ServiceNamespace: req.Namespace,
 		Priority:         req.Priority,
 		Metadata: map[string]interface{}{
-			"template":     req.Template,
-			"dns_names":    req.DNSNames,
-			"request_id":   req.ID,
+			"template":   req.Template,
+			"dns_names":  req.DNSNames,
+			"request_id": req.ID,
 		},
 	}
 

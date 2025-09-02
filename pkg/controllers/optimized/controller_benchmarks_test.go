@@ -462,13 +462,13 @@ func BenchmarkComparison(b *testing.B) {
 // Mock dependencies for testing
 type mockDependencies struct{}
 
-func (m *mockDependencies) GetGitClient() git.ClientInterface      { return nil }
-func (m *mockDependencies) GetLLMClient() shared.ClientInterface  { return nil }
-func (m *mockDependencies) GetPackageGenerator() *nephio.PackageGenerator { return nil }
-func (m *mockDependencies) GetHTTPClient() *http.Client           { return nil }
-func (m *mockDependencies) GetEventRecorder() record.EventRecorder { return nil }
+func (m *mockDependencies) GetGitClient() git.ClientInterface                      { return nil }
+func (m *mockDependencies) GetLLMClient() shared.ClientInterface                   { return nil }
+func (m *mockDependencies) GetPackageGenerator() *nephio.PackageGenerator          { return nil }
+func (m *mockDependencies) GetHTTPClient() *http.Client                            { return nil }
+func (m *mockDependencies) GetEventRecorder() record.EventRecorder                 { return nil }
 func (m *mockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase { return nil }
-func (m *mockDependencies) GetMetricsCollector() monitoring.MetricsCollector { return nil }
+func (m *mockDependencies) GetMetricsCollector() monitoring.MetricsCollector       { return nil }
 
 // Helper function to check if error is a requeue error (acceptable in benchmarks)
 func isRequeueError(err error) bool {

@@ -207,7 +207,7 @@ func (suite *NetworkIntentControllerTestSuite) TestReconcile_LLMServerDown() {
 	result, err := suite.reconciler.Reconcile(suite.ctx, request)
 
 	// Assert - should handle LLM server errors gracefully
-	suite.NoError(err) // Controller should handle external service failures
+	suite.NoError(err)                                              // Controller should handle external service failures
 	suite.Equal(ctrl.Result{RequeueAfter: 5 * time.Minute}, result) // Should requeue for retry
 }
 
@@ -459,7 +459,7 @@ func TestNetworkIntentReconciler_ErrorConditions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reconciler, request := tt.setupFunc()
 			_, err := reconciler.Reconcile(context.Background(), request)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {

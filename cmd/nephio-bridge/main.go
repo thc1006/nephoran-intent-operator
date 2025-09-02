@@ -49,13 +49,13 @@ var _ shared.ClientInterface = (*llmClientAdapter)(nil)
 func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
 	// Convert modern LLMRequest to legacy prompt
 	prompt := a.convertRequestToPrompt(request)
-	
+
 	// Call legacy method
 	result, err := a.client.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert legacy response to modern LLMResponse
 	return &shared.LLMResponse{
 		ID:      "legacy-" + fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -73,14 +73,14 @@ func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.L
 // ProcessStreamingRequest implements shared.ClientInterface.ProcessStreamingRequest
 func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
 	chunks := make(chan *shared.StreamingChunk, 1)
-	
+
 	go func() {
 		defer close(chunks)
-		
+
 		// Convert to legacy format and process
 		prompt := a.convertRequestToPrompt(request)
 		result, err := a.client.ProcessIntent(ctx, prompt)
-		
+
 		if err != nil {
 			chunks <- &shared.StreamingChunk{
 				Error: &shared.LLMError{
@@ -91,7 +91,7 @@ func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request 
 			}
 			return
 		}
-		
+
 		// Send result as single chunk (simulated streaming)
 		chunks <- &shared.StreamingChunk{
 			ID:        "legacy-chunk-" + fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -102,7 +102,7 @@ func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request 
 			Timestamp: time.Now(),
 		}
 	}()
-	
+
 	return chunks, nil
 }
 
@@ -164,7 +164,7 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 	if err != nil {
 		return err
 	}
-	
+
 	if chunks != nil {
 		chunks <- &shared.StreamingChunk{
 			Content:   result,
@@ -183,7 +183,7 @@ func (a *llmClientAdapter) convertRequestToPrompt(request *shared.LLMRequest) st
 	if len(request.Messages) == 0 {
 		return ""
 	}
-	
+
 	// Simple conversion: concatenate all message content
 	var prompt strings.Builder
 	for _, msg := range request.Messages {

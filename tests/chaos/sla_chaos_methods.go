@@ -50,7 +50,7 @@ func (ce *ChaosEngine) StopAllExperiments(ctx context.Context) error {
 	for id := range ce.activeExperiments {
 		ce.activeExperiments[id].Status = ExperimentStatusAborted
 	}
-	
+
 	ce.activeExperiments = make(map[string]*RunningExperiment)
 	return nil
 }
@@ -58,7 +58,7 @@ func (ce *ChaosEngine) StopAllExperiments(ctx context.Context) error {
 func (ce *ChaosEngine) RegisterExperiment(experiment *ChaosExperiment) {
 	ce.mutex.Lock()
 	defer ce.mutex.Unlock()
-	
+
 	ce.experiments = append(ce.experiments, experiment)
 }
 
@@ -82,7 +82,7 @@ func (cm *ChaosMonitor) collectMetrics() {
 	defer cm.mutex.Unlock()
 
 	now := time.Now()
-	
+
 	// Simulate metric collection
 	cm.metrics.AvailabilityTimeSeries = append(cm.metrics.AvailabilityTimeSeries, MetricPoint{
 		Timestamp: now,
@@ -197,7 +197,7 @@ func (fpt *FalsePositiveTracker) checkForFalsePositives() {
 
 	// Simulate false positive detection logic
 	fpt.totalAlerts++
-	
+
 	// Simulate 1% false positive rate
 	if fpt.totalAlerts%100 == 0 {
 		fpt.falsePositives++
@@ -255,7 +255,7 @@ func (st *SLATracker) updateMetrics() {
 	defer st.mutex.Unlock()
 
 	now := time.Now()
-	
+
 	// Simulate SLA metric updates
 	st.metrics.Availability = 99.5 + (0.5 * math.Sin(float64(now.Unix())/600))
 	st.metrics.LatencyP95 = time.Duration(100+int(50*math.Cos(float64(now.Unix())/300))) * time.Millisecond
@@ -283,7 +283,7 @@ func (st *SLATracker) updateMetrics() {
 func (st *SLATracker) GetCurrentMetrics() *SLAMetrics {
 	st.mutex.RLock()
 	defer st.mutex.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	return &SLAMetrics{
 		Availability: st.metrics.Availability,
@@ -300,7 +300,7 @@ func (rt *RecoveryTracker) TrackRecovery(componentID string, failureType Experim
 	defer rt.mutex.Unlock()
 
 	eventID := fmt.Sprintf("recovery-%s-%d", componentID, time.Now().Unix())
-	
+
 	event := &RecoveryEvent{
 		ID:          eventID,
 		ComponentID: componentID,
@@ -328,7 +328,7 @@ func (rt *RecoveryTracker) CompleteRecovery(eventID string, success bool) {
 func (rt *RecoveryTracker) GetRecoveryEvent(eventID string) *RecoveryEvent {
 	rt.mutex.RLock()
 	defer rt.mutex.RUnlock()
-	
+
 	if event, exists := rt.recoveryEvents[eventID]; exists {
 		// Return copy to avoid race conditions
 		eventCopy := *event
@@ -338,9 +338,6 @@ func (rt *RecoveryTracker) GetRecoveryEvent(eventID string) *RecoveryEvent {
 }
 
 // Additional helper methods for the test suite
-
-
-
 
 func (s *SLAChaosTestSuite) createPrometheusCorruptionExperiment() *ChaosExperiment {
 	return &ChaosExperiment{
@@ -383,7 +380,3 @@ func (s *SLAChaosTestSuite) createTimestampSkewExperiment() *ChaosExperiment {
 		Duration: 12 * time.Minute,
 	}
 }
-
-
-
-

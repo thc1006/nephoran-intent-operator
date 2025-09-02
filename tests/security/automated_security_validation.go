@@ -34,18 +34,18 @@ type AutomatedSecurityValidator struct {
 
 // SecurityValidationResults stores comprehensive validation results
 type SecurityValidationResults struct {
-	ValidationID         string                      `json:"validation_id"`
-	Timestamp            time.Time                   `json:"timestamp"`
-	Duration             time.Duration               `json:"duration"`
-	TotalControls        int                         `json:"total_controls"`
-	PassedControls       int                         `json:"passed_controls"`
-	FailedControls       int                         `json:"failed_controls"`
-	SkippedControls      int                         `json:"skipped_controls"`
-	ComplianceScore      float64                     `json:"compliance_score"`
-	SecurityControls     []SecurityControlResult     `json:"security_controls"`
+	ValidationID         string                             `json:"validation_id"`
+	Timestamp            time.Time                          `json:"timestamp"`
+	Duration             time.Duration                      `json:"duration"`
+	TotalControls        int                                `json:"total_controls"`
+	PassedControls       int                                `json:"passed_controls"`
+	FailedControls       int                                `json:"failed_controls"`
+	SkippedControls      int                                `json:"skipped_controls"`
+	ComplianceScore      float64                            `json:"compliance_score"`
+	SecurityControls     []SecurityControlResult            `json:"security_controls"`
 	ComplianceFrameworks map[string]AutoSecComplianceResult `json:"compliance_frameworks"`
-	Recommendations      []SecurityRecommendation    `json:"recommendations"`
-	DetailedFindings     map[string]interface{}      `json:"detailed_findings"`
+	Recommendations      []SecurityRecommendation           `json:"recommendations"`
+	DetailedFindings     map[string]interface{}             `json:"detailed_findings"`
 }
 
 // SecurityControlResult represents the result of a security control validation

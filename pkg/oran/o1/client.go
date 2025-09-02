@@ -59,8 +59,8 @@ func (c *ClientImpl) GetPerformanceData(ctx context.Context, request *Performanc
 			ID:        "perf_data_1",
 			Timestamp: time.Now(),
 			Metrics: map[string]interface{}{
-				"RRCConnections": 150.0,
-				"unit": "connections",
+				"RRCConnections":  150.0,
+				"unit":            "connections",
 				"object_instance": "cell_001",
 			},
 			Source:   "cell_001",
@@ -70,8 +70,8 @@ func (c *ClientImpl) GetPerformanceData(ctx context.Context, request *Performanc
 			ID:        "perf_data_2",
 			Timestamp: time.Now(),
 			Metrics: map[string]interface{}{
-				"Throughput": 1024.5,
-				"unit": "Mbps",
+				"Throughput":      1024.5,
+				"unit":            "Mbps",
 				"object_instance": "cell_001",
 			},
 			Source:   "cell_001",

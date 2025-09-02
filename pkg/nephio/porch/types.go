@@ -2106,13 +2106,13 @@ type LifecycleManager interface {
 	TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
 	TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
 	TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
-	
+
 	// Rollback operations
 	CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error)
 	ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error)
 	RestoreFromRollbackPoint(ctx context.Context, ref *PackageReference, rollbackPoint *RollbackPoint) error
-	
-	// Health and lifecycle management  
+
+	// Health and lifecycle management
 	GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error)
 	Close() error
 }
@@ -2129,13 +2129,13 @@ type TransitionOptions struct {
 
 // TransitionResult contains lifecycle transition results.
 type TransitionResult struct {
-	Success        bool                         `json:"success"`
-	FromStage      PackageRevisionLifecycle     `json:"fromStage"`
-	ToStage        PackageRevisionLifecycle     `json:"toStage"`
-	Duration       time.Duration                `json:"duration"`
-	RollbackPoint  *RollbackPoint              `json:"rollbackPoint,omitempty"`
-	Warnings       []string                    `json:"warnings,omitempty"`
-	Metadata       map[string]interface{}      `json:"metadata,omitempty"`
+	Success       bool                     `json:"success"`
+	FromStage     PackageRevisionLifecycle `json:"fromStage"`
+	ToStage       PackageRevisionLifecycle `json:"toStage"`
+	Duration      time.Duration            `json:"duration"`
+	RollbackPoint *RollbackPoint           `json:"rollbackPoint,omitempty"`
+	Warnings      []string                 `json:"warnings,omitempty"`
+	Metadata      map[string]interface{}   `json:"metadata,omitempty"`
 }
 
 // RollbackPoint represents a point-in-time snapshot for rollback.
@@ -2143,67 +2143,66 @@ type RollbackPoint struct {
 	ID          string                   `json:"id"`
 	PackageRef  *PackageReference        `json:"packageRef"`
 	Stage       PackageRevisionLifecycle `json:"stage"`
-	CreatedAt   *metav1.Time            `json:"createdAt"`
+	CreatedAt   *metav1.Time             `json:"createdAt"`
 	Description string                   `json:"description,omitempty"`
-	Resources   []KRMResource           `json:"resources"`
+	Resources   []KRMResource            `json:"resources"`
 	Metadata    map[string]interface{}   `json:"metadata,omitempty"`
 }
 
 // LifecycleManagerConfig configures the lifecycle manager.
 type LifecycleManagerConfig struct {
 	// Basic configuration
-	Name        string            `json:"name"`
-	Enabled     bool              `json:"enabled"`
-	MaxRetries  int               `json:"maxRetries,omitempty"`
-	Timeout     time.Duration     `json:"timeout,omitempty"`
-	
+	Name       string        `json:"name"`
+	Enabled    bool          `json:"enabled"`
+	MaxRetries int           `json:"maxRetries,omitempty"`
+	Timeout    time.Duration `json:"timeout,omitempty"`
+
 	// Package configuration
-	DefaultLifecycle        PackageRevisionLifecycle `json:"defaultLifecycle,omitempty"`
-	AutoCreateRollbacks     bool                    `json:"autoCreateRollbacks,omitempty"`
-	MaxRollbackPoints       int                     `json:"maxRollbackPoints,omitempty"`
-	
+	DefaultLifecycle    PackageRevisionLifecycle `json:"defaultLifecycle,omitempty"`
+	AutoCreateRollbacks bool                     `json:"autoCreateRollbacks,omitempty"`
+	MaxRollbackPoints   int                      `json:"maxRollbackPoints,omitempty"`
+
 	// Validation configuration
-	EnableValidation        bool     `json:"enableValidation,omitempty"`
-	ValidationTimeout       time.Duration `json:"validationTimeout,omitempty"`
-	RequiredValidators      []string `json:"requiredValidators,omitempty"`
-	
-	// Workflow configuration  
-	WorkflowEnabled         bool     `json:"workflowEnabled,omitempty"`
-	DefaultWorkflow         string   `json:"defaultWorkflow,omitempty"`
-	
+	EnableValidation   bool          `json:"enableValidation,omitempty"`
+	ValidationTimeout  time.Duration `json:"validationTimeout,omitempty"`
+	RequiredValidators []string      `json:"requiredValidators,omitempty"`
+
+	// Workflow configuration
+	WorkflowEnabled bool   `json:"workflowEnabled,omitempty"`
+	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
+
 	// Metrics and monitoring
-	MetricsEnabled          bool     `json:"metricsEnabled,omitempty"`
-	EnableMetrics           bool     `json:"enableMetrics,omitempty"`
-	HealthCheckInterval     time.Duration `json:"healthCheckInterval,omitempty"`
-	
+	MetricsEnabled      bool          `json:"metricsEnabled,omitempty"`
+	EnableMetrics       bool          `json:"enableMetrics,omitempty"`
+	HealthCheckInterval time.Duration `json:"healthCheckInterval,omitempty"`
+
 	// Event processing
-	EventQueueSize          int      `json:"eventQueueSize,omitempty"`
-	EventWorkers            int      `json:"eventWorkers,omitempty"`
-	
+	EventQueueSize int `json:"eventQueueSize,omitempty"`
+	EventWorkers   int `json:"eventWorkers,omitempty"`
+
 	// Locking configuration
-	LockCleanupInterval     time.Duration `json:"lockCleanupInterval,omitempty"`
-	DefaultLockTimeout      time.Duration `json:"defaultLockTimeout,omitempty"`
-	
+	LockCleanupInterval time.Duration `json:"lockCleanupInterval,omitempty"`
+	DefaultLockTimeout  time.Duration `json:"defaultLockTimeout,omitempty"`
+
 	// Advanced configuration
-	ParallelTransitions     bool     `json:"parallelTransitions,omitempty"`
-	TransitionConcurrency   int      `json:"transitionConcurrency,omitempty"`
-	StorageBackend         string   `json:"storageBackend,omitempty"`
+	ParallelTransitions   bool   `json:"parallelTransitions,omitempty"`
+	TransitionConcurrency int    `json:"transitionConcurrency,omitempty"`
+	StorageBackend        string `json:"storageBackend,omitempty"`
 }
 
 // LifecycleManagerHealth represents the health status of the lifecycle manager.
 type LifecycleManagerHealth struct {
-	Status             string                 `json:"status"`
-	Healthy            bool                   `json:"healthy"`
-	LastCheck          *metav1.Time          `json:"lastCheck"`
-	ActiveTransitions  int                    `json:"activeTransitions"`
-	TotalTransitions   int64                  `json:"totalTransitions"`
-	FailedTransitions  int64                  `json:"failedTransitions"`
-	AverageTransitionDuration time.Duration   `json:"averageTransitionDuration,omitempty"`
-	PendingRollbacks   int                    `json:"pendingRollbacks"`
-	Details            map[string]interface{} `json:"details,omitempty"`
-	Errors             []string               `json:"errors,omitempty"`
+	Status                    string                 `json:"status"`
+	Healthy                   bool                   `json:"healthy"`
+	LastCheck                 *metav1.Time           `json:"lastCheck"`
+	ActiveTransitions         int                    `json:"activeTransitions"`
+	TotalTransitions          int64                  `json:"totalTransitions"`
+	FailedTransitions         int64                  `json:"failedTransitions"`
+	AverageTransitionDuration time.Duration          `json:"averageTransitionDuration,omitempty"`
+	PendingRollbacks          int                    `json:"pendingRollbacks"`
+	Details                   map[string]interface{} `json:"details,omitempty"`
+	Errors                    []string               `json:"errors,omitempty"`
 }
-
 
 // Factory functions
 
@@ -2215,7 +2214,7 @@ func NewLifecycleManager(client *Client, config *LifecycleManagerConfig) (Lifecy
 	if client == nil {
 		return nil, fmt.Errorf("porch client cannot be nil")
 	}
-	
+
 	// For now, return a default implementation
 	// In a real implementation, this would return a concrete type that implements the interface
 	return &defaultLifecycleManager{
@@ -2310,14 +2309,14 @@ func (d *defaultLifecycleManager) Close() error {
 // FunctionExecutionRequest extends FunctionRequest with execution-specific details.
 type FunctionExecutionRequest struct {
 	*FunctionRequest
-	ExecutionID      string
-	Runtime          string
-	ResourceLimits   *FunctionResourceLimits
-	Timeout          time.Duration
-	Environment      map[string]string
-	WorkingDir       string
-	NetworkAccess    bool
-	Privileged       bool
+	ExecutionID    string
+	Runtime        string
+	ResourceLimits *FunctionResourceLimits
+	Timeout        time.Duration
+	Environment    map[string]string
+	WorkingDir     string
+	NetworkAccess  bool
+	Privileged     bool
 }
 
 // FunctionExecutionResult extends FunctionResponse with execution details.
@@ -2393,37 +2392,37 @@ type CacheStats struct {
 
 // ComplianceResult represents O-RAN compliance validation results.
 type ComplianceResult struct {
-	Compliant bool
+	Compliant  bool
 	Violations []ComplianceViolation
-	Warnings []ComplianceWarning
-	Score int
+	Warnings   []ComplianceWarning
+	Score      int
 }
 
 // ComplianceViolation represents a compliance violation.
 type ComplianceViolation struct {
-	Rule string
-	Severity string
+	Rule        string
+	Severity    string
 	Description string
-	Resource string
-	Field string
+	Resource    string
+	Field       string
 	Remediation string
 }
 
 // ComplianceWarning represents a compliance warning.
 type ComplianceWarning struct {
-	Rule string
+	Rule        string
 	Description string
-	Resource string
-	Field string
-	Suggestion string
+	Resource    string
+	Field       string
+	Suggestion  string
 }
 
 // NetworkFunctionSpec represents a network function specification.
 type NetworkFunctionSpec struct {
-	Type string
+	Type       string
 	Interfaces []ORANInterface
-	Resources map[string]interface{}
-	Metadata map[string]string
+	Resources  map[string]interface{}
+	Metadata   map[string]string
 }
 
 // GitClient interface for Git operations (placeholder for testing)
@@ -2439,7 +2438,7 @@ type functionRunner struct {
 	// Implementation details would be here
 }
 
-// repositoryManager - placeholder implementation type for testing 
+// repositoryManager - placeholder implementation type for testing
 type repositoryManager struct {
 	// Implementation details would be here
 }

@@ -11,7 +11,7 @@ import (
 // establishBaseline establishes baseline metrics
 func (s *SLAChaosTestSuite) establishBaseline(ctx context.Context, duration time.Duration) *SLABaseline {
 	s.T().Logf("Establishing baseline for %v", duration)
-	
+
 	// Simulate baseline establishment
 	baseline := &SLABaseline{
 		Availability:    99.95,
@@ -21,7 +21,7 @@ func (s *SLAChaosTestSuite) establishBaseline(ctx context.Context, duration time
 		MeasurementTime: time.Now(),
 		Duration:        duration,
 	}
-	
+
 	return baseline
 }
 
@@ -29,7 +29,7 @@ func (s *SLAChaosTestSuite) establishBaseline(ctx context.Context, duration time
 func (s *SLAChaosTestSuite) monitorSLADuringChaos(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -44,13 +44,13 @@ func (s *SLAChaosTestSuite) monitorSLADuringChaos(ctx context.Context) {
 // observeRecovery observes system recovery
 func (s *SLAChaosTestSuite) observeRecovery(ctx context.Context, duration time.Duration) {
 	s.T().Logf("Observing recovery for %v", duration)
-	
+
 	recoveryCtx, cancel := context.WithTimeout(ctx, duration)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-recoveryCtx.Done():
@@ -65,7 +65,7 @@ func (s *SLAChaosTestSuite) observeRecovery(ctx context.Context, duration time.D
 // validateChaosResilience validates system resilience after chaos
 func (s *SLAChaosTestSuite) validateChaosResilience(baseline *SLABaseline) {
 	s.T().Log("Validating chaos resilience")
-	
+
 	// Simulate resilience validation
 	s.Assert().NotNil(baseline, "Baseline should not be nil")
 	s.Assert().Greater(baseline.Availability, 99.0, "Baseline availability should be reasonable")
@@ -98,32 +98,32 @@ func (s *SLAChaosTestSuite) createCascadingFailureExperiment() *ChaosExperiment 
 // runExperimentWithAlertValidation runs experiment with alert validation
 func (s *SLAChaosTestSuite) runExperimentWithAlertValidation(ctx context.Context, experiment *ChaosExperiment, alertMonitor *AlertMonitor) *AlertExperimentResults {
 	s.T().Logf("Running experiment with alert validation: %s", experiment.Name)
-	
+
 	startTime := time.Now()
-	
+
 	// Start the experiment
 	runningExperiment, err := s.chaosEngine.StartExperiment(ctx, experiment)
 	s.Require().NoError(err, "Failed to start experiment")
-	
+
 	// Wait for experiment duration
 	time.Sleep(experiment.Duration)
-	
+
 	// Stop the experiment
 	err = s.chaosEngine.StopExperiment(ctx, runningExperiment.Experiment.ID)
 	s.Require().NoError(err, "Failed to stop experiment")
-	
+
 	endTime := time.Now()
 	s.T().Logf("Experiment duration: %v", endTime.Sub(startTime))
-	
+
 	return &AlertExperimentResults{
-		TotalAlerts:        10, // Mock data
-		ExpectedAlerts:     8,
-		ActualAlerts:       9,
-		FalsePositives:     1,
-		FalseNegatives:     0,
-		AlertAccuracy:      0.90,
-		ResponseTimes:      []time.Duration{30 * time.Second, 45 * time.Second},
-		AlertEvents:        make([]*AlertEvent, 0),
+		TotalAlerts:    10, // Mock data
+		ExpectedAlerts: 8,
+		ActualAlerts:   9,
+		FalsePositives: 1,
+		FalseNegatives: 0,
+		AlertAccuracy:  0.90,
+		ResponseTimes:  []time.Duration{30 * time.Second, 45 * time.Second},
+		AlertEvents:    make([]*AlertEvent, 0),
 		ValidationSummary: &AlertValidationResults{
 			TotalExpected:  8,
 			TotalActual:    9,
@@ -141,7 +141,7 @@ func (s *SLAChaosTestSuite) runExperimentWithAlertValidation(ctx context.Context
 // validateAlertAccuracy validates alert system accuracy
 func (s *SLAChaosTestSuite) validateAlertAccuracy(results *AlertExperimentResults) {
 	s.T().Log("Validating alert accuracy")
-	
+
 	s.Assert().NotNil(results, "Alert experiment results should not be nil")
 	s.Assert().GreaterOrEqual(results.AlertAccuracy, s.config.AlertAccuracyThreshold,
 		"Alert accuracy below threshold: %.2f%% < %.2f%%",
@@ -151,7 +151,7 @@ func (s *SLAChaosTestSuite) validateAlertAccuracy(results *AlertExperimentResult
 // validateFalsePositiveRate validates false positive rate
 func (s *SLAChaosTestSuite) validateFalsePositiveRate(results *AlertExperimentResults) {
 	s.T().Log("Validating false positive rate")
-	
+
 	falsePositiveRate := float64(results.FalsePositives) / float64(results.TotalAlerts)
 	s.Assert().Less(falsePositiveRate, s.config.FalsePositiveThreshold,
 		"False positive rate too high: %.2f%% >= %.2f%%",
@@ -161,7 +161,7 @@ func (s *SLAChaosTestSuite) validateFalsePositiveRate(results *AlertExperimentRe
 // validateAlertResponseTime validates alert response time
 func (s *SLAChaosTestSuite) validateAlertResponseTime(results *AlertExperimentResults) {
 	s.T().Log("Validating alert response time")
-	
+
 	for i, responseTime := range results.ResponseTimes {
 		s.Assert().Less(responseTime, 2*time.Minute,
 			"Alert %d response time too slow: %v", i, responseTime)
@@ -171,10 +171,10 @@ func (s *SLAChaosTestSuite) validateAlertResponseTime(results *AlertExperimentRe
 // runDataConsistencyExperiment runs data consistency experiments
 func (s *SLAChaosTestSuite) runDataConsistencyExperiment(ctx context.Context, experiment string, monitor *DataConsistencyMonitor) {
 	s.T().Logf("Running data consistency experiment: %s", experiment)
-	
+
 	// Simulate data consistency experiment
 	time.Sleep(30 * time.Second)
-	
+
 	consistency := monitor.GetConsistencyScore()
 	s.T().Logf("Data consistency score for %s: %.2f%%", experiment, consistency*100)
 }
@@ -182,30 +182,30 @@ func (s *SLAChaosTestSuite) runDataConsistencyExperiment(ctx context.Context, ex
 // validateRecoveryMeasurement validates recovery measurement accuracy
 func (s *SLAChaosTestSuite) validateRecoveryMeasurement(ctx context.Context, scenario *RecoveryScenario) {
 	s.T().Logf("Validating recovery measurement for scenario: %s", scenario.Name)
-	
+
 	// Track recovery
 	recoveryID := s.recoveryTracker.TrackRecovery("test-component", scenario.FailureType)
-	
+
 	// Simulate failure and recovery
 	time.Sleep(scenario.ExpectedRecovery)
-	
+
 	// Complete recovery tracking
 	s.recoveryTracker.CompleteRecovery(recoveryID, true)
-	
+
 	s.T().Logf("Recovery scenario %s completed", scenario.Name)
 }
 
 // testPartialFailureScenario tests partial failure scenarios
 func (s *SLAChaosTestSuite) testPartialFailureScenario(ctx context.Context, scenario PartialFailureScenario) {
 	s.T().Logf("Testing partial failure scenario: %s", scenario.Name)
-	
+
 	// Simulate partial failure
 	s.T().Logf("Affecting nodes: %v", scenario.AffectedNodes)
 	s.T().Logf("Healthy nodes: %v", scenario.HealthyNodes)
-	
+
 	// Wait for scenario duration
 	time.Sleep(2 * time.Minute)
-	
+
 	// Validate expected SLA
 	for metric, expectedValue := range scenario.ExpectedSLA {
 		s.T().Logf("Expected %s: %.1f%%", metric, expectedValue)
@@ -217,7 +217,7 @@ func (s *SLAChaosTestSuite) testPartialFailureScenario(ctx context.Context, scen
 func (s *SLAChaosTestSuite) generateBenignLoadVariations(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -232,9 +232,9 @@ func (s *SLAChaosTestSuite) generateBenignLoadVariations(ctx context.Context) {
 // runMixedChaosExperiments runs mixed chaos experiments
 func (s *SLAChaosTestSuite) runMixedChaosExperiments(ctx context.Context) *AlertExperimentResults {
 	s.T().Log("Running mixed chaos experiments")
-	
+
 	experiments := []string{"component_failure", "network_partition", "resource_exhaustion"}
-	
+
 	for _, expType := range experiments {
 		experiment := s.getChaosExperiment(expType)
 		if experiment != nil {
@@ -245,7 +245,7 @@ func (s *SLAChaosTestSuite) runMixedChaosExperiments(ctx context.Context) *Alert
 			}
 		}
 	}
-	
+
 	return &AlertExperimentResults{
 		TotalAlerts:    15,
 		ExpectedAlerts: 12,
@@ -290,7 +290,7 @@ func (s *SLAChaosTestSuite) getChaosExperiment(experimentType string) *ChaosExpe
 			},
 		},
 	}
-	
+
 	return experiments[experimentType]
 }
 
@@ -309,11 +309,11 @@ func (s *SLAChaosTestSuite) recordExperimentResults(runningExp *RunningExperimen
 // generateChaosTestReport generates a chaos test report
 func (s *SLAChaosTestSuite) generateChaosTestReport() {
 	s.T().Log("Generating chaos test report")
-	
+
 	totalExperiments := s.activeExperiments.Load()
 	totalFailures := s.totalFailures.Load()
 	totalRecoveries := s.recoveryEvents.Load()
-	
+
 	s.T().Logf("Chaos Test Summary:")
 	s.T().Logf("  Total Experiments: %d", totalExperiments)
 	s.T().Logf("  Total Failures: %d", totalFailures)

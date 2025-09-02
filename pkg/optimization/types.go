@@ -113,7 +113,7 @@ func NewHistoricalDataStore(retentionPeriod time.Duration) *HistoricalDataStore 
 	}
 }
 
-// NewPatternDetector creates a new pattern detector  
+// NewPatternDetector creates a new pattern detector
 func NewPatternDetector(sensitivity float64, window time.Duration) *PatternDetector {
 	return &PatternDetector{
 		window:      window,
@@ -126,7 +126,7 @@ func NewPatternDetector(sensitivity float64, window time.Duration) *PatternDetec
 func NewBottleneckPredictor(predictionHorizon time.Duration) *BottleneckPredictor {
 	return &BottleneckPredictor{
 		predictionHorizon: predictionHorizon,
-		models:           make(map[string]interface{}),
+		models:            make(map[string]interface{}),
 	}
 }
 
@@ -1581,7 +1581,7 @@ type BenchmarkEnvironment struct {
 
 // MetricsStore stores metrics data for analysis
 type MetricsStore struct {
-	data map[string]interface{}
+	data  map[string]interface{}
 	mutex sync.RWMutex
 }
 
@@ -1594,18 +1594,18 @@ type HistoricalDataStore struct {
 
 // PatternDetector detects patterns in performance data
 type PatternDetector struct {
-	window              time.Duration
-	sensitivity         float64
-	patterns            []*PerformancePattern
-	mutex               sync.RWMutex
+	window      time.Duration
+	sensitivity float64
+	patterns    []*PerformancePattern
+	mutex       sync.RWMutex
 }
 
 // BottleneckPredictor predicts performance bottlenecks using ML
 type BottleneckPredictor struct {
-	config             *AnalysisConfig
-	logger             logr.Logger
-	predictionHorizon  time.Duration
-	models             map[string]interface{}
+	config            *AnalysisConfig
+	logger            logr.Logger
+	predictionHorizon time.Duration
+	models            map[string]interface{}
 }
 
 // Note: DataPoint type already exists in optimization_dashboard.go
@@ -1617,17 +1617,17 @@ type BottleneckPredictor struct {
 
 // RiskAssessment represents a comprehensive risk assessment
 type RiskAssessment struct {
-	OverallRiskLevel     RiskLevel                 `json:"overallRiskLevel"`
-	ImplementationRisk   float64                   `json:"implementationRisk"`
-	PerformanceRisk      float64                   `json:"performanceRisk"`
-	AvailabilityRisk     float64                   `json:"availabilityRisk"`
-	SecurityRisk         float64                   `json:"securityRisk"`
-	ComplianceRisk       float64                   `json:"complianceRisk"`
-	IdentifiedRisks      []string                  `json:"identifiedRisks"`
-	MitigationStrategies []MitigationStrategy      `json:"mitigationStrategies"`
-	RiskScoreBreakdown   map[string]float64        `json:"riskScoreBreakdown"`
-	AssessmentTimestamp  time.Time                 `json:"assessmentTimestamp"`
-	ValidityPeriod       time.Duration             `json:"validityPeriod"`
+	OverallRiskLevel     RiskLevel            `json:"overallRiskLevel"`
+	ImplementationRisk   float64              `json:"implementationRisk"`
+	PerformanceRisk      float64              `json:"performanceRisk"`
+	AvailabilityRisk     float64              `json:"availabilityRisk"`
+	SecurityRisk         float64              `json:"securityRisk"`
+	ComplianceRisk       float64              `json:"complianceRisk"`
+	IdentifiedRisks      []string             `json:"identifiedRisks"`
+	MitigationStrategies []MitigationStrategy `json:"mitigationStrategies"`
+	RiskScoreBreakdown   map[string]float64   `json:"riskScoreBreakdown"`
+	AssessmentTimestamp  time.Time            `json:"assessmentTimestamp"`
+	ValidityPeriod       time.Duration        `json:"validityPeriod"`
 }
 
 // HealthStatus represents the health status of a component
@@ -1645,7 +1645,7 @@ const (
 type MitigationStrategy struct {
 	Name            string        `json:"name"`
 	Description     string        `json:"description"`
-	Effectiveness   float64       `json:"effectiveness"`   // 0.0 to 1.0
+	Effectiveness   float64       `json:"effectiveness"` // 0.0 to 1.0
 	Cost            float64       `json:"cost"`
 	TimeToImplement time.Duration `json:"timeToImplement"`
 	Priority        int           `json:"priority"`
@@ -1654,25 +1654,25 @@ type MitigationStrategy struct {
 }
 
 // OptimizationStrategyConfig represents a complete optimization strategy configuration
-// Note: OptimizationStrategy already exists as a string type in ai_configuration_tuner.go  
+// Note: OptimizationStrategy already exists as a string type in ai_configuration_tuner.go
 type OptimizationStrategyConfig struct {
-	ID                  string                    `json:"id"`
-	Name                string                    `json:"name"`
-	Description         string                    `json:"description"`
-	Category            OptimizationCategory      `json:"category"`
-	TargetComponent     ComponentType             `json:"targetComponent"`
-	Priority            OptimizationPriority      `json:"priority"`
-	ExpectedBenefits    *ExpectedBenefits         `json:"expectedBenefits"`
-	ImplementationSteps []ImplementationStep      `json:"implementationSteps"`
-	RiskFactors         []string                  `json:"riskFactors"`
-	RiskLevel           RiskLevel                 `json:"riskLevel"`
-	Confidence          float64                   `json:"confidence"`
-	EstimatedDuration   time.Duration             `json:"estimatedDuration"`
-	ValidationCriteria  []string                  `json:"validationCriteria"`
-	RollbackPlan        string                    `json:"rollbackPlan"`
-	ApprovalRequired    bool                      `json:"approvalRequired"`
-	CreatedAt           time.Time                 `json:"createdAt"`
-	UpdatedAt           time.Time                 `json:"updatedAt"`
+	ID                  string               `json:"id"`
+	Name                string               `json:"name"`
+	Description         string               `json:"description"`
+	Category            OptimizationCategory `json:"category"`
+	TargetComponent     ComponentType        `json:"targetComponent"`
+	Priority            OptimizationPriority `json:"priority"`
+	ExpectedBenefits    *ExpectedBenefits    `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep `json:"implementationSteps"`
+	RiskFactors         []string             `json:"riskFactors"`
+	RiskLevel           RiskLevel            `json:"riskLevel"`
+	Confidence          float64              `json:"confidence"`
+	EstimatedDuration   time.Duration        `json:"estimatedDuration"`
+	ValidationCriteria  []string             `json:"validationCriteria"`
+	RollbackPlan        string               `json:"rollbackPlan"`
+	ApprovalRequired    bool                 `json:"approvalRequired"`
+	CreatedAt           time.Time            `json:"createdAt"`
+	UpdatedAt           time.Time            `json:"updatedAt"`
 }
 
 // Note: PerformanceBaseline already exists in automated_optimization_pipeline.go

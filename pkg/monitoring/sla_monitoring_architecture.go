@@ -605,7 +605,7 @@ func NewSLAMonitoringArchitecture(
 		Period:     24 * time.Hour,
 		Amplitude:  1.0,
 	}
-	
+
 	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(prometheus.DefaultRegisterer, *detector)
 
 	// Initialize Data Collection and Processing.

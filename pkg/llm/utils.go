@@ -38,7 +38,7 @@ func ExtractKeywords(intent string) []string {
 	// This is a simplified keyword extraction
 	// In a real implementation, you might use NLP libraries
 	keywords := []string{}
-	
+
 	// Common network function keywords
 	nfKeywords := []string{
 		"UPF", "AMF", "SMF", "PCF", "UDM", "AUSF", "NRF", "NSSF",
@@ -46,51 +46,51 @@ func ExtractKeywords(intent string) []string {
 		"deploy", "scale", "update", "delete", "configure",
 		"replicas", "resources", "cpu", "memory",
 	}
-	
+
 	intentLower := strings.ToLower(intent)
 	for _, keyword := range nfKeywords {
 		if strings.Contains(intentLower, strings.ToLower(keyword)) {
 			keywords = append(keywords, keyword)
 		}
 	}
-	
+
 	return keywords
 }
 
 // ValidateNetworkFunction checks if a network function name is valid
 func ValidateNetworkFunction(nf string) bool {
 	validNFs := map[string]bool{
-		"UPF":        true,
-		"AMF":        true,
-		"SMF":        true,
-		"PCF":        true,
-		"UDM":        true,
-		"AUSF":       true,
-		"NRF":        true,
-		"NSSF":       true,
+		"UPF":         true,
+		"AMF":         true,
+		"SMF":         true,
+		"PCF":         true,
+		"UDM":         true,
+		"AUSF":        true,
+		"NRF":         true,
+		"NSSF":        true,
 		"Near-RT-RIC": true,
-		"O-DU":       true,
-		"O-CU":       true,
-		"O-RU":       true,
+		"O-DU":        true,
+		"O-CU":        true,
+		"O-RU":        true,
 	}
-	
+
 	return validNFs[nf]
 }
 
 // EstimateProcessingTime estimates how long processing will take
 func EstimateProcessingTime(intent string, enableEnrichment bool) time.Duration {
 	baseTime := 100 * time.Millisecond
-	
+
 	// Add time based on intent complexity
 	if len(intent) > 500 {
 		baseTime += 50 * time.Millisecond
 	}
-	
+
 	// Add time for enrichment
 	if enableEnrichment {
 		baseTime += 200 * time.Millisecond
 	}
-	
+
 	return baseTime
 }
 
@@ -99,13 +99,13 @@ func FormatValidationErrors(errors []PipelineValidationError) string {
 	if len(errors) == 0 {
 		return ""
 	}
-	
+
 	result := "Validation errors:\n"
 	for i, err := range errors {
-		result += fmt.Sprintf("%d. [%s] %s: %s\n", 
+		result += fmt.Sprintf("%d. [%s] %s: %s\n",
 			i+1, err.Severity, err.Field, err.Message)
 	}
-	
+
 	return result
 }
 
@@ -114,7 +114,7 @@ func CalculateConfidenceScore(classification ClassificationResult, validation Pi
 	if !validation.Valid {
 		return 0.0
 	}
-	
+
 	// Combine classification confidence with validation score
 	return (classification.Confidence + validation.Score) / 2.0
 }

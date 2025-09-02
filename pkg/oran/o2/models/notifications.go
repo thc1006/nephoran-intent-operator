@@ -27,7 +27,7 @@ type Alarm struct {
 	ResourceID     string                 `json:"resourceId"`
 	AlarmType      string                 `json:"alarmType"`
 	Severity       string                 `json:"severity"`
-	Status         string                 `json:"status"` // ACTIVE, CLEARED, ACKNOWLEDGED
+	Status         string                 `json:"status"`     // ACTIVE, CLEARED, ACKNOWLEDGED
 	AlarmState     string                 `json:"alarmState"` // Alternative field for alarm state
 	Message        string                 `json:"message"`
 	Description    string                 `json:"description,omitempty"`
@@ -74,13 +74,13 @@ type AlarmAcknowledgementRequest struct {
 
 // AlarmClearRequest represents a request to clear an alarm
 type AlarmClearRequest struct {
-	ClearedBy   string                 `json:"clearedBy"`
-	ClearUser   string                 `json:"clearUser"`
-	ClearSystemId string               `json:"clearSystemId,omitempty"`
-	ClearReason string                 `json:"clearReason,omitempty"`
-	Message     string                 `json:"message,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+	ClearedBy     string                 `json:"clearedBy"`
+	ClearUser     string                 `json:"clearUser"`
+	ClearSystemId string                 `json:"clearSystemId,omitempty"`
+	ClearReason   string                 `json:"clearReason,omitempty"`
+	Message       string                 `json:"message,omitempty"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Extensions    map[string]interface{} `json:"extensions,omitempty"`
 }
 
 // Constants for alarm management

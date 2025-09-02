@@ -4,37 +4,43 @@ import (
 	"context"
 	"testing"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Basic test to verify our fixed types compile correctly
 func TestBasicTypesCompilation(t *testing.T) {
 	// Test Document type alias compatibility
-	var telecomDoc TelecomDocument
+	var telecomDoc shared.TelecomDocument
 	telecomDoc.ID = "test-id"
 	telecomDoc.Content = "test content"
 
-	// Should be assignable to types.TelecomDocument
-	var typesDoc types.TelecomDocument = telecomDoc
-	if typesDoc.ID != "test-id" {
-		t.Errorf("Expected ID to be test-id, got %s", typesDoc.ID)
+	// Should be assignable to shared.TelecomDocument
+	if telecomDoc.ID != "test-id" {
+		t.Errorf("Expected ID to be test-id, got %s", telecomDoc.ID)
 	}
 
-	// Test WeaviateClient stub methods
-	client := &WeaviateClient{}
+	// Test WeaviateClient stub methods  
+	config := &WeaviateConfig{
+		Host: "localhost",
+		Scheme: "http",
+	}
+	client, err := NewWeaviateClient(config)
+	if err != nil {
+		t.Errorf("Expected no error creating client, got %v", err)
+	}
 	ctx := context.Background()
 
 	// AddDocument should not panic
-	err := client.AddDocument(ctx, &telecomDoc)
+	err = client.AddDocument(ctx, &telecomDoc)
 	if err != nil {
 		t.Errorf("AddDocument should not error for stub, got %v", err)
 	}
 
 	// Test RAG client creation
-	config := &RAGClientConfig{
+	ragConfig := &RAGClientConfig{
 		Enabled: false,
 	}
-	ragClient := NewRAGClient(config)
+	ragClient := NewRAGClient(ragConfig)
 	if ragClient == nil {
 		t.Error("NewRAGClient should not return nil")
 	}

@@ -58,7 +58,7 @@ type ProductionLoadTestResult struct {
 	Throughput          float64                    `json:"throughput"`
 	ErrorRate           float64                    `json:"error_rate"`
 	ScenarioResults     map[string]*ScenarioResult `json:"scenario_results"`
-	ResourceUtilization *ProductionResourceMetrics           `json:"resource_utilization"`
+	ResourceUtilization *ProductionResourceMetrics `json:"resource_utilization"`
 	SystemPerformance   *SystemMetrics             `json:"system_performance"`
 }
 

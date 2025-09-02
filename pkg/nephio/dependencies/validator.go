@@ -670,7 +670,6 @@ const (
 	RiskLevelCritical RiskLevel = "critical"
 )
 
-
 // ErrorType defines validation error types.
 
 type ErrorType string
@@ -3120,30 +3119,30 @@ func (v *dependencyValidator) updateValidationMetrics(result *ValidationResult) 
 
 // SecurityValidation contains security validation results
 type SecurityValidation struct {
-	Valid         bool        `json:"valid"`
-	SecurityScore float64     `json:"securityScore"`
-	Issues        []string    `json:"issues,omitempty"`
-	ValidatedAt   time.Time   `json:"validatedAt"`
+	Valid         bool      `json:"valid"`
+	SecurityScore float64   `json:"securityScore"`
+	Issues        []string  `json:"issues,omitempty"`
+	ValidatedAt   time.Time `json:"validatedAt"`
 }
 
 // ResourceValidation contains resource validation results
 type ResourceValidation struct {
-	Valid       bool                         `json:"valid"`
-	Score       float64                      `json:"score"`
-	Limits      *ResourceLimits              `json:"limits,omitempty"`
-	Issues      []*ResourceValidationIssue   `json:"issues,omitempty"`
-	ValidatedAt time.Time                    `json:"validatedAt"`
+	Valid       bool                       `json:"valid"`
+	Score       float64                    `json:"score"`
+	Limits      *ResourceLimits            `json:"limits,omitempty"`
+	Issues      []*ResourceValidationIssue `json:"issues,omitempty"`
+	ValidatedAt time.Time                  `json:"validatedAt"`
 }
 
 // BreakingChangeReport is defined in basic_types.go
 
 // UpgradeValidation contains upgrade validation results
 type UpgradeValidation struct {
-	Valid           bool                        `json:"valid"`
-	UpgradeScore    float64                     `json:"upgradeScore"`
-	Issues          []*UpgradeValidationIssue   `json:"issues,omitempty"`
-	ValidatedAt     time.Time                   `json:"validatedAt"`
-	RiskAssessment  *RiskAssessment            `json:"riskAssessment,omitempty"`
+	Valid          bool                      `json:"valid"`
+	UpgradeScore   float64                   `json:"upgradeScore"`
+	Issues         []*UpgradeValidationIssue `json:"issues,omitempty"`
+	ValidatedAt    time.Time                 `json:"validatedAt"`
+	RiskAssessment *RiskAssessment           `json:"riskAssessment,omitempty"`
 }
 
 // ArchitecturalConstraints defines architectural constraints
@@ -3153,16 +3152,16 @@ type ArchitecturalConstraints struct {
 
 // ArchitecturalValidation contains architectural validation results
 type ArchitecturalValidation struct {
-	Valid       bool                               `json:"valid"`
-	Score       float64                            `json:"score"`
-	Constraints *ArchitecturalConstraints          `json:"constraints,omitempty"`
-	Issues      []*ArchitecturalValidationIssue    `json:"issues,omitempty"`
-	ValidatedAt time.Time                          `json:"validatedAt"`
+	Valid       bool                            `json:"valid"`
+	Score       float64                         `json:"score"`
+	Constraints *ArchitecturalConstraints       `json:"constraints,omitempty"`
+	Issues      []*ArchitecturalValidationIssue `json:"issues,omitempty"`
+	ValidatedAt time.Time                       `json:"validatedAt"`
 }
 
 // VersionConflict represents a version conflict
 type VersionConflict struct {
-	Package string `json:"package"`
+	Package  string   `json:"package"`
 	Versions []string `json:"versions"`
 }
 
@@ -3176,6 +3175,6 @@ type LicenseConflict struct {
 
 // ConflictResolutionStrategy represents a conflict resolution strategy
 type ConflictResolutionStrategy struct {
-	Type string `json:"type"`
+	Type        string `json:"type"`
 	Description string `json:"description"`
 }

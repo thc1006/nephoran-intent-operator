@@ -163,19 +163,19 @@ type TLSMetricsCollector struct {
 // TLSSecurityEvent represents a TLS security-related event.
 
 type TLSSecurityEvent struct {
-	Timestamp   time.Time
+	Timestamp time.Time
 
-	EventType   string
+	EventType string
 
-	ClientAddr  string
+	ClientAddr string
 
 	CertSubject string
 
-	TLSVersion  uint16
+	TLSVersion uint16
 
 	CipherSuite uint16
 
-	Details     map[string]interface{}
+	Details map[string]interface{}
 }
 
 // SecurityFailure represents a security failure event.
@@ -185,11 +185,11 @@ type SecurityFailure struct {
 
 	FailureType string
 
-	ClientAddr  string
+	ClientAddr string
 
-	Error       error
+	Error error
 
-	Context     map[string]interface{}
+	Context map[string]interface{}
 }
 
 // OCSPCache provides caching for OCSP responses.
@@ -207,7 +207,7 @@ type OCSPCache struct {
 // CachedOCSPResponse represents a cached OCSP response.
 
 type CachedOCSPResponse struct {
-	response  *ocsp.Response
+	response *ocsp.Response
 
 	timestamp time.Time
 }
@@ -521,7 +521,7 @@ func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][
 			issuer = parsed
 		}
 	}
-	
+
 	// Fall back to using the cert as issuer (self-signed case)
 	if issuer == nil {
 		issuer = cert
@@ -606,7 +606,7 @@ func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][
 
 	c.OCSPCache.cache[string(cert.SerialNumber.Bytes())] = &CachedOCSPResponse{
 
-		response:  ocspResp,
+		response: ocspResp,
 
 		timestamp: time.Now(),
 	}
@@ -701,7 +701,7 @@ func (c *TLSEnhancedConfig) checkCertificatePinning(cert *x509.Certificate) erro
 
 	certPEM := pem.EncodeToMemory(&pem.Block{
 
-		Type:  "CERTIFICATE",
+		Type: "CERTIFICATE",
 
 		Bytes: cert.Raw,
 	})
@@ -730,7 +730,7 @@ func (c *TLSEnhancedConfig) checkCertificatePinning(cert *x509.Certificate) erro
 
 	pubKeyPEM := pem.EncodeToMemory(&pem.Block{
 
-		Type:  "PUBLIC KEY",
+		Type: "PUBLIC KEY",
 
 		Bytes: pubKeyDER,
 	})
@@ -859,17 +859,17 @@ func (c *TLSEnhancedConfig) reportSecurityEvent(eventType, clientAddr string, ce
 
 		event := TLSSecurityEvent{
 
-			Timestamp:   time.Now(),
+			Timestamp: time.Now(),
 
-			EventType:   eventType,
+			EventType: eventType,
 
-			ClientAddr:  clientAddr,
+			ClientAddr: clientAddr,
 
-			TLSVersion:  tlsVersion,
+			TLSVersion: tlsVersion,
 
 			CipherSuite: cipherSuite,
 
-			Details:     details,
+			Details: details,
 		}
 
 		if cert != nil {
@@ -892,15 +892,15 @@ func (c *TLSEnhancedConfig) reportSecurityFailure(failureType, clientAddr string
 
 		failure := SecurityFailure{
 
-			Timestamp:   time.Now(),
+			Timestamp: time.Now(),
 
 			FailureType: failureType,
 
-			ClientAddr:  clientAddr,
+			ClientAddr: clientAddr,
 
-			Error:       err,
+			Error: err,
 
-			Context:     context,
+			Context: context,
 		}
 
 		c.FailureCallback(failure)
@@ -1099,16 +1099,16 @@ func (c *TLSEnhancedConfig) WrapHTTPTransport(transport *http.Transport) error {
 func (c *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.successfulHandshakes++
-	
+
 	if c.tlsVersionUsage == nil {
 		c.tlsVersionUsage = make(map[uint16]uint64)
 	}
 	if c.cipherSuiteUsage == nil {
 		c.cipherSuiteUsage = make(map[uint16]uint64)
 	}
-	
+
 	c.tlsVersionUsage[version]++
 	c.cipherSuiteUsage[cipherSuite]++
 }

@@ -88,7 +88,7 @@ var _ = Describe("SecurityScanner", func() {
 			},
 		}
 
-		scanner = NewSecurityScanner(config)
+		scanner = NewSecurityScannerForTest(config)
 	})
 
 	AfterEach(func() {
@@ -100,7 +100,7 @@ var _ = Describe("SecurityScanner", func() {
 	Describe("NewSecurityScanner", func() {
 		Context("when creating a new scanner", func() {
 			It("should create scanner with provided configuration", func() {
-				s := NewSecurityScanner(config)
+				s := NewSecurityScannerForTest(config)
 				Expect(s).NotTo(BeNil())
 				Expect(s.config).To(Equal(config))
 				Expect(s.client).NotTo(BeNil())
@@ -116,7 +116,7 @@ var _ = Describe("SecurityScanner", func() {
 			})
 
 			It("should initialize results structure", func() {
-				s := NewSecurityScanner(config)
+				s := NewSecurityScannerForTest(config)
 				Expect(s.results.ScanID).NotTo(BeEmpty())
 				Expect(s.results.Vulnerabilities).NotTo(BeNil())
 				Expect(s.results.OpenPorts).NotTo(BeNil())
@@ -167,7 +167,7 @@ var _ = Describe("SecurityScanner", func() {
 				config.EnableOWASPTesting = false
 				config.EnableAuthTesting = false
 				config.EnableInjectionTesting = false
-				scanner = NewSecurityScanner(config)
+				scanner = NewSecurityScannerForTest(config)
 			})
 
 			It("should still complete scan", func() {

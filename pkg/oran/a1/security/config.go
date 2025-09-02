@@ -6,28 +6,28 @@ package security
 type SecurityConfig struct {
 	// Authentication configuration (uses AuthConfig from auth.go)
 	Authentication *AuthConfig `json:"authentication,omitempty"`
-	
+
 	// mTLS configuration (uses MTLSConfig from mtls.go)
 	MTLS *MTLSConfig `json:"mtls,omitempty"`
-	
+
 	// Encryption configuration (uses EncryptionConfig from encryption.go)
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
-	
+
 	// Input sanitization configuration (uses SanitizationConfig from sanitization.go)
 	Sanitization *SanitizationConfig `json:"sanitization,omitempty"`
-	
+
 	// Audit logging configuration (uses AuditConfig from audit.go)
 	Audit *AuditConfig `json:"audit,omitempty"`
-	
+
 	// Rate limiting configuration (uses RateLimitConfig from ratelimit.go)
 	RateLimit *RateLimitConfig `json:"rate_limit,omitempty"`
-	
+
 	// Security headers configuration (uses HeadersConfig from middleware.go)
 	SecurityHeaders *HeadersConfig `json:"security_headers,omitempty"`
-	
+
 	// CORS configuration (uses CORSConfig from middleware.go)
 	CORS *CORSConfig `json:"cors,omitempty"`
-	
+
 	// CSRF configuration (uses CSRFConfig from middleware.go)
 	CSRF *CSRFConfig `json:"csrf,omitempty"`
 }

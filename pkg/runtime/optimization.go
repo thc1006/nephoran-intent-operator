@@ -12,7 +12,7 @@ import (
 )
 
 // Go 1.24.8 Swiss Tables runtime optimization
-//go:linkname procyield runtime.procyield  
+//go:linkname procyield runtime.procyield
 //go:linkname osyield runtime.osyield
 
 func procyield(cycles uint32)
@@ -20,59 +20,59 @@ func osyield()
 
 // OptimizationConfig holds runtime optimization settings for Go 1.24.8
 type OptimizationConfig struct {
-	// GOMAXPROCS configuration 
-	MaxProcs            int     `json:"max_procs"`
-	AutoTuneMaxProcs    bool    `json:"auto_tune_max_procs"`
-	MaxProcsMultiplier  float64 `json:"max_procs_multiplier"`
-	
+	// GOMAXPROCS configuration
+	MaxProcs           int     `json:"max_procs"`
+	AutoTuneMaxProcs   bool    `json:"auto_tune_max_procs"`
+	MaxProcsMultiplier float64 `json:"max_procs_multiplier"`
+
 	// Garbage collector tuning
-	GCPercent           int     `json:"gc_percent"`  
-	GCTarget            int64   `json:"gc_target"`
-	MemoryLimitPercent  int     `json:"memory_limit_percent"`
-	
+	GCPercent          int   `json:"gc_percent"`
+	GCTarget           int64 `json:"gc_target"`
+	MemoryLimitPercent int   `json:"memory_limit_percent"`
+
 	// Swiss Tables optimization
-	SwissTablesEnabled  bool    `json:"swiss_tables_enabled"`
-	MapPreallocation    bool    `json:"map_preallocation"`
-	MapLoadFactor       float64 `json:"map_load_factor"`
-	
+	SwissTablesEnabled bool    `json:"swiss_tables_enabled"`
+	MapPreallocation   bool    `json:"map_preallocation"`
+	MapLoadFactor      float64 `json:"map_load_factor"`
+
 	// CPU optimization
-	CPUProfileEnabled   bool    `json:"cpu_profile_enabled"`
-	MemProfileEnabled   bool    `json:"mem_profile_enabled"`
-	PGOEnabled          bool    `json:"pgo_enabled"`
-	
+	CPUProfileEnabled bool `json:"cpu_profile_enabled"`
+	MemProfileEnabled bool `json:"mem_profile_enabled"`
+	PGOEnabled        bool `json:"pgo_enabled"`
+
 	// August 2025 specific optimizations
-	PacerOptimization   bool    `json:"pacer_optimization"`
-	CoverageRedesign    bool    `json:"coverage_redesign"`
+	PacerOptimization bool `json:"pacer_optimization"`
+	CoverageRedesign  bool `json:"coverage_redesign"`
 }
 
 // DefaultOptimizationConfig returns optimized settings for Nephoran
 func DefaultOptimizationConfig() *OptimizationConfig {
 	numCPU := runtime.NumCPU()
-	
+
 	// Optimal GOMAXPROCS for containerized workloads
 	maxProcs := numCPU
 	if numCPU > 8 {
 		// For high-core systems, use slightly fewer cores to reduce contention
 		maxProcs = int(float64(numCPU) * 0.9)
 	}
-	
+
 	return &OptimizationConfig{
-		MaxProcs:            maxProcs,
-		AutoTuneMaxProcs:    true,
-		MaxProcsMultiplier:  0.9,
-		
-		GCPercent:          75, // Slightly more aggressive GC for memory-constrained environments
+		MaxProcs:           maxProcs,
+		AutoTuneMaxProcs:   true,
+		MaxProcsMultiplier: 0.9,
+
+		GCPercent:          75,      // Slightly more aggressive GC for memory-constrained environments
 		GCTarget:           4 << 20, // 4MB target
 		MemoryLimitPercent: 80,
-		
+
 		SwissTablesEnabled: true,
 		MapPreallocation:   true,
 		MapLoadFactor:      0.6, // Lower load factor for better performance
-		
+
 		CPUProfileEnabled: false,
 		MemProfileEnabled: false,
 		PGOEnabled:        true,
-		
+
 		PacerOptimization: true,
 		CoverageRedesign:  true,
 	}
@@ -83,7 +83,7 @@ func ApplyOptimizations(config *OptimizationConfig) error {
 	if config == nil {
 		config = DefaultOptimizationConfig()
 	}
-	
+
 	// Set GOMAXPROCS with intelligent tuning
 	if config.AutoTuneMaxProcs {
 		optimalProcs := calculateOptimalGOMAXPROCS()
@@ -91,35 +91,35 @@ func ApplyOptimizations(config *OptimizationConfig) error {
 	} else if config.MaxProcs > 0 {
 		runtime.GOMAXPROCS(config.MaxProcs)
 	}
-	
+
 	// Configure garbage collector
 	if config.GCPercent >= 0 {
 		debug.SetGCPercent(config.GCPercent)
 	}
-	
+
 	// Set memory target (Go 1.24.8 feature)
 	if config.GCTarget > 0 {
 		debug.SetMemoryLimit(config.GCTarget * int64(config.MemoryLimitPercent) / 100)
 	}
-	
+
 	// Configure runtime for Swiss Tables (Go 1.24.8)
 	if config.SwissTablesEnabled {
 		enableSwissTablesOptimizations()
 	}
-	
+
 	return nil
 }
 
 // calculateOptimalGOMAXPROCS determines the best GOMAXPROCS value
 func calculateOptimalGOMAXPROCS() int {
 	numCPU := runtime.NumCPU()
-	
+
 	// Container detection - check for cgroup limits
 	if limit := getContainerCPULimit(); limit > 0 && limit < float64(numCPU) {
 		// Use container CPU limit as basis
 		return int(limit)
 	}
-	
+
 	// Physical vs logical CPU consideration
 	switch {
 	case numCPU <= 2:
@@ -157,19 +157,19 @@ func TuneForTelcoWorkloads() error {
 		MaxProcs:           runtime.NumCPU(),
 		AutoTuneMaxProcs:   true,
 		MaxProcsMultiplier: 1.0, // Use all cores for telecom processing
-		
-		GCPercent:          50, // More frequent GC for consistent latency
+
+		GCPercent:          50,      // More frequent GC for consistent latency
 		GCTarget:           8 << 20, // 8MB target for real-time processing
 		MemoryLimitPercent: 90,
-		
+
 		SwissTablesEnabled: true,
 		MapPreallocation:   true,
 		MapLoadFactor:      0.5, // Lower load factor for deterministic performance
-		
+
 		PGOEnabled:        true,
 		PacerOptimization: true,
 	}
-	
+
 	return ApplyOptimizations(config)
 }
 
@@ -177,7 +177,7 @@ func TuneForTelcoWorkloads() error {
 func GetRuntimeStats() map[string]interface{} {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	return map[string]interface{}{
 		"gomaxprocs":      runtime.GOMAXPROCS(0),
 		"num_cpu":         runtime.NumCPU(),
@@ -210,7 +210,7 @@ func NewPerformanceMonitor(config *OptimizationConfig) *PerformanceMonitor {
 	if config == nil {
 		config = DefaultOptimizationConfig()
 	}
-	
+
 	return &PerformanceMonitor{
 		config:        config,
 		stopCh:        make(chan struct{}),
@@ -247,11 +247,11 @@ func (pm *PerformanceMonitor) monitorLoop() {
 // checkAndAdjust performs runtime adjustments based on current performance
 func (pm *PerformanceMonitor) checkAndAdjust() {
 	stats := GetRuntimeStats()
-	
+
 	// Adjust GOMAXPROCS based on goroutine count and CPU utilization
 	numGoroutines := stats["num_goroutine"].(int)
 	currentMaxProcs := stats["gomaxprocs"].(int)
-	
+
 	if numGoroutines > currentMaxProcs*100 {
 		// Too many goroutines per processor, consider increasing GOMAXPROCS
 		newMaxProcs := min(currentMaxProcs+1, runtime.NumCPU())
@@ -265,7 +265,7 @@ func (pm *PerformanceMonitor) checkAndAdjust() {
 			runtime.GOMAXPROCS(newMaxProcs)
 		}
 	}
-	
+
 	// Adjust GC target based on memory pressure
 	heapInUseMB := stats["heap_in_use_mb"].(uint64)
 	if heapInUseMB > 100 { // More than 100MB in use
@@ -294,7 +294,7 @@ func min(a, b int) int {
 	return b
 }
 
-// max returns the larger of two integers  
+// max returns the larger of two integers
 func max(a, b int) int {
 	if a > b {
 		return a

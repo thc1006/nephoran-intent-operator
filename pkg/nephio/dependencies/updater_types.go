@@ -8,27 +8,27 @@ import (
 // Additional types for updater.go
 
 type UpdaterConfig struct {
-	EnableAutoUpdate    bool                `json:"enableAutoUpdate"`
-	MaxConcurrentUpdates int               `json:"maxConcurrentUpdates"`
-	UpdateTimeout       time.Duration     `json:"updateTimeout"`
-	RetryAttempts       int               `json:"retryAttempts"`
-	HealthCheckInterval time.Duration     `json:"healthCheckInterval"`
-	MetricsInterval     time.Duration     `json:"metricsInterval"`
-	ValidationConfig    *ValidationConfig `json:"validationConfig,omitempty"`
-	NotificationConfig  *NotificationConfig `json:"notificationConfig,omitempty"`
-	UpdateEngineConfig  *UpdateEngineConfig `json:"updateEngineConfig,omitempty"`
-	PropagationEngineConfig *PropagationConfig `json:"propagationEngineConfig,omitempty"`
-	ImpactAnalyzerConfig *ImpactAnalyzerConfig `json:"impactAnalyzerConfig,omitempty"`
-	RolloutManagerConfig *RolloutManagerConfig `json:"rolloutManagerConfig,omitempty"`
-	RollbackManagerConfig *RollbackManagerConfig `json:"rollbackManagerConfig,omitempty"`
-	AutoUpdateConfig     *AutoUpdateConfig `json:"autoUpdateConfig,omitempty"`
-	PackageRegistryConfig *PackageRegistryConfig `json:"packageRegistryConfig,omitempty"`
-	ApprovalWorkflowConfig *ApprovalWorkflowConfig `json:"approvalWorkflowConfig,omitempty"`
-	EnableCaching        bool              `json:"enableCaching,omitempty"`
-	EnableConcurrency    bool              `json:"enableConcurrency,omitempty"`
-	MaxConcurrency       int               `json:"maxConcurrency,omitempty"`
-	WorkerCount          int               `json:"workerCount,omitempty"`
-	QueueSize            int               `json:"queueSize,omitempty"`
+	EnableAutoUpdate        bool                    `json:"enableAutoUpdate"`
+	MaxConcurrentUpdates    int                     `json:"maxConcurrentUpdates"`
+	UpdateTimeout           time.Duration           `json:"updateTimeout"`
+	RetryAttempts           int                     `json:"retryAttempts"`
+	HealthCheckInterval     time.Duration           `json:"healthCheckInterval"`
+	MetricsInterval         time.Duration           `json:"metricsInterval"`
+	ValidationConfig        *ValidationConfig       `json:"validationConfig,omitempty"`
+	NotificationConfig      *NotificationConfig     `json:"notificationConfig,omitempty"`
+	UpdateEngineConfig      *UpdateEngineConfig     `json:"updateEngineConfig,omitempty"`
+	PropagationEngineConfig *PropagationConfig      `json:"propagationEngineConfig,omitempty"`
+	ImpactAnalyzerConfig    *ImpactAnalyzerConfig   `json:"impactAnalyzerConfig,omitempty"`
+	RolloutManagerConfig    *RolloutManagerConfig   `json:"rolloutManagerConfig,omitempty"`
+	RollbackManagerConfig   *RollbackManagerConfig  `json:"rollbackManagerConfig,omitempty"`
+	AutoUpdateConfig        *AutoUpdateConfig       `json:"autoUpdateConfig,omitempty"`
+	PackageRegistryConfig   *PackageRegistryConfig  `json:"packageRegistryConfig,omitempty"`
+	ApprovalWorkflowConfig  *ApprovalWorkflowConfig `json:"approvalWorkflowConfig,omitempty"`
+	EnableCaching           bool                    `json:"enableCaching,omitempty"`
+	EnableConcurrency       bool                    `json:"enableConcurrency,omitempty"`
+	MaxConcurrency          int                     `json:"maxConcurrency,omitempty"`
+	WorkerCount             int                     `json:"workerCount,omitempty"`
+	QueueSize               int                     `json:"queueSize,omitempty"`
 }
 
 func (c *UpdaterConfig) Validate() error {
@@ -47,7 +47,6 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 	}
 }
 
-
 type ApprovalWorkflowConfig struct {
 	RequireApproval   bool          `json:"requireApproval"`
 	ApprovalTimeout   time.Duration `json:"approvalTimeout"`
@@ -56,32 +55,32 @@ type ApprovalWorkflowConfig struct {
 }
 
 type UpdateEngineConfig struct {
-	WorkerCount         int           `json:"workerCount"`
-	QueueSize          int           `json:"queueSize"`
-	BatchSize          int           `json:"batchSize"`
-	ProcessingTimeout  time.Duration `json:"processingTimeout"`
-	EnablePipelining   bool          `json:"enablePipelining"`
+	WorkerCount       int           `json:"workerCount"`
+	QueueSize         int           `json:"queueSize"`
+	BatchSize         int           `json:"batchSize"`
+	ProcessingTimeout time.Duration `json:"processingTimeout"`
+	EnablePipelining  bool          `json:"enablePipelining"`
 }
 
 type ImpactAnalyzerConfig struct {
-	EnableAnalysis      bool          `json:"enableAnalysis"`
-	AnalysisDepth      int           `json:"analysisDepth"`
-	AnalysisTimeout    time.Duration `json:"analysisTimeout"`
-	CacheResults       bool          `json:"cacheResults"`
+	EnableAnalysis  bool          `json:"enableAnalysis"`
+	AnalysisDepth   int           `json:"analysisDepth"`
+	AnalysisTimeout time.Duration `json:"analysisTimeout"`
+	CacheResults    bool          `json:"cacheResults"`
 }
 
 type RolloutManagerConfig struct {
 	MaxConcurrentRollouts int           `json:"maxConcurrentRollouts"`
-	RolloutTimeout       time.Duration `json:"rolloutTimeout"`
-	EnableCanaryRollouts bool          `json:"enableCanaryRollouts"`
-	CanaryPercentage     float64       `json:"canaryPercentage"`
+	RolloutTimeout        time.Duration `json:"rolloutTimeout"`
+	EnableCanaryRollouts  bool          `json:"enableCanaryRollouts"`
+	CanaryPercentage      float64       `json:"canaryPercentage"`
 }
 
 type RollbackManagerConfig struct {
 	MaxConcurrentRollbacks int           `json:"maxConcurrentRollbacks"`
-	RollbackTimeout       time.Duration `json:"rollbackTimeout"`
-	EnableAutoRollback    bool          `json:"enableAutoRollback"`
-	RollbackThreshold     float64       `json:"rollbackThreshold"`
+	RollbackTimeout        time.Duration `json:"rollbackTimeout"`
+	EnableAutoRollback     bool          `json:"enableAutoRollback"`
+	RollbackThreshold      float64       `json:"rollbackThreshold"`
 }
 
 type UpdateEngine interface {
@@ -92,12 +91,12 @@ type UpdateEngine interface {
 }
 
 type EngineStatus struct {
-	Status              string    `json:"status"`
-	ActiveUpdates       int       `json:"activeUpdates"`
-	QueuedUpdates       int       `json:"queuedUpdates"`
-	CompletedUpdates    int64     `json:"completedUpdates"`
-	FailedUpdates       int64     `json:"failedUpdates"`
-	LastProcessed       time.Time `json:"lastProcessed"`
+	Status           string    `json:"status"`
+	ActiveUpdates    int       `json:"activeUpdates"`
+	QueuedUpdates    int       `json:"queuedUpdates"`
+	CompletedUpdates int64     `json:"completedUpdates"`
+	FailedUpdates    int64     `json:"failedUpdates"`
+	LastProcessed    time.Time `json:"lastProcessed"`
 }
 
 func NewUpdateEngine(config *UpdateEngineConfig) (UpdateEngine, error) {
@@ -142,10 +141,10 @@ func NewPropagationEngine(config *PropagationConfig) (PropagationEngine, error) 
 }
 
 type PropagationConfig struct {
-	Environments        []string      `json:"environments"`
-	MaxConcurrentEnvs   int           `json:"maxConcurrentEnvs"`
-	PropagationTimeout  time.Duration `json:"propagationTimeout"`
-	RetryAttempts       int           `json:"retryAttempts"`
+	Environments       []string      `json:"environments"`
+	MaxConcurrentEnvs  int           `json:"maxConcurrentEnvs"`
+	PropagationTimeout time.Duration `json:"propagationTimeout"`
+	RetryAttempts      int           `json:"retryAttempts"`
 }
 
 type propagationEngine struct {
@@ -180,13 +179,13 @@ type BreakingChangeAnalysis struct {
 }
 
 type RollbackImpact struct {
-	Plan                *RollbackPlan       `json:"plan"`
-	AffectedPackages    []*PackageReference `json:"affectedPackages"`
-	RiskLevel           string              `json:"riskLevel"`
-	EstimatedDuration   time.Duration       `json:"estimatedDuration"`
-	PotentialIssues     []string            `json:"potentialIssues,omitempty"`
-	Prerequisites       []string            `json:"prerequisites,omitempty"`
-	AnalyzedAt          time.Time           `json:"analyzedAt"`
+	Plan              *RollbackPlan       `json:"plan"`
+	AffectedPackages  []*PackageReference `json:"affectedPackages"`
+	RiskLevel         string              `json:"riskLevel"`
+	EstimatedDuration time.Duration       `json:"estimatedDuration"`
+	PotentialIssues   []string            `json:"potentialIssues,omitempty"`
+	Prerequisites     []string            `json:"prerequisites,omitempty"`
+	AnalyzedAt        time.Time           `json:"analyzedAt"`
 }
 
 func NewImpactAnalyzer() ImpactAnalyzer {
@@ -204,14 +203,14 @@ func (i *impactAnalyzer) PredictRollbackImpact(ctx context.Context, plan *Rollba
 }
 
 type DependencyChange struct {
-	ChangeID    string            `json:"changeId"`
-	Package     *PackageReference `json:"package"`
-	ChangeType  string            `json:"changeType"`
-	FromVersion string            `json:"fromVersion,omitempty"`
-	ToVersion   string            `json:"toVersion,omitempty"`
-	Reason      string            `json:"reason"`
-	ChangedAt   time.Time         `json:"changedAt"`
-	ChangedBy   string            `json:"changedBy"`
+	ChangeID    string                 `json:"changeId"`
+	Package     *PackageReference      `json:"package"`
+	ChangeType  string                 `json:"changeType"`
+	FromVersion string                 `json:"fromVersion,omitempty"`
+	ToVersion   string                 `json:"toVersion,omitempty"`
+	Reason      string                 `json:"reason"`
+	ChangedAt   time.Time              `json:"changedAt"`
+	ChangedBy   string                 `json:"changedBy"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -308,12 +307,12 @@ type AutoUpdateManager interface {
 }
 
 type AutoUpdateStatus struct {
-	Enabled       bool      `json:"enabled"`
-	LastRun       time.Time `json:"lastRun,omitempty"`
-	NextRun       time.Time `json:"nextRun,omitempty"`
-	RunCount      int64     `json:"runCount"`
-	SuccessCount  int64     `json:"successCount"`
-	FailureCount  int64     `json:"failureCount"`
+	Enabled      bool      `json:"enabled"`
+	LastRun      time.Time `json:"lastRun,omitempty"`
+	NextRun      time.Time `json:"nextRun,omitempty"`
+	RunCount     int64     `json:"runCount"`
+	SuccessCount int64     `json:"successCount"`
+	FailureCount int64     `json:"failureCount"`
 }
 
 func NewAutoUpdateManager() AutoUpdateManager {

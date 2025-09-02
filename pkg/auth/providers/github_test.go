@@ -184,7 +184,7 @@ func TestGitHubProvider_ExchangeCodeForToken(t *testing.T) {
 			case "valid-code":
 				response := map[string]interface{}{
 					"access_token": "github-access-token-123",
-					"token_type":   "bearer",
+					"token_type":   "Bearer",
 					"scope":        "user:email,read:org,read:user",
 				}
 				w.Header().Set("Content-Type", "application/json")
@@ -371,10 +371,12 @@ func TestGitHubProvider_GetUserInfo(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotNil(t, userInfo)
-			assert.Equal(t, tt.wantSubject, userInfo.Subject)
-			assert.Equal(t, tt.wantEmail, userInfo.Email)
-			assert.Equal(t, tt.wantName, userInfo.Name)
-			assert.Equal(t, "github", userInfo.Provider)
+			if userInfo != nil {
+				assert.Equal(t, tt.wantSubject, userInfo.Subject)
+				assert.Equal(t, tt.wantEmail, userInfo.Email)
+				assert.Equal(t, tt.wantName, userInfo.Name)
+				assert.Equal(t, "github", userInfo.Provider)
+			}
 		})
 	}
 }
@@ -664,7 +666,7 @@ func createMockGitHubServer() *httptest.Server {
 		case "/login/oauth/access_token":
 			response := map[string]interface{}{
 				"access_token": "test-access-token",
-				"token_type":   "bearer",
+				"token_type":   "Bearer",
 				"scope":        "user:email,read:org,read:user",
 			}
 			w.Header().Set("Content-Type", "application/json")

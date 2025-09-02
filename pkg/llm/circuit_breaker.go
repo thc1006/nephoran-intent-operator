@@ -343,12 +343,10 @@ func (cb *CircuitBreaker) canExecute() bool {
 
 	cb.mutex.RLock()
 
-	defer cb.mutex.RUnlock()
-
 	switch cb.state {
 
 	case StateClosed:
-
+		cb.mutex.RUnlock()
 		return true
 
 	case StateOpen:
@@ -357,22 +355,36 @@ func (cb *CircuitBreaker) canExecute() bool {
 
 		if time.Since(cb.stateChangeTime) >= cb.config.ResetTimeout {
 
-			cb.transitionToHalfOpen()
-
-			return true
+			// Need to upgrade to write lock for state transition
+			// Release read lock first
+			cb.mutex.RUnlock()
+			
+			// Acquire write lock
+			cb.mutex.Lock()
+			defer cb.mutex.Unlock()
+			
+			// Double-check state hasn't changed while acquiring write lock
+			if cb.state == StateOpen && time.Since(cb.stateChangeTime) >= cb.config.ResetTimeout {
+				cb.transitionToHalfOpen()
+				return true
+			}
+			
+			return cb.state != StateOpen
 
 		}
 
+		cb.mutex.RUnlock()
 		return false
 
 	case StateHalfOpen:
 
 		// Allow limited requests in half-open state.
-
-		return cb.halfOpenRequests < cb.config.HalfOpenMaxRequests
+		result := cb.halfOpenRequests < cb.config.HalfOpenMaxRequests
+		cb.mutex.RUnlock()
+		return result
 
 	default:
-
+		cb.mutex.RUnlock()
 		return false
 
 	}

@@ -34,83 +34,83 @@ import (
 
 // BackpressureManager handles system backpressure.
 type BackpressureManager struct {
-	config *BackpressureConfig
+	config      *BackpressureConfig
 	currentLoad float64
-	thresholds map[string]float64
-	actions map[string]BackpressureAction
-	metrics *BackpressureMetrics
-	mutex sync.RWMutex
-	logger logr.Logger
+	thresholds  map[string]float64
+	actions     map[string]BackpressureAction
+	metrics     *BackpressureMetrics
+	mutex       sync.RWMutex
+	logger      logr.Logger
 }
 
 // BackpressureConfig configures backpressure management.
 type BackpressureConfig struct {
-	Enabled bool `json:"enabled"`
-	LoadThreshold float64 `json:"loadThreshold"`
-	Actions map[string]BackpressureAction `json:"actions"`
-	EvaluationWindow time.Duration `json:"evaluationWindow"`
+	Enabled          bool                          `json:"enabled"`
+	LoadThreshold    float64                       `json:"loadThreshold"`
+	Actions          map[string]BackpressureAction `json:"actions"`
+	EvaluationWindow time.Duration                 `json:"evaluationWindow"`
 }
 
 // BackpressureAction defines actions to take under backpressure.
 type BackpressureAction struct {
-	Name string `json:"name"`
-	Threshold float64 `json:"threshold"`
-	Action string `json:"action"` // throttle, reject, shed_load, degrade
+	Name       string                 `json:"name"`
+	Threshold  float64                `json:"threshold"`
+	Action     string                 `json:"action"` // throttle, reject, shed_load, degrade
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // BackpressureMetrics tracks backpressure metrics.
 type BackpressureMetrics struct {
-	CurrentLoad float64 `json:"currentLoad"`
-	ThrottledRequests int64 `json:"throttledRequests"`
-	RejectedRequests int64 `json:"rejectedRequests"`
-	ShedRequests int64 `json:"shedRequests"`
-	DegradedRequests int64 `json:"degradedRequests"`
-	LastAction string `json:"lastAction"`
-	LastActionTime time.Time `json:"lastActionTime"`
+	CurrentLoad       float64   `json:"currentLoad"`
+	ThrottledRequests int64     `json:"throttledRequests"`
+	RejectedRequests  int64     `json:"rejectedRequests"`
+	ShedRequests      int64     `json:"shedRequests"`
+	DegradedRequests  int64     `json:"degradedRequests"`
+	LastAction        string    `json:"lastAction"`
+	LastActionTime    time.Time `json:"lastActionTime"`
 }
 
 // BackpressureThresholds defines load thresholds for backpressure.
 type BackpressureThresholds struct {
-	Low float64 `json:"low"`
+	Low    float64 `json:"low"`
 	Medium float64 `json:"medium"`
-	High float64 `json:"high"`
+	High   float64 `json:"high"`
 }
 
 // ResourceLimiter manages resource constraints.
 type ResourceLimiter struct {
-	maxMemory int64
-	maxCPU float64
+	maxMemory     int64
+	maxCPU        float64
 	currentMemory int64
-	currentCPU float64
+	currentCPU    float64
 	memoryWaiters []chan struct{}
-	cpuWaiters []chan struct{}
-	mutex sync.RWMutex
-	logger logr.Logger
+	cpuWaiters    []chan struct{}
+	mutex         sync.RWMutex
+	logger        logr.Logger
 }
 
 // NewResourceLimiter creates a new ResourceLimiter.
 func NewResourceLimiter(maxMemory, maxCPU int64, logger logr.Logger) *ResourceLimiter {
 	return &ResourceLimiter{
 		maxMemory: maxMemory,
-		maxCPU: float64(maxCPU),
-		logger: logger,
+		maxCPU:    float64(maxCPU),
+		logger:    logger,
 	}
 }
 
 // NewBackpressureManager creates a new BackpressureManager.
 func NewBackpressureManager(config *BackpressureConfig, logger logr.Logger) *BackpressureManager {
 	return &BackpressureManager{
-		config: config,
+		config:      config,
 		currentLoad: 0.0,
 		thresholds: map[string]float64{
-			"low": 0.6,
+			"low":    0.6,
 			"medium": 0.8,
-			"high": 0.9,
+			"high":   0.9,
 		},
 		actions: make(map[string]BackpressureAction),
 		metrics: &BackpressureMetrics{},
-		logger: logger,
+		logger:  logger,
 	}
 }
 
@@ -138,9 +138,9 @@ func (bm *BackpressureManager) GetStats() (map[string]interface{}, error) {
 	defer bm.mutex.RUnlock()
 
 	stats := map[string]interface{}{
-		"current_load": bm.currentLoad,
-		"thresholds": bm.thresholds,
-		"metrics": bm.metrics,
+		"current_load":  bm.currentLoad,
+		"thresholds":    bm.thresholds,
+		"metrics":       bm.metrics,
 		"actions_count": len(bm.actions),
 	}
 

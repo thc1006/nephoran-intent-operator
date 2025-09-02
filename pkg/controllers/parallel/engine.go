@@ -1173,6 +1173,42 @@ func (w *Worker) processDeployment(ctx context.Context, task *Task) error {
 	}
 }
 
+// GetTaskStatus returns the status of a specific task
+func (e *ParallelProcessingEngine) GetTaskStatus(taskID string) *Task {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	
+	if task, exists := e.tasks[taskID]; exists {
+		return task
+	}
+	return nil
+}
+
+// GetDependencyMetrics returns dependency-related metrics
+func (e *ParallelProcessingEngine) GetDependencyMetrics() map[string]interface{} {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	
+	metrics := make(map[string]interface{})
+	metrics["total_tasks"] = len(e.tasks)
+	
+	// Count tasks by status
+	statusCounts := make(map[string]int)
+	for _, task := range e.tasks {
+		statusCounts[string(task.Status)]++
+	}
+	metrics["tasks_by_status"] = statusCounts
+	
+	// Count tasks by type
+	typeCounts := make(map[string]int)
+	for _, task := range e.tasks {
+		typeCounts[string(task.Type)]++
+	}
+	metrics["tasks_by_type"] = typeCounts
+	
+	return metrics
+}
+
 // priorityToInt converts NetworkPriority to integer value
 func priorityToInt(priority v1.NetworkPriority) int {
 	switch priority {

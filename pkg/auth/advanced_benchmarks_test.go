@@ -400,7 +400,7 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure session management
 			sessionConfig := SessionConfig{
-				SessionTimeout:    scenario.sessionTTL,
+				SessionTimeout:   scenario.sessionTTL,
 				RefreshThreshold: time.Minute * 5,
 			}
 
@@ -841,7 +841,7 @@ func generateRolePermissions(roleIndex, maxPermissions int) []string {
 
 func generatePermissions(count, resourceTypes int) map[string][]string {
 	permissions := make(map[string][]string)
-	
+
 	actions := []string{"read", "write", "delete", "create", "update"}
 
 	for i := 0; i < count; i++ {

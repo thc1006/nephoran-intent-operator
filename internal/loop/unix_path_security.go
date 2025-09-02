@@ -17,22 +17,22 @@ func isPathSafe(path, baseDir string) bool {
 	// Clean and resolve both paths to absolute paths
 	cleanPath := filepath.Clean(path)
 	cleanBase := filepath.Clean(baseDir)
-	
+
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
 		return false
 	}
-	
+
 	absBase, err := filepath.Abs(cleanBase)
 	if err != nil {
 		return false
 	}
-	
+
 	// Check if the path is within the base directory
 	// Add trailing slash to base to prevent partial matches
 	basePath := absBase + string(filepath.Separator)
 	targetPath := absPath + string(filepath.Separator)
-	
+
 	return strings.HasPrefix(targetPath, basePath) || absPath == absBase
 }
 
@@ -42,12 +42,12 @@ func validateUnixPath(path string) error {
 	if strings.Contains(path, "../") {
 		return fmt.Errorf("path traversal detected: path contains '../' sequences")
 	}
-	
+
 	// Check for null bytes which can be dangerous
 	if strings.Contains(path, "\x00") {
 		return fmt.Errorf("invalid path: contains null byte")
 	}
-	
+
 	// Resolve the path to check for symlink attacks
 	resolved, err := filepath.EvalSymlinks(path)
 	if err != nil {
@@ -61,12 +61,12 @@ func validateUnixPath(path string) error {
 		}
 		return nil // Path doesn't exist yet, which is acceptable
 	}
-	
+
 	// Check if resolved path contains dangerous patterns
 	if strings.Contains(resolved, "../") {
 		return fmt.Errorf("path traversal detected after symlink resolution")
 	}
-	
+
 	return nil
 }
 
@@ -81,7 +81,7 @@ func checkUnixPermissions(path string) error {
 		}
 		return fmt.Errorf("cannot access path %s: %v", path, err)
 	}
-	
+
 	// Check if it's a directory and we have write permissions
 	if info.IsDir() {
 		// Try to create a temporary file to test write permissions
@@ -97,7 +97,7 @@ func checkUnixPermissions(path string) error {
 		os.Remove(tempFile)
 		return nil
 	}
-	
+
 	return fmt.Errorf("path exists but is not a directory: %s", path)
 }
 
@@ -115,12 +115,12 @@ func validateUnixFilename(filename string) error {
 	if strings.Contains(filename, "\x00") {
 		return fmt.Errorf("filename contains null byte")
 	}
-	
+
 	// Check for excessively long filenames (most Unix systems limit to 255 bytes)
 	if len(filename) > 255 {
 		return fmt.Errorf("filename too long: %d bytes (max 255)", len(filename))
 	}
-	
+
 	// Unix allows most characters, but check for suspicious patterns
 	suspicious := []string{"/../", "/./", "//"}
 	for _, pattern := range suspicious {
@@ -128,7 +128,7 @@ func validateUnixFilename(filename string) error {
 			return fmt.Errorf("filename contains suspicious pattern: %s", strings.TrimPrefix(pattern, "/"))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -179,14 +179,14 @@ func checkUnixDiskSpace(path string, requiredBytes int64) error {
 	if err != nil {
 		return fmt.Errorf("cannot check disk space: %v", err)
 	}
-	
+
 	// Calculate available space
 	availableBytes := int64(stat.Bavail) * int64(stat.Bsize)
-	
+
 	if availableBytes < requiredBytes {
-		return fmt.Errorf("insufficient disk space: %d bytes available, %d bytes required", 
+		return fmt.Errorf("insufficient disk space: %d bytes available, %d bytes required",
 			availableBytes, requiredBytes)
 	}
-	
+
 	return nil
 }

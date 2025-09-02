@@ -446,3 +446,12 @@ func DefaultFilterConfig() FilterConfig {
 	}
 
 }
+
+// Stub functions for missing backends (for testing compatibility)
+func NewWebhookBackend(config BackendConfig) (Backend, error) {
+	return nil, fmt.Errorf("webhook backend not implemented")
+}
+
+func NewFileBackend(config BackendConfig) (Backend, error) {
+	return nil, fmt.Errorf("file backend not implemented")
+}

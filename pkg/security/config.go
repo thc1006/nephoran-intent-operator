@@ -8,40 +8,40 @@ import (
 type CommonSecurityConfig struct {
 	// TLS Configuration
 	TLS *TLSConfig `json:"tls,omitempty"`
-	
+
 	// Security Headers Configuration
 	SecurityHeaders *SecurityHeadersConfig `json:"security_headers,omitempty"`
-	
+
 	// Enable security features
 	Enabled bool `json:"enabled"`
-	
+
 	// Security mode (strict, moderate, permissive)
 	Mode string `json:"mode"`
 }
 
 // TLSConfig defines TLS configuration settings
 type TLSConfig struct {
-	Enabled          bool              `json:"enabled"`
-	CertFile         string            `json:"cert_file"`
-	KeyFile          string            `json:"key_file"`
-	CAFile           string            `json:"ca_file,omitempty"`
-	MinVersion       string            `json:"min_version"`
-	MaxVersion       string            `json:"max_version,omitempty"`
-	CipherSuites     []string          `json:"cipher_suites,omitempty"`
-	ClientAuth       string            `json:"client_auth,omitempty"`
-	InsecureSkipVerify bool           `json:"insecure_skip_verify"`
-	CertificatePaths *CertificatePaths `json:"certificate_paths,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	CertFile           string            `json:"cert_file"`
+	KeyFile            string            `json:"key_file"`
+	CAFile             string            `json:"ca_file,omitempty"`
+	MinVersion         string            `json:"min_version"`
+	MaxVersion         string            `json:"max_version,omitempty"`
+	CipherSuites       []string          `json:"cipher_suites,omitempty"`
+	ClientAuth         string            `json:"client_auth,omitempty"`
+	InsecureSkipVerify bool              `json:"insecure_skip_verify"`
+	CertificatePaths   *CertificatePaths `json:"certificate_paths,omitempty"`
 }
 
 // SecurityHeadersConfig defines security headers configuration
 type SecurityHeadersConfig struct {
 	ContentSecurityPolicy   string `json:"content_security_policy,omitempty"`
-	XFrameOptions          string `json:"x_frame_options,omitempty"`
-	XContentTypeOptions    string `json:"x_content_type_options,omitempty"`
+	XFrameOptions           string `json:"x_frame_options,omitempty"`
+	XContentTypeOptions     string `json:"x_content_type_options,omitempty"`
 	StrictTransportSecurity string `json:"strict_transport_security,omitempty"`
-	XSSProtection          string `json:"xss_protection,omitempty"`
-	ReferrerPolicy         string `json:"referrer_policy,omitempty"`
-	PermissionsPolicy      string `json:"permissions_policy,omitempty"`
+	XSSProtection           string `json:"xss_protection,omitempty"`
+	ReferrerPolicy          string `json:"referrer_policy,omitempty"`
+	PermissionsPolicy       string `json:"permissions_policy,omitempty"`
 }
 
 // CertificatePaths defines paths for certificate files
@@ -77,7 +77,6 @@ type ExtendedSecurityConfig struct {
 	// Encryption Configuration
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
 }
-
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
@@ -173,7 +172,6 @@ type InputValidationConfig struct {
 	ForbiddenPatterns      []string `json:"forbidden_patterns,omitempty"`
 	RequiredHeaders        []string `json:"required_headers,omitempty"`
 }
-
 
 // AuditConfig holds audit configuration
 type AuditConfig struct {

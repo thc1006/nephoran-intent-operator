@@ -26,14 +26,14 @@ type MissingBatchProcessor interface {
 
 // MissingBatchProcessorStats holds batch processor statistics
 type MissingBatchProcessorStats struct {
-	ProcessedBatches    int64         `json:"processed_batches"`
-	TotalRequests       int64         `json:"total_requests"`
-	FailedRequests      int64         `json:"failed_requests"`
-	AvgBatchSize        float64       `json:"avg_batch_size"`
-	AvgProcessingTime   time.Duration `json:"avg_processing_time"`
-	CurrentQueueDepth   int           `json:"current_queue_depth"`
-	ActiveBatches       int           `json:"active_batches"`
-	LastProcessedTime   time.Time     `json:"last_processed_time"`
+	ProcessedBatches  int64         `json:"processed_batches"`
+	TotalRequests     int64         `json:"total_requests"`
+	FailedRequests    int64         `json:"failed_requests"`
+	AvgBatchSize      float64       `json:"avg_batch_size"`
+	AvgProcessingTime time.Duration `json:"avg_processing_time"`
+	CurrentQueueDepth int           `json:"current_queue_depth"`
+	ActiveBatches     int           `json:"active_batches"`
+	LastProcessedTime time.Time     `json:"last_processed_time"`
 }
 
 // Note: BatchProcessorConfig is defined in types.go
@@ -52,15 +52,15 @@ type MissingMetricsIntegrator struct {
 
 // AggregatedStats holds aggregated statistics
 type AggregatedStats struct {
-	TotalRequests     int64         `json:"total_requests"`
-	SuccessfulRequests int64        `json:"successful_requests"`
-	FailedRequests    int64         `json:"failed_requests"`
-	AvgResponseTime   time.Duration `json:"avg_response_time"`
-	P95ResponseTime   time.Duration `json:"p95_response_time"`
-	P99ResponseTime   time.Duration `json:"p99_response_time"`
-	TotalTokens       int64         `json:"total_tokens"`
-	ErrorRate         float64       `json:"error_rate"`
-	LastUpdated       time.Time     `json:"last_updated"`
+	TotalRequests      int64         `json:"total_requests"`
+	SuccessfulRequests int64         `json:"successful_requests"`
+	FailedRequests     int64         `json:"failed_requests"`
+	AvgResponseTime    time.Duration `json:"avg_response_time"`
+	P95ResponseTime    time.Duration `json:"p95_response_time"`
+	P99ResponseTime    time.Duration `json:"p99_response_time"`
+	TotalTokens        int64         `json:"total_tokens"`
+	ErrorRate          float64       `json:"error_rate"`
+	LastUpdated        time.Time     `json:"last_updated"`
 }
 
 // NewMissingMetricsIntegrator creates a new metrics integrator
@@ -73,10 +73,10 @@ func NewMissingMetricsIntegrator(collector *MetricsCollector) *MissingMetricsInt
 		stopChan:        make(chan struct{}),
 		aggregatedStats: &AggregatedStats{},
 	}
-	
+
 	// Start background metrics aggregation
 	go mi.aggregateMetrics()
-	
+
 	return mi
 }
 
@@ -84,7 +84,7 @@ func NewMissingMetricsIntegrator(collector *MetricsCollector) *MissingMetricsInt
 func (mi *MissingMetricsIntegrator) aggregateMetrics() {
 	ticker := time.NewTicker(mi.updateInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -99,12 +99,12 @@ func (mi *MissingMetricsIntegrator) aggregateMetrics() {
 func (mi *MissingMetricsIntegrator) updateAggregatedStats() {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
-	
+
 	// Update aggregated stats from collector
 	if mi.collector != nil {
 		// For now, just update basic stats since collector doesn't have GetStats
 		mi.aggregatedStats.LastUpdated = time.Now()
-		
+
 		// Calculate error rate
 		if mi.aggregatedStats.TotalRequests > 0 {
 			mi.aggregatedStats.ErrorRate = float64(mi.aggregatedStats.FailedRequests) / float64(mi.aggregatedStats.TotalRequests)
@@ -116,12 +116,12 @@ func (mi *MissingMetricsIntegrator) updateAggregatedStats() {
 func (mi *MissingMetricsIntegrator) RegisterCustomMetric(name string, metric prometheus.Collector) error {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
-	
+
 	if _, exists := mi.customMetrics[name]; exists {
 		mi.logger.Warn("Metric already registered", "name", name)
 		return nil
 	}
-	
+
 	mi.customMetrics[name] = metric
 	if mi.prometheusReg != nil {
 		return mi.prometheusReg.Register(metric)
@@ -133,7 +133,7 @@ func (mi *MissingMetricsIntegrator) RegisterCustomMetric(name string, metric pro
 func (mi *MissingMetricsIntegrator) GetStats() *AggregatedStats {
 	mi.mutex.RLock()
 	defer mi.mutex.RUnlock()
-	
+
 	// Return a copy to avoid data races
 	return &AggregatedStats{
 		TotalRequests:      mi.aggregatedStats.TotalRequests,
@@ -152,7 +152,7 @@ func (mi *MissingMetricsIntegrator) GetStats() *AggregatedStats {
 func (mi *MissingMetricsIntegrator) RecordRequest(duration time.Duration, success bool, tokens int) {
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
-	
+
 	mi.aggregatedStats.TotalRequests++
 	if success {
 		mi.aggregatedStats.SuccessfulRequests++
@@ -160,7 +160,7 @@ func (mi *MissingMetricsIntegrator) RecordRequest(duration time.Duration, succes
 		mi.aggregatedStats.FailedRequests++
 	}
 	mi.aggregatedStats.TotalTokens += int64(tokens)
-	
+
 	// Update average response time (simple rolling average)
 	if mi.aggregatedStats.TotalRequests > 0 {
 		prevAvg := mi.aggregatedStats.AvgResponseTime
@@ -225,7 +225,7 @@ func (mi *MissingMetricsIntegrator) RecordRetryAttempt(args ...interface{}) {
 func (mi *MissingMetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
 	mi.mutex.RLock()
 	defer mi.mutex.RUnlock()
-	
+
 	return map[string]interface{}{
 		"total_requests":      mi.aggregatedStats.TotalRequests,
 		"successful_requests": mi.aggregatedStats.SuccessfulRequests,

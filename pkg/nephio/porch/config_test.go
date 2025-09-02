@@ -43,8 +43,8 @@ func TestClientConfigWithEndpoint(t *testing.T) {
 	config := &ClientConfig{
 		Endpoint: "https://custom-porch-server.example.com",
 		AuthConfig: &AuthConfig{
-			Type:     "bearer",
-			Token:    "test-token",
+			Type:  "bearer",
+			Token: "test-token",
 		},
 	}
 

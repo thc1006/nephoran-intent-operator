@@ -101,45 +101,45 @@ func TestScalingIntentValidation(t *testing.T) {
 		{
 			name: "valid scaling intent",
 			intent: ScalingIntent{
-				ID:            "scale-intent-1",
-				ResourceType:  "deployment",
-				ResourceName:  "test-deployment",
-				Namespace:     "default",
-				TargetScale:   5,
-				CurrentScale:  3,
+				ID:             "scale-intent-1",
+				ResourceType:   "deployment",
+				ResourceName:   "test-deployment",
+				Namespace:      "default",
+				TargetScale:    5,
+				CurrentScale:   3,
 				ScaleDirection: "up",
-				Reason:        "Increased load detected",
-				Status:        "pending",
-				CreatedAt:     time.Now(),
+				Reason:         "Increased load detected",
+				Status:         "pending",
+				CreatedAt:      time.Now(),
 			},
 			wantErr: false,
 		},
 		{
 			name: "missing namespace",
 			intent: ScalingIntent{
-				ID:            "scale-intent-2",
-				ResourceType:  "deployment",
-				ResourceName:  "test-deployment",
-				TargetScale:   5,
-				CurrentScale:  3,
+				ID:             "scale-intent-2",
+				ResourceType:   "deployment",
+				ResourceName:   "test-deployment",
+				TargetScale:    5,
+				CurrentScale:   3,
 				ScaleDirection: "up",
-				Reason:        "Increased load detected",
-				Status:        "pending",
+				Reason:         "Increased load detected",
+				Status:         "pending",
 			},
 			wantErr: true,
 		},
 		{
 			name: "negative target scale",
 			intent: ScalingIntent{
-				ID:            "scale-intent-3",
-				ResourceType:  "deployment",
-				ResourceName:  "test-deployment",
-				Namespace:     "default",
-				TargetScale:   -1, // Invalid: negative
-				CurrentScale:  3,
+				ID:             "scale-intent-3",
+				ResourceType:   "deployment",
+				ResourceName:   "test-deployment",
+				Namespace:      "default",
+				TargetScale:    -1, // Invalid: negative
+				CurrentScale:   3,
 				ScaleDirection: "up",
-				Reason:        "Test negative scale",
-				Status:        "pending",
+				Reason:         "Test negative scale",
+				Status:         "pending",
 			},
 			wantErr: true,
 		},
@@ -157,7 +157,7 @@ func TestScalingIntentValidation(t *testing.T) {
 
 func TestIntentContractInterface(t *testing.T) {
 	now := time.Now()
-	
+
 	// Test NetworkIntent implements IntentContract
 	var ni IntentContract = &NetworkIntent{
 		ID:        "test-ni",
@@ -166,15 +166,15 @@ func TestIntentContractInterface(t *testing.T) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	
+
 	if ni.GetID() != "test-ni" {
 		t.Errorf("NetworkIntent.GetID() = %v, want %v", ni.GetID(), "test-ni")
 	}
-	
+
 	if ni.GetType() != "scaling" {
 		t.Errorf("NetworkIntent.GetType() = %v, want %v", ni.GetType(), "scaling")
 	}
-	
+
 	ni.SetStatus("processing")
 	if ni.GetStatus() != "processing" {
 		t.Errorf("NetworkIntent.GetStatus() = %v, want %v", ni.GetStatus(), "processing")
@@ -186,15 +186,15 @@ func TestIntentContractInterface(t *testing.T) {
 		Status:    "pending",
 		CreatedAt: now,
 	}
-	
+
 	if si.GetID() != "test-si" {
 		t.Errorf("ScalingIntent.GetID() = %v, want %v", si.GetID(), "test-si")
 	}
-	
+
 	if si.GetType() != "scaling" {
 		t.Errorf("ScalingIntent.GetType() = %v, want %v", si.GetType(), "scaling")
 	}
-	
+
 	si.SetStatus("completed")
 	if si.GetStatus() != "completed" {
 		t.Errorf("ScalingIntent.GetStatus() = %v, want %v", si.GetStatus(), "completed")

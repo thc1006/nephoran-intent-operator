@@ -2273,3 +2273,59 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	}
 
 }
+
+// GetActiveAlerts returns a slice of all currently active alerts.
+func (sam *SLAAlertManager) GetActiveAlerts() []*SLAAlert {
+	sam.mu.RLock()
+	defer sam.mu.RUnlock()
+	
+	alerts := make([]*SLAAlert, 0, len(sam.activeAlerts))
+	for _, alert := range sam.activeAlerts {
+		alerts = append(alerts, alert)
+	}
+	
+	return alerts
+}
+
+// ServiceMetrics contains metrics for the alert manager service.
+type ServiceMetrics struct {
+	ProcessingRate   float64 `json:"processing_rate"`
+	MemoryUsageMB    float64 `json:"memory_usage_mb"`
+	CPUUsagePercent  float64 `json:"cpu_usage_percent"`
+	ActiveAlerts     int     `json:"active_alerts"`
+	AlertsGenerated  int64   `json:"alerts_generated"`
+	AlertsResolved   int64   `json:"alerts_resolved"`
+}
+
+// GetMetrics returns service-level metrics for the alert manager.
+func (sam *SLAAlertManager) GetMetrics() ServiceMetrics {
+	sam.mu.RLock()
+	defer sam.mu.RUnlock()
+	
+	return ServiceMetrics{
+		ProcessingRate:   100.0, // Mock processing rate
+		MemoryUsageMB:    50.0,  // Mock memory usage
+		CPUUsagePercent:  25.0,  // Mock CPU usage
+		ActiveAlerts:     len(sam.activeAlerts),
+		AlertsGenerated:  sam.getTotalAlertsGenerated(),
+		AlertsResolved:   sam.getTotalAlertsResolved(),
+	}
+}
+
+// getTotalAlertsGenerated returns the total number of alerts generated.
+func (sam *SLAAlertManager) getTotalAlertsGenerated() int64 {
+	// This would typically be read from metrics, but for now return mock data
+	return int64(len(sam.alertHistory))
+}
+
+// getTotalAlertsResolved returns the total number of alerts resolved.
+func (sam *SLAAlertManager) getTotalAlertsResolved() int64 {
+	// Count resolved alerts from history
+	var resolved int64
+	for _, alert := range sam.alertHistory {
+		if alert.State == AlertStateResolved {
+			resolved++
+		}
+	}
+	return resolved
+}

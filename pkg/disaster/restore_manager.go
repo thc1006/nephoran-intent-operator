@@ -62,7 +62,7 @@ import (
 const (
 	MaxFileSize       = 100 * 1024 * 1024  // 100MB per file
 	MaxExtractionSize = 1024 * 1024 * 1024 // 1GB total extraction size
-	MaxFileCount      = 10000               // Maximum number of files to extract
+	MaxFileCount      = 10000              // Maximum number of files to extract
 )
 
 var (
@@ -88,10 +88,10 @@ var (
 )
 
 type RestoreManager struct {
-	Client  client.Client
+	Client    client.Client
 	k8sClient kubernetes.Interface
-	logger  *slog.Logger
-	config  RestoreConfig
+	logger    *slog.Logger
+	config    RestoreConfig
 
 	// Metrics tracking.
 	restoreAttempts  map[string]int
@@ -145,7 +145,7 @@ type RestoreConfig struct {
 
 	AzureContainer string `json:"azureContainer,omitempty"`
 
-	AzurePrefix    string `json:"azurePrefix,omitempty"`
+	AzurePrefix string `json:"azurePrefix,omitempty"`
 
 	// Workers and concurrency
 
@@ -218,11 +218,11 @@ type RestoreSummary struct {
 func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Interface, logger *slog.Logger) (*RestoreManager, error) {
 	// Create default restore config from disaster recovery config
 	config := RestoreConfig{
-		StorageType: "local",
-		LocalPath:   "/var/lib/nephoran/backups", // Default backup path
-		Workers:     5,
-		MaxRetries:  3,
-		RetryDelay:  time.Second * 30,
+		StorageType:  "local",
+		LocalPath:    "/var/lib/nephoran/backups", // Default backup path
+		Workers:      5,
+		MaxRetries:   3,
+		RetryDelay:   time.Second * 30,
 		VerifyBackup: true,
 	}
 
@@ -236,7 +236,7 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 
 	rm := &RestoreManager{
 
-		Client: fakeClient,
+		Client:    fakeClient,
 		k8sClient: k8sClient,
 
 		logger: logger,
@@ -322,7 +322,6 @@ func (rm *RestoreManager) initAWSClient() error {
 		config.WithRegion(rm.config.S3Region),
 
 		config.WithEC2IMDSClientEnableState(imds.ClientDefaultEnableState),
-
 	)
 
 	if err != nil {
@@ -367,7 +366,6 @@ func (rm *RestoreManager) RestoreFromBackup(backupPath string) error {
 		Progress:    0,
 		TotalSteps:  5,
 		CurrentStep: "Validating backup",
-
 	}
 
 	rm.mu.Lock()
@@ -813,14 +811,12 @@ func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 
 			Timestamp: info.ModTime(),
 
-			Size:      info.Size(),
+			Size: info.Size(),
 
 			Metadata: map[string]interface{}{
 
 				"path": file,
-
 			},
-
 		}
 
 		backups = append(backups, backup)
@@ -885,7 +881,6 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 			Message:   progress.CurrentStep,
 			Duration:  time.Since(progress.StartTime),
 			Timestamp: progress.StartTime,
-
 		}
 
 		if progress.ErrorMessage != "" {
@@ -926,9 +921,7 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 			Succeeded: succeeded,
 			Failed:    failed,
 			Count:     len(operations),
-
 		},
-
 	}
 
 }

@@ -32,11 +32,11 @@ import (
 
 // MockClient implements a mock Kubernetes client for testing
 type MockClient struct {
-	objects    map[client.ObjectKey]client.Object
-	mutex      sync.RWMutex
-	scheme     *runtime.Scheme
-	getError   error
-	listError  error
+	objects     map[client.ObjectKey]client.Object
+	mutex       sync.RWMutex
+	scheme      *runtime.Scheme
+	getError    error
+	listError   error
 	createError error
 	updateError error
 	deleteError error

@@ -12,6 +12,90 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
+// MockWeaviateConnectionPool provides a mock implementation for testing
+type MockWeaviateConnectionPool struct {
+	searchResults []SearchResult  // Use local SearchResult type instead of shared.RAGSearchResult
+	searchError   error
+	connected     bool
+}
+
+// SearchResult represents a search result for testing
+type SearchResult struct {
+	Content     string
+	Score       float64
+	Source      string
+	Title       string
+	Keywords    []string
+}
+
+// Search implements the search functionality  
+func (m *MockWeaviateConnectionPool) Search(ctx context.Context, query string) ([]SearchResult, error) {
+	if !m.connected {
+		return nil, fmt.Errorf("mock connection not available")
+	}
+	if m.searchError != nil {
+		return nil, m.searchError
+	}
+	return m.searchResults, nil
+}
+
+// Close implements the close functionality
+func (m *MockWeaviateConnectionPool) Close() error {
+	m.connected = false
+	return nil
+}
+
+// MockEmbeddingServiceForScorer provides a mock implementation for RelevanceScorer testing
+type MockEmbeddingServiceForScorer struct {
+	similarity float64
+	err        error
+}
+
+// CalculateSimilarity implements similarity calculation
+func (m *MockEmbeddingServiceForScorer) CalculateSimilarity(ctx context.Context, text1, text2 string) (float64, error) {
+	return m.similarity, nil
+}
+
+// GetEmbedding implements embedding generation
+func (m *MockEmbeddingServiceForScorer) GetEmbedding(ctx context.Context, text string) ([]float64, error) {
+	// Return a simple mock embedding
+	return []float64{0.1, 0.2, 0.3}, nil
+}
+
+// MockTokenManager provides a mock implementation for token management
+type MockTokenManager struct {
+	supportsSystemPrompt bool
+	supportsChatFormat   bool
+	maxTokens            int
+}
+
+// SupportsSystemPrompt returns whether system prompts are supported
+func (m *MockTokenManager) SupportsSystemPrompt() bool {
+	return m.supportsSystemPrompt
+}
+
+// SupportsChatFormat returns whether chat format is supported
+func (m *MockTokenManager) SupportsChatFormat() bool {
+	return m.supportsChatFormat
+}
+
+// GetMaxTokens returns the maximum token count
+func (m *MockTokenManager) GetMaxTokens() int {
+	return m.maxTokens
+}
+
+// EstimateTokens estimates the token count for given text
+func (m *MockTokenManager) EstimateTokens(text string) int {
+	return len(strings.Fields(text)) // Simple estimation
+}
+
+// AllocateTokens allocates tokens for a request (mock implementation)
+func (m *MockTokenManager) AllocateTokens(request int) bool {
+	return request <= m.maxTokens
+}
+
+// Note: ContextBuilderConfig is defined in interface_consolidated.go
+
 // IntegrationTestSuite represents a complete LLM processing pipeline integration test
 type IntegrationTestSuite struct {
 	contextBuilder   *ContextBuilder
@@ -42,12 +126,9 @@ func NewIntegrationTestSuite() *IntegrationTestSuite {
 		maxTokens:            4096,
 	}
 
-	// Create context builder
+	// Create context builder with minimal config
 	contextConfig := &ContextBuilderConfig{
-		WeaviateURL:           "http://localhost:8080",
-		MaxConcurrentRequests: 10,
-		DefaultLimit:          20,
-		MinConfidenceScore:    0.3,
+		MinConfidenceScore: 0.3,
 		QueryTimeout:          10 * time.Second,
 		EnableHybridSearch:    true,
 		HybridAlpha:           0.75,

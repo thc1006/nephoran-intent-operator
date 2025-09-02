@@ -3,7 +3,6 @@ package chaos
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -73,7 +72,7 @@ func (s *SLAChaosTestSuite) SetupTest() {
 	slaConfig.ThroughputTarget = s.config.ThroughputTargetUnderChaos
 
 	appConfig := &config.Config{
-		LogLevel: "info",
+		Level: logging.LevelInfo,
 	}
 
 	s.slaService, err = sla.NewService(slaConfig, appConfig, s.logger)
@@ -456,21 +455,7 @@ func (s *SLAChaosTestSuite) configureChaosExperiments() {
 
 // Additional helper classes and methods...
 
-// RecoveryScenario defines a recovery testing scenario
-type RecoveryScenario struct {
-	Name             string
-	FailureType      ExperimentType
-	ExpectedRecovery time.Duration
-	Tolerance        time.Duration
-}
-
-// PartialFailureScenario defines a partial failure scenario
-type PartialFailureScenario struct {
-	Name          string
-	AffectedNodes []string
-	HealthyNodes  []string
-	ExpectedSLA   map[string]float64
-}
+// These types are now defined in sla_chaos_types.go
 
 // Constructor functions for chaos components
 func NewChaosEngine(config *ChaosEngineConfig, ctx context.Context) *ChaosEngine {
@@ -495,7 +480,8 @@ func NewResilienceValidator(config *ResilienceConfig) *ResilienceValidator {
 	}
 }
 
-func NewRecoveryTracker() *RecoveryTracker {
+// Constructor moved to sla_chaos_types.go
+func createRecoveryTracker() *RecoveryTracker {
 	return &RecoveryTracker{
 		recoveryEvents: make(map[string]*RecoveryEvent),
 	}

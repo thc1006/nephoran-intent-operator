@@ -21,7 +21,7 @@ type MetricsRecorder struct {
 	flushInterval time.Duration
 	registry      prometheus.Registerer
 	stopCh        chan struct{}
-	
+
 	// Metrics
 	recordsWritten   prometheus.Counter
 	writeErrors      prometheus.Counter
@@ -33,44 +33,44 @@ type MetricsRecorder struct {
 type MetricsStorage interface {
 	// WriteMetrics writes metrics to storage
 	WriteMetrics(ctx context.Context, records []MetricsRecord) error
-	
+
 	// ReadMetrics reads metrics from storage
 	ReadMetrics(ctx context.Context, query MetricsQuery) ([]MetricsRecord, error)
-	
+
 	// DeleteMetrics deletes metrics from storage
 	DeleteMetrics(ctx context.Context, filter MetricsFilter) error
-	
+
 	// GetMetricNames returns all available metric names
 	GetMetricNames(ctx context.Context) ([]string, error)
-	
+
 	// Close closes the storage connection
 	Close() error
 }
 
 // MetricsRecord represents a single metrics record with metadata
 type MetricsRecord struct {
-	ID          string                 `json:"id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Source      string                 `json:"source"`
-	Namespace   string                 `json:"namespace"`
-	Metric      string                 `json:"metric"`
-	Value       float64                `json:"value"`
-	Labels      map[string]string      `json:"labels"`
-	Tags        []string               `json:"tags,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID        string                 `json:"id"`
+	Timestamp time.Time              `json:"timestamp"`
+	Source    string                 `json:"source"`
+	Namespace string                 `json:"namespace"`
+	Metric    string                 `json:"metric"`
+	Value     float64                `json:"value"`
+	Labels    map[string]string      `json:"labels"`
+	Tags      []string               `json:"tags,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // MetricsQuery represents a query for retrieving metrics
 type MetricsQuery struct {
-	Sources     []string          `json:"sources,omitempty"`
-	Metrics     []string          `json:"metrics,omitempty"`
-	StartTime   time.Time         `json:"startTime"`
-	EndTime     time.Time         `json:"endTime"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Limit       int               `json:"limit,omitempty"`
-	Offset      int               `json:"offset,omitempty"`
-	OrderBy     string            `json:"orderBy,omitempty"` // timestamp, value, source
-	Ascending   bool              `json:"ascending"`
+	Sources   []string          `json:"sources,omitempty"`
+	Metrics   []string          `json:"metrics,omitempty"`
+	StartTime time.Time         `json:"startTime"`
+	EndTime   time.Time         `json:"endTime"`
+	Labels    map[string]string `json:"labels,omitempty"`
+	Limit     int               `json:"limit,omitempty"`
+	Offset    int               `json:"offset,omitempty"`
+	OrderBy   string            `json:"orderBy,omitempty"` // timestamp, value, source
+	Ascending bool              `json:"ascending"`
 }
 
 // MetricsFilter represents a filter for deleting metrics
@@ -91,7 +91,7 @@ func NewMetricsRecorder(storage MetricsStorage, bufferSize int, flushInterval ti
 		registry:      registry,
 		stopCh:        make(chan struct{}),
 	}
-	
+
 	mr.initMetrics()
 	return mr
 }
@@ -102,23 +102,23 @@ func (mr *MetricsRecorder) initMetrics() {
 		Name: "oran_metrics_records_written_total",
 		Help: "Total number of metrics records written to storage",
 	})
-	
+
 	mr.writeErrors = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "oran_metrics_write_errors_total",
 		Help: "Total number of metrics write errors",
 	})
-	
+
 	mr.writeDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "oran_metrics_write_duration_seconds",
-		Help: "Duration of metrics write operations in seconds",
+		Name:    "oran_metrics_write_duration_seconds",
+		Help:    "Duration of metrics write operations in seconds",
 		Buckets: prometheus.DefBuckets,
 	})
-	
+
 	mr.bufferSize_gauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "oran_metrics_buffer_size",
 		Help: "Current size of metrics buffer",
 	})
-	
+
 	if mr.registry != nil {
 		mr.registry.MustRegister(mr.recordsWritten)
 		mr.registry.MustRegister(mr.writeErrors)
@@ -131,10 +131,10 @@ func (mr *MetricsRecorder) initMetrics() {
 func (mr *MetricsRecorder) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting metrics recorder", "bufferSize", mr.bufferSize, "flushInterval", mr.flushInterval)
-	
+
 	// Start flush loop
 	go mr.flushLoop(ctx)
-	
+
 	return nil
 }
 
@@ -142,22 +142,22 @@ func (mr *MetricsRecorder) Start(ctx context.Context) error {
 func (mr *MetricsRecorder) Stop(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Stopping metrics recorder")
-	
+
 	// Signal stop
 	close(mr.stopCh)
-	
+
 	// Flush remaining buffer
 	if err := mr.flushBuffer(ctx); err != nil {
 		logger.Error(err, "Failed to flush final buffer")
 		return err
 	}
-	
+
 	// Close storage
 	if err := mr.storage.Close(); err != nil {
 		logger.Error(err, "Failed to close storage")
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -166,21 +166,21 @@ func (mr *MetricsRecorder) RecordMetrics(ctx context.Context, data *MetricsData)
 	if data == nil {
 		return fmt.Errorf("metrics data cannot be nil")
 	}
-	
+
 	logger := log.FromContext(ctx)
 	logger.V(2).Info("Recording metrics", "source", data.Source, "metricsCount", len(data.Metrics))
-	
+
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
-	
+
 	// Convert MetricsData to MetricsRecords
 	records := mr.convertMetricsData(data)
-	
+
 	// Add to buffer
 	for _, record := range records {
 		mr.buffer = append(mr.buffer, record)
 		mr.bufferSize_gauge.Set(float64(len(mr.buffer)))
-		
+
 		// Check if buffer is full
 		if len(mr.buffer) >= mr.bufferSize {
 			// Flush buffer asynchronously
@@ -189,13 +189,13 @@ func (mr *MetricsRecorder) RecordMetrics(ctx context.Context, data *MetricsData)
 					logger.Error(err, "Failed to flush full buffer")
 				}
 			}(append([]MetricsRecord(nil), mr.buffer...)) // Copy buffer
-			
+
 			// Clear buffer
 			mr.buffer = mr.buffer[:0]
 			mr.bufferSize_gauge.Set(0)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -203,7 +203,7 @@ func (mr *MetricsRecorder) RecordMetrics(ctx context.Context, data *MetricsData)
 func (mr *MetricsRecorder) QueryMetrics(ctx context.Context, query MetricsQuery) ([]MetricsRecord, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Querying metrics", "query", fmt.Sprintf("%+v", query))
-	
+
 	return mr.storage.ReadMetrics(ctx, query)
 }
 
@@ -216,11 +216,11 @@ func (mr *MetricsRecorder) GetMetricNames(ctx context.Context) ([]string, error)
 func (mr *MetricsRecorder) DeleteOldMetrics(ctx context.Context, olderThan time.Time) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Deleting old metrics", "olderThan", olderThan)
-	
+
 	filter := MetricsFilter{
 		OlderThan: olderThan,
 	}
-	
+
 	return mr.storage.DeleteMetrics(ctx, filter)
 }
 
@@ -240,10 +240,10 @@ func (mr *MetricsRecorder) FlushBuffer(ctx context.Context) error {
 func (mr *MetricsRecorder) flushLoop(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting metrics flush loop", "interval", mr.flushInterval)
-	
+
 	ticker := time.NewTicker(mr.flushInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -263,21 +263,21 @@ func (mr *MetricsRecorder) flushLoop(ctx context.Context) {
 // flushBuffer flushes the current buffer to storage
 func (mr *MetricsRecorder) flushBuffer(ctx context.Context) error {
 	mr.mu.Lock()
-	
+
 	if len(mr.buffer) == 0 {
 		mr.mu.Unlock()
 		return nil
 	}
-	
+
 	// Copy buffer for writing
 	records := make([]MetricsRecord, len(mr.buffer))
 	copy(records, mr.buffer)
-	
+
 	// Clear buffer
 	mr.buffer = mr.buffer[:0]
 	mr.bufferSize_gauge.Set(0)
 	mr.mu.Unlock()
-	
+
 	// Write to storage
 	return mr.writeToStorage(ctx, records)
 }
@@ -288,16 +288,16 @@ func (mr *MetricsRecorder) writeToStorage(ctx context.Context, records []Metrics
 	defer func() {
 		mr.writeDuration.Observe(time.Since(startTime).Seconds())
 	}()
-	
+
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Writing metrics to storage", "recordCount", len(records))
-	
+
 	err := mr.storage.WriteMetrics(ctx, records)
 	if err != nil {
 		mr.writeErrors.Inc()
 		return fmt.Errorf("failed to write metrics to storage: %w", err)
 	}
-	
+
 	mr.recordsWritten.Add(float64(len(records)))
 	return nil
 }
@@ -305,7 +305,7 @@ func (mr *MetricsRecorder) writeToStorage(ctx context.Context, records []Metrics
 // convertMetricsData converts MetricsData to MetricsRecords
 func (mr *MetricsRecorder) convertMetricsData(data *MetricsData) []MetricsRecord {
 	records := make([]MetricsRecord, 0, len(data.Metrics))
-	
+
 	for metricName, value := range data.Metrics {
 		record := MetricsRecord{
 			ID:        fmt.Sprintf("%s-%s-%d", data.Source, metricName, data.Timestamp.UnixNano()),
@@ -317,17 +317,17 @@ func (mr *MetricsRecorder) convertMetricsData(data *MetricsData) []MetricsRecord
 			Labels:    make(map[string]string),
 			Metadata:  make(map[string]interface{}),
 		}
-		
+
 		// Copy labels
 		for k, v := range data.Labels {
 			record.Labels[k] = v
 		}
-		
+
 		// Copy metadata
 		for k, v := range data.Metadata {
 			record.Metadata[k] = v
 		}
-		
+
 		// Add pod and container info if available
 		if data.Pod != "" {
 			record.Labels["pod"] = data.Pod
@@ -335,10 +335,10 @@ func (mr *MetricsRecorder) convertMetricsData(data *MetricsData) []MetricsRecord
 		if data.Container != "" {
 			record.Labels["container"] = data.Container
 		}
-		
+
 		records = append(records, record)
 	}
-	
+
 	return records
 }
 
@@ -361,12 +361,12 @@ func NewInMemoryMetricsStorage() *InMemoryMetricsStorage {
 func (ims *InMemoryMetricsStorage) WriteMetrics(ctx context.Context, records []MetricsRecord) error {
 	ims.mu.Lock()
 	defer ims.mu.Unlock()
-	
+
 	for _, record := range records {
 		// Add record
 		index := len(ims.records)
 		ims.records = append(ims.records, record)
-		
+
 		// Update indices
 		if indices, exists := ims.indices[record.Metric]; exists {
 			ims.indices[record.Metric] = append(indices, index)
@@ -374,7 +374,7 @@ func (ims *InMemoryMetricsStorage) WriteMetrics(ctx context.Context, records []M
 			ims.indices[record.Metric] = []int{index}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -382,9 +382,9 @@ func (ims *InMemoryMetricsStorage) WriteMetrics(ctx context.Context, records []M
 func (ims *InMemoryMetricsStorage) ReadMetrics(ctx context.Context, query MetricsQuery) ([]MetricsRecord, error) {
 	ims.mu.RLock()
 	defer ims.mu.RUnlock()
-	
+
 	var results []MetricsRecord
-	
+
 	// If specific metrics are requested, use indices
 	if len(query.Metrics) > 0 {
 		for _, metricName := range query.Metrics {
@@ -407,12 +407,12 @@ func (ims *InMemoryMetricsStorage) ReadMetrics(ctx context.Context, query Metric
 			}
 		}
 	}
-	
+
 	// Apply limit and offset
 	if query.Limit > 0 {
 		start := query.Offset
 		end := start + query.Limit
-		
+
 		if start < len(results) {
 			if end > len(results) {
 				end = len(results)
@@ -422,7 +422,7 @@ func (ims *InMemoryMetricsStorage) ReadMetrics(ctx context.Context, query Metric
 			results = nil
 		}
 	}
-	
+
 	return results, nil
 }
 
@@ -430,17 +430,17 @@ func (ims *InMemoryMetricsStorage) ReadMetrics(ctx context.Context, query Metric
 func (ims *InMemoryMetricsStorage) DeleteMetrics(ctx context.Context, filter MetricsFilter) error {
 	ims.mu.Lock()
 	defer ims.mu.Unlock()
-	
+
 	// Create new slice without matching records
 	var newRecords []MetricsRecord
 	newIndices := make(map[string][]int)
-	
+
 	for i, record := range ims.records {
 		if !ims.matchesFilter(record, filter) {
 			// Keep this record
 			newIndex := len(newRecords)
 			newRecords = append(newRecords, record)
-			
+
 			// Update indices
 			if indices, exists := newIndices[record.Metric]; exists {
 				newIndices[record.Metric] = append(indices, newIndex)
@@ -452,10 +452,10 @@ func (ims *InMemoryMetricsStorage) DeleteMetrics(ctx context.Context, filter Met
 			_ = i // Record being deleted
 		}
 	}
-	
+
 	ims.records = newRecords
 	ims.indices = newIndices
-	
+
 	return nil
 }
 
@@ -463,12 +463,12 @@ func (ims *InMemoryMetricsStorage) DeleteMetrics(ctx context.Context, filter Met
 func (ims *InMemoryMetricsStorage) GetMetricNames(ctx context.Context) ([]string, error) {
 	ims.mu.RLock()
 	defer ims.mu.RUnlock()
-	
+
 	names := make([]string, 0, len(ims.indices))
 	for name := range ims.indices {
 		names = append(names, name)
 	}
-	
+
 	return names, nil
 }
 
@@ -486,7 +486,7 @@ func (ims *InMemoryMetricsStorage) matchesQuery(record MetricsRecord, query Metr
 	if !query.EndTime.IsZero() && record.Timestamp.After(query.EndTime) {
 		return false
 	}
-	
+
 	// Check sources
 	if len(query.Sources) > 0 {
 		found := false
@@ -500,14 +500,14 @@ func (ims *InMemoryMetricsStorage) matchesQuery(record MetricsRecord, query Metr
 			return false
 		}
 	}
-	
+
 	// Check labels
 	for key, value := range query.Labels {
 		if recordValue, exists := record.Labels[key]; !exists || recordValue != value {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -517,7 +517,7 @@ func (ims *InMemoryMetricsStorage) matchesFilter(record MetricsRecord, filter Me
 	if !filter.OlderThan.IsZero() && record.Timestamp.After(filter.OlderThan) {
 		return false
 	}
-	
+
 	// Check sources
 	if len(filter.Sources) > 0 {
 		found := false
@@ -531,7 +531,7 @@ func (ims *InMemoryMetricsStorage) matchesFilter(record MetricsRecord, filter Me
 			return false
 		}
 	}
-	
+
 	// Check metrics
 	if len(filter.Metrics) > 0 {
 		found := false
@@ -545,14 +545,14 @@ func (ims *InMemoryMetricsStorage) matchesFilter(record MetricsRecord, filter Me
 			return false
 		}
 	}
-	
+
 	// Check labels
 	for key, value := range filter.Labels {
 		if recordValue, exists := record.Labels[key]; !exists || recordValue != value {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -567,13 +567,13 @@ func (ims *InMemoryMetricsStorage) GetRecordCount() int {
 func (ims *InMemoryMetricsStorage) GetStorageStats() map[string]interface{} {
 	ims.mu.RLock()
 	defer ims.mu.RUnlock()
-	
+
 	stats := map[string]interface{}{
-		"total_records":  len(ims.records),
-		"metric_count":   len(ims.indices),
-		"storage_type":   "in-memory",
+		"total_records": len(ims.records),
+		"metric_count":  len(ims.indices),
+		"storage_type":  "in-memory",
 	}
-	
+
 	// Calculate memory usage estimation
 	var memoryUsage int
 	for _, record := range ims.records {
@@ -582,16 +582,16 @@ func (ims *InMemoryMetricsStorage) GetStorageStats() map[string]interface{} {
 		for k, v := range record.Labels {
 			memoryUsage += len(k) + len(v)
 		}
-		
+
 		// Add metadata size (rough estimation)
 		if data, err := json.Marshal(record.Metadata); err == nil {
 			memoryUsage += len(data)
 		}
-		
+
 		memoryUsage += 64 // Estimated overhead per record
 	}
-	
+
 	stats["estimated_memory_bytes"] = memoryUsage
-	
+
 	return stats
 }

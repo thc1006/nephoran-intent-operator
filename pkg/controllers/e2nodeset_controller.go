@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
 const (
@@ -166,6 +168,10 @@ type E2NodeSetReconciler struct {
 	Scheme *runtime.Scheme
 
 	Recorder record.EventRecorder
+
+	// External dependencies
+	GitClient git.ClientInterface
+	E2Manager e2.E2ManagerInterface
 
 	// Metrics.
 

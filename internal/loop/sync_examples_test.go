@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
@@ -65,7 +65,7 @@ func TestFixedOnceMode(t *testing.T) {
 	}
 
 	mockPorchPath, _ := syncHelper.CreateMockPorch(mockConfig)
-	
+
 	// Ensure mock is executable
 	require.NoError(t, porch.ValidateMockExecutable(mockPorchPath))
 

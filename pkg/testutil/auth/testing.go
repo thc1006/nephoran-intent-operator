@@ -1,6 +1,6 @@
 // Package testutil provides testing utilities and helpers for auth package.
 
-package testutil
+package authtestutil
 
 import (
 	"context"
@@ -28,6 +28,23 @@ import (
 )
 
 // Import types from main auth package to avoid circular dependencies.
+
+// TokenStore interface for token storage (matches auth.TokenStore)
+type TokenStore interface {
+	StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error
+	GetToken(ctx context.Context, tokenID string) (*TokenInfo, error)
+	UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error
+	DeleteToken(ctx context.Context, tokenID string) error
+	ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error)
+	CleanupExpired(ctx context.Context) error
+}
+
+// TokenBlacklist interface for token blacklisting (matches auth.TokenBlacklist)
+type TokenBlacklist interface {
+	BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error
+	IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error)
+	CleanupExpired(ctx context.Context) error
+}
 
 type NephoranJWTClaims struct {
 	jwt.RegisteredClaims
@@ -1890,6 +1907,10 @@ type TestContext struct {
 
 	SessionManager *SessionManagerMock
 
+	// Token store and blacklist for real JWT manager
+	TokenStore TokenStore
+	Blacklist  TokenBlacklist
+
 	// Cleanup functions.
 
 	cleanupFuncs []func()
@@ -1937,10 +1958,123 @@ func NewTestContext(t *testing.T) *TestContext {
 		RBACManager: NewRBACManagerMock(),
 
 		SessionManager: NewSessionManagerMock(),
+
+		TokenStore: NewMockTokenStore(),
+
+		Blacklist:  NewMockTokenBlacklist(),
 	}
 
 	return tc
 
+}
+
+// Mock implementations for testing
+
+// MockTokenStore is a mock implementation of TokenStore
+type MockTokenStore struct {
+	tokens map[string]*TokenInfo
+	mutex  sync.RWMutex
+}
+
+// NewMockTokenStore creates a new mock token store
+func NewMockTokenStore() *MockTokenStore {
+	return &MockTokenStore{
+		tokens: make(map[string]*TokenInfo),
+	}
+}
+
+func (m *MockTokenStore) StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *MockTokenStore) GetToken(ctx context.Context, tokenID string) (*TokenInfo, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	token, exists := m.tokens[tokenID]
+	if !exists {
+		return nil, nil
+	}
+	return token, nil
+}
+
+func (m *MockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *MockTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	delete(m.tokens, tokenID)
+	return nil
+}
+
+func (m *MockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	var tokens []*TokenInfo
+	for _, token := range m.tokens {
+		if token.UserID == userID {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens, nil
+}
+
+func (m *MockTokenStore) CleanupExpired(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	now := time.Now()
+	for tokenID, token := range m.tokens {
+		if token.ExpiresAt.Before(now) {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
+// MockTokenBlacklist is a mock implementation of TokenBlacklist
+type MockTokenBlacklist struct {
+	blacklisted map[string]time.Time
+	mutex       sync.RWMutex
+}
+
+// NewMockTokenBlacklist creates a new mock token blacklist
+func NewMockTokenBlacklist() *MockTokenBlacklist {
+	return &MockTokenBlacklist{
+		blacklisted: make(map[string]time.Time),
+	}
+}
+
+func (m *MockTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.blacklisted[tokenID] = expiresAt
+	return nil
+}
+
+func (m *MockTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	_, exists := m.blacklisted[tokenID]
+	return exists, nil
+}
+
+func (m *MockTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	now := time.Now()
+	for tokenID, expiresAt := range m.blacklisted {
+		if expiresAt.Before(now) {
+			delete(m.blacklisted, tokenID)
+		}
+	}
+	return nil
 }
 
 // SetupJWTManager initializes JWT manager mock for testing.

@@ -101,7 +101,7 @@ func (ip *ImpactPredictor) PredictImpact(
 		DataQuality:             0.85, // Default data quality
 	}
 
-	// Adjust based on component health  
+	// Adjust based on component health
 	if analysis.HealthStatus == HealthStatusCritical {
 		impact.ConfidenceLevel *= 0.9 // Slightly less confident with critical health
 	}
@@ -305,7 +305,7 @@ func (ra *RiskAssessor) getHealthRiskMultiplier(healthStatus SystemHealthStatus)
 	case HealthStatusCritical:
 		return 2.0 // High risk for critical systems
 	case HealthStatusWarning:
-		return 1.5 // Moderate additional risk  
+		return 1.5 // Moderate additional risk
 	case HealthStatusHealthy:
 		return 1.0 // No additional risk
 	case HealthStatusUnknown:

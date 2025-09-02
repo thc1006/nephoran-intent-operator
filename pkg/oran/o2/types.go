@@ -75,18 +75,18 @@ type O2IMSConfig struct {
 	Host string `json:"host,omitempty"`
 
 	// Service configuration from DefaultO2IMSConfig
-	ServiceName    string `json:"serviceName"`
-	ServiceVersion string `json:"serviceVersion"`
-	ListenAddress  string `json:"listenAddress"`
-	ListenPort     int    `json:"listenPort"`
-	MetricsPort    int    `json:"metricsPort"`
-	HealthPort     int    `json:"healthPort"`
-	LogLevel       string `json:"logLevel"`
-	RedisURL       string `json:"redisUrl"`
-	CloudProviders []string `json:"cloudProviders"`
-	Features       map[string]bool `json:"features"`
+	ServiceName    string            `json:"serviceName"`
+	ServiceVersion string            `json:"serviceVersion"`
+	ListenAddress  string            `json:"listenAddress"`
+	ListenPort     int               `json:"listenPort"`
+	MetricsPort    int               `json:"metricsPort"`
+	HealthPort     int               `json:"healthPort"`
+	LogLevel       string            `json:"logLevel"`
+	RedisURL       string            `json:"redisUrl"`
+	CloudProviders []string          `json:"cloudProviders"`
+	Features       map[string]bool   `json:"features"`
 	Timeouts       map[string]string `json:"timeouts"`
-	Limits         map[string]int `json:"limits"`
+	Limits         map[string]int    `json:"limits"`
 
 	CloudProviderConfigs map[string]*CloudProviderConfig `json:"cloudProviderConfigs,omitempty"`
 
@@ -625,7 +625,6 @@ type NetworkPolicyRule struct {
 
 // Additional supporting types.
 
-
 // Resource represents a resource.
 
 type Resource struct {
@@ -947,19 +946,19 @@ type InfrastructureHealthChecker interface {
 	// Health checking
 	CheckHealth(ctx context.Context, resourceID string) (*HealthStatus, error)
 	CheckAllResources(ctx context.Context) (map[string]*HealthStatus, error)
-	
+
 	// Health monitoring
 	StartHealthMonitoring(ctx context.Context, resourceID string, interval time.Duration) error
 	StopHealthMonitoring(ctx context.Context, resourceID string) error
-	
+
 	// Health policies
 	SetHealthPolicy(ctx context.Context, resourceID string, policy interface{}) error
 	GetHealthPolicy(ctx context.Context, resourceID string) (interface{}, error)
-	
+
 	// Health history and trends
 	GetHealthHistory(ctx context.Context, resourceID string, duration time.Duration) ([]interface{}, error)
 	GetHealthTrends(ctx context.Context, resourceID string, duration time.Duration) (interface{}, error)
-	
+
 	// Health events and callbacks
 	RegisterHealthEventCallback(ctx context.Context, resourceID string, callback func(interface{}) error) error
 	UnregisterHealthEventCallback(ctx context.Context, resourceID string) error
@@ -977,7 +976,6 @@ type (
 )
 
 // O2IMSStorage interface defines storage operations for O2 IMS.
-
 
 // Removed - defined below.
 
@@ -1023,7 +1021,6 @@ type (
 
 // CloudProviderConfig defines cloud provider configuration.
 
-
 // CNF and Helm related stub types are defined in cnf_management.go.
 
 type RequestContext struct {
@@ -1063,7 +1060,6 @@ type ResourceHealthSummary struct {
 type ResourceState struct {
 	ResourceID string `json:"resourceId"`
 }
-
 
 // Operation type constants.
 
@@ -1130,9 +1126,6 @@ type ResourceConfig struct {
 	AutoDiscoveryEnabled bool `json:"autoDiscoveryEnabled"`
 }
 
-
-
-
 // Security Configuration Types.
 
 // APISecurityConfig defines security configuration for the API server.
@@ -1166,9 +1159,7 @@ type APISecurityConfig struct {
 
 // RateLimitConfig defines rate limiting configuration.
 
-
 // InputValidationConfig defines input validation configuration.
-
 
 // BasicAuthConfig defines basic authentication configuration.
 
@@ -1182,7 +1173,6 @@ type BasicAuthConfig struct {
 
 // AuthenticationConfig alias for compatibility.
 
-
 // APIHealthCheckConfig defines health check configuration for API server.
 
 type APIHealthCheckConfig struct {
@@ -1194,7 +1184,6 @@ type APIHealthCheckConfig struct {
 }
 
 // MetricsConfig defines metrics configuration.
-
 
 // APIHealthCheckerConfig defines health check configuration for the API server health checker.
 
@@ -1213,4 +1202,3 @@ type APIHealthCheckerConfig struct {
 }
 
 // DefaultO2IMSConfig returns a default configuration for O2 IMS.
-

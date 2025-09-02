@@ -11,14 +11,14 @@ import (
 
 // BasicHealthChecker provides a basic implementation of HealthChecker
 type BasicHealthChecker struct {
-	version       string
-	k8sClient     kubernetes.Interface
-	recorder      *MetricsRecorder
-	healthChecks  map[string]HealthChecker
-	mu            sync.RWMutex
-	status        HealthStatus
-	lastCheck     time.Time
-	message       string
+	version      string
+	k8sClient    kubernetes.Interface
+	recorder     *MetricsRecorder
+	healthChecks map[string]HealthChecker
+	mu           sync.RWMutex
+	status       HealthStatus
+	lastCheck    time.Time
+	message      string
 }
 
 // NewHealthChecker creates a new health checker
@@ -38,7 +38,7 @@ func NewHealthChecker(version string, k8sClient kubernetes.Interface, recorder *
 func (hc *BasicHealthChecker) CheckHealth(ctx context.Context) (*ComponentHealth, error) {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	return &ComponentHealth{
 		Name:        hc.GetName(),
 		Status:      hc.status,
@@ -78,13 +78,13 @@ func (hc *BasicHealthChecker) UnregisterCheck(name string) {
 func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	components := make(map[string]*ComponentHealth)
 	overallStatus := HealthStatusHealthy
 	healthyCount := 0
 	totalCount := len(hc.healthChecks)
 	var issues []string
-	
+
 	// Check each registered health check
 	for name, checker := range hc.healthChecks {
 		componentHealth, err := checker.CheckHealth(context.Background())
@@ -102,9 +102,9 @@ func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 				healthyCount++
 			}
 		}
-		
+
 		components[name] = componentHealth
-		
+
 		// Determine overall status
 		switch componentHealth.Status {
 		case HealthStatusUnhealthy:
@@ -115,13 +115,13 @@ func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 			}
 		}
 	}
-	
+
 	// Calculate health score
 	healthScore := 0.0
 	if totalCount > 0 {
 		healthScore = float64(healthyCount) / float64(totalCount)
 	}
-	
+
 	return &SystemHealth{
 		OverallStatus: overallStatus,
 		Components:    components,
@@ -135,7 +135,7 @@ func (hc *BasicHealthChecker) GetSystemHealth() (*SystemHealth, error) {
 func (hc *BasicHealthChecker) healthCheckLoop(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -150,12 +150,12 @@ func (hc *BasicHealthChecker) healthCheckLoop(ctx context.Context) {
 func (hc *BasicHealthChecker) performHealthCheck() {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	overallHealthy := true
 	healthyCount := 0
 	totalCount := len(hc.healthChecks)
 	var messages []string
-	
+
 	for name, checker := range hc.healthChecks {
 		componentHealth, err := checker.CheckHealth(context.Background())
 		if err != nil || componentHealth.Status != HealthStatusHealthy {
@@ -169,7 +169,7 @@ func (hc *BasicHealthChecker) performHealthCheck() {
 			healthyCount++
 		}
 	}
-	
+
 	// Update overall status
 	if overallHealthy && totalCount > 0 {
 		hc.status = HealthStatusHealthy
@@ -181,7 +181,7 @@ func (hc *BasicHealthChecker) performHealthCheck() {
 		hc.status = HealthStatusUnhealthy
 		hc.message = fmt.Sprintf("Only %d/%d components healthy", healthyCount, totalCount)
 	}
-	
+
 	hc.lastCheck = time.Now()
 }
 

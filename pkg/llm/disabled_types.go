@@ -27,9 +27,9 @@ type CacheState struct {
 
 // BatchProcessorConfig provides configuration for batch processing (stub)
 type BatchProcessorConfig struct {
-	BatchSize    int
-	MaxWaitTime  time.Duration
-	WorkerCount  int
+	BatchSize   int
+	MaxWaitTime time.Duration
+	WorkerCount int
 }
 
 // LLMLatencyDataPoint represents a latency data point (stub)

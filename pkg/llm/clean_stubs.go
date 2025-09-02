@@ -246,7 +246,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 
 			"version": doc.Version,
 
-			"language": "en",  // Default language
+			"language": "en", // Default language
 
 			"document_type": doc.DocumentType,
 

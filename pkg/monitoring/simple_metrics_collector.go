@@ -36,7 +36,7 @@ func NewMetricsCollectorWithClients(client kubernetes.Interface, recorder *Metri
 func (c *SimpleMetricsCollector) CollectMetrics() ([]*Metric, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	// Return a copy of the metrics
 	result := make([]*Metric, len(c.metrics))
 	copy(result, c.metrics)
@@ -67,7 +67,7 @@ func (c *SimpleMetricsCollector) UpdateControllerHealth(controllerName, componen
 	if healthy {
 		value = 1.0
 	}
-	
+
 	metric := &Metric{
 		Name:      "controller_health",
 		Type:      MetricTypeGauge,
@@ -79,7 +79,7 @@ func (c *SimpleMetricsCollector) UpdateControllerHealth(controllerName, componen
 		},
 		Description: "Controller health status (1=healthy, 0=unhealthy)",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -92,7 +92,7 @@ func (c *SimpleMetricsCollector) RecordKubernetesAPILatency(latency time.Duratio
 		Timestamp:   time.Now(),
 		Description: "Duration of Kubernetes API calls in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -111,7 +111,7 @@ func (c *SimpleMetricsCollector) UpdateNetworkIntentStatus(name, namespace, inte
 		},
 		Description: "NetworkIntent status",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -128,7 +128,7 @@ func (c *SimpleMetricsCollector) RecordNetworkIntentProcessed(intentType, status
 		},
 		Description: "Duration of NetworkIntent processing in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -146,7 +146,7 @@ func (c *SimpleMetricsCollector) RecordNetworkIntentRetry(name, namespace, reaso
 		},
 		Description: "Total number of NetworkIntent retry attempts",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -191,7 +191,7 @@ func (c *SimpleMetricsCollector) RecordE2NodeSetOperation(operation string, dura
 		},
 		Description: "Duration of E2NodeSet operations in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -209,7 +209,7 @@ func (c *SimpleMetricsCollector) UpdateE2NodeSetReplicas(name, namespace, status
 		},
 		Description: "Number of E2NodeSet replicas",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -227,7 +227,7 @@ func (c *SimpleMetricsCollector) RecordE2NodeSetScaling(name, namespace, directi
 		},
 		Description: "Total number of E2NodeSet scaling events",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -245,7 +245,7 @@ func (c *SimpleMetricsCollector) RecordORANInterfaceRequest(interfaceType, opera
 		},
 		Description: "Duration of O-RAN interface requests in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -263,7 +263,7 @@ func (c *SimpleMetricsCollector) RecordORANInterfaceError(interfaceType, operati
 		},
 		Description: "Total number of O-RAN interface errors",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -279,7 +279,7 @@ func (c *SimpleMetricsCollector) RecordCNFDeployment(functionName string, durati
 		},
 		Description: "CNF deployment duration in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -289,7 +289,7 @@ func (c *SimpleMetricsCollector) UpdateORANConnectionStatus(interfaceType, endpo
 	if connected {
 		value = 1.0
 	}
-	
+
 	metric := &Metric{
 		Name:      "oran_connection_status",
 		Type:      MetricTypeGauge,
@@ -301,7 +301,7 @@ func (c *SimpleMetricsCollector) UpdateORANConnectionStatus(interfaceType, endpo
 		},
 		Description: "O-RAN connection status (1=connected, 0=disconnected)",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -318,7 +318,7 @@ func (c *SimpleMetricsCollector) UpdateORANPolicyInstances(policyType, status st
 		},
 		Description: "Number of O-RAN policy instances",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -334,7 +334,7 @@ func (c *SimpleMetricsCollector) RecordRAGOperation(duration time.Duration, cach
 		},
 		Description: "Duration of RAG operations in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -347,7 +347,7 @@ func (c *SimpleMetricsCollector) UpdateRAGDocumentsIndexed(count int) {
 		Timestamp:   time.Now(),
 		Description: "Number of documents indexed in RAG system",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -364,7 +364,7 @@ func (c *SimpleMetricsCollector) RecordGitOpsOperation(operation string, duratio
 		},
 		Description: "Duration of GitOps operations in seconds",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -374,7 +374,7 @@ func (c *SimpleMetricsCollector) UpdateGitOpsSyncStatus(repository, branch strin
 	if inSync {
 		value = 1.0
 	}
-	
+
 	metric := &Metric{
 		Name:      "gitops_sync_status",
 		Type:      MetricTypeGauge,
@@ -386,7 +386,7 @@ func (c *SimpleMetricsCollector) UpdateGitOpsSyncStatus(repository, branch strin
 		},
 		Description: "GitOps sync status (1=in_sync, 0=out_of_sync)",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -403,7 +403,7 @@ func (c *SimpleMetricsCollector) UpdateResourceUtilization(resourceType, unit st
 		},
 		Description: "Resource utilization metrics",
 	}
-	
+
 	c.addMetric(metric)
 }
 
@@ -420,7 +420,7 @@ func (c *SimpleMetricsCollector) UpdateWorkerQueueMetrics(queueName string, dept
 		Description: "Worker queue depth",
 	}
 	c.addMetric(depthMetric)
-	
+
 	latencyMetric := &Metric{
 		Name:      "worker_queue_latency_seconds",
 		Type:      MetricTypeHistogram,
@@ -457,7 +457,7 @@ func (c *SimpleMetricsCollector) RecordSSEStream(endpoint string, connected bool
 	if connected {
 		value = 1.0
 	}
-	
+
 	metric := &Metric{
 		Name:      "sse_stream_active",
 		Type:      MetricTypeGauge,

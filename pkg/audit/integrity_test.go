@@ -1,9 +1,6 @@
 package audit
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"

@@ -812,4 +812,3 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 }
 
 // Helper functions
-

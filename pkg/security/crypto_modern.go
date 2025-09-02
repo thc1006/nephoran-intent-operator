@@ -27,21 +27,22 @@ import (
 // CryptoModern provides advanced cryptographic operations.
 
 type CryptoModern struct {
-
-	// Entropy pool for enhanced randomness.
-
+	// Entropy pool for enhanced randomness
 	entropyPool *EntropyPool
+	
+	// Key derivation manager
+	keyDerivation *KeyDerivationManager
+	
+	// Encryption cache for performance
+	encryptionCache *EncryptionCache
 
-	// Key derivation parameters.
-
+	// Key derivation parameters
 	kdfParams *KDFParams
 
-	// Encryption contexts.
-
+	// Encryption contexts
 	contexts map[string]*EncryptionContext
 
-	// Post-quantum preparation.
-
+	// Post-quantum preparation
 	pqReady bool
 
 	mu sync.RWMutex
@@ -143,40 +144,25 @@ type Ed25519KeyPair struct {
 func NewCryptoModern() *CryptoModern {
 
 	return &CryptoModern{
-
 		entropyPool: NewEntropyPool(4096),
-
+		keyDerivation: NewKeyDerivationManager(),
+		encryptionCache: NewEncryptionCache(),
 		kdfParams: &KDFParams{
-
-			// Argon2id parameters (recommended for password hashing).
-
+			// Argon2id parameters (recommended for password hashing)
 			Argon2Time: 3,
-
 			Argon2Memory: 64 * 1024, // 64 MB
-
 			Argon2Threads: 4,
-
 			Argon2KeyLen: 32,
-
-			// PBKDF2 parameters.
-
+			// PBKDF2 parameters
 			PBKDF2Iterations: 600000, // NIST recommended minimum
-
-			// Scrypt parameters.
-
+			// Scrypt parameters
 			ScryptN: 32768,
-
 			ScryptR: 8,
-
 			ScryptP: 1,
-
-			// HKDF.
-
+			// HKDF
 			HKDFInfo: []byte("nephoran-intent-operator"),
 		},
-
 		contexts: make(map[string]*EncryptionContext),
-
 		pqReady: false,
 	}
 

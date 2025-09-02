@@ -103,15 +103,15 @@ type LoadGeneratorConfig struct {
 
 // TestClient represents a mock client for SLA testing
 type TestClient struct {
-	baseURL string
-	httpClient *http.Client
+	baseURL        string
+	httpClient     *http.Client
 	requestCounter int64
 }
 
 // NewTestClient creates a new test client
 func NewTestClient(baseURL string) *TestClient {
 	return &TestClient{
-		baseURL: baseURL,
+		baseURL:    baseURL,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
@@ -286,7 +286,7 @@ type CPUProfiler struct {
 	enabled bool
 }
 
-// MemoryProfiler provides memory profiling capabilities  
+// MemoryProfiler provides memory profiling capabilities
 type MemoryProfiler struct {
 	enabled bool
 }
@@ -298,9 +298,9 @@ type TraceProfiler struct {
 
 // Stats types for performance monitoring
 type MemoryStats struct {
-	HeapUsed   int64
-	HeapTotal  int64
-	StackUsed  int64
+	HeapUsed  int64
+	HeapTotal int64
+	StackUsed int64
 }
 
 type CPUStats struct {

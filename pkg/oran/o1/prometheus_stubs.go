@@ -8,7 +8,9 @@ import (
 
 // Export required prometheus types for O-RAN O1 interface
 var (
-	_ prometheus.Counter = (*prometheus.CounterVec)(nil).WithLabelValues("")
-	_ prometheus.Gauge   = promauto.NewGauge(prometheus.GaugeOpts{})
-	_ model.Metric      = model.Metric{}
+	// Create a dummy CounterVec and use it properly instead of nil pointer
+	_dummyCounterVec = prometheus.NewCounterVec(prometheus.CounterOpts{Name: "dummy"}, []string{"label"})
+	_ prometheus.Counter = _dummyCounterVec.WithLabelValues("")
+	_ prometheus.Gauge   = promauto.NewGauge(prometheus.GaugeOpts{Name: "dummy_gauge"})
+	_ model.Metric       = model.Metric{}
 )

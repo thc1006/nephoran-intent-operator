@@ -441,7 +441,7 @@ func (m *MockLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMR
 	}
 
 	response, _ := m.ProcessIntent(ctx, intent)
-	
+
 	return &shared.LLMResponse{
 		ID:      "mock-response-id",
 		Content: response,
@@ -465,10 +465,10 @@ func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *sh
 	}
 
 	chunks := make(chan *shared.StreamingChunk, 10)
-	
+
 	go func() {
 		defer close(chunks)
-		
+
 		// Use the first message content as the intent
 		intent := ""
 		if len(request.Messages) > 0 {
@@ -476,7 +476,7 @@ func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *sh
 		}
 
 		response, _ := m.ProcessIntent(ctx, intent)
-		
+
 		// Split response into chunks
 		words := strings.Split(response, " ")
 		for i, word := range words {
@@ -492,13 +492,13 @@ func (m *MockLLMClient) ProcessStreamingRequest(ctx context.Context, request *sh
 				Timestamp: time.Now(),
 			}:
 			}
-			
+
 			if m.processingDelay > 0 {
 				time.Sleep(m.processingDelay / time.Duration(len(words)))
 			}
 		}
 	}()
-	
+
 	return chunks, nil
 }
 

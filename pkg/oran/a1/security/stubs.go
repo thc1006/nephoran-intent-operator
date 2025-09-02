@@ -224,4 +224,3 @@ func (s *ServiceAccountProvider) GetPublicKeys(ctx context.Context) (jwk.Set, er
 }
 
 // CertRotationManager.Start is implemented in mtls.go
-

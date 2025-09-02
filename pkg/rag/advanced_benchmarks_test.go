@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	sharedtypes "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
@@ -162,7 +161,7 @@ func benchmarkDocumentIngestion(b *testing.B, ctx context.Context, ragSystem *En
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				document := types.Document{
+				document := sharedtypes.Document{
 					ID:      fmt.Sprintf("bench-doc-%d", i),
 					Content: docSize.content,
 					Metadata: map[string]interface{}{
@@ -255,7 +254,7 @@ func benchmarkSemanticSearch(b *testing.B, ctx context.Context, ragSystem *Enhan
 
 					// Collect relevance scores for quality analysis
 					for _, result := range results {
-						relevanceScores = append(relevanceScores, result.Confidence)
+						relevanceScores = append(relevanceScores, float64(result.Confidence))
 					}
 				}
 
@@ -692,7 +691,7 @@ func generateTextContent(sizeBytes int) string {
 	return content[:sizeBytes]
 }
 
-func generateTelecomDocument(sizeBytes int) types.Document {
+func generateTelecomDocument(sizeBytes int) sharedtypes.Document {
 	content := `# 5G Core Network Function Deployment Guide
 
 ## AMF (Access and Mobility Management Function)
@@ -736,7 +735,7 @@ Each slice can have different QoS characteristics and service requirements.
 		content += "\n\n" + content
 	}
 
-	return types.Document{
+	return sharedtypes.Document{
 		ID:      "benchmark-telecom-doc",
 		Content: content[:sizeBytes],
 		Metadata: map[string]interface{}{
@@ -846,7 +845,7 @@ func calculateChunkSizeVariance(sizes []int) float64 {
 
 func populateTestDocuments(ragSystem *EnhancedRAGSystem) {
 	// Pre-populate with representative telecom documents for consistent benchmarking
-	testDocs := []types.Document{
+	testDocs := []sharedtypes.Document{
 		{
 			ID:       "amf-deployment-guide",
 			Content:  generateTextContent(10000),
@@ -878,20 +877,19 @@ func setupBenchmarkRAGSystem() *EnhancedRAGSystem {
 			Index:      "telecom-benchmark",
 			Dimensions: 1536,
 		},
-		Embedding: EmbeddingConfig{
-			Provider:   "openai",
-			ModelName:  "text-embedding-3-small",
-			Dimensions: 1536,
+		Embedding: EmbeddingConfigTest{
+			Provider: "openai",
+			Model:    "text-embedding-3-small",
 		},
-		Cache: CacheConfig{
-			EnableCache: true,
-			MaxSize:     1000,
-			TTL:         time.Minute * 10,
+		Cache: CacheConfigTest{
+			Enabled: true,
+			MaxSize: 1000,
+			TTL:     time.Minute * 10,
 		},
-		ConnectionPool: ConnectionPoolConfig{
-			MaxIdleConnections:    50,
-			MaxConnectionsPerHost: 10,
-			IdleConnectionTimeout: time.Minute * 5,
+		ConnectionPool: ConnectionPoolConfigTest{
+			MaxConnections: 50,
+			MaxIdle:        10,
+			IdleTimeout:    time.Minute * 5,
 		},
 	}
 
@@ -905,7 +903,7 @@ type EnhancedRAGSystem struct {
 	embedder       EmbeddingService
 	chunker        DocumentChunker
 	cache          SearchCache
-	connectionPool ConnectionPool
+	connectionPool ConnectionPoolInterface
 	metrics        RAGMetrics
 }
 
@@ -982,7 +980,7 @@ func (r *EnhancedRAGSystem) RetrieveDocuments(ctx context.Context, query string,
 	return []SearchResult{{Confidence: 0.8, Score: 0.8}}, nil
 }
 func (r *EnhancedRAGSystem) IsFromCache(query string) bool { return false }
-func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc types.Document) (*IngestionResult, error) {
+func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc sharedtypes.Document) (*IngestionResult, error) {
 	return &IngestionResult{ChunksCreated: 5, TokensProcessed: 1000}, nil
 }
 func (r *EnhancedRAGSystem) AdvancedSearch(ctx context.Context, query string, config SearchConfig) ([]SearchResult, error) {
@@ -1000,7 +998,7 @@ func (r *EnhancedRAGSystem) GenerateEmbeddings(ctx context.Context, texts []stri
 	return embeddings, nil
 }
 func (r *EnhancedRAGSystem) UsedConnectionPool() bool { return true }
-func (r *EnhancedRAGSystem) ChunkDocument(doc types.Document, config *ChunkingConfig) ([]*DocumentChunk, error) {
+func (r *EnhancedRAGSystem) ChunkDocument(doc sharedtypes.Document, config *ChunkingConfig) ([]*DocumentChunk, error) {
 	return []*DocumentChunk{{Content: "chunk", CharacterCount: 100, WordCount: 20}}, nil
 }
 
@@ -1008,10 +1006,7 @@ func (r *EnhancedRAGSystem) ChunkDocument(doc types.Document, config *ChunkingCo
 // SearchResult type is already defined in enhanced_rag_integration.go
 
 
-type IngestionResult struct {
-	ChunksCreated   int
-	TokensProcessed int
-}
+// IngestionResult type (see line 1031 for the full definition)
 
 type GeneratedContext struct {
 	Content    string
@@ -1021,11 +1016,24 @@ type GeneratedContext struct {
 
 // DocumentChunk type is already defined in chunking_service.go
 // EmbeddingService type is already defined in embedding_service.go
-// RAGMetrics type is already defined elsewhere
 
 
 // Interface placeholders
 type VectorDB interface{}
 type DocumentChunker interface{}
 type SearchCache interface{}
-type ConnectionPool interface{}
+type ConnectionPoolInterface interface{}
+
+// Missing result types
+type IngestionResult struct {
+	ChunksCreated    int           `json:"chunks_created"`
+	TokensProcessed  int           `json:"tokens_processed"`
+	ProcessingTime   time.Duration `json:"processing_time"`
+	DocumentID       string        `json:"document_id"`
+	Status           string        `json:"status"`
+}
+
+// DocumentChunk type is already defined in chunking_service.go
+
+// ChunkingConfig type is already defined in chunking_service.go
+// RAGMetrics type is already defined in enhanced_rag_integration.go

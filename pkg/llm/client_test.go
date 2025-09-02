@@ -45,12 +45,16 @@ var _ = Describe("LLM Client Unit Tests", func() {
 	})
 
 	AfterEach(func() {
+		if client != nil {
+			client.Shutdown()
+		}
 		mockServer.Close()
 	})
 
 	Context("Client Creation", func() {
 		It("should create a new client with default configuration", func() {
 			testClient := NewClient("http://test-url")
+			defer testClient.Shutdown() // Clean up the test client
 			Expect(testClient).NotTo(BeNil())
 			Expect(testClient.url).To(Equal("http://test-url"))
 			Expect(testClient.httpClient.Timeout).To(Equal(60 * time.Second))
@@ -61,6 +65,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 
 		It("should initialize client with proper configuration", func() {
 			testClient := NewClient("http://test-url")
+			defer testClient.Shutdown() // Clean up the test client
 			Expect(testClient).NotTo(BeNil())
 			// Test that client has core components initialized
 		})
@@ -93,7 +98,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			}
 
 			for _, intent := range scalingIntents {
-				// Test basic intent handling  
+				// Test basic intent handling
 				Expect(len(intent)).To(BeNumerically(">", 0))
 			}
 		})
@@ -149,6 +154,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 
 			// Create client with short timeout
 			shortTimeoutClient := NewClient(slowServer.URL)
+			defer shortTimeoutClient.Shutdown() // Clean up the test client
 			shortTimeoutClient.httpClient.Timeout = 100 * time.Millisecond
 
 			ctx := context.Background()
@@ -187,6 +193,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			defer errorServer.Close()
 
 			errorClient := NewClient(errorServer.URL)
+			defer errorClient.Shutdown() // Clean up the test client
 			ctx := context.Background()
 			intent := "Deploy test network function"
 
@@ -205,6 +212,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			defer badRequestServer.Close()
 
 			badRequestClient := NewClient(badRequestServer.URL)
+			defer badRequestClient.Shutdown() // Clean up the test client
 			ctx := context.Background()
 			intent := "Deploy test network function"
 

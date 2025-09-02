@@ -24,11 +24,12 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	suiteCfg      *rest.Config
-	suiteClient   client.Client
-	testEnv       *envtest.Environment
-	suiteCtx      context.Context
-	suiteCancel   context.CancelFunc
+	suiteCfg    *rest.Config
+	suiteClient client.Client
+	k8sClient   client.Client  // Add global k8sClient variable for tests
+	testEnv     *envtest.Environment
+	suiteCtx    context.Context
+	suiteCancel context.CancelFunc
 )
 
 func TestControllers(t *testing.T) {
@@ -64,6 +65,9 @@ var _ = BeforeSuite(func() {
 	suiteClient, err = client.New(suiteCfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(suiteClient).NotTo(BeNil())
+	
+	// Initialize k8sClient as an alias to suiteClient for backward compatibility
+	k8sClient = suiteClient
 
 	// Start the controller manager
 	k8sManager, err := ctrl.NewManager(suiteCfg, ctrl.Options{

@@ -1780,4 +1780,3 @@ func (s *NephoranAPIServer) getActiveConnections(w http.ResponseWriter, r *http.
 	s.writeJSONResponse(w, http.StatusOK, connections)
 
 }
-

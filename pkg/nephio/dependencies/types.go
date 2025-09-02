@@ -6,7 +6,6 @@ import (
 
 // Basic types used across the dependency management system
 
-
 const (
 	ScopeRuntime     DependencyScope = "runtime"
 	ScopeBuild       DependencyScope = "build"
@@ -25,19 +24,19 @@ const (
 
 // GraphConfig configuration for dependency graph analysis
 type GraphConfig struct {
-	MaxDepth        int  `json:"maxDepth"`
-	IncludeIndirect bool `json:"includeIndirect"`
+	MaxDepth         int  `json:"maxDepth"`
+	IncludeIndirect  bool `json:"includeIndirect"`
 	ResolveConflicts bool `json:"resolveConflicts"`
-	EnableCache     bool `json:"enableCache"`
+	EnableCache      bool `json:"enableCache"`
 }
 
 // ResolverConfig configuration for dependency resolver
 type ResolverConfig struct {
-	MaxDepth          int               `json:"maxDepth"`
-	ConcurrentWorkers int               `json:"concurrentWorkers"`
-	Timeout           time.Duration     `json:"timeout"`
-	EnableCaching     bool              `json:"enableCaching"`
-	RetryAttempts     int               `json:"retryAttempts"`
+	MaxDepth          int                `json:"maxDepth"`
+	ConcurrentWorkers int                `json:"concurrentWorkers"`
+	Timeout           time.Duration      `json:"timeout"`
+	EnableCaching     bool               `json:"enableCaching"`
+	RetryAttempts     int                `json:"retryAttempts"`
 	DefaultStrategy   ResolutionStrategy `json:"defaultStrategy"`
 }
 
@@ -53,11 +52,11 @@ type DependencyProvider struct {
 
 // ConflictResolution represents the resolution of a dependency conflict
 type ConflictResolution struct {
-	ConflictID  string    `json:"conflictId"`
-	ResolvedAt  time.Time `json:"resolvedAt"`
-	Strategy    string    `json:"strategy"`
-	Resolution  string    `json:"resolution"`
-	AppliedBy   string    `json:"appliedBy,omitempty"`
+	ConflictID string    `json:"conflictId"`
+	ResolvedAt time.Time `json:"resolvedAt"`
+	Strategy   string    `json:"strategy"`
+	Resolution string    `json:"resolution"`
+	AppliedBy  string    `json:"appliedBy,omitempty"`
 }
 
 // ValidationRule represents a rule for dependency validation
@@ -92,20 +91,20 @@ type CostSavings struct {
 
 // CostMetrics represents various cost metrics
 type CostMetrics struct {
-	BinarySize    int64         `json:"binarySize"`
-	BuildTime     time.Duration `json:"buildTime"`
-	Dependencies  int           `json:"dependencies"`
-	Complexity    float64       `json:"complexity"`
-	Maintenance   float64       `json:"maintenance"`
+	BinarySize   int64         `json:"binarySize"`
+	BuildTime    time.Duration `json:"buildTime"`
+	Dependencies int           `json:"dependencies"`
+	Complexity   float64       `json:"complexity"`
+	Maintenance  float64       `json:"maintenance"`
 }
 
 // DependencyCost represents the cost of a single dependency
 type DependencyCost struct {
-	Package     *PackageReference `json:"package"`
-	DirectCost  *CostMetrics      `json:"directCost"`
-	IndirectCost *CostMetrics     `json:"indirectCost,omitempty"`
-	Usage       string            `json:"usage"`
-	Critical    bool              `json:"critical"`
+	Package      *PackageReference `json:"package"`
+	DirectCost   *CostMetrics      `json:"directCost"`
+	IndirectCost *CostMetrics      `json:"indirectCost,omitempty"`
+	Usage        string            `json:"usage"`
+	Critical     bool              `json:"critical"`
 }
 
 // HealthMetricData represents a health metric data point
@@ -118,10 +117,10 @@ type HealthMetricData struct {
 
 // HealthPrediction represents a predicted health state
 type HealthPrediction struct {
-	Date        time.Time `json:"date"`
-	Score       float64   `json:"score"`
-	Confidence  float64   `json:"confidence"`
-	Factors     []string  `json:"factors"`
+	Date       time.Time `json:"date"`
+	Score      float64   `json:"score"`
+	Confidence float64   `json:"confidence"`
+	Factors    []string  `json:"factors"`
 }
 
 // SecurityVulnerability represents a security vulnerability
@@ -137,80 +136,80 @@ type SecurityVulnerability struct {
 
 // LicenseRisk represents a license-related risk
 type LicenseRisk struct {
-	License     string   `json:"license"`
-	RiskLevel   string   `json:"riskLevel"`
-	Issues      []string `json:"issues"`
-	Compatibility string `json:"compatibility"`
+	License       string   `json:"license"`
+	RiskLevel     string   `json:"riskLevel"`
+	Issues        []string `json:"issues"`
+	Compatibility string   `json:"compatibility"`
 }
 
 // DependencyConstraints represents constraints for dependency analysis
 type DependencyConstraints struct {
-	MaxDepth         int                  `json:"maxDepth"`
-	AllowedScopes    []DependencyScope    `json:"allowedScopes"`
-	ExcludePackages  []*PackageReference  `json:"excludePackages,omitempty"`
-	VersionPins      []*VersionPin        `json:"versionPins,omitempty"`
-	SecurityPolicy   *SecurityPolicy      `json:"securityPolicy,omitempty"`
-	LicensePolicy    *LicensePolicy       `json:"licensePolicy,omitempty"`
+	MaxDepth        int                 `json:"maxDepth"`
+	AllowedScopes   []DependencyScope   `json:"allowedScopes"`
+	ExcludePackages []*PackageReference `json:"excludePackages,omitempty"`
+	VersionPins     []*VersionPin       `json:"versionPins,omitempty"`
+	SecurityPolicy  *SecurityPolicy     `json:"securityPolicy,omitempty"`
+	LicensePolicy   *LicensePolicy      `json:"licensePolicy,omitempty"`
 }
 
 // PerformanceAnalysis represents performance analysis results
 type PerformanceAnalysis struct {
-	OperationType   string                  `json:"operationType"`
-	Duration        time.Duration           `json:"duration"`
-	MemoryUsage     int64                   `json:"memoryUsage"`
+	OperationType   string                   `json:"operationType"`
+	Duration        time.Duration            `json:"duration"`
+	MemoryUsage     int64                    `json:"memoryUsage"`
 	Bottlenecks     []*PerformanceBottleneck `json:"bottlenecks,omitempty"`
-	Recommendations []string                `json:"recommendations,omitempty"`
-	AnalyzedAt      time.Time               `json:"analyzedAt"`
+	Recommendations []string                 `json:"recommendations,omitempty"`
+	AnalyzedAt      time.Time                `json:"analyzedAt"`
 }
 
 // PerformanceBottleneck represents a performance bottleneck
 type PerformanceBottleneck struct {
-	Component   string        `json:"component"`
-	Type        string        `json:"type"`
-	Impact      string        `json:"impact"`
-	Duration    time.Duration `json:"duration"`
-	Suggestion  string        `json:"suggestion"`
+	Component  string        `json:"component"`
+	Type       string        `json:"type"`
+	Impact     string        `json:"impact"`
+	Duration   time.Duration `json:"duration"`
+	Suggestion string        `json:"suggestion"`
 }
 
 // EvolutionPrediction represents predictions about dependency evolution
 type EvolutionPrediction struct {
-	Package        *PackageReference    `json:"package"`
-	PredictionType string               `json:"predictionType"`
-	Probability    float64              `json:"probability"`
-	Timeline       *TimeRange           `json:"timeline"`
-	Factors        []string             `json:"factors"`
-	Confidence     float64              `json:"confidence"`
-	Impact         *PredictionImpact    `json:"impact,omitempty"`
-	GeneratedAt    time.Time            `json:"generatedAt"`
+	Package        *PackageReference `json:"package"`
+	PredictionType string            `json:"predictionType"`
+	Probability    float64           `json:"probability"`
+	Timeline       *TimeRange        `json:"timeline"`
+	Factors        []string          `json:"factors"`
+	Confidence     float64           `json:"confidence"`
+	Impact         *PredictionImpact `json:"impact,omitempty"`
+	GeneratedAt    time.Time         `json:"generatedAt"`
 }
 
 // PredictionImpact represents the impact of a prediction
 type PredictionImpact struct {
-	Severity        string   `json:"severity"`
-	AffectedPackages int     `json:"affectedPackages"`
-	Description     string   `json:"description"`
-	Mitigation      []string `json:"mitigation,omitempty"`
+	Severity         string   `json:"severity"`
+	AffectedPackages int      `json:"affectedPackages"`
+	Description      string   `json:"description"`
+	Mitigation       []string `json:"mitigation,omitempty"`
 }
 
 // GraphAnalysis represents comprehensive graph analysis results
 type GraphAnalysis struct {
-	TotalNodes      int                    `json:"totalNodes"`
-	TotalEdges      int                    `json:"totalEdges"`
-	CriticalPaths   []*CriticalPath        `json:"criticalPaths"`
-	Cycles          []*DependencyCycle     `json:"cycles,omitempty"`
-	Patterns        []*GraphPattern        `json:"patterns,omitempty"`
-	Metrics         *GraphMetrics          `json:"metrics"`
-	AnalyzedAt      time.Time              `json:"analyzedAt"`
+	TotalNodes    int                `json:"totalNodes"`
+	TotalEdges    int                `json:"totalEdges"`
+	CriticalPaths []*CriticalPath    `json:"criticalPaths"`
+	Cycles        []*DependencyCycle `json:"cycles,omitempty"`
+	Patterns      []*GraphPattern    `json:"patterns,omitempty"`
+	Metrics       *GraphMetrics      `json:"metrics"`
+	AnalyzedAt    time.Time          `json:"analyzedAt"`
 }
 
 // OptimizationObjectives represents objectives for dependency optimization
 type OptimizationObjectives struct {
-	MinimizeBinarySize  bool    `json:"minimizeBinarySize"`
-	MinimizeBuildTime   bool    `json:"minimizeBuildTime"`
-	MaximizeStability   bool    `json:"maximizeStability"`
-	MinimizeComplexity  bool    `json:"minimizeComplexity"`
-	SecurityWeight      float64 `json:"securityWeight"`
-	PerformanceWeight   float64 `json:"performanceWeight"`
+	MinimizeBinarySize    bool    `json:"minimizeBinarySize"`
+	MinimizeBuildTime     bool    `json:"minimizeBuildTime"`
+	MaximizeStability     bool    `json:"maximizeStability"`
+	MinimizeComplexity    bool    `json:"minimizeComplexity"`
+	SecurityWeight        float64 `json:"securityWeight"`
+	PerformanceWeight     float64 `json:"performanceWeight"`
 	MaintainabilityWeight float64 `json:"maintainabilityWeight"`
 }
 
@@ -225,13 +224,13 @@ type OptimizationRecommendations struct {
 
 // OptimizationRecommendation represents a single optimization recommendation
 type OptimizationRecommendation struct {
-	Type        string            `json:"type"`
-	Action      string            `json:"action"`
-	Package     *PackageReference `json:"package,omitempty"`
-	Reason      string            `json:"reason"`
-	Impact      *OptimizationImpact `json:"impact"`
-	Effort      string            `json:"effort"`
-	Risk        string            `json:"risk"`
+	Type    string              `json:"type"`
+	Action  string              `json:"action"`
+	Package *PackageReference   `json:"package,omitempty"`
+	Reason  string              `json:"reason"`
+	Impact  *OptimizationImpact `json:"impact"`
+	Effort  string              `json:"effort"`
+	Risk    string              `json:"risk"`
 }
 
 // OptimizationImpact represents the impact of an optimization
@@ -242,42 +241,41 @@ type OptimizationImpact struct {
 	SecurityImprovement float64       `json:"securityImprovement"`
 }
 
-
 // RollbackPlan represents a plan for rolling back dependency changes
 type RollbackPlan struct {
-	PlanID          string                   `json:"planId"`
-	CreatedAt       time.Time                `json:"createdAt"`
-	RollbackSteps   []*RollbackStep          `json:"rollbackSteps"`
-	TargetVersion   string                   `json:"targetVersion"`
-	Reason          string                   `json:"reason"`
-	EstimatedTime   time.Duration            `json:"estimatedTime"`
-	RiskAssessment  *RollbackRiskAssessment  `json:"riskAssessment,omitempty"`
-	Validation      *RollbackValidation      `json:"validation,omitempty"`
+	PlanID         string                  `json:"planId"`
+	CreatedAt      time.Time               `json:"createdAt"`
+	RollbackSteps  []*RollbackStep         `json:"rollbackSteps"`
+	TargetVersion  string                  `json:"targetVersion"`
+	Reason         string                  `json:"reason"`
+	EstimatedTime  time.Duration           `json:"estimatedTime"`
+	RiskAssessment *RollbackRiskAssessment `json:"riskAssessment,omitempty"`
+	Validation     *RollbackValidation     `json:"validation,omitempty"`
 }
 
 // RollbackStep represents a single step in a rollback plan
 type RollbackStep struct {
-	StepID       string            `json:"stepId"`
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	Order        int               `json:"order"`
-	Package      *PackageReference `json:"package,omitempty"`
-	FromVersion  string            `json:"fromVersion"`
-	ToVersion    string            `json:"toVersion"`
-	Required     bool              `json:"required"`
-	Timeout      time.Duration     `json:"timeout"`
+	StepID       string              `json:"stepId"`
+	Name         string              `json:"name"`
+	Type         string              `json:"type"`
+	Order        int                 `json:"order"`
+	Package      *PackageReference   `json:"package,omitempty"`
+	FromVersion  string              `json:"fromVersion"`
+	ToVersion    string              `json:"toVersion"`
+	Required     bool                `json:"required"`
+	Timeout      time.Duration       `json:"timeout"`
 	Dependencies []*PackageReference `json:"dependencies,omitempty"`
-	Config       interface{}       `json:"config,omitempty"`
-	Status       string            `json:"status,omitempty"`
+	Config       interface{}         `json:"config,omitempty"`
+	Status       string              `json:"status,omitempty"`
 }
 
 // RollbackRiskAssessment represents risk assessment for a rollback
 type RollbackRiskAssessment struct {
-	RiskLevel       string                  `json:"riskLevel"`
-	RiskFactors     []*RollbackRiskFactor   `json:"riskFactors"`
-	Mitigations     []*RiskMitigation       `json:"mitigations,omitempty"`
-	ApprovalRequired bool                   `json:"approvalRequired"`
-	AssessedAt      time.Time               `json:"assessedAt"`
+	RiskLevel        string                `json:"riskLevel"`
+	RiskFactors      []*RollbackRiskFactor `json:"riskFactors"`
+	Mitigations      []*RiskMitigation     `json:"mitigations,omitempty"`
+	ApprovalRequired bool                  `json:"approvalRequired"`
+	AssessedAt       time.Time             `json:"assessedAt"`
 }
 
 // RollbackRiskFactor represents a factor contributing to rollback risk
@@ -291,18 +289,18 @@ type RollbackRiskFactor struct {
 
 // RiskMitigation represents a mitigation strategy for a risk
 type RiskMitigation struct {
-	RiskType    string `json:"riskType"`
-	Strategy    string `json:"strategy"`
-	Description string `json:"description"`
+	RiskType      string  `json:"riskType"`
+	Strategy      string  `json:"strategy"`
+	Description   string  `json:"description"`
 	Effectiveness float64 `json:"effectiveness"`
 }
 
 // RollbackValidation represents validation for a rollback plan
 type RollbackValidation struct {
-	ValidatedAt     time.Time                  `json:"validatedAt"`
-	Valid           bool                       `json:"valid"`
-	ValidationRules []*RollbackValidationRule  `json:"validationRules"`
-	Issues          []*RollbackValidationIssue `json:"issues,omitempty"`
+	ValidatedAt     time.Time                    `json:"validatedAt"`
+	Valid           bool                         `json:"valid"`
+	ValidationRules []*RollbackValidationRule    `json:"validationRules"`
+	Issues          []*RollbackValidationIssue   `json:"issues,omitempty"`
 	Warnings        []*RollbackValidationWarning `json:"warnings,omitempty"`
 }
 
@@ -318,26 +316,25 @@ type RollbackValidationRule struct {
 
 // RollbackValidationIssue represents a validation issue for rollbacks
 type RollbackValidationIssue struct {
-	IssueID     string            `json:"issueId"`
-	Type        string            `json:"type"`
-	Message     string            `json:"message"`
-	Package     *PackageReference `json:"package,omitempty"`
-	Severity    string            `json:"severity"`
-	Rule        string            `json:"rule,omitempty"`
-	Blocking    bool              `json:"blocking"`
+	IssueID  string            `json:"issueId"`
+	Type     string            `json:"type"`
+	Message  string            `json:"message"`
+	Package  *PackageReference `json:"package,omitempty"`
+	Severity string            `json:"severity"`
+	Rule     string            `json:"rule,omitempty"`
+	Blocking bool              `json:"blocking"`
 }
 
 // RollbackValidationWarning represents a validation warning for rollbacks
 type RollbackValidationWarning struct {
-	WarningID   string            `json:"warningId"`
-	Type        string            `json:"type"`
-	Message     string            `json:"message"`
-	Package     *PackageReference `json:"package,omitempty"`
-	Severity    string            `json:"severity"`
-	Rule        string            `json:"rule,omitempty"`
-	Suggestion  string            `json:"suggestion,omitempty"`
+	WarningID  string            `json:"warningId"`
+	Type       string            `json:"type"`
+	Message    string            `json:"message"`
+	Package    *PackageReference `json:"package,omitempty"`
+	Severity   string            `json:"severity"`
+	Rule       string            `json:"rule,omitempty"`
+	Suggestion string            `json:"suggestion,omitempty"`
 }
-
 
 type PackageInfo struct {
 	Name        string            `json:"name"`
@@ -352,11 +349,11 @@ type PackageInfo struct {
 }
 
 type SecurityMetrics struct {
-	VulnerabilityCount int     `json:"vulnerabilityCount"`
-	HighSeverityCount  int     `json:"highSeverityCount"`
-	TrustScore         float64 `json:"trustScore"`
+	VulnerabilityCount int       `json:"vulnerabilityCount"`
+	HighSeverityCount  int       `json:"highSeverityCount"`
+	TrustScore         float64   `json:"trustScore"`
 	LastScanned        time.Time `json:"lastScanned"`
-	ComplianceScore    float64 `json:"complianceScore"`
+	ComplianceScore    float64   `json:"complianceScore"`
 }
 
 // Additional missing types from graph.go and updater.go
@@ -364,25 +361,25 @@ type EdgeType string
 
 const (
 	EdgeTypeDependency EdgeType = "dependency"
-	EdgeTypeConflict   EdgeType = "conflict" 
+	EdgeTypeConflict   EdgeType = "conflict"
 	EdgeTypeOptional   EdgeType = "optional"
 )
 
 type DependencyEdge struct {
-	Source      *DependencyNode   `json:"source"`
-	Target      *DependencyNode   `json:"target"`
-	Type        EdgeType          `json:"type"`
-	Constraint  string            `json:"constraint"`
-	Weight      float64           `json:"weight"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Source     *DependencyNode   `json:"source"`
+	Target     *DependencyNode   `json:"target"`
+	Type       EdgeType          `json:"type"`
+	Constraint string            `json:"constraint"`
+	Weight     float64           `json:"weight"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 type ImpactAnalysis struct {
-	Impact          string    `json:"impact"`
-	AffectedNodes   int       `json:"affectedNodes"`
-	CriticalityScore float64  `json:"criticalityScore"`
-	Description     string    `json:"description"`
-	AnalyzedAt      time.Time `json:"analyzedAt"`
+	Impact           string    `json:"impact"`
+	AffectedNodes    int       `json:"affectedNodes"`
+	CriticalityScore float64   `json:"criticalityScore"`
+	Description      string    `json:"description"`
+	AnalyzedAt       time.Time `json:"analyzedAt"`
 }
 
 type Repository struct {
@@ -392,7 +389,6 @@ type Repository struct {
 	Credentials map[string]string `json:"credentials,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
-
 
 type UpdateConstraints struct {
 	MaxVersionJump  int           `json:"maxVersionJump"`
@@ -426,33 +422,33 @@ type RolloutConfig struct {
 
 // Final missing types from updater.go
 type ValidationConfig struct {
-	EnableValidation     bool          `json:"enableValidation"`
-	ValidationRules      []string      `json:"validationRules"`
-	StrictMode          bool          `json:"strictMode"`
-	ContinueOnWarnings  bool          `json:"continueOnWarnings"`
-	ValidationTimeout   time.Duration `json:"validationTimeout"`
+	EnableValidation   bool          `json:"enableValidation"`
+	ValidationRules    []string      `json:"validationRules"`
+	StrictMode         bool          `json:"strictMode"`
+	ContinueOnWarnings bool          `json:"continueOnWarnings"`
+	ValidationTimeout  time.Duration `json:"validationTimeout"`
 }
 
 type ApprovalPolicy struct {
-	RequireApproval    bool     `json:"requireApproval"`
-	ApprovalRoles      []string `json:"approvalRoles"`
-	AutoApprovalRules  []string `json:"autoApprovalRules"`
-	ApprovalTimeout    time.Duration `json:"approvalTimeout"`
+	RequireApproval   bool          `json:"requireApproval"`
+	ApprovalRoles     []string      `json:"approvalRoles"`
+	AutoApprovalRules []string      `json:"autoApprovalRules"`
+	ApprovalTimeout   time.Duration `json:"approvalTimeout"`
 }
 
 type NotificationConfig struct {
-	EnableNotifications bool     `json:"enableNotifications"`
-	Channels           []string `json:"channels"`
-	Templates          map[string]string `json:"templates,omitempty"`
-	Recipients         []string `json:"recipients"`
+	EnableNotifications bool              `json:"enableNotifications"`
+	Channels            []string          `json:"channels"`
+	Templates           map[string]string `json:"templates,omitempty"`
+	Recipients          []string          `json:"recipients"`
 }
 
 type UpdatedPackage struct {
-	Package     *PackageReference `json:"package"`
-	OldVersion  string            `json:"oldVersion"`
-	NewVersion  string            `json:"newVersion"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
-	UpdateTime  time.Duration     `json:"updateTime"`
+	Package    *PackageReference `json:"package"`
+	OldVersion string            `json:"oldVersion"`
+	NewVersion string            `json:"newVersion"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
+	UpdateTime time.Duration     `json:"updateTime"`
 }
 
 type FailedUpdate struct {
@@ -464,9 +460,9 @@ type FailedUpdate struct {
 }
 
 type SkippedUpdate struct {
-	Package  *PackageReference `json:"package"`
-	Reason   string            `json:"reason"`
-	SkippedAt time.Time        `json:"skippedAt"`
+	Package   *PackageReference `json:"package"`
+	Reason    string            `json:"reason"`
+	SkippedAt time.Time         `json:"skippedAt"`
 }
 
 type RolloutExecution struct {
@@ -491,46 +487,47 @@ type ApprovalRequest struct {
 }
 
 type UpdateError struct {
-	Code        string    `json:"code"`
-	Type        string    `json:"type"`
-	Message     string    `json:"message"`
-	Package     *PackageReference `json:"package,omitempty"`
-	Severity    string    `json:"severity"`
-	Retryable   bool      `json:"retryable"`
-	OccurredAt  time.Time `json:"occurredAt"`
+	Code       string            `json:"code"`
+	Type       string            `json:"type"`
+	Message    string            `json:"message"`
+	Package    *PackageReference `json:"package,omitempty"`
+	Severity   string            `json:"severity"`
+	Retryable  bool              `json:"retryable"`
+	OccurredAt time.Time         `json:"occurredAt"`
 }
 
 type UpdateWarning struct {
-	Code        string    `json:"code"`
-	Type        string    `json:"type"`
-	Message     string    `json:"message"`
-	Package     *PackageReference `json:"package,omitempty"`
-	Severity    string    `json:"severity"`
-	Suggestion  string    `json:"suggestion,omitempty"`
-	OccurredAt  time.Time `json:"occurredAt"`
+	Code       string            `json:"code"`
+	Type       string            `json:"type"`
+	Message    string            `json:"message"`
+	Package    *PackageReference `json:"package,omitempty"`
+	Severity   string            `json:"severity"`
+	Suggestion string            `json:"suggestion,omitempty"`
+	OccurredAt time.Time         `json:"occurredAt"`
 }
 
 // ValidationError and ValidationWarning - defined elsewhere to avoid duplicates
 type UpdateStatistics struct {
-	TotalUpdates    int           `json:"totalUpdates"`
-	SuccessfulUpdates int         `json:"successfulUpdates"`
-	FailedUpdates   int           `json:"failedUpdates"`
-	SkippedUpdates  int           `json:"skippedUpdates"`
-	UpdateTime      time.Duration `json:"updateTime"`
-	StartedAt       time.Time     `json:"startedAt"`
-	CompletedAt     time.Time     `json:"completedAt,omitempty"`
+	TotalUpdates      int           `json:"totalUpdates"`
+	SuccessfulUpdates int           `json:"successfulUpdates"`
+	FailedUpdates     int           `json:"failedUpdates"`
+	SkippedUpdates    int           `json:"skippedUpdates"`
+	UpdateTime        time.Duration `json:"updateTime"`
+	StartedAt         time.Time     `json:"startedAt"`
+	CompletedAt       time.Time     `json:"completedAt,omitempty"`
 }
 
-
 type UpdateReason string
+
 const (
-	UpdateReasonSecurity     UpdateReason = "security"
-	UpdateReasonBugfix       UpdateReason = "bugfix"
-	UpdateReasonFeature      UpdateReason = "feature"
-	UpdateReasonMaintenance  UpdateReason = "maintenance"
+	UpdateReasonSecurity    UpdateReason = "security"
+	UpdateReasonBugfix      UpdateReason = "bugfix"
+	UpdateReasonFeature     UpdateReason = "feature"
+	UpdateReasonMaintenance UpdateReason = "maintenance"
 )
 
 type UpdatePriority string
+
 const (
 	UpdatePriorityLow      UpdatePriority = "low"
 	UpdatePriorityMedium   UpdatePriority = "medium"
@@ -548,10 +545,10 @@ type MaintenanceWindow struct {
 }
 
 type PropagationFilter struct {
-	Environments   []string `json:"environments"`
-	ExcludePatterns []string `json:"excludePatterns,omitempty"`
-	IncludePatterns []string `json:"includePatterns,omitempty"`
-	RequiredApproval bool    `json:"requiredApproval"`
+	Environments     []string `json:"environments"`
+	ExcludePatterns  []string `json:"excludePatterns,omitempty"`
+	IncludePatterns  []string `json:"includePatterns,omitempty"`
+	RequiredApproval bool     `json:"requiredApproval"`
 }
 
 type PropagatedUpdate struct {
@@ -578,81 +575,81 @@ type SkippedPropagation struct {
 }
 
 type EnvironmentUpdateResult struct {
-	Environment        string               `json:"environment"`
-	PropagatedUpdates  []*PropagatedUpdate  `json:"propagatedUpdates"`
-	FailedPropagations []*FailedPropagation `json:"failedPropagations"`
+	Environment         string                `json:"environment"`
+	PropagatedUpdates   []*PropagatedUpdate   `json:"propagatedUpdates"`
+	FailedPropagations  []*FailedPropagation  `json:"failedPropagations"`
 	SkippedPropagations []*SkippedPropagation `json:"skippedPropagations"`
-	Statistics         *UpdateStatistics     `json:"statistics"`
-	CompletedAt        time.Time            `json:"completedAt"`
+	Statistics          *UpdateStatistics     `json:"statistics"`
+	CompletedAt         time.Time             `json:"completedAt"`
 }
 
 type AutoUpdateConfig struct {
-	Enabled          bool          `json:"enabled"`
-	Schedule         string        `json:"schedule"` 
-	SecurityOnly     bool          `json:"securityOnly"`
-	MaxVersionJump   int           `json:"maxVersionJump"`
-	TestingRequired  bool          `json:"testingRequired"`
-	ApprovalRequired bool          `json:"approvalRequired"`
+	Enabled           bool               `json:"enabled"`
+	Schedule          string             `json:"schedule"`
+	SecurityOnly      bool               `json:"securityOnly"`
+	MaxVersionJump    int                `json:"maxVersionJump"`
+	TestingRequired   bool               `json:"testingRequired"`
+	ApprovalRequired  bool               `json:"approvalRequired"`
 	MaintenanceWindow *MaintenanceWindow `json:"maintenanceWindow,omitempty"`
 }
 
 type UpdateSchedule struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	CronExpression string            `json:"cronExpression"`
-	Enabled        bool              `json:"enabled"`
+	ID             string              `json:"id"`
+	Name           string              `json:"name"`
+	CronExpression string              `json:"cronExpression"`
+	Enabled        bool                `json:"enabled"`
 	Packages       []*PackageReference `json:"packages"`
-	Config         *AutoUpdateConfig `json:"config"`
-	CreatedAt      time.Time         `json:"createdAt"`
-	UpdatedAt      time.Time         `json:"updatedAt"`
+	Config         *AutoUpdateConfig   `json:"config"`
+	CreatedAt      time.Time           `json:"createdAt"`
+	UpdatedAt      time.Time           `json:"updatedAt"`
 }
 
 type ScheduledUpdate struct {
-	ScheduleID     string            `json:"scheduleId"`
-	Package        *PackageReference `json:"package"`
-	TargetVersion  string            `json:"targetVersion"`
-	ScheduledFor   time.Time         `json:"scheduledFor"`
-	Status         string            `json:"status"`
-	ExecutedAt     time.Time         `json:"executedAt,omitempty"`
-	CompletedAt    time.Time         `json:"completedAt,omitempty"`
+	ScheduleID    string            `json:"scheduleId"`
+	Package       *PackageReference `json:"package"`
+	TargetVersion string            `json:"targetVersion"`
+	ScheduledFor  time.Time         `json:"scheduledFor"`
+	Status        string            `json:"status"`
+	ExecutedAt    time.Time         `json:"executedAt,omitempty"`
+	CompletedAt   time.Time         `json:"completedAt,omitempty"`
 }
 
 type UpdatePlan struct {
-	PlanID          string              `json:"planId"`
-	Name            string              `json:"name"`
-	Description     string              `json:"description,omitempty"`
-	Packages        []*PackageReference `json:"packages"`
-	UpdateSteps     []*UpdateStep       `json:"updateSteps"`
-	Dependencies    []*PackageReference `json:"dependencies,omitempty"`
-	Prerequisites   []string            `json:"prerequisites,omitempty"`
-	EstimatedTime   time.Duration       `json:"estimatedTime"`
-	RiskAssessment  *RiskAssessment     `json:"riskAssessment,omitempty"`
-	RollbackPlan    *RollbackPlan       `json:"rollbackPlan,omitempty"`
-	CreatedAt       time.Time           `json:"createdAt"`
-	CreatedBy       string              `json:"createdBy"`
-	Status          string              `json:"status"`
+	PlanID         string              `json:"planId"`
+	Name           string              `json:"name"`
+	Description    string              `json:"description,omitempty"`
+	Packages       []*PackageReference `json:"packages"`
+	UpdateSteps    []*UpdateStep       `json:"updateSteps"`
+	Dependencies   []*PackageReference `json:"dependencies,omitempty"`
+	Prerequisites  []string            `json:"prerequisites,omitempty"`
+	EstimatedTime  time.Duration       `json:"estimatedTime"`
+	RiskAssessment *RiskAssessment     `json:"riskAssessment,omitempty"`
+	RollbackPlan   *RollbackPlan       `json:"rollbackPlan,omitempty"`
+	CreatedAt      time.Time           `json:"createdAt"`
+	CreatedBy      string              `json:"createdBy"`
+	Status         string              `json:"status"`
 }
 
 type PlanValidation struct {
-	PlanID      string                `json:"planId"`
-	Valid       bool                  `json:"valid"`
-	Issues      []*UpdateValidationError    `json:"issues,omitempty"`
-	Warnings    []*UpdateValidationWarning  `json:"warnings,omitempty"`
-	ValidatedAt time.Time             `json:"validatedAt"`
-	ValidatedBy string                `json:"validatedBy"`
+	PlanID      string                     `json:"planId"`
+	Valid       bool                       `json:"valid"`
+	Issues      []*UpdateValidationError   `json:"issues,omitempty"`
+	Warnings    []*UpdateValidationWarning `json:"warnings,omitempty"`
+	ValidatedAt time.Time                  `json:"validatedAt"`
+	ValidatedBy string                     `json:"validatedBy"`
 }
 
 type RiskAssessment struct {
-	RiskLevel   string        `json:"riskLevel"`
-	RiskFactors []string      `json:"riskFactors"`
-	Mitigations []string      `json:"mitigations,omitempty"`
-	AssessedAt  time.Time     `json:"assessedAt"`
-	AssessedBy  string        `json:"assessedBy"`
+	RiskLevel   string    `json:"riskLevel"`
+	RiskFactors []string  `json:"riskFactors"`
+	Mitigations []string  `json:"mitigations,omitempty"`
+	AssessedAt  time.Time `json:"assessedAt"`
+	AssessedBy  string    `json:"assessedBy"`
 }
 
 type RollbackResult struct {
-	PlanID         string              `json:"planId"`
-	Success        bool                `json:"success"`
+	PlanID             string              `json:"planId"`
+	Success            bool                `json:"success"`
 	RolledBackPackages []*PackageReference `json:"rolledBackPackages"`
 	FailedRollbacks    []*FailedRollback   `json:"failedRollbacks,omitempty"`
 	CompletedAt        time.Time           `json:"completedAt"`
@@ -660,30 +657,30 @@ type RollbackResult struct {
 }
 
 type FailedRollback struct {
-	Package   *PackageReference `json:"package"`
-	Reason    string            `json:"reason"`
-	Error     string            `json:"error"`
-	FailedAt  time.Time         `json:"failedAt"`
+	Package  *PackageReference `json:"package"`
+	Reason   string            `json:"reason"`
+	Error    string            `json:"error"`
+	FailedAt time.Time         `json:"failedAt"`
 }
 
 type PropagationError struct {
-	Code        string    `json:"code"`
-	Type        string    `json:"type"`
-	Message     string    `json:"message"`
-	Environment string    `json:"environment"`
+	Code        string            `json:"code"`
+	Type        string            `json:"type"`
+	Message     string            `json:"message"`
+	Environment string            `json:"environment"`
 	Package     *PackageReference `json:"package,omitempty"`
-	Severity    string    `json:"severity"`
-	Retryable   bool      `json:"retryable"`
-	OccurredAt  time.Time `json:"occurredAt"`
+	Severity    string            `json:"severity"`
+	Retryable   bool              `json:"retryable"`
+	OccurredAt  time.Time         `json:"occurredAt"`
 }
 
 type PropagationWarning struct {
-	Code        string    `json:"code"`
-	Type        string    `json:"type"`
-	Message     string    `json:"message"`
-	Environment string    `json:"environment"`
+	Code        string            `json:"code"`
+	Type        string            `json:"type"`
+	Message     string            `json:"message"`
+	Environment string            `json:"environment"`
 	Package     *PackageReference `json:"package,omitempty"`
-	Severity    string    `json:"severity"`
-	Suggestion  string    `json:"suggestion,omitempty"`
-	OccurredAt  time.Time `json:"occurredAt"`
+	Severity    string            `json:"severity"`
+	Suggestion  string            `json:"suggestion,omitempty"`
+	OccurredAt  time.Time         `json:"occurredAt"`
 }

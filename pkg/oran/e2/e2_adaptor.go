@@ -1336,7 +1336,7 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 	if err != nil {
 		return fmt.Errorf("failed to marshal E2 configuration: %w", err)
 	}
-	
+
 	if err := json.Unmarshal(configJSON, &e2Config); err != nil {
 
 		return fmt.Errorf("failed to unmarshal E2 configuration: %w", err)
@@ -1600,7 +1600,7 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 	if err != nil {
 		return fmt.Errorf("failed to marshal E2 configuration: %w", err)
 	}
-	
+
 	if err := json.Unmarshal(configJSON, &e2Config); err != nil {
 
 		return fmt.Errorf("failed to unmarshal E2 configuration: %w", err)

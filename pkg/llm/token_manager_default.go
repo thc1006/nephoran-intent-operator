@@ -25,13 +25,13 @@ func (dtm *DefaultTokenManager) AllocateTokens(request string) (int, error) {
 	if request == "" {
 		return 0, fmt.Errorf("request cannot be empty")
 	}
-	
+
 	// Simple token estimation: ~4 chars per token
 	estimatedTokens := len(request) / 4
 	if estimatedTokens == 0 {
 		estimatedTokens = 1
 	}
-	
+
 	return estimatedTokens, nil
 }
 
@@ -57,12 +57,12 @@ func (dtm *DefaultTokenManager) EstimateTokens(text string) int {
 	if text == "" {
 		return 0
 	}
-	
+
 	// Simple estimation: split by whitespace and punctuation
 	// This is a rough approximation
 	words := strings.Fields(text)
 	tokenCount := 0
-	
+
 	for _, word := range words {
 		// Rough estimate: each word is about 1.3 tokens
 		tokenCount++
@@ -71,11 +71,11 @@ func (dtm *DefaultTokenManager) EstimateTokens(text string) int {
 			tokenCount += len(word) / 10
 		}
 	}
-	
+
 	if tokenCount == 0 && text != "" {
 		tokenCount = 1
 	}
-	
+
 	return tokenCount
 }
 
@@ -109,24 +109,24 @@ func (dtm *DefaultTokenManager) TruncateToFit(text string, maxTokens int, model 
 	if currentTokens <= maxTokens {
 		return text, nil
 	}
-	
+
 	// Simple truncation by character ratio
 	ratio := float64(maxTokens) / float64(currentTokens)
 	targetLength := int(float64(len(text)) * ratio * 0.9) // Safety margin
-	
+
 	if targetLength <= 0 {
 		return "", fmt.Errorf("maxTokens too small: %d", maxTokens)
 	}
 	if targetLength >= len(text) {
 		return text, nil
 	}
-	
+
 	// Find nearest word boundary
 	truncated := text[:targetLength]
 	if lastSpace := strings.LastIndex(truncated, " "); lastSpace > targetLength/2 {
 		truncated = truncated[:lastSpace]
 	}
-	
+
 	return truncated + "...", nil
 }
 
@@ -160,4 +160,39 @@ func (dtm *DefaultTokenManager) GetTokenUsage() TokenUsageInfo {
 // ResetUsage resets token usage statistics
 func (dtm *DefaultTokenManager) ResetUsage() {
 	// No-op for basic implementation
+}
+
+// CalculateTokenBudget calculates the recommended token budget for a given context
+func (dtm *DefaultTokenManager) CalculateTokenBudget(context string, requirements map[string]interface{}) (int, error) {
+	if context == "" {
+		return 0, fmt.Errorf("context cannot be empty")
+	}
+
+	// Basic implementation: estimate tokens for context + buffer
+	baseTokens := dtm.EstimateTokens(context)
+	budget := baseTokens * 2 // 100% buffer by default
+
+	// Check for specific requirements
+	if requirements != nil {
+		if maxTokens, ok := requirements["max_tokens"].(int); ok && maxTokens > 0 {
+			if maxTokens < budget {
+				budget = maxTokens
+			}
+		}
+
+		if buffer, ok := requirements["buffer_factor"].(float64); ok && buffer > 0 {
+			budget = int(float64(baseTokens) * (1.0 + buffer))
+		}
+
+		if minBudget, ok := requirements["min_budget"].(int); ok && minBudget > budget {
+			budget = minBudget
+		}
+	}
+
+	// Ensure minimum viable budget
+	if budget < 100 {
+		budget = 100
+	}
+
+	return budget, nil
 }

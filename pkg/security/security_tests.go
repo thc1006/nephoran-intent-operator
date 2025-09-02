@@ -491,7 +491,7 @@ func (sts *TestSuite) TestCertificateValidation() *TestResult {
 	if sts.certManager == nil {
 		sts.certManager = NewCertManager(&MockCertStore{})
 	}
-	
+
 	// Set up the root CA in the certificate manager
 	sts.certManager.rootCA = rootCert
 

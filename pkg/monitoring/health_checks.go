@@ -106,7 +106,7 @@ func (hm *HealthMonitor) runHealthChecks(ctx context.Context) {
 		wg.Add(1)
 		go func(n string, c HealthChecker) {
 			defer wg.Done()
-			
+
 			result, err := c.CheckHealth(ctx)
 			if err != nil {
 				result = &ComponentHealth{
@@ -145,7 +145,7 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealth {
 
 	for name, result := range hm.lastResults {
 		components[name] = result
-		
+
 		switch result.Status {
 		case HealthStatusUnhealthy:
 			unhealthyCount++

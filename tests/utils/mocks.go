@@ -909,16 +909,15 @@ func (m *MockMetricsCollector) CollectMetrics() ([]*monitoring.Metric, error) {
 
 		metrics = append(metrics, &monitoring.Metric{
 
-			Name:      name,
+			Name: name,
 
-			Type:      monitoring.MetricTypeGauge,
+			Type: monitoring.MetricTypeGauge,
 
-			Value:     value,
+			Value: value,
 
-			Labels:    m.labels[name],
+			Labels: m.labels[name],
 
 			Timestamp: time.Now(),
-
 		})
 
 	}
@@ -979,8 +978,7 @@ func (m *MockMetricsCollector) UpdateControllerHealth(controllerName, component 
 
 		"controller": controllerName,
 
-		"component":  component,
-
+		"component": component,
 	})
 
 }
@@ -999,14 +997,13 @@ func (m *MockMetricsCollector) UpdateNetworkIntentStatus(name, namespace, intent
 
 	m.RecordMetric("network_intent_status", 1.0, map[string]string{
 
-		"name":        name,
+		"name": name,
 
-		"namespace":   namespace,
+		"namespace": namespace,
 
 		"intent_type": intentType,
 
-		"status":      status,
-
+		"status": status,
 	})
 
 }
@@ -1019,16 +1016,14 @@ func (m *MockMetricsCollector) RecordNetworkIntentProcessed(intentType, status s
 
 		"intent_type": intentType,
 
-		"status":      status,
-
+		"status": status,
 	})
 
 	m.RecordMetric("network_intent_processing_duration_seconds", duration.Seconds(), map[string]string{
 
 		"intent_type": intentType,
 
-		"status":      status,
-
+		"status": status,
 	})
 
 }
@@ -1039,12 +1034,11 @@ func (m *MockMetricsCollector) RecordNetworkIntentRetry(name, namespace, reason 
 
 	m.RecordMetric("network_intent_retries_total", 1.0, map[string]string{
 
-		"name":      name,
+		"name": name,
 
 		"namespace": namespace,
 
-		"reason":    reason,
-
+		"reason": reason,
 	})
 
 }
@@ -1055,24 +1049,21 @@ func (m *MockMetricsCollector) RecordLLMRequest(model, status string, duration t
 
 	m.RecordMetric("llm_requests_total", 1.0, map[string]string{
 
-		"model":  model,
+		"model": model,
 
 		"status": status,
-
 	})
 
 	m.RecordMetric("llm_request_duration_seconds", duration.Seconds(), map[string]string{
 
-		"model":  model,
+		"model": model,
 
 		"status": status,
-
 	})
 
 	m.RecordMetric("llm_tokens_used_total", float64(tokensUsed), map[string]string{
 
 		"model": model,
-
 	})
 
 }
@@ -1084,13 +1075,11 @@ func (m *MockMetricsCollector) RecordE2NodeSetOperation(operation string, durati
 	m.RecordMetric("e2nodeset_operations_total", 1.0, map[string]string{
 
 		"operation": operation,
-
 	})
 
 	m.RecordMetric("e2nodeset_operation_duration_seconds", duration.Seconds(), map[string]string{
 
 		"operation": operation,
-
 	})
 
 }
@@ -1101,12 +1090,11 @@ func (m *MockMetricsCollector) UpdateE2NodeSetReplicas(name, namespace, status s
 
 	m.RecordMetric("e2nodeset_replicas", float64(count), map[string]string{
 
-		"name":      name,
+		"name": name,
 
 		"namespace": namespace,
 
-		"status":    status,
-
+		"status": status,
 	})
 
 }
@@ -1117,12 +1105,11 @@ func (m *MockMetricsCollector) RecordE2NodeSetScaling(name, namespace, direction
 
 	m.RecordMetric("e2nodeset_scaling_events_total", 1.0, map[string]string{
 
-		"name":      name,
+		"name": name,
 
 		"namespace": namespace,
 
 		"direction": direction,
-
 	})
 
 }
@@ -1135,20 +1122,18 @@ func (m *MockMetricsCollector) RecordORANInterfaceRequest(interfaceType, operati
 
 		"interface_type": interfaceType,
 
-		"operation":      operation,
+		"operation": operation,
 
-		"status":         status,
-
+		"status": status,
 	})
 
 	m.RecordMetric("oran_interface_request_duration_seconds", duration.Seconds(), map[string]string{
 
 		"interface_type": interfaceType,
 
-		"operation":      operation,
+		"operation": operation,
 
-		"status":         status,
-
+		"status": status,
 	})
 
 }
@@ -1161,10 +1146,9 @@ func (m *MockMetricsCollector) RecordORANInterfaceError(interfaceType, operation
 
 		"interface_type": interfaceType,
 
-		"operation":      operation,
+		"operation": operation,
 
-		"error_type":     errorType,
-
+		"error_type": errorType,
 	})
 
 }
@@ -1185,8 +1169,7 @@ func (m *MockMetricsCollector) UpdateORANConnectionStatus(interfaceType, endpoin
 
 		"interface_type": interfaceType,
 
-		"endpoint":       endpoint,
-
+		"endpoint": endpoint,
 	})
 
 }
@@ -1199,8 +1182,7 @@ func (m *MockMetricsCollector) UpdateORANPolicyInstances(policyType, status stri
 
 		"policy_type": policyType,
 
-		"status":      status,
-
+		"status": status,
 	})
 
 }
@@ -1220,13 +1202,11 @@ func (m *MockMetricsCollector) RecordRAGOperation(duration time.Duration, cacheH
 	m.RecordMetric("rag_operations_total", 1.0, map[string]string{
 
 		"cache_status": cacheStatus,
-
 	})
 
 	m.RecordMetric("rag_operation_duration_seconds", duration.Seconds(), map[string]string{
 
 		"cache_status": cacheStatus,
-
 	})
 
 }
@@ -1255,16 +1235,14 @@ func (m *MockMetricsCollector) RecordGitOpsOperation(operation string, duration 
 
 		"operation": operation,
 
-		"status":    status,
-
+		"status": status,
 	})
 
 	m.RecordMetric("gitops_operation_duration_seconds", duration.Seconds(), map[string]string{
 
 		"operation": operation,
 
-		"status":    status,
-
+		"status": status,
 	})
 
 }
@@ -1285,8 +1263,7 @@ func (m *MockMetricsCollector) UpdateGitOpsSyncStatus(repository, branch string,
 
 		"repository": repository,
 
-		"branch":     branch,
-
+		"branch": branch,
 	})
 
 }
@@ -1299,8 +1276,7 @@ func (m *MockMetricsCollector) UpdateResourceUtilization(resourceType, unit stri
 
 		"resource_type": resourceType,
 
-		"unit":          unit,
-
+		"unit": unit,
 	})
 
 }
@@ -1312,13 +1288,11 @@ func (m *MockMetricsCollector) UpdateWorkerQueueMetrics(queueName string, depth 
 	m.RecordMetric("worker_queue_depth", float64(depth), map[string]string{
 
 		"queue_name": queueName,
-
 	})
 
 	m.RecordMetric("worker_queue_latency_seconds", latency.Seconds(), map[string]string{
 
 		"queue_name": queueName,
-
 	})
 
 }
@@ -1366,7 +1340,7 @@ func (m *MockMetricsCollector) GetCounter(name string) interface{} {
 	return m.GetMetric(name)
 }
 
-// GetGauge returns a gauge interface  
+// GetGauge returns a gauge interface
 func (m *MockMetricsCollector) GetGauge(name string) interface{} {
 	return m.GetMetric(name)
 }
@@ -1380,11 +1354,11 @@ func (m *MockMetricsCollector) GetHistogram(name string) interface{} {
 func (m *MockMetricsCollector) RecordCNFDeployment(functionName string, duration time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.metrics == nil {
 		m.metrics = make(map[string]float64)
 	}
-	
+
 	key := fmt.Sprintf("cnf_deployment_duration_%s", functionName)
 	m.metrics[key] = duration.Seconds()
 }
@@ -1393,11 +1367,11 @@ func (m *MockMetricsCollector) RecordCNFDeployment(functionName string, duration
 func (m *MockMetricsCollector) RecordHTTPRequest(method, endpoint, status string, duration time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.metrics == nil {
 		m.metrics = make(map[string]float64)
 	}
-	
+
 	key := fmt.Sprintf("http_request_duration_%s_%s_%s", method, endpoint, status)
 	m.metrics[key] = duration.Seconds()
 }
@@ -1406,11 +1380,11 @@ func (m *MockMetricsCollector) RecordHTTPRequest(method, endpoint, status string
 func (m *MockMetricsCollector) RecordSSEStream(endpoint string, connected bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.metrics == nil {
 		m.metrics = make(map[string]float64)
 	}
-	
+
 	key := fmt.Sprintf("sse_stream_connection_%s", endpoint)
 	if connected {
 		m.metrics[key] = 1.0
@@ -1423,11 +1397,11 @@ func (m *MockMetricsCollector) RecordSSEStream(endpoint string, connected bool) 
 func (m *MockMetricsCollector) RecordLLMRequestError(model, errorType string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.metrics == nil {
 		m.metrics = make(map[string]float64)
 	}
-	
+
 	key := fmt.Sprintf("llm_request_errors_%s_%s", model, errorType)
 	m.metrics[key] = m.metrics[key] + 1.0
 }

@@ -58,18 +58,18 @@ func (m *MockProvider) GetSupportedResourceTypes() []string {
 // GetCapabilities returns provider capabilities
 func (m *MockProvider) GetCapabilities() *ProviderCapabilities {
 	return &ProviderCapabilities{
-		ComputeTypes:              []string{"deployment", "pod"},
-		StorageTypes:              []string{"pvc", "pv"},
-		NetworkTypes:              []string{"service", "ingress"},
-		AcceleratorTypes:          []string{},
-		AutoScaling:               false,
-		LoadBalancing:             false,
-		Monitoring:                true,
-		Logging:                   true,
-		Networking:                true,
-		StorageClasses:            false,
-		HorizontalPodAutoscaling:  false,
-		VerticalPodAutoscaling:    false,
+		ComputeTypes:             []string{"deployment", "pod"},
+		StorageTypes:             []string{"pvc", "pv"},
+		NetworkTypes:             []string{"service", "ingress"},
+		AcceleratorTypes:         []string{},
+		AutoScaling:              false,
+		LoadBalancing:            false,
+		Monitoring:               true,
+		Logging:                  true,
+		Networking:               true,
+		StorageClasses:           false,
+		HorizontalPodAutoscaling: false,
+		VerticalPodAutoscaling:   false,
 	}
 }
 
@@ -135,8 +135,6 @@ func (m *MockProvider) Initialize(ctx context.Context, config ProviderConfig) er
 	return nil
 }
 
-
-
 // CreateNetworkService creates a network service
 func (m *MockProvider) CreateNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 	m.mu.Lock()
@@ -150,7 +148,7 @@ func (m *MockProvider) CreateNetworkService(ctx context.Context, req *NetworkSer
 	response := &NetworkServiceResponse{
 		ID:     fmt.Sprintf("net-%d", time.Now().UnixNano()),
 		Name:   req.Name,
-		Type:   req.Type,  // Use Type instead of ServiceType
+		Type:   req.Type, // Use Type instead of ServiceType
 		Status: "active",
 	}
 
@@ -481,7 +479,6 @@ func (m *MockProvider) DeleteResource(ctx context.Context, resourceID string) er
 	return nil
 }
 
-
 // ApplyConfiguration applies provider configuration
 func (m *MockProvider) ApplyConfiguration(ctx context.Context, config *ProviderConfiguration) error {
 	m.mu.Lock()
@@ -561,12 +558,12 @@ func (a *ProviderAdapter) CreateResource(ctx context.Context, req ResourceReques
 		Specification: map[string]interface{}{"spec": req.Spec},
 		Labels:        req.Labels,
 	}
-	
+
 	response, err := a.cloudProvider.CreateResource(ctx, cloudReq)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert back to Provider response format
 	return &Resource{
 		ID:        response.ID,
@@ -586,7 +583,7 @@ func (a *ProviderAdapter) GetResource(ctx context.Context, id string) (*Resource
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &Resource{
 		ID:        response.ID,
 		Name:      response.Name,
@@ -607,12 +604,12 @@ func (a *ProviderAdapter) ListResources(ctx context.Context, filter ResourceFilt
 		Types:  filter.Types,
 		Labels: filter.Labels,
 	}
-	
+
 	responses, err := a.cloudProvider.ListResources(ctx, cloudFilter)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert to Provider format
 	var resources []*Resource
 	for _, response := range responses {
@@ -628,7 +625,7 @@ func (a *ProviderAdapter) ListResources(ctx context.Context, filter ResourceFilt
 		}
 		resources = append(resources, resource)
 	}
-	
+
 	return resources, nil
 }
 
@@ -639,12 +636,12 @@ func (a *ProviderAdapter) UpdateResource(ctx context.Context, id string, req Res
 		Specification: map[string]interface{}{"spec": req.Spec},
 		Labels:        req.Labels,
 	}
-	
+
 	response, err := a.cloudProvider.UpdateResource(ctx, id, cloudReq)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert back to Provider response format
 	return &Resource{
 		ID:        response.ID,
@@ -669,7 +666,7 @@ func (a *ProviderAdapter) GetResourceStatus(ctx context.Context, id string) (Res
 	if err != nil {
 		return StatusUnknown, err
 	}
-	
+
 	// Convert health status to resource status
 	switch health.Status {
 	case "healthy":

@@ -257,26 +257,26 @@ func (r *PerformanceReporter) checkThresholds(component string, metrics *Perform
 	// Check throughput threshold
 	if threshold, exists := thresholds["throughput"]; exists && metrics.Throughput < threshold {
 		alerts = append(alerts, AlertItem{
-			ID:       fmt.Sprintf("%s-throughput-%d", component, time.Now().Unix()),
-			Name:     "throughput",
-			Message:  fmt.Sprintf("Throughput %.2f below threshold %.2f for component %s", metrics.Throughput, threshold, component),
-			Severity: AlertSeverityWarning,
-			Status:   "active",
+			ID:        fmt.Sprintf("%s-throughput-%d", component, time.Now().Unix()),
+			Name:      "throughput",
+			Message:   fmt.Sprintf("Throughput %.2f below threshold %.2f for component %s", metrics.Throughput, threshold, component),
+			Severity:  AlertSeverityWarning,
+			Status:    "active",
 			Timestamp: time.Now(),
-			Source:   component,
+			Source:    component,
 		})
 	}
 
 	// Check error rate threshold
 	if threshold, exists := thresholds["error_rate"]; exists && metrics.ErrorRate > threshold {
 		alerts = append(alerts, AlertItem{
-			ID:       fmt.Sprintf("%s-error-rate-%d", component, time.Now().Unix()),
-			Name:     "error_rate",
-			Message:  fmt.Sprintf("Error rate %.2f%% above threshold %.2f%% for component %s", metrics.ErrorRate, threshold, component),
-			Severity: AlertSeverityCritical,
-			Status:   "active",
+			ID:        fmt.Sprintf("%s-error-rate-%d", component, time.Now().Unix()),
+			Name:      "error_rate",
+			Message:   fmt.Sprintf("Error rate %.2f%% above threshold %.2f%% for component %s", metrics.ErrorRate, threshold, component),
+			Severity:  AlertSeverityCritical,
+			Status:    "active",
 			Timestamp: time.Now(),
-			Source:   component,
+			Source:    component,
 		})
 	}
 
@@ -285,13 +285,13 @@ func (r *PerformanceReporter) checkThresholds(component string, metrics *Perform
 		availability := 100.0 - metrics.ErrorRate
 		if availability < threshold {
 			alerts = append(alerts, AlertItem{
-				ID:       fmt.Sprintf("%s-availability-%d", component, time.Now().Unix()),
-				Name:     "availability",
-				Message:  fmt.Sprintf("Availability %.1f%% below threshold %.1f%% for component %s", availability, threshold, component),
-				Severity: AlertSeverityCritical,
-				Status:   "active",
+				ID:        fmt.Sprintf("%s-availability-%d", component, time.Now().Unix()),
+				Name:      "availability",
+				Message:   fmt.Sprintf("Availability %.1f%% below threshold %.1f%% for component %s", availability, threshold, component),
+				Severity:  AlertSeverityCritical,
+				Status:    "active",
 				Timestamp: time.Now(),
-				Source:   component,
+				Source:    component,
 			})
 		}
 	}
@@ -325,14 +325,14 @@ func (r *PerformanceReporter) calculateSummary(metrics []PerformanceMetrics, ale
 	}
 
 	avgResponseTime := totalLatency / time.Duration(len(metrics))
-	
+
 	return ReportSummary{
 		TotalMetrics:     len(metrics),
 		AlertsTriggered:  criticalAlerts,
 		PerformanceScore: totalAvailability / float64(len(metrics)),
 		AvgResponseTime:  avgResponseTime,
 		TotalRequests:    int64(len(metrics)), // Simplified
-		ErrorRate:        0.0, // Would need to be calculated from metrics
+		ErrorRate:        0.0,                 // Would need to be calculated from metrics
 		ResourceUsage:    make(map[string]float64),
 	}
 }
@@ -344,7 +344,7 @@ func (r *PerformanceReporter) ExportReport(report *PerformanceReport, format str
 		return json.MarshalIndent(report, "", "  ")
 	case "html":
 		// Content field doesn't exist on PerformanceReport, generate HTML from report data
-		html := fmt.Sprintf("<html><body><h1>%s</h1><p>Generated: %s</p></body></html>", 
+		html := fmt.Sprintf("<html><body><h1>%s</h1><p>Generated: %s</p></body></html>",
 			report.Title, report.GeneratedAt.Format("2006-01-02 15:04:05"))
 		return []byte(html), nil
 	default:

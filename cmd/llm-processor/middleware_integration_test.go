@@ -19,34 +19,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
-// createIPAllowlistHandler creates a test handler with IP allowlist functionality
-func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *slog.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simple IP check for testing purposes
-		remoteIP := r.RemoteAddr
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			parts := strings.Split(xff, ",")
-			remoteIP = strings.TrimSpace(parts[0])
-		}
-		
-		// For testing, allow localhost/127.0.0.1 and common test IPs
-		if strings.Contains(remoteIP, "127.0.0.1") || strings.Contains(remoteIP, "192.168.") || 
-		   strings.Contains(remoteIP, "10.0.") || remoteIP == "" {
-			next.ServeHTTP(w, r)
-			return
-		}
-		
-		// Check against allowed CIDRs for other cases
-		for _, cidr := range allowedCIDRs {
-			if strings.Contains(remoteIP, strings.Split(cidr, "/")[0]) {
-				next.ServeHTTP(w, r)
-				return
-			}
-		}
-		
-		http.Error(w, "Forbidden", http.StatusForbidden)
-	})
-}
+// Note: createIPAllowlistHandler is defined in main_test.go to avoid duplication
 
 // TestSecurityHeadersMiddleware validates that security headers are correctly set
 func TestSecurityHeadersMiddleware(t *testing.T) {
@@ -856,7 +829,7 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 	if cfg.ExposeMetricsPublicly {
 		router.HandleFunc("/metrics", metricsHandler).Methods("GET")
 	} else {
-		router.HandleFunc("/metrics", createIPAllowlistHandler(
+		router.Handle("/metrics", createIPAllowlistHandler(
 			http.HandlerFunc(metricsHandler), cfg.MetricsAllowedCIDRs, logger)).Methods("GET")
 	}
 

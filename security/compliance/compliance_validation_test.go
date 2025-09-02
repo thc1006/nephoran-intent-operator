@@ -6,15 +6,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/client-go/rest"
 	"log/slog"
 	"os"
-	"k8s.io/client-go/rest"
 )
 
 // TestComprehensiveComplianceFramework validates the main compliance framework
 func TestComprehensiveComplianceFramework(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Test with nil config to verify error handling
 	framework, err := NewComprehensiveComplianceFramework(logger, nil)
 	require.Error(t, err)
@@ -26,11 +26,11 @@ func TestComprehensiveComplianceFramework(t *testing.T) {
 	config := &rest.Config{
 		Host: "https://localhost:8443",
 	}
-	
+
 	// The framework may or may not succeed depending on the test environment
 	// In a test environment without a running Kubernetes cluster, it may still create the client
 	framework, err = NewComprehensiveComplianceFramework(logger, config)
-	
+
 	// Either way, if we get a framework, it should be properly initialized
 	if framework != nil {
 		assert.NotNil(t, framework.logger)
@@ -63,18 +63,18 @@ func TestAutomatedComplianceMonitor(t *testing.T) {
 func TestOPACompliancePolicyEngine(t *testing.T) {
 	// Test OPA engine structure
 	engine := &OPACompliancePolicyEngine{
-		enabled:                   true,
-		policyBundleURL:          "https://example.com/policies",
-		policyDecisionTimeout:    5 * time.Second,
-		evaluationCacheEnabled:   true,
-		policyValidationMode:     "strict",
-		realTimeEvaluation:       true,
-		continuousMonitoring:     true,
-		automaticRemediation:     false,
-		policyViolationHandling:  "block",
-		auditLoggingEnabled:      true,
-		decisionLogsRetention:    30 * 24 * time.Hour,
-		auditStorageBackend:      "local",
+		enabled:                 true,
+		policyBundleURL:         "https://example.com/policies",
+		policyDecisionTimeout:   5 * time.Second,
+		evaluationCacheEnabled:  true,
+		policyValidationMode:    "strict",
+		realTimeEvaluation:      true,
+		continuousMonitoring:    true,
+		automaticRemediation:    false,
+		policyViolationHandling: "block",
+		auditLoggingEnabled:     true,
+		decisionLogsRetention:   30 * 24 * time.Hour,
+		auditStorageBackend:     "local",
 	}
 
 	assert.True(t, engine.enabled)
@@ -90,12 +90,12 @@ func TestOPACompliancePolicyEngine(t *testing.T) {
 func TestComplianceStatus(t *testing.T) {
 	// Test compliance status structure
 	status := &ComplianceStatus{
-		Timestamp:            time.Now(),
-		OverallScore:         85.5,
-		OverallCompliance:    85.5, // Both fields for compatibility
-		FrameworkScores:      map[string]float64{
-			"CIS": 90.0,
-			"NIST": 85.0,
+		Timestamp:         time.Now(),
+		OverallScore:      85.5,
+		OverallCompliance: 85.5, // Both fields for compatibility
+		FrameworkScores: map[string]float64{
+			"CIS":   90.0,
+			"NIST":  85.0,
 			"OWASP": 80.0,
 		},
 		ComplianceViolations: []ComplianceViolation{},
@@ -149,9 +149,9 @@ func TestComplianceAlert(t *testing.T) {
 		Severity:     "HIGH",
 		Framework:    "OWASP", // Added framework field
 		Message:      "Vulnerability scan detected critical issues",
-		Acknowledged: false,   // Added acknowledged field
+		Acknowledged: false, // Added acknowledged field
 		Actions:      []string{"review", "remediate"},
-		Metadata:     map[string]interface{}{
+		Metadata: map[string]interface{}{
 			"scan_id": "scan-123",
 			"issues":  5,
 		},
@@ -191,7 +191,7 @@ func TestComplianceMetricsCollector(t *testing.T) {
 	t.Log("Compliance metrics collector initialized successfully")
 }
 
-// TestOPAPolicy validates OPA policy structure  
+// TestOPAPolicy validates OPA policy structure
 func TestOPAPolicy(t *testing.T) {
 	// Test OPA policy structure
 	policy := OPAPolicy{
@@ -268,10 +268,10 @@ func TestRemediationAction(t *testing.T) {
 func TestPolicyTestCase(t *testing.T) {
 	// Test policy test case structure
 	testCase := PolicyTestCase{
-		testID:            "test-001",
-		name:              "Test Pod Security",
-		description:       "Test that pods without security context are flagged",
-		input:             map[string]interface{}{
+		testID:      "test-001",
+		name:        "Test Pod Security",
+		description: "Test that pods without security context are flagged",
+		input: map[string]interface{}{
 			"apiVersion": "v1",
 			"kind":       "Pod",
 			"metadata":   map[string]string{"name": "test-pod"},
@@ -306,8 +306,8 @@ func BenchmarkComplianceStatusCreation(b *testing.B) {
 			},
 			ComplianceViolations: []ComplianceViolation{},
 			RecommendedActions:   []ComplianceRecommendation{},
-			AuditTrail:          []ComplianceAuditEvent{},
-			NextAuditDate:       time.Now().Add(24 * time.Hour),
+			AuditTrail:           []ComplianceAuditEvent{},
+			NextAuditDate:        time.Now().Add(24 * time.Hour),
 		}
 		if status == nil {
 			b.Fatal("Failed to create compliance status")
@@ -350,26 +350,26 @@ func TestMockMetric(t *testing.T) {
 // TestRunComprehensiveComplianceCheck validates the comprehensive compliance check method
 func TestRunComprehensiveComplianceCheck(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Create a mock config for testing
 	config := &rest.Config{
 		Host: "https://localhost:8443",
 	}
-	
+
 	framework, err := NewComprehensiveComplianceFramework(logger, config)
 	// Skip this test if we can't create a framework (no Kubernetes cluster available)
 	if err != nil {
 		t.Skip("Skipping test - no Kubernetes cluster available")
 		return
 	}
-	
+
 	require.NotNil(t, framework)
-	
+
 	// Test compliance check
 	status, err := framework.RunComprehensiveComplianceCheck(nil)
 	require.NoError(t, err)
 	require.NotNil(t, status)
-	
+
 	// Validate the status structure
 	assert.NotZero(t, status.Timestamp)
 	assert.Equal(t, 85.5, status.OverallScore)
@@ -378,7 +378,7 @@ func TestRunComprehensiveComplianceCheck(t *testing.T) {
 	assert.NotNil(t, status.ComplianceViolations)
 	assert.NotNil(t, status.RecommendedActions)
 	assert.NotNil(t, status.AuditTrail)
-	
+
 	t.Logf("Compliance check completed with score: %.2f%%", status.OverallCompliance)
 	t.Logf("Framework scores: %+v", status.FrameworkScores)
 }

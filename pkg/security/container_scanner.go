@@ -158,18 +158,18 @@ type ScanRequest struct {
 
 // ScanResult represents the result of a container scan
 type ScanResult struct {
-	ID                string                 `json:"id"`
-	Image             string                 `json:"image"`
-	Scanner           string                 `json:"scanner"`
-	ScanTime          time.Time              `json:"scan_time"`
-	Duration          time.Duration          `json:"duration"`
-	Status            string                 `json:"status"`
-	SecurityScore     int                    `json:"security_score"`
-	Vulnerabilities   []ContainerVulnerability        `json:"vulnerabilities"`
-	Misconfigurations []Misconfiguration     `json:"misconfigurations"`
-	Secrets           []SecretLeak           `json:"secrets"`
-	Compliance        ComplianceResult       `json:"compliance"`
-	Metadata          map[string]interface{} `json:"metadata"`
+	ID                string                   `json:"id"`
+	Image             string                   `json:"image"`
+	Scanner           string                   `json:"scanner"`
+	ScanTime          time.Time                `json:"scan_time"`
+	Duration          time.Duration            `json:"duration"`
+	Status            string                   `json:"status"`
+	SecurityScore     int                      `json:"security_score"`
+	Vulnerabilities   []ContainerVulnerability `json:"vulnerabilities"`
+	Misconfigurations []Misconfiguration       `json:"misconfigurations"`
+	Secrets           []SecretLeak             `json:"secrets"`
+	Compliance        ComplianceResult         `json:"compliance"`
+	Metadata          map[string]interface{}   `json:"metadata"`
 }
 
 // ContainerVulnerability represents a security vulnerability in containers

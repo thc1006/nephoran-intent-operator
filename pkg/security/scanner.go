@@ -47,7 +47,6 @@ import (
 
 	nephiov1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -92,13 +91,13 @@ type SecurityScannerConfig struct {
 
 	// Enable/disable specific scan types
 
-	EnablePortScan     bool `json:"enablePortScan"`
+	EnablePortScan bool `json:"enablePortScan"`
 
-	EnableVulnScan     bool `json:"enableVulnScan"`
+	EnableVulnScan bool `json:"enableVulnScan"`
 
-	EnableTLSScan      bool `json:"enableTlsScan"`
+	EnableTLSScan bool `json:"enableTlsScan"`
 
-	EnableHeaderScan   bool `json:"enableHeaderScan"`
+	EnableHeaderScan bool `json:"enableHeaderScan"`
 
 	EnableInjectionScan bool `json:"enableInjectionScan"`
 
@@ -166,123 +165,123 @@ type ScanResults struct {
 // PortInfo contains information about an open port.
 
 type PortInfo struct {
-	Port     int    `json:"port"`
+	Port int `json:"port"`
 
 	Protocol string `json:"protocol"`
 
-	Service  string `json:"service"`
+	Service string `json:"service"`
 
-	Banner   string `json:"banner,omitempty"`
+	Banner string `json:"banner,omitempty"`
 
-	State    string `json:"state"`
+	State string `json:"state"`
 }
 
 // Vulnerability represents a security vulnerability found during scanning.
 
 type Vulnerability struct {
-	ID          string `json:"id"`
+	ID string `json:"id"`
 
-	Title       string `json:"title"`
+	Title string `json:"title"`
 
 	Description string `json:"description"`
 
-	Severity    string `json:"severity"` // Critical, High, Medium, Low
+	Severity string `json:"severity"` // Critical, High, Medium, Low
 
-	CVE         string `json:"cve,omitempty"`
+	CVE string `json:"cve,omitempty"`
 
-	CVSS        string `json:"cvss,omitempty"`
+	CVSS string `json:"cvss,omitempty"`
 
-	Solution    string `json:"solution,omitempty"`
+	Solution string `json:"solution,omitempty"`
 
-	References  []string `json:"references,omitempty"`
+	References []string `json:"references,omitempty"`
 
-	Port        int    `json:"port,omitempty"`
+	Port int `json:"port,omitempty"`
 
-	Service     string `json:"service,omitempty"`
+	Service string `json:"service,omitempty"`
 }
 
 // TLSFinding represents TLS/SSL security findings.
 
 type TLSFinding struct {
-	Issue       string `json:"issue"`
+	Issue string `json:"issue"`
 
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
 	Description string `json:"description"`
 
-	Protocol    string `json:"protocol,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
 
-	Cipher      string `json:"cipher,omitempty"`
+	Cipher string `json:"cipher,omitempty"`
 
 	Certificate string `json:"certificate,omitempty"`
 
-	Expiry      string `json:"expiry,omitempty"`
+	Expiry string `json:"expiry,omitempty"`
 }
 
 // HeaderFinding represents HTTP security header findings.
 
 type HeaderFinding struct {
-	Header      string `json:"header"`
+	Header string `json:"header"`
 
-	Issue       string `json:"issue"`
+	Issue string `json:"issue"`
 
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
 	Description string `json:"description"`
 
 	Recommendation string `json:"recommendation"`
 
-	Present     bool `json:"present"`
+	Present bool `json:"present"`
 
-	Value       string `json:"value,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // InjectionFinding represents injection vulnerability findings.
 
 type InjectionFinding struct {
-	Type        string `json:"type"` // SQL, XSS, Command, etc.
+	Type string `json:"type"` // SQL, XSS, Command, etc.
 
-	URL         string `json:"url"`
+	URL string `json:"url"`
 
-	Parameter   string `json:"parameter,omitempty"`
+	Parameter string `json:"parameter,omitempty"`
 
-	Payload     string `json:"payload"`
+	Payload string `json:"payload"`
 
-	Method      string `json:"method"`
+	Method string `json:"method"`
 
-	Severity    string `json:"severity"`
+	Severity string `json:"severity"`
 
 	Description string `json:"description"`
 
-	Evidence    string `json:"evidence,omitempty"`
+	Evidence string `json:"evidence,omitempty"`
 }
 
 // ScanSummary provides a high-level summary of scan results.
 
 type ScanSummary struct {
-	TotalPorts        int `json:"totalPorts"`
+	TotalPorts int `json:"totalPorts"`
 
-	OpenPorts         int `json:"openPorts"`
+	OpenPorts int `json:"openPorts"`
 
-	TotalVulns        int `json:"totalVulns"`
+	TotalVulns int `json:"totalVulns"`
 
-	CriticalVulns     int `json:"criticalVulns"`
+	CriticalVulns int `json:"criticalVulns"`
 
-	HighVulns         int `json:"highVulns"`
+	HighVulns int `json:"highVulns"`
 
-	MediumVulns       int `json:"mediumVulns"`
+	MediumVulns int `json:"mediumVulns"`
 
-	LowVulns          int `json:"lowVulns"`
+	LowVulns int `json:"lowVulns"`
 
-	TLSIssues         int `json:"tlsIssues"`
+	TLSIssues int `json:"tlsIssues"`
 
-	HeaderIssues      int `json:"headerIssues"`
+	HeaderIssues int `json:"headerIssues"`
 
-	InjectionIssues   int `json:"injectionIssues"`
+	InjectionIssues int `json:"injectionIssues"`
 
-	SecurityScore     int `json:"securityScore"` // 0-100
+	SecurityScore int `json:"securityScore"` // 0-100
 
-	RiskLevel         string `json:"riskLevel"`   // Low, Medium, High, Critical
+	RiskLevel string `json:"riskLevel"` // Low, Medium, High, Critical
 }
 
 // NewSecurityScanner creates a new SecurityScanner instance.
@@ -328,7 +327,6 @@ func NewSecurityScanner(client client.Client, logger *slog.Logger, config Securi
 			{Start: 8080, End: 8080},
 
 			{Start: 8443, End: 8443},
-
 		}
 
 	}
@@ -346,7 +344,6 @@ func NewSecurityScanner(client client.Client, logger *slog.Logger, config Securi
 				MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
 
 			},
-
 		},
 	}
 
@@ -360,7 +357,7 @@ func NewSecurityScanner(client client.Client, logger *slog.Logger, config Securi
 
 		httpClient: httpClient,
 
-		ctx:    ctx,
+		ctx: ctx,
 
 		cancel: cancel,
 
@@ -395,15 +392,15 @@ func (ss *SecurityScanner) ScanTarget(ctx context.Context, target string) (*Scan
 
 		Timestamp: start,
 
-		Target:    target,
+		Target: target,
 
-		OpenPorts:         []PortInfo{},
+		OpenPorts: []PortInfo{},
 
-		Vulnerabilities:   []Vulnerability{},
+		Vulnerabilities: []Vulnerability{},
 
-		TLSFindings:       []TLSFinding{},
+		TLSFindings: []TLSFinding{},
 
-		HeaderFindings:    []HeaderFinding{},
+		HeaderFindings: []HeaderFinding{},
 
 		InjectionFindings: []InjectionFinding{},
 	}
@@ -533,7 +530,6 @@ func (ss *SecurityScanner) ScanTarget(ctx context.Context, target string) (*Scan
 		"vulnerabilities", results.Summary.TotalVulns,
 
 		"securityScore", results.Summary.SecurityScore,
-
 	)
 
 	return &results, nil
@@ -650,13 +646,13 @@ func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) 
 
 	portInfo := PortInfo{
 
-		Port:     port,
+		Port: port,
 
 		Protocol: "tcp",
 
-		Service:  ss.identifyService(port),
+		Service: ss.identifyService(port),
 
-		State:    "open",
+		State: "open",
 	}
 
 	// Try to grab banner
@@ -686,7 +682,6 @@ func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) 
 		"port", port,
 
 		"service", portInfo.Service,
-
 	)
 
 }
@@ -697,27 +692,27 @@ func (ss *SecurityScanner) identifyService(port int) string {
 
 	services := map[int]string{
 
-		21:   "ftp",
+		21: "ftp",
 
-		22:   "ssh",
+		22: "ssh",
 
-		23:   "telnet",
+		23: "telnet",
 
-		25:   "smtp",
+		25: "smtp",
 
-		53:   "dns",
+		53: "dns",
 
-		80:   "http",
+		80: "http",
 
-		110:  "pop3",
+		110: "pop3",
 
-		143:  "imap",
+		143: "imap",
 
-		443:  "https",
+		443: "https",
 
-		993:  "imaps",
+		993: "imaps",
 
-		995:  "pop3s",
+		995: "pop3s",
 
 		3306: "mysql",
 
@@ -1037,17 +1032,17 @@ func (ss *SecurityScanner) checkSecurityHeader(headers http.Header, headerName, 
 
 		finding := HeaderFinding{
 
-			Header:         headerName,
+			Header: headerName,
 
-			Issue:          "MISSING_" + issue,
+			Issue: "MISSING_" + issue,
 
-			Severity:       severity,
+			Severity: severity,
 
-			Description:    description,
+			Description: description,
 
 			Recommendation: recommendation,
 
-			Present:        false,
+			Present: false,
 		}
 
 		ss.mutex.Lock()
@@ -1065,7 +1060,6 @@ func (ss *SecurityScanner) checkSecurityHeader(headers http.Header, headerName, 
 			"header", headerName,
 
 			"value", values[0],
-
 		)
 
 	}
@@ -1082,19 +1076,19 @@ func (ss *SecurityScanner) checkInformationDisclosure(headers http.Header, heade
 
 		finding := HeaderFinding{
 
-			Header:         headerName,
+			Header: headerName,
 
-			Issue:          "INFORMATION_DISCLOSURE",
+			Issue: "INFORMATION_DISCLOSURE",
 
-			Severity:       "Low",
+			Severity: "Low",
 
-			Description:    description,
+			Description: description,
 
 			Recommendation: fmt.Sprintf("Remove or obscure the %s header", headerName),
 
-			Present:        true,
+			Present: true,
 
-			Value:          values[0],
+			Value: values[0],
 		}
 
 		ss.mutex.Lock()
@@ -1132,7 +1126,6 @@ func (ss *SecurityScanner) scanInjectionVulns(ctx context.Context, target string
 		"'; DROP TABLE users; --",
 
 		"1' UNION SELECT NULL,NULL,NULL--",
-
 	}
 
 	xssPayloads := []string{
@@ -1144,7 +1137,6 @@ func (ss *SecurityScanner) scanInjectionVulns(ctx context.Context, target string
 		"javascript:alert('XSS')",
 
 		"\"><script>alert('XSS')</script>",
-
 	}
 
 	commandPayloads := []string{
@@ -1156,7 +1148,6 @@ func (ss *SecurityScanner) scanInjectionVulns(ctx context.Context, target string
 		"; cat /etc/passwd",
 
 		"`id`",
-
 	}
 
 	// Test SQL injection
@@ -1198,7 +1189,6 @@ func (ss *SecurityScanner) testInjection(ctx context.Context, baseURL, payload, 
 		baseURL + "?search=" + url.QueryEscape(payload),
 
 		baseURL + "?q=" + url.QueryEscape(payload),
-
 	}
 
 	for _, testURL := range testURLs {
@@ -1266,7 +1256,6 @@ func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, re
 			"valid MySQL result",
 
 			"MySqlClient",
-
 		}
 
 		severity = "Critical"
@@ -1280,7 +1269,6 @@ func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, re
 			"alert('XSS')",
 
 			"<img src=x onerror=alert('XSS')>",
-
 		}
 
 		severity = "High"
@@ -1300,7 +1288,6 @@ func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, re
 			"/bin/sh",
 
 			"/bin/bash",
-
 		}
 
 		severity = "Critical"
@@ -1333,21 +1320,21 @@ func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, re
 
 			finding := InjectionFinding{
 
-				Type:        injectionType,
+				Type: injectionType,
 
-				URL:         testURL,
+				URL: testURL,
 
-				Parameter:   parameter,
+				Parameter: parameter,
 
-				Payload:     payload,
+				Payload: payload,
 
-				Method:      method,
+				Method: method,
 
-				Severity:    severity,
+				Severity: severity,
 
 				Description: fmt.Sprintf("Possible %s vulnerability detected", injectionType),
 
-				Evidence:    indicator,
+				Evidence: indicator,
 			}
 
 			ss.mutex.Lock()
@@ -1428,21 +1415,21 @@ func (ss *SecurityScanner) checkSSHVulnerabilities(host string, portInfo PortInf
 
 		vuln := Vulnerability{
 
-			ID:          "SSH-001",
+			ID: "SSH-001",
 
-			Title:       "SSH on default port",
+			Title: "SSH on default port",
 
 			Description: "SSH is running on the default port 22, making it an easy target for automated attacks",
 
-			Severity:    "Low",
+			Severity: "Low",
 
-			Solution:    "Consider changing SSH port to a non-standard port",
+			Solution: "Consider changing SSH port to a non-standard port",
 
-			Port:        portInfo.Port,
+			Port: portInfo.Port,
 
-			Service:     "ssh",
+			Service: "ssh",
 
-			References:  []string{"https://attack.mitre.org/techniques/T1021/"},
+			References: []string{"https://attack.mitre.org/techniques/T1021/"},
 		}
 
 		ss.mutex.Lock()
@@ -1463,21 +1450,21 @@ func (ss *SecurityScanner) checkHTTPVulnerabilities(host string, portInfo PortIn
 
 	vuln := Vulnerability{
 
-		ID:          "HTTP-001",
+		ID: "HTTP-001",
 
-		Title:       "Insecure HTTP Protocol",
+		Title: "Insecure HTTP Protocol",
 
 		Description: "Service is using HTTP instead of HTTPS, transmitting data in plain text",
 
-		Severity:    "Medium",
+		Severity: "Medium",
 
-		Solution:    "Implement HTTPS/TLS encryption",
+		Solution: "Implement HTTPS/TLS encryption",
 
-		Port:        portInfo.Port,
+		Port: portInfo.Port,
 
-		Service:     "http",
+		Service: "http",
 
-		References:  []string{"https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure"},
+		References: []string{"https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure"},
 	}
 
 	ss.mutex.Lock()
@@ -1506,21 +1493,21 @@ func (ss *SecurityScanner) checkMySQLVulnerabilities(host string, portInfo PortI
 
 	vuln := Vulnerability{
 
-		ID:          "MYSQL-001",
+		ID: "MYSQL-001",
 
-		Title:       "MySQL Exposed to Network",
+		Title: "MySQL Exposed to Network",
 
 		Description: "MySQL database is accessible from external networks, potentially exposing sensitive data",
 
-		Severity:    "High",
+		Severity: "High",
 
-		Solution:    "Restrict MySQL access to localhost or specific trusted networks",
+		Solution: "Restrict MySQL access to localhost or specific trusted networks",
 
-		Port:        portInfo.Port,
+		Port: portInfo.Port,
 
-		Service:     "mysql",
+		Service: "mysql",
 
-		References:  []string{"https://dev.mysql.com/doc/refman/8.0/en/security-guidelines.html"},
+		References: []string{"https://dev.mysql.com/doc/refman/8.0/en/security-guidelines.html"},
 	}
 
 	ss.mutex.Lock()
@@ -1539,21 +1526,21 @@ func (ss *SecurityScanner) checkPostgreSQLVulnerabilities(host string, portInfo 
 
 	vuln := Vulnerability{
 
-		ID:          "PGSQL-001",
+		ID: "PGSQL-001",
 
-		Title:       "PostgreSQL Exposed to Network",
+		Title: "PostgreSQL Exposed to Network",
 
 		Description: "PostgreSQL database is accessible from external networks, potentially exposing sensitive data",
 
-		Severity:    "High",
+		Severity: "High",
 
-		Solution:    "Restrict PostgreSQL access to localhost or specific trusted networks",
+		Solution: "Restrict PostgreSQL access to localhost or specific trusted networks",
 
-		Port:        portInfo.Port,
+		Port: portInfo.Port,
 
-		Service:     "postgresql",
+		Service: "postgresql",
 
-		References:  []string{"https://www.postgresql.org/docs/current/security.html"},
+		References: []string{"https://www.postgresql.org/docs/current/security.html"},
 	}
 
 	ss.mutex.Lock()
@@ -1632,15 +1619,15 @@ func (ss *SecurityScanner) calculateSummary() ScanSummary {
 
 	score -= summary.CriticalVulns * 20 // Critical: -20 points each
 
-	score -= summary.HighVulns * 10     // High: -10 points each
+	score -= summary.HighVulns * 10 // High: -10 points each
 
-	score -= summary.MediumVulns * 5    // Medium: -5 points each
+	score -= summary.MediumVulns * 5 // Medium: -5 points each
 
-	score -= summary.LowVulns * 2       // Low: -2 points each
+	score -= summary.LowVulns * 2 // Low: -2 points each
 
-	score -= summary.TLSIssues * 5      // TLS issues: -5 points each
+	score -= summary.TLSIssues * 5 // TLS issues: -5 points each
 
-	score -= summary.HeaderIssues * 3   // Header issues: -3 points each
+	score -= summary.HeaderIssues * 3 // Header issues: -3 points each
 
 	score -= summary.InjectionIssues * 15 // Injection issues: -15 points each
 
@@ -1687,7 +1674,6 @@ func (ss *SecurityScanner) ScanNetworkIntent(ctx context.Context, intent *nephio
 		"intent", intent.Name,
 
 		"namespace", intent.Namespace,
-
 	)
 
 	// Extract target endpoints from the NetworkIntent
@@ -1784,7 +1770,7 @@ func (ss *SecurityScanner) extractTargetsFromIntent(intent *nephiov1.NetworkInte
 }
 
 // addIntentSecurityFindings adds NetworkIntent-specific security findings.
-// This function safely accesses ProcessedParameters.SecurityParameters which is the 
+// This function safely accesses ProcessedParameters.SecurityParameters which is the
 // correct path for security configuration in NetworkIntentSpec.
 //
 // IMPORTANT: Direct .Security or .CNFDeployments fields do NOT exist in NetworkIntentSpec.
@@ -1799,24 +1785,24 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 		vuln := Vulnerability{
 
-			ID:          "INTENT-001",
+			ID: "INTENT-001",
 
-			Title:       "Missing Security Configuration",
+			Title: "Missing Security Configuration",
 
 			Description: "NetworkIntent does not specify security configuration in ProcessedParameters",
 
-			Severity:    "Medium",
+			Severity: "Medium",
 
-			Solution:    "Add security parameters to NetworkIntent.Spec.ProcessedParameters.SecurityParameters",
+			Solution: "Add security parameters to NetworkIntent.Spec.ProcessedParameters.SecurityParameters",
 
-			Service:     "NetworkIntent",
+			Service: "NetworkIntent",
 		}
 
 		results.Vulnerabilities = append(results.Vulnerabilities, vuln)
 
 		// Log warning for debugging
-		ss.logger.Warn("NetworkIntent missing security parameters", 
-			"intent", intent.Name, 
+		ss.logger.Warn("NetworkIntent missing security parameters",
+			"intent", intent.Name,
 			"namespace", intent.Namespace,
 			"hasProcessedParams", intent.Spec.ProcessedParameters != nil)
 
@@ -1830,17 +1816,17 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 			vuln := Vulnerability{
 
-				ID:          "INTENT-002",
+				ID: "INTENT-002",
 
-				Title:       "TLS Disabled or Not Configured",
+				Title: "TLS Disabled or Not Configured",
 
 				Description: "NetworkIntent has TLS disabled or not configured, communications may be unencrypted",
 
-				Severity:    "High",
+				Severity: "High",
 
-				Solution:    "Enable TLS in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.TLSEnabled",
+				Solution: "Enable TLS in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.TLSEnabled",
 
-				Service:     "NetworkIntent",
+				Service: "NetworkIntent",
 			}
 
 			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
@@ -1853,17 +1839,17 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 			vuln := Vulnerability{
 
-				ID:          "INTENT-003",
+				ID: "INTENT-003",
 
-				Title:       "Service Mesh Disabled",
+				Title: "Service Mesh Disabled",
 
 				Description: "NetworkIntent has service mesh disabled, which may reduce security",
 
-				Severity:    "Medium",
+				Severity: "Medium",
 
-				Solution:    "Enable service mesh in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.ServiceMesh",
+				Solution: "Enable service mesh in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.ServiceMesh",
 
-				Service:     "NetworkIntent",
+				Service: "NetworkIntent",
 			}
 
 			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
@@ -1876,17 +1862,17 @@ func (ss *SecurityScanner) addIntentSecurityFindings(intent *nephiov1.NetworkInt
 
 			vuln := Vulnerability{
 
-				ID:          "INTENT-004",
+				ID: "INTENT-004",
 
-				Title:       "Encryption Disabled",
+				Title: "Encryption Disabled",
 
 				Description: "NetworkIntent has encryption disabled or not configured",
 
-				Severity:    "High",
+				Severity: "High",
 
-				Solution:    "Enable encryption in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.Encryption.Enabled",
+				Solution: "Enable encryption in NetworkIntent.Spec.ProcessedParameters.SecurityParameters.Encryption.Enabled",
 
-				Service:     "NetworkIntent",
+				Service: "NetworkIntent",
 			}
 
 			results.Vulnerabilities = append(results.Vulnerabilities, vuln)
@@ -2049,7 +2035,6 @@ func (ss *SecurityScanner) ScheduleScan(target string, interval time.Duration) e
 		"target", target,
 
 		"interval", interval,
-
 	)
 
 	return nil

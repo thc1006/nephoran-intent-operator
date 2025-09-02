@@ -875,10 +875,10 @@ func TestServer_EdgeCases(t *testing.T) {
 			expectedStatus: http.StatusAccepted, // Should be treated as plain text
 		},
 		{
-			name:           "very large JSON payload",
-			method:         "POST",
-			contentType:    "application/json",
-			body:           fmt.Sprintf(`{
+			name:        "very large JSON payload",
+			method:      "POST",
+			contentType: "application/json",
+			body: fmt.Sprintf(`{
 				"id": "scale-large-target-001",
 				"type": "scaling",
 				"description": "Scale large target name to 3 replicas in default namespace",

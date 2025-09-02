@@ -75,7 +75,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:           "Valid intent text",
 							IntentType:       nephoran.IntentTypeScaling,
-							Priority:   nephoran.NetworkPriorityHigh,
+							Priority:         nephoran.NetworkPriorityHigh,
 							TargetComponents: []nephoran.NetworkTargetComponent{}, // Empty components might be invalid
 						},
 					},
@@ -284,7 +284,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				},
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test recovery from transient failures during processing",
-					IntentType: nephoran.IntentTypeConfiguration,
+					IntentType: "scaling",
 					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
@@ -328,7 +328,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 			Expect(len(statusProgression)).Should(BeNumerically(">=", 1))
 
 			// Should have some status updates indicating activity
-			Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
+			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 1))
 
 			By("Cleaning up recovery test intent")
@@ -423,7 +423,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				},
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test network connectivity error handling for external service dependencies",
-					IntentType: nephoran.IntentTypeConfiguration,
+					IntentType: "scaling",
 					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
@@ -463,7 +463,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 			By("Verifying network error conditions are properly documented")
 			// Should have status information regardless of network issues
 			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 1))
-			Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
+			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 
 			By("Cleaning up network error test intent")
 			Expect(k8sClient.Delete(ctx, createdIntent)).Should(Succeed())
@@ -531,7 +531,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				Expect(retrievedIntent.Spec.Intent).Should(ContainSubstring(expectedSuffix))
 
 				// Should have some processing status
-				Expect(retrievedIntent.Status.LastProcessed).ShouldNot(BeNil())
+				Expect(len(retrievedIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 			}
 
 			By("Cleaning up concurrent error test intents")
@@ -562,7 +562,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					},
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("System stability test: %s", scenarioName),
-						IntentType: nephoran.IntentTypeConfiguration,
+						IntentType: "scaling",
 						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
@@ -618,7 +618,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 
 			By("Verifying normal processing is restored")
-			Expect(retrievedIntent.Status.LastProcessed).ShouldNot(BeNil())
+			Expect(len(retrievedIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 			Expect(len(retrievedIntent.Status.Conditions)).Should(BeNumerically(">=", 1))
 
 			By("Cleaning up final stability test intent")

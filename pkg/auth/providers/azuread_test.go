@@ -941,7 +941,7 @@ func createMockAzureADServer() *httptest.Server {
 func TestAzureADProvider_EdgeCases(t *testing.T) {
 	t.Run("Empty tenant ID is preserved (no default to common)", func(t *testing.T) {
 		provider := NewAzureADProvider("", "test-id", "test-secret", "http://localhost:8080/callback")
-		assert.Equal(t, "", provider.tenantID) // Implementation doesn't default to "common"
+		assert.Equal(t, "", provider.tenantID)  // Implementation doesn't default to "common"
 		assert.False(t, provider.isMultiTenant) // Empty string is not considered multi-tenant
 	})
 

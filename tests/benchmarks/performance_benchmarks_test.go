@@ -192,7 +192,7 @@ func BenchmarkControllerReconcile(b *testing.B) {
 		Client:          k8sClient,
 		Scheme:          scheme,
 		Log:             zap.New(zap.UseDevMode(false)), // Use production logger for benchmarks
-		EnableLLMIntent: false,                         // Disable LLM for pure reconcile performance
+		EnableLLMIntent: false,                          // Disable LLM for pure reconcile performance
 	}
 
 	// Pre-create test object
@@ -432,12 +432,12 @@ func BenchmarkControllerConcurrentReconcile(b *testing.B) {
 		intent := fixtures.SimpleNetworkIntent()
 		intent.Name = fmt.Sprintf("concurrent-reconcile-%d", i)
 		intent.Namespace = "default"
-		
+
 		err := k8sClient.Create(ctx, intent)
 		if err != nil {
 			b.Fatalf("Failed to create intent %d: %v", i, err)
 		}
-		
+
 		requests[i] = ctrl.Request{
 			NamespacedName: types.NamespacedName{Name: intent.Name, Namespace: intent.Namespace},
 		}
@@ -524,7 +524,7 @@ func BenchmarkResourceCleanup(b *testing.B) {
 			intent := fixtures.SimpleNetworkIntent()
 			intent.Name = fmt.Sprintf("cleanup-test-%d-%d", i, j)
 			intent.Namespace = "default"
-			
+
 			err := k8sClient.Create(ctx, intent)
 			if err != nil {
 				b.Fatalf("Failed to create intent: %v", err)
@@ -600,7 +600,7 @@ func BenchmarkAnalysisTips(b *testing.B) {
 	// Run benchmarks with: go test -bench=. -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof
 	// Guidance:
 	// 1. Look for ns/op (nanoseconds per operation) - lower is better
-	// 2. Check B/op (bytes per operation) - indicates memory usage  
+	// 2. Check B/op (bytes per operation) - indicates memory usage
 	// 3. Monitor allocs/op (allocations per operation) - fewer is better
 	// 4. Use -benchtime to run longer benchmarks for more stable results
 	// 5. Run multiple times and compare results to identify trends

@@ -367,7 +367,7 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 	// Get primary user info.
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.UserInfoURL, http.NoBody)
 
 	if err != nil {
 
@@ -696,7 +696,7 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 
 func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) ([]GitHubEmail, error) {
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user/emails", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, "GET", p.config.Endpoints.UserInfoURL+"/emails", http.NoBody)
 
 	if err != nil {
 

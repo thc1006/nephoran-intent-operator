@@ -130,7 +130,7 @@ type StatisticalAnalysis struct {
 	ConfidenceLevel    float64             `json:"confidence_level"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
 	HypothesisTest     *HypothesisTest     `json:"hypothesis_test"`
-	TrendAnalysis      *SLATrendAnalysis      `json:"trend_analysis"`
+	TrendAnalysis      *SLATrendAnalysis   `json:"trend_analysis"`
 	OutlierAnalysis    *OutlierAnalysis    `json:"outlier_analysis"`
 }
 

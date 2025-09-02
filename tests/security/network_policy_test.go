@@ -627,7 +627,7 @@ func TestNetworkConnectivity(t *testing.T) {
 	_ = context.Background()
 	// This would test actual network connectivity between pods
 	// given the current network policies
-	
+
 	// For now, this is a placeholder test requiring live cluster setup
 	t.Skip("Network connectivity test requires live cluster setup")
 

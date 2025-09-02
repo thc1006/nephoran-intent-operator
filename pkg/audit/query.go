@@ -103,7 +103,7 @@ type Query struct {
 
 	GroupBy []string `json:"group_by,omitempty"`
 
-	Aggregations map[string]AggregationType `json:"aggregations,omitempty"`
+	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
 }
 
 // AggregationType defines supported aggregation operations.
@@ -155,6 +155,8 @@ type QueryResult struct {
 	Backend string `json:"backend"`
 
 	HasMore bool `json:"has_more"`
+
+	NextOffset int `json:"next_offset"`
 }
 
 // SecurityAnalysis provides security-focused audit analysis.

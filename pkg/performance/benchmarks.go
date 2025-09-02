@@ -8,7 +8,7 @@ import (
 
 // BenchmarkSuite provides performance benchmarking capabilities
 type BenchmarkSuite struct {
-	config *Config
+	config  *Config
 	metrics *Metrics
 }
 
@@ -32,11 +32,11 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, name 
 	err := fn()
 	elapsed := time.Since(start)
 	return &BenchmarkResult{
-		Duration: elapsed,
-		Passed: err == nil,
+		Duration:       elapsed,
+		Passed:         err == nil,
 		RegressionInfo: "",
-		LatencyP95: elapsed,
-		Error: err,
+		LatencyP95:     elapsed,
+		Error:          err,
 	}
 }
 
@@ -46,11 +46,11 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, name strin
 	err := fn()
 	elapsed := time.Since(start)
 	return &BenchmarkResult{
-		Duration: elapsed,
-		Passed: err == nil,
+		Duration:       elapsed,
+		Passed:         err == nil,
 		RegressionInfo: "",
-		LatencyP95: elapsed,
-		Error: err,
+		LatencyP95:     elapsed,
+		Error:          err,
 	}
 }
 
@@ -73,7 +73,7 @@ func (p *Profiler) Start() {
 func (p *Profiler) Stop() map[string]interface{} {
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
-	
+
 	return map[string]interface{}{
 		"heap_alloc": ms.HeapAlloc,
 		"heap_sys":   ms.HeapSys,
@@ -120,7 +120,7 @@ func (ma *MetricsAnalyzer) GetAverage() float64 {
 	if len(ma.samples) == 0 {
 		return 0
 	}
-	
+
 	sum := 0.0
 	for _, sample := range ma.samples {
 		sum += sample
@@ -138,7 +138,7 @@ func (ma *MetricsAnalyzer) CalculatePercentile(percentile float64) float64 {
 	if len(ma.samples) == 0 {
 		return 0
 	}
-	
+
 	// Simple percentile calculation (not fully accurate but functional)
 	index := int(float64(len(ma.samples)) * percentile / 100.0)
 	if index >= len(ma.samples) {
@@ -164,11 +164,11 @@ type AsyncTask struct {
 
 // BenchmarkResult represents the result of a benchmark
 type BenchmarkResult struct {
-	Duration        time.Duration
-	Passed          bool
-	RegressionInfo  string
-	LatencyP95      time.Duration
-	Error           error
+	Duration       time.Duration
+	Passed         bool
+	RegressionInfo string
+	LatencyP95     time.Duration
+	Error          error
 }
 
 // MemoryLeak represents a memory leak detection result
@@ -251,9 +251,9 @@ func (p *Profiler) GetMetrics() *MetricsData {
 	return &MetricsData{
 		CPUUsagePercent: 0.0,
 		MemoryUsageMB:   0.0,
-		HeapSizeMB:     0.0,
-		GoroutineCount: runtime.NumGoroutine(),
-		GCCount:        0,
+		HeapSizeMB:      0.0,
+		GoroutineCount:  runtime.NumGoroutine(),
+		GCCount:         0,
 	}
 }
 
@@ -286,7 +286,7 @@ func (cm *CacheManager) GetStats() *CacheStats {
 
 // CacheStats contains cache statistics
 type CacheStats struct {
-	HitRate float64
+	HitRate  float64
 	MissRate float64
 }
 
@@ -325,7 +325,7 @@ func (pr *PerformanceReport) Grade() string {
 // Components returns component performance data
 func (pr *PerformanceReport) Components() map[string]interface{} {
 	return map[string]interface{}{
-		"cpu": "Good",
+		"cpu":    "Good",
 		"memory": "Excellent",
 	}
 }

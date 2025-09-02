@@ -236,9 +236,9 @@ func TestHighVolumeDeployment(t *testing.T) {
 		return processIntent(ctx, intent)
 	}
 
-	result, err := suite.RunConcurrentBenchmark(ctx, 50, 60*time.Second, workload)
-	if err != nil {
-		t.Fatalf("High volume deployment test failed: %v", err)
+	result := suite.RunConcurrentBenchmark(ctx, "HighVolumeDeploymentTest", 50, 60*time.Second, workload)
+	if result.Error != nil {
+		t.Fatalf("High volume deployment test failed: %v", result.Error)
 	}
 
 	// Validate against target: 50 intents/second with <5s P95 latency
@@ -284,21 +284,19 @@ func TestComplexIntentProcessing(t *testing.T) {
 		return processComplexIntent(ctx, intent)
 	}
 
-	result, err := suite.RunSingleIntentBenchmark(ctx, complexIntent)
-	if err != nil {
-		t.Fatalf("Complex intent processing failed: %v", err)
+	result := suite.RunMemoryStabilityBenchmark(ctx, "ComplexIntentProcessing", 30*time.Second, complexIntent)
+	if result.Error != nil {
+		t.Fatalf("Complex intent processing failed: %v", result.Error)
 	}
 
 	// Complex intents should complete within 30 seconds
-	if result.Latencies[0] > 30*time.Second {
-		t.Errorf("Complex intent processing took %v, exceeds 30 second target", result.Latencies[0])
+	if result.Duration > 30*time.Second {
+		t.Errorf("Complex intent processing took %v, exceeds 30 second target", result.Duration)
 	}
 
 	t.Logf("Complex Intent Results:")
-	t.Logf("  Processing Time: %v", result.Latencies[0])
-	t.Logf("  Memory Used: %.2f MB", result.PeakMemoryMB)
-	t.Logf("  CPU Used: %.2f%%", result.PeakCPUPercent)
-	t.Logf("  Goroutines: %d", result.MaxGoroutines)
+	t.Logf("  Processing Time: %v", result.Duration)
+	t.Logf("  Test Passed: %v", result.Passed)
 }
 
 // Helper functions for simulating telecom operations

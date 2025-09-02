@@ -413,7 +413,7 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 		}
 
 		oranComponent := convertNetworkTargetComponentToORANComponent(component)
-		
+
 		for _, cnfComponent := range cnfComponents {
 
 			if oranComponent == cnfComponent {

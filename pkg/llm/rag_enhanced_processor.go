@@ -1,7 +1,5 @@
-
 //go:build !disable_rag
 // +build !disable_rag
-
 
 package llm
 
@@ -40,7 +38,7 @@ func convertSearchResults(sharedResults []*shared.SearchResult) []*rag.SearchRes
 
 // RAGEnhancedProcessorImpl provides LLM processing enhanced with RAG capabilities
 type RAGEnhancedProcessorImpl struct {
-	baseClient     interface{}  // Use interface{} to allow type assertions
+	baseClient     interface{} // Use interface{} to allow type assertions
 	ragService     *rag.RAGService
 	weaviateClient rag.WeaviateClient
 	config         *RAGProcessorConfig
@@ -99,7 +97,7 @@ type EnhancedResponse struct {
 
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
 func NewRAGEnhancedProcessorImpl(
-	baseClient Client,
+	baseClient *Client,
 	weaviateClient rag.WeaviateClient,
 	ragService *rag.RAGService,
 	config *RAGProcessorConfig,
@@ -350,7 +348,9 @@ func (rep *RAGEnhancedProcessorImpl) processWithBase(ctx context.Context, intent
 	rep.logger.Info("Processing intent with base client", "intent", intent)
 
 	// Type assert to get the ProcessIntent method
-	processor, ok := rep.baseClient.(interface{ ProcessIntent(context.Context, string) (string, error) })
+	processor, ok := rep.baseClient.(interface {
+		ProcessIntent(context.Context, string) (string, error)
+	})
 	if !ok {
 		return nil, fmt.Errorf("base client does not support ProcessIntent method")
 	}
@@ -453,8 +453,19 @@ func (rep *RAGEnhancedProcessorImpl) GetMetrics() *ProcessorMetrics {
 	rep.metrics.mutex.RLock()
 	defer rep.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *rep.metrics
+	// Return a copy without the mutex to avoid copying the lock
+	metrics := ProcessorMetrics{
+		TotalRequests:      rep.metrics.TotalRequests,
+		RAGRequests:        rep.metrics.RAGRequests,
+		BaseRequests:       rep.metrics.BaseRequests,
+		SuccessfulRequests: rep.metrics.SuccessfulRequests,
+		FailedRequests:     rep.metrics.FailedRequests,
+		AverageLatency:     rep.metrics.AverageLatency,
+		RAGLatency:         rep.metrics.RAGLatency,
+		BaseLatency:        rep.metrics.BaseLatency,
+		LastUpdated:        rep.metrics.LastUpdated,
+		// mutex field is intentionally omitted to avoid copying
+	}
 	return &metrics
 }
 

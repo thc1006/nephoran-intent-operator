@@ -312,7 +312,19 @@ func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache
 func (c *LegacyClient) GetMetrics() LegacyClientMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
-	return *c.metrics
+	
+	// Return a copy without the mutex to avoid copying the lock
+	return LegacyClientMetrics{
+		RequestsTotal:    c.metrics.RequestsTotal,
+		RequestsSuccess:  c.metrics.RequestsSuccess,
+		RequestsFailure:  c.metrics.RequestsFailure,
+		TotalLatency:     c.metrics.TotalLatency,
+		CacheHits:        c.metrics.CacheHits,
+		CacheMisses:      c.metrics.CacheMisses,
+		RetryAttempts:    c.metrics.RetryAttempts,
+		FallbackAttempts: c.metrics.FallbackAttempts,
+		// mutex field is intentionally omitted to avoid copying
+	}
 }
 
 // updateMetrics updates client metrics

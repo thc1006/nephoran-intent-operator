@@ -1972,3 +1972,49 @@ type Incident struct {
 
 	Status string `json:"status"`
 }
+
+// RouterStats contains statistics for the alert router.
+type RouterStats struct {
+	AlertsDeduped     int64 `json:"alerts_deduped"`
+	AlertsRouted      int64 `json:"alerts_routed"`
+	ActiveGroups      int   `json:"active_groups"`
+	TotalNotifications int64 `json:"total_notifications"`
+}
+
+// GetStats returns statistics for the alert router.
+func (ar *AlertRouter) GetStats() RouterStats {
+	ar.mu.RLock()
+	defer ar.mu.RUnlock()
+	
+	// Count total members across all groups to calculate deduped alerts
+	var totalMembers int64
+	for _, group := range ar.alertFingerprints {
+		if len(group.Members) > 1 {
+			// If group has multiple members, then (n-1) alerts were deduped
+			totalMembers += int64(len(group.Members) - 1)
+		}
+	}
+	
+	return RouterStats{
+		AlertsDeduped:     totalMembers,
+		AlertsRouted:      ar.getTotalAlertsRouted(),
+		ActiveGroups:      len(ar.alertFingerprints),
+		TotalNotifications: ar.getTotalNotifications(),
+	}
+}
+
+// getTotalAlertsRouted returns the total number of alerts routed.
+func (ar *AlertRouter) getTotalAlertsRouted() int64 {
+	// This would typically be read from metrics, return mock data for now
+	var total int64
+	for _, group := range ar.alertFingerprints {
+		total += int64(len(group.Members))
+	}
+	return total
+}
+
+// getTotalNotifications returns the total number of notifications sent.
+func (ar *AlertRouter) getTotalNotifications() int64 {
+	// This would typically be read from metrics, return mock data for now
+	return ar.getTotalAlertsRouted() // Assume one notification per alert for simplicity
+}

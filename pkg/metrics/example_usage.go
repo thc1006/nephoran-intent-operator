@@ -8,8 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/time/rate"
 	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat"
 )
 
 // This is an example of how to use the dependencies in a metrics context
@@ -41,7 +41,7 @@ func RateLimitedOperation(serviceName string, limiter *rate.Limiter) error {
 		rateLimitedRequests.WithLabelValues(serviceName).Inc()
 		return fmt.Errorf("rate limit exceeded for %s", serviceName)
 	}
-	
+
 	start := time.Now()
 	// Simulated operation
 	defer func() {
@@ -56,14 +56,14 @@ func StatisticalAnalysis(data []float64) {
 	// Compute statistical properties
 	mean := stat.Mean(data, nil)
 	stdDev := stat.StdDev(data, nil)
-	
+
 	// Find max and min
 	max := floats.Max(data)
 	min := floats.Min(data)
-	
+
 	// Optional: Matrix operations
 	_ = mat.NewDense(len(data), 1, data)
-	
+
 	prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
 			Name: "nephoran_data_stats",

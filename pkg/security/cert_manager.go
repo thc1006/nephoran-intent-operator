@@ -695,13 +695,13 @@ func (cm *CertManager) ValidateCertificateChain(ctx context.Context, certs []*x5
 
 	// Get the leaf certificate (first in chain)
 	leaf := certs[0]
-	
+
 	// Create certificate pool with root CA
 	roots := x509.NewCertPool()
 	if cm.rootCA != nil {
 		roots.AddCert(cm.rootCA)
 	}
-	
+
 	// Create intermediate certificate pool
 	intermediates := x509.NewCertPool()
 	if len(certs) > 1 {
@@ -712,27 +712,27 @@ func (cm *CertManager) ValidateCertificateChain(ctx context.Context, certs []*x5
 	if cm.intermediateCA != nil {
 		intermediates.AddCert(cm.intermediateCA)
 	}
-	
+
 	// Verify certificate chain
 	verifyOptions := x509.VerifyOptions{
 		Roots:         roots,
 		Intermediates: intermediates,
 		CurrentTime:   time.Now(),
 	}
-	
+
 	// Perform verification
 	chains, err := leaf.Verify(verifyOptions)
 	if err != nil {
 		return fmt.Errorf("certificate chain validation failed: %w", err)
 	}
-	
+
 	if len(chains) == 0 {
 		return errors.New("no valid certificate chains found")
 	}
-	
+
 	// Additional validation checks
 	now := time.Now()
-	
+
 	// Check if leaf certificate is expired or not yet valid
 	if now.Before(leaf.NotBefore) {
 		return fmt.Errorf("leaf certificate is not yet valid (valid from: %v)", leaf.NotBefore)
@@ -740,12 +740,12 @@ func (cm *CertManager) ValidateCertificateChain(ctx context.Context, certs []*x5
 	if now.After(leaf.NotAfter) {
 		return fmt.Errorf("leaf certificate has expired (expired on: %v)", leaf.NotAfter)
 	}
-	
+
 	// Check certificate purposes
 	if len(leaf.ExtKeyUsage) == 0 {
 		return errors.New("leaf certificate has no extended key usage")
 	}
-	
+
 	// Validate that certificate has appropriate key usage for its purpose
 	hasServerAuth := false
 	hasClientAuth := false
@@ -757,18 +757,18 @@ func (cm *CertManager) ValidateCertificateChain(ctx context.Context, certs []*x5
 			hasClientAuth = true
 		}
 	}
-	
+
 	if !hasServerAuth && !hasClientAuth {
 		return errors.New("leaf certificate lacks required key usage (server auth or client auth)")
 	}
-	
+
 	// Check key strength
 	if rsaKey, ok := leaf.PublicKey.(*rsa.PublicKey); ok {
 		if rsaKey.N.BitLen() < 2048 {
 			return fmt.Errorf("RSA key too weak: %d bits (minimum 2048)", rsaKey.N.BitLen())
 		}
 	}
-	
+
 	// Check signature algorithm strength
 	weakAlgorithms := map[x509.SignatureAlgorithm]bool{
 		x509.MD2WithRSA:    true,
@@ -777,18 +777,18 @@ func (cm *CertManager) ValidateCertificateChain(ctx context.Context, certs []*x5
 		x509.DSAWithSHA1:   true,
 		x509.ECDSAWithSHA1: true,
 	}
-	
+
 	if weakAlgorithms[leaf.SignatureAlgorithm] {
 		return fmt.Errorf("weak signature algorithm: %v", leaf.SignatureAlgorithm)
 	}
-	
+
 	// Check certificate revocation status (if OCSP responder is configured)
 	if cm.ocspResponder != nil {
 		if err := cm.checkRevocationStatus(leaf); err != nil {
 			return fmt.Errorf("certificate revocation check failed: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -796,15 +796,15 @@ func (cm *CertManager) ValidateCertificateChain(ctx context.Context, certs []*x5
 func (cm *CertManager) checkRevocationStatus(cert *x509.Certificate) error {
 	cm.ocspResponder.mu.RLock()
 	defer cm.ocspResponder.mu.RUnlock()
-	
+
 	serialStr := cert.SerialNumber.String()
 	if response, exists := cm.ocspResponder.responses[serialStr]; exists {
 		if response.Status == 1 { // Revoked status
-			return fmt.Errorf("certificate has been revoked on %v (reason: %d)", 
+			return fmt.Errorf("certificate has been revoked on %v (reason: %d)",
 				response.RevokedAt, response.Reason)
 		}
 	}
-	
+
 	return nil
 }
 

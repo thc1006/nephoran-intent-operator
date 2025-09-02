@@ -30,14 +30,14 @@ type ComplianceValidationSuite struct {
 type MTLSComplianceResult struct {
 	Standard      string               `json:"standard"`
 	Version       string               `json:"version"`
-	Requirements  []*RequirementResult `json:"requirements"`
+	Requirements  []*MTLSRequirementResult `json:"requirements"`
 	OverallStatus string               `json:"overall_status"`
 	Score         float64              `json:"score"`
 	Timestamp     time.Time            `json:"timestamp"`
 }
 
-// RequirementResult tracks individual requirement validation
-type RequirementResult struct {
+// MTLSRequirementResult tracks individual requirement validation for mTLS tests
+type MTLSRequirementResult struct {
 	ID          string    `json:"id"`
 	Description string    `json:"description"`
 	Category    string    `json:"category"`
@@ -80,12 +80,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "O-RAN",
 				Version:      "7.0.0",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// O-RAN.WG2.A1.SEC-001: mTLS for A1 interface
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG2.A1.SEC-001",
 				Description: "A1 interface SHALL use mTLS for authentication and encryption",
 				Category:    "Interface Security",
@@ -106,12 +106,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			} else {
 				req001.Status = "FAIL"
 				req001.Details = fmt.Sprintf("mTLS connection failed: %v", err)
-				req001.Remediation = "Configure mTLS certificates and enable mutual authentication"
+					req001.Remediation = "Configure mTLS certificates and enable mutual authentication"
 			}
 			result.Requirements = append(result.Requirements, req001)
 
 			// O-RAN.WG2.A1.SEC-002: Certificate validation
-			req002 := &RequirementResult{
+			req002 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG2.A1.SEC-002",
 				Description: "A1 interface SHALL validate client and server certificates",
 				Category:    "Certificate Management",
@@ -137,7 +137,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req002)
 
 			// O-RAN.WG2.A1.SEC-003: TLS version requirements
-			req003 := &RequirementResult{
+			req003 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG2.A1.SEC-003",
 				Description: "A1 interface SHALL use TLS 1.2 or higher",
 				Category:    "Protocol Security",
@@ -163,12 +163,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "O-RAN",
 				Version:      "7.0.0",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// O-RAN.WG5.O1.SEC-001: NETCONF over TLS
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG5.O1.SEC-001",
 				Description: "O1 interface SHALL support NETCONF over TLS (RFC 7589)",
 				Category:    "Protocol Security",
@@ -188,7 +188,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req001)
 
 			// O-RAN.WG5.O1.SEC-002: Certificate-based authentication
-			req002 := &RequirementResult{
+			req002 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG5.O1.SEC-002",
 				Description: "O1 interface SHALL use certificate-based authentication",
 				Category:    "Authentication",
@@ -213,12 +213,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "O-RAN",
 				Version:      "7.0.0",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// O-RAN.WG3.E2.SEC-001: E2 connection security
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG3.E2.SEC-001",
 				Description: "E2 interface SHALL support secure SCTP connections",
 				Category:    "Transport Security",
@@ -237,7 +237,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req001)
 
 			// O-RAN.WG3.E2.SEC-002: xApp authentication
-			req002 := &RequirementResult{
+			req002 := &MTLSRequirementResult{
 				ID:          "O-RAN.WG3.E2.SEC-002",
 				Description: "E2 interface SHALL authenticate xApps using certificates",
 				Category:    "Authentication",
@@ -264,12 +264,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "NIST CSF",
 				Version:      "1.1",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// NIST.ID.AM-1: Physical devices and systems are inventoried
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "NIST.CSF.ID.AM-1",
 				Description: "Physical devices and systems within the organization are inventoried",
 				Category:    "Asset Management",
@@ -288,7 +288,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req001)
 
 			// NIST.ID.AM-2: Software platforms and applications are inventoried
-			req002 := &RequirementResult{
+			req002 := &MTLSRequirementResult{
 				ID:          "NIST.CSF.ID.AM-2",
 				Description: "Software platforms and applications within the organization are inventoried",
 				Category:    "Asset Management",
@@ -312,12 +312,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "NIST CSF",
 				Version:      "1.1",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// NIST.PR.AC-1: Identities and credentials are issued, managed, verified, revoked
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "NIST.CSF.PR.AC-1",
 				Description: "Identities and credentials are issued, managed, verified, revoked, and audited",
 				Category:    "Access Control",
@@ -337,7 +337,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req001)
 
 			// NIST.PR.DS-2: Data-in-transit is protected
-			req002 := &RequirementResult{
+			req002 := &MTLSRequirementResult{
 				ID:          "NIST.CSF.PR.DS-2",
 				Description: "Data-in-transit is protected",
 				Category:    "Data Security",
@@ -362,12 +362,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "NIST CSF",
 				Version:      "1.1",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// NIST.DE.CM-1: Network is monitored to detect potential cybersecurity events
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "NIST.CSF.DE.CM-1",
 				Description: "The network is monitored to detect potential cybersecurity events",
 				Category:    "Security Continuous Monitoring",
@@ -394,12 +394,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "TLS",
 				Version:      "1.3",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// RFC 8446: TLS 1.3 cipher suite requirements
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "TLS1.3.CIPHER-001",
 				Description: "Implementation SHALL support mandatory cipher suites",
 				Category:    "Cryptography",
@@ -433,7 +433,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req001)
 
 			// RFC 8446: Forward secrecy
-			req002 := &RequirementResult{
+			req002 := &MTLSRequirementResult{
 				ID:          "TLS1.3.FS-001",
 				Description: "Implementation SHALL provide forward secrecy",
 				Category:    "Forward Secrecy",
@@ -452,7 +452,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result.Requirements = append(result.Requirements, req002)
 
 			// RFC 8446: Certificate verification
-			req003 := &RequirementResult{
+			req003 := &MTLSRequirementResult{
 				ID:          "TLS1.3.CERT-001",
 				Description: "Implementation SHALL verify certificate chains",
 				Category:    "Certificate Validation",
@@ -516,12 +516,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "3GPP",
 				Version:      "Release 16",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// 3GPP TS 33.501: 5G security requirements
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "3GPP.TS33.501.SEC-001",
 				Description: "Network functions SHALL use mutual authentication",
 				Category:    "Authentication",
@@ -546,12 +546,12 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			result := &ComplianceResult{
 				Standard:     "CSA CCM",
 				Version:      "4.0",
-				Requirements: []*RequirementResult{},
+				Requirements: []*MTLSRequirementResult{},
 				Timestamp:    time.Now(),
 			}
 
 			// CSA CCM: Encryption & Key Management
-			req001 := &RequirementResult{
+			req001 := &MTLSRequirementResult{
 				ID:          "CSA.CCM.EKM-01",
 				Description: "Encryption keys SHALL be managed securely",
 				Category:    "Key Management",

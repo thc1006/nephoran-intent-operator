@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
@@ -160,21 +161,24 @@ var _ = Describe("Load Testing Suite", func() {
 		mockDeps.GetLLMClient().(*testutils.MockLLMClient).SetResponse("ProcessIntent", mockResponse)
 
 		// Setup controllers
-		controller = &controllers.NetworkIntentReconciler{
-			Client: k8sClient,
-			Scheme: testFixtures.Scheme,
-			Config: controllers.Config{
-				MaxRetries:      2,
-				RetryDelay:      1 * time.Second,
-				Timeout:         10 * time.Second,
-				GitRepoURL:      "https://github.com/test/repo.git",
-				GitBranch:       "main",
-				GitDeployPath:   "networkintents",
-				LLMProcessorURL: "http://localhost:8080",
-				UseNephioPorch:  false,
-			},
-			Dependencies: mockDeps,
+		config := &controllers.Config{
+			MaxRetries:      2,
+			RetryDelay:      1 * time.Second,
+			Timeout:         10 * time.Second,
+			GitRepoURL:      "https://github.com/test/repo.git",
+			GitBranch:       "main",
+			GitDeployPath:   "networkintents",
+			LLMProcessorURL: "http://localhost:8080",
+			UseNephioPorch:  false,
 		}
+		var err error
+		controller, err = controllers.NewNetworkIntentReconciler(
+			k8sClient,
+			testFixtures.Scheme,
+			mockDeps,
+			config,
+		)
+		Expect(err).ToNot(HaveOccurred())
 
 		e2Controller = &controllers.E2NodeSetReconciler{
 			Client: k8sClient,
@@ -221,9 +225,11 @@ var _ = Describe("Load Testing Suite", func() {
 							}
 
 							// Reconcile
-							_, reconcileErr := controller.Reconcile(ctx, types.NamespacedName{
-								Name:      intent.Name,
-								Namespace: intent.Namespace,
+							_, reconcileErr := controller.Reconcile(ctx, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      intent.Name,
+									Namespace: intent.Namespace,
+								},
 							})
 
 							duration := time.Since(reqStart)
@@ -293,9 +299,11 @@ var _ = Describe("Load Testing Suite", func() {
 								continue
 							}
 
-							_, reconcileErr := controller.Reconcile(ctx, types.NamespacedName{
-								Name:      intent.Name,
-								Namespace: intent.Namespace,
+							_, reconcileErr := controller.Reconcile(ctx, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      intent.Name,
+									Namespace: intent.Namespace,
+								},
 							})
 
 							duration := time.Since(reqStart)
@@ -367,9 +375,11 @@ var _ = Describe("Load Testing Suite", func() {
 								continue
 							}
 
-							_, reconcileErr := controller.Reconcile(ctx, types.NamespacedName{
-								Name:      intent.Name,
-								Namespace: intent.Namespace,
+							_, reconcileErr := controller.Reconcile(ctx, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      intent.Name,
+									Namespace: intent.Namespace,
+								},
 							})
 
 							duration := time.Since(reqStart)
@@ -441,9 +451,11 @@ var _ = Describe("Load Testing Suite", func() {
 								continue
 							}
 
-							_, reconcileErr := controller.Reconcile(ctx, types.NamespacedName{
-								Name:      intent.Name,
-								Namespace: intent.Namespace,
+							_, reconcileErr := controller.Reconcile(ctx, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      intent.Name,
+									Namespace: intent.Namespace,
+								},
 							})
 
 							duration := time.Since(reqStart)
@@ -529,9 +541,11 @@ var _ = Describe("Load Testing Suite", func() {
 
 				err := k8sClient.Create(ctx, intent)
 				if err == nil {
-					controller.Reconcile(ctx, types.NamespacedName{
-						Name:      intent.Name,
-						Namespace: intent.Namespace,
+					controller.Reconcile(ctx, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      intent.Name,
+							Namespace: intent.Namespace,
+						},
 					})
 
 					// Occasionally delete old intents to prevent accumulation
@@ -661,9 +675,11 @@ var _ = Describe("Load Testing Suite", func() {
 
 						err := k8sClient.Create(ctx, intent)
 						if err == nil {
-							controller.Reconcile(ctx, types.NamespacedName{
-								Name:      intent.Name,
-								Namespace: intent.Namespace,
+							controller.Reconcile(ctx, reconcile.Request{
+								NamespacedName: types.NamespacedName{
+									Name:      intent.Name,
+									Namespace: intent.Namespace,
+								},
 							})
 						}
 
@@ -711,9 +727,11 @@ var _ = Describe("Load Testing Suite", func() {
 
 					if updateErr == nil {
 						// Simulate reconcile
-						_, reconcileErr := e2Controller.Reconcile(ctx, types.NamespacedName{
-							Name:      nodeSet.Name,
-							Namespace: nodeSet.Namespace,
+						_, reconcileErr := e2Controller.Reconcile(ctx, reconcile.Request{
+							NamespacedName: types.NamespacedName{
+								Name:      nodeSet.Name,
+								Namespace: nodeSet.Namespace,
+							},
 						})
 
 						duration := time.Since(reqStart)

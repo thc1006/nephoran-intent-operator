@@ -589,19 +589,19 @@ func (s *O2APIServer) parseAlarmFilter(r *http.Request) *models.AlarmFilter {
 
 		ResourceIDs: []string{},
 	}
-	
+
 	if severity := s.getQueryParam(r, "severity"); severity != "" {
 		filter.Severities = []string{severity}
 	}
-	
+
 	if status := s.getQueryParam(r, "status"); status != "" {
 		filter.Statuses = []string{status}
 	}
-	
+
 	if resourceID := s.getQueryParam(r, "resourceId"); resourceID != "" {
 		filter.ResourceIDs = []string{resourceID}
 	}
-	
+
 	return filter
 
 }

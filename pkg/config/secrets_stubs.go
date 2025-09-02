@@ -17,19 +17,19 @@ type APIKeys = interfaces.APIKeys
 type SecretManager interface {
 	// Get retrieves a secret value by key
 	Get(ctx context.Context, key string) (string, error)
-	
+
 	// GetAPIKeys retrieves all API keys in a structured format
 	GetAPIKeys(ctx context.Context) (*APIKeys, error)
-	
+
 	// Set stores a secret value by key (for development/testing)
 	Set(ctx context.Context, key, value string) error
-	
+
 	// Refresh invalidates any cached secrets and forces reload
 	Refresh(ctx context.Context) error
-	
+
 	// CreateSecretFromEnvVars creates a secret from environment variables
 	CreateSecretFromEnvVars(ctx context.Context, key string) error
-	
+
 	// Close cleans up any resources (optional)
 	Close() error
 }

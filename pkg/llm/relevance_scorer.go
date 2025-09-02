@@ -92,22 +92,22 @@ type RelevanceScore struct {
 
 // RelevanceRequest represents a relevance scoring request
 type RelevanceRequest struct {
-	Query         string                 `json:"query"`
-	IntentType    string                 `json:"intent_type"`
+	Query         string                  `json:"query"`
+	IntentType    string                  `json:"intent_type"`
 	Document      *shared.TelecomDocument `json:"document"`
-	Position      int                    `json:"position"`
-	OriginalScore float32                `json:"original_score"`
-	Context       string                 `json:"context"`
-	UserProfile   map[string]interface{} `json:"user_profile,omitempty"`
+	Position      int                     `json:"position"`
+	OriginalScore float32                 `json:"original_score"`
+	Context       string                  `json:"context"`
+	UserProfile   map[string]interface{}  `json:"user_profile,omitempty"`
 }
 
 // ScoredDocument represents a document with relevance scoring
 type ScoredDocument struct {
 	Document       *shared.TelecomDocument `json:"document"`
-	RelevanceScore *RelevanceScore        `json:"relevance_score"`
-	OriginalScore  float32                `json:"original_score"`
-	Position       int                    `json:"position"`
-	TokenCount     int                    `json:"token_count"`
+	RelevanceScore *RelevanceScore         `json:"relevance_score"`
+	OriginalScore  float32                 `json:"original_score"`
+	Position       int                     `json:"position"`
+	TokenCount     int                     `json:"token_count"`
 }
 
 // EmbeddingServiceInterface defines the interface for semantic similarity calculations
@@ -781,7 +781,19 @@ func (rs *RelevanceScorerImpl) GetMetrics() *ScoringMetrics {
 	rs.metrics.mutex.RLock()
 	defer rs.metrics.mutex.RUnlock()
 
-	metrics := *rs.metrics
+	// Return a copy without the mutex to avoid copying the lock
+	metrics := ScoringMetrics{
+		TotalScores:        rs.metrics.TotalScores,
+		AverageScoringTime: rs.metrics.AverageScoringTime,
+		CacheHitRate:       rs.metrics.CacheHitRate,
+		SemanticScores:     rs.metrics.SemanticScores,
+		AuthorityScores:    rs.metrics.AuthorityScores,
+		RecencyScores:      rs.metrics.RecencyScores,
+		DomainScores:       rs.metrics.DomainScores,
+		IntentScores:       rs.metrics.IntentScores,
+		LastUpdated:        rs.metrics.LastUpdated,
+		// mutex field is intentionally omitted to avoid copying
+	}
 	return &metrics
 }
 

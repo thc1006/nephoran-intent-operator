@@ -75,22 +75,23 @@ var _ = BeforeSuite(func() {
 	mockDeps := testutils.NewMockDependencies()
 
 	// Configure NetworkIntent controller
-	networkIntentController := &controllers.NetworkIntentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Config: controllers.Config{
-			MaxRetries:      3,
-			RetryDelay:      2 * time.Second,
-			Timeout:         30 * time.Second,
-			GitRepoURL:      "https://github.com/test/repo.git",
-			GitBranch:       "main",
-			GitDeployPath:   "networkintents",
-			LLMProcessorURL: "http://localhost:8080",
-			UseNephioPorch:  false,
-		},
-		Dependencies: mockDeps,
-		Recorder:     mgr.GetEventRecorderFor("networkintent-controller"),
+	config := &controllers.Config{
+		MaxRetries:      3,
+		RetryDelay:      2 * time.Second,
+		Timeout:         30 * time.Second,
+		GitRepoURL:      "https://github.com/test/repo.git",
+		GitBranch:       "main",
+		GitDeployPath:   "networkintents",
+		LLMProcessorURL: "http://localhost:8080",
+		UseNephioPorch:  false,
 	}
+	networkIntentController, err := controllers.NewNetworkIntentReconciler(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		mockDeps,
+		config,
+	)
+	Expect(err).NotTo(HaveOccurred())
 
 	err = networkIntentController.SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())

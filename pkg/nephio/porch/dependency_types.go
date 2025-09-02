@@ -47,22 +47,22 @@ type VersionConstraint struct {
 	Expression string `json:"expression"` // ">=1.0.0", "~1.2.3", "^2.0.0"
 	Priority   int    `json:"priority"`   // Higher priority constraints are preferred
 	// Added missing fields for SAT solver compatibility
-	Operator   ConstraintOperator `json:"operator"`   // Constraint operator type
-	Version    string            `json:"version"`    // Version string for constraint
+	Operator ConstraintOperator `json:"operator"` // Constraint operator type
+	Version  string             `json:"version"`  // Version string for constraint
 }
 
 // VersionSolution represents a solution to version constraints
 type VersionSolution struct {
-	Packages       map[string]string                `json:"packages"`       // package -> selected version
-	Satisfied      []*VersionConstraint             `json:"satisfied"`      // constraints that were satisfied
-	Relaxed        []*VersionConstraint             `json:"relaxed"`        // constraints that were relaxed
-	Score          float64                          `json:"score"`          // solution quality score
-	ResolutionTime time.Duration                    `json:"resolutionTime"` // time taken to find solution
+	Packages       map[string]string    `json:"packages"`       // package -> selected version
+	Satisfied      []*VersionConstraint `json:"satisfied"`      // constraints that were satisfied
+	Relaxed        []*VersionConstraint `json:"relaxed"`        // constraints that were relaxed
+	Score          float64              `json:"score"`          // solution quality score
+	ResolutionTime time.Duration        `json:"resolutionTime"` // time taken to find solution
 	// Added missing fields for SAT solver compatibility
-	Success        bool                             `json:"success"`        // Whether solution was found successfully
-	Solutions      map[string]*VersionSelection     `json:"solutions"`      // Detailed solution per package
-	Algorithm      string                           `json:"algorithm"`      // Algorithm used to find solution
-	Statistics     *SolutionStatistics              `json:"statistics"`     // Solver statistics
+	Success    bool                         `json:"success"`    // Whether solution was found successfully
+	Solutions  map[string]*VersionSelection `json:"solutions"`  // Detailed solution per package
+	Algorithm  string                       `json:"algorithm"`  // Algorithm used to find solution
+	Statistics *SolutionStatistics          `json:"statistics"` // Solver statistics
 }
 
 // ConflictAnalysis provides detailed conflict analysis
@@ -82,11 +82,11 @@ type ResolutionPath struct {
 
 // ResolutionStep represents a single step in conflict resolution
 type ResolutionStep struct {
-	Action      string            `json:"action"`      // "upgrade", "downgrade", "replace", "remove"
+	Action      string            `json:"action"` // "upgrade", "downgrade", "replace", "remove"
 	Package     string            `json:"package"`
 	FromVersion string            `json:"fromVersion"`
 	ToVersion   string            `json:"toVersion"`
-	Impact      map[string]string `json:"impact"`      // affected packages
+	Impact      map[string]string `json:"impact"` // affected packages
 }
 
 // Missing type definitions for compilation fix
@@ -332,8 +332,8 @@ func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
 		satConfig = &SATSolverConfigImpl{
 			MaxDecisions:     config.SATSolverConfig.MaxVariables, // Use MaxVariables as MaxDecisions
 			MaxConflicts:     config.SATSolverConfig.MaxConflicts,
-			RestartThreshold: 100, // Default value
-			DecayFactor:      0.95, // Default value
+			RestartThreshold: 100,   // Default value
+			DecayFactor:      0.95,  // Default value
 			ClauseDecay:      0.999, // Default value
 			Timeout:          time.Duration(config.SATSolverConfig.TimeoutMs) * time.Millisecond,
 			EnableLearning:   true, // Default value
@@ -1256,12 +1256,12 @@ type SolutionStatistics struct {
 // VersionSelection represents the version selected for a specific package.
 
 type VersionSelection struct {
-	SelectedVersion string        `json:"selectedVersion"` // The version that was selected
-	Reason         SelectionReason `json:"reason"`         // Why this version was selected
-	Alternatives   []string        `json:"alternatives"`   // Other versions that could have been selected
-	Confidence     float64         `json:"confidence"`     // Confidence score for this selection (0-1)
-	Constraints    []*VersionConstraint `json:"constraints"`    // Constraints that influenced this selection
-	Metadata       map[string]interface{} `json:"metadata,omitempty"` // Additional metadata
+	SelectedVersion string                 `json:"selectedVersion"`    // The version that was selected
+	Reason          SelectionReason        `json:"reason"`             // Why this version was selected
+	Alternatives    []string               `json:"alternatives"`       // Other versions that could have been selected
+	Confidence      float64                `json:"confidence"`         // Confidence score for this selection (0-1)
+	Constraints     []*VersionConstraint   `json:"constraints"`        // Constraints that influenced this selection
+	Metadata        map[string]interface{} `json:"metadata,omitempty"` // Additional metadata
 }
 
 // PackageInfo represents a packageinfo.

@@ -37,7 +37,7 @@ func (r *RAGServiceStub) ProcessQuery(ctx context.Context, request *rag.RAGReque
 			Metadata:   map[string]interface{}{"source": "test"},
 		},
 	}
-	
+
 	// Convert QueryRequest to RAGResponse format as expected by performance tests
 	return &rag.RAGResponse{
 		Answer:          "stub answer",

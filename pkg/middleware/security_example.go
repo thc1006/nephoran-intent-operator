@@ -61,7 +61,7 @@ func ExampleSecurityImplementation() {
 			IPTimeout:       1 * time.Hour,
 		},
 
-		// Request Size Configuration  
+		// Request Size Configuration
 		RequestSize: NewRequestSizeLimiter(10*1024*1024, logger), // 10MB
 
 		// CORS Configuration

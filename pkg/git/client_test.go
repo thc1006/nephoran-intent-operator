@@ -78,7 +78,7 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.Equal(t, repoURL, client.RepoURL)
 	assert.Equal(t, branch, client.Branch)
-	assert.Equal(t, sshKey, client.SshKey)
+	assert.Equal(t, sshKey, client.SSHKey)
 	assert.Equal(t, "/tmp/deployment-repo", client.RepoPath)
 }
 
@@ -88,7 +88,7 @@ func TestClient_InitRepo_NewRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: filepath.Join(tmpDir, "test-repo"),
 	}
 
@@ -113,7 +113,7 @@ func TestClient_InitRepo_ExistingRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -154,7 +154,7 @@ func TestClient_CommitAndPush_Success(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 	_ = client // Use the client variable
@@ -199,7 +199,7 @@ func TestClient_CommitAndPush_FileCreation(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -237,7 +237,7 @@ func TestClient_CommitAndPush_InvalidRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: "/non/existent/path",
 	}
 
@@ -281,7 +281,7 @@ func TestClient_CommitAndPushChanges_Success(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -310,7 +310,7 @@ func TestClient_CommitAndPushChanges_InvalidRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: "/non/existent/path",
 	}
 
@@ -330,7 +330,7 @@ func TestClient_RemoveDirectory_Success(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -367,7 +367,7 @@ func TestClient_RemoveDirectory_InvalidRepo(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: "/non/existent/path",
 	}
 
@@ -387,7 +387,7 @@ func TestClient_RemoveDirectory_NonExistentDirectory(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -433,7 +433,7 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -546,7 +546,7 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -639,7 +639,7 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -734,7 +734,7 @@ func TestClient_CommitAndPushChanges_EmptyChanges(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -795,7 +795,7 @@ func TestClient_RemoveDirectory_AtomicOperation(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -853,7 +853,7 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -930,7 +930,7 @@ func TestClient_RemoveDirectory_PartialPathMatching(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -994,7 +994,7 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: "/non/existent/path",
 		}
 
@@ -1013,7 +1013,7 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1037,7 +1037,7 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1099,7 +1099,7 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1294,7 +1294,7 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 			client := &Client{
 				RepoURL:  "origin",
 				Branch:   "main",
-				SshKey:   createTestSSHKey(),
+				SSHKey:   createTestSSHKey(),
 				RepoPath: repoPath,
 			}
 
@@ -1440,7 +1440,7 @@ func TestClient_RemoveDirectory_TableDriven(t *testing.T) {
 			client := &Client{
 				RepoURL:  "origin",
 				Branch:   "main",
-				SshKey:   createTestSSHKey(),
+				SSHKey:   createTestSSHKey(),
 				RepoPath: repoPath,
 			}
 
@@ -1522,7 +1522,7 @@ func TestClient_CommitAndPushChanges_FileStatusEdgeCases(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1594,7 +1594,7 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1656,7 +1656,7 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1742,7 +1742,7 @@ func TestClient_FilePermissions(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1784,7 +1784,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1806,7 +1806,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1832,7 +1832,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1862,7 +1862,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		client := &Client{
 			RepoURL:  "origin",
 			Branch:   "main",
-			SshKey:   createTestSSHKey(),
+			SSHKey:   createTestSSHKey(),
 			RepoPath: repoPath,
 		}
 
@@ -1895,7 +1895,7 @@ func TestClient_ConcurrentAccess(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1929,7 +1929,7 @@ func BenchmarkClient_CommitAndPush(b *testing.B) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -1995,7 +1995,7 @@ func TestGitCommitDetails(t *testing.T) {
 	client := &Client{
 		RepoURL:  "origin",
 		Branch:   "main",
-		SshKey:   createTestSSHKey(),
+		SSHKey:   createTestSSHKey(),
 		RepoPath: repoPath,
 	}
 
@@ -2354,7 +2354,7 @@ func TestNewClientFromConfig(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.Equal(t, config.RepoURL, client.RepoURL)
 	assert.Equal(t, config.Branch, client.Branch)
-	assert.Equal(t, config.Token, client.SshKey)
+	assert.Equal(t, config.Token, client.SSHKey)
 	assert.Equal(t, config.RepoPath, client.RepoPath)
 	assert.Equal(t, config.Logger, client.logger)
 }
@@ -2374,7 +2374,7 @@ func TestNewClientFromConfig_NilLogger(t *testing.T) {
 	assert.NotNil(t, client.logger, "Logger should be set to default when nil")
 	assert.Equal(t, config.RepoURL, client.RepoURL)
 	assert.Equal(t, config.Branch, client.Branch)
-	assert.Equal(t, config.Token, client.SshKey)
+	assert.Equal(t, config.Token, client.SSHKey)
 	assert.Equal(t, config.RepoPath, client.RepoPath)
 }
 
@@ -2405,7 +2405,7 @@ func TestTokenLoadingIntegration(t *testing.T) {
 	// Verify the complete workflow
 	assert.Equal(t, "git@github.com:test/repo.git", client.RepoURL)
 	assert.Equal(t, "develop", client.Branch)
-	assert.Equal(t, token, client.SshKey, "Token should be trimmed and used as SSH key")
+	assert.Equal(t, token, client.SSHKey, "Token should be trimmed and used as SSH key")
 	assert.Equal(t, "/tmp/deployment-repo", client.RepoPath)
 	assert.NotNil(t, client.logger)
 }

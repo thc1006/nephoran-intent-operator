@@ -72,7 +72,7 @@ type SearchResponse struct {
 }
 
 // Note: RAGRequest and RAGResponse types are defined in rag_service.go to avoid duplication
-
+// Note: CacheMetrics is defined in embedding_support.go
 
 // WeaviateHealthStatus represents the health status of the Weaviate client.
 type WeaviateHealthStatus struct {

@@ -3,7 +3,7 @@ package multicluster
 // Stub types for missing external dependencies
 // These are temporary stubs to allow compilation while the actual dependencies are not available
 
-// WorkloadCluster stub for nephiov1alpha1.WorkloadCluster  
+// WorkloadCluster stub for nephiov1alpha1.WorkloadCluster
 type WorkloadCluster struct {
 	// Stub implementation - in production this would be from nephio API
 }

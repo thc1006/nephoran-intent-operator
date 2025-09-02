@@ -518,7 +518,7 @@ func (m *BenchmarkMockLLMClient) ProcessRequest(ctx context.Context, request *LL
 			tokenCount = len(payload) / 4 // Rough token estimation
 		}
 	}
-	
+
 	model := "default"
 	if request.Metadata != nil && request.Metadata["model"] != nil {
 		if modelStr, ok := request.Metadata["model"].(string); ok {
@@ -752,7 +752,7 @@ func (m *mockCache) Set(key string, value interface{})                          
 func (m *mockCache) Has(key string) bool                                             { return false }
 func (m *mockCache) GenerateKey(intent string, params map[string]interface{}) string { return intent }
 func (m *mockCache) Clear()                                                          {}
-func (m *mockCache) Configure(config BenchmarkCacheConfig)                                    {}
+func (m *mockCache) Configure(config BenchmarkCacheConfig)                           {}
 
 type mockCircuitBreaker struct{}
 
@@ -785,7 +785,6 @@ func (m *mockTokenManager) GetSupportedModels() []string {
 type mockWorkerPool struct{}
 
 func (m *mockWorkerPool) Shutdown() {}
-
 
 type mockMetrics struct{}
 

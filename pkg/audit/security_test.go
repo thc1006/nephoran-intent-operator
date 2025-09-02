@@ -77,7 +77,7 @@ func (suite *SecurityTestSuite) SetupTest() {
 	suite.auditSystem, err = NewAuditSystem(config)
 	suite.Require().NoError(err)
 
-	err = suite.auditSystem.Start(context.Background())
+	err = suite.auditSystem.Start()
 	suite.Require().NoError(err)
 }
 
@@ -369,7 +369,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 		restrictedSystem, err := NewAuditSystem(restrictedConfig)
 		suite.NoError(err)
 
-		err = restrictedSystem.Start(context.Background())
+		err = restrictedSystem.Start()
 		suite.NoError(err)
 		defer restrictedSystem.Stop()
 
@@ -536,14 +536,14 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		}
 
 		// Verify chain integrity
-		isValid := integrityChain.VerifyChain(events)
+		isValid := integrityChain.VerifyEventChain(events)
 		suite.True(isValid)
 
 		// Tamper with an event
 		events[1].Action = "tampered-action"
 
 		// Chain should be invalid
-		isValid = integrityChain.VerifyChain(events)
+		isValid = integrityChain.VerifyEventChain(events)
 		suite.False(isValid)
 	})
 }
@@ -984,7 +984,7 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 				// If backend creation succeeds, ensure it doesn't write to dangerous locations
 				writeErr := backend.WriteEvent(context.Background(), createSecurityTestEvent("traversal-test"))
 				if writeErr != nil {
-					t.Logf("WriteEvent correctly prevented dangerous path access: %v", writeErr)
+					suite.T().Logf("WriteEvent correctly prevented dangerous path access: %v", writeErr)
 				}
 				// Implementation should prevent writing to system directories
 			}

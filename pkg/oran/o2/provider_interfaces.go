@@ -8,7 +8,7 @@ import (
 // CloudProvider constants for provider types
 const (
 	CloudProviderKubernetes = "kubernetes"
-	CloudProviderOpenStack = "openstack"
+	CloudProviderOpenStack  = "openstack"
 	CloudProviderAWS        = "aws"
 	CloudProviderAzure      = "azure"
 	CloudProviderGCP        = "gcp"
@@ -105,7 +105,6 @@ type ResourceFilter struct {
 	Limit         int               `json:"limit,omitempty"`
 	Offset        int               `json:"offset,omitempty"`
 }
-
 
 // ProviderEvent represents an event from a provider
 type ProviderEvent struct {

@@ -451,3 +451,80 @@ func (f *FakeE2Manager) AddNode(nodeID string, node *e2.E2Node) {
 	f.nodes[nodeID] = node
 
 }
+
+// SubscribeE2 creates a fake subscription for testing
+func (f *FakeE2Manager) SubscribeE2(req *e2.E2SubscriptionRequest) (*e2.E2Subscription, error) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	if f.shouldFailRegistration {
+		return nil, fmt.Errorf("fake subscription failure")
+	}
+
+	return &e2.E2Subscription{
+		SubscriptionID:  req.SubscriptionID,
+		RanFunctionID:   req.RanFunctionID,
+		RequestorID:     req.RequestorID,
+		EventTriggers:   req.EventTriggers,
+		Actions:         req.Actions,
+		ReportingPeriod: req.ReportingPeriod,
+		Status: e2.E2SubscriptionStatus{
+			State: "ACTIVE",
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}, nil
+}
+
+// SendControlMessage sends a fake control message for testing
+func (f *FakeE2Manager) SendControlMessage(ctx context.Context, nodeID string, controlReq *e2.RICControlRequest) (*e2.RICControlAcknowledge, error) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	if f.shouldFailConnection {
+		return nil, fmt.Errorf("fake control message failure for node %s", nodeID)
+	}
+
+	return &e2.RICControlAcknowledge{
+		RICRequestID:     controlReq.RICRequestID,
+		RANFunctionID:    controlReq.RANFunctionID,
+		RICCallProcessID: controlReq.RICCallProcessID,
+		RICControlOutcome: []byte("SUCCESS"),
+	}, nil
+}
+
+// GetMetrics returns fake E2 metrics for testing
+func (f *FakeE2Manager) GetMetrics() *e2.E2Metrics {
+	f.mutex.RLock()
+	defer f.mutex.RUnlock()
+
+	return &e2.E2Metrics{
+		ConnectionsTotal:      int64(len(f.connections)),
+		ConnectionsActive:     int64(len(f.connections)),
+		ConnectionsFailed:     0,
+		ConnectionLatencyMs:   10.5,
+		NodesRegistered:       int64(len(f.nodes)),
+		NodesActive:           int64(len(f.nodes)),
+		NodesDisconnected:     0,
+		SubscriptionsTotal:    0,
+		SubscriptionsActive:   0,
+		SubscriptionsFailed:   0,
+		SubscriptionLatencyMs: 5.2,
+		MessagesReceived:      int64(f.registrationCallCount + f.listCallCount),
+		MessagesSent:          int64(f.provisionCallCount + f.connectionCallCount),
+		MessagesProcessed:     int64(f.registrationCallCount + f.deregistrationCallCount),
+		MessagesFailed:        0,
+		ErrorsTotal:           0,
+	}
+}
+
+// Shutdown gracefully shuts down the fake manager
+func (f *FakeE2Manager) Shutdown() error {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	
+	// Clear all state
+	f.nodes = make(map[string]*e2.E2Node)
+	f.connections = make(map[string]string)
+	return nil
+}

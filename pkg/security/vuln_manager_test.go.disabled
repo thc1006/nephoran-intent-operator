@@ -54,7 +54,7 @@ func (m *MockRemediationEngine) RemediateVulnerability(ctx context.Context, vuln
 
 func TestVulnerabilityManager_New(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	
+
 	t.Run("creates vulnerability manager with valid config", func(t *testing.T) {
 		config := &VulnManagerConfig{
 			EnableCVEScanning:     true,
@@ -64,38 +64,38 @@ func TestVulnerabilityManager_New(t *testing.T) {
 			AutoRemediation:       true,
 			SeverityThreshold:     "HIGH",
 		}
-		
+
 		manager, err := NewVulnerabilityManager(config, logger)
 		require.NoError(t, err)
 		assert.NotNil(t, manager)
 		assert.Equal(t, config, manager.config)
 		assert.Equal(t, logger, manager.logger)
 	})
-	
+
 	t.Run("returns error with nil config", func(t *testing.T) {
 		_, err := NewVulnerabilityManager(nil, logger)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "config cannot be nil")
 	})
-	
+
 	t.Run("returns error with nil logger", func(t *testing.T) {
 		config := &VulnManagerConfig{
 			EnableCVEScanning: true,
 		}
-		
+
 		_, err := NewVulnerabilityManager(config, nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "logger cannot be nil")
 	})
-	
+
 	t.Run("sets default values for missing config", func(t *testing.T) {
 		config := &VulnManagerConfig{
 			EnableCVEScanning: true,
 		}
-		
+
 		manager, err := NewVulnerabilityManager(config, logger)
 		require.NoError(t, err)
-		
+
 		// Should set reasonable defaults
 		assert.Equal(t, 24*time.Hour, manager.config.ScanInterval)
 		assert.Equal(t, 3, manager.config.MaxConcurrentScans)
@@ -110,57 +110,57 @@ func TestVulnerabilityManager_ScanContainer(t *testing.T) {
 		SeverityThreshold:  "HIGH",
 		MaxConcurrentScans: 1,
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(t, err)
-	
+
 	// Mock scanner
 	mockScanner := &MockSecurityScanner{}
 	manager.scanner = mockScanner
-	
+
 	t.Run("scans container successfully", func(t *testing.T) {
 		ctx := context.Background()
 		image := "nginx:latest"
-		
+
 		expectedResult := &ScanResult{
 			Target: image,
 			Vulnerabilities: []*Vulnerability{
 				{
-					ID:          "CVE-2021-1234",
-					Severity:    "HIGH",
-					Description: "Test vulnerability",
+					ID:               "CVE-2021-1234",
+					Severity:         "HIGH",
+					Description:      "Test vulnerability",
 					AffectedPackages: []string{"openssl"},
 				},
 			},
 			ScanTime: time.Now(),
 		}
-		
+
 		mockScanner.On("ScanContainer", ctx, image).Return(expectedResult, nil)
-		
+
 		result, err := manager.ScanContainer(ctx, image)
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
-		
+
 		mockScanner.AssertExpectations(t)
 	})
-	
+
 	t.Run("handles scan errors gracefully", func(t *testing.T) {
 		ctx := context.Background()
 		image := "invalid:image"
-		
+
 		mockScanner.On("ScanContainer", ctx, image).Return((*ScanResult)(nil), assert.AnError)
-		
+
 		result, err := manager.ScanContainer(ctx, image)
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		
+
 		mockScanner.AssertExpectations(t)
 	})
-	
+
 	t.Run("filters vulnerabilities by severity threshold", func(t *testing.T) {
 		ctx := context.Background()
 		image := "test:latest"
-		
+
 		scanResult := &ScanResult{
 			Target: image,
 			Vulnerabilities: []*Vulnerability{
@@ -170,17 +170,17 @@ func TestVulnerabilityManager_ScanContainer(t *testing.T) {
 				{ID: "CVE-4", Severity: "LOW"},
 			},
 		}
-		
+
 		mockScanner.On("ScanContainer", ctx, image).Return(scanResult, nil)
-		
+
 		result, err := manager.ScanContainer(ctx, image)
 		require.NoError(t, err)
-		
+
 		// Should only return HIGH and CRITICAL vulnerabilities
 		assert.Len(t, result.Vulnerabilities, 2)
 		assert.Equal(t, "CVE-1", result.Vulnerabilities[0].ID)
 		assert.Equal(t, "CVE-2", result.Vulnerabilities[1].ID)
-		
+
 		mockScanner.AssertExpectations(t)
 	})
 }
@@ -191,46 +191,46 @@ func TestVulnerabilityManager_ScanDependencies(t *testing.T) {
 		EnableDependencyCheck: true,
 		SeverityThreshold:     "MEDIUM",
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(t, err)
-	
+
 	mockScanner := &MockSecurityScanner{}
 	manager.scanner = mockScanner
-	
+
 	t.Run("scans dependencies successfully", func(t *testing.T) {
 		ctx := context.Background()
 		path := "/app/go.mod"
-		
+
 		expectedResult := &ScanResult{
 			Target: path,
 			Vulnerabilities: []*Vulnerability{
 				{
-					ID:          "GO-2021-1234",
-					Severity:    "HIGH",
-					Description: "Vulnerability in Go dependency",
+					ID:               "GO-2021-1234",
+					Severity:         "HIGH",
+					Description:      "Vulnerability in Go dependency",
 					AffectedPackages: []string{"github.com/example/vulnerable"},
 				},
 			},
 			ScanTime: time.Now(),
 		}
-		
+
 		mockScanner.On("ScanDependencies", ctx, path).Return(expectedResult, nil)
-		
+
 		result, err := manager.ScanDependencies(ctx, path)
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
-		
+
 		mockScanner.AssertExpectations(t)
 	})
-	
+
 	t.Run("skips scan when dependency check disabled", func(t *testing.T) {
 		config.EnableDependencyCheck = false
 		manager.config = config
-		
+
 		ctx := context.Background()
 		path := "/app/go.mod"
-		
+
 		result, err := manager.ScanDependencies(ctx, path)
 		require.NoError(t, err)
 		assert.Nil(t, result)
@@ -243,59 +243,59 @@ func TestVulnerabilityManager_RemediateVulnerability(t *testing.T) {
 		AutoRemediation:   true,
 		SeverityThreshold: "HIGH",
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(t, err)
-	
+
 	mockRemediation := &MockRemediationEngine{}
 	manager.remediation = mockRemediation
-	
+
 	t.Run("remediates vulnerability successfully", func(t *testing.T) {
 		ctx := context.Background()
 		vuln := &Vulnerability{
-			ID:          "CVE-2021-1234",
-			Severity:    "HIGH",
-			Description: "Test vulnerability",
+			ID:           "CVE-2021-1234",
+			Severity:     "HIGH",
+			Description:  "Test vulnerability",
 			FixAvailable: true,
 			FixVersion:   "1.2.3",
 		}
-		
+
 		expectedResult := &RemediationResult{
 			VulnerabilityID: vuln.ID,
 			Success:         true,
 			Action:          "Updated package to version 1.2.3",
 			Timestamp:       time.Now(),
 		}
-		
+
 		mockRemediation.On("RemediateVulnerability", ctx, vuln).Return(expectedResult, nil)
-		
+
 		result, err := manager.RemediateVulnerability(ctx, vuln)
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
-		
+
 		mockRemediation.AssertExpectations(t)
 	})
-	
+
 	t.Run("skips remediation when auto-remediation disabled", func(t *testing.T) {
 		config.AutoRemediation = false
 		manager.config = config
-		
+
 		ctx := context.Background()
 		vuln := &Vulnerability{ID: "CVE-2021-1234", Severity: "HIGH"}
-		
+
 		result, err := manager.RemediateVulnerability(ctx, vuln)
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
-	
+
 	t.Run("skips remediation for low severity vulnerabilities", func(t *testing.T) {
 		config.AutoRemediation = true
 		config.SeverityThreshold = "HIGH"
 		manager.config = config
-		
+
 		ctx := context.Background()
 		vuln := &Vulnerability{ID: "CVE-2021-1234", Severity: "MEDIUM"}
-		
+
 		result, err := manager.RemediateVulnerability(ctx, vuln)
 		require.NoError(t, err)
 		assert.Nil(t, result)
@@ -309,13 +309,13 @@ func TestVulnerabilityManager_StartPeriodicScanning(t *testing.T) {
 		ScanInterval:       100 * time.Millisecond, // Short interval for testing
 		MaxConcurrentScans: 1,
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(t, err)
-	
+
 	mockScanner := &MockSecurityScanner{}
 	manager.scanner = mockScanner
-	
+
 	t.Run("starts periodic scanning", func(t *testing.T) {
 		// Mock multiple scan calls
 		scanResult := &ScanResult{
@@ -323,26 +323,26 @@ func TestVulnerabilityManager_StartPeriodicScanning(t *testing.T) {
 			Vulnerabilities: []*Vulnerability{},
 			ScanTime:        time.Now(),
 		}
-		
+
 		mockScanner.On("ScanContainer", mock.Anything, mock.AnythingOfType("string")).
 			Return(scanResult, nil).Times(2)
-		
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		
+
 		// Start scanning with some targets
 		targets := []string{"nginx:latest", "redis:latest"}
 		go manager.StartPeriodicScanning(ctx, targets)
-		
+
 		// Wait for at least one scan cycle
 		time.Sleep(200 * time.Millisecond)
-		
+
 		// Cancel context to stop scanning
 		cancel()
-		
+
 		// Give some time for cleanup
 		time.Sleep(50 * time.Millisecond)
-		
+
 		mockScanner.AssertExpectations(t)
 	})
 }
@@ -352,10 +352,10 @@ func TestVulnerabilityManager_GetVulnerabilityReport(t *testing.T) {
 	config := &VulnManagerConfig{
 		EnableCVEScanning: true,
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(t, err)
-	
+
 	t.Run("generates vulnerability report", func(t *testing.T) {
 		// Add some test vulnerabilities to the manager's internal state
 		vulnerabilities := []*Vulnerability{
@@ -363,7 +363,7 @@ func TestVulnerabilityManager_GetVulnerabilityReport(t *testing.T) {
 			{ID: "CVE-2", Severity: "HIGH", AffectedPackages: []string{"pkg2"}},
 			{ID: "CVE-3", Severity: "MEDIUM", AffectedPackages: []string{"pkg3"}},
 		}
-		
+
 		// Simulate adding vulnerabilities to manager state
 		manager.mutex.Lock()
 		if manager.vulnerabilities == nil {
@@ -373,9 +373,9 @@ func TestVulnerabilityManager_GetVulnerabilityReport(t *testing.T) {
 			manager.vulnerabilities[vuln.ID] = vuln
 		}
 		manager.mutex.Unlock()
-		
+
 		report := manager.GetVulnerabilityReport()
-		
+
 		assert.NotNil(t, report)
 		assert.Len(t, report.Vulnerabilities, 3)
 		assert.Equal(t, 1, report.Summary.Critical)
@@ -405,7 +405,7 @@ func TestVulnerabilityManager_SeverityComparison(t *testing.T) {
 		{"MEDIUM", "LOW", true},
 		{"LOW", "LOW", true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s_vs_%s", tt.severity, tt.threshold), func(t *testing.T) {
 			result := isSeverityAboveThreshold(tt.severity, tt.threshold)
@@ -420,33 +420,33 @@ func TestVulnerabilityManager_ConcurrentScanning(t *testing.T) {
 		EnableCVEScanning:  true,
 		MaxConcurrentScans: 2, // Limit concurrency for testing
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(t, err)
-	
+
 	mockScanner := &MockSecurityScanner{}
 	manager.scanner = mockScanner
-	
+
 	t.Run("handles concurrent scans within limit", func(t *testing.T) {
 		scanResult := &ScanResult{
 			Target:          "test",
 			Vulnerabilities: []*Vulnerability{},
 			ScanTime:        time.Now(),
 		}
-		
+
 		// Mock scanner calls with delay to simulate concurrent execution
 		mockScanner.On("ScanContainer", mock.Anything, mock.AnythingOfType("string")).
 			Return(scanResult, nil).
 			Run(func(args mock.Arguments) {
 				time.Sleep(100 * time.Millisecond) // Simulate scan time
 			})
-		
+
 		ctx := context.Background()
 		images := []string{"img1", "img2", "img3", "img4"}
-		
+
 		start := time.Now()
 		results := make([]*ScanResult, len(images))
-		
+
 		// Start concurrent scans
 		for i, image := range images {
 			go func(idx int, img string) {
@@ -455,19 +455,19 @@ func TestVulnerabilityManager_ConcurrentScanning(t *testing.T) {
 				results[idx] = result
 			}(i, image)
 		}
-		
+
 		// Wait for all scans to complete
 		time.Sleep(500 * time.Millisecond)
 		duration := time.Since(start)
-		
+
 		// Should complete faster than sequential execution due to concurrency
 		assert.Less(t, duration, 400*time.Millisecond)
-		
+
 		// Verify all results
 		for _, result := range results {
 			assert.NotNil(t, result)
 		}
-		
+
 		mockScanner.AssertExpectations(t)
 	})
 }
@@ -477,23 +477,23 @@ func BenchmarkVulnerabilityManager_ScanContainer(b *testing.B) {
 	config := &VulnManagerConfig{
 		EnableCVEScanning: true,
 	}
-	
+
 	manager, err := NewVulnerabilityManager(config, logger)
 	require.NoError(b, err)
-	
+
 	mockScanner := &MockSecurityScanner{}
 	manager.scanner = mockScanner
-	
+
 	scanResult := &ScanResult{
 		Target:          "nginx:latest",
 		Vulnerabilities: []*Vulnerability{},
 		ScanTime:        time.Now(),
 	}
-	
+
 	mockScanner.On("ScanContainer", mock.Anything, mock.AnythingOfType("string")).Return(scanResult, nil)
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := manager.ScanContainer(ctx, "nginx:latest")
@@ -506,14 +506,14 @@ func BenchmarkVulnerabilityManager_ScanContainer(b *testing.B) {
 func BenchmarkVulnerabilityManager_FilterVulnerabilities(b *testing.B) {
 	vulnerabilities := make([]*Vulnerability, 1000)
 	severities := []string{"CRITICAL", "HIGH", "MEDIUM", "LOW"}
-	
+
 	for i := 0; i < 1000; i++ {
 		vulnerabilities[i] = &Vulnerability{
 			ID:       fmt.Sprintf("CVE-%d", i),
 			Severity: severities[i%4],
 		}
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		filtered := filterVulnerabilitiesBySeverity(vulnerabilities, "HIGH")

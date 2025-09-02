@@ -204,7 +204,7 @@ func main() {
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
 
-					if isIntentFile(event.Name) {
+					if IsIntentFile(event.Name) {
 
 						logger.Info("New intent file detected", "file", event.Name)
 
@@ -254,9 +254,9 @@ func main() {
 
 }
 
-// isIntentFile checks if the file matches the pattern intent-*.json.
+// IsIntentFile checks if the file matches the pattern intent-*.json.
 
-func isIntentFile(path string) bool {
+func IsIntentFile(path string) bool {
 
 	filename := filepath.Base(path)
 

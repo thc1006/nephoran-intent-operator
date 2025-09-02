@@ -13,12 +13,12 @@ type SearchResult struct {
 	Content    string                 `json:"content"`
 	Metadata   map[string]interface{} `json:"metadata"`
 	Score      float32                `json:"score"`
-	Distance   float32                `json:"distance"`   // Added for test compatibility
+	Distance   float32                `json:"distance"` // Added for test compatibility
 	Source     string                 `json:"source"`
 	Chunk      int                    `json:"chunk"`
 	Title      string                 `json:"title"`
 	Summary    string                 `json:"summary"`
-	Document   *TelecomDocument       `json:"document"`   // Added for test compatibility
+	Document   *TelecomDocument       `json:"document"` // Added for test compatibility
 	CreatedAt  time.Time              `json:"created_at"`
 	UpdatedAt  time.Time              `json:"updated_at"`
 	Confidence float32                `json:"confidence"` // Added for test compatibility
@@ -45,13 +45,13 @@ type SearchQuery struct {
 
 // RAGResponse represents the response from RAG system
 type RAGResponse struct {
-	Query     string            `json:"query"`
-	Results   []SearchResult    `json:"results"`
-	Context   string            `json:"context"`
-	Documents []TelecomDocument `json:"documents"`
-	TotalTime time.Duration     `json:"total_time"`
-	Confidence float64          `json:"confidence"`
-	Error     *RAGError         `json:"error,omitempty"`
+	Query      string            `json:"query"`
+	Results    []SearchResult    `json:"results"`
+	Context    string            `json:"context"`
+	Documents  []TelecomDocument `json:"documents"`
+	TotalTime  time.Duration     `json:"total_time"`
+	Confidence float64           `json:"confidence"`
+	Error      *RAGError         `json:"error,omitempty"`
 }
 
 // TelecomDocument represents a telecom-specific document
@@ -60,20 +60,20 @@ type TelecomDocument struct {
 	Title           string                 `json:"title"`
 	Content         string                 `json:"content"`
 	Type            DocumentType           `json:"type"`
-	DocumentType    string                 `json:"document_type"`  // String representation of type
+	DocumentType    string                 `json:"document_type"` // String representation of type
 	Category        string                 `json:"category"`
-	Standard        string                 `json:"standard"`         // e.g., "3GPP TS 38.401"
-	Version         string                 `json:"version"`          // e.g., "16.0.0"
-	Section         string                 `json:"section"`          // e.g., "7.2.1"
+	Standard        string                 `json:"standard"` // e.g., "3GPP TS 38.401"
+	Version         string                 `json:"version"`  // e.g., "16.0.0"
+	Section         string                 `json:"section"`  // e.g., "7.2.1"
 	Keywords        []string               `json:"keywords"`
 	Source          string                 `json:"source"`           // Added for test compatibility
 	NetworkFunction []string               `json:"network_function"` // Added for test compatibility
 	Technology      []string               `json:"technology"`       // Added for test compatibility
 	Confidence      float64                `json:"confidence"`       // Added for test compatibility
 	Score           float64                `json:"score"`            // Added for test compatibility
-	UseCase         string                 `json:"use_case"`         // For compatibility 
+	UseCase         string                 `json:"use_case"`         // For compatibility
 	Timestamp       time.Time              `json:"timestamp"`        // For compatibility
-	Metadata        map[string]interface{} `json:"metadata"` 
+	Metadata        map[string]interface{} `json:"metadata"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Indexed         bool                   `json:"indexed"`

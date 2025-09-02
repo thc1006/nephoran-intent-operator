@@ -18,7 +18,7 @@ type ProcessingResult struct {
 }
 
 // NOTE: ProcessingContext is already defined in processing_pipeline.go
-// NOTE: ClassificationResult is already defined in processing_pipeline.go  
+// NOTE: ClassificationResult is already defined in processing_pipeline.go
 // NOTE: EnrichmentContext is already defined in processing_pipeline.go
 // NOTE: ValidationResult is already defined in security_validator.go
 

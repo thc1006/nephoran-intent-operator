@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	
+
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -33,19 +33,19 @@ func NewProviderRegistry() ProviderRegistry {
 func (r *DefaultProviderRegistry) RegisterProvider(name string, provider CloudProvider, config *ProviderConfiguration) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	if _, exists := r.providers[name]; exists {
 		return fmt.Errorf("provider %s already registered", name)
 	}
-	
+
 	r.providers[name] = provider
 	r.configs[name] = config
-	
+
 	// Create health checker
 	r.healthMu.Lock()
 	r.healthCheckers[name] = NewHealthChecker(provider)
 	r.healthMu.Unlock()
-	
+
 	return nil
 }
 
@@ -53,27 +53,27 @@ func (r *DefaultProviderRegistry) RegisterProvider(name string, provider CloudPr
 func (r *DefaultProviderRegistry) UnregisterProvider(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	provider, exists := r.providers[name]
 	if !exists {
 		return fmt.Errorf("provider %s not found", name)
 	}
-	
+
 	// Clean up provider resources
 	if err := provider.Close(); err != nil {
 		// Log error but don't fail unregistration
 		logger := log.Log
 		logger.Error(err, "error closing provider during unregistration", "provider", name)
 	}
-	
+
 	delete(r.providers, name)
 	delete(r.configs, name)
-	
+
 	// Remove health checker
 	r.healthMu.Lock()
 	delete(r.healthCheckers, name)
 	r.healthMu.Unlock()
-	
+
 	return nil
 }
 
@@ -81,12 +81,12 @@ func (r *DefaultProviderRegistry) UnregisterProvider(name string) error {
 func (r *DefaultProviderRegistry) GetProvider(name string) (CloudProvider, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	provider, exists := r.providers[name]
 	if !exists {
 		return nil, fmt.Errorf("provider %s not found", name)
 	}
-	
+
 	return provider, nil
 }
 
@@ -94,7 +94,7 @@ func (r *DefaultProviderRegistry) GetProvider(name string) (CloudProvider, error
 func (r *DefaultProviderRegistry) ListProviders() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	names := make([]string, 0, len(r.providers))
 	for name := range r.providers {
 		names = append(names, name)
@@ -106,7 +106,7 @@ func (r *DefaultProviderRegistry) ListProviders() []string {
 func (r *DefaultProviderRegistry) ConnectAll(ctx context.Context) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	var firstError error
 	for name, provider := range r.providers {
 		if err := provider.Connect(ctx); err != nil {
@@ -117,7 +117,7 @@ func (r *DefaultProviderRegistry) ConnectAll(ctx context.Context) error {
 			logger.Error(err, "failed to connect to provider", "provider", name)
 		}
 	}
-	
+
 	return firstError
 }
 
@@ -125,12 +125,12 @@ func (r *DefaultProviderRegistry) ConnectAll(ctx context.Context) error {
 func (r *DefaultProviderRegistry) ConnectProvider(ctx context.Context, name string) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	provider, exists := r.providers[name]
 	if !exists {
 		return fmt.Errorf("provider %s not found", name)
 	}
-	
+
 	return provider.Connect(ctx)
 }
 
@@ -138,7 +138,7 @@ func (r *DefaultProviderRegistry) ConnectProvider(ctx context.Context, name stri
 func (r *DefaultProviderRegistry) DisconnectAll(ctx context.Context) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	var firstError error
 	for name, provider := range r.providers {
 		if err := provider.Disconnect(ctx); err != nil {
@@ -149,7 +149,7 @@ func (r *DefaultProviderRegistry) DisconnectAll(ctx context.Context) error {
 			logger.Error(err, "failed to disconnect from provider", "provider", name)
 		}
 	}
-	
+
 	return firstError
 }
 
@@ -157,7 +157,7 @@ func (r *DefaultProviderRegistry) DisconnectAll(ctx context.Context) error {
 func (r *DefaultProviderRegistry) StartHealthChecks(ctx context.Context) {
 	r.healthMu.RLock()
 	defer r.healthMu.RUnlock()
-	
+
 	for _, checker := range r.healthCheckers {
 		go checker.Start(ctx)
 	}
@@ -167,9 +167,9 @@ func (r *DefaultProviderRegistry) StartHealthChecks(ctx context.Context) {
 func (r *DefaultProviderRegistry) StopHealthChecks() {
 	r.healthMu.RLock()
 	defer r.healthMu.RUnlock()
-	
+
 	close(r.healthStopCh)
-	
+
 	for _, checker := range r.healthCheckers {
 		checker.Stop()
 	}
@@ -179,12 +179,12 @@ func (r *DefaultProviderRegistry) StopHealthChecks() {
 func (r *DefaultProviderRegistry) GetAllProviderHealth() map[string]*HealthStatus {
 	r.healthMu.RLock()
 	defer r.healthMu.RUnlock()
-	
+
 	health := make(map[string]*HealthStatus)
 	for name, checker := range r.healthCheckers {
 		health[name] = checker.GetStatus()
 	}
-	
+
 	return health
 }
 
@@ -192,34 +192,34 @@ func (r *DefaultProviderRegistry) GetAllProviderHealth() map[string]*HealthStatu
 func (r *DefaultProviderRegistry) SelectProvider(ctx context.Context, criteria *ProviderSelectionCriteria) (CloudProvider, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	var candidates []string
-	
+
 	// Filter providers based on criteria
 	for name, provider := range r.providers {
 		config := r.configs[name]
-		
+
 		// Check type
 		if criteria.Type != "" && config.Type != criteria.Type {
 			continue
 		}
-		
+
 		// Check region
 		if criteria.Region != "" && config.Region != criteria.Region {
 			continue
 		}
-		
+
 		// Check health if required
 		if criteria.RequireHealthy {
 			r.healthMu.RLock()
 			checker, exists := r.healthCheckers[name]
 			r.healthMu.RUnlock()
-			
+
 			if !exists || checker.GetStatus().Status != HealthStatusHealthy {
 				continue
 			}
 		}
-		
+
 		// Check capabilities
 		if len(criteria.RequiredCapabilities) > 0 {
 			caps := provider.GetCapabilities()
@@ -227,14 +227,14 @@ func (r *DefaultProviderRegistry) SelectProvider(ctx context.Context, criteria *
 				continue
 			}
 		}
-		
+
 		candidates = append(candidates, name)
 	}
-	
+
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no providers match the selection criteria")
 	}
-	
+
 	// Apply selection strategy
 	selectedName := candidates[0] // Default to first candidate
 	switch criteria.SelectionStrategy {
@@ -248,7 +248,7 @@ func (r *DefaultProviderRegistry) SelectProvider(ctx context.Context, criteria *
 		// For simplicity, just use first candidate
 		// In production, implement round-robin selection
 	}
-	
+
 	return r.providers[selectedName], nil
 }
 
@@ -257,7 +257,7 @@ func hasRequiredCapabilities(caps *ProviderCapabilities, required []string) bool
 	if caps == nil {
 		return false
 	}
-	
+
 	// Simple implementation - in production, this would be more sophisticated
 	for _, req := range required {
 		switch req {
@@ -273,10 +273,10 @@ func hasRequiredCapabilities(caps *ProviderCapabilities, required []string) bool
 			if !caps.Networking {
 				return false
 			}
-		// Add more capability checks as needed
+			// Add more capability checks as needed
 		}
 	}
-	
+
 	return true
 }
 
@@ -284,18 +284,18 @@ func hasRequiredCapabilities(caps *ProviderCapabilities, required []string) bool
 func (r *DefaultProviderRegistry) GetSupportedProviders() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	supportedTypes := make(map[string]bool)
 	for _, provider := range r.providers {
 		info := provider.GetProviderInfo()
 		supportedTypes[info.Type] = true
 	}
-	
+
 	var result []string
 	for providerType := range supportedTypes {
 		result = append(result, providerType)
 	}
-	
+
 	return result
 }
 
@@ -308,7 +308,7 @@ func (r *DefaultProviderRegistry) CreateAndRegisterProvider(providerType string,
 			Name: name,
 		},
 	}
-	
+
 	return r.RegisterProvider(name, mockProvider, config)
 }
 
@@ -316,7 +316,7 @@ func (r *DefaultProviderRegistry) CreateAndRegisterProvider(providerType string,
 func (r *DefaultProviderRegistry) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	var firstError error
 	for name, provider := range r.providers {
 		if err := provider.Close(); err != nil {
@@ -325,15 +325,15 @@ func (r *DefaultProviderRegistry) Close() error {
 			}
 		}
 	}
-	
+
 	// Clear all maps
 	r.providers = make(map[string]CloudProvider)
 	r.configs = make(map[string]*ProviderConfiguration)
-	
+
 	r.healthMu.Lock()
 	r.healthCheckers = make(map[string]*HealthChecker)
 	r.healthMu.Unlock()
-	
+
 	return firstError
 }
 
@@ -369,7 +369,7 @@ func NewHealthChecker(provider CloudProvider) *HealthChecker {
 func (h *HealthChecker) Start(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -391,7 +391,7 @@ func (h *HealthChecker) Stop() {
 func (h *HealthChecker) GetStatus() *HealthStatus {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	return &HealthStatus{
 		Status:    h.status.Status,
 		Message:   h.status.Message,
@@ -402,10 +402,10 @@ func (h *HealthChecker) GetStatus() *HealthStatus {
 
 func (h *HealthChecker) checkHealth(ctx context.Context) {
 	err := h.provider.HealthCheck(ctx)
-	
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	if err != nil {
 		h.status = &HealthStatus{
 			Status:    HealthStatusUnhealthy,

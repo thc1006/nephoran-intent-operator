@@ -128,7 +128,6 @@ func createTestReconciler(mockClient client.Client, mockRecorder record.EventRec
 	}
 }
 
-
 func TestCalculateExponentialBackoffForOperation(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -461,7 +460,7 @@ func TestE2ProvisioningErrorHandling(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should schedule retry with backoff")
@@ -507,7 +506,7 @@ func TestMaxRetriesExceeded(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.Equal(t, time.Hour, result.RequeueAfter, "Should use long delay after max retries")
@@ -581,7 +580,7 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should retry cleanup with backoff")
@@ -654,7 +653,7 @@ func TestFinalizerRemovedAfterMaxCleanupRetries(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.NoError(t, err, "Should not return error when finalizer is removed after max retries")
 	assert.Zero(t, result.RequeueAfter, "Should not requeue after finalizer removal")
@@ -820,7 +819,7 @@ func TestReconcileWithPartialFailures(t *testing.T) {
 	ctx := context.Background()
 	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
 
-	_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 
 	assert.Error(t, err)
 	assert.NotZero(t, result.RequeueAfter, "Should retry with backoff")

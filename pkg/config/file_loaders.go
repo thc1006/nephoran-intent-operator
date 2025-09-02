@@ -206,4 +206,3 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 	return defaultSecret, nil
 
 }
-

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
 )
 
 // NetworkFunctionManagerImpl provides concrete implementation of NetworkFunctionManager

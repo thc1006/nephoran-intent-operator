@@ -542,11 +542,11 @@ func (c *MTLSLLMClient) HealthCheck(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("health check failed: %w", err)
 	}
-	
+
 	if healthStatus.Status != "healthy" && healthStatus.Status != "ok" {
 		return fmt.Errorf("service unhealthy: %s - %s", healthStatus.Status, healthStatus.Message)
 	}
-	
+
 	return nil
 }
 
@@ -554,12 +554,12 @@ func (c *MTLSLLMClient) HealthCheck(ctx context.Context) error {
 func (c *MTLSLLMClient) GetStatus() shared.ClientStatus {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := c.HealthCheck(ctx); err != nil {
 		c.logger.Debug("health check failed", "error", err)
 		return shared.ClientStatusUnhealthy
 	}
-	
+
 	return shared.ClientStatusHealthy
 }
 

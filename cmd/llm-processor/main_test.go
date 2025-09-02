@@ -38,14 +38,14 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 			parts := strings.Split(xff, ",")
 			remoteIP = strings.TrimSpace(parts[0])
 		}
-		
+
 		// For testing, allow localhost/127.0.0.1 and common test IPs
-		if strings.Contains(remoteIP, "127.0.0.1") || strings.Contains(remoteIP, "192.168.") || 
-		   strings.Contains(remoteIP, "10.0.") || remoteIP == "" {
+		if strings.Contains(remoteIP, "127.0.0.1") || strings.Contains(remoteIP, "192.168.") ||
+			strings.Contains(remoteIP, "10.0.") || remoteIP == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Check against allowed CIDRs for other cases
 		for _, cidr := range allowedCIDRs {
 			if strings.Contains(remoteIP, strings.Split(cidr, "/")[0]) {
@@ -53,7 +53,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 				return
 			}
 		}
-		
+
 		http.Error(w, "Forbidden", http.StatusForbidden)
 	})
 }
@@ -189,7 +189,7 @@ func TestRequestSizeLimitMiddleware(t *testing.T) {
 	}))
 
 	limiter := middleware.NewRequestSizeLimiterWithConfig(&middleware.RequestSizeConfig{
-		MaxBodySize: testMaxSize,
+		MaxBodySize:   testMaxSize,
 		MaxHeaderSize: 8192,
 		EnableLogging: true,
 	}, logger)

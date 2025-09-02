@@ -178,7 +178,7 @@ type PromptGenerator interface {
 
 // Type references - these interfaces reference types defined elsewhere in the package
 // Priority is defined in batch_processor.go
-// ClientMetrics is defined in client_consolidated.go  
+// ClientMetrics is defined in client_consolidated.go
 // BatchResult is defined in batch_processor.go
 // BatchProcessorStats is defined in batch_processor.go
 
@@ -573,7 +573,7 @@ type BatchProcessorConfig struct {
 	Priority int
 
 	ProcessingTimeout time.Duration
-	
+
 	// Additional fields for compatibility
 	BatchSize int
 
@@ -850,6 +850,6 @@ func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"prompt_builder_enabled": false,
-		"stub_mode": true,
+		"stub_mode":              true,
 	}
 }

@@ -49,7 +49,7 @@ func TestBenchmarks(t *testing.T) {
 func BenchmarkIntentProcessing(b *testing.B) {
 	config := &framework.TestConfig{
 		// Add minimal test config for benchmarks
-		Timeout: 30 * time.Second,
+		Timeout:        30 * time.Second,
 		CleanupTimeout: 10 * time.Second,
 	}
 	testSuite := &BenchmarkTestSuite{
@@ -276,10 +276,10 @@ func BenchmarkCircuitBreaker(b *testing.B) {
 	b.Run("SuccessfulRequests", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				err := circuitBreaker.Execute(func() error {
+				_, err := circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					// Simulate successful operation
 					time.Sleep(1 * time.Millisecond)
-					return nil
+					return nil, nil
 				})
 				if err != nil {
 					b.Errorf("Circuit breaker execution failed: %v", err)
@@ -292,12 +292,12 @@ func BenchmarkCircuitBreaker(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			i := 0
 			for pb.Next() {
-				circuitBreaker.Execute(func() error {
+				_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					if i%10 < 2 { // 20% failure rate
-						return fmt.Errorf("simulated failure")
+						return nil, fmt.Errorf("simulated failure")
 					}
 					time.Sleep(1 * time.Millisecond)
-					return nil
+					return nil, nil
 				})
 				i++
 			}

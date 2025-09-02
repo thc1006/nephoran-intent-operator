@@ -161,14 +161,14 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 	// For small caches, use single-level (L1 only) to avoid complexity
 	var l1MaxSize, l2MaxSize int
 	if maxSize <= 4 {
-		l1MaxSize = maxSize  // All goes to L1
-		l2MaxSize = 0        // No L2
+		l1MaxSize = maxSize // All goes to L1
+		l2MaxSize = 0       // No L2
 	} else {
-		l1MaxSize = maxSize / 4  // 25% for L1
+		l1MaxSize = maxSize / 4 // 25% for L1
 		if l1MaxSize < 1 {
 			l1MaxSize = 1
 		}
-		l2MaxSize = maxSize  // Total for L2
+		l2MaxSize = maxSize // Total for L2
 	}
 
 	config := &CacheConfig{
@@ -612,7 +612,7 @@ func (c *ResponseCache) evictFromL1WithLock() {
 
 	// Find LRU entry.
 	var oldestKey string
-	oldestTime := time.Now()
+	oldestTime := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC) // Start with far future time
 
 	for key, entry := range c.l1Entries {
 		if entry.Timestamp.Before(oldestTime) {
@@ -648,7 +648,7 @@ func (c *ResponseCache) evictFromL2WithLock() {
 
 	// Find LRU entry.
 	var oldestKey string
-	oldestTime := time.Now()
+	oldestTime := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC) // Start with far future time
 
 	for key, entry := range c.l2Entries {
 		if entry.Timestamp.Before(oldestTime) {

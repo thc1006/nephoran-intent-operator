@@ -1054,3 +1054,18 @@ func VerifyE2NodeSetAnnotation(ctx context.Context, k8sClient client.Client, nam
 	gomega.Expect(actualValue).To(gomega.Equal(expectedValue), "Annotation %s should have value %s", key, expectedValue)
 
 }
+
+// CreateTestNamespace creates a test namespace with auto-generated name.
+func CreateTestNamespace() *corev1.Namespace {
+	name := GenerateUniqueNamespace("test")
+	// This assumes a global k8sClient exists in test suites
+	// Individual test files need to provide their own client
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				"test-namespace": "true",
+			},
+		},
+	}
+}

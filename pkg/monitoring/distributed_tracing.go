@@ -100,7 +100,7 @@ func (dt *DistributedTracer) GetTrace(ctx context.Context, traceID string) ([]*T
 // CreateSpanFromOtel converts OpenTelemetry span to TraceSpan
 func (dt *DistributedTracer) CreateSpanFromOtel(span oteltrace.Span) *TraceSpan {
 	spanCtx := span.SpanContext()
-	
+
 	traceSpan := &TraceSpan{
 		TraceID:       spanCtx.TraceID().String(),
 		SpanID:        spanCtx.SpanID().String(),
@@ -158,13 +158,13 @@ func (dt *DistributedTracer) TracingMiddleware() func(next func()) func() {
 		return func() {
 			_, span := dt.StartSpan(context.Background(), "http_request")
 			defer span.End()
-			
+
 			// Set common attributes
 			span.SetAttributes(
 				attribute.String("component", "http"),
 				attribute.String("service.name", dt.serviceName),
 			)
-			
+
 			// Call next handler with tracing context
 			next()
 		}

@@ -1408,4 +1408,5 @@ func (opt *KubernetesOptimizer) optimizeNetworking(ctx context.Context, analysis
 func (opt *KubernetesOptimizer) calculateExpectedImpact(strategies []string) *ExpectedImpact {
 	return &ExpectedImpact{EfficiencyGain: 25.0}
 }
+
 // ValidateOptimization and RollbackOptimization are already implemented above

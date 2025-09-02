@@ -784,6 +784,18 @@ func (in *AuditTrailList) DeepCopyObject() runtime.Object {
 	return nil
 }
 
+// Type aliases for compatibility with test files
+type FilterConfig = FilterConfigSpec
+type AuthConfig struct {
+	Enabled  bool   `json:"enabled"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+type ConfigMapReference struct {
+	Name string `json:"name"`
+	Key  string `json:"key"`
+}
+
 func init() {
 	SchemeBuilder.Register(&AuditTrail{}, &AuditTrailList{})
 }

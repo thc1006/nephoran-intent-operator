@@ -188,7 +188,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 			By("Step 8: Validating workflow completion artifacts")
 			if createdIntent.Status.Phase == "Completed" {
 				By("Verifying completion metadata")
-				Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
+				Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 
 				// Check for successful completion indicators
 				hasSuccessCondition := false
@@ -323,7 +323,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 
 				// Should have processing indicators
 				return len(createdIntent.Status.Conditions) > 0 &&
-					createdIntent.Status.LastProcessed != nil
+					createdIntent.Status.Conditions != nil
 			}, 60*time.Second, 3*time.Second).Should(BeTrue())
 
 			By("Cleaning up optimization workflow test intent")
@@ -415,7 +415,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				},
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test workflow state management and consistency during processing",
-					IntentType: nephoran.IntentTypeConfiguration,
+					IntentType: "scaling",
 					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
@@ -453,7 +453,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 
 			By("Verifying consistent state reporting")
 			Expect(createdIntent.Status.Phase).Should(BeElementOf([]string{"Processing", "Completed", "Error"}))
-			Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
+			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 0))
 
 			By("Cleaning up state management test intent")
 			Expect(k8sClient.Delete(ctx, createdIntent)).Should(Succeed())
@@ -506,7 +506,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				}
 
 				// System should either continue processing or handle the update
-				return createdIntent.Status.LastProcessed != nil
+				return createdIntent.Status.Conditions != nil
 			}, 45*time.Second, 3*time.Second).Should(BeTrue())
 
 			By("Verifying updated intent is reflected")

@@ -529,9 +529,9 @@ func (pq *PriorityQueue) Enqueue(task *Task) error {
 
 			// Insert at position i by making space and moving elements.
 
-			pq.tasks = append(pq.tasks, nil) // Grow the slice
+			pq.tasks = append(pq.tasks, nil)   // Grow the slice
 			copy(pq.tasks[i+1:], pq.tasks[i:]) // Shift elements to the right
-			pq.tasks[i] = task // Insert the new task
+			pq.tasks[i] = task                 // Insert the new task
 
 			inserted = true
 

@@ -543,18 +543,18 @@ type SubscriptionQueryFilter struct {
 
 // CreateSubscriptionRequest represents a request to create a subscription.
 type CreateSubscriptionRequest struct {
-	Callback string `json:"callback"`
-	ConsumerSubscriptionID string `json:"consumerSubscriptionId,omitempty"`
-	EventTypes []string `json:"eventTypes"`
-	Filter *SubscriptionFilter `json:"filter,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Callback               string                 `json:"callback"`
+	ConsumerSubscriptionID string                 `json:"consumerSubscriptionId,omitempty"`
+	EventTypes             []string               `json:"eventTypes"`
+	Filter                 *SubscriptionFilter    `json:"filter,omitempty"`
+	Metadata               map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // UpdateSubscriptionRequest represents a request to update a subscription.
 type UpdateSubscriptionRequest struct {
-	Callback string `json:"callback,omitempty"`
-	EventTypes []string `json:"eventTypes,omitempty"`
-	Status string `json:"status,omitempty"`
-	Filter *SubscriptionFilter `json:"filter,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Callback   string                 `json:"callback,omitempty"`
+	EventTypes []string               `json:"eventTypes,omitempty"`
+	Status     string                 `json:"status,omitempty"`
+	Filter     *SubscriptionFilter    `json:"filter,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }

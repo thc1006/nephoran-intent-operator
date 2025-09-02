@@ -338,7 +338,7 @@ func BenchmarkIntegrityProcessing(b *testing.B) {
 			mockBackend := &MockPerformanceBackend{}
 			auditSystem.backends = []backends.Backend{mockBackend}
 
-			err = auditSystem.Start(context.Background())
+			err = auditSystem.Start()
 			require.NoError(b, err)
 			defer auditSystem.Stop()
 
@@ -484,7 +484,7 @@ func TestAuditSystemStress(t *testing.T) {
 		slowBackend := &SlowMockBackend{latency: 10 * time.Millisecond}
 		auditSystem.backends = []backends.Backend{slowBackend}
 
-		err = auditSystem.Start(context.Background())
+		err = auditSystem.Start()
 		require.NoError(t, err)
 		defer auditSystem.Stop()
 
@@ -606,7 +606,7 @@ func setupBenchmarkAuditSystem(t testing.TB, batchSize int) *AuditSystem {
 	mockBackend := &MockPerformanceBackend{}
 	auditSystem.backends = []backends.Backend{mockBackend}
 
-	err = auditSystem.Start(context.Background())
+	err = auditSystem.Start()
 	require.NoError(t, err)
 
 	return auditSystem

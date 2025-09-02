@@ -479,7 +479,7 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 				start := time.Now()
 
 				response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
-					Query: query,
+					Query:      query,
 					MaxResults: 10,
 				})
 

@@ -10,17 +10,17 @@ type CompatibilityRelevanceScorer = RelevanceScorerImpl
 // ConsolidatedRAGAwarePromptBuilder alias for the handlers - use the stub
 type ConsolidatedRAGAwarePromptBuilder = RAGAwarePromptBuilderStub
 
-// StreamingProcessor alias for the handlers - use the stub 
+// StreamingProcessor alias for the handlers - use the stub
 type CompatibilityStreamingProcessor = ConsolidatedStreamingProcessor
 
 // Constructor aliases to match handler expectations
 func NewCompatibilityRelevanceScorer(args ...interface{}) *CompatibilityRelevanceScorer {
 	// Use the existing default config function
 	config := getDefaultRelevanceScorerConfig()
-	
+
 	// Create a minimal embedding service stub
 	var embeddingService rag.EmbeddingServiceInterface = nil // Use nil for now
-	
+
 	return NewRelevanceScorerImpl(config, embeddingService)
 }
 

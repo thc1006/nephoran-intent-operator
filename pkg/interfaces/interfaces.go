@@ -207,12 +207,12 @@ type APIKeys struct {
 // IsEmpty returns true if all API keys are empty.
 
 func (ak *APIKeys) IsEmpty() bool {
-	return ak.OpenAI == "" && 
-		   ak.Weaviate == "" && 
-		   ak.Anthropic == "" && 
-		   ak.GoogleAI == "" && 
-		   ak.Generic == "" && 
-		   ak.JWTSecret == ""
+	return ak.OpenAI == "" &&
+		ak.Weaviate == "" &&
+		ak.Anthropic == "" &&
+		ak.GoogleAI == "" &&
+		ak.Generic == "" &&
+		ak.JWTSecret == ""
 }
 
 // RotationResult contains the result of a secret rotation operation.

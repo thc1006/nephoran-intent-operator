@@ -24,7 +24,7 @@ type Config struct {
 	UseSONIC bool `json:"use_sonic" yaml:"use_sonic"`
 
 	// HTTP2 configuration
-	EnableHTTP2          bool `json:"enable_http2" yaml:"enable_http2"`
+	EnableHTTP2          bool   `json:"enable_http2" yaml:"enable_http2"`
 	HTTP2MaxConcurrent   uint32 `json:"http2_max_concurrent" yaml:"http2_max_concurrent"`
 	HTTP2MaxUploadBuffer uint32 `json:"http2_max_upload_buffer" yaml:"http2_max_upload_buffer"`
 
@@ -41,11 +41,11 @@ type Config struct {
 	GOGC       int `json:"gogc" yaml:"gogc"`
 
 	// Connection pool settings
-	MaxIdleConns        int           `json:"max_idle_conns" yaml:"max_idle_conns"`
-	MaxConnsPerHost     int           `json:"max_conns_per_host" yaml:"max_conns_per_host"`
-	IdleConnTimeout     time.Duration `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
-	DisableKeepAlives   bool          `json:"disable_keep_alives" yaml:"disable_keep_alives"`
-	DisableCompression  bool          `json:"disable_compression" yaml:"disable_compression"`
+	MaxIdleConns          int           `json:"max_idle_conns" yaml:"max_idle_conns"`
+	MaxConnsPerHost       int           `json:"max_conns_per_host" yaml:"max_conns_per_host"`
+	IdleConnTimeout       time.Duration `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
+	DisableKeepAlives     bool          `json:"disable_keep_alives" yaml:"disable_keep_alives"`
+	DisableCompression    bool          `json:"disable_compression" yaml:"disable_compression"`
 	ResponseHeaderTimeout time.Duration `json:"response_header_timeout" yaml:"response_header_timeout"`
 }
 
@@ -53,20 +53,20 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		UseSONIC:              true,
-		EnableHTTP2:          true,
-		HTTP2MaxConcurrent:   1000,
-		HTTP2MaxUploadBuffer: 1 << 20, // 1MB
-		EnableProfiling:      true,
-		ProfilingAddr:        ":6060",
-		EnableMetrics:        true,
-		MetricsAddr:          ":9090",
-		GOMAXPROCS:           runtime.NumCPU(),
-		GOGC:                 100, // Default GC percentage
-		MaxIdleConns:         100,
-		MaxConnsPerHost:      10,
-		IdleConnTimeout:      90 * time.Second,
-		DisableKeepAlives:    false,
-		DisableCompression:   false,
+		EnableHTTP2:           true,
+		HTTP2MaxConcurrent:    1000,
+		HTTP2MaxUploadBuffer:  1 << 20, // 1MB
+		EnableProfiling:       true,
+		ProfilingAddr:         ":6060",
+		EnableMetrics:         true,
+		MetricsAddr:           ":9090",
+		GOMAXPROCS:            runtime.NumCPU(),
+		GOGC:                  100, // Default GC percentage
+		MaxIdleConns:          100,
+		MaxConnsPerHost:       10,
+		IdleConnTimeout:       90 * time.Second,
+		DisableKeepAlives:     false,
+		DisableCompression:    false,
 		ResponseHeaderTimeout: 10 * time.Second,
 	}
 }
@@ -84,13 +84,13 @@ func JSONUnmarshal(data []byte, v interface{}) error {
 // SetupHTTP2Server configures an HTTP server with HTTP/2 support
 func SetupHTTP2Server(handler http.Handler, config *Config) *http.Server {
 	h2s := &http2.Server{
-		MaxConcurrentStreams: config.HTTP2MaxConcurrent,
-		MaxUploadBufferPerStream: int32(config.HTTP2MaxUploadBuffer),
+		MaxConcurrentStreams:         config.HTTP2MaxConcurrent,
+		MaxUploadBufferPerStream:     int32(config.HTTP2MaxUploadBuffer),
 		MaxUploadBufferPerConnection: int32(config.HTTP2MaxUploadBuffer * 10),
 	}
 
 	server := &http.Server{
-		Handler: h2c.NewHandler(handler, h2s),
+		Handler:      h2c.NewHandler(handler, h2s),
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -151,8 +151,8 @@ func StartMetricsServer(config *Config, registry *prometheus.Registry, logger *z
 		}))
 
 		server := &http.Server{
-			Addr:    config.MetricsAddr,
-			Handler: mux,
+			Addr:         config.MetricsAddr,
+			Handler:      mux,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  60 * time.Second,
@@ -194,7 +194,7 @@ type Manager struct {
 // NewManager creates a new performance manager
 func NewManager(config *Config, logger *zap.Logger, registry *prometheus.Registry) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	manager := &Manager{
 		config:  config,
 		logger:  logger,

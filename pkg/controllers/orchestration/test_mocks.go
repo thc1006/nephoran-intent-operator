@@ -60,7 +60,7 @@ func NewSharedMockRAGService() *SharedMockRAGService {
 
 func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag.RetrievalRequest) (*rag.RetrievalResponse, error) {
 	args := m.Called(ctx, request)
-	
+
 	// Simulate delay if configured
 	if m.queryDelay > 0 {
 		time.Sleep(m.queryDelay)
@@ -70,7 +70,7 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 	if m.shouldReturnError {
 		return nil, args.Error(1)
 	}
-	
+
 	// Return predefined response if available
 	m.mutex.RLock()
 	if response, exists := m.responses[request.Query]; exists {
@@ -98,7 +98,7 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 		QueryWasEnhanced:      false,
 		Metadata:              make(map[string]interface{}),
 	}
-	
+
 	// Convert rag.Doc to map[string]interface{}
 	for i, doc := range documents {
 		response.Documents[i] = map[string]interface{}{
@@ -146,13 +146,13 @@ func (m *SharedMockRAGService) Query(ctx context.Context, req *rag.QueryRequest)
 	results := make([]*shared.SearchResult, len(filteredDocs))
 	for i, doc := range filteredDocs {
 		results[i] = &shared.SearchResult{
-			ID:      fmt.Sprintf("doc-%d", i),
-			Content: doc["content"].(string),
-			Score:   float32(doc["similarity"].(float64)),
+			ID:       fmt.Sprintf("doc-%d", i),
+			Content:  doc["content"].(string),
+			Score:    float32(doc["similarity"].(float64)),
 			Metadata: doc["metadata"].(map[string]interface{}),
 		}
 	}
-	
+
 	return &rag.QueryResponse{
 		Query:          req.Query,
 		Results:        results,
@@ -198,9 +198,9 @@ func NewMockRAGService() *MockRAGService {
 // MockTelecomResourceCalculator provides mock telecom resource calculation functionality
 type MockTelecomResourceCalculator struct {
 	mock.Mock
-	calculationDelay time.Duration
+	calculationDelay  time.Duration
 	shouldReturnError bool
-	mutex sync.RWMutex
+	mutex             sync.RWMutex
 }
 
 // NewMockTelecomResourceCalculator creates a new mock telecom resource calculator
@@ -211,13 +211,13 @@ func NewMockTelecomResourceCalculator() *MockTelecomResourceCalculator {
 // CalculateResources performs mock resource calculation
 func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, request interface{}) (interface{}, error) {
 	args := m.Called(ctx, request)
-	
+
 	// Simulate delay if configured
 	m.mutex.RLock()
 	delay := m.calculationDelay
 	shouldError := m.shouldReturnError
 	m.mutex.RUnlock()
-	
+
 	if delay > 0 {
 		time.Sleep(delay)
 	}
@@ -229,10 +229,10 @@ func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, 
 
 	// Return mock calculation result
 	result := map[string]interface{}{
-		"cpu_requirements": "500m",
-		"memory_requirements": "1Gi",
+		"cpu_requirements":     "500m",
+		"memory_requirements":  "1Gi",
 		"storage_requirements": "10Gi",
-		"estimated_cost": 0.05,
+		"estimated_cost":       0.05,
 		"optimization_suggestions": []string{
 			"Consider using CPU burst for variable workloads",
 			"Memory overcommit ratio can be increased to 1.2",

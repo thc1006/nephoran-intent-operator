@@ -29,13 +29,13 @@ func NewFaultNotificationChannel(id, chType string, config map[string]interface{
 func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error {
 	// Convert alarm to generic notification
 	notification := &Notification{
-		ID:        alarm.AlarmID,
-		Type:      "ALARM",
-		Severity:  alarm.PerceivedSeverity,
-		Title:     template.Subject,
-		Message:   f.formatMessage(alarm, template),
-		Source:    "FAULT_MANAGER",
-		Target:    alarm.ObjectInstance,
+		ID:       alarm.AlarmID,
+		Type:     "ALARM",
+		Severity: alarm.PerceivedSeverity,
+		Title:    template.Subject,
+		Message:  f.formatMessage(alarm, template),
+		Source:   "FAULT_MANAGER",
+		Target:   alarm.ObjectInstance,
 		Timestamp: func() time.Time {
 			if alarm.AlarmRaisedTime != nil {
 				return *alarm.AlarmRaisedTime

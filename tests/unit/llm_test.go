@@ -388,8 +388,8 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should open after failure threshold", func() {
 				// Simulate failures
 				for i := 0; i < 5; i++ {
-					circuitBreaker.Execute(func() error {
-						return fmt.Errorf("simulated failure")
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
+						return nil, fmt.Errorf("simulated failure")
 					})
 				}
 
@@ -400,8 +400,8 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should transition to half-open after reset timeout", func() {
 				// Force circuit to open
 				for i := 0; i < 5; i++ {
-					circuitBreaker.Execute(func() error {
-						return fmt.Errorf("simulated failure")
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
+						return nil, fmt.Errorf("simulated failure")
 					})
 				}
 
@@ -418,9 +418,9 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 		ginkgo.Context("Request Handling", func() {
 			ginkgo.It("should execute requests in closed state", func() {
 				executed := false
-				err := circuitBreaker.Execute(func() error {
+				_, err := circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					executed = true
-					return nil
+					return nil, nil
 				})
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -430,15 +430,15 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should reject requests in open state", func() {
 				// Force circuit to open
 				for i := 0; i < 5; i++ {
-					circuitBreaker.Execute(func() error {
-						return fmt.Errorf("simulated failure")
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
+						return nil, fmt.Errorf("simulated failure")
 					})
 				}
 
 				executed := false
-				err := circuitBreaker.Execute(func() error {
+				_, err := circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 					executed = true
-					return nil
+					return nil, nil
 				})
 
 				gomega.Expect(err).To(gomega.HaveOccurred())
@@ -450,11 +450,11 @@ func (suite *LLMTestSuite) TestCircuitBreaker() {
 			ginkgo.It("should track success and failure rates", func() {
 				// Execute mix of success and failures
 				for i := 0; i < 10; i++ {
-					circuitBreaker.Execute(func() error {
+					_, _ = circuitBreaker.Execute(context.Background(), func(ctx context.Context) (interface{}, error) {
 						if i%2 == 0 {
-							return nil // Success
+							return nil, nil // Success
 						}
-						return fmt.Errorf("failure") // Failure
+						return nil, fmt.Errorf("failure") // Failure
 					})
 				}
 

@@ -24,22 +24,22 @@ func NewHTTPMiddleware(metrics *Metrics) *HTTPMiddleware {
 func (m *HTTPMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Increment in-flight requests
 		m.metrics.RequestInFlight.Inc()
 		defer m.metrics.RequestInFlight.Dec()
 
 		// Create a response writer wrapper to capture status code
 		wrapper := &responseWriterWrapper{ResponseWriter: w, statusCode: 200}
-		
+
 		// Process the request
 		next.ServeHTTP(wrapper, r)
-		
+
 		// Record metrics
 		duration := time.Since(start)
 		endpoint := m.getEndpoint(r)
 		status := strconv.Itoa(wrapper.statusCode)
-		
+
 		m.metrics.RecordRequestDuration(r.Method, endpoint, status, duration)
 	})
 }
@@ -72,7 +72,7 @@ func (m *HTTPMiddleware) getEndpoint(r *http.Request) string {
 			return template
 		}
 	}
-	
+
 	// Fallback to sanitized URL path
 	path := r.URL.Path
 	if path == "" {
@@ -98,7 +98,7 @@ func (m *JSONMiddleware) MarshalWithMetrics(v interface{}) ([]byte, error) {
 	start := time.Now()
 	data, err := JSONMarshal(v)
 	duration := time.Since(start)
-	
+
 	m.metrics.RecordJSONMarshal(duration, err)
 	return data, err
 }
@@ -108,7 +108,7 @@ func (m *JSONMiddleware) UnmarshalWithMetrics(data []byte, v interface{}) error 
 	start := time.Now()
 	err := JSONUnmarshal(data, v)
 	duration := time.Since(start)
-	
+
 	m.metrics.RecordJSONUnmarshal(duration, err)
 	return err
 }
@@ -130,7 +130,7 @@ func (m *DatabaseMiddleware) RecordQuery(queryType, table string, fn func() erro
 	start := time.Now()
 	err := fn()
 	duration := time.Since(start)
-	
+
 	m.metrics.RecordDBQuery(queryType, table, duration, err)
 	return err
 }
@@ -184,12 +184,12 @@ func (m *IntentMiddleware) ProcessIntent(intentType string, fn func() error) err
 	start := time.Now()
 	err := fn()
 	duration := time.Since(start)
-	
+
 	status := "success"
 	if err != nil {
 		status = "error"
 	}
-	
+
 	m.metrics.RecordIntentProcessing(intentType, status, duration)
 	return err
 }
@@ -211,12 +211,12 @@ func (m *ScalingMiddleware) RecordScaling(direction, resourceType string, fn fun
 	start := time.Now()
 	err := fn()
 	duration := time.Since(start)
-	
+
 	status := "success"
 	if err != nil {
 		status = "error"
 	}
-	
+
 	m.metrics.RecordScalingOperation(direction, resourceType, status, duration)
 	return err
 }

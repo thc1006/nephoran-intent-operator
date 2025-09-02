@@ -25,7 +25,7 @@ type Server struct {
 // NewServer creates a new Web UI server
 func NewServer(clientset kubernetes.Interface, port int) *Server {
 	informerFactory := informers.NewSharedInformerFactory(clientset, time.Minute*10)
-	
+
 	return &Server{
 		clientset:       clientset,
 		informerFactory: informerFactory,
@@ -38,7 +38,7 @@ func NewServer(clientset kubernetes.Interface, port int) *Server {
 func (s *Server) Start(ctx context.Context) error {
 	// Start informers
 	s.informerFactory.Start(ctx.Done())
-	
+
 	// Wait for informers to sync
 	if !cache.WaitForCacheSync(ctx.Done(), s.informerFactory.Core().V1().Pods().Informer().HasSynced) {
 		return fmt.Errorf("failed to sync informers")
@@ -70,7 +70,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/api/v1/deployments", s.handleGetDeployments).Methods("GET")
 	s.router.HandleFunc("/api/v1/services", s.handleGetServices).Methods("GET")
 	s.router.HandleFunc("/api/v1/namespaces", s.handleGetNamespaces).Methods("GET")
-	
+
 	// Serve static files
 	s.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 }
@@ -81,7 +81,7 @@ func (s *Server) handleGetPods(w http.ResponseWriter, r *http.Request) {
 	labelSelector := r.URL.Query().Get("labelSelector")
 
 	podLister := s.informerFactory.Core().V1().Pods().Lister()
-	
+
 	var pods interface{}
 	var err error
 
@@ -121,9 +121,9 @@ func (s *Server) handleGetPods(w http.ResponseWriter, r *http.Request) {
 // handleGetDeployments handles GET /api/v1/deployments
 func (s *Server) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
 	namespace := r.URL.Query().Get("namespace")
-	
+
 	deploymentLister := s.informerFactory.Apps().V1().Deployments().Lister()
-	
+
 	var deployments interface{}
 	var err error
 
@@ -145,9 +145,9 @@ func (s *Server) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
 // handleGetServices handles GET /api/v1/services
 func (s *Server) handleGetServices(w http.ResponseWriter, r *http.Request) {
 	namespace := r.URL.Query().Get("namespace")
-	
+
 	serviceLister := s.informerFactory.Core().V1().Services().Lister()
-	
+
 	var services interface{}
 	var err error
 
@@ -169,7 +169,7 @@ func (s *Server) handleGetServices(w http.ResponseWriter, r *http.Request) {
 // handleGetNamespaces handles GET /api/v1/namespaces
 func (s *Server) handleGetNamespaces(w http.ResponseWriter, r *http.Request) {
 	namespaceLister := s.informerFactory.Core().V1().Namespaces().Lister()
-	
+
 	namespaces, err := namespaceLister.List(labels.Everything())
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to list namespaces: %v", err), http.StatusInternalServerError)

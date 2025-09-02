@@ -21,17 +21,22 @@ import (
 
 // Compatibility function to create handlers that works around interface issues
 func createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager interface{}, config *auth.HandlersConfig) *auth.AuthHandlers {
-	// This uses the interface{}-accepting version from config_stubs.go
-	return auth.NewAuthHandlers(sessionManager, jwtManager, rbacManager, config)
+	// Type assertions to convert interface{} to the required types
+	sm := sessionManager.(*auth.SessionManager)
+	jm := jwtManager.(*auth.JWTManager)
+	rm := rbacManager.(*auth.RBACManager)
+	
+	// Use the strongly typed version from handlers.go
+	return auth.NewAuthHandlers(sm, jm, rm, config)
 }
 
 // Helper function to create properly typed managers for tests
 func setupTestManagers(tc *testutil.TestContext) (*testutil.JWTManagerMock, *testutil.SessionManagerMock, *testutil.RBACManagerMock) {
 	jwtManagerMock := tc.SetupJWTManager()
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+	sessionManager := tc.SetupSessionManager()
+	rbacManager := tc.SetupRBACManager()
 
-	return jwtManagerMock, sessionManagerMock, rbacManagerMock
+	return jwtManagerMock, sessionManager, rbacManager
 }
 
 func TestAuthHandlers_Login(t *testing.T) {
@@ -44,7 +49,7 @@ func TestAuthHandlers_Login(t *testing.T) {
 
 	// Setup test managers
 	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
-	
+
 	// Use the interface{} accepting version of NewAuthHandlers (from config_stubs.go)
 	handlersConfig := &auth.HandlersConfig{
 		BaseURL:         "http://localhost:8080",
@@ -344,9 +349,7 @@ func TestAuthHandlers_RefreshToken(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Create test user and tokens
 	uf := testutil.NewUserFactory()
@@ -452,9 +455,7 @@ func TestAuthHandlers_Logout(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Create test session and token
 	uf := testutil.NewUserFactory()
@@ -578,9 +579,7 @@ func TestAuthHandlers_UserInfo(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Create test user and token
 	uf := testutil.NewUserFactory()
@@ -668,116 +667,114 @@ func TestAuthHandlers_UserInfo(t *testing.T) {
 func TestAuthHandlers_HealthCheck_DISABLED(t *testing.T) {
 	t.Skip("HealthCheckHandler method not available in current implementation")
 	/*
-	tc := testutil.NewTestContext(t)
-	defer tc.Cleanup()
+		tc := testutil.NewTestContext(t)
+		defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+		jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
-	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
-		BaseURL:         "http://localhost:8080",
-		DefaultRedirect: "/dashboard",
-		LoginPath:       "/auth/login",
-		CallbackPath:    "/auth/callback",
-		LogoutPath:      "/auth/logout",
-		UserInfoPath:    "/auth/userinfo",
-		EnableAPITokens: true,
-		TokenPath:       "/auth/token",
-	})
-
-	tests := []struct {
-		name          string
-		method        string
-		expectStatus  int
-		checkResponse func(*testing.T, *httptest.ResponseRecorder)
-	}{
-		{
-			name:         "Health check GET",
-			method:       "GET",
-			expectStatus: http.StatusOK,
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				var response map[string]interface{}
-				err := json.Unmarshal(w.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.Equal(t, "healthy", response["status"])
-				assert.NotNil(t, response["timestamp"])
-				assert.Contains(t, response, "components")
-
-				components := response["components"].(map[string]interface{})
-				assert.Equal(t, "healthy", components["jwt_manager"])
-				assert.Equal(t, "healthy", components["session_manager"])
-				assert.Equal(t, "healthy", components["rbac_manager"])
-			},
-		},
-		{
-			name:         "Health check HEAD",
-			method:       "HEAD",
-			expectStatus: http.StatusOK,
-		},
-		{
-			name:         "POST method not allowed",
-			method:       "POST",
-			expectStatus: http.StatusMethodNotAllowed,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, "/auth/health", nil)
-			w := httptest.NewRecorder()
-
-			// handlers.HealthCheckHandler(w, req) // Method not available
-
-			assert.Equal(t, tt.expectStatus, w.Code)
-			if tt.checkResponse != nil {
-				tt.checkResponse(t, w)
-			}
+		handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
 		})
-	}
+
+		tests := []struct {
+			name          string
+			method        string
+			expectStatus  int
+			checkResponse func(*testing.T, *httptest.ResponseRecorder)
+		}{
+			{
+				name:         "Health check GET",
+				method:       "GET",
+				expectStatus: http.StatusOK,
+				checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+					var response map[string]interface{}
+					err := json.Unmarshal(w.Body.Bytes(), &response)
+					assert.NoError(t, err)
+					assert.Equal(t, "healthy", response["status"])
+					assert.NotNil(t, response["timestamp"])
+					assert.Contains(t, response, "components")
+
+					components := response["components"].(map[string]interface{})
+					assert.Equal(t, "healthy", components["jwt_manager"])
+					assert.Equal(t, "healthy", components["session_manager"])
+					assert.Equal(t, "healthy", components["rbac_manager"])
+				},
+			},
+			{
+				name:         "Health check HEAD",
+				method:       "HEAD",
+				expectStatus: http.StatusOK,
+			},
+			{
+				name:         "POST method not allowed",
+				method:       "POST",
+				expectStatus: http.StatusMethodNotAllowed,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := httptest.NewRequest(tt.method, "/auth/health", nil)
+				w := httptest.NewRecorder()
+
+				// handlers.HealthCheckHandler(w, req) // Method not available
+
+				assert.Equal(t, tt.expectStatus, w.Code)
+				if tt.checkResponse != nil {
+					tt.checkResponse(t, w)
+				}
+			})
+		}
 	*/
 }
 
 func TestAuthHandlers_JWKS_DISABLED(t *testing.T) {
 	t.Skip("JWKSHandler method not available in current implementation")
 	/*
-	tc := testutil.NewTestContext(t)
-	defer tc.Cleanup()
+		tc := testutil.NewTestContext(t)
+		defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
+		jwtManager, _, _ := setupTestManagers(tc)
 
-	handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
-		BaseURL:         "http://localhost:8080",
-		DefaultRedirect: "/dashboard",
-		LoginPath:       "/auth/login",
-		CallbackPath:    "/auth/callback",
-		LogoutPath:      "/auth/logout",
-		UserInfoPath:    "/auth/userinfo",
-		EnableAPITokens: true,
-		TokenPath:       "/auth/token",
-	})
+		handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
+		})
 
-	req := httptest.NewRequest("GET", "/.well-known/jwks.json", nil)
-	w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/.well-known/jwks.json", nil)
+		w := httptest.NewRecorder()
 
-	// handlers.JWKSHandler(w, req) // Method not available
+		// handlers.JWKSHandler(w, req) // Method not available
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 
-	var jwks map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &jwks)
-	assert.NoError(t, err)
-	assert.Contains(t, jwks, "keys")
+		var jwks map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &jwks)
+		assert.NoError(t, err)
+		assert.Contains(t, jwks, "keys")
 
-	keys := jwks["keys"].([]interface{})
-	assert.NotEmpty(t, keys)
+		keys := jwks["keys"].([]interface{})
+		assert.NotEmpty(t, keys)
 
-	key := keys[0].(map[string]interface{})
-	assert.Equal(t, "RSA", key["kty"])
-	assert.Equal(t, tc.KeyID, key["kid"])
-	assert.Equal(t, "sig", key["use"])
-	assert.Equal(t, "RS256", key["alg"])
+		key := keys[0].(map[string]interface{})
+		assert.Equal(t, "RSA", key["kty"])
+		assert.Equal(t, tc.KeyID, key["kid"])
+		assert.Equal(t, "sig", key["use"])
+		assert.Equal(t, "RS256", key["alg"])
 	*/
 }
 
@@ -859,82 +856,80 @@ func TestAuthHandlers_ErrorHandling(t *testing.T) {
 func TestAuthHandlers_CSRF_DISABLED(t *testing.T) {
 	t.Skip("CSRF functionality not available in current implementation")
 	/*
-	tc := testutil.NewTestContext(t)
-	defer tc.Cleanup()
+		tc := testutil.NewTestContext(t)
+		defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+		jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
-	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
-		BaseURL:         "http://localhost:8080",
-		DefaultRedirect: "/dashboard",
-		LoginPath:       "/auth/login",
-		CallbackPath:    "/auth/callback",
-		LogoutPath:      "/auth/logout",
-		UserInfoPath:    "/auth/userinfo",
-		EnableAPITokens: true,
-		TokenPath:       "/auth/token",
-	})
-
-	tests := []struct {
-		name          string
-		setupRequest  func() *http.Request
-		expectStatus  int
-		checkResponse func(*testing.T, *httptest.ResponseRecorder)
-	}{
-		{
-			name: "Login without CSRF token",
-			setupRequest: func() *http.Request {
-				body := map[string]string{
-					"provider":     "test",
-					"redirect_uri": "http://localhost:8080/callback",
-				}
-				jsonBody, _ := json.Marshal(body)
-				req := httptest.NewRequest("POST", "/auth/login", bytes.NewReader(jsonBody))
-				req.Header.Set("Content-Type", "application/json")
-				return req
-			},
-			expectStatus: http.StatusForbidden,
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				var response map[string]string
-				err := json.Unmarshal(w.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.Contains(t, strings.ToLower(response["error"]), "csrf")
-			},
-		},
-		{
-			name: "Get CSRF token",
-			setupRequest: func() *http.Request {
-				return httptest.NewRequest("GET", "/auth/csrf-token", nil)
-			},
-			expectStatus: http.StatusOK,
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				var response map[string]string
-				err := json.Unmarshal(w.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.NotEmpty(t, response["csrf_token"])
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := tt.setupRequest()
-			w := httptest.NewRecorder()
-
-			if req.URL.Path == "/auth/csrf-token" {
-				// handlers.CSRFTokenHandler(w, req) // Method not available
-			} else {
-				handlers.InitiateLoginHandler(w, req)
-			}
-
-			assert.Equal(t, tt.expectStatus, w.Code)
-			if tt.checkResponse != nil {
-				tt.checkResponse(t, w)
-			}
+		handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
 		})
-	}
+
+		tests := []struct {
+			name          string
+			setupRequest  func() *http.Request
+			expectStatus  int
+			checkResponse func(*testing.T, *httptest.ResponseRecorder)
+		}{
+			{
+				name: "Login without CSRF token",
+				setupRequest: func() *http.Request {
+					body := map[string]string{
+						"provider":     "test",
+						"redirect_uri": "http://localhost:8080/callback",
+					}
+					jsonBody, _ := json.Marshal(body)
+					req := httptest.NewRequest("POST", "/auth/login", bytes.NewReader(jsonBody))
+					req.Header.Set("Content-Type", "application/json")
+					return req
+				},
+				expectStatus: http.StatusForbidden,
+				checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+					var response map[string]string
+					err := json.Unmarshal(w.Body.Bytes(), &response)
+					assert.NoError(t, err)
+					assert.Contains(t, strings.ToLower(response["error"]), "csrf")
+				},
+			},
+			{
+				name: "Get CSRF token",
+				setupRequest: func() *http.Request {
+					return httptest.NewRequest("GET", "/auth/csrf-token", nil)
+				},
+				expectStatus: http.StatusOK,
+				checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+					var response map[string]string
+					err := json.Unmarshal(w.Body.Bytes(), &response)
+					assert.NoError(t, err)
+					assert.NotEmpty(t, response["csrf_token"])
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := tt.setupRequest()
+				w := httptest.NewRecorder()
+
+				if req.URL.Path == "/auth/csrf-token" {
+					// handlers.CSRFTokenHandler(w, req) // Method not available
+				} else {
+					handlers.InitiateLoginHandler(w, req)
+				}
+
+				assert.Equal(t, tt.expectStatus, w.Code)
+				if tt.checkResponse != nil {
+					tt.checkResponse(t, w)
+				}
+			})
+		}
 	*/
 }
 
@@ -942,66 +937,66 @@ func TestAuthHandlers_CSRF_DISABLED(t *testing.T) {
 func BenchmarkAuthHandlers_UserInfo_DISABLED(b *testing.B) {
 	b.Skip("UserInfo benchmark disabled due to interface mismatch")
 	/*
-	tc := testutil.NewTestContext(&testing.T{})
-	defer tc.Cleanup()
+		tc := testutil.NewTestContext(&testing.T{})
+		defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	uf := testutil.NewUserFactory()
-	user := uf.CreateBasicUser()
+		jwtManager, _, _ := setupTestManagers(tc)
+		uf := testutil.NewUserFactory()
+		user := uf.CreateBasicUser()
 
-	token, err := jwtManager.GenerateToken(user, nil)
-	if err != nil {
-		b.Fatal(err)
-	}
+		token, err := jwtManager.GenerateToken(user, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
 
-	handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
-		BaseURL:         "http://localhost:8080",
-		DefaultRedirect: "/dashboard",
-		LoginPath:       "/auth/login",
-		CallbackPath:    "/auth/callback",
-		LogoutPath:      "/auth/logout",
-		UserInfoPath:    "/auth/userinfo",
-		EnableAPITokens: true,
-		TokenPath:       "/auth/token",
-	})
+		handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
+		})
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("GET", "/auth/userinfo", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		w := httptest.NewRecorder()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			req := httptest.NewRequest("GET", "/auth/userinfo", nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+			w := httptest.NewRecorder()
 
-		handlers.GetUserInfoHandler(w, req)
-	}
+			handlers.GetUserInfoHandler(w, req)
+		}
 	*/
 }
 
 func BenchmarkAuthHandlers_JWKS_DISABLED(b *testing.B) {
 	b.Skip("JWKS benchmark disabled due to interface mismatch")
 	/*
-	tc := testutil.NewTestContext(&testing.T{})
-	defer tc.Cleanup()
+		tc := testutil.NewTestContext(&testing.T{})
+		defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
+		jwtManager, _, _ := setupTestManagers(tc)
 
-	handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
-		BaseURL:         "http://localhost:8080",
-		DefaultRedirect: "/dashboard",
-		LoginPath:       "/auth/login",
-		CallbackPath:    "/auth/callback",
-		LogoutPath:      "/auth/logout",
-		UserInfoPath:    "/auth/userinfo",
-		EnableAPITokens: true,
-		TokenPath:       "/auth/token",
-	})
+		handlers := createCompatibleAuthHandlers(nil, jwtManager, nil, &auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
+		})
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("GET", "/.well-known/jwks.json", nil)
-		w := httptest.NewRecorder()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			req := httptest.NewRequest("GET", "/.well-known/jwks.json", nil)
+			w := httptest.NewRecorder()
 
-		// handlers.JWKSHandler(w, req) // Method not available
-	}
+			// handlers.JWKSHandler(w, req) // Method not available
+		}
 	*/
 }
 
@@ -1009,60 +1004,58 @@ func BenchmarkAuthHandlers_JWKS_DISABLED(b *testing.B) {
 func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 	t.Skip("Integration test disabled due to missing handler methods")
 	/*
-	tc := testutil.NewTestContext(t)
-	defer tc.Cleanup()
+		tc := testutil.NewTestContext(t)
+		defer tc.Cleanup()
 
-	jwtManager, _, _ := setupTestManagers(tc)
-	sessionManagerMock := tc.SetupSessionManager()
-	rbacManagerMock := tc.SetupRBACManager()
+		jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
-	handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
-		BaseURL:         "http://localhost:8080",
-		DefaultRedirect: "/dashboard",
-		LoginPath:       "/auth/login",
-		CallbackPath:    "/auth/callback",
-		LogoutPath:      "/auth/logout",
-		UserInfoPath:    "/auth/userinfo",
-		EnableAPITokens: true,
-		TokenPath:       "/auth/token",
-	})
+		handlers := createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager, &auth.HandlersConfig{
+			BaseURL:         "http://localhost:8080",
+			DefaultRedirect: "/dashboard",
+			LoginPath:       "/auth/login",
+			CallbackPath:    "/auth/callback",
+			LogoutPath:      "/auth/logout",
+			UserInfoPath:    "/auth/userinfo",
+			EnableAPITokens: true,
+			TokenPath:       "/auth/token",
+		})
 
-	// Create HTTP server
-	mux := http.NewServeMux()
-	mux.HandleFunc("/auth/login", handlers.InitiateLoginHandler)
-	mux.HandleFunc("/auth/callback", handlers.CallbackHandler)
-	mux.HandleFunc("/auth/refresh", handlers.RefreshTokenHandler)
-	mux.HandleFunc("/auth/logout", handlers.LogoutHandler)
-	mux.HandleFunc("/auth/userinfo", handlers.GetUserInfoHandler)
-	// mux.HandleFunc("/auth/health", handlers.HealthCheckHandler) // Method not available
-	// mux.HandleFunc("/.well-known/jwks.json", handlers.JWKSHandler) // Method not available
+		// Create HTTP server
+		mux := http.NewServeMux()
+		mux.HandleFunc("/auth/login", handlers.InitiateLoginHandler)
+		mux.HandleFunc("/auth/callback", handlers.CallbackHandler)
+		mux.HandleFunc("/auth/refresh", handlers.RefreshTokenHandler)
+		mux.HandleFunc("/auth/logout", handlers.LogoutHandler)
+		mux.HandleFunc("/auth/userinfo", handlers.GetUserInfoHandler)
+		// mux.HandleFunc("/auth/health", handlers.HealthCheckHandler) // Method not available
+		// mux.HandleFunc("/.well-known/jwks.json", handlers.JWKSHandler) // Method not available
 
-	server := httptest.NewServer(mux)
-	defer server.Close()
+		server := httptest.NewServer(mux)
+		defer server.Close()
 
-	// Test health check
-	resp, err := http.Get(server.URL + "/auth/health")
-	require.NoError(t, err)
-	defer resp.Body.Close()
+		// Test health check
+		resp, err := http.Get(server.URL + "/auth/health")
+		require.NoError(t, err)
+		defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
 
-	var health map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&health)
-	assert.NoError(t, err)
-	assert.Equal(t, "healthy", health["status"])
+		var health map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&health)
+		assert.NoError(t, err)
+		assert.Equal(t, "healthy", health["status"])
 
-	// Test JWKS endpoint
-	resp, err = http.Get(server.URL + "/.well-known/jwks.json")
-	require.NoError(t, err)
-	defer resp.Body.Close()
+		// Test JWKS endpoint
+		resp, err = http.Get(server.URL + "/.well-known/jwks.json")
+		require.NoError(t, err)
+		defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var jwks map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&jwks)
-	assert.NoError(t, err)
-	assert.Contains(t, jwks, "keys")
+		var jwks map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&jwks)
+		assert.NoError(t, err)
+		assert.Contains(t, jwks, "keys")
 	*/
 }

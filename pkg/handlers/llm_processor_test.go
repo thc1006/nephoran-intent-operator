@@ -179,7 +179,7 @@ func TestIntentParserEdgeCases(t *testing.T) {
 		},
 		{
 			name:           "Scale with non-numeric replicas",
-			body:           "scale app to abc in ns test", 
+			body:           "scale app to abc in ns test",
 			expectedStatus: http.StatusBadRequest,
 			validateError:  "Failed to parse intent",
 		},

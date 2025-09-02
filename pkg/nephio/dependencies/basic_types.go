@@ -185,48 +185,48 @@ const (
 
 // Additional validation types
 type CompatibilityResult struct {
-	Compatible      bool                    `json:"compatible"`
-	Issues          []*CompatibilityIssue   `json:"issues,omitempty"`
-	Recommendations []string                `json:"recommendations,omitempty"`
-	Score           float64                 `json:"score"`
-	ValidatedAt     time.Time              `json:"validatedAt"`
+	Compatible      bool                  `json:"compatible"`
+	Issues          []*CompatibilityIssue `json:"issues,omitempty"`
+	Recommendations []string              `json:"recommendations,omitempty"`
+	Score           float64               `json:"score"`
+	ValidatedAt     time.Time             `json:"validatedAt"`
 }
 
 type PlatformValidation struct {
-	Packages    []*PackageReference    `json:"packages"`
-	Platform    *PlatformConstraints   `json:"platform"`
-	Compatible  bool                   `json:"compatible"`
-	Valid       bool                   `json:"valid"`
-	Issues      []string               `json:"issues,omitempty"`
-	ValidatedAt time.Time              `json:"validatedAt"`
+	Packages    []*PackageReference  `json:"packages"`
+	Platform    *PlatformConstraints `json:"platform"`
+	Compatible  bool                 `json:"compatible"`
+	Valid       bool                 `json:"valid"`
+	Issues      []string             `json:"issues,omitempty"`
+	ValidatedAt time.Time            `json:"validatedAt"`
 }
 
 type LicenseValidation struct {
-	Valid       bool             `json:"valid"`
-	License     string           `json:"license,omitempty"`
-	Issues      []*LicenseIssue  `json:"issues,omitempty"`
-	ValidatedAt time.Time        `json:"validatedAt"`
+	Valid       bool            `json:"valid"`
+	License     string          `json:"license,omitempty"`
+	Issues      []*LicenseIssue `json:"issues,omitempty"`
+	ValidatedAt time.Time       `json:"validatedAt"`
 }
 
 type ComplianceValidation struct {
-	Compliant   bool        `json:"compliant"`
-	Score       float64     `json:"score"`
-	Violations  []string    `json:"violations,omitempty"`
-	ValidatedAt time.Time   `json:"validatedAt"`
+	Compliant   bool      `json:"compliant"`
+	Score       float64   `json:"score"`
+	Violations  []string  `json:"violations,omitempty"`
+	ValidatedAt time.Time `json:"validatedAt"`
 }
 
 type PerformanceValidation struct {
-	Valid       bool                    `json:"valid"`
-	Score       float64                 `json:"score"`
-	Issues      []*PerformanceIssue     `json:"issues,omitempty"`
-	ValidatedAt time.Time               `json:"validatedAt"`
+	Valid       bool                `json:"valid"`
+	Score       float64             `json:"score"`
+	Issues      []*PerformanceIssue `json:"issues,omitempty"`
+	ValidatedAt time.Time           `json:"validatedAt"`
 }
 
 type PolicyValidation struct {
-	Valid       bool        `json:"valid"`
-	Score       float64     `json:"score"`
-	Violations  []string    `json:"violations,omitempty"`
-	ValidatedAt time.Time   `json:"validatedAt"`
+	Valid       bool      `json:"valid"`
+	Score       float64   `json:"score"`
+	Violations  []string  `json:"violations,omitempty"`
+	ValidatedAt time.Time `json:"validatedAt"`
 }
 
 type ValidationRecommendation struct {
@@ -237,9 +237,9 @@ type ValidationRecommendation struct {
 }
 
 type ValidationStatistics struct {
-	Total   int `json:"total"`
-	Passed  int `json:"passed"`
-	Failed  int `json:"failed"`
+	Total    int `json:"total"`
+	Passed   int `json:"passed"`
+	Failed   int `json:"failed"`
 	Warnings int `json:"warnings"`
 }
 
@@ -255,17 +255,17 @@ const (
 
 // DependencyConflictReport represents a comprehensive report of dependency conflicts
 type DependencyConflictReport struct {
-	ReportID    string               `json:"reportId"`
+	ReportID    string                `json:"reportId"`
 	Conflicts   []*DependencyConflict `json:"conflicts"`
-	Severity    ConflictSeverity     `json:"severity"`
-	GeneratedAt time.Time            `json:"generatedAt"`
+	Severity    ConflictSeverity      `json:"severity"`
+	GeneratedAt time.Time             `json:"generatedAt"`
 }
 
 // ConflictImpactAnalysis represents analysis of conflict impact on the system
 type ConflictImpactAnalysis struct {
-	AnalysisID       string                 `json:"analysisId"`
-	Conflicts        []*DependencyConflict  `json:"conflicts"`
-	OverallImpact    ConflictImpact         `json:"overallImpact"`
+	AnalysisID       string                `json:"analysisId"`
+	Conflicts        []*DependencyConflict `json:"conflicts"`
+	OverallImpact    ConflictImpact        `json:"overallImpact"`
 	ImpactScore      float64               `json:"impactScore"`
 	AffectedPackages []*AffectedPackage    `json:"affectedPackages"`
 	ImpactCategories map[string]float64    `json:"impactCategories"`
@@ -276,8 +276,8 @@ type ConflictImpactAnalysis struct {
 type AffectedPackage struct {
 	Package      *PackageReference `json:"package"`
 	VersionRange *VersionRange     `json:"versionRange,omitempty"`
-	Severity     string           `json:"severity"`
-	ImpactScore  float64          `json:"impactScore"`
+	Severity     string            `json:"severity"`
+	ImpactScore  float64           `json:"impactScore"`
 }
 
 // VersionRange represents a version range constraint
@@ -310,20 +310,20 @@ type ValidatorHealth struct {
 
 // ValidatorMetrics contains metrics and performance data for the validator
 type ValidatorMetrics struct {
-	TotalValidations            int64   `json:"totalValidations"`
-	SuccessfulValidations       int64   `json:"successfulValidations"`
-	FailedValidations          int64   `json:"failedValidations"`
-	ErrorRate                  float64 `json:"errorRate"`
-	AverageValidationTime      float64 `json:"averageValidationTime"`
-	ConflictDetectionTime      MetricObserver `json:"-"` // Prometheus observer
-	SecurityScanTime           MetricObserver `json:"-"` // Prometheus observer
+	TotalValidations            int64          `json:"totalValidations"`
+	SuccessfulValidations       int64          `json:"successfulValidations"`
+	FailedValidations           int64          `json:"failedValidations"`
+	ErrorRate                   float64        `json:"errorRate"`
+	AverageValidationTime       float64        `json:"averageValidationTime"`
+	ConflictDetectionTime       MetricObserver `json:"-"` // Prometheus observer
+	SecurityScanTime            MetricObserver `json:"-"` // Prometheus observer
 	CompatibilityValidationTime MetricObserver `json:"-"` // Prometheus observer
-	ConflictsDetected          MetricCounter  `json:"-"` // Prometheus counter
-	VulnerabilitiesFound       MetricCounter  `json:"-"` // Prometheus counter
-	SecurityScansTotal         MetricCounter  `json:"-"` // Prometheus counter
-	ScanCacheHits              MetricCounter  `json:"-"` // Prometheus counter
-	ScanCacheMisses            MetricCounter  `json:"-"` // Prometheus counter
-	CompatibilityChecks        MetricCounter  `json:"-"` // Prometheus counter
+	ConflictsDetected           MetricCounter  `json:"-"` // Prometheus counter
+	VulnerabilitiesFound        MetricCounter  `json:"-"` // Prometheus counter
+	SecurityScansTotal          MetricCounter  `json:"-"` // Prometheus counter
+	ScanCacheHits               MetricCounter  `json:"-"` // Prometheus counter
+	ScanCacheMisses             MetricCounter  `json:"-"` // Prometheus counter
+	CompatibilityChecks         MetricCounter  `json:"-"` // Prometheus counter
 }
 
 // MetricObserver represents a metric observer (like Prometheus Histogram)
@@ -350,13 +350,13 @@ type ValidationRules struct {
 
 // SecurityRule represents a security-specific validation rule
 type SecurityRule struct {
-	ID                 string   `json:"id"`
-	Name               string   `json:"name"`
-	Enabled            bool     `json:"enabled"`
-	MaxCriticalVulns   int      `json:"maxCriticalVulns"`
-	MaxHighVulns       int      `json:"maxHighVulns"`
-	BlockedPackages    []string `json:"blockedPackages,omitempty"`
-	RequiredScanners   []string `json:"requiredScanners,omitempty"`
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	Enabled          bool     `json:"enabled"`
+	MaxCriticalVulns int      `json:"maxCriticalVulns"`
+	MaxHighVulns     int      `json:"maxHighVulns"`
+	BlockedPackages  []string `json:"blockedPackages,omitempty"`
+	RequiredScanners []string `json:"requiredScanners,omitempty"`
 }
 
 // LicenseRule represents a license validation rule
@@ -382,14 +382,14 @@ type CompatibilityRule struct {
 // ValidatorConfig represents the configuration for the dependency validator
 type ValidatorConfig struct {
 	// Core settings
-	EnableCaching         bool          `json:"enableCaching"`
-	EnableConcurrency     bool          `json:"enableConcurrency"`
-	WorkerCount           int           `json:"workerCount"`
-	QueueSize             int           `json:"queueSize"`
-	
+	EnableCaching     bool `json:"enableCaching"`
+	EnableConcurrency bool `json:"enableConcurrency"`
+	WorkerCount       int  `json:"workerCount"`
+	QueueSize         int  `json:"queueSize"`
+
 	// Validation settings
 	DefaultValidationRules *ValidationRules `json:"defaultValidationRules,omitempty"`
-	
+
 	// Component configurations
 	CompatibilityConfig    *CompatibilityConfig    `json:"compatibilityConfig,omitempty"`
 	SecurityConfig         *SecurityConfig         `json:"securityConfig,omitempty"`
@@ -397,14 +397,14 @@ type ValidatorConfig struct {
 	PerformanceConfig      *PerformanceConfig      `json:"performanceConfig,omitempty"`
 	PolicyConfig           *PolicyConfig           `json:"policyConfig,omitempty"`
 	ConflictAnalyzerConfig *ConflictAnalyzerConfig `json:"conflictAnalyzerConfig,omitempty"`
-	
+
 	// Cache settings
 	CacheConfig *CacheConfig `json:"cacheConfig,omitempty"`
-	
+
 	// External database configurations
 	VulnerabilityDBConfig *VulnerabilityDBConfig `json:"vulnerabilityDBConfig,omitempty"`
 	LicenseDBConfig       *LicenseDBConfig       `json:"licenseDBConfig,omitempty"`
-	
+
 	// Background process intervals
 	VulnerabilityUpdateInterval time.Duration `json:"vulnerabilityUpdateInterval"`
 	CacheCleanupInterval        time.Duration `json:"cacheCleanupInterval"`
@@ -419,28 +419,28 @@ type CompatibilityConfig struct {
 }
 
 type SecurityConfig struct {
-	Enabled         bool                   `json:"enabled"`
-	ScanTimeout     time.Duration          `json:"scanTimeout"`
-	MaxVulns        int                    `json:"maxVulns"`
-	Settings        map[string]interface{} `json:"settings,omitempty"`
+	Enabled     bool                   `json:"enabled"`
+	ScanTimeout time.Duration          `json:"scanTimeout"`
+	MaxVulns    int                    `json:"maxVulns"`
+	Settings    map[string]interface{} `json:"settings,omitempty"`
 }
 
 type LicenseConfig struct {
-	Enabled         bool                   `json:"enabled"`
-	StrictMode      bool                   `json:"strictMode"`
-	Settings        map[string]interface{} `json:"settings,omitempty"`
+	Enabled    bool                   `json:"enabled"`
+	StrictMode bool                   `json:"strictMode"`
+	Settings   map[string]interface{} `json:"settings,omitempty"`
 }
 
 type PerformanceConfig struct {
-	Enabled      bool                   `json:"enabled"`
-	ProfileMode  bool                   `json:"profileMode"`
-	Settings     map[string]interface{} `json:"settings,omitempty"`
+	Enabled     bool                   `json:"enabled"`
+	ProfileMode bool                   `json:"profileMode"`
+	Settings    map[string]interface{} `json:"settings,omitempty"`
 }
 
 type PolicyConfig struct {
-	Enabled      bool                   `json:"enabled"`
-	StrictMode   bool                   `json:"strictMode"`
-	Settings     map[string]interface{} `json:"settings,omitempty"`
+	Enabled    bool                   `json:"enabled"`
+	StrictMode bool                   `json:"strictMode"`
+	Settings   map[string]interface{} `json:"settings,omitempty"`
 }
 
 type ConflictAnalyzerConfig struct {
@@ -468,29 +468,29 @@ type LicenseDBConfig struct {
 
 // PolicyConflict represents a policy-related conflict
 type PolicyConflict struct {
-	ID           string            `json:"id"`
-	PolicyName   string            `json:"policyName"`
-	RuleName     string            `json:"ruleName"`
-	Package      *PackageReference `json:"package"`
-	Severity     string            `json:"severity"`
-	Description  string            `json:"description"`
-	Violation    string            `json:"violation"`
-	Action       string            `json:"action"`
-	DetectedAt   time.Time         `json:"detectedAt"`
+	ID          string            `json:"id"`
+	PolicyName  string            `json:"policyName"`
+	RuleName    string            `json:"ruleName"`
+	Package     *PackageReference `json:"package"`
+	Severity    string            `json:"severity"`
+	Description string            `json:"description"`
+	Violation   string            `json:"violation"`
+	Action      string            `json:"action"`
+	DetectedAt  time.Time         `json:"detectedAt"`
 }
 
 // ConflictResolutionSuggestion represents a suggestion for resolving conflicts
 type ConflictResolutionSuggestion struct {
-	ID              string             `json:"id"`
-	ConflictID      string             `json:"conflictId"`
-	Type            string             `json:"type"`
-	Priority        string             `json:"priority"`
-	Description     string             `json:"description"`
+	ID              string              `json:"id"`
+	ConflictID      string              `json:"conflictId"`
+	Type            string              `json:"type"`
+	Priority        string              `json:"priority"`
+	Description     string              `json:"description"`
 	Actions         []*ResolutionAction `json:"actions"`
-	Confidence      float64            `json:"confidence"`
-	EstimatedEffort string             `json:"estimatedEffort"`
-	RiskLevel       string             `json:"riskLevel"`
-	CreatedAt       time.Time          `json:"createdAt"`
+	Confidence      float64             `json:"confidence"`
+	EstimatedEffort string              `json:"estimatedEffort"`
+	RiskLevel       string              `json:"riskLevel"`
+	CreatedAt       time.Time           `json:"createdAt"`
 }
 
 // ResolutionAction represents a specific action to resolve a conflict
@@ -597,18 +597,18 @@ type LicenseInfo struct {
 
 // PolicyResult represents the result of a policy evaluation
 type PolicyResult struct {
-	Passed      bool              `json:"passed"`
+	Passed      bool               `json:"passed"`
 	Violations  []*PolicyViolation `json:"violations,omitempty"`
-	Score       float64           `json:"score"`
-	EvaluatedAt time.Time         `json:"evaluatedAt"`
+	Score       float64            `json:"score"`
+	EvaluatedAt time.Time          `json:"evaluatedAt"`
 }
 
 // ConflictAnalysis represents the result of conflict analysis
 type ConflictAnalysis struct {
-	TotalConflicts   int                    `json:"totalConflicts"`
+	TotalConflicts    int                   `json:"totalConflicts"`
 	SeverityBreakdown map[string]int        `json:"severityBreakdown"`
-	Recommendations  []string              `json:"recommendations"`
-	AutoResolvable   []*DependencyConflict `json:"autoResolvable,omitempty"`
+	Recommendations   []string              `json:"recommendations"`
+	AutoResolvable    []*DependencyConflict `json:"autoResolvable,omitempty"`
 }
 
 // Additional missing types that are referenced but not defined
@@ -698,10 +698,10 @@ type VersionIssue struct {
 // DefaultValidatorConfig returns a default validator configuration
 func DefaultValidatorConfig() *ValidatorConfig {
 	return &ValidatorConfig{
-		EnableCaching:     true,
-		EnableConcurrency: true,
-		WorkerCount:       4,
-		QueueSize:         100,
+		EnableCaching:               true,
+		EnableConcurrency:           true,
+		WorkerCount:                 4,
+		QueueSize:                   100,
 		VulnerabilityUpdateInterval: 24 * time.Hour,
 		CacheCleanupInterval:        time.Hour,
 		MetricsCollectionInterval:   5 * time.Minute,
@@ -711,12 +711,12 @@ func DefaultValidatorConfig() *ValidatorConfig {
 // NewValidatorMetrics creates a new ValidatorMetrics instance
 func NewValidatorMetrics() *ValidatorMetrics {
 	return &ValidatorMetrics{
-		TotalValidations:            0,
-		SuccessfulValidations:       0,
-		FailedValidations:          0,
-		ErrorRate:                  0.0,
-		AverageValidationTime:      0.0,
-		// Note: Metric observers and counters would be initialized 
+		TotalValidations:      0,
+		SuccessfulValidations: 0,
+		FailedValidations:     0,
+		ErrorRate:             0.0,
+		AverageValidationTime: 0.0,
+		// Note: Metric observers and counters would be initialized
 		// with actual Prometheus metrics in a real implementation
 	}
 }
@@ -809,37 +809,44 @@ func NewLicenseDatabase(config *LicenseDBConfig) (LicenseDatabase, error) {
 
 // Stub implementations for conflict detectors
 type VersionConflictDetector struct{}
+
 func (d *VersionConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return nil, nil
 }
 
 type TransitiveConflictDetector struct{}
+
 func (d *TransitiveConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return nil, nil
 }
 
 type LicenseConflictDetector struct{}
+
 func (d *LicenseConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return nil, nil
 }
 
 type PolicyConflictDetector struct{}
+
 func (d *PolicyConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return nil, nil
 }
 
 type ArchitectureConflictDetector struct{}
+
 func (d *ArchitectureConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return nil, nil
 }
 
 type SecurityConflictDetector struct{}
+
 func (d *SecurityConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return nil, nil
 }
 
 // Stub implementations for cache types
 type DefaultValidationCache struct{}
+
 func (c *DefaultValidationCache) Get(ctx context.Context, key string) (*ValidationResult, error) {
 	return nil, nil
 }
@@ -851,6 +858,7 @@ func (c *DefaultValidationCache) Close() error {
 }
 
 type DefaultScanResultCache struct{}
+
 func (c *DefaultScanResultCache) Get(ctx context.Context, key string) (*SecurityScanResult, error) {
 	return nil, nil
 }
@@ -863,6 +871,7 @@ func (c *DefaultScanResultCache) Close() error {
 
 // Stub implementations for database types
 type VulnerabilityDB struct{}
+
 func (db *VulnerabilityDB) ScanPackage(packageName, version string) ([]Vulnerability, error) {
 	return nil, nil
 }
@@ -874,6 +883,7 @@ func (db *VulnerabilityDB) Close() error {
 }
 
 type LicenseDB struct{}
+
 func (db *LicenseDB) GetLicenseInfo(packageName, version string) (*LicenseInfo, error) {
 	return nil, nil
 }
@@ -883,6 +893,7 @@ func (db *LicenseDB) Close() error {
 
 // Stub implementations for analyzer types
 type DefaultConflictAnalyzer struct{}
+
 func (a *DefaultConflictAnalyzer) AnalyzeConflicts(conflicts []*DependencyConflict) (*ConflictAnalysis, error) {
 	return nil, nil
 }
@@ -890,26 +901,31 @@ func (a *DefaultConflictAnalyzer) AnalyzeConflicts(conflicts []*DependencyConfli
 // Stub implementations for component interfaces
 
 type DefaultCompatibilityChecker struct{}
+
 func (c *DefaultCompatibilityChecker) CheckCompatibility(ctx context.Context, pkg1, pkg2 *PackageReference) (bool, error) {
 	return true, nil
 }
 
 type DefaultSecurityScanner struct{}
+
 func (s *DefaultSecurityScanner) ScanPackage(ctx context.Context, pkg *PackageReference) ([]*Vulnerability, error) {
 	return nil, nil
 }
 
 type DefaultLicenseValidator struct{}
+
 func (l *DefaultLicenseValidator) ValidateLicense(ctx context.Context, pkg *PackageReference) (*LicenseInfo, error) {
 	return nil, nil
 }
 
 type DefaultPerformanceAnalyzer struct{}
+
 func (p *DefaultPerformanceAnalyzer) AnalyzePerformance(ctx context.Context, pkg *PackageReference) (*PerformanceAnalysis, error) {
 	return nil, nil
 }
 
 type DefaultPolicyEngine struct{}
+
 func (p *DefaultPolicyEngine) EvaluatePolicy(ctx context.Context, pkg *PackageReference, policy *SecurityPolicies) (*PolicyResult, error) {
 	return nil, nil
 }
@@ -918,17 +934,17 @@ func (p *DefaultPolicyEngine) EvaluatePolicy(ctx context.Context, pkg *PackageRe
 
 // AnalysisCacheConfig represents configuration for analysis cache
 type AnalysisCacheConfig struct {
-	TTL      time.Duration `json:"ttl"`
-	MaxSize  int           `json:"maxSize"`
-	Enabled  bool          `json:"enabled"`
+	TTL     time.Duration `json:"ttl"`
+	MaxSize int           `json:"maxSize"`
+	Enabled bool          `json:"enabled"`
 }
 
 // DataStoreConfig represents configuration for data store
 type DataStoreConfig struct {
-	Type     string                 `json:"type"`
-	URL      string                 `json:"url"`
-	Options  map[string]interface{} `json:"options,omitempty"`
-	Timeout  time.Duration          `json:"timeout"`
+	Type    string                 `json:"type"`
+	URL     string                 `json:"url"`
+	Options map[string]interface{} `json:"options,omitempty"`
+	Timeout time.Duration          `json:"timeout"`
 }
 
 // Additional stub types for compilation
@@ -969,7 +985,7 @@ const (
 	RolloutStatusRunning RolloutStatus = "running"
 	RolloutStatusPaused  RolloutStatus = "paused"
 	RolloutStatusFailed  RolloutStatus = "failed"
-	
+
 	UpdateTypeMinor UpdateType = "minor"
 	UpdateTypeMajor UpdateType = "major"
 	UpdateTypePatch UpdateType = "patch"

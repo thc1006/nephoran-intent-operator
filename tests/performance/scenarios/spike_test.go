@@ -412,9 +412,12 @@ recovered:
 
 	if len(latencies) > 0 {
 		analyzer := performance.NewMetricsAnalyzer()
-		result.MetricsSnapshot["p50_latency"] = analyzer.CalculatePercentile(latencies, 50)
-		result.MetricsSnapshot["p95_latency"] = analyzer.CalculatePercentile(latencies, 95)
-		result.MetricsSnapshot["p99_latency"] = analyzer.CalculatePercentile(latencies, 99)
+		for _, latency := range latencies {
+			analyzer.AddSample(float64(latency))
+		}
+		result.MetricsSnapshot["p50_latency"] = analyzer.CalculatePercentile(50)
+		result.MetricsSnapshot["p95_latency"] = analyzer.CalculatePercentile(95)
+		result.MetricsSnapshot["p99_latency"] = analyzer.CalculatePercentile(99)
 	}
 
 	return result
