@@ -621,12 +621,18 @@ func (a *A1Adaptor) GetPolicyInstance(ctx context.Context, policyTypeID int, ins
 		return nil, fmt.Errorf("failed to get policy status: %w", err)
 	}
 
+	// Convert policyData to json.RawMessage
+	policyDataBytes, err := json.Marshal(policyData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal policy data: %w", err)
+	}
+
 	return &A1PolicyInstance{
 		PolicyInstanceID: instanceID,
 
 		PolicyTypeID: policyTypeID,
 
-		PolicyData: policyData,
+		PolicyData: json.RawMessage(policyDataBytes),
 
 		Status: *status,
 	}, nil
@@ -788,14 +794,19 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedEleme
 		return fmt.Errorf("policy_data not found in A1 policy")
 	}
 
-	// Create policy instance.
+	// Convert policy data to json.RawMessage
+	policyDataBytes, err := json.Marshal(policyData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal policy data: %w", err)
+	}
 
+	// Create policy instance.
 	instance := &A1PolicyInstance{
 		PolicyInstanceID: instanceID,
 
 		PolicyTypeID: int(policyTypeID),
 
-		PolicyData: policyData,
+		PolicyData: json.RawMessage(policyDataBytes),
 
 		CreatedAt: time.Now(),
 
@@ -916,21 +927,28 @@ func CreateQoSPolicyType() *A1PolicyType {
 
 		Description: "Policy for managing QoS parameters in network slices",
 
-		PolicySchema: json.RawMessage(`{}`){
-				"slice_id": json.RawMessage(`{}`),
-
-				"qos_parameters": json.RawMessage(`{}`){
-						"latency_ms": json.RawMessage(`{}`),
-
-						"throughput_mbps": json.RawMessage(`{}`),
-
-						"reliability": json.RawMessage(`{}`),
-					},
+		PolicySchema: json.RawMessage(`{
+			"type": "object",
+			"properties": {
+				"slice_id": {
+					"type": "string"
 				},
-			},
-
-			"required": []string{"slice_id", "qos_parameters"},
-		},
+				"qos_parameters": {
+					"type": "object",
+					"properties": {
+						"latency_ms": {
+							"type": "number"
+						},
+						"throughput_mbps": {
+							"type": "number"
+						},
+						"reliability": {
+							"type": "number"
+						}
+					}
+				}
+			}
+		}`),
 	}
 }
 
@@ -944,16 +962,23 @@ func CreateTrafficSteeringPolicyType() *A1PolicyType {
 
 		Description: "Policy for steering traffic between cells or network functions",
 
-		PolicySchema: json.RawMessage(`{}`){
-				"ue_id": json.RawMessage(`{}`),
-
-				"target_cell": json.RawMessage(`{}`),
-
-				"traffic_percentage": json.RawMessage(`{}`),
+		PolicySchema: json.RawMessage(`{
+			"type": "object",
+			"properties": {
+				"ue_id": {
+					"type": "string"
+				},
+				"target_cell": {
+					"type": "string"
+				},
+				"traffic_percentage": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 100
+				}
 			},
-
-			"required": []string{"target_cell", "traffic_percentage"},
-		},
+			"required": ["target_cell", "traffic_percentage"]
+		}`),
 	}
 }
 
@@ -1167,20 +1192,24 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 	logger := log.FromContext(ctx)
 
 	// Extract policy information from event data.
+	var eventData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &eventData); err != nil {
+		return fmt.Errorf("failed to unmarshal event data: %w", err)
+	}
 
-	policyTypeID, ok := event.Data["policy_type_id"].(float64)
+	policyTypeID, ok := eventData["policy_type_id"].(float64)
 
 	if !ok {
 		return fmt.Errorf("policy_type_id not found in event data")
 	}
 
-	instanceID, ok := event.Data["policy_instance_id"].(string)
+	instanceID, ok := eventData["policy_instance_id"].(string)
 
 	if !ok {
 		return fmt.Errorf("policy_instance_id not found in event data")
 	}
 
-	policyData, ok := event.Data["policy_data"].(map[string]interface{})
+	policyData, ok := eventData["policy_data"].(map[string]interface{})
 
 	if !ok {
 		return fmt.Errorf("policy_data not found in event data")
@@ -1188,12 +1217,18 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 	// Create policy instance.
 
+	// Convert policy data to json.RawMessage
+	policyDataBytes, err := json.Marshal(policyData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal policy data: %w", err)
+	}
+
 	instance := &A1PolicyInstance{
 		PolicyInstanceID: instanceID,
 
 		PolicyTypeID: int(policyTypeID),
 
-		PolicyData: policyData,
+		PolicyData: json.RawMessage(policyDataBytes),
 
 		CreatedAt: time.Now(),
 
@@ -1276,13 +1311,19 @@ func (o *SMOPolicyOrchestrator) handlePolicyUpdate(ctx context.Context, event *P
 func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *PolicyEvent) error {
 	logger := log.FromContext(ctx)
 
-	policyTypeID, ok := event.Data["policy_type_id"].(float64)
+	// Extract policy information from event data.
+	var eventData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &eventData); err != nil {
+		return fmt.Errorf("failed to unmarshal event data: %w", err)
+	}
+
+	policyTypeID, ok := eventData["policy_type_id"].(float64)
 
 	if !ok {
 		return fmt.Errorf("policy_type_id not found in event data")
 	}
 
-	instanceID, ok := event.Data["policy_instance_id"].(string)
+	instanceID, ok := eventData["policy_instance_id"].(string)
 
 	if !ok {
 		return fmt.Errorf("policy_instance_id not found in event data")
@@ -1310,13 +1351,19 @@ func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *P
 func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *PolicyEvent) error {
 	logger := log.FromContext(ctx)
 
-	policyTypeID, ok := event.Data["policy_type_id"].(float64)
+	// Extract policy information from event data.
+	var eventData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &eventData); err != nil {
+		return fmt.Errorf("failed to unmarshal event data: %w", err)
+	}
+
+	policyTypeID, ok := eventData["policy_type_id"].(float64)
 
 	if !ok {
 		return fmt.Errorf("policy_type_id not found in event data")
 	}
 
-	instanceID, ok := event.Data["policy_instance_id"].(string)
+	instanceID, ok := eventData["policy_instance_id"].(string)
 
 	if !ok {
 		return fmt.Errorf("policy_instance_id not found in event data")

@@ -1330,7 +1330,13 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 				Capabilities: cluster.Capabilities,
 			},
 
-			Parameters: nwo.extractParametersFromIntent(execution.Intent),
+			Parameters: func() json.RawMessage {
+				params := nwo.extractParametersFromIntent(execution.Intent)
+				if paramBytes, err := json.Marshal(params); err == nil {
+					return paramBytes
+				}
+				return json.RawMessage(`{}`)
+			}(),
 		})
 		if err != nil {
 
@@ -1880,8 +1886,8 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 		for _, deployment := range execution.Deployments {
 			target := map[string]interface{}{
-				"name": deployment.Name,
-				"namespace": deployment.Namespace,
+				"id": deployment.ID,
+				"cluster": deployment.TargetCluster.Name,
 				"status": deployment.Status,
 			}
 			deploymentInfo["targets"] = append(deploymentInfo["targets"].([]map[string]interface{}), target)

@@ -44,27 +44,27 @@ const (
 	DimensionBusiness AvailabilityDimension = "business"
 )
 
-// HealthStatus represents the health state of a tracked entity.
+// AvailabilityStatus represents the health state of a tracked entity.
 
-type HealthStatus string
+type AvailabilityStatus string
 
 const (
 
 	// HealthHealthy holds healthhealthy value.
 
-	HealthHealthy HealthStatus = "healthy"
+	HealthHealthy AvailabilityStatus = "healthy"
 
 	// HealthDegraded holds healthdegraded value.
 
-	HealthDegraded HealthStatus = "degraded"
+	HealthDegraded AvailabilityStatus = "degraded"
 
 	// HealthUnhealthy holds healthunhealthy value.
 
-	HealthUnhealthy HealthStatus = "unhealthy"
+	HealthUnhealthy AvailabilityStatus = "unhealthy"
 
 	// HealthUnknown holds healthunknown value.
 
-	HealthUnknown HealthStatus = "unknown"
+	HealthUnknown AvailabilityStatus = "unknown"
 )
 
 // ServiceLayer represents different service layers in the architecture.
@@ -133,7 +133,7 @@ type AvailabilityMetric struct {
 
 	EntityType string `json:"entity_type"`
 
-	Status HealthStatus `json:"status"`
+	Status AvailabilityStatus `json:"status"`
 
 	ResponseTime time.Duration `json:"response_time"`
 
@@ -247,7 +247,7 @@ type TrackerConfig struct {
 type AvailabilityState struct {
 	CurrentMetrics map[string]*AvailabilityMetric `json:"current_metrics"`
 
-	AggregatedStatus HealthStatus `json:"aggregated_status"`
+	AggregatedStatus AvailabilityStatus `json:"aggregated_status"`
 
 	LastUpdate time.Time `json:"last_update"`
 
@@ -534,7 +534,7 @@ func (t *MultiDimensionalTracker) updateCurrentState(metrics []*AvailabilityMetr
 
 // calculateAggregatedStatus calculates overall system availability status.
 
-func (t *MultiDimensionalTracker) calculateAggregatedStatus() HealthStatus {
+func (t *MultiDimensionalTracker) calculateAggregatedStatus() AvailabilityStatus {
 	if len(t.state.CurrentMetrics) == 0 {
 		return HealthUnknown
 	}
@@ -921,7 +921,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 	responseTime := time.Since(start)
 
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	var errorRate float64 = 0
 
@@ -972,7 +972,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 		Layer: endpoint.Layer,
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: map[string]interface{}{},
 	}, nil
 }
 
@@ -1044,7 +1044,7 @@ func (chc *ComponentHealthCollector) Collect(ctx context.Context) ([]*Availabili
 // collectComponentMetric collects metric for a single component.
 
 func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context, component ComponentConfig) (*AvailabilityMetric, error) {
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	var metadata map[string]interface{}
 
@@ -1108,14 +1108,14 @@ func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context,
 
 		Layer: component.Layer,
 
-		Metadata: metadata,
+		Metadata: convertToRawMessage(metadata),
 	}, nil
 }
 
 // ComponentStatus represents component status information.
 
 type ComponentStatus struct {
-	Status HealthStatus
+	Status AvailabilityStatus
 
 	Metadata map[string]interface{}
 }
@@ -1147,7 +1147,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: json.RawMessage(`{}`),
+			Metadata: map[string]interface{}{},
 		}, nil
 	}
 
@@ -1185,7 +1185,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 
 	healthRatio := float64(healthyPods) / float64(totalPods)
 
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	if healthRatio >= 0.9 {
 		status = HealthHealthy
@@ -1198,7 +1198,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 	return &ComponentStatus{
 		Status: status,
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: map[string]interface{}{},
 	}, nil
 }
 
@@ -1227,7 +1227,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: json.RawMessage(`{}`),
+			Metadata: map[string]interface{}{},
 		}, nil
 	}
 
@@ -1235,7 +1235,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 
 	deployment := deployments.Items[0]
 
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	desiredReplicas := *deployment.Spec.Replicas
 
@@ -1252,7 +1252,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 	return &ComponentStatus{
 		Status: status,
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: map[string]interface{}{},
 	}, nil
 }
 
@@ -1281,7 +1281,7 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: json.RawMessage(`{}`),
+			Metadata: map[string]interface{}{},
 		}, nil
 	}
 
@@ -1294,7 +1294,7 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 	return &ComponentStatus{
 		Status: HealthHealthy,
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: map[string]interface{}{},
 	}, nil
 }
 
@@ -1400,7 +1400,7 @@ func (ujc *UserJourneyCollector) collectJourneyMetric(ctx context.Context, journ
 
 	errorRate := 1.0 - successRate
 
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	if successRate >= 0.99 && avgResponseTime <= journey.SLAThreshold {
 		status = HealthHealthy
@@ -1431,5 +1431,17 @@ func (ujc *UserJourneyCollector) collectJourneyMetric(ctx context.Context, journ
 
 		Metadata: json.RawMessage(`{}`),
 	}, nil
+}
+
+// convertToRawMessage converts metadata to json.RawMessage
+func convertToRawMessage(metadata map[string]interface{}) json.RawMessage {
+	if metadata == nil {
+		return json.RawMessage(`{}`)
+	}
+	data, err := json.Marshal(metadata)
+	if err != nil {
+		return json.RawMessage(`{}`)
+	}
+	return json.RawMessage(data)
 }
 

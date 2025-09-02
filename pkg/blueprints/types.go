@@ -278,7 +278,12 @@ func (te *TemplateEngine) ProcessTemplate(
 
 		ProcessedAt: time.Now(),
 
-		Parameters: parameters,
+		Parameters: func() json.RawMessage {
+			if paramBytes, err := json.Marshal(parameters); err == nil {
+				return paramBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 
 		GeneratedFiles: make(map[string]string),
 	}

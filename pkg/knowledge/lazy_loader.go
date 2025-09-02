@@ -1185,7 +1185,10 @@ func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 		hitRate = float64(l.stats.Hits) / float64(total) * 100
 	}
 
-	return json.RawMessage(`{}`)
+	result := map[string]interface{}{
+		"hit_rate": hitRate,
+	}
+	return result
 }
 
 // ClearCache clears all caches.

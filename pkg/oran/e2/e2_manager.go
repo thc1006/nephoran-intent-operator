@@ -938,9 +938,19 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 
 		CallProcessID: callProcessID,
 
-		ControlHeader: controlHeader,
+		ControlHeader: func() json.RawMessage {
+			if headerBytes, err := json.Marshal(controlHeader); err == nil {
+				return json.RawMessage(headerBytes)
+			}
+			return json.RawMessage(`{}`)
+		}(),
 
-		ControlMessage: controlMessage,
+		ControlMessage: func() json.RawMessage {
+			if msgBytes, err := json.Marshal(controlMessage); err == nil {
+				return json.RawMessage(msgBytes)
+			}
+			return json.RawMessage(`{}`)
+		}(),
 
 		ControlAckRequest: controlReq.RICControlAckRequest != nil,
 	}

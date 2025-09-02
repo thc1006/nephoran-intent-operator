@@ -181,41 +181,7 @@ func (pmc *PrometheusMetricsCollector) CollectMetrics(ctx context.Context, sourc
 	return metricsData, nil
 }
 
-// NEW METHOD - CollectMetrics without context (for interface compatibility)
-func (pmc *PrometheusMetricsCollector) CollectMetrics() ([]*Metric, error) {
-	// Create a background context for this method
-	ctx := context.Background()
-	
-	var allMetrics []*Metric
-	
-	pmc.mu.RLock()
-	collectors := make(map[string]*ComponentCollector)
-	for k, v := range pmc.collectors {
-		collectors[k] = v
-	}
-	pmc.mu.RUnlock()
-
-	for name := range collectors {
-		metricsData, err := pmc.CollectMetrics(ctx, name)
-		if err != nil {
-			continue
-		}
-		
-		// Convert MetricsData to []*Metric
-		for metricName, value := range metricsData.Metrics {
-			metric := &Metric{
-				Name:      metricName,
-				Value:     value,
-				Labels:    metricsData.Labels,
-				Timestamp: metricsData.Timestamp,
-				Type:      MetricTypeGauge, // Default type
-			}
-			allMetrics = append(allMetrics, metric)
-		}
-	}
-	
-	return allMetrics, nil
-}
+// Removed duplicate CollectMetrics method - use the one with context
 
 // processQueryResult processes a Prometheus query result
 func (pmc *PrometheusMetricsCollector) processQueryResult(name string, result model.Value, data *MetricsData) error {
@@ -434,34 +400,7 @@ func (kmc *KubernetesMetricsCollector) CollectMetrics(ctx context.Context, sourc
 	}
 }
 
-// NEW METHOD - CollectMetrics without context (for interface compatibility)
-func (kmc *KubernetesMetricsCollector) CollectMetrics() ([]*Metric, error) {
-	ctx := context.Background()
-	
-	var allMetrics []*Metric
-	sources := []string{"pods", "nodes", "services"}
-	
-	for _, source := range sources {
-		metricsData, err := kmc.CollectMetrics(ctx, source)
-		if err != nil {
-			continue
-		}
-		
-		// Convert MetricsData to []*Metric
-		for metricName, value := range metricsData.Metrics {
-			metric := &Metric{
-				Name:      metricName,
-				Value:     value,
-				Labels:    metricsData.Labels,
-				Timestamp: metricsData.Timestamp,
-				Type:      MetricTypeGauge, // Default type
-			}
-			allMetrics = append(allMetrics, metric)
-		}
-	}
-	
-	return allMetrics, nil
-}
+// Removed duplicate CollectMetrics method - use the one with context
 
 // collectPodMetrics collects pod-level metrics
 func (kmc *KubernetesMetricsCollector) collectPodMetrics(ctx context.Context) {
@@ -675,18 +614,18 @@ func (ma *MetricsAggregator) CollectMetrics(ctx context.Context, source string) 
 	}
 
 	for _, collector := range collectors {
-		metricsData, err := collector.CollectMetrics()
+		metricsData, err := collector.CollectMetrics(ctx, source)
 		if err != nil {
 			ma.aggregationErrors.Inc()
 			continue
 		}
 
-		// Convert []*Metric to aggregated data
-		for _, metric := range metricsData {
-			aggregated.Metrics[metric.Name] = metric.Value
-			for k, v := range metric.Labels {
-				aggregated.Labels[k] = v
-			}
+		// Convert metrics map to aggregated data
+		for name, value := range metricsData.Metrics {
+			aggregated.Metrics[name] = value
+		}
+		for k, v := range metricsData.Labels {
+			aggregated.Labels[k] = v
 		}
 	}
 
@@ -698,34 +637,7 @@ func (ma *MetricsAggregator) CollectMetrics(ctx context.Context, source string) 
 	return aggregated, nil
 }
 
-// NEW METHOD - CollectMetrics without context (for interface compatibility)
-func (ma *MetricsAggregator) CollectMetrics() ([]*Metric, error) {
-	ctx := context.Background()
-	
-	var allMetrics []*Metric
-	sources := []string{"pods", "nodes", "services", "oran-components"}
-	
-	for _, source := range sources {
-		metricsData, err := ma.CollectMetrics(ctx, source)
-		if err != nil {
-			continue
-		}
-		
-		// Convert MetricsData to []*Metric
-		for metricName, value := range metricsData.Metrics {
-			metric := &Metric{
-				Name:      metricName,
-				Value:     value,
-				Labels:    metricsData.Labels,
-				Timestamp: metricsData.Timestamp,
-				Type:      MetricTypeGauge, // Default type
-			}
-			allMetrics = append(allMetrics, metric)
-		}
-	}
-	
-	return allMetrics, nil
-}
+// Removed duplicate CollectMetrics method - use the one with context
 
 // aggregationLoop runs the main aggregation loop
 func (ma *MetricsAggregator) aggregationLoop(ctx context.Context) {

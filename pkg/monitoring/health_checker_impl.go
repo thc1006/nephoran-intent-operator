@@ -33,6 +33,14 @@ type HealthCheck struct {
 	Critical    bool
 }
 
+// Health check status constants
+const (
+	HealthStatusHealthy   = "healthy"
+	HealthStatusDegraded  = "degraded"
+	HealthStatusUnhealthy = "unhealthy"
+	HealthStatusUnknown   = "unknown"
+)
+
 // HealthStatus represents the status of a health check
 type HealthStatus struct {
 	Name        string    `json:"name"`
@@ -172,10 +180,28 @@ func (h *HealthCheckerImpl) GetOverallStatus() HealthStatus {
 }
 
 // Start begins periodic health checking
-func (h *HealthCheckerImpl) Start() error {
+func (h *HealthCheckerImpl) Start(ctx context.Context) error {
 	h.wg.Add(1)
 	go h.runHealthChecks()
 	return nil
+}
+
+// CheckHealth returns the overall health status
+func (h *HealthCheckerImpl) CheckHealth(ctx context.Context) (*ComponentHealth, error) {
+	overall := h.GetOverallStatus()
+	
+	return &ComponentHealth{
+		Name:        overall.Name,
+		Status:      overall,
+		Message:     overall.Message,
+		Timestamp:   overall.LastChecked,
+		LastChecked: overall.LastChecked,
+	}, nil
+}
+
+// GetName returns the name of this health checker
+func (h *HealthCheckerImpl) GetName() string {
+	return "health_checker_impl"
 }
 
 // Stop stops the health checker
@@ -432,46 +458,60 @@ func (c *CompositeHealthChecker) AddChecker(checker HealthChecker) {
 	c.checkers = append(c.checkers, checker)
 }
 
-// GetStatus returns combined status from all checkers
-func (c *CompositeHealthChecker) GetStatus() map[string]HealthStatus {
+// CheckHealth performs health check by calling all underlying checkers
+func (c *CompositeHealthChecker) CheckHealth(ctx context.Context) (*ComponentHealth, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	
-	combined := make(map[string]HealthStatus)
+	allHealthy := true
+	var messages []string
+	var firstError error
 	
 	for i, checker := range c.checkers {
-		status := checker.GetStatus()
-		for name, healthStatus := range status {
-			// Prefix with checker index to avoid naming conflicts
-			key := fmt.Sprintf("checker_%d_%s", i, name)
-			combined[key] = healthStatus
+		health, err := checker.CheckHealth(ctx)
+		if err != nil {
+			if firstError == nil {
+				firstError = err
+			}
+			allHealthy = false
+			messages = append(messages, fmt.Sprintf("checker_%d (%s): %v", i, checker.GetName(), err))
+		} else if health != nil && health.Status.Status != HealthStatusHealthy {
+			allHealthy = false
+			messages = append(messages, fmt.Sprintf("checker_%d (%s): %s", i, checker.GetName(), health.Message))
 		}
 	}
 	
-	return combined
+	status := HealthStatusHealthy
+	message := "All composite checks passed"
+	if !allHealthy {
+		status = HealthStatusUnhealthy
+		message = fmt.Sprintf("Some checks failed: %v", messages)
+	}
+	
+	return &ComponentHealth{
+		Name: "composite_health_checker",
+		Status: HealthStatus{
+			Status:      status,
+			Message:     message,
+			LastChecked: time.Now(),
+		},
+		Message:   message,
+		Timestamp: time.Now(),
+	}, firstError
 }
 
-// IsHealthy returns true if all checkers report healthy
-func (c *CompositeHealthChecker) IsHealthy() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	
-	for _, checker := range c.checkers {
-		if !checker.IsHealthy() {
-			return false
-		}
-	}
-	
-	return true
+// GetName returns the name of this health checker
+func (c *CompositeHealthChecker) GetName() string {
+	return "composite_health_checker"
 }
 
 // Start starts all health checkers
-func (c *CompositeHealthChecker) Start() error {
+func (c *CompositeHealthChecker) Start(ctx context.Context) error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	
 	for _, checker := range c.checkers {
-		if err := checker.Start(); err != nil {
+		if err := checker.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start health checker: %w", err)
 		}
 	}

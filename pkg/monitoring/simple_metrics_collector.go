@@ -1,7 +1,10 @@
 package monitoring
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -10,10 +13,9 @@ import (
 
 // SimpleMetricsCollector provides a simple implementation of MetricsCollector
 type SimpleMetricsCollector struct {
-	mu       sync.RWMutex
-	metrics  []*Metric
-	client   kubernetes.Interface
-	recorder *MetricsRecorder
+	mu      sync.RWMutex
+	metrics []*Metric
+	client  kubernetes.Interface
 }
 
 // NewMetricsCollector creates a new simple metrics collector
@@ -23,28 +25,41 @@ func NewMetricsCollector() *SimpleMetricsCollector {
 	}
 }
 
-// NewMetricsCollectorWithClients creates a new metrics collector with Kubernetes client and recorder
-func NewMetricsCollectorWithClients(client kubernetes.Interface, recorder *MetricsRecorder) *SimpleMetricsCollector {
+// NewMetricsCollectorWithClients creates a new metrics collector with Kubernetes client
+func NewMetricsCollectorWithClients(client kubernetes.Interface) *SimpleMetricsCollector {
 	return &SimpleMetricsCollector{
-		metrics:  make([]*Metric, 0),
-		client:   client,
-		recorder: recorder,
+		metrics: make([]*Metric, 0),
+		client:  client,
 	}
 }
 
 // CollectMetrics implements MetricsCollector interface
-func (c *SimpleMetricsCollector) CollectMetrics() ([]*Metric, error) {
+func (c *SimpleMetricsCollector) CollectMetrics(ctx context.Context, source string) (*MetricsData, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	// Return a copy of the metrics
-	result := make([]*Metric, len(c.metrics))
-	copy(result, c.metrics)
-	return result, nil
+	// Convert []*Metric to MetricsData for the specified source
+	metricsData := &MetricsData{
+		Timestamp: time.Now(),
+		Source:    source,
+		Metrics:   make(map[string]string),
+		Labels:    make(map[string]string),
+		Metadata:  json.RawMessage(`{}`),
+	}
+	
+	// Convert metrics to map format
+	for _, metric := range c.metrics {
+		metricsData.Metrics[metric.Name] = metric.Value
+		for k, v := range metric.Labels {
+			metricsData.Labels[k] = v
+		}
+	}
+	
+	return metricsData, nil
 }
 
 // Start implements MetricsCollector interface
-func (c *SimpleMetricsCollector) Start() error {
+func (c *SimpleMetricsCollector) Start(ctx context.Context) error {
 	// Simple collector doesn't need to start any background processes
 	return nil
 }
@@ -71,7 +86,7 @@ func (c *SimpleMetricsCollector) UpdateControllerHealth(controllerName, componen
 	metric := &Metric{
 		Name:      "controller_health",
 		Type:      MetricTypeGauge,
-		Value:     value,
+		Value:     strconv.FormatFloat(value, 'f', 2, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"controller": controllerName,
@@ -88,7 +103,7 @@ func (c *SimpleMetricsCollector) RecordKubernetesAPILatency(latency time.Duratio
 	metric := &Metric{
 		Name:        "kubernetes_api_duration_seconds",
 		Type:        MetricTypeHistogram,
-		Value:       latency.Seconds(),
+		Value:       strconv.FormatFloat(latency.Seconds(), 'f', 6, 64),
 		Timestamp:   time.Now(),
 		Description: "Duration of Kubernetes API calls in seconds",
 	}
@@ -101,7 +116,7 @@ func (c *SimpleMetricsCollector) UpdateNetworkIntentStatus(name, namespace, inte
 	metric := &Metric{
 		Name:      "network_intent_status",
 		Type:      MetricTypeGauge,
-		Value:     1.0,
+		Value:     "1.0",
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"name":        name,
@@ -120,7 +135,7 @@ func (c *SimpleMetricsCollector) RecordNetworkIntentProcessed(intentType, status
 	metric := &Metric{
 		Name:      "network_intent_processing_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"intent_type": intentType,
@@ -137,7 +152,7 @@ func (c *SimpleMetricsCollector) RecordNetworkIntentRetry(name, namespace, reaso
 	metric := &Metric{
 		Name:      "network_intent_retries_total",
 		Type:      MetricTypeCounter,
-		Value:     1.0,
+		Value:     "1.0",
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"name":      name,
@@ -155,7 +170,7 @@ func (c *SimpleMetricsCollector) RecordLLMRequest(model, status string, duration
 	metric := &Metric{
 		Name:      "llm_request_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"model":  model,
@@ -168,7 +183,7 @@ func (c *SimpleMetricsCollector) RecordLLMRequest(model, status string, duration
 	tokensMetric := &Metric{
 		Name:      "llm_tokens_used_total",
 		Type:      MetricTypeCounter,
-		Value:     float64(tokensUsed),
+		Value:     strconv.FormatFloat(float64(tokensUsed), 'f', 0, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"model":  model,
@@ -184,7 +199,7 @@ func (c *SimpleMetricsCollector) RecordE2NodeSetOperation(operation string, dura
 	metric := &Metric{
 		Name:      "e2nodeset_operation_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"operation": operation,
@@ -200,7 +215,7 @@ func (c *SimpleMetricsCollector) UpdateE2NodeSetReplicas(name, namespace, status
 	metric := &Metric{
 		Name:      "e2nodeset_replicas",
 		Type:      MetricTypeGauge,
-		Value:     float64(count),
+		Value:     strconv.FormatFloat(float64(count), 'f', 0, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"name":      name,
@@ -218,7 +233,7 @@ func (c *SimpleMetricsCollector) RecordE2NodeSetScaling(name, namespace, directi
 	metric := &Metric{
 		Name:      "e2nodeset_scaling_events_total",
 		Type:      MetricTypeCounter,
-		Value:     1.0,
+		Value:     "1.0",
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"name":      name,
@@ -236,7 +251,7 @@ func (c *SimpleMetricsCollector) RecordORANInterfaceRequest(interfaceType, opera
 	metric := &Metric{
 		Name:      "oran_interface_request_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"interface": interfaceType,
@@ -254,7 +269,7 @@ func (c *SimpleMetricsCollector) RecordORANInterfaceError(interfaceType, operati
 	metric := &Metric{
 		Name:      "oran_interface_errors_total",
 		Type:      MetricTypeCounter,
-		Value:     1.0,
+		Value:     "1.0",
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"interface":  interfaceType,
@@ -272,7 +287,7 @@ func (c *SimpleMetricsCollector) RecordCNFDeployment(functionName string, durati
 	metric := &Metric{
 		Name:      "cnf_deployment_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"function": functionName,
@@ -293,7 +308,7 @@ func (c *SimpleMetricsCollector) UpdateORANConnectionStatus(interfaceType, endpo
 	metric := &Metric{
 		Name:      "oran_connection_status",
 		Type:      MetricTypeGauge,
-		Value:     value,
+		Value:     strconv.FormatFloat(value, 'f', 2, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"interface": interfaceType,
@@ -310,7 +325,7 @@ func (c *SimpleMetricsCollector) UpdateORANPolicyInstances(policyType, status st
 	metric := &Metric{
 		Name:      "oran_policy_instances",
 		Type:      MetricTypeGauge,
-		Value:     float64(count),
+		Value:     strconv.FormatFloat(float64(count), 'f', 0, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"policy_type": policyType,
@@ -327,7 +342,7 @@ func (c *SimpleMetricsCollector) RecordRAGOperation(duration time.Duration, cach
 	metric := &Metric{
 		Name:      "rag_operation_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"cache_hit": fmt.Sprintf("%t", cacheHit),
@@ -343,7 +358,7 @@ func (c *SimpleMetricsCollector) UpdateRAGDocumentsIndexed(count int) {
 	metric := &Metric{
 		Name:        "rag_documents_indexed",
 		Type:        MetricTypeGauge,
-		Value:       float64(count),
+		Value:       strconv.FormatFloat(float64(count), 'f', 0, 64),
 		Timestamp:   time.Now(),
 		Description: "Number of documents indexed in RAG system",
 	}
@@ -356,7 +371,7 @@ func (c *SimpleMetricsCollector) RecordGitOpsOperation(operation string, duratio
 	metric := &Metric{
 		Name:      "gitops_operation_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"operation": operation,
@@ -378,7 +393,7 @@ func (c *SimpleMetricsCollector) UpdateGitOpsSyncStatus(repository, branch strin
 	metric := &Metric{
 		Name:      "gitops_sync_status",
 		Type:      MetricTypeGauge,
-		Value:     value,
+		Value:     strconv.FormatFloat(value, 'f', 2, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"repository": repository,
@@ -395,7 +410,7 @@ func (c *SimpleMetricsCollector) UpdateResourceUtilization(resourceType, unit st
 	metric := &Metric{
 		Name:      "resource_utilization",
 		Type:      MetricTypeGauge,
-		Value:     value,
+		Value:     strconv.FormatFloat(value, 'f', 2, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"resource_type": resourceType,
@@ -412,7 +427,7 @@ func (c *SimpleMetricsCollector) UpdateWorkerQueueMetrics(queueName string, dept
 	depthMetric := &Metric{
 		Name:      "worker_queue_depth",
 		Type:      MetricTypeGauge,
-		Value:     float64(depth),
+		Value:     strconv.FormatFloat(float64(depth), 'f', 0, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"queue": queueName,
@@ -424,7 +439,7 @@ func (c *SimpleMetricsCollector) UpdateWorkerQueueMetrics(queueName string, dept
 	latencyMetric := &Metric{
 		Name:      "worker_queue_latency_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     latency.Seconds(),
+		Value:     strconv.FormatFloat(latency.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"queue": queueName,
@@ -439,7 +454,7 @@ func (c *SimpleMetricsCollector) RecordHTTPRequest(method, endpoint, status stri
 	metric := &Metric{
 		Name:      "http_request_duration_seconds",
 		Type:      MetricTypeHistogram,
-		Value:     duration.Seconds(),
+		Value:     strconv.FormatFloat(duration.Seconds(), 'f', 6, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"method":   method,
@@ -461,7 +476,7 @@ func (c *SimpleMetricsCollector) RecordSSEStream(endpoint string, connected bool
 	metric := &Metric{
 		Name:      "sse_stream_active",
 		Type:      MetricTypeGauge,
-		Value:     value,
+		Value:     strconv.FormatFloat(value, 'f', 2, 64),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"endpoint": endpoint,
@@ -476,7 +491,7 @@ func (c *SimpleMetricsCollector) RecordLLMRequestError(model, errorType string) 
 	metric := &Metric{
 		Name:      "llm_request_errors_total",
 		Type:      MetricTypeCounter,
-		Value:     1.0,
+		Value:     "1.0",
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"model":      model,

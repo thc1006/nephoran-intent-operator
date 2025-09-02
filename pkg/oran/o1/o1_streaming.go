@@ -1306,7 +1306,7 @@ func (s *StreamingService) handleListSubscriptions(conn *StreamConnection) {
 
 	subscriptions := make([]map[string]interface{}, 0, len(conn.Subscriptions))
 
-	for _, sub := range conn.Subscriptions {
+	for _, _ = range conn.Subscriptions {
 		subscriptions = append(subscriptions, make(map[string]interface{}))
 	}
 
@@ -1320,13 +1320,13 @@ func (s *StreamingService) handleListSubscriptions(conn *StreamConnection) {
 func (s *StreamingService) handleGetStatus(conn *StreamConnection) {
 	s.connectionsMutex.RLock()
 
-	totalConnections := len(s.connections)
+	_ = len(s.connections)
 
 	s.connectionsMutex.RUnlock()
 
 	s.subscriptionsMutex.RLock()
 
-	totalSubscriptions := len(s.subscriptions)
+	_ = len(s.subscriptions)
 
 	s.subscriptionsMutex.RUnlock()
 

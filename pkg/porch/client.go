@@ -340,7 +340,7 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/resources", c.baseURL, revision.Name)
 
-	for path, content := range overlays {
+	for path, _ := range overlays {
 
 		body := json.RawMessage(`{}`)
 

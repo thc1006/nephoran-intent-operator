@@ -1789,9 +1789,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 				Kind: "Deployment",
 
-				Metadata: json.RawMessage(`{}`),
+				Metadata: make(map[string]interface{}),
 
-				Spec: json.RawMessage(`{}`),
+				Spec: make(map[string]interface{}),
 			},
 		},
 
@@ -1825,9 +1825,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 				Kind: "Deployment",
 
-				Metadata: json.RawMessage(`{}`),
+				Metadata: make(map[string]interface{}),
 
-				Spec: json.RawMessage(`{}`),
+				Spec: make(map[string]interface{}),
 			},
 		},
 
@@ -1866,9 +1866,9 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 
 					Kind: "Deployment",
 
-					Metadata: json.RawMessage(`{}`),
+					Metadata: make(map[string]interface{}),
 
-					Spec: json.RawMessage(`{}`),
+					Spec: make(map[string]interface{}),
 				},
 			},
 
@@ -2207,7 +2207,16 @@ func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOper
 
 		Metadata: obm.buildBlueprintMetadata(operation.Intent),
 
-		Parameters: operation.Parameters,
+		Parameters: func() map[string]interface{} {
+			var params map[string]interface{}
+			if len(operation.Parameters) > 0 {
+				json.Unmarshal(operation.Parameters, &params)
+			}
+			if params == nil {
+				params = make(map[string]interface{})
+			}
+			return params
+		}(),
 	}
 
 	// Render the blueprint.

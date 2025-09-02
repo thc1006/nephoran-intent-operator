@@ -69,14 +69,7 @@ type ValidateIntentResponse struct {
 	Timestamp   time.Time         `json:"timestamp"`
 }
 
-// RequestMetadata contains metadata for LLM requests
-type RequestMetadata struct {
-	RequestID  string            `json:"request_id"`
-	UserID     string            `json:"user_id,omitempty"`
-	SessionID  string            `json:"session_id,omitempty"`
-	Source     string            `json:"source"`
-	Properties map[string]string `json:"properties,omitempty"`
-}
+// RequestMetadata is now defined in types_consolidated.go
 
 // ResponseMetadata contains metadata for LLM responses
 type ResponseMetadata struct {

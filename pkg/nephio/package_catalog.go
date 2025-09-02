@@ -1058,7 +1058,12 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 
 			Metadata: json.RawMessage(`{}`),
 
-			Spec: specializedResource,
+			Spec: func() json.RawMessage {
+				if specBytes, err := json.Marshal(specializedResource); err == nil {
+					return specBytes
+				}
+				return json.RawMessage(`{}`)
+			}(),
 		}
 
 		resources = append(resources, resource)
@@ -1087,15 +1092,25 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 
 	for _, funcDef := range variant.Blueprint.Functions {
 
+		// Convert json.RawMessage to map[string]interface{} for merging
+		var baseConfig, overlayConfig map[string]interface{}
+		if len(funcDef.Config) > 0 {
+			json.Unmarshal(funcDef.Config, &baseConfig)
+		}
+		if len(variant.Specialization.Parameters) > 0 {
+			json.Unmarshal(variant.Specialization.Parameters, &overlayConfig)
+		}
+		
+		mergedConfig := npc.mergeConfigs(baseConfig, overlayConfig)
+		
 		functionConfig := porch.FunctionConfig{
 			Image: funcDef.Image,
-
-			ConfigMap: npc.mergeConfigs(
-
-				funcDef.Config,
-
-				variant.Specialization.Parameters,
-			),
+			ConfigMap: func() json.RawMessage {
+				if configBytes, err := json.Marshal(mergedConfig); err == nil {
+					return configBytes
+				}
+				return json.RawMessage(`{}`)
+			}(),
 		}
 
 		functions = append(functions, functionConfig)
@@ -1135,8 +1150,11 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 
 func (npc *NephioPackageCatalog) applySpecialization(template ResourceTemplate, spec *SpecializationRequest) map[string]interface{} {
 	// Deep copy the template.
-
-	specialized := npc.deepCopyMap(template.Template)
+	var templateMap map[string]interface{}
+	if len(template.Template) > 0 {
+		json.Unmarshal(template.Template, &templateMap)
+	}
+	specialized := npc.deepCopyMap(templateMap)
 
 	// Apply cluster context.
 
@@ -1145,15 +1163,21 @@ func (npc *NephioPackageCatalog) applySpecialization(template ResourceTemplate, 
 	}
 
 	// Apply parameters.
-
-	for key, value := range spec.Parameters {
-		npc.injectParameter(specialized, key, value)
+	var parameters map[string]interface{}
+	if len(spec.Parameters) > 0 {
+		json.Unmarshal(spec.Parameters, &parameters)
+		for key, value := range parameters {
+			npc.injectParameter(specialized, key, value)
+		}
 	}
 
 	// Apply resource overrides.
-
-	for key, value := range spec.ResourceOverrides {
-		npc.injectResourceOverride(specialized, key, value)
+	var overrides map[string]interface{}
+	if len(spec.ResourceOverrides) > 0 {
+		json.Unmarshal(spec.ResourceOverrides, &overrides)
+		for key, value := range overrides {
+			npc.injectResourceOverride(specialized, key, value)
+		}
 	}
 
 	return specialized
@@ -1173,14 +1197,20 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: map[string]interface{}{
-			"labels": map[string]interface{}{
-				"cluster": cluster.Name,
-				"region": cluster.Region,
-				"zone": cluster.Zone,
-				"managed-by": "nephoran-intent-operator",
-			},
-		},
+		Metadata: func() json.RawMessage {
+			metadata := map[string]interface{}{
+				"labels": map[string]interface{}{
+					"cluster": cluster.Name,
+					"region": cluster.Region,
+					"zone": cluster.Zone,
+					"managed-by": "nephoran-intent-operator",
+				},
+			}
+			if metadataBytes, err := json.Marshal(metadata); err == nil {
+				return metadataBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 	}
 
 	resources = append(resources, namespaceResource)

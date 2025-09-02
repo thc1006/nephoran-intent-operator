@@ -26,7 +26,7 @@ type InstrumentedReconciler struct {
 
 // NewInstrumentedReconciler creates a new instrumented reconciler.
 
-func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
+func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics MetricsCollector, kubeClient kubernetes.Interface) *InstrumentedReconciler {
 	return &InstrumentedReconciler{
 		Reconciler: reconciler,
 
@@ -34,7 +34,7 @@ func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, met
 
 		Metrics: metrics,
 
-		HealthChecker: NewHealthChecker("1.0.0", kubeClient, metricsRecorder),
+		HealthChecker: nil, // TODO: Implement health checker
 	}
 }
 
@@ -372,10 +372,10 @@ type InstrumentationManager struct {
 
 // NewInstrumentationManager creates a new instrumentation manager.
 
-func NewInstrumentationManager(kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentationManager {
+func NewInstrumentationManager(kubeClient kubernetes.Interface) *InstrumentationManager {
 	metrics := NewMetricsCollector()
 
-	healthChecker := NewHealthChecker("1.0.0", kubeClient, metricsRecorder)
+	// healthChecker := NewHealthChecker("1.0.0", kubeClient, metricsRecorder) // TODO: Implement
 
 	// Register health checks (these are now handled internally by healthChecker).
 
@@ -384,7 +384,7 @@ func NewInstrumentationManager(kubeClient kubernetes.Interface, metricsRecorder 
 	return &InstrumentationManager{
 		Metrics: metrics,
 
-		HealthChecker: healthChecker,
+		HealthChecker: nil, // TODO: Implement health checker
 
 		NetworkIntentInstrumentation: NewNetworkIntentInstrumentation(metrics),
 

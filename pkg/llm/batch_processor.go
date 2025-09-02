@@ -62,51 +62,9 @@ type BatchProcessorImpl struct {
 	metricsMutex sync.RWMutex
 }
 
-// BatchRequest represents a request to be processed in a batch.
+// BatchRequest is now defined in types_consolidated.go
 
-type BatchRequest struct {
-	ID string
-
-	Intent string
-
-	IntentType string
-
-	ModelName string
-
-	Priority Priority
-
-	Context context.Context
-
-	ResultChan chan *BatchResult
-
-	ResponseCh chan *ProcessingResult
-
-	Metadata map[string]interface{}
-
-	SubmitTime time.Time
-
-	Timeout time.Duration
-}
-
-// BatchResult represents the result of a batch request.
-
-type BatchResult struct {
-	RequestID string
-
-	Response string
-
-	Error error
-
-	ProcessTime time.Duration
-
-	BatchID string
-
-	BatchSize int
-
-	QueueTime time.Duration
-
-	Tokens int
-}
+// BatchResult is now defined in types_consolidated.go
 
 // Batch represents a collection of requests to be processed together.
 
@@ -149,32 +107,14 @@ const (
 	BatchStatusFailed
 )
 
-// Priority levels for request prioritization.
-
-type Priority int
-
+// Priority constants for backward compatibility
 const (
-
-	// PriorityLow holds prioritylow value.
-
-	PriorityLow Priority = iota
-
-	// PriorityNormal holds prioritynormal value.
-
-	PriorityNormal
-
-	// PriorityHigh holds priorityhigh value.
-
-	PriorityHigh
-
-	// PriorityUrgent holds priorityurgent value.
-
-	PriorityUrgent // Same as critical
-
-	// PriorityCritical holds prioritycritical value.
-
-	PriorityCritical = PriorityUrgent // Alias for backward compatibility
-
+	// Legacy priority constants - use Priority type from types_consolidated.go
+	PriorityLow      = LowPriority
+	PriorityNormal   = MediumPriority
+	PriorityHigh     = HighPriority
+	PriorityUrgent   = HighPriority
+	PriorityCritical = HighPriority
 )
 
 // BatchWorker processes batches.

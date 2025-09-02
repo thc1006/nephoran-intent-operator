@@ -700,10 +700,20 @@ func MockProviderConstructor(config ProviderConfig) (Provider, error) {
 
 // GetMockProviderSchema returns the configuration schema for mock provider
 func GetMockProviderSchema() map[string]interface{} {
-	return json.RawMessage(`{}`){
-			"name": json.RawMessage(`{}`),
-			"simulateLatency": json.RawMessage(`{}`),
-			"errorRate": json.RawMessage(`{}`),
+	return map[string]interface{}{
+		"properties": map[string]interface{}{
+			"name": map[string]interface{}{
+				"type": "string",
+				"description": "Mock provider name",
+			},
+			"simulateLatency": map[string]interface{}{
+				"type": "boolean",
+				"description": "Whether to simulate latency",
+			},
+			"errorRate": map[string]interface{}{
+				"type": "number",
+				"description": "Error rate percentage",
+			},
 		},
 	}
 }

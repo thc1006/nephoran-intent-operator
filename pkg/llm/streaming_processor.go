@@ -19,7 +19,7 @@ import (
 type StreamingProcessorImpl struct {
 	baseClient *Client
 
-	contextManager *StreamingContextManager
+	contextManager StreamingContextManager
 
 	tokenManager TokenManager
 
@@ -402,7 +402,12 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 		Status: StatusStreaming,
 
-		Metadata: request.Metadata,
+		Metadata: func() json.RawMessage {
+			if metadataBytes, err := json.Marshal(request.Metadata); err == nil {
+				return metadataBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 	}
 
 	// Register session.
@@ -544,8 +549,9 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 		// In a full implementation, this would retrieve RAG context.
 
 		// For now, we'll use the provided context.
-
-		ragContext = request.Context
+		if contextBytes, err := json.Marshal(request.Context); err == nil {
+			ragContext = string(contextBytes)
+		}
 
 		// If we have a process endpoint configured, we could call it here for context.
 
@@ -1221,9 +1227,7 @@ func (sp *StreamingProcessorImpl) Close() error {
 
 	time.Sleep(time.Second)
 
-	if sp.contextManager != nil {
-		sp.contextManager.Close()
-	}
+	// Context manager doesn't require explicit Close()
 
 	sp.logger.Info("Streaming processor shutdown complete")
 

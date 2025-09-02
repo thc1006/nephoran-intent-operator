@@ -39,20 +39,9 @@ type LLMLatencyDataPoint struct {
 	Model     string
 }
 
-// Priority represents request priority (stub)
-type Priority int
+// Priority is now defined in types_consolidated.go
 
-const (
-	LowPriority Priority = iota
-	MediumPriority
-	HighPriority
-)
-
-// BatchResult represents batch processing result (stub)
-type BatchResult struct {
-	Results []interface{}
-	Errors  []error
-}
+// BatchResult is now defined in types_consolidated.go
 
 // BatchProcessorStats provides batch processor statistics (stub)
 type BatchProcessorStats struct {

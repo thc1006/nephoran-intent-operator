@@ -1058,7 +1058,7 @@ func (t *Tracker) StartStage(intentID, stageName string, metadata map[string]int
 
 		Status: ComponentStatusProcessing,
 
-		Metadata: metadata,
+		Metadata: convertToRawMessage(metadata),
 	}
 
 	intent.Stages = append(intent.Stages, stage)
@@ -1803,4 +1803,16 @@ func contains(str string, substrings ...string) bool {
 	}
 
 	return false
+}
+
+// convertToRawMessage converts metadata to json.RawMessage
+func convertToRawMessage(metadata map[string]interface{}) json.RawMessage {
+	if metadata == nil {
+		return json.RawMessage(`{}`)
+	}
+	data, err := json.Marshal(metadata)
+	if err != nil {
+		return json.RawMessage(`{}`)
+	}
+	return json.RawMessage(data)
 }

@@ -114,12 +114,13 @@ func (nae *NWDAFAnalyticsEngine) RequestAnalytics(ctx context.Context, req *Anal
 		return nil, fmt.Errorf("failed to generate analytics: %w", err)
 	}
 
+	dataBytes, _ := json.Marshal(analyticsData)
 	analytics := &NWDAFAnalytics{
 		AnalyticsID:   req.AnalyticsID,
 		AnalyticsType: req.AnalyticsType,
 		Timestamp:     time.Now(),
-		Data:          analyticsData,
-		Confidence:    0.85, // Default confidence level
+		Data:          json.RawMessage(dataBytes),
+		Confidence:    "0.85", // Default confidence level
 		Validity:      req.TargetPeriod,
 	}
 

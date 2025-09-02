@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -63,6 +64,12 @@ func (sm *SyntheticMonitor) RemoveCheck(checkID string) error {
 	delete(sm.results, checkID)
 
 	sm.logger.Info("Removed synthetic check", "checkID", checkID)
+	return nil
+}
+
+// Start initializes the synthetic monitor (alias for StartMonitoring for compatibility)
+func (sm *SyntheticMonitor) Start(ctx context.Context) error {
+	go sm.StartMonitoring(ctx)
 	return nil
 }
 
@@ -223,9 +230,9 @@ func (sm *SyntheticMonitor) recordResult(result *CheckResult) {
 	// Calculate availability (simplified - should use sliding window)
 	// For now, just use the current success status
 	if result.Success {
-		result.Availability = 100.0
+		result.Availability = "100.0"
 	} else {
-		result.Availability = 0.0
+		result.Availability = "0.0"
 	}
 
 	sm.logger.Debug("Recorded check result",
@@ -276,12 +283,17 @@ func (sm *SyntheticMonitor) GetAvailabilityStats(checkID string) (*AvailabilityS
 
 	// TODO: Implement proper stats calculation with historical data
 	// For now, return basic stats based on current result
+	availability := 0.0
+	if av, err := strconv.ParseFloat(result.Availability, 64); err == nil {
+		availability = av
+	}
+	
 	stats := &AvailabilityStats{
 		CheckID:          checkID,
 		TotalChecks:      1,
 		SuccessfulChecks: 0,
 		FailedChecks:     0,
-		Availability:     result.Availability,
+		Availability:     availability,
 		AvgResponseTime:  result.ResponseTime,
 		LastCheck:        result.Timestamp,
 	}

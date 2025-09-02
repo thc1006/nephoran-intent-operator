@@ -110,8 +110,13 @@ func (hm *HealthMonitor) runHealthChecks(ctx context.Context) {
 			result, err := c.CheckHealth(ctx)
 			if err != nil {
 				result = &ComponentHealth{
-					Name:      n,
-					Status:    HealthStatusUnhealthy,
+					Name: n,
+					Status: HealthStatus{
+						Name:        n,
+						Status:      HealthStatusUnhealthy,
+						Message:     fmt.Sprintf("Health check failed: %v", err),
+						LastChecked: time.Now(),
+					},
 					Message:   fmt.Sprintf("Health check failed: %v", err),
 					Timestamp: time.Now(),
 				}
@@ -146,7 +151,7 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealth {
 	for name, result := range hm.lastResults {
 		components[name] = result
 
-		switch result.Status {
+		switch result.Status.Status {
 		case HealthStatusUnhealthy:
 			unhealthyCount++
 			overallStatus = HealthStatusUnhealthy
@@ -163,9 +168,14 @@ func (hm *HealthMonitor) GetSystemHealth() *SystemHealth {
 	}
 
 	return &SystemHealth{
-		OverallStatus: overallStatus,
-		Components:    components,
-		LastUpdated:   time.Now(),
+		OverallStatus: HealthStatus{
+			Name:        "system_overall",
+			Status:      overallStatus,
+			Message:     fmt.Sprintf("System health: %s", overallStatus),
+			LastChecked: time.Now(),
+		},
+		Components:  components,
+		LastUpdated: time.Now(),
 	}
 }
 
@@ -203,27 +213,39 @@ func (hc *HTTPHealthChecker) CheckHealth(ctx context.Context) (*ComponentHealth,
 	resp, err := hc.client.Do(req)
 	if err != nil {
 		return &ComponentHealth{
-			Name:      hc.name,
-			Status:    HealthStatusUnhealthy,
+			Name: hc.name,
+			Status: HealthStatus{
+				Name:        hc.name,
+				Status:      HealthStatusUnhealthy,
+				Message:     fmt.Sprintf("HTTP request failed: %v", err),
+				LastChecked: time.Now(),
+			},
 			Message:   fmt.Sprintf("HTTP request failed: %v", err),
 			Timestamp: time.Now(),
 		}, nil
 	}
 	defer resp.Body.Close()
 
-	var status HealthStatus
+	var statusStr string
 	var message string
 
 	switch resp.StatusCode {
 	case 200:
-		status = HealthStatusHealthy
+		statusStr = HealthStatusHealthy
 		message = "OK"
 	case 503:
-		status = HealthStatusDegraded
+		statusStr = HealthStatusDegraded
 		message = "Service Unavailable"
 	default:
-		status = HealthStatusUnhealthy
+		statusStr = HealthStatusUnhealthy
 		message = fmt.Sprintf("HTTP %d", resp.StatusCode)
+	}
+
+	status := HealthStatus{
+		Name:        hc.name,
+		Status:      statusStr,
+		Message:     message,
+		LastChecked: time.Now(),
 	}
 
 	return &ComponentHealth{
@@ -249,6 +271,12 @@ func (hc *HTTPHealthChecker) Start(ctx context.Context) error {
 	return nil
 }
 
+// Stop implements HealthChecker interface for HTTP
+func (hc *HTTPHealthChecker) Stop() error {
+	// HTTP health checker doesn't need stop logic
+	return nil
+}
+
 // NewKubernetesHealthChecker creates a Kubernetes health checker
 func NewKubernetesHealthChecker(name, namespace, selector string) *KubernetesHealthChecker {
 	return &KubernetesHealthChecker{
@@ -263,8 +291,13 @@ func (kc *KubernetesHealthChecker) CheckHealth(ctx context.Context) (*ComponentH
 	// This would integrate with Kubernetes client-go in real implementation
 	// For now, return a mock healthy status
 	return &ComponentHealth{
-		Name:      kc.name,
-		Status:    HealthStatusHealthy,
+		Name: kc.name,
+		Status: HealthStatus{
+			Name:        kc.name,
+			Status:      HealthStatusHealthy,
+			Message:     "Kubernetes component is healthy",
+			LastChecked: time.Now(),
+		},
 		Message:   "Kubernetes component is healthy",
 		Timestamp: time.Now(),
 		Metadata: map[string]string{
@@ -285,6 +318,12 @@ func (kc *KubernetesHealthChecker) Start(ctx context.Context) error {
 	return nil
 }
 
+// Stop implements HealthChecker interface for Kubernetes
+func (kc *KubernetesHealthChecker) Stop() error {
+	// Kubernetes health checker doesn't need stop logic
+	return nil
+}
+
 // NewProcessHealthChecker creates a process health checker
 func NewProcessHealthChecker(name, processName, pidFile string) *ProcessHealthChecker {
 	return &ProcessHealthChecker{
@@ -299,8 +338,13 @@ func (pc *ProcessHealthChecker) CheckHealth(ctx context.Context) (*ComponentHeal
 	// This would check actual process status in real implementation
 	// For now, return a mock healthy status
 	return &ComponentHealth{
-		Name:      pc.name,
-		Status:    HealthStatusHealthy,
+		Name: pc.name,
+		Status: HealthStatus{
+			Name:        pc.name,
+			Status:      HealthStatusHealthy,
+			Message:     "Process is running",
+			LastChecked: time.Now(),
+		},
 		Message:   "Process is running",
 		Timestamp: time.Now(),
 		Metadata: map[string]string{
@@ -318,6 +362,12 @@ func (pc *ProcessHealthChecker) GetName() string {
 // Start implements HealthChecker interface for Process
 func (pc *ProcessHealthChecker) Start(ctx context.Context) error {
 	// Process health checker doesn't need startup logic
+	return nil
+}
+
+// Stop implements HealthChecker interface for Process
+func (pc *ProcessHealthChecker) Stop() error {
+	// Process health checker doesn't need stop logic
 	return nil
 }
 
@@ -347,7 +397,7 @@ type HealthCheckResult struct {
 func (ch *ComponentHealth) ToHealthCheckResult() *HealthCheckResult {
 	return &HealthCheckResult{
 		Component: ch.Name,
-		Status:    string(ch.Status),
+		Status:    ch.Status.Status,
 		Message:   ch.Message,
 		Timestamp: ch.Timestamp,
 		Metadata:  ch.Metadata,

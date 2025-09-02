@@ -653,7 +653,7 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 	decision := &AccessDecision{
 		EvaluatedAt: startTime,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Get user permissions.
@@ -695,12 +695,14 @@ func (r *RBACManager) CheckAccess(ctx context.Context, request *AccessRequest) *
 	decision = r.evaluatePolicies(ctx, request, decision)
 
 	// Add metadata.
-
-	decision.Metadata["evaluation_time_ms"] = time.Since(startTime).Milliseconds()
-
-	decision.Metadata["user_roles"] = userRoles
-
-	decision.Metadata["checked_permission"] = requiredPermission
+	metadataMap := map[string]interface{}{
+		"evaluation_time_ms":  time.Since(startTime).Milliseconds(),
+		"user_roles":          userRoles,
+		"checked_permission":  requiredPermission,
+	}
+	if metadataBytes, err := json.Marshal(metadataMap); err == nil {
+		decision.Metadata = metadataBytes
+	}
 
 	// Audit logging.
 
@@ -1105,10 +1107,14 @@ func (r *RBACManager) mapGoogleRoles(userInfo *providers.UserInfo) []string {
 	var roles []string
 
 	// Check hosted domain for admin access.
-
-	if hostedDomain, exists := userInfo.Attributes["hosted_domain"]; exists {
-		if hostedDomain == "nephoran.io" || hostedDomain == "admin.nephoran.io" {
-			roles = append(roles, "intent-operator")
+	if len(userInfo.Attributes) > 0 {
+		var attrs map[string]interface{}
+		if err := json.Unmarshal(userInfo.Attributes, &attrs); err == nil {
+			if hostedDomain, ok := attrs["hosted_domain"].(string); ok {
+				if hostedDomain == "nephoran.io" || hostedDomain == "admin.nephoran.io" {
+					roles = append(roles, "intent-operator")
+				}
+			}
 		}
 	}
 
@@ -1178,6 +1184,6 @@ func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} 
 
 	defer r.mutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{}
 }
 

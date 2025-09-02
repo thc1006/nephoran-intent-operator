@@ -51,58 +51,17 @@ type CircuitBreakerManagerInterface interface {
 	ResetAll()
 }
 
-// CircuitBreakerConfig defines configuration for circuit breakers
-type CircuitBreakerConfig struct {
-	MaxRequests      uint32        `json:"max_requests"`
-	Timeout          time.Duration `json:"timeout"`
-	Interval         time.Duration `json:"interval"`
-	ReadyToTrip      func(counts map[string]uint64) bool
-	OnStateChange    func(name string, from, to string)
-	IsSuccessful     func(err error) bool
-	MaxRetries       int           `json:"max_retries"`
-	RetryTimeout     time.Duration `json:"retry_timeout"`
-}
+// CircuitBreakerConfig is defined in circuit_breaker.go
 
-// CircuitBreaker provides circuit breaker functionality
-type CircuitBreaker struct {
-	name      string
-	config    *CircuitBreakerConfig
-	state     string
-	counts    map[string]uint64
-	expiry    time.Time
-}
+// CircuitBreaker is defined in circuit_breaker.go
 
-// LLMClient defines the interface for LLM client implementations
-type LLMClient interface {
-	ProcessIntent(ctx context.Context, request *ProcessIntentRequest) (*ProcessIntentResponse, error)
-	GetMetrics() ClientMetrics
-	Close() error
-}
+// LLMClient is defined in client.go
 
-// ProcessIntentRequest represents a request to process intent
-type ProcessIntentRequest struct {
-	Intent    string            `json:"intent"`
-	Context   map[string]string `json:"context,omitempty"`
-	Metadata  RequestMetadata   `json:"metadata,omitempty"`
-	Timestamp time.Time         `json:"timestamp"`
-}
+// ProcessIntentRequest is defined in client.go
 
-// ProcessIntentResponse represents a response from intent processing
-type ProcessIntentResponse struct {
-	Reasoning        string                 `json:"reasoning"`
-	StructuredIntent map[string]interface{} `json:"structured_intent,omitempty"`
-	Confidence       float64                `json:"confidence"`
-	Metadata         ResponseMetadata       `json:"metadata"`
-}
+// ProcessIntentResponse is defined in client.go
 
-// ResponseMetadata contains metadata for responses
-type ResponseMetadata struct {
-	RequestID      string  `json:"request_id"`
-	TokensUsed     int     `json:"tokens_used"`
-	ProcessingTime float64 `json:"processing_time_ms"`
-	Cost           float64 `json:"cost"`
-	ModelUsed      string  `json:"model_used"`
-}
+// ResponseMetadata is defined in client.go
 
 // Types referenced here are defined in their respective files:
 // - HealthChecker, EndpointPool, BatchProcessorConfig: interface_consolidated.go

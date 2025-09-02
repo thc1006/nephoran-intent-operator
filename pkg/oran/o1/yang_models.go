@@ -889,7 +889,7 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 
 	modelStats := make(map[string]interface{})
 
-	for name, model := range yr.models {
+	for name, _ := range yr.models {
 		modelStats[name] = json.RawMessage(`{}`)
 	}
 

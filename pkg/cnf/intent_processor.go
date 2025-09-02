@@ -644,21 +644,25 @@ Provide confidence scores for each extracted element.`,
 	}
 
 	return &llm.ProcessingRequest{
-		Intent: intentContext.Intent,
-
-		SystemPrompt: systemPrompt,
-
-		UserPrompt: userPrompt,
-
-		Context: string(ragContextJSON),
-
-		MaxTokens: 2000,
-
-		Temperature: 0.3,
-
-		RequestID: intentContext.RequestID,
-
-		ProcessingTimeout: p.Config.MaxProcessingTime,
+		ID:         intentContext.RequestID,
+		Intent:     intentContext.Intent,
+		IntentType: "cnf_deployment",
+		Model:      "gpt-4",
+		Context: map[string]string{
+			"system_prompt": systemPrompt,
+			"user_prompt":   userPrompt,
+			"rag_context":   string(ragContextJSON),
+		},
+		Metadata: llm.RequestMetadata{
+			RequestID: intentContext.RequestID,
+			Source:    "cnf_intent_processor",
+			Properties: map[string]string{
+				"max_tokens":   "2000",
+				"temperature":  "0.3",
+				"timeout":      p.Config.MaxProcessingTime.String(),
+			},
+		},
+		Timestamp: time.Now(),
 	}
 }
 

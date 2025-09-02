@@ -291,7 +291,7 @@ func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, re
 // buildRenderingContext creates the context for template rendering.
 
 func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest) map[string]interface{} {
-	context := json.RawMessage(`{}`)
+	context := make(map[string]interface{})
 
 	// Add intent-specific values.
 
@@ -329,7 +329,8 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 
 	// Add O-RAN specific context.
 
-	context["ORANInterfaces"] = json.RawMessage(`{}`){
+	context["ORANInterfaces"] = map[string]interface{}{
+		"A1": map[string]interface{}{
 			"Version": "v1.0.0",
 
 			"Endpoint": "/a1-p",
@@ -337,28 +338,28 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 			"Port": 8080,
 		},
 
-		"O1": json.RawMessage(`{}`),
+		"O1": map[string]interface{}{},
 
-		"O2": json.RawMessage(`{}`),
+		"O2": map[string]interface{}{},
 
-		"E2": json.RawMessage(`{}`),
+		"E2": map[string]interface{}{},
 	}
 
 	// Add 5G Core specific context.
 
-	context["FiveGCore"] = json.RawMessage(`{}`){
+	context["FiveGCore"] = map[string]interface{}{
+		"PLMN": map[string]interface{}{
 			"MCC": "001",
 
 			"MNC": "01",
 		},
 
-		"NetworkSlicing": json.RawMessage(`{}`){
+		"NetworkSlicing": map[string]interface{}{
 				"SST": 1,
 
 				"SD": "000001",
 			},
-		},
-	}
+		}
 
 	return context
 }
@@ -1093,7 +1094,8 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	for i, cm := range rendered.ConfigMaps {
 
-		configMap := json.RawMessage(`{}`){
+		configMap := map[string]interface{}{
+			"metadata": map[string]interface{}{
 				"name": cm.Name,
 
 				"namespace": cm.Namespace,
@@ -1119,7 +1121,8 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	for i, secret := range rendered.Secrets {
 
-		secretResource := json.RawMessage(`{}`){
+		secretResource := map[string]interface{}{
+			"metadata": map[string]interface{}{
 				"name": secret.Name,
 
 				"namespace": secret.Namespace,

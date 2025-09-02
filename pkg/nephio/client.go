@@ -110,7 +110,12 @@ func (c *clientImpl) ProcessIntent(ctx context.Context, intent *Intent) (*Proces
 	result := &ProcessingResult{
 		IntentID:      intent.ID,
 		PackageID:     "pkg-" + intent.ID,
-		GeneratedSpec: generatedSpec,
+		GeneratedSpec: func() json.RawMessage {
+			if specBytes, err := json.Marshal(generatedSpec); err == nil {
+				return specBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 		Status:        "completed",
 		Message:       "Intent processed successfully",
 		ProcessedAt:   time.Now(),
@@ -143,12 +148,7 @@ func (c *clientImpl) ListIntents(ctx context.Context, filter *IntentFilter) ([]*
 			Description:     "Deploy UPF with 3 replicas",
 			IntentType:      "NetworkFunctionDeployment",
 			NetworkFunction: "UPF",
-			Parameters: map[string]interface{}{
-				"resources": map[string]interface{}{
-					"cpu":    "2000m",
-					"memory": "4Gi",
-				},
-			},
+			Parameters: json.RawMessage(`{"resources":{"cpu":"2000m","memory":"4Gi"}}`),
 			Status:    "processed",
 			CreatedAt: time.Now().Add(-1 * time.Hour),
 			UpdatedAt: time.Now(),

@@ -1,10 +1,9 @@
 package availability
 
 import (
-	
-	"encoding/json"
-"context"
+	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -163,18 +163,9 @@ type IntentFlowStep struct {
 
 	MaxWaitTime time.Duration `json:"max_wait_time"`
 
-	ValidationRules []ValidationRule `json:"validation_rules"`
+	ValidationRules []monitoring.ValidationRule `json:"validation_rules"`
 }
 
-// ValidationRule defines validation criteria for synthetic checks.
-
-type ValidationRule struct {
-	Field string `json:"field"`
-
-	Operator string `json:"operator"` // equals, contains, greater_than, less_than
-
-	Value interface{} `json:"value"`
-}
 
 // SyntheticResult represents the result of a synthetic check execution.
 

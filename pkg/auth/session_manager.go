@@ -918,7 +918,12 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 		}
 	}
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"active_sessions":   activeSessions,
+		"expired_sessions":  expiredSessions,
+		"provider_counts":   providerCounts,
+		"total_sessions":    len(sm.sessions),
+	}
 }
 
 // Helper methods.

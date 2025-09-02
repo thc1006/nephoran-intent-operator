@@ -33,38 +33,9 @@ func NewMetricsCollector() *MetricsCollector {
 
 // Priority stub for batch processing.
 
-type Priority int
+// Priority is now defined in types_consolidated.go
 
-const (
-
-	// PriorityLow holds prioritylow value.
-
-	PriorityLow Priority = iota
-
-	// PriorityNormal holds prioritynormal value.
-
-	PriorityNormal
-
-	// PriorityHigh holds priorityhigh value.
-
-	PriorityHigh
-
-	// PriorityCritical holds prioritycritical value.
-
-	PriorityCritical
-)
-
-// BatchResult stub.
-
-type BatchResult struct {
-	Index int `json:"index"`
-
-	Result interface{} `json:"result"`
-
-	Error error `json:"error"`
-
-	Latency time.Duration `json:"latency"`
-}
+// BatchResult is now defined in types_consolidated.go
 
 // StubBatchProcessorStats stub.
 

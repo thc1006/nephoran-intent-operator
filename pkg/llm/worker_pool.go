@@ -1233,9 +1233,7 @@ func getDefaultWorkerPoolConfig() *WorkerPoolConfig {
 		HealthCheckEnabled: true,
 
 		PriorityQueueSizes: map[Priority]int{
-			PriorityUrgent: 100,
-
-			PriorityHigh: 250,
+			PriorityHigh: 100,
 
 			PriorityNormal: 500,
 

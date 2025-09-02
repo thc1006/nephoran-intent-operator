@@ -462,7 +462,7 @@ func (am *AuthMiddleware) authenticateWithSession(ctx context.Context, sessionID
 
 		IsAdmin: isAdmin,
 
-		Attributes: make(map[string]interface{}),
+		Attributes: json.RawMessage(`{}`),
 	}, nil
 }
 

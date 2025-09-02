@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"strconv"
 	"sync"
 	"time"
 
@@ -250,49 +251,58 @@ func (r *PerformanceReporter) checkThresholds(component string, metrics *Perform
 	thresholds := make(map[string]float64)
 	for _, rule := range alertRules {
 		if rule.Enabled && rule.Component == component {
-			thresholds[rule.Name] = rule.Threshold
+			// Parse threshold from string
+			if threshold, err := strconv.ParseFloat(rule.Threshold, 64); err == nil {
+				thresholds[rule.Name] = threshold
+			}
 		}
 	}
 
 	// Check throughput threshold
-	if threshold, exists := thresholds["throughput"]; exists && metrics.Throughput < threshold {
-		alerts = append(alerts, AlertItem{
-			ID:        fmt.Sprintf("%s-throughput-%d", component, time.Now().Unix()),
-			Name:      "throughput",
-			Message:   fmt.Sprintf("Throughput %.2f below threshold %.2f for component %s", metrics.Throughput, threshold, component),
-			Severity:  AlertSeverityWarning,
-			Status:    "active",
-			Timestamp: time.Now(),
-			Source:    component,
-		})
+	if threshold, exists := thresholds["throughput"]; exists {
+		if throughput, err := strconv.ParseFloat(metrics.Throughput, 64); err == nil && throughput < threshold {
+			alerts = append(alerts, AlertItem{
+				ID:        fmt.Sprintf("%s-throughput-%d", component, time.Now().Unix()),
+				Name:      "throughput",
+				Message:   fmt.Sprintf("Throughput %.2f below threshold %.2f for component %s", throughput, threshold, component),
+				Severity:  AlertSeverityWarning,
+				Status:    "active",
+				Timestamp: time.Now(),
+				Source:    component,
+			})
+		}
 	}
 
 	// Check error rate threshold
-	if threshold, exists := thresholds["error_rate"]; exists && metrics.ErrorRate > threshold {
-		alerts = append(alerts, AlertItem{
-			ID:        fmt.Sprintf("%s-error-rate-%d", component, time.Now().Unix()),
-			Name:      "error_rate",
-			Message:   fmt.Sprintf("Error rate %.2f%% above threshold %.2f%% for component %s", metrics.ErrorRate, threshold, component),
-			Severity:  AlertSeverityCritical,
-			Status:    "active",
-			Timestamp: time.Now(),
-			Source:    component,
-		})
-	}
-
-	// Check availability threshold (calculated as 100% - error rate)
-	if threshold, exists := thresholds["availability"]; exists {
-		availability := 100.0 - metrics.ErrorRate
-		if availability < threshold {
+	if threshold, exists := thresholds["error_rate"]; exists {
+		if errorRate, err := strconv.ParseFloat(metrics.ErrorRate, 64); err == nil && errorRate > threshold {
 			alerts = append(alerts, AlertItem{
-				ID:        fmt.Sprintf("%s-availability-%d", component, time.Now().Unix()),
-				Name:      "availability",
-				Message:   fmt.Sprintf("Availability %.1f%% below threshold %.1f%% for component %s", availability, threshold, component),
+				ID:        fmt.Sprintf("%s-error-rate-%d", component, time.Now().Unix()),
+				Name:      "error_rate",
+				Message:   fmt.Sprintf("Error rate %.2f%% above threshold %.2f%% for component %s", errorRate, threshold, component),
 				Severity:  AlertSeverityCritical,
 				Status:    "active",
 				Timestamp: time.Now(),
 				Source:    component,
 			})
+		}
+	}
+
+	// Check availability threshold (calculated as 100% - error rate)
+	if threshold, exists := thresholds["availability"]; exists {
+		if errorRate, err := strconv.ParseFloat(metrics.ErrorRate, 64); err == nil {
+			availability := 100.0 - errorRate
+			if availability < threshold {
+				alerts = append(alerts, AlertItem{
+					ID:        fmt.Sprintf("%s-availability-%d", component, time.Now().Unix()),
+					Name:      "availability",
+					Message:   fmt.Sprintf("Availability %.1f%% below threshold %.1f%% for component %s", availability, threshold, component),
+					Severity:  AlertSeverityCritical,
+					Status:    "active",
+					Timestamp: time.Now(),
+					Source:    component,
+				})
+			}
 		}
 	}
 
@@ -311,11 +321,15 @@ func (r *PerformanceReporter) calculateSummary(metrics []PerformanceMetrics, ale
 	criticalAlerts := 0
 
 	for _, metric := range metrics {
-		totalThroughput += metric.Throughput
+		if throughput, err := strconv.ParseFloat(metric.Throughput, 64); err == nil {
+			totalThroughput += throughput
+		}
 		totalLatency += metric.Latency
 		// Calculate availability as 100% - error rate since Availability field doesn't exist
-		availability := 100.0 - metric.ErrorRate
-		totalAvailability += availability
+		if errorRate, err := strconv.ParseFloat(metric.ErrorRate, 64); err == nil {
+			availability := 100.0 - errorRate
+			totalAvailability += availability
+		}
 	}
 
 	for _, alert := range alerts {
@@ -333,7 +347,7 @@ func (r *PerformanceReporter) calculateSummary(metrics []PerformanceMetrics, ale
 		AvgResponseTime:  avgResponseTime,
 		TotalRequests:    int64(len(metrics)), // Simplified
 		ErrorRate:        0.0,                 // Would need to be calculated from metrics
-		ResourceUsage:    make(map[string]float64),
+		ResourceUsage:    make(map[string]string),
 	}
 }
 

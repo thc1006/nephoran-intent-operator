@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	"time"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"

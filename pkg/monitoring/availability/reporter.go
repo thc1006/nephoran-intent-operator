@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // ReportType represents different types of availability reports.
@@ -227,7 +228,7 @@ type ServiceAvailability struct {
 
 	ErrorRate float64 `json:"error_rate"`
 
-	HealthStatus HealthStatus `json:"health_status"`
+	HealthStatus monitoring.HealthStatus `json:"health_status"`
 
 	LastIncident *time.Time `json:"last_incident,omitempty"`
 
@@ -247,7 +248,7 @@ type ComponentAvailability struct {
 
 	Availability float64 `json:"availability"`
 
-	HealthStatus HealthStatus `json:"health_status"`
+	HealthStatus monitoring.HealthStatus `json:"health_status"`
 
 	RestartCount int `json:"restart_count"`
 
@@ -301,7 +302,7 @@ type UserJourneyAvailability struct {
 
 	StepFailures map[string]int `json:"step_failures"`
 
-	HealthStatus HealthStatus `json:"health_status"`
+	HealthStatus monitoring.HealthStatus `json:"health_status"`
 
 	TotalExecutions int64 `json:"total_executions"`
 

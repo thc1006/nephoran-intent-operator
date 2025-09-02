@@ -332,7 +332,7 @@ func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 	stateMetric := &monitoring.Metric{
 		Name:      "circuit_breaker_state",
 		Type:      monitoring.MetricTypeGauge,
-		Value:     stateValue,
+		Value:     fmt.Sprintf("%.1f", stateValue),
 		Timestamp: time.Now(),
 		Labels: map[string]string{
 			"circuit_breaker": cb.name,

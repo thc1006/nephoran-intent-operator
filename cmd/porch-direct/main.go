@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -257,7 +258,13 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 		Intent: intent,
 
-		Files: pkg.GetFiles(),
+		Files: func() json.RawMessage {
+			files := pkg.GetFiles()
+			if filesBytes, err := json.Marshal(files); err == nil {
+				return filesBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 	}
 
 	// Create or update package revision.

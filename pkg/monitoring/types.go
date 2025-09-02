@@ -35,15 +35,7 @@ const (
 	AlertSeverityCritical AlertSeverity = "critical"
 )
 
-// HealthStatus represents the health status of a component
-type HealthStatus string
-
-const (
-	HealthStatusHealthy   HealthStatus = "healthy"
-	HealthStatusDegraded  HealthStatus = "degraded"
-	HealthStatusUnhealthy HealthStatus = "unhealthy"
-	HealthStatusUnknown   HealthStatus = "unknown"
-)
+// HealthStatus is defined in health_checker_impl.go
 
 // Metric represents a single metric with its metadata
 type Metric struct {
@@ -79,16 +71,7 @@ type Alert struct {
 	Fingerprint string            `json:"fingerprint" yaml:"fingerprint"`
 }
 
-// HealthCheck represents a health check configuration
-type HealthCheck struct {
-	Name        string        `json:"name" yaml:"name"`
-	Endpoint    string        `json:"endpoint" yaml:"endpoint"`
-	Method      string        `json:"method" yaml:"method"`
-	Interval    time.Duration `json:"interval" yaml:"interval"`
-	Timeout     time.Duration `json:"timeout" yaml:"timeout"`
-	HealthyCode int           `json:"healthyCode" yaml:"healthyCode"`
-	Headers     []Header      `json:"headers,omitempty" yaml:"headers,omitempty"`
-}
+// HealthCheck is defined in health_checker_impl.go
 
 // Header represents an HTTP header
 type Header struct {
@@ -321,9 +304,8 @@ type AlertRule struct {
 
 // UPDATED METRICS COLLECTOR INTERFACE - FIXED METHOD SIGNATURES
 type MetricsCollector interface {
-	// Basic collection methods - FIXED: Added two different signatures
-	CollectMetrics() ([]*Metric, error)                                           // Interface method
-	CollectMetrics(ctx context.Context, source string) (*MetricsData, error)     // Implementation method
+	// Basic collection method with context
+	CollectMetrics(ctx context.Context, source string) (*MetricsData, error)
 	Start(ctx context.Context) error                                              // FIXED: Added context parameter
 	Stop() error
 	RegisterMetrics(registry interface{}) error
@@ -381,6 +363,7 @@ type HealthChecker interface {
 	CheckHealth(ctx context.Context) (*ComponentHealth, error)
 	GetName() string
 	Start(ctx context.Context) error
+	Stop() error
 }
 
 // NotificationChannel represents a notification delivery channel

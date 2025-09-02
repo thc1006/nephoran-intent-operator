@@ -187,10 +187,13 @@ func (r *E2ServiceModelRegistry) getCompatibilityList(modelName string) []string
 // Service model validation functions.
 
 func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2ServiceModel) error {
-	config := serviceModel.Configuration
-
-	if config == nil {
+	if len(serviceModel.Configuration) == 0 {
 		return fmt.Errorf("KPM service model requires configuration")
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(serviceModel.Configuration, &config); err != nil {
+		return fmt.Errorf("invalid configuration format: %w", err)
 	}
 
 	measurementTypes, exists := config["measurement_types"]
@@ -271,10 +274,13 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 }
 
 func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2ServiceModel) error {
-	config := serviceModel.Configuration
-
-	if config == nil {
+	if len(serviceModel.Configuration) == 0 {
 		return nil // Optional configuration
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(serviceModel.Configuration, &config); err != nil {
+		return fmt.Errorf("invalid configuration format: %w", err)
 	}
 
 	granularityPeriod, exists := config["granularity_period"]
@@ -303,10 +309,13 @@ func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2Se
 }
 
 func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2ServiceModel) error {
-	config := serviceModel.Configuration
-
-	if config == nil {
+	if len(serviceModel.Configuration) == 0 {
 		return fmt.Errorf("RC service model requires configuration")
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(serviceModel.Configuration, &config); err != nil {
+		return fmt.Errorf("invalid configuration format: %w", err)
 	}
 
 	controlActions, exists := config["control_actions"]
@@ -365,10 +374,13 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 }
 
 func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2ServiceModel) error {
-	config := serviceModel.Configuration
-
-	if config == nil {
+	if len(serviceModel.Configuration) == 0 {
 		return nil // Optional configuration
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(serviceModel.Configuration, &config); err != nil {
+		return fmt.Errorf("invalid configuration format: %w", err)
 	}
 
 	controlOutcomes, exists := config["control_outcomes"]

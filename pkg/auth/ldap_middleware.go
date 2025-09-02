@@ -384,22 +384,18 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 	}
 
 	// Add user attributes if available.
-
-	if attrs, ok := userInfo.Attributes["title"]; ok {
-		if title, ok := attrs.(string); ok {
-			response.User.Title = title
-		}
-	}
-
-	if attrs, ok := userInfo.Attributes["department"]; ok {
-		if dept, ok := attrs.(string); ok {
-			response.User.Department = dept
-		}
-	}
-
-	if attrs, ok := userInfo.Attributes["phone"]; ok {
-		if phone, ok := attrs.(string); ok {
-			response.User.Phone = phone
+	if len(userInfo.Attributes) > 0 {
+		var attrs map[string]interface{}
+		if err := json.Unmarshal(userInfo.Attributes, &attrs); err == nil {
+			if title, ok := attrs["title"].(string); ok {
+				response.User.Title = title
+			}
+			if dept, ok := attrs["department"].(string); ok {
+				response.User.Department = dept
+			}
+			if phone, ok := attrs["phone"].(string); ok {
+				response.User.Phone = phone
+			}
 		}
 	}
 
@@ -515,7 +511,7 @@ func (lm *LDAPAuthMiddleware) trySessionAuth(r *http.Request) *AuthContext {
 
 		IsAdmin: lm.hasAdminRole(sessionInfo.Roles),
 
-		Attributes: make(map[string]interface{}),
+		Attributes: json.RawMessage(`{}`),
 	}
 }
 

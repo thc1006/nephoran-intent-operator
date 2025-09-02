@@ -1336,7 +1336,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 
 						ActionType: actionMap["action_type"].(string),
 
-						ActionDefinition: actionMap["action_definition"].(map[string]interface{}),
+						ActionDefinition: func() json.RawMessage {
+							if actionDef, ok := actionMap["action_definition"]; ok {
+								if actionDefBytes, err := json.Marshal(actionDef); err == nil {
+									return json.RawMessage(actionDefBytes)
+								}
+							}
+							return json.RawMessage(`{}`)
+						}(),
 					}
 
 					subscription.Actions = append(subscription.Actions, action)
