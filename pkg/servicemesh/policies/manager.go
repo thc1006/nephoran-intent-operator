@@ -503,11 +503,12 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 				Action: "ALLOW",
 
 				Rules: []interface{}{
-					json.RawMessage("{}"){
-							json.RawMessage("{}"),
-							},
+					map[string]interface{}{
+						"from": []interface{}{
+							map[string]interface{}{},
 						},
 					},
+				},
 				},
 			},
 		}

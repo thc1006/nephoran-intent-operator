@@ -2555,13 +2555,12 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 
 	// Create the function evaluation task.
 
-	task := json.RawMessage("{}"){
+	task := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"generateName": "function-eval-",
-
-			"labels": json.RawMessage("{}"),
+			"labels": map[string]interface{}{},
 		},
-
-		"spec": json.RawMessage("{}"),
+		"spec": map[string]interface{}{},
 	}
 
 	// Convert to unstructured.

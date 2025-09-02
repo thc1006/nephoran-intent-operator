@@ -1173,13 +1173,11 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: json.RawMessage("{}"){
+		Metadata: map[string]interface{}{
+			"labels": map[string]interface{}{
 				"cluster": cluster.Name,
-
 				"region": cluster.Region,
-
 				"zone": cluster.Zone,
-
 				"managed-by": "nephoran-intent-operator",
 			},
 		},

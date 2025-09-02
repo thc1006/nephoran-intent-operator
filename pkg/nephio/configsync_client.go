@@ -459,12 +459,11 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 
 	// Generate Kustomization file.
 
-	kustomization := json.RawMessage("{}"){
+	kustomization := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name": pkg.Spec.PackageName,
-
-			"annotations": json.RawMessage("{}"),
+			"annotations": map[string]interface{}{},
 		},
-
 		"resources": csc.getResourceFileNames(content),
 
 		"commonLabels": json.RawMessage("{}"),
@@ -487,12 +486,12 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 
 	if !csc.hasNamespaceResource(content) {
 
-		namespace := json.RawMessage("{}"){
-				"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
-
-				"labels": json.RawMessage("{}"),
-			},
-		}
+		namespace := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
+			"labels": map[string]interface{}{},
+		},
+	}
 
 		namespaceYAML, err := yaml.Marshal(namespace)
 		if err != nil {

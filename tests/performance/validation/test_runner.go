@@ -768,8 +768,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: json.RawMessage("{}"),
-
+			Parameters: map[string]interface{}{
 				"charging_enabled": true,
 			},
 		},

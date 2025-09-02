@@ -698,9 +698,9 @@ func (pg *PackageGenerator) extractNetworkSliceDetailsFromProcessed(processedPar
 // generateFunctionConfig generates the function configuration.
 
 func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (string, error) {
-	fnConfig := json.RawMessage("{}"){
+	fnConfig := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name": "set-namespace",
-
 			"annotations": map[string]string{
 				"config.kubernetes.io/local-config": "true",
 			},
@@ -739,8 +739,8 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 	// Extract O-RAN specific configuration.
 
 	if o1Config, ok := params["o1_config"]; ok {
-		return json.RawMessage("{}"),
-		}
+		_ = o1Config // use the variable
+		return map[string]interface{}{}, nil
 	}
 
 	return nil

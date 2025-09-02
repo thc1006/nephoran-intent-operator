@@ -133,8 +133,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "complex",
 
-					Parameters: json.RawMessage("{}"),
-
+					Parameters: map[string]interface{}{
 						"coordination_required": true,
 					},
 				},

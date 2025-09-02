@@ -1237,7 +1237,6 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 					Description: "Collect forensic evidence",
 
 					Parameters: json.RawMessage("{}"),
-					},
 
 					Timeout: 30 * time.Minute,
 				},

@@ -88,11 +88,10 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 	}
 
 	// Wrap result with processing metadata
-	response := json.RawMessage("{}"){
-			"model_used":         p.Config.LLMModelName,
-			"confidence_score":   0.95,
-			"processing_time_ms": 150.0,
-		},
+	response := map[string]interface{}{
+		"model_used":         p.Config.LLMModelName,
+		"confidence_score":   0.95,
+		"processing_time_ms": 150.0,
 	}
 
 	// Parse and merge the LLM result

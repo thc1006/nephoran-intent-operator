@@ -267,14 +267,13 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 	if defaults.DefaultDenyAll {
 
 		authPolicy := &unstructured.Unstructured{
-			Object: json.RawMessage("{}"){
-					"name": "default-deny-all",
-
-					"namespace": m.meshConfig.Namespace,
-				},
-
-				"spec": json.RawMessage("{}"),
+			Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"name": "default-deny-all",
+				"namespace": m.meshConfig.Namespace,
 			},
+			"spec": map[string]interface{}{},
+		},
 		}
 
 		gvr := schema.GroupVersionResource{
@@ -469,14 +468,13 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 	// Create VirtualService for traffic management.
 
 	vs := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
-				"name": policy.Name,
-
-				"namespace": policy.Namespace,
-			},
-
-			"spec": json.RawMessage("{}"),
+		Object: map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": policy.Name,
+			"namespace": policy.Namespace,
 		},
+		"spec": map[string]interface{}{},
+	},
 	}
 
 	// Add traffic shifting if specified.

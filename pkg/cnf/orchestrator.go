@@ -633,13 +633,12 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 	// Set resource requirements.
 
-	config["resources"] = json.RawMessage("{}"){
+	config["resources"] = map[string]interface{}{
+		"requests": map[string]interface{}{
 			"cpu": cnf.Spec.Resources.CPU.String(),
-
 			"memory": cnf.Spec.Resources.Memory.String(),
 		},
-
-		"limits": json.RawMessage("{}"),
+		"limits": map[string]interface{}{},
 	}
 
 	// Override limits if specified.
@@ -976,18 +975,18 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: json.RawMessage("{}"){
+		DefaultValues: map[string]interface{}{
+			"image": map[string]interface{}{
 				"repository": "5gc/amf",
-
 				"tag": "latest",
 			},
-
-			"service": json.RawMessage("{}"){
+			"service": map[string]interface{}{
+				"ports": map[string]interface{}{
 					"sbi": 8080,
-
 					"sctp": 38412,
 				},
 			},
+		},
 		},
 
 		RequiredConfigs: []string{"plmnId", "amfId", "guami"},
