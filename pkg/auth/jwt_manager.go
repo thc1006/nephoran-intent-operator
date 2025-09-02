@@ -1317,8 +1317,13 @@ func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 
 	// Create JWKS response.
 
-	return json.RawMessage("{}"){
-			json.RawMessage("{}"),
+	return map[string]interface{}{
+		"keys": []map[string]interface{}{
+			{
+				"kty": "RSA",
+				"use": "sig",
+				"alg": "RS256",
+			},
 		},
 	}, nil
 }

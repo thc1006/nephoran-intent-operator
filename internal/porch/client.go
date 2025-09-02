@@ -40,17 +40,14 @@ func CreateDraftPackageRevision(
 	}
 
 	u := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
 				"generateName": fmt.Sprintf("%s.%s.", repository, packageName),
-
 				"namespace": namespace,
-
 				"labels": labels,
-
 				"annotations": annotations,
 			},
-
-			"spec": json.RawMessage("{}"),
+			"spec": map[string]interface{}{},
 		},
 	}
 

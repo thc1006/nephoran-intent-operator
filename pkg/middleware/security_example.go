@@ -213,11 +213,12 @@ func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
 
 func listIntentsHandler(w http.ResponseWriter, r *http.Request) {
 	// Example: List all network intents
-	intents := []json.RawMessage("{}"),
-	}
+	intents := []map[string]interface{}{}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(json.RawMessage("{}"))
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"intents": intents,
+	})
 }
 
 func createIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +250,9 @@ func getIntentHandler(w http.ResponseWriter, r *http.Request) {
 	intentID := vars["id"]
 
 	// Example response
-	intent := json.RawMessage("{}"){
+	intent := map[string]interface{}{
+		"id": intentID,
+		"spec": map[string]interface{}{
 			"replicas":    3,
 			"cpu_request": "500m",
 			"mem_request": "1Gi",
@@ -315,7 +318,9 @@ func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Perform validation
-	validationResult := json.RawMessage("{}"),
+	validationResult := map[string]interface{}{
+		"valid":    true,
+		"errors":   []string{},
 		"warnings": []string{},
 	}
 

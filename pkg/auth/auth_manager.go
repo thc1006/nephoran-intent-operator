@@ -98,7 +98,9 @@ func (am *AuthManager) Close() error {
 
 // HandleHealthCheck provides health check endpoint
 func (am *AuthManager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	status := json.RawMessage("{}"),
+	status := map[string]interface{}{
+		"status": "healthy",
+		"timestamp": time.Now().Unix(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -129,11 +131,15 @@ func (am *AuthManager) GetSessionManager() *SessionManager {
 
 // ListProviders returns available authentication providers
 func (am *AuthManager) ListProviders() map[string]interface{} {
-	return json.RawMessage("{}"){
+	return map[string]interface{}{
+		"ldap": map[string]interface{}{
 			"available": false,
 			"message":   "LDAP providers not configured in this example",
 		},
-		"oauth2": json.RawMessage("{}"),
+		"oauth2": map[string]interface{}{
+			"available": false,
+			"message":   "OAuth2 providers not configured in this example",
+		},
 	}
 }
 

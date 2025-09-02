@@ -73,7 +73,17 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
-		return json.RawMessage("{}"), nil
+		ns := "default"
+		if len(m) > 3 && m[3] != "" {
+			ns = m[3]
+		}
+
+		return map[string]interface{}{
+			"action": "scale",
+			"target": m[1],
+			"replicas": replicas,
+			"namespace": ns,
+		}, nil
 
 	}
 
@@ -90,7 +100,12 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
-		return json.RawMessage("{}"), nil
+		return map[string]interface{}{
+			"action": "scale",
+			"target": m[1],
+			"replicas": replicas,
+			"namespace": "default",
+		}, nil
 
 	}
 
@@ -117,7 +132,12 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 		// For MVP, we'll just use the delta as the new replica count.
 
-		return json.RawMessage("{}"), nil
+		return map[string]interface{}{
+			"action": "scale",
+			"target": m[1],
+			"delta": delta,
+			"namespace": ns,
+		}, nil
 
 	}
 
@@ -144,7 +164,12 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 		// For MVP, we'll use 1 as minimum.
 
-		return json.RawMessage("{}"), nil
+		return map[string]interface{}{
+			"action": "scale",
+			"target": m[1],
+			"delta": -delta, // negative delta for scale in
+			"namespace": ns,
+		}, nil
 
 	}
 

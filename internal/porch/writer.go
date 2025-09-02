@@ -53,8 +53,7 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 
 		// Strategic Merge Patch format (JSON).
 
-		smp := json.RawMessage("{}"),
-
+		smp := map[string]interface{}{
 			"spec": map[string]int{
 				"replicas": fields.Replicas,
 			},

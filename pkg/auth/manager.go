@@ -389,7 +389,10 @@ func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*User
 // HandleHealthCheck handles health check requests.
 
 func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	health := json.RawMessage("{}"),
+	health := map[string]interface{}{
+		"status": "healthy",
+		"services": map[string]string{},
+		"timestamp": time.Now().Unix(),
 	}
 
 	if am.jwtManager != nil {

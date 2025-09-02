@@ -902,29 +902,20 @@ func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Reques
 
 	latencies := w.getLatencyPercentiles()
 
-	response := json.RawMessage("{}"){
+	response := map[string]interface{}{
+		"metrics": map[string]interface{}{
 			"files_processed_total": atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
-
 			"files_failed_total": atomic.LoadInt64(&w.metrics.FilesFailedTotal),
-
 			"throughput_files_per_sec": w.metrics.ThroughputFilesPerSecond,
-
 			"average_processing_time": w.metrics.AverageProcessingTime.String(),
-
 			"validation_failures_total": atomic.LoadInt64(&w.metrics.ValidationFailuresTotal),
-
 			"retry_attempts_total": atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
-
 			"latency_percentiles": latencies,
 		},
-
-		"resources": json.RawMessage("{}"),
-
-		"workers": json.RawMessage("{}"),
-
-		"errors": json.RawMessage("{}"),
-
-		"metadata": json.RawMessage("{}"),
+		"resources": map[string]interface{}{},
+		"workers": map[string]interface{}{},
+		"errors": map[string]interface{}{},
+		"metadata": map[string]interface{}{},
 	}
 
 	writer.Header().Set("Content-Type", "application/json")

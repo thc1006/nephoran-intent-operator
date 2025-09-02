@@ -1031,7 +1031,10 @@ func (m *ComplianceManager) ScheduleComplianceAudits(ctx context.Context, interv
 // GetComplianceSummary provides a quick compliance summary.
 
 func (m *ComplianceManager) GetComplianceSummary(ctx context.Context) map[string]interface{} {
-	summary := json.RawMessage("{}"),
+	summary := map[string]interface{}{
+		"frameworks": map[string]float64{},
+		"overall_score": 0.0,
+		"status": "checking",
 	}
 
 	// Get compliance for each framework.
