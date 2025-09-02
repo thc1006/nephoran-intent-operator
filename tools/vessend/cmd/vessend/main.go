@@ -747,4 +747,3 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 	return nil
 
 }
-

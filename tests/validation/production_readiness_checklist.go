@@ -660,21 +660,21 @@ STATUS: %s
 
 CATEGORY BREAKDOWN:
 
-├── High Availability:          %d/3 points
+|-- High Availability:          %d/3 points
 
-├── Fault Tolerance:            %d/3 points  
+|-- Fault Tolerance:            %d/3 points  
 
-├── Monitoring & Observability: %d/2 points
+|-- Monitoring & Observability: %d/2 points
 
-└── Disaster Recovery:          %d/2 points
+|-- Disaster Recovery:          %d/2 points
 
 
 
 ADDITIONAL VALIDATIONS:
 
-├── Deployment Scenarios:       %d points
+|-- Deployment Scenarios:       %d points
 
-└── Infrastructure as Code:     %d points
+|-- Infrastructure as Code:     %d points
 
 
 
@@ -725,23 +725,23 @@ CHECKLIST RESULTS:
 
 			case CheckStatusPassed:
 
-				status = "✅"
+				status = "[PASS]"
 
 			case CheckStatusFailed:
 
-				status = "❌"
+				status = "[FAIL]"
 
 			case CheckStatusWarning:
 
-				status = "⚠️"
+				status = "[WARN]"
 
 			case CheckStatusSkipped:
 
-				status = "⏭️"
+				status = "[SKIP]"
 
 			case CheckStatusNotApplicable:
 
-				status = "—"
+				status = "[N/A]"
 
 			}
 
@@ -777,15 +777,15 @@ RECOMMENDATIONS FOR IMPROVEMENT:
 
 EXECUTION SUMMARY:
 
-├── Assessment Duration:     %v
+|-- Assessment Duration:     %v
 
-├── Total Checklist Items:   %d
+|-- Total Checklist Items:   %d
 
-├── Items Passed:           %d
+|-- Items Passed:           %d
 
-├── Items Failed:           %d
+|-- Items Failed:           %d
 
-└── Assessment Date:        %s
+|-- Assessment Date:        %s
 
 
 
