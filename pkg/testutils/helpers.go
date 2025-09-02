@@ -888,11 +888,3 @@ func IsConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 	return IsConditionTrue(conditions, conditionType)
 }
-
-// WaitForE2NodeSetReady waits for an E2NodeSet to have the expected number of ready replicas.
-// This wrapper provides a simpler API for tests that don't have access to the context and client directly.
-func WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) {
-	// This function is designed to be called from test cleanup
-	// In a real implementation, this would need access to the test's k8sClient
-	// For now, this is a stub that maintains the expected signature
-}

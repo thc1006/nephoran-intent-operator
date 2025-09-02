@@ -100,7 +100,7 @@ func TestClient_Login(t *testing.T) {
 
 func TestClient_LoginWithToken(t *testing.T) {
 	client := NewClient(nil)
-	
+
 	err := client.LoginWithToken(context.Background(), "docker.io", "testtoken")
 	if err != nil {
 		t.Errorf("Client.LoginWithToken() error = %v", err)
@@ -110,11 +110,11 @@ func TestClient_LoginWithToken(t *testing.T) {
 func TestClient_GetAuthClient(t *testing.T) {
 	client := NewClient(nil)
 	authClient := client.GetAuthClient()
-	
+
 	if authClient == nil {
 		t.Errorf("Client.GetAuthClient() returned nil")
 	}
-	
+
 	if authClient != client.authClient {
 		t.Errorf("Client.GetAuthClient() returned different client")
 	}
@@ -122,7 +122,7 @@ func TestClient_GetAuthClient(t *testing.T) {
 
 func TestClient_IsLoggedIn(t *testing.T) {
 	client := NewClient(nil)
-	
+
 	// With no credential store, should return false
 	loggedIn, err := client.IsLoggedIn(context.Background(), "docker.io")
 	if err != nil {
@@ -135,7 +135,7 @@ func TestClient_IsLoggedIn(t *testing.T) {
 
 func TestClient_GetCredential(t *testing.T) {
 	client := NewClient(nil)
-	
+
 	// With no credential store, should return error
 	_, err := client.GetCredential(context.Background(), "docker.io")
 	if err == nil {
@@ -181,19 +181,19 @@ func (m *mockCredStore) Delete(ctx context.Context, serverURL string) error {
 func TestClientWithMockStore(t *testing.T) {
 	mockStore := newMockCredStore()
 	client := NewClient(mockStore)
-	
+
 	// Test login
 	config := &LoginConfig{
 		Registry: "docker.io",
 		Username: "testuser",
 		Password: "testpass",
 	}
-	
+
 	err := client.Login(context.Background(), config)
 	if err != nil {
 		t.Errorf("Client.Login() error = %v", err)
 	}
-	
+
 	// Test is logged in
 	loggedIn, err := client.IsLoggedIn(context.Background(), "docker.io")
 	if err != nil {
@@ -202,7 +202,7 @@ func TestClientWithMockStore(t *testing.T) {
 	if !loggedIn {
 		t.Errorf("Client.IsLoggedIn() = %v, want true", loggedIn)
 	}
-	
+
 	// Test get credential
 	cred, err := client.GetCredential(context.Background(), "docker.io")
 	if err != nil {
@@ -211,13 +211,13 @@ func TestClientWithMockStore(t *testing.T) {
 	if cred.Username != "testuser" {
 		t.Errorf("Client.GetCredential() username = %v, want testuser", cred.Username)
 	}
-	
+
 	// Test logout
 	err = client.Logout(context.Background(), "docker.io")
 	if err != nil {
 		t.Errorf("Client.Logout() error = %v", err)
 	}
-	
+
 	// Should not be logged in anymore
 	loggedIn, err = client.IsLoggedIn(context.Background(), "docker.io")
 	if err != nil {

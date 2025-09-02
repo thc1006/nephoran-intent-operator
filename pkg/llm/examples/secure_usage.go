@@ -132,7 +132,8 @@ func developmentExample() {
 	// Step 3: Configure the client with insecure TLS.
 
 	config := llm.ClientConfig{
-		APIKey: "dev-key",
+		// SECURITY: Never hardcode API keys - load from environment
+		APIKey: os.Getenv("LLM_DEV_API_KEY"), // Load from environment
 
 		ModelName: "gpt-4",
 
@@ -185,7 +186,8 @@ func securityViolationExample() {
 	// Try to create an insecure client without permission.
 
 	config := llm.ClientConfig{
-		APIKey: "test-key",
+		// SECURITY: Never hardcode API keys - load from environment
+		APIKey: os.Getenv("LLM_TEST_API_KEY"), // Load from environment
 
 		ModelName: "test-model",
 

@@ -245,7 +245,8 @@ func NewCSRFManager(secret []byte, ttl time.Duration) *CSRFManager {
 		secret = make([]byte, 32)
 
 		if _, err := rand.Read(secret); err != nil {
-			panic(fmt.Sprintf("failed to generate CSRF secret: %v", err))
+			// Never expose detailed error information in panic messages
+			panic("failed to generate CSRF secret")
 		}
 
 	}

@@ -402,7 +402,8 @@ func (e *AutomationEngine) handleMutatingAdmission(w http.ResponseWriter, r *htt
 
 	if err := json.NewDecoder(r.Body).Decode(&admissionReview); err != nil {
 		e.logger.Error("failed to decode admission review", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// Never expose internal error details to external clients
+		http.Error(w, "Invalid admission review format", http.StatusBadRequest)
 		return
 	}
 
@@ -430,10 +431,18 @@ func (e *AutomationEngine) handleMutatingAdmission(w http.ResponseWriter, r *htt
 			"namespace", req.Namespace,
 			"error", err)
 
+		// Sanitize error message to avoid information leakage
+		safeMessage := "Mutation operation failed due to policy violation"
+		if strings.Contains(err.Error(), "certificate") {
+			safeMessage = "Certificate validation failed"
+		} else if strings.Contains(err.Error(), "unauthorized") {
+			safeMessage = "Authorization check failed"
+		}
+
 		response := &admissionv1.AdmissionResponse{
 			UID:     req.UID,
 			Allowed: false,
-			Result:  &metav1.Status{Message: err.Error()},
+			Result:  &metav1.Status{Message: safeMessage},
 		}
 		admissionReview.Response = response
 	} else {
@@ -468,7 +477,8 @@ func (e *AutomationEngine) handleValidatingAdmission(w http.ResponseWriter, r *h
 
 	if err := json.NewDecoder(r.Body).Decode(&admissionReview); err != nil {
 		e.logger.Error("failed to decode admission review", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// Never expose internal error details to external clients
+		http.Error(w, "Invalid admission review format", http.StatusBadRequest)
 		return
 	}
 

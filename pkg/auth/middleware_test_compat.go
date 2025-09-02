@@ -53,7 +53,7 @@ func (a *TestAuthMiddleware) Middleware(next http.Handler) http.Handler {
 					return
 				}
 			}
-			
+
 			http.Error(w, `{"error": "Missing authentication"}`, http.StatusUnauthorized)
 			return
 		}
@@ -118,7 +118,7 @@ func (r *TestRBACMiddleware) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-// TestCORSMiddleware provides CORS middleware for tests  
+// TestCORSMiddleware provides CORS middleware for tests
 type TestCORSMiddleware struct {
 	config *CORSConfig
 }
@@ -200,7 +200,7 @@ func NewRateLimitMiddleware(config *RateLimitConfig) *TestRateLimitMiddleware {
 	}
 }
 
-// Middleware returns the middleware function  
+// Middleware returns the middleware function
 func (rl *TestRateLimitMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := rl.config.KeyGenerator(r)
@@ -287,7 +287,7 @@ func (l *TestRequestLoggingMiddleware) Middleware(next http.Handler) http.Handle
 
 		// Simple logging stub
 		logEntry := r.Method + " " + r.URL.Path
-		
+
 		if l.config.LogHeaders {
 			for name, values := range r.Header {
 				value := strings.Join(values, ", ")
@@ -301,14 +301,14 @@ func (l *TestRequestLoggingMiddleware) Middleware(next http.Handler) http.Handle
 				logEntry += " " + name + ": " + value
 			}
 		}
-		
+
 		if l.config.LogBody && r.ContentLength > 0 && int(r.ContentLength) > l.config.MaxBodySize {
 			logEntry += " [TRUNCATED]"
 		}
 
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(wrapper, r)
-		
+
 		logEntry += " 200 10ms"
 		l.config.Logger(logEntry)
 	})

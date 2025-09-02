@@ -208,7 +208,8 @@ func NewEncryptedStorage() *EncryptedStorage {
 	masterKey := make([]byte, 32)
 
 	if _, err := rand.Read(masterKey); err != nil {
-		panic(fmt.Sprintf("failed to generate encryption master key: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("failed to generate encryption master key")
 	}
 
 	return &EncryptedStorage{
@@ -660,7 +661,8 @@ func ZeroBytes(b []byte) {
 
 func XORBytes(a, b []byte) []byte {
 	if len(a) != len(b) {
-		panic("XORBytes: length mismatch")
+		// Generic error message to avoid information leakage
+		panic("invalid operation")
 	}
 
 	result := make([]byte, len(a))

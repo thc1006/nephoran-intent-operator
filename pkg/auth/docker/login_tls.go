@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
 )
 
 // TLSConfig represents TLS configuration for Docker registry authentication

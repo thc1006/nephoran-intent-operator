@@ -39,7 +39,8 @@ func (sr *SecureRandom) Int63() int64 {
 	// Generate 8 bytes and mask to 63 bits
 	b := make([]byte, 8)
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 
 	// Convert to int64 and mask to 63 bits (remove sign bit)
@@ -61,7 +62,8 @@ func (sr *SecureRandom) Intn(n int) int {
 	nBig := big.NewInt(int64(n))
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 
 	return int(result.Int64())
@@ -126,7 +128,8 @@ func (sr *SecureRandom) Int63n(n int64) int64 {
 	nBig := big.NewInt(n)
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 
 	return result.Int64()
@@ -196,7 +199,8 @@ func (sr *SecureRandom) Bytes(b []byte) {
 	defer sr.mu.Unlock()
 
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
-		panic(fmt.Sprintf("secure random generation failed: %v", err))
+		// Never expose detailed error information in panic messages
+		panic("secure random generation failed")
 	}
 }
 

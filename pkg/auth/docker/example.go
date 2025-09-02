@@ -74,7 +74,7 @@ func basicAuth(ctx context.Context) {
 		log.Printf("Failed to check login status: %v", err)
 		return
 	}
-	
+
 	fmt.Printf("✓ Login status: %t\n", loggedIn)
 
 	// Logout
@@ -83,7 +83,7 @@ func basicAuth(ctx context.Context) {
 		log.Printf("Logout failed: %v", err)
 		return
 	}
-	
+
 	fmt.Println("✓ Successfully logged out")
 }
 
@@ -205,14 +205,14 @@ func ExampleDockerConfigIntegration() {
 
 	if loggedIn {
 		fmt.Println("✓ Already logged in via Docker CLI")
-		
+
 		// Get the credential
 		cred, err := client.GetCredential(ctx, "docker.io")
 		if err != nil {
 			log.Printf("Failed to get credential: %v", err)
 			return
 		}
-		
+
 		fmt.Printf("✓ Using credential for user: %s\n", cred.Username)
 	} else {
 		fmt.Println("ℹ Not logged in to docker.io via Docker CLI")

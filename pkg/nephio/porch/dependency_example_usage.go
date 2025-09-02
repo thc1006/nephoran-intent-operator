@@ -21,6 +21,7 @@ package porch
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -33,8 +34,9 @@ func Example5GCoreDeploymentWithDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type:  AuthTypeToken,
-				Token: "token",
+				Type: AuthTypeToken,
+				// Token should be loaded from environment variable or secret management
+				Token: os.Getenv("PORCH_AUTH_TOKEN"), // Load from environment
 			},
 		},
 	})
@@ -341,8 +343,9 @@ func ExampleORANDeploymentWithDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type:  AuthTypeToken,
-				Token: "token",
+				Type: AuthTypeToken,
+				// Token should be loaded from environment variable or secret management
+				Token: os.Getenv("PORCH_AUTH_TOKEN"), // Load from environment
 			},
 		},
 	})
@@ -407,8 +410,9 @@ func ExampleNetworkSliceDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type:  AuthTypeToken,
-				Token: "token",
+				Type: AuthTypeToken,
+				// Token should be loaded from environment variable or secret management
+				Token: os.Getenv("PORCH_AUTH_TOKEN"), // Load from environment
 			},
 		},
 	})

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -92,9 +93,9 @@ const (
 	AuthContextKey contextKey = "auth_context"
 )
 
-// NewAuthMiddleware creates new authentication middleware.
+// NewAuthMiddlewareWithComponents creates new authentication middleware with all components.
 
-func NewAuthMiddleware(sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *MiddlewareConfig) *AuthMiddleware {
+func NewAuthMiddlewareWithComponents(sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *MiddlewareConfig) *AuthMiddleware {
 	if config == nil {
 		config = &MiddlewareConfig{
 			SkipAuth: []string{
@@ -689,12 +690,6 @@ func GetUserID(ctx context.Context) string {
 	return ""
 }
 
-
-
-
-
-
-
 // HasPermission checks if user has specific permission.
 
 func HasPermission(ctx context.Context, permission string) bool {
@@ -801,3 +796,371 @@ func (am *AuthMiddleware) RequireAdmin() func(http.Handler) http.Handler {
 	return am.RequireAdminMiddleware
 }
 
+// NewAuthMiddleware creates middleware with config - compatibility function.
+func NewAuthMiddleware(config *AuthMiddlewareConfig) *AuthMiddleware {
+	middlewareConfig := &MiddlewareConfig{
+		SkipAuth:              config.AllowedPaths,
+		EnableSecurityHeaders: true,
+		EnableCORS:            true,
+		AllowedOrigins:        []string{"*"},
+		AllowedMethods:        []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:        []string{"Authorization", "Content-Type", "X-Requested-With"},
+		AllowCredentials:      true,
+		MaxAge:                86400,
+	}
+
+	return &AuthMiddleware{
+		sessionManager: config.SessionManager,
+		jwtManager:     config.JWTManager,
+		config:         middlewareConfig,
+	}
+}
+
+// Middleware method for compatibility.
+func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
+	return am.AuthenticateMiddleware(next)
+}
+
+// NewSecurityHeadersMiddleware creates a new security headers middleware.
+func NewSecurityHeadersMiddleware(config *SecurityHeadersConfig) *SecurityHeadersMiddleware {
+	if config == nil {
+		config = &SecurityHeadersConfig{
+			XFrameOptions:         "DENY",
+			XContentTypeOptions:   "nosniff",
+			ReferrerPolicy:        "strict-origin-when-cross-origin",
+			HSTSMaxAge:            31536000,
+			HSTSIncludeSubdomains: true,
+			ContentSecurityPolicy: "default-src 'self'",
+		}
+	}
+	return &SecurityHeadersMiddleware{
+		config: config,
+	}
+}
+
+// SecurityHeadersMiddleware adds security headers to responses.
+type SecurityHeadersMiddleware struct {
+	config *SecurityHeadersConfig
+}
+
+// Middleware applies security headers.
+func (m *SecurityHeadersMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headers := w.Header()
+
+		if m.config.ContentSecurityPolicy != "" {
+			headers.Set("Content-Security-Policy", m.config.ContentSecurityPolicy)
+		}
+		if m.config.XFrameOptions != "" {
+			headers.Set("X-Frame-Options", m.config.XFrameOptions)
+		}
+		if m.config.XContentTypeOptions != "" {
+			headers.Set("X-Content-Type-Options", m.config.XContentTypeOptions)
+		}
+		if m.config.ReferrerPolicy != "" {
+			headers.Set("Referrer-Policy", m.config.ReferrerPolicy)
+		}
+
+		if m.config.HSTSMaxAge > 0 {
+			hstsValue := fmt.Sprintf("max-age=%d", m.config.HSTSMaxAge)
+			if m.config.HSTSIncludeSubdomains {
+				hstsValue += "; includeSubDomains"
+			}
+			if m.config.HSTSPreload {
+				hstsValue += "; preload"
+			}
+			headers.Set("Strict-Transport-Security", hstsValue)
+		}
+
+		for key, value := range m.config.CustomHeaders {
+			headers.Set(key, value)
+		}
+
+		if m.config.RemoveServerHeader {
+			headers.Del("Server")
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// NewRBACMiddleware creates a new RBAC middleware.
+func NewRBACMiddleware(config *RBACMiddlewareConfig) *RBACMiddleware {
+	return &RBACMiddleware{
+		config: config,
+	}
+}
+
+// RBACMiddleware provides role-based access control.
+type RBACMiddleware struct {
+	config *RBACMiddlewareConfig
+}
+
+// Middleware applies RBAC authorization.
+func (m *RBACMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract user ID
+		userID := m.config.UserIDExtractor(r)
+		if userID == "" {
+			if m.config.OnAccessDenied != nil {
+				m.config.OnAccessDenied(w, r)
+			} else {
+				http.Error(w, "Insufficient permissions", http.StatusForbidden)
+			}
+			return
+		}
+
+		// Extract resource and action
+		resource := m.config.ResourceExtractor(r)
+		action := m.config.ActionExtractor(r)
+
+		// Check authorization
+		ctx := r.Context()
+		authorized, err := m.config.RBACManager.CheckAccess(ctx, userID, resource, action)
+		if err != nil || !authorized {
+			if m.config.OnAccessDenied != nil {
+				m.config.OnAccessDenied(w, r)
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Insufficient permissions",
+				})
+			}
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// NewCORSMiddleware creates a new CORS middleware.
+func NewCORSMiddleware(config *CORSConfig) *CORSMiddleware {
+	if config == nil {
+		config = &CORSConfig{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"Content-Type", "Authorization"},
+			MaxAge:         86400,
+		}
+	}
+	return &CORSMiddleware{
+		config: config,
+	}
+}
+
+// CORSMiddleware handles Cross-Origin Resource Sharing.
+type CORSMiddleware struct {
+	config *CORSConfig
+}
+
+// Middleware applies CORS headers.
+func (m *CORSMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		// Check if origin is allowed
+		allowed := false
+		if origin != "" {
+			for _, allowedOrigin := range m.config.AllowedOrigins {
+				if allowedOrigin == "*" || allowedOrigin == origin {
+					allowed = true
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+		}
+
+		if origin != "" && !allowed {
+			http.Error(w, "CORS policy violation", http.StatusForbidden)
+			return
+		}
+
+		if m.config.AllowCredentials && allowed {
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
+		if len(m.config.ExposedHeaders) > 0 {
+			w.Header().Set("Access-Control-Expose-Headers", strings.Join(m.config.ExposedHeaders, ","))
+		}
+
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			requestMethod := r.Header.Get("Access-Control-Request-Method")
+			if requestMethod != "" {
+				// Check if method is allowed
+				methodAllowed := false
+				for _, allowedMethod := range m.config.AllowedMethods {
+					if allowedMethod == requestMethod {
+						methodAllowed = true
+						break
+					}
+				}
+				if !methodAllowed {
+					http.Error(w, "Method not allowed", http.StatusForbidden)
+					return
+				}
+			}
+
+			w.Header().Set("Access-Control-Allow-Methods", strings.Join(m.config.AllowedMethods, ","))
+			w.Header().Set("Access-Control-Allow-Headers", strings.Join(m.config.AllowedHeaders, ","))
+			if m.config.MaxAge > 0 {
+				w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", m.config.MaxAge))
+			}
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// NewRateLimitMiddleware creates a new rate limit middleware.
+func NewRateLimitMiddleware(config *RateLimitConfig) *RateLimitMiddleware {
+	return &RateLimitMiddleware{
+		config:  config,
+		buckets: make(map[string]*tokenBucket),
+	}
+}
+
+// RateLimitMiddleware provides rate limiting functionality.
+type RateLimitMiddleware struct {
+	config  *RateLimitConfig
+	buckets map[string]*tokenBucket
+	mu      sync.Mutex
+}
+
+type tokenBucket struct {
+	tokens   int
+	capacity int
+	refill   time.Time
+}
+
+// Middleware applies rate limiting.
+func (m *RateLimitMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := m.config.KeyGenerator(r)
+
+		m.mu.Lock()
+		bucket, exists := m.buckets[key]
+		if !exists {
+			bucket = &tokenBucket{
+				tokens:   m.config.BurstSize,
+				capacity: m.config.BurstSize,
+				refill:   time.Now(),
+			}
+			m.buckets[key] = bucket
+		}
+
+		// Refill tokens
+		now := time.Now()
+		elapsed := now.Sub(bucket.refill).Minutes()
+		tokensToAdd := int(elapsed * float64(m.config.RequestsPerMinute))
+		if tokensToAdd > 0 {
+			bucket.tokens = min(bucket.capacity, bucket.tokens+tokensToAdd)
+			bucket.refill = now
+		}
+
+		// Check if request is allowed
+		if bucket.tokens <= 0 {
+			m.mu.Unlock()
+			if m.config.OnLimitExceeded != nil {
+				m.config.OnLimitExceeded(w, r)
+			} else {
+				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			}
+			return
+		}
+
+		bucket.tokens--
+		m.mu.Unlock()
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// NewRequestLoggingMiddleware creates a new request logging middleware.
+func NewRequestLoggingMiddleware(config *RequestLoggingConfig) *RequestLoggingMiddleware {
+	return &RequestLoggingMiddleware{
+		config: config,
+	}
+}
+
+// RequestLoggingMiddleware logs HTTP requests.
+type RequestLoggingMiddleware struct {
+	config *RequestLoggingConfig
+}
+
+// Middleware applies request logging.
+func (m *RequestLoggingMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if path should be skipped
+		for _, skipPath := range m.config.SkipPaths {
+			if strings.HasPrefix(r.URL.Path, skipPath) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		start := time.Now()
+		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
+
+		// Log request details
+		logEntry := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+
+		if m.config.LogHeaders {
+			headers := make([]string, 0, len(r.Header))
+			for key, values := range r.Header {
+				value := strings.Join(values, ",")
+				// Redact sensitive headers
+				for _, sensitive := range m.config.SensitiveHeaders {
+					if strings.EqualFold(key, sensitive) {
+						value = "[REDACTED]"
+						break
+					}
+				}
+				headers = append(headers, fmt.Sprintf("%s: %s", key, value))
+			}
+			if len(headers) > 0 {
+				logEntry += fmt.Sprintf(" Headers: %s", strings.Join(headers, ", "))
+			}
+		}
+
+		if m.config.LogBody && r.ContentLength > 0 {
+			bodyBytes := make([]byte, min(int(r.ContentLength), m.config.MaxBodySize))
+			if n, err := r.Body.Read(bodyBytes); err == nil && n > 0 {
+				bodyStr := string(bodyBytes[:n])
+				if len(bodyStr) >= m.config.MaxBodySize {
+					bodyStr += " [TRUNCATED]"
+				}
+				logEntry += fmt.Sprintf(" Body: %s", bodyStr)
+			}
+			// Restore body for downstream handlers
+			r.Body = &readCloser{strings.NewReader(string(bodyBytes))}
+		}
+
+		next.ServeHTTP(wrapper, r)
+
+		duration := time.Since(start)
+		logEntry += fmt.Sprintf(" Status: %d Duration: %v", wrapper.statusCode, duration)
+
+		if m.config.Logger != nil {
+			m.config.Logger(logEntry)
+		}
+	})
+}
+
+type readCloser struct {
+	*strings.Reader
+}
+
+func (rc *readCloser) Close() error {
+	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

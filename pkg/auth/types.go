@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-	"time"
 )
 
 // HandlersConfig represents handlers configuration.
@@ -47,10 +46,10 @@ type UserContext struct {
 
 // RBACMiddlewareConfig represents RBAC middleware configuration.
 type RBACMiddlewareConfig struct {
-	RBACManager       *RBACManager                     `json:"-"`
-	ResourceExtractor func(r *http.Request) string     `json:"-"`
-	ActionExtractor   func(r *http.Request) string     `json:"-"`
-	UserIDExtractor   func(r *http.Request) string     `json:"-"`
+	RBACManager       *RBACManager                                 `json:"-"`
+	ResourceExtractor func(r *http.Request) string                 `json:"-"`
+	ActionExtractor   func(r *http.Request) string                 `json:"-"`
+	UserIDExtractor   func(r *http.Request) string                 `json:"-"`
 	OnAccessDenied    func(w http.ResponseWriter, r *http.Request) `json:"-"`
 }
 
@@ -66,9 +65,9 @@ type CORSConfig struct {
 
 // RateLimitConfig represents rate limiting middleware configuration.
 type RateLimitConfig struct {
-	RequestsPerMinute int                                      `json:"requests_per_minute"`
-	BurstSize         int                                      `json:"burst_size"`
-	KeyGenerator      func(r *http.Request) string             `json:"-"`
+	RequestsPerMinute int                                          `json:"requests_per_minute"`
+	BurstSize         int                                          `json:"burst_size"`
+	KeyGenerator      func(r *http.Request) string                 `json:"-"`
 	OnLimitExceeded   func(w http.ResponseWriter, r *http.Request) `json:"-"`
 }
 
@@ -87,10 +86,10 @@ type SecurityHeadersConfig struct {
 
 // RequestLoggingConfig represents request logging middleware configuration.
 type RequestLoggingConfig struct {
-	Logger           func(entry string)  `json:"-"`
-	LogHeaders       bool                `json:"log_headers"`
-	LogBody          bool                `json:"log_body"`
-	MaxBodySize      int                 `json:"max_body_size"`
-	SkipPaths        []string            `json:"skip_paths"`
-	SensitiveHeaders []string            `json:"sensitive_headers"`
+	Logger           func(entry string) `json:"-"`
+	LogHeaders       bool               `json:"log_headers"`
+	LogBody          bool               `json:"log_body"`
+	MaxBodySize      int                `json:"max_body_size"`
+	SkipPaths        []string           `json:"skip_paths"`
+	SensitiveHeaders []string           `json:"sensitive_headers"`
 }

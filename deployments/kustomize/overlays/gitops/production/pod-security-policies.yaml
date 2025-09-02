@@ -36,65 +36,22 @@ volumes:
 - persistentVolumeClaim
 - projected
 - secret
+# NOTE: PodSecurityPolicy was deprecated in Kubernetes v1.21 and removed in v1.25
+# Replaced with Pod Security Standards (configured at namespace level)
+
 ---
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
+# Production namespace with Pod Security Standards enforcement
+apiVersion: v1
+kind: Namespace
 metadata:
-  name: nephoran-production-psp
-  namespace: nephoran-production
-spec:
-  privileged: false
-  allowPrivilegeEscalation: false
-  requiredDropCapabilities:
-    - ALL
-  volumes:
-    - 'configMap'
-    - 'emptyDir'
-    - 'projected'
-    - 'secret'
-    - 'downwardAPI'
-    - 'persistentVolumeClaim'
-  hostNetwork: false
-  hostIPC: false
-  hostPID: false
-  runAsUser:
-    rule: 'MustRunAsNonRoot'
-  seLinux:
-    rule: 'RunAsAny'
-  supplementalGroups:
-    rule: 'MustRunAs'
-    ranges:
-      - min: 1
-        max: 65535
-  fsGroup:
-    rule: 'MustRunAs'
-    ranges:
-      - min: 1
-        max: 65535
-  readOnlyRootFilesystem: true
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: nephoran-psp-user
-  namespace: nephoran-production
-rules:
-- apiGroups: ['policy']
-  resources: ['podsecuritypolicies']
-  verbs: ['use']
-  resourceNames:
-  - nephoran-production-psp
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: nephoran-psp-user-binding
-  namespace: nephoran-production
-roleRef:
-  kind: Role
-  name: nephoran-psp-user
-  apiGroup: rbac.authorization.k8s.io
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: nephoran-production
+  name: nephoran-production
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/instance: production
+    # Enable restricted Pod Security Standards for production
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted  
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest

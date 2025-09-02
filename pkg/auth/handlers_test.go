@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
-	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
+	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 // Compatibility function to create handlers that works around interface issues
@@ -28,7 +28,7 @@ func createCompatibleAuthHandlers(sessionManager, jwtManager, rbacManager interf
 }
 
 // Helper function to create properly typed managers for tests
-func setupTestManagers(tc *testutil.TestContext) (*testutil.JWTManagerMock, *testutil.SessionManagerMock, *testutil.RBACManagerMock) {
+func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMock, *authtestutil.SessionManagerMock, *authtestutil.RBACManagerMock) {
 	jwtManagerMock := tc.SetupJWTManager()
 	sessionManager := tc.SetupSessionManager()
 	rbacManager := tc.SetupRBACManager()
@@ -37,11 +37,11 @@ func setupTestManagers(tc *testutil.TestContext) (*testutil.JWTManagerMock, *tes
 }
 
 func TestAuthHandlers_Login(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	// Setup mock OAuth server
-	oauthServer := testutil.NewOAuth2MockServer("test")
+	oauthServer := authtestutil.NewOAuth2MockServer("test")
 	defer oauthServer.Close()
 
 	// Setup test managers
@@ -197,17 +197,17 @@ func TestAuthHandlers_Login(t *testing.T) {
 }
 
 func TestAuthHandlers_Callback(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	// Setup test managers
 	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Setup mock provider
-	mockProvider := testutil.NewMockOAuthProvider("test")
-	uf := testutil.NewUserFactory()
-	_ = testutil.NewTokenFactory("test") // token factory for future test expansion
-	of := testutil.NewOAuthResponseFactory()
+	mockProvider := authtestutil.NewMockOAuthProvider("test")
+	uf := authtestutil.NewUserFactory()
+	_ = authtestutil.NewTokenFactory("test") // token factory for future test expansion
+	of := authtestutil.NewOAuthResponseFactory()
 
 	testUser := uf.CreateBasicUser()
 	tokenResponse := of.CreateTokenResponse()
@@ -343,13 +343,13 @@ func TestAuthHandlers_Callback(t *testing.T) {
 }
 
 func TestAuthHandlers_RefreshToken(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Create test user and tokens
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	accessToken, refreshToken, err := jwtManager.GenerateTokenPair(user, nil)
@@ -449,13 +449,13 @@ func TestAuthHandlers_RefreshToken(t *testing.T) {
 }
 
 func TestAuthHandlers_Logout(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Create test session and token
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	session, err := sessionManager.CreateSession(context.Background(), user)
@@ -573,13 +573,13 @@ func TestAuthHandlers_Logout(t *testing.T) {
 }
 
 func TestAuthHandlers_UserInfo(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
 
 	// Create test user and token
-	uf := testutil.NewUserFactory()
+	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	token, err := jwtManager.GenerateToken(user, nil)
@@ -664,7 +664,7 @@ func TestAuthHandlers_UserInfo(t *testing.T) {
 func TestAuthHandlers_HealthCheck_DISABLED(t *testing.T) {
 	t.Skip("HealthCheckHandler method not available in current implementation")
 	/*
-		tc := testutil.NewTestContext(t)
+		tc := authtestutil.NewTestContext(t)
 		defer tc.Cleanup()
 
 		jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
@@ -735,7 +735,7 @@ func TestAuthHandlers_HealthCheck_DISABLED(t *testing.T) {
 func TestAuthHandlers_JWKS_DISABLED(t *testing.T) {
 	t.Skip("JWKSHandler method not available in current implementation")
 	/*
-		tc := testutil.NewTestContext(t)
+		tc := authtestutil.NewTestContext(t)
 		defer tc.Cleanup()
 
 		jwtManager, _, _ := setupTestManagers(tc)
@@ -776,7 +776,7 @@ func TestAuthHandlers_JWKS_DISABLED(t *testing.T) {
 }
 
 func TestAuthHandlers_ErrorHandling(t *testing.T) {
-	tc := testutil.NewTestContext(t)
+	tc := authtestutil.NewTestContext(t)
 	defer tc.Cleanup()
 
 	// Create handlers with nil dependencies to trigger errors
@@ -853,7 +853,7 @@ func TestAuthHandlers_ErrorHandling(t *testing.T) {
 func TestAuthHandlers_CSRF_DISABLED(t *testing.T) {
 	t.Skip("CSRF functionality not available in current implementation")
 	/*
-		tc := testutil.NewTestContext(t)
+		tc := authtestutil.NewTestContext(t)
 		defer tc.Cleanup()
 
 		jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
@@ -938,7 +938,7 @@ func BenchmarkAuthHandlers_UserInfo_DISABLED(b *testing.B) {
 		defer tc.Cleanup()
 
 		jwtManager, _, _ := setupTestManagers(tc)
-		uf := testutil.NewUserFactory()
+		uf := authtestutil.NewUserFactory()
 		user := uf.CreateBasicUser()
 
 		token, err := jwtManager.GenerateToken(user, nil)
@@ -1001,7 +1001,7 @@ func BenchmarkAuthHandlers_JWKS_DISABLED(b *testing.B) {
 func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 	t.Skip("Integration test disabled due to missing handler methods")
 	/*
-		tc := testutil.NewTestContext(t)
+		tc := authtestutil.NewTestContext(t)
 		defer tc.Cleanup()
 
 		jwtManager, sessionManager, rbacManager := setupTestManagers(tc)

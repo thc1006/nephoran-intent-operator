@@ -43,11 +43,16 @@ linters-settings:
   gosec:
     excludes:
       - G104  # Errors unhandled - covered by errcheck
-      - G304  # File path provided as taint input - false positives
       - G307  # Deferring unsafe method - false positives
-      - G401  # Use of weak crypto - for non-security contexts
-      - G501  # Weak crypto imports - for non-security contexts
       - G601  # Implicit memory aliasing - too many false positives
+    # Security settings - strict mode
+    settings:
+      # Audit all file paths for directory traversal
+      audit:
+        enabled: true
+      # Fail on weak crypto usage
+      nosec:
+        enabled: false
 
   gocritic:
     enabled-tags:

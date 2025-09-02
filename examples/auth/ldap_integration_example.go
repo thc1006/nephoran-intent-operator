@@ -830,7 +830,8 @@ func ExampleLDAPIntegrationTest() {
 
 		BindDN: "cn=admin,dc=example,dc=com",
 
-		BindPassword: "admin",
+		// SECURITY: Never hardcode passwords - load from environment or secret management
+		BindPassword: os.Getenv("LDAP_BIND_PASSWORD"), // Load from environment
 
 		UserSearchBase: "ou=people,dc=example,dc=com",
 
