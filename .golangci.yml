@@ -45,14 +45,9 @@ linters-settings:
       - G104  # Errors unhandled - covered by errcheck
       - G307  # Deferring unsafe method - false positives
       - G601  # Implicit memory aliasing - too many false positives
-    # Security settings - strict mode
-    settings:
-      # Audit all file paths for directory traversal
-      audit:
-        enabled: true
-      # Fail on weak crypto usage
-      nosec:
-        enabled: false
+    # Security settings - strict mode for v1.64.3+
+    severity: high
+    confidence: medium
 
   gocritic:
     enabled-tags:

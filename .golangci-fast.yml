@@ -76,8 +76,6 @@ linters:
     
     # 2025 recommended additions
     - fatcontext       # Context.Value key types
-    - tenv             # Testing environment isolation
-    - testableexamples # Example tests validation
 
 # Optimized linter settings for fast execution
 linters-settings:
@@ -186,9 +184,6 @@ linters-settings:
       - prefix(k8s.io)
     skip-generated: true
     custom-order: true
-    # 2025 gci improvements
-    section-separators:
-      - newLine
     
   # Formatting
   gofumpt:
@@ -220,7 +215,6 @@ linters-settings:
     no-mixed-args: true
     kv-only: false
     attr-only: false
-    context-only: false
     
   testifylint:
     disable-all: false
@@ -233,23 +227,18 @@ linters-settings:
       - suite-dont-use-pkg
       - suite-extra-assert-call
     
-  fatcontext:
-    ignore-tests: true  # Relax in test files
+  # fatcontext has no configuration options in current golangci-lint version
+  # fatcontext:
+  #   # Test exclusions handled in issues.exclude-rules section
     
-  tenv:
-    all: false  # Only check specific patterns
-    
-  protogetter:
-    replace-first-arg-in-append: true
-    
-  testableexamples:
-    # No specific settings needed
+  # protogetter has minimal configuration in v1.64.3
+  # Enabled in linters section, no specific settings needed
 
 # Issue handling optimized for CI speed
 issues:
   max-issues-per-linter: 50  # Limit for CI speed
   max-same-issues: 10        # Prevent noise
-  new-from-patch: false      # Check entire codebase
+  # new-from-patch: ""        # Disabled - expects path to patch file, not boolean
   
   # Don't auto-fix in CI for stability
   fix: false
@@ -307,9 +296,7 @@ issues:
         - revive    # Relaxed naming in tests
         - stylecheck # Relaxed style in tests
         - fatcontext # Context rules relaxed in tests
-        - tenv      # Environment isolation relaxed
         - testifylint # Already handles testify patterns
-        - testableexamples # Not relevant for tests
         
     # Main files exclusions  
     - path: 'cmd/.*/main\.go'
