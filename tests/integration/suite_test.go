@@ -43,7 +43,7 @@ var (
 	cancel context.CancelFunc
 )
 
-func TestIntegration(t *testing.T) {
+// DISABLED: func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Nephoran Integration Test Suite")

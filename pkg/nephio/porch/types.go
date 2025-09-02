@@ -542,6 +542,10 @@ type PackageMetadata struct {
 // Pipeline defines the KRM function pipeline.
 
 type Pipeline struct {
+	Name string `json:"name,omitempty"`
+
+	Functions []FunctionConfig `json:"functions,omitempty"`
+
 	Mutators []FunctionConfig `json:"mutators,omitempty"`
 
 	Validators []FunctionConfig `json:"validators,omitempty"`

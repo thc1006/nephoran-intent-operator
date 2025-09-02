@@ -334,7 +334,11 @@ type DeploymentResponse struct {
 
 	Name string `json:"name"`
 
+	Type string `json:"type"`
+
 	Status string `json:"status"`
+
+	Health string `json:"health"`
 
 	Phase string `json:"phase"`
 

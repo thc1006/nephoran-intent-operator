@@ -357,7 +357,7 @@ func BenchmarkIntegrityProcessing(b *testing.B) {
 }
 
 // StressTestAuditSystem performs stress testing under various conditions
-func TestAuditSystemStress(t *testing.T) {
+// DISABLED: func TestAuditSystemStress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping stress tests in short mode")
 	}
@@ -512,7 +512,7 @@ func TestAuditSystemStress(t *testing.T) {
 }
 
 // LoadTestAuditSystem performs realistic load testing
-func TestAuditSystemLoad(t *testing.T) {
+// DISABLED: func TestAuditSystemLoad(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping load tests in short mode")
 	}

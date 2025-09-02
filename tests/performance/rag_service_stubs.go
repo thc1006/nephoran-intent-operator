@@ -41,7 +41,7 @@ func (r *RAGServiceStub) ProcessQuery(ctx context.Context, request *rag.RAGReque
 	// Convert QueryRequest to RAGResponse format as expected by performance tests
 	return &rag.RAGResponse{
 		Answer:          "stub answer",
-		SourceDocuments: documents,
+		SourceDocuments: rag.ConvertSharedSearchResultsToRAG(documents),
 		Query:           request.Query,
 		ProcessingTime:  50 * time.Millisecond,
 		RetrievalTime:   25 * time.Millisecond,

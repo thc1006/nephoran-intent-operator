@@ -296,7 +296,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 		Query:             intent,
 		IntentType:        intentType,
 		MaxResults:        10,
-		MinConfidence:     rep.config.RAGConfidenceThreshold,
+		MinConfidence:     float64(rep.config.RAGConfidenceThreshold),
 		UseHybridSearch:   true,
 		EnableReranking:   true,
 		IncludeSourceRefs: true,
@@ -332,7 +332,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 		Content:    ragResponse.Answer,
 		UsedRAG:    true,
 		Confidence: ragResponse.Confidence,
-		Sources:    convertSearchResults(ragResponse.SourceDocuments),
+		Sources:    ragResponse.SourceDocuments,
 		IntentType: intentType,
 		Metadata: map[string]interface{}{
 			"rag_retrieval_time":  ragResponse.RetrievalTime,
@@ -405,7 +405,8 @@ func (rep *RAGEnhancedProcessorImpl) AddTelecomDocument(ctx context.Context, doc
 		return fmt.Errorf("weaviate client not available")
 	}
 
-	return rep.weaviateClient.AddDocument(ctx, doc)
+	ragDoc := rag.ConvertTelecomDocumentToDocument(doc)
+	return rep.weaviateClient.AddDocument(ctx, ragDoc)
 }
 
 // SearchKnowledgeBase searches the knowledge base directly
@@ -439,9 +440,9 @@ func (rep *RAGEnhancedProcessorImpl) GetHealth() map[string]interface{} {
 	if rep.weaviateClient != nil {
 		weaviateHealth := rep.weaviateClient.GetHealthStatus()
 		health["weaviate"] = map[string]interface{}{
-			"healthy":    weaviateHealth.IsHealthy,
-			"version":    weaviateHealth.Version,
-			"last_check": weaviateHealth.LastCheck,
+			"healthy":    weaviateHealth["status"],
+			"version":    weaviateHealth["client"],
+			"last_check": time.Now(),
 		}
 	}
 

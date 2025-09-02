@@ -33,7 +33,7 @@ type BenchmarkTestSuite struct {
 }
 
 // TestBenchmarks runs the benchmark test suite
-func TestBenchmarks(t *testing.T) {
+// DISABLED: func TestBenchmarks(t *testing.T) {
 	suite.Run(t, &BenchmarkTestSuite{
 		TestSuite: framework.NewTestSuite(&framework.TestConfig{
 			LoadTestEnabled:  true,

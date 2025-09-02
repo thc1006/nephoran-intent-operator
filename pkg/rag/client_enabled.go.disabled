@@ -16,6 +16,12 @@ func (c *NoopRAGClient) Query(ctx context.Context, query string) ([]*Doc, error)
 	return []*Doc{}, nil
 }
 
+// Search performs search operation (required by RAGClient interface).
+
+func (c *NoopRAGClient) Search(ctx context.Context, query string, options *SearchOptions) ([]*Doc, error) {
+	return []*Doc{}, nil
+}
+
 // Close performs close operation.
 
 func (c *NoopRAGClient) Close() error {

@@ -271,7 +271,11 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) (*LegacyCl
 			MaxTokens:        config.MaxTokens,
 			Temperature:      0.0,
 		}
-		client.ragClient = rag.NewRAGClient(ragConfig)
+		ragClient, err := rag.NewRAGClient(ragConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create RAG client: %w", err)
+		}
+		client.ragClient = ragClient
 
 		// Initialize the RAG client
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -685,7 +689,7 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 	// Use the RAG client interface if available
 	if c.ragClient != nil {
 		// Use the new Retrieve method to get relevant documents
-		docs, err := c.ragClient.Retrieve(ctx, intent)
+		docs, err := c.ragClient.Retrieve(ctx, intent, 5)
 		if err != nil {
 			c.logger.Debug("RAG client retrieval failed, falling back to direct API",
 				slog.String("error", err.Error()))

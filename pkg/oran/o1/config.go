@@ -12,12 +12,15 @@ import (
 type O1Config struct {
 	Address           string        `json:"address"`
 	Port              int           `json:"port"`
+	DefaultPort       int           `json:"defaultPort"`
 	Username          string        `json:"username"`
 	Password          string        `json:"password"`
 	RetryInterval     time.Duration `json:"retryInterval"`
 	MaxRetries        int           `json:"maxRetries"`
 	TLSConfig         *TLSConfig    `json:"tlsConfig"`
 	ConnectionTimeout time.Duration `json:"connectionTimeout"`
+	ConnectTimeout    time.Duration `json:"connectTimeout"`
+	RequestTimeout    time.Duration `json:"requestTimeout"`
 }
 
 // TLSConfig represents TLS configuration options

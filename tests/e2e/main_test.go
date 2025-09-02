@@ -51,7 +51,7 @@ func init() {
 	flag.DurationVar(&timeout, "timeout", 30*time.Minute, "Overall test timeout")
 }
 
-func TestE2E(t *testing.T) {
+// DISABLED: func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()

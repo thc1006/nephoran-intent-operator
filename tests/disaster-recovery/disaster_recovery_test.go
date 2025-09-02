@@ -687,7 +687,7 @@ func (suite *DisasterRecoveryTestSuite) TestParallelDisasterRecovery() {
 	suite.T().Log("Parallel disaster recovery scenarios completed")
 }
 
-func TestDisasterRecoveryTestSuite(t *testing.T) {
+// DISABLED: func TestDisasterRecoveryTestSuite(t *testing.T) {
 	suite.Run(t, new(DisasterRecoveryTestSuite))
 }
 

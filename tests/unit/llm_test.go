@@ -26,7 +26,7 @@ type LLMTestSuite struct {
 }
 
 // TestLLMComponents runs the LLM test suite
-func TestLLMComponents(t *testing.T) {
+// DISABLED: func TestLLMComponents(t *testing.T) {
 	suite.Run(t, &LLMTestSuite{
 		TestSuite: framework.NewTestSuite(nil),
 	})

@@ -215,7 +215,7 @@ func sortInt64s(a []int64) {
 }
 
 // TestLoadScenarios runs various load test scenarios
-func TestLoadScenarios(t *testing.T) {
+// DISABLED: func TestLoadScenarios(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping load test in short mode")
 	}

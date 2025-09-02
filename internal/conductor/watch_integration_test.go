@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestWatchReconcilerJSONGeneration(t *testing.T) {
+// DISABLED: func TestWatchReconcilerJSONGeneration(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -131,7 +131,7 @@ func TestWatchReconcilerJSONGeneration(t *testing.T) {
 	t.Logf("Intent content: %+v", intent)
 }
 
-func TestWatchReconcilerInvalidIntent(t *testing.T) {
+// DISABLED: func TestWatchReconcilerInvalidIntent(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)

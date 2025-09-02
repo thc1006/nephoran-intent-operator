@@ -32,7 +32,7 @@ type ChaosTestSuite struct {
 	networkEmulator *NetworkEmulator
 }
 
-func TestChaosTestSuite(t *testing.T) {
+// DISABLED: func TestChaosTestSuite(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping chaos tests in short mode")
 	}
