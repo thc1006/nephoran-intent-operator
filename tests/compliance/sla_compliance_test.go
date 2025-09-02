@@ -1,7 +1,9 @@
 package compliance_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -212,7 +214,7 @@ type AuditEntry struct {
 	Action          string                 `json:"action"`
 	Resource        string                 `json:"resource"`
 	Result          AuditResult            `json:"result"`
-	Details         map[string]interface{} `json:"details"`
+	Details         json.RawMessage `json:"details"`
 	Hash            string                 `json:"hash"`
 	PreviousHash    string                 `json:"previous_hash"`
 	Signature       string                 `json:"signature"`
@@ -403,7 +405,7 @@ type ComplianceReporter struct {
 // ComplianceData aggregates data for compliance reporting
 type ComplianceData struct {
 	CollectionPeriod ReportingPeriod               `json:"collection_period"`
-	Metrics          map[string]interface{}        `json:"metrics"`
+	Metrics          json.RawMessage        `json:"metrics"`
 	AuditEntries     []*AuditEntry                 `json:"audit_entries"`
 	ConfigChanges    []*ConfigurationChange        `json:"config_changes"`
 	SecurityEvents   []*SecurityEvent              `json:"security_events"`
@@ -424,7 +426,7 @@ type ConfigurationChange struct {
 	Reason     string                 `json:"reason"`
 	ApprovalID string                 `json:"approval_id"`
 	RiskLevel  string                 `json:"risk_level"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // SecurityEvent represents a security-related event
@@ -438,7 +440,7 @@ type SecurityEvent struct {
 	Description string                 `json:"description"`
 	Mitigation  string                 `json:"mitigation"`
 	Status      string                 `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // PerformanceMetric represents a performance measurement
@@ -450,7 +452,7 @@ type PerformanceMetric struct {
 	Threshold  float64                `json:"threshold"`
 	Status     string                 `json:"status"`
 	Tags       map[string]string      `json:"tags"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // SystemHealthStatus represents overall system health
@@ -495,7 +497,7 @@ type UserActivity struct {
 	UserAgent string                 `json:"user_agent"`
 	Result    string                 `json:"result"`
 	RiskScore float64                `json:"risk_score"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata"`
 }
 
 // FrameworkReporter interface for framework-specific reporting
@@ -661,7 +663,7 @@ type ComplianceRequirement struct {
 // ValidationCriteria defines how to validate a requirement
 type ValidationCriteria struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 	Threshold  float64                `json:"threshold"`
 }
 
@@ -683,7 +685,7 @@ type Evidence struct {
 	Source           string                 `json:"source"`
 	CollectionTime   time.Time              `json:"collection_time"`
 	Data             interface{}            `json:"data"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	Metadata         json.RawMessage `json:"metadata"`
 	Hash             string                 `json:"hash"`
 	DigitalSignature string                 `json:"digital_signature"`
 	Timestamp        string                 `json:"timestamp"`
@@ -1221,7 +1223,7 @@ func (s *SLAComplianceTestSuite) generateTestAuditEvents(ctx context.Context, co
 			Action:       "measure_sla",
 			Resource:     "availability_metric",
 			Result:       ResultSuccess,
-			Details:      map[string]interface{}{"value": 99.95 + rand.Float64()*0.1},
+			Details:      json.RawMessage("{}"),
 			PreviousHash: previousHash,
 		}
 
@@ -1345,7 +1347,7 @@ type SLATestResult struct {
 	Duration time.Duration          `json:"duration"`
 	Errors   []string               `json:"errors"`
 	Warnings []string               `json:"warnings"`
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 	Evidence []EvidenceReference    `json:"evidence"`
 }
 
@@ -1871,10 +1873,7 @@ func (s *SLAComplianceTestSuite) validateEvidenceIntegrity(ctx context.Context, 
 }
 
 func (s *SLAComplianceTestSuite) generateTestDataForAttestation() interface{} {
-	return map[string]interface{}{
-		"test_data": "sample data for attestation testing",
-		"timestamp": time.Now(),
-	}
+	return json.RawMessage("{}")
 }
 
 // Framework-specific evidence collection methods

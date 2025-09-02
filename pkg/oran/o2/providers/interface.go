@@ -1,7 +1,9 @@
 package providers
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -214,7 +216,7 @@ type CreateResourceRequest struct {
 
 	Namespace string `json:"namespace,omitempty"`
 
-	Specification map[string]interface{} `json:"specification"`
+	Specification json.RawMessage `json:"specification"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -228,7 +230,7 @@ type CreateResourceRequest struct {
 // UpdateResourceRequest represents a request to update a resource.
 
 type UpdateResourceRequest struct {
-	Specification map[string]interface{} `json:"specification,omitempty"`
+	Specification json.RawMessage `json:"specification,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -252,13 +254,13 @@ type ResourceResponse struct {
 
 	Health string `json:"health"`
 
-	Specification map[string]interface{} `json:"specification"`
+	Specification json.RawMessage `json:"specification"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	Events []*ResourceEvent `json:"events,omitempty"`
 
@@ -300,7 +302,7 @@ type DeploymentRequest struct {
 
 	TemplateType string `json:"templateType"` // helm, kubernetes, terraform
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -318,7 +320,7 @@ type DeploymentRequest struct {
 type UpdateDeploymentRequest struct {
 	Template string `json:"template,omitempty"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -346,7 +348,7 @@ type DeploymentResponse struct {
 
 	TemplateType string `json:"templateType"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Namespace string `json:"namespace,omitempty"`
 
@@ -376,7 +378,7 @@ type DeploymentEvent struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DeploymentFilter defines filters for deployment queries.
@@ -412,7 +414,7 @@ type ScaleRequest struct {
 
 	Amount int32 `json:"amount,omitempty"`
 
-	Target map[string]interface{} `json:"target,omitempty"`
+	Target json.RawMessage `json:"target,omitempty"`
 
 	MinReplicas *int32 `json:"minReplicas,omitempty"`
 
@@ -614,7 +616,7 @@ type StorageResourceRequest struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Timeout time.Duration `json:"timeout,omitempty"`
 }
@@ -732,9 +734,9 @@ type ProviderConfiguration struct {
 
 	Credentials map[string]string `json:"credentials,omitempty"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
-	Limits map[string]interface{} `json:"limits,omitempty"`
+	Limits json.RawMessage `json:"limits,omitempty"`
 
 	Features map[string]bool `json:"features,omitempty"`
 

@@ -70,7 +70,7 @@ type WebhookPayload struct {
 
 	// Custom data.
 
-	CustomData map[string]interface{} `json:"custom_data,omitempty"`
+	CustomData json.RawMessage `json:"custom_data,omitempty"`
 }
 
 // SlackPayload represents Slack-specific webhook format.
@@ -212,7 +212,7 @@ type PagerDutyEventPayload struct {
 
 	Class string `json:"class,omitempty"`
 
-	Details map[string]interface{} `json:"custom_details,omitempty"`
+	Details json.RawMessage `json:"custom_details,omitempty"`
 }
 
 // PagerDutyLink represents PagerDuty link.
@@ -630,7 +630,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			IconEmoji: ":chart_with_upwards_trend:",
 
-			Text: "üìä Performance Report Generated",
+			Text: "?? Performance Report Generated",
 
 			Attachments: []SlackAttachment{
 				{
@@ -699,10 +699,10 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			for _, claim := range event.Report.PerformanceClaims {
 
-				status := "‚úÖ"
+				status := "??
 
 				if claim.Status == "FAIL" {
-					status = "‚ùå"
+					status = "??
 				}
 
 				claimsText += fmt.Sprintf("%s %s: %s (Target: %s)\n",
@@ -752,7 +752,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			IconEmoji: ":warning:",
 
-			Text: fmt.Sprintf("üö® %s Alert: %s", strings.ToUpper(event.Alert.Severity), event.Alert.Name),
+			Text: fmt.Sprintf("?ö® %s Alert: %s", strings.ToUpper(event.Alert.Severity), event.Alert.Name),
 
 			Attachments: []SlackAttachment{
 				{
@@ -818,7 +818,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			IconEmoji: ":rotating_light:",
 
-			Text: "üî¥ Performance Regression Detected",
+			Text: "?î¥ Performance Regression Detected",
 
 			Attachments: []SlackAttachment{
 				{
@@ -858,7 +858,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			changesText := "*Performance Changes:*\n"
 
 			for metric, change := range event.Regression.PerformanceChange {
-				changesText += fmt.Sprintf("‚Ä¢ %s: %+.2f%%\n", metric, change)
+				changesText += fmt.Sprintf("??%s: %+.2f%%\n", metric, change)
 			}
 
 			payload.Attachments[0].Text += "\n" + changesText
@@ -911,7 +911,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 
 			Sections: []TeamsSection{
 				{
-					ActivityTitle: "üìä Performance Report Generated",
+					ActivityTitle: "?? Performance Report Generated",
 
 					ActivitySubtitle: fmt.Sprintf("Report Period: %s", event.Report.Period),
 
@@ -995,7 +995,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 
 			Sections: []TeamsSection{
 				{
-					ActivityTitle: fmt.Sprintf("üö® %s Alert", strings.ToUpper(event.Alert.Severity)),
+					ActivityTitle: fmt.Sprintf("?ö® %s Alert", strings.ToUpper(event.Alert.Severity)),
 
 					ActivitySubtitle: event.Alert.Name,
 
@@ -1049,7 +1049,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 
 			Sections: []TeamsSection{
 				{
-					ActivityTitle: "üî¥ Performance Regression Detected",
+					ActivityTitle: "?î¥ Performance Regression Detected",
 
 					ActivitySubtitle: fmt.Sprintf("Severity: %s", event.Regression.RegressionSeverity),
 
@@ -1141,17 +1141,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 
 				Class: "performance-monitoring",
 
-				Details: map[string]interface{}{
-					"alert_name": event.Alert.Name,
-
-					"alert_count": event.Alert.Count,
-
-					"duration": event.Alert.Duration.String(),
-
-					"description": event.Alert.Description,
-
-					"dashboard_url": "https://grafana.nephoran.com/d/nephoran-executive-perf",
-				},
+				Details: json.RawMessage("{}"),
 			},
 
 			Links: []PagerDutyLink{
@@ -1191,15 +1181,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 
 				Class: "performance-regression",
 
-				Details: map[string]interface{}{
-					"regression_severity": event.Regression.RegressionSeverity,
-
-					"performance_changes": event.Regression.PerformanceChange,
-
-					"baseline_period": event.Regression.BaselineComparison.BaselinePeriod,
-
-					"dashboard_url": "https://grafana.nephoran.com/d/nephoran-regression-analysis",
-				},
+				Details: json.RawMessage("{}"),
 			},
 
 			Links: []PagerDutyLink{

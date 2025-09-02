@@ -117,7 +117,7 @@ type Dashboard struct {
 
 	Version int `json:"version"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DashboardTemplating contains dashboard template variables.
@@ -147,7 +147,7 @@ type TemplateVariable struct {
 
 	Multi bool `json:"multi,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // TemplateOption represents an option for a template variable.
@@ -175,13 +175,13 @@ type DashboardPanel struct {
 
 	GridPos PanelGridPos `json:"gridPos"`
 
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 
 	FieldConfig PanelFieldConfig `json:"fieldConfig,omitempty"`
 
 	Alert *PanelAlert `json:"alert,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PanelTarget represents a panel query target.
@@ -197,7 +197,7 @@ type PanelTarget struct {
 
 	Format string `json:"format,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PanelGridPos represents panel grid position.
@@ -219,7 +219,7 @@ type PanelFieldConfig struct {
 
 	Overrides []FieldOverride `json:"overrides,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // FieldDefaults represents default field settings.
@@ -237,7 +237,7 @@ type FieldDefaults struct {
 
 	Mappings []FieldMapping `json:"mappings,omitempty"`
 
-	Custom map[string]interface{} `json:"custom,omitempty"`
+	Custom json.RawMessage `json:"custom,omitempty"`
 }
 
 // FieldThresholds represents field thresholds.
@@ -265,7 +265,7 @@ type FieldMapping struct {
 
 	Text string `json:"text"`
 
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 // FieldOverride represents field override.
@@ -329,7 +329,7 @@ type AlertQuery struct {
 
 	RefID string `json:"refId"`
 
-	Model map[string]interface{} `json:"model"`
+	Model json.RawMessage `json:"model"`
 }
 
 // AlertReducer represents alert reducer.
@@ -379,7 +379,7 @@ type DashboardStatus struct {
 
 	ResponseTimes []float64 `json:"response_times"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ABTestResult represents A/B test results.
@@ -405,7 +405,7 @@ type ABTestResult struct {
 
 	Confidence float64 `json:"confidence"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // DashboardManager manages Grafana dashboards.
@@ -990,11 +990,7 @@ func (dm *DashboardManager) checkDataFlow(ctx context.Context, dashboard *Dashbo
 // createGrafanaDashboard creates a dashboard in Grafana.
 
 func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-	payload := map[string]interface{}{
-		"dashboard": dashboard,
-
-		"overwrite": false,
-	}
+	payload := json.RawMessage("{}")
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 }
@@ -1002,11 +998,7 @@ func (dm *DashboardManager) createGrafanaDashboard(ctx context.Context, dashboar
 // updateGrafanaDashboard updates a dashboard in Grafana.
 
 func (dm *DashboardManager) updateGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-	payload := map[string]interface{}{
-		"dashboard": dashboard,
-
-		"overwrite": true,
-	}
+	payload := json.RawMessage("{}")
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 }
@@ -1014,11 +1006,7 @@ func (dm *DashboardManager) updateGrafanaDashboard(ctx context.Context, dashboar
 // createOrUpdateGrafanaDashboard creates or updates a dashboard in Grafana.
 
 func (dm *DashboardManager) createOrUpdateGrafanaDashboard(ctx context.Context, dashboard *Dashboard) error {
-	payload := map[string]interface{}{
-		"dashboard": dashboard,
-
-		"overwrite": true,
-	}
+	payload := json.RawMessage("{}")
 
 	return dm.sendGrafanaRequest(ctx, "POST", "/api/dashboards/db", payload)
 }

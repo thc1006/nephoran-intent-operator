@@ -32,9 +32,9 @@ type A1PolicyType struct {
 
 	Description string `json:"description"`
 
-	PolicySchema map[string]interface{} `json:"policy_schema"`
+	PolicySchema json.RawMessage `json:"policy_schema"`
 
-	CreateSchema map[string]interface{} `json:"create_schema"`
+	CreateSchema json.RawMessage `json:"create_schema"`
 }
 
 // A1PolicyInstance represents an A1 policy instance.
@@ -44,7 +44,7 @@ type A1PolicyInstance struct {
 
 	PolicyTypeID int `json:"policy_type_id"`
 
-	PolicyData map[string]interface{} `json:"policy_data"`
+	PolicyData json.RawMessage `json:"policy_data"`
 
 	Status A1PolicyStatus `json:"status"`
 
@@ -192,7 +192,7 @@ type PolicyEvent struct {
 
 	Target string `json:"target"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -214,7 +214,7 @@ type PolicyWorkflow struct {
 
 	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	CreatedAt time.Time `json:"created_at"`
 
@@ -232,7 +232,7 @@ type PolicyWorkflowStep struct {
 
 	Target string `json:"target"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Conditions []string `json:"conditions"`
 
@@ -916,35 +916,15 @@ func CreateQoSPolicyType() *A1PolicyType {
 
 		Description: "Policy for managing QoS parameters in network slices",
 
-		PolicySchema: map[string]interface{}{
-			"$schema": "http://json-schema.org/draft-07/schema#",
+		PolicySchema: json.RawMessage("{}"){
+				"slice_id": json.RawMessage("{}"),
 
-			"type": "object",
+				"qos_parameters": json.RawMessage("{}"){
+						"latency_ms": json.RawMessage("{}"),
 
-			"properties": map[string]interface{}{
-				"slice_id": map[string]interface{}{
-					"type": "string",
-				},
+						"throughput_mbps": json.RawMessage("{}"),
 
-				"qos_parameters": map[string]interface{}{
-					"type": "object",
-
-					"properties": map[string]interface{}{
-						"latency_ms": map[string]interface{}{
-							"type": "number",
-						},
-
-						"throughput_mbps": map[string]interface{}{
-							"type": "number",
-						},
-
-						"reliability": map[string]interface{}{
-							"type": "number",
-
-							"minimum": 0,
-
-							"maximum": 1,
-						},
+						"reliability": json.RawMessage("{}"),
 					},
 				},
 			},
@@ -964,27 +944,12 @@ func CreateTrafficSteeringPolicyType() *A1PolicyType {
 
 		Description: "Policy for steering traffic between cells or network functions",
 
-		PolicySchema: map[string]interface{}{
-			"$schema": "http://json-schema.org/draft-07/schema#",
+		PolicySchema: json.RawMessage("{}"){
+				"ue_id": json.RawMessage("{}"),
 
-			"type": "object",
+				"target_cell": json.RawMessage("{}"),
 
-			"properties": map[string]interface{}{
-				"ue_id": map[string]interface{}{
-					"type": "string",
-				},
-
-				"target_cell": map[string]interface{}{
-					"type": "string",
-				},
-
-				"traffic_percentage": map[string]interface{}{
-					"type": "number",
-
-					"minimum": 0,
-
-					"maximum": 100,
-				},
+				"traffic_percentage": json.RawMessage("{}"),
 			},
 
 			"required": []string{"target_cell", "traffic_percentage"},
@@ -1258,11 +1223,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 			Target: event.Source,
 
-			Data: map[string]interface{}{
-				"error": err.Error(),
-
-				"original_event": event.ID,
-			},
+			Data: json.RawMessage("{}"),
 
 			Timestamp: time.Now(),
 
@@ -1288,13 +1249,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *P
 
 		Target: event.Source,
 
-		Data: map[string]interface{}{
-			"policy_instance_id": instanceID,
-
-			"policy_type_id": int(policyTypeID),
-
-			"original_event": event.ID,
-		},
+		Data: json.RawMessage("{}"),
 
 		Timestamp: time.Now(),
 
@@ -1393,13 +1348,7 @@ func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *
 
 		Target: event.Source,
 
-		Data: map[string]interface{}{
-			"enforcement_status": status.EnforcementStatus,
-
-			"enforcement_reason": status.EnforcementReason,
-
-			"last_modified": status.LastModified,
-		},
+		Data: json.RawMessage("{}"),
 
 		Timestamp: time.Now(),
 
@@ -1661,13 +1610,7 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 
 			Target: "smo",
 
-			Data: map[string]interface{}{
-				"workflow_id": workflow.ID,
-
-				"step_id": step.ID,
-
-				"message": message,
-			},
+			Data: json.RawMessage("{}"),
 
 			Timestamp: time.Now(),
 

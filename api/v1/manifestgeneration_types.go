@@ -694,7 +694,7 @@ type ManifestGenerationStatus struct {
 
 	// +optional
 
-	QualityScore *float64 `json:"qualityScore,omitempty"`
+	QualityScore string `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed.
 
@@ -802,7 +802,7 @@ type ManifestOptimizationResult struct {
 
 	// +optional
 
-	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
+	ImprovementPercent string `json:"improvementPercent,omitempty"`
 
 	// Changes lists the changes made.
 
@@ -820,7 +820,7 @@ type ManifestOptimizationResult struct {
 type SecurityAnalysisResult struct {
 	// OverallScore is the overall security score (0.0-1.0).
 
-	OverallScore float64 `json:"overallScore"`
+	OverallScore string `json:"overallScore"`
 
 	// SecurityIssues lists identified security issues.
 
@@ -876,7 +876,7 @@ type SecurityIssue struct {
 
 	// +optional
 
-	CVSSScore *float64 `json:"cvssScore,omitempty"`
+	CVSSScore string `json:"cvssScore,omitempty"`
 }
 
 // SecurityComplianceResult represents compliance check results.
@@ -906,7 +906,7 @@ type SecurityComplianceResult struct {
 
 	// +optional
 
-	Score *float64 `json:"score,omitempty"`
+	Score string `json:"score,omitempty"`
 }
 
 // GeneratedResourceReference represents a reference to a generated resource.
@@ -1085,12 +1085,12 @@ func (mg *ManifestGeneration) HasValidationErrors() bool {
 
 // GetSecurityScore returns the overall security score.
 
-func (mg *ManifestGeneration) GetSecurityScore() float64 {
+func (mg *ManifestGeneration) GetSecurityScore() string {
 	if mg.Status.SecurityAnalysis != nil {
 		return mg.Status.SecurityAnalysis.OverallScore
 	}
 
-	return 0.0
+	return "0.0"
 }
 
 // ShouldValidateManifests returns true if manifest validation is enabled.

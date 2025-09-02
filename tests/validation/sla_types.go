@@ -1,7 +1,9 @@
 package test_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -190,7 +192,7 @@ type MeasurementSet struct {
 	Measurements   []float64 `json:"measurements"`
 	Timestamps     []int64   `json:"timestamps"`
 	Labels         []string  `json:"labels,omitempty"`
-	AggregatedData map[string]interface{} `json:"aggregated_data,omitempty"`
+	AggregatedData json.RawMessage `json:"aggregated_data,omitempty"`
 }
 
 // StatisticalAnalyzer performs statistical analysis on measurement data

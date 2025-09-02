@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"time"
 
@@ -212,19 +214,7 @@ func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]i
 	components := make(map[string]interface{})
 
 	for _, check := range checks {
-		components[check.Name] = map[string]interface{}{
-			"status": check.Status,
-
-			"message": check.Message,
-
-			"timestamp": check.Timestamp,
-
-			"duration": check.Duration,
-
-			"details": check.Details,
-
-			"check_type": check.CheckType,
-		}
+		components[check.Name] = json.RawMessage("{}")
 	}
 
 	return components
@@ -285,7 +275,7 @@ type ComponentCheck struct {
 
 	Duration time.Duration `json:"duration,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	CheckType string `json:"check_type,omitempty"` // connectivity, resource, dependency
 }

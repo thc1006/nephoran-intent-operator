@@ -73,17 +73,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
-		return map[string]interface{}{
-			"intent_type": "scaling",
-
-			"target": m[1],
-
-			"replicas": replicas,
-
-			"namespace": m[3],
-
-			"source": "user",
-		}, nil
+		return json.RawMessage("{}"), nil
 
 	}
 
@@ -100,17 +90,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
-		return map[string]interface{}{
-			"intent_type": "scaling",
-
-			"target": m[1],
-
-			"replicas": replicas,
-
-			"namespace": "default",
-
-			"source": "user",
-		}, nil
+		return json.RawMessage("{}"), nil
 
 	}
 
@@ -137,19 +117,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 		// For MVP, we'll just use the delta as the new replica count.
 
-		return map[string]interface{}{
-			"intent_type": "scaling",
-
-			"target": m[1],
-
-			"replicas": delta, // In production, this would be current + delta
-
-			"namespace": ns,
-
-			"source": "user",
-
-			"reason": fmt.Sprintf("scale out by %d", delta),
-		}, nil
+		return json.RawMessage("{}"), nil
 
 	}
 
@@ -176,19 +144,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 
 		// For MVP, we'll use 1 as minimum.
 
-		return map[string]interface{}{
-			"intent_type": "scaling",
-
-			"target": m[1],
-
-			"replicas": 1, // In production, this would be max(1, current - delta)
-
-			"namespace": ns,
-
-			"source": "user",
-
-			"reason": fmt.Sprintf("scale in by %d", delta),
-		}, nil
+		return json.RawMessage("{}"), nil
 
 	}
 

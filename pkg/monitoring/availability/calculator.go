@@ -1,7 +1,9 @@
 package availability
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sort"
@@ -171,7 +173,7 @@ type AvailabilityCalculation struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BusinessHoursConfig defines business hours for weighted calculations.

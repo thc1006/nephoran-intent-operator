@@ -757,21 +757,5 @@ func (tm *TimeoutManager) GetHealthReport() map[string]interface{} {
 
 	metrics := tm.GetMetrics()
 
-	return map[string]interface{}{
-		"healthy": tm.IsHealthy(),
-
-		"active_operations": activeOps,
-
-		"total_operations": metrics.TotalOperations,
-
-		"timeout_operations": metrics.TimeoutOperations,
-
-		"timeout_rate": metrics.TimeoutRate,
-
-		"average_timeout": metrics.AverageTimeout(),
-
-		"adaptive_adjustments": metrics.AdaptiveAdjustments,
-
-		"configurations": len(tm.configs),
-	}
+	return json.RawMessage("{}")
 }

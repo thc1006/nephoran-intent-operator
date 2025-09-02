@@ -133,7 +133,7 @@ type FunctionExecutionRequest struct {
 
 	FunctionImage string `json:"functionImage,omitempty"`
 
-	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
+	FunctionConfig json.RawMessage `json:"functionConfig,omitempty"`
 
 	// Input resources.
 
@@ -1283,7 +1283,7 @@ func (fm *FunctionManager) generateCacheKey(req *FunctionExecutionRequest) strin
 	data, _ := json.Marshal(struct {
 		Function string `json:"function"`
 
-		Config map[string]interface{} `json:"config"`
+		Config json.RawMessage `json:"config"`
 
 		Resources string `json:"resources"`
 	}{

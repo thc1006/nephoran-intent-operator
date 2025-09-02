@@ -521,10 +521,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 				{
 					RuleID: "rule-001",
 					Action: "ALLOW",
-					Conditions: map[string]interface{}{
-						"source_ip": "192.168.1.0/24",
-						"protocol":  "https",
-					},
+					Conditions: json.RawMessage("{}"),
 				},
 			},
 		}

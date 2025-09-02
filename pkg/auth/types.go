@@ -1,7 +1,9 @@
 package auth
 
 import (
-	"net/http"
+	
+	"encoding/json"
+"net/http"
 )
 
 // HandlersConfig represents handlers configuration.
@@ -41,7 +43,7 @@ type UserContext struct {
 	Roles       []string               `json:"roles"`
 	Permissions []string               `json:"permissions"`
 	IsAdmin     bool                   `json:"is_admin"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Attributes  json.RawMessage `json:"attributes"`
 }
 
 // RBACMiddlewareConfig represents RBAC middleware configuration.

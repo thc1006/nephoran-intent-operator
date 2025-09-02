@@ -23,11 +23,7 @@ import (
 		// Delay longer than timeout
 		time.Sleep(3 * time.Second)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"type":      "NetworkFunctionDeployment",
-			"name":      "test-nf",
-			"namespace": "default",
-			"spec": map[string]interface{}{
+		json.NewEncoder(w).Encode(json.RawMessage("{}"){
 				"replicas": 1,
 				"image":    "test:latest",
 			},
@@ -76,11 +72,7 @@ import (
 			w.Write([]byte("temporary error"))
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"type":      "NetworkFunctionDeployment",
-				"name":      "test-nf",
-				"namespace": "default",
-				"spec": map[string]interface{}{
+			json.NewEncoder(w).Encode(json.RawMessage("{}"){
 					"replicas": 1,
 					"image":    "test:latest",
 				},
@@ -189,24 +181,17 @@ import (
 	}{
 		{
 			name:           "All fields missing",
-			response:       map[string]interface{}{},
+			response:       json.RawMessage("{}"),
 			expectedFields: []string{"type", "name", "namespace", "spec"},
 		},
 		{
 			name: "Some fields missing",
-			response: map[string]interface{}{
-				"type": "NetworkFunctionDeployment",
-				"name": "test",
-			},
+			response: json.RawMessage("{}"),
 			expectedFields: []string{"namespace", "spec"},
 		},
 		{
 			name: "Only spec missing",
-			response: map[string]interface{}{
-				"type":      "NetworkFunctionDeployment",
-				"name":      "test",
-				"namespace": "default",
-			},
+			response: json.RawMessage("{}"),
 			expectedFields: []string{"spec"},
 		},
 	}
@@ -314,11 +299,7 @@ import (
 	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fallbackCalled = true
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"type":      "NetworkFunctionDeployment",
-			"name":      "test-nf",
-			"namespace": "default",
-			"spec": map[string]interface{}{
+		json.NewEncoder(w).Encode(json.RawMessage("{}"){
 				"replicas": 1,
 				"image":    "test:latest",
 			},
@@ -360,11 +341,7 @@ import (
 			longText += "This is a very long response text. "
 		}
 
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"type":      "NetworkFunctionDeployment",
-			"name":      "test-nf",
-			"namespace": "default",
-			"spec": map[string]interface{}{
+		json.NewEncoder(w).Encode(json.RawMessage("{}"){
 				"replicas":    1,
 				"image":       "test:latest",
 				"description": longText,

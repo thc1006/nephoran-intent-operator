@@ -1049,15 +1049,7 @@ func (w *Worker) processLLMTask(ctx context.Context, task *Task) (interface{}, e
 
 	time.Sleep(time.Millisecond * 100) // Simulate processing time
 
-	return map[string]interface{}{
-		"processed_intent": task.Intent,
-
-		"parameters": task.Parameters,
-
-		"timestamp": time.Now(),
-
-		"worker_id": w.id,
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // Background routines.
@@ -1186,17 +1178,7 @@ func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, e
 
 	time.Sleep(time.Millisecond * 150) // Simulate processing time
 
-	return map[string]interface{}{
-		"rag_processed_intent": task.Intent,
-
-		"parameters": task.Parameters,
-
-		"timestamp": time.Now(),
-
-		"worker_id": w.id,
-
-		"type": "rag_result",
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // processBatchTask processes batch-specific tasks.
@@ -1208,17 +1190,7 @@ func (w *Worker) processBatchTask(ctx context.Context, task *Task) (interface{},
 
 	time.Sleep(time.Millisecond * 200) // Simulate processing time
 
-	return map[string]interface{}{
-		"batch_processed_intent": task.Intent,
-
-		"parameters": task.Parameters,
-
-		"timestamp": time.Now(),
-
-		"worker_id": w.id,
-
-		"type": "batch_result",
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 func getDefaultWorkerPoolConfig() *WorkerPoolConfig {
@@ -1553,21 +1525,5 @@ func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 // GetStatus returns current worker pool status information.
 
 func (wp *WorkerPool) GetStatus() map[string]interface{} {
-	return map[string]interface{}{
-		"running": wp.getState() == WorkerPoolStateRunning,
-
-		"total_workers": atomic.LoadInt32(&wp.workerCount),
-
-		"min_workers": wp.minWorkers,
-
-		"max_workers": wp.maxWorkers,
-
-		"queue_length": len(wp.taskQueue),
-
-		"tasks_submitted": atomic.LoadInt64(&wp.metrics.TasksSubmitted),
-
-		"tasks_completed": atomic.LoadInt64(&wp.metrics.TasksCompleted),
-
-		"tasks_failed": atomic.LoadInt64(&wp.metrics.TasksFailed),
-	}
+	return json.RawMessage("{}")
 }

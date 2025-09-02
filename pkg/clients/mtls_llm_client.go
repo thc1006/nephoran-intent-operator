@@ -34,7 +34,7 @@ type LLMRequest struct {
 
 	Temperature float64 `json:"temperature,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	UseRAG bool `json:"use_rag,omitempty"`
 
@@ -52,7 +52,7 @@ type LLMResponse struct {
 
 	FinishReason string `json:"finish_reason"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	ProcessingTime time.Duration `json:"processing_time"`
 
@@ -70,7 +70,7 @@ type StreamingResponse struct {
 
 	IsLast bool `json:"is_last"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -95,11 +95,7 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 		UseRAG: true, // Enable RAG by default for intent processing
 
-		Metadata: map[string]interface{}{
-			"request_type": "intent_processing",
-
-			"timestamp": time.Now(),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Make request to LLM processor.
@@ -144,11 +140,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 		UseRAG: true,
 
-		Metadata: map[string]interface{}{
-			"request_type": "streaming_intent_processing",
-
-			"timestamp": time.Now(),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Create HTTP request.
@@ -640,5 +632,5 @@ type HealthStatus struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }

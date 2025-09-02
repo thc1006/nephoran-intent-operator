@@ -5,7 +5,9 @@
 package ca
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -228,7 +230,7 @@ type AutomationRequest struct {
 
 	Priority RequestPriority `json:"priority"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RequestType defines types of automation requests.
@@ -340,7 +342,7 @@ type AutomationResponse struct {
 
 	Certificate *x509.Certificate `json:"certificate,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -746,13 +748,7 @@ func (e *AutomationEngine) processServiceForProvisioning(service *v1.Service) {
 
 		Priority: PriorityNormal,
 
-		Metadata: map[string]interface{}{
-			"service_uid": string(service.UID),
-
-			"labels": service.Labels,
-
-			"annotations": service.Annotations,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Add health check configuration if enabled.
@@ -802,13 +798,7 @@ func (e *AutomationEngine) processServiceForRevocation(service *v1.Service) {
 
 		Priority: PriorityHigh,
 
-		Metadata: map[string]interface{}{
-			"service_uid": string(service.UID),
-
-			"labels": service.Labels,
-
-			"annotations": service.Annotations,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Process request.
@@ -925,11 +915,7 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 				CertificateTemplate: cert.Certificate,
 
-				Metadata: map[string]interface{}{
-					"serial_number": cert.SerialNumber,
-
-					"expires": cert.ExpiresAt,
-				},
+				Metadata: json.RawMessage("{}"),
 			}
 
 			// Process renewal request.
@@ -1418,9 +1404,7 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 
 		Duration: time.Since(startTime),
 
-		Metadata: map[string]interface{}{
-			"revoked_count": revokedCount,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 
@@ -1453,11 +1437,7 @@ func (e *AutomationEngine) processDiscoveryRequest(req *AutomationRequest) *Auto
 
 		Duration: time.Since(startTime),
 
-		Metadata: map[string]interface{}{
-			"services": services,
-
-			"service_count": len(services),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 
@@ -1690,12 +1670,7 @@ func (e *AutomationEngine) GetMetrics() map[string]interface{} {
 
 	e.watchersMux.RUnlock()
 
-	return map[string]interface{}{
-		"running": running,
-
-		"watcher_count": watcherCount,
-
-		"config": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"service_discovery_enabled": e.config.ServiceDiscoveryEnabled,
 
 			"auto_renewal_enabled": e.config.AutoRenewalEnabled,
@@ -1790,11 +1765,7 @@ func (e *AutomationEngine) RequestProvisioning(req *ProvisioningRequest) error {
 		ServiceName:      req.ServiceName,
 		ServiceNamespace: req.Namespace,
 		Priority:         req.Priority,
-		Metadata: map[string]interface{}{
-			"template":   req.Template,
-			"dns_names":  req.DNSNames,
-			"request_id": req.ID,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Add metadata from provisioning request

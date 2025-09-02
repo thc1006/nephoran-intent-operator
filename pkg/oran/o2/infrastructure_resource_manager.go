@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -403,7 +405,7 @@ type ResourceStateInfo struct {
 
 	StateTransitions []*StateTransition `json:"stateTransitions,omitempty"`
 
-	StateMetadata map[string]interface{} `json:"stateMetadata,omitempty"`
+	StateMetadata json.RawMessage `json:"stateMetadata,omitempty"`
 
 	LastStateChange time.Time `json:"lastStateChange"`
 }
@@ -455,7 +457,7 @@ type ProvisioningQueueEntry struct {
 
 	LastError string `json:"lastError,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // QueueStatus represents the status of the provisioning queue.
@@ -515,7 +517,7 @@ type HealthCheckConfig struct {
 
 	FailureThreshold int `json:"failureThreshold"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 // HealthPolicy defines health policies for resources.
@@ -545,7 +547,7 @@ type HealthAction struct {
 
 	Condition string `json:"condition"` // Health condition that triggers this action
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Priority int `json:"priority"`
 
@@ -571,7 +573,7 @@ type HealthEvent struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // HealthEventFilter defines filters for health events.
@@ -719,7 +721,7 @@ type CustomMetricDefinition struct {
 
 	CollectionMethod string `json:"collectionMethod"` // PULL, PUSH, CALCULATED
 
-	CollectionConfig map[string]interface{} `json:"collectionConfig,omitempty"`
+	CollectionConfig json.RawMessage `json:"collectionConfig,omitempty"`
 
 	Labels []string `json:"labels,omitempty"`
 }
@@ -745,7 +747,7 @@ type ResourceOperation struct {
 
 	CreatedBy string `json:"createdBy,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // OperationStatus represents the status of an operation.
@@ -777,7 +779,7 @@ type OperationResult struct {
 
 	Message string `json:"message,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Errors []string `json:"errors,omitempty"`
 
@@ -829,7 +831,7 @@ type ResourceConstraint struct {
 
 	Expression string `json:"expression"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Severity string `json:"severity"` // ERROR, WARNING, INFO
 
@@ -869,7 +871,7 @@ type PolicyRule struct {
 
 	Action string `json:"action"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }

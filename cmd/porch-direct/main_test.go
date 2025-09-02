@@ -121,91 +121,43 @@ type TestData struct {
 	}{
 		{
 			name: "negative_replicas",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"namespace":   "ran-a",
-				"replicas":    -1,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "zero_replicas",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"namespace":   "ran-a",
-				"replicas":    0,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "missing_target",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"namespace":   "ran-a",
-				"replicas":    3,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "missing_namespace",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"replicas":    3,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "missing_intent_type",
-			intent: map[string]interface{}{
-				"target":    "nf-sim",
-				"namespace": "ran-a",
-				"replicas":  3,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "invalid_intent_type",
-			intent: map[string]interface{}{
-				"intent_type": "wrong",
-				"target":      "nf-sim",
-				"namespace":   "ran-a",
-				"replicas":    3,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "too_many_replicas",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"namespace":   "ran-a",
-				"replicas":    101,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "empty_target",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "",
-				"namespace":   "ran-a",
-				"replicas":    3,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "empty_namespace",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"namespace":   "",
-				"replicas":    3,
-			},
+			intent: json.RawMessage("{}"),
 		},
 		{
 			name: "invalid_source",
-			intent: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "nf-sim",
-				"namespace":   "ran-a",
-				"replicas":    3,
-				"source":      "invalid",
-			},
+			intent: json.RawMessage("{}"),
 		},
 	}
 

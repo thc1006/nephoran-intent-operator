@@ -490,28 +490,19 @@ func (c *SimpleMetricsCollector) RecordLLMRequestError(model, errorType string) 
 // GetGauge returns a gauge metric interface (stub implementation)
 func (c *SimpleMetricsCollector) GetGauge(name string) interface{} {
 	// Stub implementation - return a simple struct that satisfies interface{} needs
-	return map[string]interface{}{
-		"type": "gauge",
-		"name": name,
-	}
+	return json.RawMessage("{}")
 }
 
 // GetHistogram returns a histogram metric interface (stub implementation)
 func (c *SimpleMetricsCollector) GetHistogram(name string) interface{} {
 	// Stub implementation - return a simple struct that satisfies interface{} needs
-	return map[string]interface{}{
-		"type": "histogram",
-		"name": name,
-	}
+	return json.RawMessage("{}")
 }
 
 // GetCounter returns a counter metric interface (stub implementation)
 func (c *SimpleMetricsCollector) GetCounter(name string) interface{} {
 	// Stub implementation - return a simple struct that satisfies interface{} needs
-	return map[string]interface{}{
-		"type": "counter",
-		"name": name,
-	}
+	return json.RawMessage("{}")
 }
 
 // addMetric adds a metric to the collection (thread-safe)

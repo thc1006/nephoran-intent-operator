@@ -304,16 +304,11 @@ func (suite *CRDIntegrationTestSuite) TestCRD_CreateNetworkIntentWithDynamicClie
 
 	// Create unstructured NetworkIntent
 	intent := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "nephoran.io/v1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"name":      "dynamic-test-intent",
 				"namespace": suite.namespace,
 			},
-			"spec": map[string]interface{}{
-				"intent": "scale network function dynamically",
-			},
+			"spec": json.RawMessage("{}"),
 		},
 	}
 
@@ -430,16 +425,11 @@ func (suite *CRDIntegrationTestSuite) TestCRD_ValidationFailure() {
 
 	// Test with missing required field
 	intentWithoutIntent := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "nephoran.io/v1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"name":      "validation-failure",
 				"namespace": suite.namespace,
 			},
-			"spec": map[string]interface{}{
-				// Missing required "intent" field
-			},
+			"spec": json.RawMessage("{}"),
 		},
 	}
 

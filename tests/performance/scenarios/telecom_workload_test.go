@@ -107,33 +107,21 @@ import (
 				{
 					Name: "Create eMBB Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "eMBB", map[string]interface{}{
-							"bandwidth": "10Gbps",
-							"latency":   "20ms",
-							"priority":  5,
-						})
+						return createNetworkSlice(ctx, "eMBB", json.RawMessage("{}"))
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create URLLC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "URLLC", map[string]interface{}{
-							"bandwidth": "1Gbps",
-							"latency":   "1ms",
-							"priority":  10,
-						})
+						return createNetworkSlice(ctx, "URLLC", json.RawMessage("{}"))
 					},
 					Delay: 1 * time.Second,
 				},
 				{
 					Name: "Create mMTC Slice",
 					Execute: func() error {
-						return createNetworkSlice(ctx, "mMTC", map[string]interface{}{
-							"bandwidth": "100Mbps",
-							"devices":   "1000000",
-							"priority":  3,
-						})
+						return createNetworkSlice(ctx, "mMTC", json.RawMessage("{}"))
 					},
 					Delay: 1 * time.Second,
 				},

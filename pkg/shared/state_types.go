@@ -31,7 +31,9 @@ limitations under the License.
 package shared
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -97,7 +99,7 @@ type IntentState struct {
 
 	// Metadata and annotations.
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Tags []string `json:"tags"`
 }
@@ -115,7 +117,7 @@ type PhaseTransition struct {
 
 	TriggerReason string `json:"triggerReason,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Success bool `json:"success"`
 
@@ -231,7 +233,7 @@ type StateChangeEvent struct {
 
 	ChangeReason string `json:"changeReason,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	AffectedFields []string `json:"affectedFields,omitempty"`
 }
@@ -343,7 +345,7 @@ type StateValidationError struct {
 
 	Severity string `json:"severity"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // StateValidationWarning represents a state validation warning.
@@ -357,7 +359,7 @@ type StateValidationWarning struct {
 
 	Suggestion string `json:"suggestion,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // StateMutex represents a distributed mutex for state synchronization.

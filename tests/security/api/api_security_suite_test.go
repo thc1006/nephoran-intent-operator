@@ -893,12 +893,7 @@ func (s *APISecuritySuite) generateSecureErrorResponse(errorType string, statusC
 		message = "An error occurred processing your request."
 	}
 
-	return map[string]interface{}{
-		"error":      message,
-		"error_code": fmt.Sprintf("ERR_%d", statusCode),
-		"request_id": generateRequestID(),
-		"timestamp":  time.Now().UTC().Format(time.RFC3339),
-	}
+	return json.RawMessage("{}")
 }
 
 func generateRequestID() string {
@@ -945,9 +940,7 @@ func generateRequestID() string {
 		for _, test := range policyTests {
 			t.Run(test.name, func(t *testing.T) {
 				// Create policy request
-				policy := map[string]interface{}{
-					"policyType": test.policyType,
-					"policyData": map[string]interface{}{
+				policy := json.RawMessage("{}"){
 						"targetCell": "cell-123",
 						"action":     "optimize",
 					},

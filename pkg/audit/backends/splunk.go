@@ -123,9 +123,9 @@ type SplunkEvent struct {
 
 	Index string `json:"index"`
 
-	Event map[string]interface{} `json:"event"`
+	Event json.RawMessage `json:"event"`
 
-	Fields map[string]interface{} `json:"fields,omitempty"`
+	Fields json.RawMessage `json:"fields,omitempty"`
 }
 
 // SplunkResponse represents a Splunk HEC response.
@@ -512,29 +512,7 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 
 	// Create the main event data.
 
-	eventData := map[string]interface{}{
-		"id": event.ID,
-
-		"version": event.Version,
-
-		"timestamp": event.Timestamp.Format(time.RFC3339Nano),
-
-		"event_type": event.EventType,
-
-		"category": event.Category,
-
-		"severity": event.Severity.String(),
-
-		"result": event.Result,
-
-		"component": event.Component,
-
-		"action": event.Action,
-
-		"description": event.Description,
-
-		"message": event.Message,
-	}
+	eventData := json.RawMessage("{}")
 
 	// Add context information.
 
@@ -572,15 +550,7 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 
 	// Create fields for indexing.
 
-	fields := map[string]interface{}{
-		"event_type": string(event.EventType),
-
-		"severity": event.Severity.String(),
-
-		"component": event.Component,
-
-		"result": string(event.Result),
-	}
+	fields := json.RawMessage("{}")
 
 	if event.UserContext != nil {
 

@@ -168,10 +168,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: map[string]interface{}{
-					"conflictId": conflictID,
-					"type":       "ResourceConflict",
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Handle conflict detection
@@ -191,9 +188,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: map[string]interface{}{
-					"conflictId": conflictID,
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Handle conflict resolution
@@ -221,9 +216,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: map[string]interface{}{
-					"lockId": lockID,
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Handle lock acquisition
@@ -242,9 +235,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data: map[string]interface{}{
-					"lockId": lockID,
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Handle lock release
@@ -271,9 +262,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseLLMProcessing,
 				Success:  true,
-				Data: map[string]interface{}{
-					"action": "llm-fallback",
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Handle recovery initiation
@@ -294,9 +283,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseLLMProcessing,
 				Success:  true,
-				Data: map[string]interface{}{
-					"action": "llm-fallback-completed",
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Handle recovery completion

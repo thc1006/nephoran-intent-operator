@@ -31,7 +31,9 @@ limitations under the License.
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -76,7 +78,7 @@ type ProcessingEvent struct {
 
 	Success bool `json:"success"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Timestamp int64 `json:"timestamp"` // Unix timestamp
 

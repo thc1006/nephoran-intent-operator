@@ -106,7 +106,7 @@ type HealthResponse struct {
 
 	Summary HealthSummary `json:"summary"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // HealthSummary provides aggregated health information.
@@ -245,13 +245,7 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 		Dependencies: []Check{},
 
-		Metadata: map[string]interface{}{
-			"grace_period_remaining": hc.getGracePeriodRemaining(),
-
-			"checks_count": len(hc.checks),
-
-			"dependencies_count": len(hc.dependencies),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Perform internal health checks.

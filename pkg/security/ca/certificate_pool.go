@@ -386,15 +386,7 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 
 	defer p.mu.RUnlock()
 
-	stats := map[string]interface{}{
-		"total_certificates": len(p.certificates),
-
-		"by_status": make(map[string]int),
-
-		"by_tenant": make(map[string]int),
-
-		"expiring_soon": 0,
-	}
+	stats := json.RawMessage("{}")
 
 	// Count by status.
 

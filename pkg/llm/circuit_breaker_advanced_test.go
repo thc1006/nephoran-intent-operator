@@ -185,11 +185,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 					}
 
 					// Subsequent requests succeed
-					response := map[string]interface{}{
-						"type":      "NetworkFunctionDeployment",
-						"name":      "recovery-nf",
-						"namespace": "default",
-						"spec": map[string]interface{}{
+					response := json.RawMessage("{}"){
 							"replicas": float64(1),
 							"image":    "recovery:latest",
 						},

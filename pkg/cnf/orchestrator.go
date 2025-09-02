@@ -633,18 +633,13 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 
 	// Set resource requirements.
 
-	config["resources"] = map[string]interface{}{
-		"requests": map[string]interface{}{
+	config["resources"] = json.RawMessage("{}"){
 			"cpu": cnf.Spec.Resources.CPU.String(),
 
 			"memory": cnf.Spec.Resources.Memory.String(),
 		},
 
-		"limits": map[string]interface{}{
-			"cpu": cnf.Spec.Resources.CPU.String(),
-
-			"memory": cnf.Spec.Resources.Memory.String(),
-		},
+		"limits": json.RawMessage("{}"),
 	}
 
 	// Override limits if specified.
@@ -672,25 +667,13 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 	// Configure storage if specified.
 
 	if cnf.Spec.Resources.Storage != nil {
-		config["persistence"] = map[string]interface{}{
-			"enabled": true,
-
-			"size": cnf.Spec.Resources.Storage.String(),
-		}
+		config["persistence"] = json.RawMessage("{}")
 	}
 
 	// Configure DPDK if specified.
 
 	if cnf.Spec.Resources.DPDK != nil && cnf.Spec.Resources.DPDK.Enabled {
-		config["dpdk"] = map[string]interface{}{
-			"enabled": true,
-
-			"cores": cnf.Spec.Resources.DPDK.Cores,
-
-			"memory": cnf.Spec.Resources.DPDK.Memory,
-
-			"driver": cnf.Spec.Resources.DPDK.Driver,
-		}
+		config["dpdk"] = json.RawMessage("{}")
 	}
 
 	// Configure hugepages if specified.
@@ -993,17 +976,13 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: map[string]interface{}{
-			"image": map[string]interface{}{
+		DefaultValues: json.RawMessage("{}"){
 				"repository": "5gc/amf",
 
 				"tag": "latest",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"sbi": 8080,
 
 					"sctp": 38412,
@@ -1085,17 +1064,13 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: map[string]interface{}{
-			"image": map[string]interface{}{
+		DefaultValues: json.RawMessage("{}"){
 				"repository": "5gc/smf",
 
 				"tag": "latest",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"sbi": 8080,
 				},
 			},
@@ -1165,30 +1140,20 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: map[string]interface{}{
-			"image": map[string]interface{}{
+		DefaultValues: json.RawMessage("{}"){
 				"repository": "5gc/upf",
 
 				"tag": "latest",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"pfcp": 8805,
 
 					"gtpu": 2152,
 				},
 			},
 
-			"dpdk": map[string]interface{}{
-				"enabled": true,
-
-				"cores": 4,
-
-				"memory": 2048,
-			},
+			"dpdk": json.RawMessage("{}"),
 		},
 
 		RequiredConfigs: []string{"dnn", "pfcpAddress", "gtpuAddress"},
@@ -1267,17 +1232,13 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: map[string]interface{}{
-			"image": map[string]interface{}{
+		DefaultValues: json.RawMessage("{}"){
 				"repository": "oran/near-rt-ric",
 
 				"tag": "latest",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"a1": 10000,
 
 					"e2": 36421,
@@ -1347,17 +1308,13 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: map[string]interface{}{
-			"image": map[string]interface{}{
+		DefaultValues: json.RawMessage("{}"){
 				"repository": "oran/o-du",
 
 				"tag": "latest",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"f1": 38472,
 
 					"e2": 36421,
@@ -1443,18 +1400,13 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 			ChartVersion: "1.0.0",
 		},
 
-		DefaultValues: map[string]interface{}{
-			"image": map[string]interface{}{
+		DefaultValues: json.RawMessage("{}"){
 				"repository": "edge/ue-simulator",
 
 				"tag": "latest",
 			},
 
-			"ues": map[string]interface{}{
-				"count": 100,
-
-				"imsiStart": "001010000000001",
-			},
+			"ues": json.RawMessage("{}"),
 		},
 
 		RequiredConfigs: []string{"amfAddress", "gnbAddress"},

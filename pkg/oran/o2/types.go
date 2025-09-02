@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"net/http"
 	"net/url"
 	"time"
@@ -54,7 +56,7 @@ type O2IMSConfig struct {
 
 	DatabaseType string `json:"databaseType"`
 
-	DatabaseConfig map[string]interface{} `json:"databaseConfig,omitempty"`
+	DatabaseConfig json.RawMessage `json:"databaseConfig,omitempty"`
 
 	ConnectionPool int `json:"connectionPool"`
 
@@ -108,7 +110,7 @@ type O2IMSConfig struct {
 
 	SpecificationVersion string `json:"specificationVersion,omitempty"`
 
-	ProviderConfigs map[string]interface{} `json:"providerConfigs,omitempty"`
+	ProviderConfigs json.RawMessage `json:"providerConfigs,omitempty"`
 }
 
 // O2IMSService defines the interface for O2 IMS core service.
@@ -336,7 +338,7 @@ type HealthCheck struct {
 
 	Uptime time.Duration `json:"uptime"`
 
-	Components map[string]interface{} `json:"components"`
+	Components json.RawMessage `json:"components"`
 
 	Services []HealthServiceStatus `json:"services"`
 
@@ -594,7 +596,7 @@ type Resource struct {
 
 	Status ResourceStatus `json:"status"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -656,7 +658,7 @@ type DeploymentManager struct {
 
 	Capabilities []string `json:"capabilities"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -690,7 +692,7 @@ type VersionInfo struct {
 type AllocationRequest struct {
 	ResourceType string `json:"resourceType"`
 
-	Requirements map[string]interface{} `json:"requirements"`
+	Requirements json.RawMessage `json:"requirements"`
 
 	Duration *time.Duration `json:"duration,omitempty"`
 
@@ -708,7 +710,7 @@ type AllocationResponse struct {
 
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // Manager implementations are defined in cnf_management.go.
@@ -816,7 +818,7 @@ type (
 		Message   string                 `json:"message"`
 		Source    string                 `json:"source"`
 		Timestamp time.Time              `json:"timestamp"`
-		Metadata  map[string]interface{} `json:"metadata,omitempty"`
+		Metadata  json.RawMessage `json:"metadata,omitempty"`
 	}
 
 	// InventoryStatus represents a inventorystatus.
@@ -840,7 +842,7 @@ type (
 
 		Model string `json:"model,omitempty"`
 
-		Properties map[string]interface{} `json:"properties,omitempty"`
+		Properties json.RawMessage `json:"properties,omitempty"`
 
 		Metadata map[string]string `json:"metadata,omitempty"`
 

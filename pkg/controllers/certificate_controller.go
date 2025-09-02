@@ -415,19 +415,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 
 		Priority: priority,
 
-		Metadata: map[string]interface{}{
-			"kubernetes_managed": "true",
-
-			"resource_name": certAutomation.Name,
-
-			"resource_namespace": certAutomation.Namespace,
-
-			"auto_renew": fmt.Sprintf("%v", certAutomation.Spec.AutoRenew),
-
-			"dns_names": dnsNames,
-
-			"ip_addresses": certAutomation.Spec.IPAddresses,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Submit provisioning request.
@@ -654,17 +642,7 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 		ServiceNamespace: certAutomation.Spec.Namespace,
 
-		Metadata: map[string]interface{}{
-			"kubernetes_managed": "true",
-
-			"resource_name": certAutomation.Name,
-
-			"resource_namespace": certAutomation.Namespace,
-
-			"serial_number": certAutomation.Status.CertificateSerialNumber,
-
-			"current_expiry": certAutomation.Status.ExpiresAt.Time,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	resp := r.AutomationEngine.ProcessManualRequest(ctx, req)

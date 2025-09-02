@@ -21,9 +21,9 @@ type A1PolicyTypeResponse struct {
 
 	Description string `json:"description"`
 
-	Schema map[string]interface{} `json:"schema"`
+	Schema json.RawMessage `json:"schema"`
 
-	CreateSchema map[string]interface{} `json:"create_schema,omitempty"`
+	CreateSchema json.RawMessage `json:"create_schema,omitempty"`
 }
 
 // A1ErrorResponse represents O-RAN compliant error response (RFC 7807).
@@ -353,7 +353,7 @@ type A1PolicyStatusCompliant struct {
 
 	ModifiedAt time.Time `json:"modified_at,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additional_info,omitempty"`
 }
 
 // validatePolicyData validates policy data against the policy type schema.

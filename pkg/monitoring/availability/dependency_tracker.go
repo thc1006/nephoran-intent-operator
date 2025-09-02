@@ -5,7 +5,9 @@
 package availability
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -22,7 +24,7 @@ type DependencyChain struct {
 
 	CriticalPath bool `json:"critical_path"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ServiceDependency represents a service in the dependency chain.
@@ -36,7 +38,7 @@ type ServiceDependency struct {
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyServiceStatus represents the status of a service dependency.
@@ -54,7 +56,7 @@ type DependencyServiceStatus struct {
 
 	ConsecutiveFails int `json:"consecutive_fails"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyChainTracker tracks service dependency chains and their health (stub implementation).

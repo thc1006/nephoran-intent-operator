@@ -217,8 +217,7 @@ func (nae *NWDAFAnalyticsEngine) generateNetworkPerformanceAnalytics(ctx context
 
 // generateNFLoadAnalytics generates NF load analytics
 func (nae *NWDAFAnalyticsEngine) generateNFLoadAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"nfInstances": []map[string]interface{}{
+	return json.RawMessage("{}"){
 			{
 				"nfInstanceId": "smf-instance-1",
 				"nfType":       "SMF",
@@ -243,8 +242,7 @@ func (nae *NWDAFAnalyticsEngine) generateNFLoadAnalytics(ctx context.Context, re
 
 // generateServiceExperienceAnalytics generates service experience analytics
 func (nae *NWDAFAnalyticsEngine) generateServiceExperienceAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"services": []map[string]interface{}{
+	return json.RawMessage("{}"){
 			{
 				"applicationId": "video-streaming",
 				"qoe":           4.2, // Quality of Experience (1-5)
@@ -269,8 +267,7 @@ func (nae *NWDAFAnalyticsEngine) generateServiceExperienceAnalytics(ctx context.
 
 // generateUEMobilityAnalytics generates UE mobility analytics
 func (nae *NWDAFAnalyticsEngine) generateUEMobilityAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"mobilityPatterns": []map[string]interface{}{
+	return json.RawMessage("{}"){
 			{
 				"area":      "downtown",
 				"ueCount":   1250,
@@ -293,8 +290,7 @@ func (nae *NWDAFAnalyticsEngine) generateUEMobilityAnalytics(ctx context.Context
 
 // generateUECommunicationAnalytics generates UE communication analytics
 func (nae *NWDAFAnalyticsEngine) generateUECommunicationAnalytics(ctx context.Context, req *AnalyticsRequest) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"communicationPatterns": []map[string]interface{}{
+	return json.RawMessage("{}"){
 			{
 				"ueGroup":         "enterprise",
 				"avgSessionTime":  300.5,  // seconds

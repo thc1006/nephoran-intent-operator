@@ -3,7 +3,9 @@
 package test_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -50,7 +52,7 @@ type ValidationResult struct {
 
 	ExecutionTime time.Duration `json:"execution_time"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 
 	ErrorMessage string `json:"error_message,omitempty"`
 }

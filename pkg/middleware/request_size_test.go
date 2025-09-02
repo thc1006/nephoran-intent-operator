@@ -28,10 +28,7 @@ import (
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		response := map[string]interface{}{
-			"status":    "success",
-			"body_size": len(body),
-		}
+		response := json.RawMessage("{}")
 		json.NewEncoder(w).Encode(response)
 	})
 

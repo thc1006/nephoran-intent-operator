@@ -315,10 +315,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 
 	if !limiter.Allow() {
 		if c.AuditLogger != nil {
-			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", map[string]interface{}{
-				"client_ip": clientIP,
-				"interface": c.InterfaceType,
-			})
+			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", json.RawMessage("{}"))
 		}
 		return errors.New("rate limit exceeded")
 	}
@@ -344,11 +341,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 
 	// Log handshake attempt
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("tls_handshake_started", map[string]interface{}{
-			"client_ip":   clientIP,
-			"server_name": hello.ServerName,
-			"interface":   c.InterfaceType,
-		})
+		c.AuditLogger.LogSecurityEvent("tls_handshake_started", json.RawMessage("{}"))
 	}
 
 	return nil
@@ -377,12 +370,7 @@ func (c *ORANTLSCompliance) defaultPostHandshakeHook(state tls.ConnectionState) 
 
 	// Log successful handshake
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", map[string]interface{}{
-			"tls_version":  fmt.Sprintf("%x", state.Version),
-			"cipher_suite": fmt.Sprintf("%x", state.CipherSuite),
-			"interface":    c.InterfaceType,
-			"profile":      c.SecurityProfile,
-		})
+		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", json.RawMessage("{}"))
 	}
 
 	// Update metrics
@@ -426,11 +414,7 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 			}
 			// Log but continue if soft fail is enabled
 			if c.AuditLogger != nil {
-				c.AuditLogger.LogSecurityEvent("ocsp_soft_fail", map[string]interface{}{
-					"error":     err.Error(),
-					"subject":   cert.Subject.String(),
-					"interface": c.InterfaceType,
-				})
+				c.AuditLogger.LogSecurityEvent("ocsp_soft_fail", json.RawMessage("{}"))
 			}
 		}
 	}
@@ -443,14 +427,7 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 
 	// Log successful verification
 	if c.AuditLogger != nil {
-		c.AuditLogger.LogSecurityEvent("certificate_verified", map[string]interface{}{
-			"subject":    cert.Subject.String(),
-			"issuer":     cert.Issuer.String(),
-			"serial":     hex.EncodeToString(cert.SerialNumber.Bytes()),
-			"interface":  c.InterfaceType,
-			"profile":    c.SecurityProfile,
-			"compliance": c.ComplianceLevel,
-		})
+		c.AuditLogger.LogSecurityEvent("certificate_verified", json.RawMessage("{}"))
 	}
 
 	return nil

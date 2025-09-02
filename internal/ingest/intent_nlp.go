@@ -66,13 +66,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 			return nil, fmt.Errorf("replica count %d out of valid range (0-%d)", replicas, math.MaxInt32)
 		}
 
-		intent := map[string]interface{}{
-			"intent_type": "scaling",
-
-			"target": matches[1],
-
-			"replicas": replicas,
-		}
+		intent := json.RawMessage("{}")
 
 		// Add namespace if provided.
 
@@ -90,11 +84,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	if matches := p.patterns["deploy"].FindStringSubmatch(text); matches != nil {
 
-		intent := map[string]interface{}{
-			"intent_type": "deployment",
-
-			"target": matches[1],
-		}
+		intent := json.RawMessage("{}")
 
 		// Add namespace if provided.
 
@@ -112,11 +102,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	if matches := p.patterns["delete"].FindStringSubmatch(text); matches != nil {
 
-		intent := map[string]interface{}{
-			"intent_type": "deletion",
-
-			"target": matches[1],
-		}
+		intent := json.RawMessage("{}")
 
 		// Add namespace if provided.
 
@@ -134,12 +120,7 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 
 	if matches := p.patterns["update"].FindStringSubmatch(text); matches != nil {
 
-		intent := map[string]interface{}{
-			"intent_type": "configuration",
-
-			"target": matches[1],
-
-			"config": map[string]interface{}{
+		intent := json.RawMessage("{}"){
 				matches[2]: matches[3],
 			},
 		}

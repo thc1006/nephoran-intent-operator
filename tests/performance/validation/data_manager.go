@@ -173,7 +173,7 @@ type ArchivalRecord struct {
 
 	Claims map[string]ClaimSummary `json:"claims"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	DataPaths []string `json:"data_paths"`
 
@@ -864,11 +864,7 @@ func (dm *DataManager) extractMetadata(results *ValidationResults) map[string]in
 		metadata["duration"] = results.Metadata.Duration
 
 		if results.Metadata.Environment != nil {
-			metadata["environment"] = map[string]interface{}{
-				"platform": results.Metadata.Environment.Platform,
-
-				"node_count": results.Metadata.Environment.NodeCount,
-			}
+			metadata["environment"] = json.RawMessage("{}")
 		}
 
 	}

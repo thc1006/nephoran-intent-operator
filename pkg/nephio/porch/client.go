@@ -2555,28 +2555,13 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 
 	// Create the function evaluation task.
 
-	task := map[string]interface{}{
-		"apiVersion": "porch.kpt.dev/v1alpha1",
-
-		"kind": "FunctionEvalTask",
-
-		"metadata": map[string]interface{}{
+	task := json.RawMessage("{}"){
 			"generateName": "function-eval-",
 
-			"labels": map[string]interface{}{
-				"function.image": strings.ReplaceAll(req.FunctionConfig.Image, "/", "-"),
-			},
+			"labels": json.RawMessage("{}"),
 		},
 
-		"spec": map[string]interface{}{
-			"image": req.FunctionConfig.Image,
-
-			"resources": c.convertResourcesToUnstructured(req.Resources),
-
-			"config": req.FunctionConfig.ConfigMap,
-
-			"timeout": "30s",
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	// Convert to unstructured.
@@ -2731,14 +2716,21 @@ func (c *Client) validatePackageInternal(ctx context.Context, name, revision str
 
 		// Check for resource name in metadata.
 
-		if metadata, ok := resource.Metadata["name"]; !ok || metadata == "" {
+		// Check if resource has name in metadata
+		hasName := false
+		if len(resource.Metadata) > 0 {
+			var metadataMap map[string]interface{}
+			if err := json.Unmarshal(resource.Metadata, &metadataMap); err == nil {
+				if name, ok := metadataMap["name"].(string); ok && name != "" {
+					hasName = true
+				}
+			}
+		}
+		if !hasName {
 			warnings = append(warnings, ValidationError{
 				Path: fmt.Sprintf("spec.resources[%d].metadata.name", i),
-
 				Message: "Resource name is recommended in metadata",
-
 				Severity: "warning",
-
 				Code: "MISSING_RESOURCE_NAME",
 			})
 		}
@@ -3358,7 +3350,7 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 	if resourceMap, ok := resource.(map[string]interface{}); ok {
 
 		krmRes := KRMResource{
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage("{}"),
 		}
 
 		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
@@ -3370,19 +3362,27 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 		}
 
 		if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
-			krmRes.Metadata = metadata
+			if metadataBytes, err := json.Marshal(metadata); err == nil {
+				krmRes.Metadata = metadataBytes
+			}
 		}
 
 		if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
-			krmRes.Spec = spec
+			if specBytes, err := json.Marshal(spec); err == nil {
+				krmRes.Spec = specBytes
+			}
 		}
 
 		if status, ok := resourceMap["status"].(map[string]interface{}); ok {
-			krmRes.Status = status
+			if statusBytes, err := json.Marshal(status); err == nil {
+				krmRes.Status = statusBytes
+			}
 		}
 
 		if data, ok := resourceMap["data"].(map[string]interface{}); ok {
-			krmRes.Data = data
+			if dataBytes, err := json.Marshal(data); err == nil {
+				krmRes.Data = dataBytes
+			}
 		}
 
 		return krmRes, nil
@@ -3416,7 +3416,9 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 		}
 
 		if configMap, ok := functionMap["configMap"].(map[string]interface{}); ok {
-			funcConfig.ConfigMap = configMap
+			if configMapBytes, err := json.Marshal(configMap); err == nil {
+				funcConfig.ConfigMap = configMapBytes
+			}
 		}
 
 		return funcConfig, nil
@@ -3429,31 +3431,13 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 // convertFromKRMResource converts KRMResource to interface{} for storage in multicluster types.
 
 func convertFromKRMResource(resource KRMResource) interface{} {
-	return map[string]interface{}{
-		"apiVersion": resource.APIVersion,
-
-		"kind": resource.Kind,
-
-		"metadata": resource.Metadata,
-
-		"spec": resource.Spec,
-
-		"status": resource.Status,
-
-		"data": resource.Data,
-	}
+	return json.RawMessage("{}")
 }
 
 // convertFromFunctionConfig converts FunctionConfig to interface{} for storage in multicluster types.
 
 func convertFromFunctionConfig(function FunctionConfig) interface{} {
-	return map[string]interface{}{
-		"image": function.Image,
-
-		"configPath": function.ConfigPath,
-
-		"configMap": function.ConfigMap,
-	}
+	return json.RawMessage("{}")
 }
 
 // Helper functions for package content operations.
@@ -3463,13 +3447,7 @@ func convertFromFunctionConfig(function FunctionConfig) interface{} {
 func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 	// Create a map with the resource data.
 
-	resourceMap := map[string]interface{}{
-		"apiVersion": resource.APIVersion,
-
-		"kind": resource.Kind,
-
-		"metadata": resource.Metadata,
-	}
+	resourceMap := json.RawMessage("{}")
 
 	if resource.Spec != nil {
 		resourceMap["spec"] = resource.Spec
@@ -3521,19 +3499,27 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 	}
 
 	if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
-		resource.Metadata = metadata
+		if metadataBytes, err := json.Marshal(metadata); err == nil {
+			resource.Metadata = metadataBytes
+		}
 	}
 
 	if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
-		resource.Spec = spec
+		if specBytes, err := json.Marshal(spec); err == nil {
+			resource.Spec = specBytes
+		}
 	}
 
 	if status, ok := resourceMap["status"].(map[string]interface{}); ok {
-		resource.Status = status
+		if statusBytes, err := json.Marshal(status); err == nil {
+			resource.Status = statusBytes
+		}
 	}
 
 	if data, ok := resourceMap["data"].(map[string]interface{}); ok {
-		resource.Data = data
+		if dataBytes, err := json.Marshal(data); err == nil {
+			resource.Data = dataBytes
+		}
 	}
 
 	return resource, nil
@@ -3544,9 +3530,12 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 func generateResourceFilename(resource KRMResource) string {
 	var name string
 
-	if metadata := resource.Metadata; metadata != nil {
-		if resourceName, ok := metadata["name"].(string); ok && resourceName != "" {
-			name = resourceName
+	if metadata := resource.Metadata; len(metadata) > 0 {
+		var metadataMap map[string]interface{}
+		if err := json.Unmarshal(metadata, &metadataMap); err == nil {
+			if resourceName, ok := metadataMap["name"].(string); ok && resourceName != "" {
+				name = resourceName
+			}
 		}
 	}
 
@@ -3667,13 +3656,7 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 
 	for i, resource := range resources {
 
-		resourceMap := map[string]interface{}{
-			"apiVersion": resource.APIVersion,
-
-			"kind": resource.Kind,
-
-			"metadata": resource.Metadata,
-		}
+		resourceMap := json.RawMessage("{}")
 
 		if resource.Spec != nil {
 			resourceMap["spec"] = resource.Spec
@@ -3803,19 +3786,27 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 				}
 
 				if metadata, ok := resMap["metadata"].(map[string]interface{}); ok {
-					resource.Metadata = metadata
+					if metadataBytes, err := json.Marshal(metadata); err == nil {
+						resource.Metadata = metadataBytes
+					}
 				}
 
 				if spec, ok := resMap["spec"].(map[string]interface{}); ok {
-					resource.Spec = spec
+					if specBytes, err := json.Marshal(spec); err == nil {
+						resource.Spec = specBytes
+					}
 				}
 
 				if statusData, ok := resMap["status"].(map[string]interface{}); ok {
-					resource.Status = statusData
+					if statusBytes, err := json.Marshal(statusData); err == nil {
+						resource.Status = statusBytes
+					}
 				}
 
 				if data, ok := resMap["data"].(map[string]interface{}); ok {
-					resource.Data = data
+					if dataBytes, err := json.Marshal(data); err == nil {
+						resource.Data = dataBytes
+					}
 				}
 
 				response.Resources = append(response.Resources, resource)

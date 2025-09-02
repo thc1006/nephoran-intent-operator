@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -66,7 +68,7 @@ type CreateResourceRequest struct {
 	ResourceType string                 `json:"resourceType"`
 	Name         string                 `json:"name"`
 	Namespace    string                 `json:"namespace,omitempty"`
-	Spec         map[string]interface{} `json:"spec"`
+	Spec         json.RawMessage `json:"spec"`
 	Labels       map[string]string      `json:"labels,omitempty"`
 	Annotations  map[string]string      `json:"annotations,omitempty"`
 	DryRun       bool                   `json:"dryRun,omitempty"`
@@ -74,7 +76,7 @@ type CreateResourceRequest struct {
 
 // UpdateResourceRequest represents a request to update a resource
 type UpdateResourceRequest struct {
-	Spec        map[string]interface{} `json:"spec"`
+	Spec        json.RawMessage `json:"spec"`
 	Labels      map[string]string      `json:"labels,omitempty"`
 	Annotations map[string]string      `json:"annotations,omitempty"`
 	DryRun      bool                   `json:"dryRun,omitempty"`
@@ -88,7 +90,7 @@ type ResourceResponse struct {
 	Namespace    string                 `json:"namespace,omitempty"`
 	Status       string                 `json:"status"`
 	Phase        string                 `json:"phase,omitempty"`
-	Spec         map[string]interface{} `json:"spec"`
+	Spec         json.RawMessage `json:"spec"`
 	Labels       map[string]string      `json:"labels,omitempty"`
 	Annotations  map[string]string      `json:"annotations,omitempty"`
 	CreatedAt    time.Time              `json:"createdAt"`
@@ -115,7 +117,7 @@ type ProviderEvent struct {
 	Severity   string                 `json:"severity"`
 	Message    string                 `json:"message"`
 	Timestamp  time.Time              `json:"timestamp"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Resource status constants

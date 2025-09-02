@@ -48,12 +48,7 @@ func (suite *ControllerTestSuite) setupControllerMocks() {
 	// Setup LLM mock responses
 	llmMock := suite.GetMocks().GetLLMMock()
 	llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-		map[string]interface{}{
-			"type":            "NetworkFunctionDeployment",
-			"networkFunction": "AMF",
-			"replicas":        int64(3),
-			"namespace":       "telecom-core",
-			"resources": map[string]interface{}{
+		json.RawMessage("{}"){
 				"requests": map[string]string{
 					"cpu":    "1000m",
 					"memory": "2Gi",
@@ -128,7 +123,7 @@ func (suite *ControllerTestSuite) TestNetworkIntentController() {
 				llmMock := suite.GetMocks().GetLLMMock()
 				llmMock.ExpectedCalls = nil // Reset expectations
 				llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-					map[string]interface{}{}, fmt.Errorf("LLM service unavailable"))
+					json.RawMessage("{}"), fmt.Errorf("LLM service unavailable"))
 
 				// Create the NetworkIntent
 				err := suite.GetK8sClient().Create(ctx, intent)

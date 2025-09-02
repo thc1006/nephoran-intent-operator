@@ -123,7 +123,7 @@ type A1Policy struct {
 
 	Status string `json:"status"` // ACTIVE, INACTIVE, ENFORCING
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	TargetRICs []string `json:"target_rics"`
 
@@ -147,7 +147,7 @@ type A1PolicyType struct {
 
 	Description string `json:"description"`
 
-	Schema map[string]interface{} `json:"schema"`
+	Schema json.RawMessage `json:"schema"`
 
 	SupportedRICs []string `json:"supported_rics"`
 
@@ -183,7 +183,7 @@ type PolicyEvent struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Severity string `json:"severity"`
 }
@@ -261,7 +261,7 @@ type RAppInstance struct {
 
 	Status string `json:"status"` // DEPLOYING, RUNNING, STOPPED, FAILED
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	Resources *ResourceRequirements `json:"resources"`
 
@@ -287,7 +287,7 @@ type OrchestrationWorkflow struct {
 
 	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	CreatedAt time.Time `json:"created_at"`
 
@@ -307,13 +307,13 @@ type WorkflowStep struct {
 
 	Action string `json:"action"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Dependencies []string `json:"dependencies"`
 
 	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 
-	Output map[string]interface{} `json:"output,omitempty"`
+	Output json.RawMessage `json:"output,omitempty"`
 
 	Error string `json:"error,omitempty"`
 }
@@ -349,7 +349,7 @@ type LifecycleHook struct {
 
 	Action string `json:"action"`
 
-	Params map[string]interface{} `json:"params"`
+	Params json.RawMessage `json:"params"`
 
 	Timeout time.Duration `json:"timeout"`
 }
@@ -933,7 +933,7 @@ func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 
 		url := fmt.Sprintf("%s/api/%s/services/%s/heartbeat", sr.smoClient.baseURL, "v1", serviceID)
 
-		if err := sr.smoClient.post(ctx, url, map[string]interface{}{"timestamp": time.Now()}, nil); err == nil {
+		if err := sr.smoClient.post(ctx, url, json.RawMessage("{}"), nil); err == nil {
 
 			service.LastHeartbeat = time.Now()
 

@@ -191,9 +191,9 @@ type UsageRecord struct {
 
 	EndTime time.Time `json:"end_time"`
 
-	ResourceUsage map[string]interface{} `json:"resource_usage"`
+	ResourceUsage json.RawMessage `json:"resource_usage"`
 
-	ChargingInfo map[string]interface{} `json:"charging_info"`
+	ChargingInfo json.RawMessage `json:"charging_info"`
 }
 
 // AdaptorSecurityPolicy represents security configuration for adaptor.
@@ -217,7 +217,7 @@ type SecurityStatus struct {
 
 	LastAudit time.Time `json:"last_audit"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 }
 
 // YANG models for O1 interface.
@@ -1048,13 +1048,7 @@ func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedE
 
 			EndTime: filter.EndTime,
 
-			ResourceUsage: map[string]interface{}{
-				"data_volume_mb": 1024,
-
-				"session_count": 15,
-
-				"qos_class": "premium",
-			},
+			ResourceUsage: json.RawMessage("{}"),
 		},
 	}
 
@@ -1143,13 +1137,7 @@ func (a *O1Adaptor) GetSecurityStatus(ctx context.Context, me *nephoranv1.Manage
 
 		LastAudit: time.Now().Add(-24 * time.Hour),
 
-		Metrics: map[string]interface{}{
-			"failed_auth_attempts": 3,
-
-			"suspicious_activities": 0,
-
-			"policy_violations": 1,
-		},
+		Metrics: json.RawMessage("{}"),
 	}
 
 	logger.Info("retrieved security status", "managedElement", me.Name)

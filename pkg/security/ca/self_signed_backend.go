@@ -692,13 +692,7 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 
 		Features: b.GetSupportedFeatures(),
 
-		Metrics: map[string]interface{}{
-			"issued_certificates": len(b.issuedCerts),
-
-			"revoked_certificates": len(b.revokedCerts),
-
-			"has_intermediate_ca": b.intermCA != nil,
-		},
+		Metrics: json.RawMessage("{}"),
 	}, nil
 }
 

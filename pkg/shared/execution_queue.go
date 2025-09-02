@@ -31,7 +31,9 @@ limitations under the License.
 package shared
 
 import (
-	"container/heap"
+	
+	"encoding/json"
+"container/heap"
 	"fmt"
 	"sync"
 	"time"
@@ -52,7 +54,7 @@ type ExecutionTask struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	RetryCount int `json:"retryCount"`
 

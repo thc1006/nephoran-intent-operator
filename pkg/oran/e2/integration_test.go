@@ -181,8 +181,7 @@ func (m *MockNearRTRIC) GetConnections() map[string]*E2ConnectionInfo {
 			EventTriggers: []E2EventTrigger{
 				{
 					TriggerType: "periodic",
-					Parameters: map[string]interface{}{
-						"measurement_types":  []string{"DRB.UEThpDl", "DRB.UEThpUl"},
+					Parameters: json.RawMessage("{}"),
 						"granularity_period": "1000ms",
 					},
 				},
@@ -191,7 +190,7 @@ func (m *MockNearRTRIC) GetConnections() map[string]*E2ConnectionInfo {
 				{
 					ActionID:         1,
 					ActionType:       "report",
-					ActionDefinition: map[string]interface{}{"format": "json"},
+					ActionDefinition: json.RawMessage(`{"format":"json"}`),
 				},
 			},
 			ReportingPeriod: 1 * time.Second,

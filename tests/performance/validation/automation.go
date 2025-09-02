@@ -201,7 +201,7 @@ type ValidationResult struct {
 
 	Notifications []NotificationSent `json:"notifications"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // QualityGateResult represents quality gate evaluation results.

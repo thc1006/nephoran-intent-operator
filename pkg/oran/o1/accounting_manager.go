@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -124,7 +126,7 @@ type ChargingRate struct {
 
 	ValidUntil time.Time `json:"valid_until"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // TierRate represents tiered pricing rates.
@@ -150,7 +152,7 @@ type DiscountRule struct {
 
 	Value float64 `json:"value"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	ApplicableTo []string `json:"applicable_to"`
 
@@ -274,7 +276,7 @@ type UsageEvent struct {
 
 	SessionID string `json:"session_id,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 
 	EventType string `json:"event_type"` // START, STOP, INTERIM, ERROR
 
@@ -314,7 +316,7 @@ type ProcessedUsage struct {
 
 	NetAmount float64 `json:"net_amount"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // UsageWorkerPool manages usage processing workers.
@@ -458,7 +460,7 @@ type CalculatedUsage struct {
 
 	CalculationTime time.Time `json:"calculation_time"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AggregationRule defines usage aggregation rules.
@@ -474,7 +476,7 @@ type AggregationRule struct {
 
 	GroupBy []string `json:"group_by"`
 
-	Filters map[string]interface{} `json:"filters"`
+	Filters json.RawMessage `json:"filters"`
 
 	OutputFormat string `json:"output_format"`
 
@@ -592,7 +594,7 @@ type BillingCharge struct {
 
 	EndDate time.Time `json:"end_date,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BillingCredit represents a billing credit.
@@ -616,7 +618,7 @@ type BillingCredit struct {
 
 	Reference string `json:"reference"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BillingAdjustment represents a billing adjustment.
@@ -644,7 +646,7 @@ type BillingAdjustment struct {
 
 	ApprovedBy string `json:"approved_by,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InvoiceGenerator generates invoices.
@@ -672,7 +674,7 @@ type InvoiceTemplate struct {
 
 	Sections []*InvoiceSection `json:"sections"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InvoiceSection represents a section in an invoice template.
@@ -724,7 +726,7 @@ type GeneratedInvoice struct {
 
 	Status string `json:"status"` // DRAFT, SENT, PAID, OVERDUE, CANCELLED
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InvoiceNumberGenerator generates unique invoice numbers.
@@ -778,7 +780,7 @@ type PaymentProvider struct {
 
 	Enabled bool `json:"enabled"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // PaymentTransaction represents a payment transaction.
@@ -814,7 +816,7 @@ type PaymentTransaction struct {
 
 	FailureReason string `json:"failure_reason,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // TaxCalculator calculates taxes.
@@ -842,7 +844,7 @@ type TaxRule struct {
 
 	Jurisdiction string `json:"jurisdiction"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	ValidFrom time.Time `json:"valid_from"`
 
@@ -870,7 +872,7 @@ type TaxExemption struct {
 
 	ValidUntil time.Time `json:"valid_until"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // DiscountEngine applies discounts.
@@ -908,7 +910,7 @@ type DiscountCoupon struct {
 
 	ValidUntil time.Time `json:"valid_until"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Active bool `json:"active"`
 }
@@ -954,7 +956,7 @@ type DiscountCalculation struct {
 
 	CalculationTime time.Time `json:"calculation_time"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // CreditManager manages customer credits.
@@ -1022,7 +1024,7 @@ type CreditPolicy struct {
 
 	PaymentTerms int `json:"payment_terms"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -1062,7 +1064,7 @@ type ChargingRule struct {
 
 	RateCardID string `json:"rate_card_id"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Priority int `json:"priority"`
 
@@ -1188,7 +1190,7 @@ type RatedUsage struct {
 
 	RatingTime time.Time `json:"rating_time"`
 
-	RateDetails map[string]interface{} `json:"rate_details"`
+	RateDetails json.RawMessage `json:"rate_details"`
 }
 
 // RateCalculator performs rate calculations.
@@ -1308,9 +1310,9 @@ type AggregatedUsageData struct {
 
 	Count int64 `json:"count"`
 
-	Dimensions map[string]interface{} `json:"dimensions"`
+	Dimensions json.RawMessage `json:"dimensions"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -1328,7 +1330,7 @@ type AggregationQuery struct {
 
 	GroupBy []string `json:"group_by,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	OrderBy string `json:"order_by,omitempty"`
 
@@ -2064,7 +2066,7 @@ type UsageQuery struct {
 
 	EndTime time.Time `json:"end_time"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	OrderBy string `json:"order_by,omitempty"`
 
@@ -3150,7 +3152,7 @@ type ScheduleEntry struct {
 
 	TaskType string `json:"task_type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // DataArchiver handles data archiving operations.

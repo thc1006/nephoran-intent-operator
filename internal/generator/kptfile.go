@@ -142,27 +142,13 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 				{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 
-					ConfigMap: map[string]interface{}{
-						"app": intent.Target,
-
-						"app.kubernetes.io/name": intent.Target,
-
-						"app.kubernetes.io/component": "nf-simulator",
-
-						"app.kubernetes.io/part-of": "nephoran-intent-operator",
-
-						"app.kubernetes.io/managed-by": "porch-direct",
-					},
+					ConfigMap: json.RawMessage("{}"),
 				},
 
 				{
 					Image: "gcr.io/kpt-fn/set-annotations:v0.1.4",
 
-					ConfigMap: map[string]interface{}{
-						"nephoran.com/intent-type": intent.IntentType,
-
-						"nephoran.com/source": intent.Source,
-					},
+					ConfigMap: json.RawMessage("{}"),
 				},
 			},
 		},

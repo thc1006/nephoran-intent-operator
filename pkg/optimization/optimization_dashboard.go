@@ -882,13 +882,7 @@ func (dashboard *OptimizationDashboard) healthHandler(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "healthy",
-
-		"timestamp": time.Now(),
-
-		"version": "1.0.0",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
 
 func (dashboard *OptimizationDashboard) overviewHandler(w http.ResponseWriter, r *http.Request) {

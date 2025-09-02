@@ -1077,13 +1077,7 @@ func (n *CertificateNotifier) sendNotification(message string, data interface{})
 }
 
 func (n *CertificateNotifier) sendWebhook(url, message string, data interface{}) {
-	payload := map[string]interface{}{
-		"message": message,
-
-		"data": data,
-
-		"timestamp": time.Now(),
-	}
+	payload := json.RawMessage("{}")
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {

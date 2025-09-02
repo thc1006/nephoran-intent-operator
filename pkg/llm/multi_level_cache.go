@@ -144,7 +144,7 @@ type MultiLevelCacheEntry struct {
 
 	Compressed bool `json:"compressed"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // InMemoryCache implements L1 in-memory cache.
@@ -693,8 +693,7 @@ func (mlc *MultiLevelCache) GetMetrics() *MultiLevelCacheMetrics {
 func (mlc *MultiLevelCache) GetStats() map[string]interface{} {
 	metrics := mlc.GetMetrics()
 
-	return map[string]interface{}{
-		"l1_stats": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"hits": metrics.L1Hits,
 
 			"misses": metrics.L1Misses,
@@ -708,41 +707,13 @@ func (mlc *MultiLevelCache) GetStats() map[string]interface{} {
 			"hit_rate": float64(metrics.L1Hits) / float64(metrics.L1Hits+metrics.L1Misses),
 		},
 
-		"l2_stats": map[string]interface{}{
-			"hits": metrics.L2Hits,
-
-			"misses": metrics.L2Misses,
-
-			"sets": metrics.L2Sets,
-
-			"errors": metrics.L2Errors,
-
-			"enabled": mlc.config.RedisEnabled,
-
-			"hit_rate": func() float64 {
-				if metrics.L2Hits+metrics.L2Misses == 0 {
-					return 0
-				}
+		"l2_stats": json.RawMessage("{}")
 
 				return float64(metrics.L2Hits) / float64(metrics.L2Hits+metrics.L2Misses)
 			}(),
 		},
 
-		"overall_stats": map[string]interface{}{
-			"total_hits": metrics.TotalHits,
-
-			"total_misses": metrics.TotalMisses,
-
-			"overall_hit_rate": metrics.OverallHitRate,
-
-			"average_get_time": metrics.AverageGetTime.String(),
-
-			"average_set_time": metrics.AverageSetTime.String(),
-
-			"memory_usage": metrics.TotalMemoryUsage,
-
-			"last_updated": metrics.LastUpdated,
-		},
+		"overall_stats": json.RawMessage("{}"),
 	}
 }
 

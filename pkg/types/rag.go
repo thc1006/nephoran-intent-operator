@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type SearchQuery struct {
 	Text       string                 `json:"text"`
 	MaxResults int                    `json:"max_results"`
 	Threshold  float64                `json:"threshold"`
-	Filters    map[string]interface{} `json:"filters"`
+	Filters    json.RawMessage `json:"filters"`
 	Namespace  string                 `json:"namespace"`
 }
 
@@ -42,7 +43,7 @@ type SearchResult struct {
 	ID        string                 `json:"id"`
 	Content   string                 `json:"content"`
 	Score     float64                `json:"score"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata"`
 	Embedding []float32              `json:"embedding,omitempty"`
 }
 
@@ -52,7 +53,7 @@ type BatchSearchRequest struct {
 	MaxConcurrency    int                    `json:"max_concurrency"`
 	EnableAggregation bool                   `json:"enable_aggregation"`
 	DeduplicationKey  string                 `json:"deduplication_key"`
-	Metadata          map[string]interface{} `json:"metadata"`
+	Metadata          json.RawMessage `json:"metadata"`
 }
 
 // BatchSearchResponse represents the response from batch search
@@ -62,7 +63,7 @@ type BatchSearchResponse struct {
 	TotalProcessingTime time.Duration          `json:"total_processing_time"`
 	ParallelQueries     int                    `json:"parallel_queries"`
 	CacheHits           int                    `json:"cache_hits"`
-	Metadata            map[string]interface{} `json:"metadata"`
+	Metadata            json.RawMessage `json:"metadata"`
 }
 
 // EmbeddingCacheInterface defines the interface for embedding caches

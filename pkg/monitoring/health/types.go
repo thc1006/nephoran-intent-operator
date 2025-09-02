@@ -5,7 +5,9 @@
 package health
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
@@ -260,7 +262,7 @@ type EnhancedCheck struct {
 
 	// Additional context.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Dependencies []string `json:"dependencies,omitempty"`
 }
@@ -292,7 +294,7 @@ type EnhancedHealthResponse struct {
 
 	// Additional metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // TierSummary provides aggregated information for a health tier.
@@ -452,7 +454,7 @@ type HealthAlert struct {
 
 	CurrentHealth *EnhancedCheck `json:"current_health,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // HealthAlertType represents different types of health alerts.
@@ -509,7 +511,7 @@ type DependencyNode struct {
 
 	Critical bool `json:"critical"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyEdge represents a dependency relationship.
@@ -525,7 +527,7 @@ type DependencyEdge struct {
 
 	Critical bool `json:"critical"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // HealthImpactAnalysis provides analysis of health issues and their impact.

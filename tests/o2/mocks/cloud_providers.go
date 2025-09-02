@@ -743,15 +743,7 @@ func (h *CloudProviderTestHelpers) CreateTestComputeInstance(provider, instanceT
 
 		UpdatedAt: time.Now(),
 
-		Metadata: map[string]interface{}{
-			"instanceType": instanceType,
-
-			"provider": provider,
-
-			"publicIP": "203.0.113.1",
-
-			"privateIP": "10.0.1.100",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 

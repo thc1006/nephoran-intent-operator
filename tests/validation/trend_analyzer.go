@@ -3,7 +3,9 @@
 package test_validation
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -167,7 +169,7 @@ type TrendDataPoint struct {
 
 	Value float64 `json:"value"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // SeasonalPattern identifies recurring patterns.

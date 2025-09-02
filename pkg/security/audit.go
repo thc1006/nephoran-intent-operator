@@ -43,7 +43,7 @@ type AuditEvent struct {
 
 	UserAgent string `json:"user_agent,omitempty"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	Result string `json:"result"`
 
@@ -95,11 +95,7 @@ func (al *AuditLogger) LogSecretAccess(secretType, source, userID, sessionID str
 
 		SessionID: sessionID,
 
-		Data: map[string]interface{}{
-			"secret_type": secretType,
-
-			"source": source,
-		},
+		Data: json.RawMessage("{}"),
 
 		Result: getResultString(success),
 	}
@@ -133,9 +129,7 @@ func (al *AuditLogger) LogAuthenticationAttempt(provider, userID, ipAddress, use
 
 		UserAgent: userAgent,
 
-		Data: map[string]interface{}{
-			"provider": provider,
-		},
+		Data: json.RawMessage("{}"),
 
 		Result: getResultString(success),
 	}
@@ -165,11 +159,7 @@ func (al *AuditLogger) LogSecretRotation(secretName, rotationType, userID string
 
 		UserID: userID,
 
-		Data: map[string]interface{}{
-			"secret_name": secretName,
-
-			"rotation_type": rotationType,
-		},
+		Data: json.RawMessage("{}"),
 
 		Result: getResultString(success),
 	}
@@ -197,11 +187,7 @@ func (al *AuditLogger) LogAPIKeyValidation(keyType, provider string, success boo
 
 		Component: "secret_loader",
 
-		Data: map[string]interface{}{
-			"key_type": keyType,
-
-			"provider": provider,
-		},
+		Data: json.RawMessage("{}"),
 
 		Result: getResultString(success),
 	}
@@ -235,11 +221,7 @@ func (al *AuditLogger) LogUnauthorizedAccess(resource, userID, ipAddress, userAg
 
 		UserAgent: userAgent,
 
-		Data: map[string]interface{}{
-			"resource": resource,
-
-			"reason": reason,
-		},
+		Data: json.RawMessage("{}"),
 
 		Result: "denied",
 	}
@@ -263,11 +245,7 @@ func (al *AuditLogger) LogSecurityViolation(violationType, description, userID, 
 
 		IPAddress: ipAddress,
 
-		Data: map[string]interface{}{
-			"violation_type": violationType,
-
-			"description": description,
-		},
+		Data: json.RawMessage("{}"),
 
 		Result: "violation_detected",
 	}

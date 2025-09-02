@@ -412,27 +412,7 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 
 		ProviderID: fmt.Sprintf("%d", githubUser.ID),
 
-		Attributes: map[string]interface{}{
-			"github_id": githubUser.ID,
-
-			"github_login": githubUser.Login,
-
-			"company": githubUser.Company,
-
-			"location": githubUser.Location,
-
-			"bio": githubUser.Bio,
-
-			"twitter_username": githubUser.TwitterUsername,
-
-			"public_repos": githubUser.PublicRepos,
-
-			"followers": githubUser.Followers,
-
-			"following": githubUser.Following,
-
-			"created_at": githubUser.CreatedAt,
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 
 	return userInfo, nil

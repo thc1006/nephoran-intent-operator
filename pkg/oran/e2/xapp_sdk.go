@@ -1,7 +1,9 @@
 package e2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log"
 	"sync"
@@ -89,7 +91,7 @@ type XAppSubscription struct {
 
 	RANFunctionID int `json:"ran_function_id"`
 
-	EventTrigger map[string]interface{} `json:"event_trigger"`
+	EventTrigger json.RawMessage `json:"event_trigger"`
 
 	Actions []XAppAction `json:"actions"`
 
@@ -109,7 +111,7 @@ type XAppAction struct {
 
 	ActionType string `json:"action_type"` // "report", "insert", "policy"
 
-	Definition map[string]interface{} `json:"definition"`
+	Definition json.RawMessage `json:"definition"`
 
 	Handler string `json:"handler"`
 }

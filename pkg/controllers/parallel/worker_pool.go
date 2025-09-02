@@ -160,27 +160,7 @@ func (wp *WorkerPool) GetMetrics() map[string]interface{} {
 
 	defer wp.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"name": wp.name,
-
-		"worker_count": wp.workerCount,
-
-		"active_workers": atomic.LoadInt32(&wp.activeWorkers),
-
-		"processed_tasks": atomic.LoadInt64(&wp.processedTasks),
-
-		"failed_tasks": atomic.LoadInt64(&wp.failedTasks),
-
-		"average_latency": wp.averageLatency,
-
-		"memory_usage": atomic.LoadInt64(&wp.memoryUsage),
-
-		"cpu_usage": wp.cpuUsage,
-
-		"queue_length": len(wp.taskQueue),
-
-		"queue_capacity": cap(wp.taskQueue),
-	}
+	return json.RawMessage("{}")
 }
 
 // GetHealth returns health status of the worker pool.
@@ -194,13 +174,7 @@ func (wp *WorkerPool) GetHealth() map[string]interface{} {
 
 	healthy := activeWorkers > 0 && queueLength < queueCapacity
 
-	health := map[string]interface{}{
-		"healthy": healthy,
-
-		"active_workers": activeWorkers,
-
-		"queue_usage": float64(queueLength) / float64(queueCapacity),
-	}
+	health := json.RawMessage("{}")
 
 	if !healthy {
 
@@ -394,25 +368,7 @@ func (w *Worker) GetMetrics() map[string]interface{} {
 
 	defer w.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"id": w.id,
-
-		"pool_name": w.poolName,
-
-		"total_processed": atomic.LoadInt64(&w.totalProcessed),
-
-		"total_errors": atomic.LoadInt64(&w.totalErrors),
-
-		"average_latency": w.averageLatency,
-
-		"last_activity": w.lastActivity,
-
-		"memory_usage": atomic.LoadInt64(&w.memoryUsage),
-
-		"cpu_usage": w.cpuUsage,
-
-		"current_task": w.currentTask != nil,
-	}
+	return json.RawMessage("{}")
 }
 
 // IsHealthy returns whether the worker is healthy.

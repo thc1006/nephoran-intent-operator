@@ -17,7 +17,9 @@ limitations under the License.
 package porch
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -160,15 +162,15 @@ type PackageRevisionSpec struct {
 type KRMResource struct {
 	APIVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-	Spec       map[string]interface{} `json:"spec,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
+	Spec       json.RawMessage `json:"spec,omitempty"`
+	Data       json.RawMessage `json:"data,omitempty"`
 }
 
 // FunctionConfig represents a function configuration
 type FunctionConfig struct {
 	Image     string                 `json:"image"`
-	ConfigMap map[string]interface{} `json:"configMap,omitempty"`
+	ConfigMap json.RawMessage `json:"configMap,omitempty"`
 }
 
 // PackageRevisionStatus defines the observed state of PackageRevision
@@ -209,7 +211,7 @@ type WorkflowStage struct {
 // WorkflowAction represents a workflow action
 type WorkflowAction struct {
 	Type   string                 `json:"type"`
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // Approver represents a workflow approver
@@ -432,13 +434,8 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
-						"name":      "test-config",
-						"namespace": f.Namespace,
-					},
-					Data: map[string]interface{}{
-						"key": "value",
-					},
+					Metadata: json.RawMessage("{}"),
+					Data: json.RawMessage("{}"),
 				},
 			},
 		},
@@ -528,7 +525,7 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *W
 					Actions: []WorkflowAction{
 						{
 							Type:   "validate",
-							Config: map[string]interface{}{},
+							Config: json.RawMessage("{}"),
 						},
 					},
 				},
@@ -538,7 +535,7 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *W
 					Actions: []WorkflowAction{
 						{
 							Type:   "approve",
-							Config: map[string]interface{}{},
+							Config: json.RawMessage("{}"),
 						},
 					},
 					Approvers: []Approver{
@@ -701,16 +698,9 @@ func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata: map[string]interface{}{
-			"name":      name,
-			"namespace": namespace,
-			"labels": map[string]string{
-				"test.nephoran.com/generated": "true",
-			},
+		Metadata: json.RawMessage("{}"),
 		},
-		Spec: map[string]interface{}{
-			"testField": "testValue",
-		},
+		Spec: json.RawMessage("{}"),
 	}
 }
 
@@ -718,10 +708,7 @@ func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 func GenerateTestFunction(image string) FunctionConfig {
 	return FunctionConfig{
 		Image: image,
-		ConfigMap: map[string]interface{}{
-			"param1": "value1",
-			"param2": "value2",
-		},
+		ConfigMap: json.RawMessage("{}"),
 	}
 }
 

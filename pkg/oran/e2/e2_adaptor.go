@@ -56,7 +56,7 @@ type E2ServiceModel struct {
 
 	SupportedProcedures []string `json:"supported_procedures"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // E2NodeFunctionStatus represents the status of an E2 Node Function.
@@ -102,7 +102,7 @@ type E2EventTrigger struct {
 
 	ReportingPeriod time.Duration `json:"reporting_period,omitempty"`
 
-	Conditions map[string]interface{} `json:"conditions,omitempty"`
+	Conditions json.RawMessage `json:"conditions,omitempty"`
 }
 
 // E2Action represents actions to be performed on subscription events.
@@ -112,7 +112,7 @@ type E2Action struct {
 
 	ActionType string `json:"action_type"` // REPORT, INSERT, POLICY, CONTROL
 
-	ActionDefinition map[string]interface{} `json:"action_definition"`
+	ActionDefinition json.RawMessage `json:"action_definition"`
 
 	SubsequentAction string `json:"subsequent_action,omitempty"`
 }
@@ -142,9 +142,9 @@ type E2ControlRequest struct {
 
 	CallProcessID string `json:"call_process_id,omitempty"`
 
-	ControlHeader map[string]interface{} `json:"control_header"`
+	ControlHeader json.RawMessage `json:"control_header"`
 
-	ControlMessage map[string]interface{} `json:"control_message"`
+	ControlMessage json.RawMessage `json:"control_message"`
 
 	ControlAckRequest bool `json:"control_ack_request"`
 }
@@ -160,7 +160,7 @@ type E2ControlResponse struct {
 
 	CallProcessID string `json:"call_process_id,omitempty"`
 
-	ControlOutcome map[string]interface{} `json:"control_outcome,omitempty"`
+	ControlOutcome json.RawMessage `json:"control_outcome,omitempty"`
 
 	Status E2ControlStatus `json:"status"`
 
@@ -265,7 +265,7 @@ type E2NodeInfo struct {
 
 	LastSeen time.Time `json:"last_seen"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // E2ConnectionStatus represents the connection status of an E2 Node.
@@ -291,9 +291,9 @@ type E2Indication struct {
 
 	RanFunctionID int `json:"ran_function_id"`
 
-	IndicationHeader map[string]interface{} `json:"indication_header"`
+	IndicationHeader json.RawMessage `json:"indication_header"`
 
-	IndicationMessage map[string]interface{} `json:"indication_message"`
+	IndicationMessage json.RawMessage `json:"indication_message"`
 
 	CallProcessID string `json:"call_process_id,omitempty"`
 
@@ -520,13 +520,7 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/register", e.ricURL, e.apiVersion, nodeID)
 
-	payload := map[string]interface{}{
-		"node_id": nodeID,
-
-		"ran_functions": functions,
-
-		"timestamp": time.Now(),
-	}
+	payload := json.RawMessage("{}")
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -692,11 +686,7 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 
 	url := fmt.Sprintf("%s/e2ap/%s/nodes/%s/update", e.ricURL, e.apiVersion, nodeID)
 
-	payload := map[string]interface{}{
-		"ran_functions": functions,
-
-		"timestamp": time.Now(),
-	}
+	payload := json.RawMessage("{}")
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -1504,18 +1494,7 @@ func CreateKPMServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: map[string]interface{}{
-			"measurement_types": []string{
-				"DRB.RlcSduDelayDl",
-
-				"DRB.RlcSduVolumeDl",
-
-				"DRB.UEThpDl",
-
-				"RRU.PrbTotDl",
-
-				"RRU.PrbUsedDl",
-			},
+		Configuration: json.RawMessage("{}"),
 
 			"granularity_period": "1000ms",
 
@@ -1544,14 +1523,7 @@ func CreateRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_FAILURE",
 		},
 
-		Configuration: map[string]interface{}{
-			"control_actions": []string{
-				"QoS_flow_mapping",
-
-				"Traffic_steering",
-
-				"Dual_connectivity",
-			},
+		Configuration: json.RawMessage("{}"),
 
 			"control_outcomes": []string{
 				"successful",

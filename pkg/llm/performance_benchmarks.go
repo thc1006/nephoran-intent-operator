@@ -409,11 +409,7 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 
 				// Use optimized processing.
 
-				parameters := map[string]interface{}{
-					"model": "gpt-4o-mini",
-
-					"max_tokens": 2048,
-				}
+				parameters := json.RawMessage("{}")
 
 				_, err := pb.optimizedController.ProcessLLMPhaseOptimized(
 
@@ -848,61 +844,61 @@ Performance Benchmark Results:
 
 
 
-🚀 LATENCY IMPROVEMENTS:
+?? LATENCY IMPROVEMENTS:
 
-  • 99th Percentile Latency: %v → %v (%.1f%% reduction)
+  ??99th Percentile Latency: %v ??%v (%.1f%% reduction)
 
-  • Target: 30%% reduction ✅ ACHIEVED: %.1f%%
-
-
-
-💾 CPU OPTIMIZATION:
-
-  • CPU Usage Reduction: %.1f%% (Target: 60%%)
-
-  • Connection Reuse Rate: %.1f%%
+  ??Target: 30%% reduction ??ACHIEVED: %.1f%%
 
 
 
-🧠 MEMORY OPTIMIZATION:
+?�� CPU OPTIMIZATION:
 
-  • Memory Usage: %d → %d bytes (%.1f%% reduction)
+  ??CPU Usage Reduction: %.1f%% (Target: 60%%)
 
-
-
-📈 THROUGHPUT IMPROVEMENTS:
-
-  • Requests/Second: %.1f → %.1f (%.1f%% improvement)
+  ??Connection Reuse Rate: %.1f%%
 
 
 
-🔄 CACHE EFFECTIVENESS:
+?? MEMORY OPTIMIZATION:
 
-  • Cache Hit Rate: %.1f%%
-
-  • Cache Latency Reduction: %.1f%%
+  ??Memory Usage: %d ??%d bytes (%.1f%% reduction)
 
 
 
-📦 BATCH PROCESSING:
+?? THROUGHPUT IMPROVEMENTS:
 
-  • Batching Efficiency: %.1f%%
-
-  • Average Batch Size: %.1f requests
+  ??Requests/Second: %.1f ??%.1f (%.1f%% improvement)
 
 
 
-⚡ JSON PROCESSING:
+?? CACHE EFFECTIVENESS:
 
-  • JSON Processing Speedup: %.1fx
+  ??Cache Hit Rate: %.1f%%
+
+  ??Cache Latency Reduction: %.1f%%
 
 
 
-🏆 OVERALL SYSTEM IMPROVEMENTS:
+?�� BATCH PROCESSING:
 
-  • Total Latency Reduction: %.1f%% (Target: 30%%)
+  ??Batching Efficiency: %.1f%%
 
-  • Total CPU Reduction: %.1f%% (Target: 60%%)
+  ??Average Batch Size: %.1f requests
+
+
+
+??JSON PROCESSING:
+
+  ??JSON Processing Speedup: %.1fx
+
+
+
+?? OVERALL SYSTEM IMPROVEMENTS:
+
+  ??Total Latency Reduction: %.1f%% (Target: 30%%)
+
+  ??Total CPU Reduction: %.1f%% (Target: 60%%)
 
   
 
@@ -954,12 +950,12 @@ STATUS: %s
 
 func (pb *PerformanceBenchmarks) getOverallStatus() string {
 	if pb.results.TotalLatencyReduction >= 30.0 && pb.results.TotalCPUReduction >= 60.0 {
-		return "✅ ALL TARGETS ACHIEVED"
+		return "??ALL TARGETS ACHIEVED"
 	} else if pb.results.TotalLatencyReduction >= 30.0 {
-		return "⚠️  LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
+		return "?��?  LATENCY TARGET ACHIEVED, CPU TARGET IN PROGRESS"
 	} else if pb.results.TotalCPUReduction >= 60.0 {
-		return "⚠️  CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
+		return "?��?  CPU TARGET ACHIEVED, LATENCY TARGET IN PROGRESS"
 	} else {
-		return "🔄 OPTIMIZATION IN PROGRESS"
+		return "?? OPTIMIZATION IN PROGRESS"
 	}
 }

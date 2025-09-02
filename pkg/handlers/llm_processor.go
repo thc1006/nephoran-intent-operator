@@ -68,7 +68,7 @@ type ProcessIntentResponse struct {
 
 	ServiceVersion string `json:"service_version"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Status string `json:"status"`
 
@@ -96,7 +96,7 @@ type ProcessIntentResult struct {
 
 	ProcessingTime time.Duration `json:"processing_time"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Status string `json:"status"`
 }
@@ -382,25 +382,7 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 		)
 	}()
 
-	status := map[string]interface{}{
-		"service": "llm-processor",
-
-		"version": h.config.ServiceVersion,
-
-		"uptime": time.Since(h.startTime).String(),
-
-		"healthy": h.healthChecker.IsHealthy(),
-
-		"ready": h.healthChecker.IsReady(),
-
-		"backend_type": h.config.LLMBackendType,
-
-		"model": h.config.LLMModelName,
-
-		"rag_enabled": h.config.RAGEnabled,
-
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}
+	status := json.RawMessage("{}")
 
 	h.writeJSONResponse(w, status, http.StatusOK)
 }
@@ -562,13 +544,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 		)
 	}()
 
-	metrics := map[string]interface{}{
-		"service": "llm-processor",
-
-		"version": h.config.ServiceVersion,
-
-		"uptime": time.Since(h.startTime).String(),
-	}
+	metrics := json.RawMessage("{}")
 
 	// Add token manager metrics.
 
@@ -603,7 +579,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 	// Add prompt builder metrics.
 
 	if h.promptBuilder != nil {
-		metrics["prompt_builder"] = map[string]interface{}{"status": "stubbed"}
+		metrics["prompt_builder"] = json.RawMessage(`{"status":"stubbed"}`)
 	}
 
 	h.writeJSONResponse(w, metrics, http.StatusOK)
@@ -743,11 +719,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 
 		Status: "success",
 
-		Metadata: map[string]interface{}{
-			"original_metadata": metadata,
-
-			"processing_method": "llm_enhanced",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	return processedResult, nil
@@ -877,11 +849,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 }
 
 func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int, requestID string) {
-	response := map[string]interface{}{
-		"error": message,
-
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}
+	response := json.RawMessage("{}")
 
 	if requestID != "" {
 

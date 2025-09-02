@@ -787,13 +787,7 @@ func (m *MetricsCollector) GetAllMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"phases": m.phaseMetrics,
-
-		"intents": m.intentMetrics,
-
-		"overall": m.overallMetrics,
-	}
+	return json.RawMessage("{}")
 }
 
 // Supporting data structures.

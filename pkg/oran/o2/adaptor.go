@@ -711,23 +711,7 @@ func (a *O2Adaptor) getSupportedResourceTypes() []string {
 }
 
 func (a *O2Adaptor) getSystemExtensions() map[string]interface{} {
-	return map[string]interface{}{
-		"multi_cloud": true,
-
-		"kubernetes_native": true,
-
-		"auto_scaling": true,
-
-		"fault_tolerance": true,
-
-		"monitoring": a.config.MonitoringConfig.EnableMetrics,
-
-		"tracing": a.config.MonitoringConfig.EnableTracing,
-
-		"rbac": a.config.AuthConfig.RBACEnabled,
-
-		"provider_count": len(a.providers),
-	}
+	return json.RawMessage("{}")
 }
 
 // Background monitoring services.

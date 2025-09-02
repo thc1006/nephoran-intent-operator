@@ -74,11 +74,7 @@ func (p *Profiler) Stop() map[string]interface{} {
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 
-	return map[string]interface{}{
-		"heap_alloc": ms.HeapAlloc,
-		"heap_sys":   ms.HeapSys,
-		"goroutines": runtime.NumGoroutine(),
-	}
+	return json.RawMessage("{}")
 }
 
 // CaptureMemoryProfile captures a memory profile
@@ -88,9 +84,7 @@ func (p *Profiler) CaptureMemoryProfile() (map[string]interface{}, error) {
 
 // CaptureGoroutineProfile captures a goroutine profile
 func (p *Profiler) CaptureGoroutineProfile() (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"goroutines": runtime.NumGoroutine(),
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // DetectMemoryLeaks detects potential memory leaks
@@ -324,10 +318,7 @@ func (pr *PerformanceReport) Grade() string {
 
 // Components returns component performance data
 func (pr *PerformanceReport) Components() map[string]interface{} {
-	return map[string]interface{}{
-		"cpu":    "Good",
-		"memory": "Excellent",
-	}
+	return json.RawMessage("{}")
 }
 
 // PerformanceMonitor monitors performance metrics

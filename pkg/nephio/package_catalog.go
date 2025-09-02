@@ -31,7 +31,9 @@ limitations under the License.
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -148,7 +150,7 @@ type ResourceTemplate struct {
 
 	APIVersion string `json:"apiVersion"`
 
-	Template map[string]interface{} `json:"template"`
+	Template json.RawMessage `json:"template"`
 
 	Conditions []string `json:"conditions,omitempty"`
 }
@@ -160,7 +162,7 @@ type FunctionDefinition struct {
 
 	Image string `json:"image"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Stage string `json:"stage"`
 
@@ -188,7 +190,7 @@ type TemplateDefinition struct {
 
 	Type string `json:"type"`
 
-	Template map[string]interface{} `json:"template"`
+	Template json.RawMessage `json:"template"`
 
 	Conditions []string `json:"conditions,omitempty"`
 }
@@ -312,7 +314,7 @@ type ORANInterface struct {
 
 	Version string `json:"version"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -1054,9 +1056,7 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 
 			Kind: template.Kind,
 
-			Metadata: map[string]interface{}{
-				"name": template.Name,
-			},
+			Metadata: json.RawMessage("{}"),
 
 			Spec: specializedResource,
 		}
@@ -1109,13 +1109,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		oranFunction := porch.FunctionConfig{
 			Image: "krm/oran-validator:latest",
 
-			ConfigMap: map[string]interface{}{
-				"interfaces": variant.Specialization.ORANCompliance.Interfaces,
-
-				"validations": variant.Specialization.ORANCompliance.Validations,
-
-				"certifications": variant.Specialization.ORANCompliance.Certifications,
-			},
+			ConfigMap: json.RawMessage("{}"),
 		}
 
 		functions = append(functions, oranFunction)
@@ -1127,15 +1121,7 @@ func (npc *NephioPackageCatalog) generateSpecializedFunctions(ctx context.Contex
 		sliceFunction := porch.FunctionConfig{
 			Image: "krm/network-slice-optimizer:latest",
 
-			ConfigMap: map[string]interface{}{
-				"sliceId": variant.Specialization.NetworkSlice.SliceID,
-
-				"sliceType": variant.Specialization.NetworkSlice.SliceType,
-
-				"sla": variant.Specialization.NetworkSlice.SLA,
-
-				"qos": variant.Specialization.NetworkSlice.QoS,
-			},
+			ConfigMap: json.RawMessage("{}"),
 		}
 
 		functions = append(functions, sliceFunction)
@@ -1187,10 +1173,7 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: map[string]interface{}{
-			"name": fmt.Sprintf("%s-ns", variant.Name),
-
-			"labels": map[string]interface{}{
+		Metadata: json.RawMessage("{}"){
 				"cluster": cluster.Name,
 
 				"region": cluster.Region,
@@ -1211,21 +1194,9 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 		APIVersion: "v1",
 
-		Metadata: map[string]interface{}{
-			"name": fmt.Sprintf("%s-cluster-info", variant.Name),
+		Metadata: json.RawMessage("{}"),
 
-			"namespace": fmt.Sprintf("%s-ns", variant.Name),
-		},
-
-		Data: map[string]interface{}{
-			"cluster.name": cluster.Name,
-
-			"cluster.region": cluster.Region,
-
-			"cluster.zone": cluster.Zone,
-
-			"variant.name": variant.Name,
-		},
+		Data: json.RawMessage("{}"),
 	}
 
 	resources = append(resources, configMapResource)

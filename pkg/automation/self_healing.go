@@ -1,7 +1,9 @@
 package automation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -139,7 +141,7 @@ type CustomRemediation struct {
 
 	Action string `json:"action"` // RESTART, SCALE, REDEPLOY, CUSTOM_SCRIPT
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Conditions []*RemediationCondition `json:"conditions"`
 
@@ -310,7 +312,7 @@ type RemediationSession struct {
 
 	Actions []*RemediationAction `json:"actions"`
 
-	Results map[string]interface{} `json:"results"`
+	Results json.RawMessage `json:"results"`
 
 	BackupID string `json:"backup_id,omitempty"`
 
@@ -324,7 +326,7 @@ type RemediationAction struct {
 
 	Target string `json:"target"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Status string `json:"status"`
 
@@ -362,7 +364,7 @@ type RemediationActionTemplate struct {
 
 	Template string `json:"template"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timeout time.Duration `json:"timeout"`
 

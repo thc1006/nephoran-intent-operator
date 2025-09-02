@@ -1,7 +1,9 @@
 package health
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -943,7 +945,7 @@ type HealthSLAVisualization struct {
 
 	DataSources []DataSource `json:"data_sources"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	LastUpdated time.Time `json:"last_updated"`
 }

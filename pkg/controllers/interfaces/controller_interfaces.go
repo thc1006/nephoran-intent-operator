@@ -33,7 +33,9 @@ limitations under the License.
 package interfaces
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -91,7 +93,7 @@ type ProcessingResult struct {
 
 	NextPhase ProcessingPhase `json:"nextPhase,omitempty"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	Metrics map[string]float64 `json:"metrics,omitempty"`
 
@@ -113,7 +115,7 @@ type ProcessingEvent struct {
 
 	Message string `json:"message"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	CorrelationID string `json:"correlationId"`
 }
@@ -173,21 +175,21 @@ type ProcessingContext struct {
 
 	OriginalIntent string `json:"originalIntent"`
 
-	ExtractedEntities map[string]interface{} `json:"extractedEntities,omitempty"`
+	ExtractedEntities json.RawMessage `json:"extractedEntities,omitempty"`
 
-	TelecomContext map[string]interface{} `json:"telecomContext,omitempty"`
+	TelecomContext json.RawMessage `json:"telecomContext,omitempty"`
 
 	// Phase-specific data.
 
-	LLMResponse map[string]interface{} `json:"llmResponse,omitempty"`
+	LLMResponse json.RawMessage `json:"llmResponse,omitempty"`
 
-	ResourcePlan map[string]interface{} `json:"resourcePlan,omitempty"`
+	ResourcePlan json.RawMessage `json:"resourcePlan,omitempty"`
 
 	GeneratedManifests map[string]string `json:"generatedManifests,omitempty"`
 
 	GitCommitHash string `json:"gitCommitHash,omitempty"`
 
-	DeploymentStatus map[string]interface{} `json:"deploymentStatus,omitempty"`
+	DeploymentStatus json.RawMessage `json:"deploymentStatus,omitempty"`
 
 	// Performance tracking.
 
@@ -253,7 +255,7 @@ type HealthStatus struct {
 
 	LastChecked time.Time `json:"lastChecked"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // IntentProcessor handles LLM-based intent interpretation.
@@ -367,7 +369,7 @@ type PlannedNetworkFunction struct {
 
 	Resources ResourceSpec `json:"resources"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	Replicas int32 `json:"replicas"`
 
@@ -435,7 +437,7 @@ type GitCommitResult struct {
 
 	Files []string `json:"files"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NephioPackage represents a Nephio package with its manifests and dependencies.
@@ -449,7 +451,7 @@ type NephioPackage struct {
 
 	Manifests map[string]string `json:"manifests"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // DeploymentProgress tracks the progress of a network function deployment.
@@ -525,7 +527,7 @@ type ComplianceResult struct {
 
 	ErrorRate float64 `json:"errorRate"`
 
-	Details map[string]interface{} `json:"details"`
+	Details json.RawMessage `json:"details"`
 
 	Violations []ComplianceViolation `json:"violations,omitempty"`
 }
@@ -643,7 +645,7 @@ type Optimization struct {
 
 	Impact string `json:"impact"`
 
-	Savings map[string]interface{} `json:"savings,omitempty"`
+	Savings json.RawMessage `json:"savings,omitempty"`
 }
 
 // CostComparison provides a comparison between original and optimized costs.

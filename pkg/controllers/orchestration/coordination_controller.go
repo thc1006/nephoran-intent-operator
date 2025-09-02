@@ -31,7 +31,9 @@ limitations under the License.
 package orchestration
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -155,7 +157,7 @@ type CoordinationContext struct {
 
 	LastUpdateTime time.Time `json:"lastUpdateTime"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	CompletedPhases []interfaces.ProcessingPhase `json:"completedPhases"`
 
@@ -561,15 +563,7 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 
 		result.NextPhase = interfaces.PhaseResourcePlanning
 
-		result.Data = map[string]interface{}{
-			"llm_response": intentProcessing.Status.LLMResponse,
-
-			"processed_parameters": intentProcessing.Status.ProcessedParameters,
-
-			"extracted_entities": intentProcessing.Status.ExtractedEntities,
-
-			"quality_score": intentProcessing.Status.QualityScore,
-		}
+		result.Data = json.RawMessage("{}")
 
 		// Add resource reference.
 
@@ -724,15 +718,7 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 
 		result.NextPhase = interfaces.PhaseManifestGeneration
 
-		result.Data = map[string]interface{}{
-			"resource_plan": resourcePlan.Status.ResourceAllocation,
-
-			"planned_resources": resourcePlan.Status.PlannedResources,
-
-			"cost_estimate": resourcePlan.Status.CostEstimate,
-
-			"quality_score": resourcePlan.Status.QualityScore,
-		}
+		result.Data = json.RawMessage("{}")
 
 	} else if resourcePlan.IsPlanningFailed() {
 
@@ -767,12 +753,7 @@ func (r *CoordinationController) coordinateManifestGeneration(ctx context.Contex
 
 		NextPhase: interfaces.PhaseGitOpsCommit,
 
-		Data: map[string]interface{}{
-			"manifests": map[string]string{
-				"deployment.yaml": "# Generated deployment manifest",
-
-				"service.yaml": "# Generated service manifest",
-			},
+		Data: json.RawMessage("{}"),
 		},
 	}
 
@@ -791,11 +772,7 @@ func (r *CoordinationController) coordinateGitOpsDeployment(ctx context.Context,
 
 		NextPhase: interfaces.PhaseDeploymentVerification,
 
-		Data: map[string]interface{}{
-			"commit_hash": "abc123def456",
-
-			"deployment_status": "committed",
-		},
+		Data: json.RawMessage("{}"),
 	}
 
 	return result, nil
@@ -813,10 +790,7 @@ func (r *CoordinationController) coordinateDeploymentVerification(ctx context.Co
 
 		NextPhase: interfaces.PhaseCompleted,
 
-		Data: map[string]interface{}{
-			"verification_status": "verified",
-
-			"deployed_resources": []string{"deployment/example", "service/example"},
+		Data: json.RawMessage("{}"),
 		},
 	}
 
@@ -896,11 +870,7 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseIntentReceived, EventConflictDetected,
 
-		coordCtx.IntentID, false, map[string]interface{}{
-			"conflict_count": len(conflicts),
-
-			"conflict_types": r.extractConflictTypes(conflicts),
-		}); err != nil {
+		coordCtx.IntentID, false, json.RawMessage("{}")); err != nil {
 		log.Error(err, "Failed to publish conflict detection event")
 	}
 
@@ -933,11 +903,7 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 			if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseIntentReceived, EventConflictResolved,
 
-				coordCtx.IntentID, true, map[string]interface{}{
-					"conflict_id": conflict.ID,
-
-					"resolution": conflict.Resolution,
-				}); err != nil {
+				coordCtx.IntentID, true, json.RawMessage("{}")); err != nil {
 				log.Error(err, "Failed to publish conflict resolution event")
 			}
 
@@ -1057,11 +1023,7 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseCompleted, EventIntentCompleted,
 
-		coordCtx.IntentID, true, map[string]interface{}{
-			"processing_duration": time.Since(coordCtx.StartTime).String(),
-
-			"completed_phases": len(coordCtx.PhaseHistory),
-		}); err != nil {
+		coordCtx.IntentID, true, json.RawMessage("{}")); err != nil {
 		log.Error(err, "Failed to publish completion event")
 	}
 
@@ -1151,13 +1113,7 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventRecoveryInitiated,
 
-		coordCtx.IntentID, false, map[string]interface{}{
-			"failed_phase": phase,
-
-			"error_message": result.ErrorMessage,
-
-			"retry_count": coordCtx.RetryCount,
-		}); err != nil {
+		coordCtx.IntentID, false, json.RawMessage("{}")); err != nil {
 		log.Error(err, "Failed to publish recovery initiation event")
 	}
 
@@ -1184,11 +1140,7 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 		if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventRecoveryCompleted,
 
-			coordCtx.IntentID, true, map[string]interface{}{
-				"recovered_phase": phase,
-
-				"recovery_actions": recoveryActions,
-			}); err != nil {
+			coordCtx.IntentID, true, json.RawMessage("{}")); err != nil {
 			log.Error(err, "Failed to publish recovery completion event")
 		}
 
@@ -1250,13 +1202,7 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventIntentFailed,
 
-		coordCtx.IntentID, false, map[string]interface{}{
-			"failed_phase": phase,
-
-			"error_message": result.ErrorMessage,
-
-			"retry_count": coordCtx.RetryCount,
-		}); err != nil {
+		coordCtx.IntentID, false, json.RawMessage("{}")); err != nil {
 		log.Error(err, "Failed to publish failure event")
 	}
 

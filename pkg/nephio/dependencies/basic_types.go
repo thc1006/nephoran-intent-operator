@@ -17,7 +17,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -379,8 +381,8 @@ type CompatibilityRule struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`
 	Enabled       bool                   `json:"enabled"`
-	PlatformRules map[string]interface{} `json:"platformRules,omitempty"`
-	VersionRules  map[string]interface{} `json:"versionRules,omitempty"`
+	PlatformRules json.RawMessage `json:"platformRules,omitempty"`
+	VersionRules  json.RawMessage `json:"versionRules,omitempty"`
 }
 
 // PolicyRule is defined in interfaces.go - removing duplicate
@@ -421,38 +423,38 @@ type ValidatorConfig struct {
 type CompatibilityConfig struct {
 	Enabled       bool                   `json:"enabled"`
 	CheckPlatform bool                   `json:"checkPlatform"`
-	Settings      map[string]interface{} `json:"settings,omitempty"`
+	Settings      json.RawMessage `json:"settings,omitempty"`
 }
 
 type SecurityConfig struct {
 	Enabled     bool                   `json:"enabled"`
 	ScanTimeout time.Duration          `json:"scanTimeout"`
 	MaxVulns    int                    `json:"maxVulns"`
-	Settings    map[string]interface{} `json:"settings,omitempty"`
+	Settings    json.RawMessage `json:"settings,omitempty"`
 }
 
 type LicenseConfig struct {
 	Enabled    bool                   `json:"enabled"`
 	StrictMode bool                   `json:"strictMode"`
-	Settings   map[string]interface{} `json:"settings,omitempty"`
+	Settings   json.RawMessage `json:"settings,omitempty"`
 }
 
 type PerformanceConfig struct {
 	Enabled     bool                   `json:"enabled"`
 	ProfileMode bool                   `json:"profileMode"`
-	Settings    map[string]interface{} `json:"settings,omitempty"`
+	Settings    json.RawMessage `json:"settings,omitempty"`
 }
 
 type PolicyConfig struct {
 	Enabled    bool                   `json:"enabled"`
 	StrictMode bool                   `json:"strictMode"`
-	Settings   map[string]interface{} `json:"settings,omitempty"`
+	Settings   json.RawMessage `json:"settings,omitempty"`
 }
 
 type ConflictAnalyzerConfig struct {
 	Enabled      bool                   `json:"enabled"`
 	DeepAnalysis bool                   `json:"deepAnalysis"`
-	Settings     map[string]interface{} `json:"settings,omitempty"`
+	Settings     json.RawMessage `json:"settings,omitempty"`
 }
 
 type CacheConfig struct {
@@ -503,7 +505,7 @@ type ConflictResolutionSuggestion struct {
 type ResolutionAction struct {
 	Type        string                 `json:"type"`
 	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters,omitempty"`
+	Parameters  json.RawMessage `json:"parameters,omitempty"`
 	Order       int                    `json:"order"`
 }
 
@@ -956,7 +958,7 @@ type AnalysisCacheConfig struct {
 type DataStoreConfig struct {
 	Type    string                 `json:"type"`
 	URL     string                 `json:"url"`
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 	Timeout time.Duration          `json:"timeout"`
 }
 
@@ -966,7 +968,7 @@ type DataStoreConfig struct {
 type UpdateContext struct {
 	UpdateID    string                 `json:"updateId"`
 	Environment string                 `json:"environment"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PropagationSpec represents specification for propagation
@@ -981,7 +983,7 @@ type PropagationContext struct {
 	PropagationID string                 `json:"propagationId"`
 	Environment   string                 `json:"environment"`
 	Phase         string                 `json:"phase"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Metadata      json.RawMessage `json:"metadata,omitempty"`
 }
 
 // UpdateSpec represents specification for updates
@@ -990,7 +992,7 @@ type UpdateSpec struct {
 	Packages       []*PackageReference    `json:"packages"`
 	TargetVersions map[string]string      `json:"targetVersions,omitempty"`
 	Environment    string                 `json:"environment"`
-	Options        map[string]interface{} `json:"options,omitempty"`
+	Options        json.RawMessage `json:"options,omitempty"`
 }
 
 // Additional constants for compilation

@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"fmt"
 	"sync"
@@ -217,7 +219,7 @@ type ResolutionResult struct {
 
 	Strategy ResolutionStrategy `json:"strategy"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PackageReference represents a package with version information.
@@ -233,7 +235,7 @@ type PackageReference struct {
 
 	Source PackageSource `json:"source,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ResolvedPackage represents a successfully resolved package.

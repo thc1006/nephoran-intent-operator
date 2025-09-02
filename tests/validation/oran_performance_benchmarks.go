@@ -528,10 +528,8 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 
 	// Validate Terraform template.
 
-	terraformTemplate := map[string]interface{}{
-		"terraform": map[string]interface{}{
-			"required_providers": map[string]interface{}{
-				"kubernetes": map[string]interface{}{
+	terraformTemplate := json.RawMessage("{}"){
+			"required_providers": json.RawMessage("{}"){
 					"source": "hashicorp/kubernetes",
 
 					"version": "~> 2.0",
@@ -539,10 +537,8 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 			},
 		},
 
-		"resource": map[string]interface{}{
-			"kubernetes_deployment": map[string]interface{}{
-				"test_deployment": map[string]interface{}{
-					"metadata": map[string]interface{}{
+		"resource": json.RawMessage("{}"){
+				"test_deployment": json.RawMessage("{}"){
 						"name": "test-upf",
 					},
 				},
@@ -556,12 +552,7 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 
 	// Validate cloud provider config.
 
-	cloudConfig := map[string]interface{}{
-		"provider": "aws",
-
-		"region": "us-west-2",
-
-		"resources": map[string]interface{}{
+	cloudConfig := json.RawMessage("{}"){
 			"ec2_instances": 2,
 
 			"s3_buckets": 1,
@@ -797,21 +788,21 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 
 			if result.ThroughputRPS < target.minThroughput {
 
-				ginkgo.By(fmt.Sprintf("❌ %s Throughput: %.2f RPS < %.2f RPS (target)",
+				ginkgo.By(fmt.Sprintf("??%s Throughput: %.2f RPS < %.2f RPS (target)",
 
 					interfaceName, result.ThroughputRPS, target.minThroughput))
 
 				targetsMet = false
 
 			} else {
-				ginkgo.By(fmt.Sprintf("✅ %s Throughput: %.2f RPS >= %.2f RPS (target)",
+				ginkgo.By(fmt.Sprintf("??%s Throughput: %.2f RPS >= %.2f RPS (target)",
 
 					interfaceName, result.ThroughputRPS, target.minThroughput))
 			}
 
 			if result.AverageLatency > target.maxLatency {
 
-				ginkgo.By(fmt.Sprintf("❌ %s Latency: %.2fms > %.2fms (target)",
+				ginkgo.By(fmt.Sprintf("??%s Latency: %.2fms > %.2fms (target)",
 
 					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6,
 
@@ -820,7 +811,7 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 				targetsMet = false
 
 			} else {
-				ginkgo.By(fmt.Sprintf("✅ %s Latency: %.2fms <= %.2fms (target)",
+				ginkgo.By(fmt.Sprintf("??%s Latency: %.2fms <= %.2fms (target)",
 
 					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6,
 
@@ -829,14 +820,14 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 
 			if result.ErrorRate > target.maxErrorRate {
 
-				ginkgo.By(fmt.Sprintf("❌ %s Error Rate: %.1f%% > %.1f%% (target)",
+				ginkgo.By(fmt.Sprintf("??%s Error Rate: %.1f%% > %.1f%% (target)",
 
 					interfaceName, result.ErrorRate, target.maxErrorRate))
 
 				targetsMet = false
 
 			} else {
-				ginkgo.By(fmt.Sprintf("✅ %s Error Rate: %.1f%% <= %.1f%% (target)",
+				ginkgo.By(fmt.Sprintf("??%s Error Rate: %.1f%% <= %.1f%% (target)",
 
 					interfaceName, result.ErrorRate, target.maxErrorRate))
 			}
@@ -849,9 +840,9 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 	}
 
 	if allTargetsMet {
-		ginkgo.By("🎯 All Performance Targets Met!")
+		ginkgo.By("?�� All Performance Targets Met!")
 	} else {
-		ginkgo.By("⚠️  Some Performance Targets Not Met")
+		ginkgo.By("?��?  Some Performance Targets Not Met")
 	}
 }
 

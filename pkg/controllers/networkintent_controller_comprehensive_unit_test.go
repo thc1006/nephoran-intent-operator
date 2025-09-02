@@ -291,12 +291,7 @@ func createTestConfig() *Config {
 			name:          "successful reconciliation with LLM processing",
 			networkIntent: createTestNetworkIntent("test-intent", "default", "Deploy AMF network function"),
 			mockSetup: func(deps *MockDependencies) {
-				llmResponse := map[string]interface{}{
-					"action":    "deploy",
-					"component": "amf",
-					"namespace": "5g-core",
-					"replicas":  1,
-					"resources": map[string]interface{}{
+				llmResponse := json.RawMessage("{}"){
 						"cpu":    "500m",
 						"memory": "512Mi",
 					},
@@ -561,12 +556,8 @@ func getConditionMessage(conditions []metav1.Condition, conditionType string) st
 		{
 			name:       "valid 5gc context",
 			intentType: "5gc",
-			extractedEntities: map[string]interface{}{
-				"component": "amf",
-				"action":    "deploy",
-			},
-			telecomContext: map[string]interface{}{
-				"network_functions": []string{"amf"},
+			extractedEntities: json.RawMessage("{}"),
+			telecomContext: json.RawMessage("{}"),
 				"deployment_type":   "production",
 			},
 			expectedValid: true,
@@ -574,8 +565,8 @@ func getConditionMessage(conditions []metav1.Condition, conditionType string) st
 		{
 			name:              "empty context",
 			intentType:        "unknown",
-			extractedEntities: map[string]interface{}{},
-			telecomContext:    map[string]interface{}{},
+			extractedEntities: json.RawMessage("{}"),
+			telecomContext:    json.RawMessage("{}"),
 			expectedValid:     true, // Empty context is still valid
 		},
 	}
@@ -607,11 +598,7 @@ func BenchmarkReconcile(b *testing.B) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ni).Build()
 
 	mockDeps := NewMockDependencies()
-	llmResponse := map[string]interface{}{
-		"action":    "deploy",
-		"component": "amf",
-		"namespace": "5g-core",
-	}
+	llmResponse := json.RawMessage("{}")
 	responseJSON, _ := json.Marshal(llmResponse)
 	mockDeps.llmClient.SetResponse(string(responseJSON))
 

@@ -567,23 +567,9 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 	stateFile := filepath.Join(s.handoffDir, ".conductor-state.json")
 
 	// Create malicious state file with correct structure
-	maliciousState := map[string]interface{}{
-		"version": "1.0",
-		"states": map[string]interface{}{
-			"../../../etc/passwd": map[string]interface{}{
-				"file_path":    "../../../etc/passwd",
-				"sha256":       "fake_hash",
-				"size":         1234,
-				"processed_at": time.Now().Format(time.RFC3339),
-				"status":       "processed",
-			},
-			"$(whoami)": map[string]interface{}{
-				"file_path":    "$(whoami)",
-				"sha256":       "fake_hash2",
-				"size":         5678,
-				"processed_at": "2025-08-15T12:00:00Z",
-				"status":       "processed",
-			},
+	maliciousState := json.RawMessage("{}"){
+			"../../../etc/passwd": json.RawMessage("{}"),
+			"$(whoami)": json.RawMessage("{}"),
 		},
 	}
 

@@ -1,7 +1,9 @@
 package automation
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -40,7 +42,7 @@ type RemediationOutcome struct {
 
 	Metrics map[string]float64 `json:"metrics"`
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	ErrorDetails string `json:"error_details,omitempty"`
 }
@@ -68,7 +70,7 @@ type ModelUpdate struct {
 
 	ModelType string `json:"model_type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Accuracy float64 `json:"accuracy"`
 
@@ -104,7 +106,7 @@ type RollbackPlan struct {
 
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RollbackStep represents a single step in a rollback plan.
@@ -116,7 +118,7 @@ type RollbackStep struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Status string `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 

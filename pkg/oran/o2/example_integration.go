@@ -45,7 +45,7 @@ func ComprehensiveO2Example() error {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 
-	klog.Info("✓ Configuration validated successfully")
+	klog.Info("??Configuration validated successfully")
 
 	// 2. Create and initialize API server.
 
@@ -54,7 +54,7 @@ func ComprehensiveO2Example() error {
 		return fmt.Errorf("failed to create API server: %w", err)
 	}
 
-	klog.Info("✓ O2 IMS API server created")
+	klog.Info("??O2 IMS API server created")
 
 	// 3. Start server in background.
 
@@ -72,7 +72,7 @@ func ComprehensiveO2Example() error {
 
 	time.Sleep(2 * time.Second)
 
-	klog.Infof("✓ O2 IMS API server started on %s:%d", config.Host, config.Port)
+	klog.Infof("??O2 IMS API server started on %s:%d", config.Host, config.Port)
 
 	// 4. Demonstrate resource pool management.
 
@@ -132,7 +132,7 @@ func ComprehensiveO2Example() error {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
 
-	fmt.Printf("✓ O2 IMS API server shutdown completed\n")
+	fmt.Printf("??O2 IMS API server shutdown completed\n")
 
 	fmt.Println("\n=== O2 IMS Integration Example Completed Successfully ===")
 
@@ -167,7 +167,7 @@ func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("failed to create resource pool: %w", err)
 	}
 
-	fmt.Printf("✓ Created resource pool: %s (ID: %s)\n", pool.Name, pool.ResourcePoolID)
+	fmt.Printf("??Created resource pool: %s (ID: %s)\n", pool.Name, pool.ResourcePoolID)
 
 	// List resource pools.
 
@@ -182,7 +182,7 @@ func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("failed to list resource pools: %w", err)
 	}
 
-	fmt.Printf("✓ Retrieved %d resource pool(s)\n", len(pools))
+	fmt.Printf("??Retrieved %d resource pool(s)\n", len(pools))
 
 	// Get specific resource pool.
 
@@ -201,7 +201,7 @@ func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
 		statusState = "UNKNOWN"
 	}
 
-	fmt.Printf("✓ Retrieved resource pool: %s (Status: %s)\n",
+	fmt.Printf("??Retrieved resource pool: %s (Status: %s)\n",
 
 		retrievedPool.Name, statusState)
 
@@ -250,7 +250,7 @@ func demonstrateResourceTypes(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("failed to create resource type: %w", err)
 	}
 
-	fmt.Printf("✓ Created resource type: %s (ID: %s)\n",
+	fmt.Printf("??Created resource type: %s (ID: %s)\n",
 
 		createdType.Name, createdType.ResourceTypeID)
 
@@ -267,7 +267,7 @@ func demonstrateResourceTypes(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("failed to list resource types: %w", err)
 	}
 
-	fmt.Printf("✓ Retrieved %d resource type(s)\n", len(types))
+	fmt.Printf("??Retrieved %d resource type(s)\n", len(types))
 
 	return nil
 }
@@ -304,11 +304,7 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 			Raw: []byte(`{"replicas": 1, "image": "nginx:latest"}`),
 		},
 
-		Metadata: map[string]interface{}{
-			"environment": "demo",
-
-			"component": "web-server",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	resource, err := service.CreateResource(ctx, createReq)
@@ -316,7 +312,7 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	fmt.Printf("✓ Created resource: %s (ID: %s, Status: %s)\n",
+	fmt.Printf("??Created resource: %s (ID: %s, Status: %s)\n",
 
 		resource.Name, resource.ResourceID, resource.Status)
 
@@ -333,7 +329,7 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("failed to list resources: %w", err)
 	}
 
-	fmt.Printf("✓ Retrieved %d resource(s) from pool %s\n",
+	fmt.Printf("??Retrieved %d resource(s) from pool %s\n",
 
 		len(resources), pools[0].Name)
 
@@ -364,11 +360,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 			MinMemory: "512Mi",
 		},
 
-		Metadata: map[string]interface{}{
-			"lifecycle": "managed",
-
-			"demo": "true",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	_, err := manager.ProvisionResource(ctx, provisionReq)
@@ -382,7 +374,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 
 	resourceName := "lifecycle-example"
 
-	fmt.Printf("✓ Provisioned resource: %s (ID: %s)\n", resourceName, resourceID)
+	fmt.Printf("??Provisioned resource: %s (ID: %s)\n", resourceName, resourceID)
 
 	// Configure resource.
 
@@ -395,7 +387,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 		return fmt.Errorf("failed to configure resource: %w", err)
 	}
 
-	fmt.Printf("✓ Configured resource: %s\n", resourceID)
+	fmt.Printf("??Configured resource: %s\n", resourceID)
 
 	// Scale resource.
 
@@ -410,7 +402,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 		return fmt.Errorf("failed to scale resource: %w", err)
 	}
 
-	fmt.Printf("✓ Scaled resource: %s to %d replicas\n",
+	fmt.Printf("??Scaled resource: %s to %d replicas\n",
 
 		resourceID, scaleReq.TargetReplicas)
 
@@ -433,11 +425,11 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 
 	backupID := "backup-lifecycle-example-123"
 
-	fmt.Printf("✓ Created backup: %s for resource: %s\n",
+	fmt.Printf("??Created backup: %s for resource: %s\n",
 
 		backupID, resourceID)
 
-	fmt.Printf("✓ Resource lifecycle operations completed successfully\n")
+	fmt.Printf("??Resource lifecycle operations completed successfully\n")
 
 	return nil
 }
@@ -447,22 +439,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error {
 	// Register additional cloud provider - using map for compatibility with interface{}.
 
-	awsProvider := map[string]interface{}{
-		"providerId": "aws-example",
-
-		"name": "AWS Example Provider",
-
-		"type": "aws", // Use string literal instead of undefined constant
-
-		"description": "Example AWS provider configuration",
-
-		"endpoint": "https://ec2.us-west-2.amazonaws.com",
-
-		"region": "us-west-2",
-
-		"authMethod": "apikey",
-
-		"authConfig": map[string]interface{}{
+	awsProvider := json.RawMessage("{}"){
 			"access_key_id": "example-key",
 
 			"secret_access_key": "example-secret",
@@ -472,8 +449,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 
 		"status": "ACTIVE",
 
-		"properties": map[string]interface{}{
-			"instance_types": []string{"t3.micro", "t3.small", "t3.medium"},
+		"properties": json.RawMessage("{}"),
 
 			"storage_types": []string{"gp2", "gp3", "io1"},
 		},
@@ -494,7 +470,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 		return fmt.Errorf("failed to register cloud provider: %w", err)
 	}
 
-	fmt.Printf("✓ Registered cloud provider: %s (%s)\n",
+	fmt.Printf("??Registered cloud provider: %s (%s)\n",
 
 		awsProvider["name"].(string), awsProvider["type"].(string))
 
@@ -505,7 +481,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 		return fmt.Errorf("failed to list cloud providers: %w", err)
 	}
 
-	fmt.Printf("✓ Available cloud providers:\n")
+	fmt.Printf("??Available cloud providers:\n")
 
 	// Handle interface{} return from GetCloudProviders.
 
@@ -549,7 +525,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 func demonstrateHealthCheck(healthChecker *HealthChecker) {
 	if healthChecker == nil {
 
-		fmt.Printf("⚠ Health checker not available\n")
+		fmt.Printf("??Health checker not available\n")
 
 		return
 
@@ -557,7 +533,7 @@ func demonstrateHealthCheck(healthChecker *HealthChecker) {
 
 	health := healthChecker.GetHealthStatus()
 
-	fmt.Printf("✓ Overall Health Status: %s\n", health.Status)
+	fmt.Printf("??Overall Health Status: %s\n", health.Status)
 
 	fmt.Printf("  - Uptime: %v\n", health.Uptime)
 
@@ -621,19 +597,7 @@ func RESTAPIClientExample() {
 
 			description: "Create resource pool",
 
-			payload: map[string]interface{}{
-				"name": "api-example-pool",
-
-				"description": "Created via REST API",
-
-				"location": "us-east-1",
-
-				"oCloudId": "ocloud-api",
-
-				"globalLocationId": "global-api-1",
-
-				"provider": "kubernetes",
-			},
+			payload: json.RawMessage("{}"),
 		},
 
 		{
@@ -651,16 +615,7 @@ func RESTAPIClientExample() {
 
 			description: "Create resource",
 
-			payload: map[string]interface{}{
-				"name": "api-example-resource",
-
-				"resourceTypeId": "example-compute-type",
-
-				"resourcePoolId": "example-pool-id",
-
-				"provider": "kubernetes",
-
-				"configuration": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"replicas": 1,
 
 					"image": "nginx:latest",
@@ -781,7 +736,7 @@ func ComplianceExample() {
 
 			specification: "O-RAN.WG6.O2ims-Interface-v01.01",
 
-			status: "✓ Fully Compliant",
+			status: "??Fully Compliant",
 
 			description: "Complete resource pool, type, and resource management",
 		},
@@ -791,7 +746,7 @@ func ComplianceExample() {
 
 			specification: "O-RAN.WG6.O2ims-Interface-v01.01",
 
-			status: "✓ Fully Compliant",
+			status: "??Fully Compliant",
 
 			description: "Health checks, metrics, and alarm management",
 		},
@@ -801,7 +756,7 @@ func ComplianceExample() {
 
 			specification: "O-RAN.WG6.O2ims-Interface-v01.01",
 
-			status: "✓ Fully Compliant",
+			status: "??Fully Compliant",
 
 			description: "Deployment templates and lifecycle management",
 		},
@@ -811,7 +766,7 @@ func ComplianceExample() {
 
 			specification: "O-RAN.WG6.O2ims-Interface-v01.01",
 
-			status: "✓ Fully Compliant",
+			status: "??Fully Compliant",
 
 			description: "HTTP methods, status codes, and error handling",
 		},
@@ -821,7 +776,7 @@ func ComplianceExample() {
 
 			specification: "O-RAN.WG6.O2ims-Interface-v01.01",
 
-			status: "✓ Fully Compliant",
+			status: "??Fully Compliant",
 
 			description: "Event notifications and callback mechanisms",
 		},
@@ -843,15 +798,15 @@ func ComplianceExample() {
 
 	fmt.Printf("Additional Nephoran Extensions:\n")
 
-	fmt.Printf("  ✓ Multi-cloud provider abstraction\n")
+	fmt.Printf("  ??Multi-cloud provider abstraction\n")
 
-	fmt.Printf("  ✓ Advanced resource lifecycle management\n")
+	fmt.Printf("  ??Advanced resource lifecycle management\n")
 
-	fmt.Printf("  ✓ Comprehensive monitoring and observability\n")
+	fmt.Printf("  ??Comprehensive monitoring and observability\n")
 
-	fmt.Printf("  ✓ Enterprise-grade security features\n")
+	fmt.Printf("  ??Enterprise-grade security features\n")
 
-	fmt.Printf("  ✓ Cloud-native deployment patterns\n")
+	fmt.Printf("  ??Cloud-native deployment patterns\n")
 }
 
 // Helper functions.

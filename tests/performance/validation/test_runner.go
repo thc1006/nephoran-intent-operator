@@ -1,7 +1,9 @@
 package performance_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log"
 	"sync"
@@ -54,7 +56,7 @@ type NetworkIntent struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Complexity string `json:"complexity"`
 
@@ -98,7 +100,7 @@ type RAGResult struct {
 
 	Source string `json:"source"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // CacheStats represents cache statistics.
@@ -756,17 +758,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "moderate",
 
-			Parameters: map[string]interface{}{
-				"replicas": 3,
-
-				"memory_limit": "2Gi",
-
-				"cpu_limit": "1000m",
-
-				"auto_scaling": true,
-
-				"max_replicas": 10,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 
 		{
@@ -776,10 +768,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-				"session_capacity": 10000,
-
-				"qos_policies": []string{"voice", "video", "data"},
+			Parameters: json.RawMessage("{}"),
 
 				"charging_enabled": true,
 			},
@@ -792,13 +781,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-				"location": "edge",
-
-				"latency_target": "1ms",
-
-				"throughput_gbps": 100,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 
 		// O-RAN Network Function Intents.
@@ -810,13 +793,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "moderate",
 
-			Parameters: map[string]interface{}{
-				"beamforming": true,
-
-				"antenna_ports": 64,
-
-				"frequency_band": "n78",
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 
 		{
@@ -826,13 +803,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-				"cells": 12,
-
-				"coordination": "comp",
-
-				"load_balancing": true,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 
 		// Network Slicing Intents.
@@ -844,13 +815,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "moderate",
 
-			Parameters: map[string]interface{}{
-				"slice_type": "embb",
-
-				"bandwidth_gbps": 10,
-
-				"user_capacity": 50000,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 
 		{
@@ -860,15 +825,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: map[string]interface{}{
-				"slice_type": "urllc",
-
-				"latency_target": "1ms",
-
-				"reliability": "99.999%",
-
-				"isolation_level": "high",
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 
 		// Simple configuration intents.
@@ -880,14 +837,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "simple",
 
-			Parameters: map[string]interface{}{
-				"metrics_interval": "30s",
-
-				"alert_thresholds": map[string]float64{
-					"cpu": 80.0,
-
-					"memory": 85.0,
-				},
+			Parameters: json.RawMessage("{}"),
 			},
 		},
 	}

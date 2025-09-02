@@ -364,7 +364,7 @@ import (
 		resultCount++
 
 		// Each result should be valid
-		assert.IsType(t, map[string]interface{}{}, stats)
+		assert.IsType(t, json.RawMessage("{}"), stats)
 		assert.LessOrEqual(t, len(stats), numBreakers,
 			"Should not have more stats than breakers")
 

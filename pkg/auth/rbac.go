@@ -1,7 +1,9 @@
 package auth
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -173,9 +175,9 @@ type AccessRequest struct {
 
 	Action string `json:"action"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	IPAddress string `json:"ip_address,omitempty"`
 
@@ -199,7 +201,7 @@ type AccessDecision struct {
 
 	MissingPermissions []string `json:"missing_permissions,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	EvaluatedAt time.Time `json:"evaluated_at"`
 
@@ -1176,19 +1178,5 @@ func (r *RBACManager) GetRBACStatus(ctx context.Context) map[string]interface{} 
 
 	defer r.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"roles_count": len(r.roles),
-
-		"permissions_count": len(r.permissions),
-
-		"users_count": len(r.userRoles),
-
-		"policies_count": len(r.policies),
-
-		"cache_ttl": r.cacheTTL,
-
-		"cache_entries": len(r.cache.userPermissions),
-
-		"last_cache_update": r.cache.lastUpdated,
-	}
+	return json.RawMessage("{}")
 }

@@ -334,11 +334,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				By("adding custom network function to knowledge base")
 				customNF := &WeaviateObject{
 					Class: "NetworkFunction",
-					Properties: map[string]interface{}{
-						"name":                   "Custom-AMF",
-						"description":            "Custom Access and Mobility Management Function with enhanced features",
-						"type":                   "5GC",
-						"interfaces":             []string{"N1", "N2", "N8", "N11", "N12", "N14", "N15"},
+					Properties: json.RawMessage("{}"),
 						"deploymentRequirements": "Requires persistent storage, high availability setup with 5 replicas minimum",
 						"scalingPolicy":          "Auto-scale based on N1/N2 interface load, maximum 20 replicas",
 					},
@@ -368,13 +364,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				By("creating initial document in knowledge base")
 				initialDoc := &WeaviateObject{
 					Class: "TelecomDocument",
-					Properties: map[string]interface{}{
-						"title":        "AMF Deployment Guide v1.0",
-						"content":      "Basic AMF deployment with standard configuration",
-						"documentType": "guide",
-						"category":     "implementation",
-						"version":      "1.0",
-					},
+					Properties: json.RawMessage("{}"),
 				}
 
 				err := fakeWeaviate.AddObject("TelecomDocument", initialDoc)
@@ -389,13 +379,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				By("adding updated document to knowledge base")
 				updatedDoc := &WeaviateObject{
 					Class: "TelecomDocument",
-					Properties: map[string]interface{}{
-						"title":        "AMF Deployment Guide v2.0",
-						"content":      "Advanced AMF deployment with high availability, monitoring, and auto-scaling features",
-						"documentType": "guide",
-						"category":     "implementation",
-						"version":      "2.0",
-					},
+					Properties: json.RawMessage("{}"),
 				}
 
 				err = fakeWeaviate.AddObject("TelecomDocument", updatedDoc)
@@ -566,7 +550,7 @@ func handleLLMProcessRequest(w http.ResponseWriter, r *http.Request) {
 
 	var request struct {
 		Intent   string                 `json:"intent"`
-		Metadata map[string]interface{} `json:"metadata"`
+		Metadata json.RawMessage `json:"metadata"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -633,61 +617,28 @@ func generateMockLLMResponse(intent string) *shared.LLMResponse {
 	if strings.Contains(intentLower, "amf") {
 		intentType = "5G-Core-AMF"
 		networkFunction = "AMF"
-		parameters = map[string]interface{}{
-			"replicas":          3,
-			"scaling":           true,
-			"ha_enabled":        true,
-			"cpu_request":       "500m",
-			"memory_request":    "1Gi",
-			"cpu_limit":         "2000m",
-			"memory_limit":      "4Gi",
-			"monitoring":        true,
-			"security_policies": true,
-		}
+		parameters = json.RawMessage("{}")
 		manifests = generateAMFManifests()
 	} else if strings.Contains(intentLower, "smf") {
 		intentType = "5G-Core-SMF"
 		networkFunction = "SMF"
-		parameters = map[string]interface{}{
-			"replicas":       2,
-			"scaling":        true,
-			"pdu_sessions":   5000,
-			"cpu_request":    "300m",
-			"memory_request": "512Mi",
-		}
+		parameters = json.RawMessage("{}")
 		manifests = generateSMFManifests()
 	} else if strings.Contains(intentLower, "upf") {
 		intentType = "5G-Core-UPF"
 		networkFunction = "UPF"
-		parameters = map[string]interface{}{
-			"replicas":        2,
-			"dpdk_enabled":    true,
-			"edge_deployment": true,
-			"cpu_request":     "1000m",
-			"memory_request":  "2Gi",
-		}
+		parameters = json.RawMessage("{}")
 		manifests = generateUPFManifests()
 	} else if strings.Contains(intentLower, "ric") {
 		intentType = "O-RAN-Near-RT-RIC"
 		networkFunction = "Near-RT-RIC"
-		parameters = map[string]interface{}{
-			"replicas":       1,
-			"xapp_runtime":   true,
-			"ml_inference":   true,
-			"cpu_request":    "2000m",
-			"memory_request": "4Gi",
-		}
+		parameters = json.RawMessage("{}")
 		manifests = generateRICManifests()
 	} else {
 		// Default to generic 5G core function
 		intentType = "5G-Core-Generic"
 		networkFunction = "Generic"
-		parameters = map[string]interface{}{
-			"replicas":       2,
-			"scaling":        false,
-			"cpu_request":    "200m",
-			"memory_request": "256Mi",
-		}
+		parameters = json.RawMessage("{}")
 		manifests = generateGenericManifests()
 	}
 
@@ -705,44 +656,24 @@ func generateMockLLMResponse(intent string) *shared.LLMResponse {
 
 // generateAMFManifests generates AMF deployment manifests
 func generateAMFManifests() map[string]interface{} {
-	return map[string]interface{}{
-		"deployment": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "amf-deployment",
-				"labels": map[string]interface{}{
+			"metadata": json.RawMessage("{}"){
 					"app":       "amf",
 					"component": "5g-core",
 				},
 			},
-			"spec": map[string]interface{}{
-				"replicas": 3,
-				"selector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
-						"app": "amf",
-					},
+			"spec": json.RawMessage("{}"){
+					"matchLabels": json.RawMessage("{}"),
 				},
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
-							"app": "amf",
-						},
+				"template": json.RawMessage("{}"){
+						"labels": json.RawMessage("{}"),
 					},
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "amf",
-								"image": "amf:latest",
-								"resources": map[string]interface{}{
-									"requests": map[string]interface{}{
-										"cpu":    "500m",
-										"memory": "1Gi",
-									},
-									"limits": map[string]interface{}{
-										"cpu":    "2000m",
-										"memory": "4Gi",
-									},
+					"spec": json.RawMessage("{}"){
+							json.RawMessage("{}"){
+									"requests": json.RawMessage("{}"),
+									"limits": json.RawMessage("{}"),
 								},
 							},
 						},
@@ -750,21 +681,14 @@ func generateAMFManifests() map[string]interface{} {
 				},
 			},
 		},
-		"service": map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Service",
-			"metadata": map[string]interface{}{
+		"service": json.RawMessage("{}"){
 				"name": "amf-service",
 			},
-			"spec": map[string]interface{}{
-				"selector": map[string]interface{}{
+			"spec": json.RawMessage("{}"){
 					"app": "amf",
 				},
 				"ports": []interface{}{
-					map[string]interface{}{
-						"port":       80,
-						"targetPort": 8080,
-					},
+					json.RawMessage("{}"),
 				},
 			},
 		},
@@ -773,64 +697,44 @@ func generateAMFManifests() map[string]interface{} {
 
 // generateSMFManifests generates SMF deployment manifests
 func generateSMFManifests() map[string]interface{} {
-	return map[string]interface{}{
-		"deployment": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "smf-deployment",
-			},
-			"spec": map[string]interface{}{
-				"replicas": 2,
-			},
+			"metadata": json.RawMessage("{}"),
+			"spec": json.RawMessage("{}"),
 		},
 	}
 }
 
 // generateUPFManifests generates UPF deployment manifests
 func generateUPFManifests() map[string]interface{} {
-	return map[string]interface{}{
-		"deployment": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "upf-deployment",
-			},
-			"spec": map[string]interface{}{
-				"replicas": 2,
-			},
+			"metadata": json.RawMessage("{}"),
+			"spec": json.RawMessage("{}"),
 		},
 	}
 }
 
 // generateRICManifests generates RIC deployment manifests
 func generateRICManifests() map[string]interface{} {
-	return map[string]interface{}{
-		"deployment": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "near-rt-ric-deployment",
-			},
-			"spec": map[string]interface{}{
-				"replicas": 1,
-			},
+			"metadata": json.RawMessage("{}"),
+			"spec": json.RawMessage("{}"),
 		},
 	}
 }
 
 // generateGenericManifests generates generic deployment manifests
 func generateGenericManifests() map[string]interface{} {
-	return map[string]interface{}{
-		"deployment": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
-				"name": "generic-deployment",
-			},
-			"spec": map[string]interface{}{
-				"replicas": 2,
-			},
+			"metadata": json.RawMessage("{}"),
+			"spec": json.RawMessage("{}"),
 		},
 	}
 }

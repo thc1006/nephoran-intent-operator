@@ -485,27 +485,7 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 
 		ProviderID: azureUser.ID,
 
-		Attributes: map[string]interface{}{
-			"azure_id": azureUser.ID,
-
-			"user_principal_name": azureUser.UserPrincipalName,
-
-			"job_title": azureUser.JobTitle,
-
-			"department": azureUser.Department,
-
-			"company_name": azureUser.CompanyName,
-
-			"office_location": azureUser.OfficeLocation,
-
-			"preferred_language": azureUser.PreferredLanguage,
-
-			"account_enabled": azureUser.AccountEnabled,
-
-			"user_type": azureUser.UserType,
-
-			"tenant_id": p.tenantID,
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 
 	// Add tenant as organization if not multi-tenant.

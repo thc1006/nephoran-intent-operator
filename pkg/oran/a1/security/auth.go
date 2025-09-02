@@ -5,7 +5,9 @@
 package security
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -270,7 +272,7 @@ type AuthResult struct {
 
 	User *User `json:"user,omitempty"`
 
-	Claims map[string]interface{} `json:"claims,omitempty"`
+	Claims json.RawMessage `json:"claims,omitempty"`
 
 	SessionID string `json:"session_id,omitempty"`
 }

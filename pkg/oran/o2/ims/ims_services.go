@@ -91,13 +91,7 @@ func (s *IMSService) GetSystemInfo(ctx context.Context) (*models.SystemInfo, err
 			"deployment", "service", "configmap", "secret",
 		},
 
-		Extensions: map[string]interface{}{
-			"multi_cloud": true,
-
-			"kubernetes_native": true,
-
-			"auto_scaling": true,
-		},
+		Extensions: json.RawMessage("{}"),
 
 		Timestamp: time.Now(),
 	}, nil
@@ -345,13 +339,7 @@ func (s *InventoryService) GetNodes(ctx context.Context, filter *models.NodeFilt
 
 			Architecture: node.Status.NodeInfo.Architecture,
 
-			Extensions: map[string]interface{}{
-				"os": node.Status.NodeInfo.OperatingSystem,
-
-				"containerRuntime": node.Status.NodeInfo.ContainerRuntimeVersion,
-
-				"kubeletVersion": node.Status.NodeInfo.KubeletVersion,
-			},
+			Extensions: json.RawMessage("{}"),
 
 			CreatedAt: node.CreationTimestamp.Time,
 

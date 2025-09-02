@@ -1,7 +1,9 @@
 package health
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -402,7 +404,7 @@ type ReportSection struct {
 
 	Visualization VisualizationType `json:"visualization"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 }
 
 // ReportSectionType defines the type of report section.

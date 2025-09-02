@@ -610,17 +610,7 @@ func (m *MTLSManager) GetCertificateInfo() map[string]interface{} {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	return map[string]interface{}{
-		"service_name":             m.config.ServiceName,
-		"server_cert_expires":      m.serverCert.Leaf.NotAfter,
-		"client_cert_expires":      m.clientCert.Leaf.NotAfter,
-		"ca_cert_expires":          m.caCert.NotAfter,
-		"rotation_count":           m.rotationCount,
-		"auto_rotate_enabled":      m.config.AutoRotateEnabled,
-		"rotation_threshold":       m.config.RotationThreshold,
-		"days_until_server_expiry": time.Until(m.serverCert.Leaf.NotAfter).Hours() / 24,
-		"days_until_client_expiry": time.Until(m.clientCert.Leaf.NotAfter).Hours() / 24,
-	}
+	return json.RawMessage("{}")
 }
 
 // Helper functions

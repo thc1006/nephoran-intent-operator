@@ -1,7 +1,9 @@
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -11,7 +13,7 @@ import (
 type SearchResult struct {
 	ID         string                 `json:"id"`
 	Content    string                 `json:"content"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 	Score      float32                `json:"score"`
 	Distance   float32                `json:"distance"` // Added for test compatibility
 	Source     string                 `json:"source"`
@@ -30,7 +32,7 @@ type SearchQuery struct {
 	Limit         int                    `json:"limit,omitempty"`
 	Offset        int                    `json:"offset,omitempty"`
 	Threshold     float32                `json:"threshold,omitempty"`
-	Filters       map[string]interface{} `json:"filters,omitempty"`
+	Filters       json.RawMessage `json:"filters,omitempty"`
 	ContextID     string                 `json:"context_id,omitempty"`
 	UserID        string                 `json:"user_id,omitempty"`
 	Namespace     string                 `json:"namespace,omitempty"`
@@ -54,7 +56,7 @@ type RAGResponse struct {
 	Confidence  float64                `json:"confidence"`
 	Error       *RAGError              `json:"error,omitempty"`
 	ProcessedAt time.Time              `json:"processed_at,omitempty"` // When the response was processed
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`     // Additional metadata
+	Metadata    json.RawMessage `json:"metadata,omitempty"`     // Additional metadata
 }
 
 // TelecomDocument represents a telecom-specific document
@@ -76,7 +78,7 @@ type TelecomDocument struct {
 	Score           float64                `json:"score"`            // Added for test compatibility
 	UseCase         string                 `json:"use_case"`         // For compatibility
 	Timestamp       time.Time              `json:"timestamp"`        // For compatibility
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metadata        json.RawMessage `json:"metadata"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Indexed         bool                   `json:"indexed"`
@@ -115,7 +117,7 @@ type RAGServiceInterface interface {
 // QueryRequest represents a request for query processing
 type QueryRequest struct {
 	Query     string                 `json:"query"`
-	Filters   map[string]interface{} `json:"filters,omitempty"`
+	Filters   json.RawMessage `json:"filters,omitempty"`
 	Limit     int                    `json:"limit,omitempty"`
 	Threshold float32                `json:"threshold,omitempty"`
 	UserID    string                 `json:"user_id,omitempty"`

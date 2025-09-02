@@ -153,7 +153,7 @@ type AvailabilityReport struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AvailabilitySummary provides high-level availability metrics.
@@ -689,7 +689,7 @@ type DashboardPanel struct {
 
 	Data interface{} `json:"data"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // PanelPosition represents panel positioning in dashboard.
@@ -1147,12 +1147,7 @@ func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, re
 
 	// Add audit trail metadata.
 
-	report.Metadata = map[string]interface{}{
-		"audit_trail": true,
-
-		"compliance_period": fmt.Sprintf("%s to %s", report.StartTime.Format(time.RFC3339), report.EndTime.Format(time.RFC3339)),
-
-		"data_sources": []string{"availability_tracker", "synthetic_monitor", "dependency_tracker"},
+	report.Metadata = json.RawMessage("{}"),
 
 		"calculation_method": "weighted_business_impact",
 	}

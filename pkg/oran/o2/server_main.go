@@ -445,13 +445,7 @@ func SetupDefaultProviders(config *O2IMSConfig) {
 
 			Status: "ACTIVE",
 
-			Metadata: map[string]interface{}{
-				"in_cluster": true,
-
-				"environment": "development",
-
-				"default": "true",
-			},
+			Metadata: json.RawMessage("{}"),
 
 			CreatedAt: time.Now(),
 

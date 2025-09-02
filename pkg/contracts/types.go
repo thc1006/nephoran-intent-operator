@@ -17,6 +17,7 @@ limitations under the License.
 package contracts
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -75,7 +76,7 @@ type ComponentStatus struct {
 	Healthy    bool                   `json:"healthy"`
 	LastUpdate time.Time              `json:"lastUpdate"`
 	Version    string                 `json:"version,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 	Metrics    map[string]float64     `json:"metrics,omitempty"`
 	Errors     []string               `json:"errors,omitempty"`
 }
@@ -86,9 +87,9 @@ type NetworkIntent struct {
 	Type            string                 `json:"type" validate:"required,oneof=scaling deployment configuration"`
 	Priority        int                    `json:"priority" validate:"min=0,max=10"`
 	Description     string                 `json:"description" validate:"required,min=10,max=500"`
-	Parameters      map[string]interface{} `json:"parameters" validate:"required"`
+	Parameters      json.RawMessage `json:"parameters" validate:"required"`
 	TargetResources []string               `json:"target_resources" validate:"required,min=1"`
-	Constraints     map[string]interface{} `json:"constraints,omitempty"`
+	Constraints     json.RawMessage `json:"constraints,omitempty"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Status          string                 `json:"status" validate:"required,oneof=pending processing completed failed"`
@@ -104,7 +105,7 @@ type ScalingIntent struct {
 	CurrentScale   int                    `json:"current_scale" validate:"min=0"`
 	ScaleDirection string                 `json:"scale_direction" validate:"required,oneof=up down auto"`
 	Reason         string                 `json:"reason" validate:"required,min=5,max=200"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 	CreatedAt      time.Time              `json:"created_at"`
 	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
 	Status         string                 `json:"status" validate:"required,oneof=pending in-progress completed failed"`

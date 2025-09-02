@@ -130,9 +130,9 @@ type ProcessingSession struct {
 
 	IntentText string `json:"intentText"`
 
-	RAGContext map[string]interface{} `json:"ragContext,omitempty"`
+	RAGContext json.RawMessage `json:"ragContext,omitempty"`
 
-	LLMResponse map[string]interface{} `json:"llmResponse,omitempty"`
+	LLMResponse json.RawMessage `json:"llmResponse,omitempty"`
 
 	Confidence float64 `json:"confidence"`
 
@@ -564,19 +564,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 		NextPhase: interfaces.PhaseResourcePlanning,
 
-		Data: map[string]interface{}{
-			"llmResponse": llmResponse,
-
-			"ragContext": ragContext,
-
-			"confidence": confidence,
-
-			"intentType": intent.Spec.IntentType,
-
-			"originalIntent": intent.Spec.Intent,
-
-			"correlationId": session.CorrelationID,
-		},
+		Data: json.RawMessage("{}"),
 
 		Metrics: map[string]float64{
 			"processing_time_ms": float64(time.Since(startTime).Milliseconds()),
@@ -600,11 +588,7 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 				CorrelationID: session.CorrelationID,
 
-				Data: map[string]interface{}{
-					"intentId": intent.Name,
-
-					"confidence": confidence,
-				},
+				Data: json.RawMessage("{}"),
 			},
 		},
 	}
@@ -1245,17 +1229,7 @@ func (c *SpecializedIntentProcessingController) GetHealthStatus(ctx context.Cont
 
 	// Update metrics in health status.
 
-	c.healthStatus.Metrics = map[string]interface{}{
-		"totalProcessed": c.metrics.TotalProcessed,
-
-		"successRate": c.getSuccessRate(),
-
-		"averageLatency": c.metrics.AverageLatency.Milliseconds(),
-
-		"cacheHitRate": c.metrics.CacheHitRate,
-
-		"activeProcessing": c.getActiveProcessingCount(),
-	}
+	c.healthStatus.Metrics = json.RawMessage("{}")
 
 	c.healthStatus.LastChecked = time.Now()
 
@@ -1548,13 +1522,7 @@ func (c *SpecializedIntentProcessingController) performHealthCheck() {
 
 		LastChecked: time.Now(),
 
-		Metrics: map[string]interface{}{
-			"successRate": successRate,
-
-			"activeProcessing": activeCount,
-
-			"totalProcessed": c.metrics.TotalProcessed,
-		},
+		Metrics: json.RawMessage("{}"),
 	}
 }
 

@@ -130,11 +130,7 @@ func createIPAllowlistHandler(next http.Handler, allowedCIDRs []string, logger *
 				}
 
 				// Simulate successful processing
-				response := map[string]interface{}{
-					"status":    "success",
-					"result":    "test result",
-					"body_size": len(body),
-				}
+				response := json.RawMessage("{}")
 
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
@@ -484,11 +480,7 @@ func (h *MockLLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	response := map[string]interface{}{
-		"status":     "success",
-		"result":     "Mock processing result",
-		"request_id": "test-123",
-	}
+	response := json.RawMessage("{}")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)

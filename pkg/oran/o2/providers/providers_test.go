@@ -33,9 +33,7 @@ import (
 	// Test creating provider
 	config := ProviderConfig{
 		Type: "test",
-		Config: map[string]interface{}{
-			"name": "test-provider",
-		},
+		Config: json.RawMessage("{}"),
 	}
 
 	provider, err := factory.CreateProvider("test", config)
@@ -73,9 +71,7 @@ import (
 	// Initialize provider
 	config := ProviderConfig{
 		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "test-provider",
-		},
+		Config: json.RawMessage("{}"),
 	}
 
 	err = provider.Initialize(ctx, config)
@@ -97,9 +93,7 @@ import (
 	// Initialize provider
 	config := ProviderConfig{
 		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "test-provider",
-		},
+		Config: json.RawMessage("{}"),
 	}
 
 	err := provider.Initialize(ctx, config)
@@ -112,9 +106,7 @@ import (
 	req := ResourceRequest{
 		Name: "test-deployment",
 		Type: ResourceTypeDeployment,
-		Spec: map[string]interface{}{
-			"replicas": 3,
-		},
+		Spec: json.RawMessage("{}"),
 		Labels: map[string]string{
 			"env": "test",
 		},
@@ -160,9 +152,7 @@ import (
 	updateReq := ResourceRequest{
 		Name: "updated-deployment",
 		Type: ResourceTypeDeployment,
-		Spec: map[string]interface{}{
-			"replicas": 5,
-		},
+		Spec: json.RawMessage("{}"),
 		Labels: map[string]string{
 			"env":     "test",
 			"updated": "true",
@@ -243,9 +233,7 @@ import (
 	// Test CreateAndRegisterProvider
 	config := ProviderConfig{
 		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "registry-test-provider",
-		},
+		Config: json.RawMessage("{}"),
 	}
 
 	err = registry.CreateAndRegisterProvider("test-provider", "mock", config)
@@ -374,9 +362,7 @@ import (
 	// Test creating provider using global factory
 	config := ProviderConfig{
 		Type: "mock",
-		Config: map[string]interface{}{
-			"name": "global-test-provider",
-		},
+		Config: json.RawMessage("{}"),
 	}
 
 	provider, err := CreateGlobalProvider("mock", config)

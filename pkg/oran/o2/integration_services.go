@@ -819,8 +819,7 @@ func (i *IntegratedO2IMS) GetIntegratedMetrics(ctx context.Context) (*Integrated
 func (i *IntegratedO2IMS) GetResourceTopology(ctx context.Context) (map[string]interface{}, error) {
 	// This would return a comprehensive view of all resources and their relationships.
 
-	topology := map[string]interface{}{
-		"nodes": []map[string]interface{}{
+	topology := json.RawMessage("{}"){
 			{
 				"id": "infra-1",
 
@@ -838,21 +837,10 @@ func (i *IntegratedO2IMS) GetResourceTopology(ctx context.Context) (map[string]i
 			},
 		},
 
-		"edges": []map[string]interface{}{
-			{
-				"source": "infra-1",
-
-				"target": "cnf-1",
-
-				"type": "hosts",
-			},
+		"edges": []json.RawMessage("{}"),
 		},
 
-		"metadata": map[string]interface{}{
-			"timestamp": time.Now(),
-
-			"version": "1.0.0",
-		},
+		"metadata": json.RawMessage("{}"),
 	}
 
 	return topology, nil
@@ -891,8 +879,7 @@ func (i *IntegratedO2IMS) GetPredictiveAnalytics(ctx context.Context) (map[strin
 
 	// This would return predictive insights based on historical data.
 
-	analytics := map[string]interface{}{
-		"capacity_forecast": map[string]interface{}{
+	analytics := json.RawMessage("{}"){
 			"cpu_exhaustion_eta": "14 days",
 
 			"memory_exhaustion_eta": "21 days",
@@ -900,39 +887,13 @@ func (i *IntegratedO2IMS) GetPredictiveAnalytics(ctx context.Context) (map[strin
 			"storage_exhaustion_eta": "45 days",
 		},
 
-		"failure_predictions": []map[string]interface{}{
-			{
-				"resource_id": "node-1",
-
-				"failure_probability": 0.15,
-
-				"predicted_failure_time": time.Now().Add(72 * time.Hour),
-
-				"recommended_action": "schedule_maintenance",
-			},
+		"failure_predictions": []json.RawMessage("{}"),
 		},
 
-		"cost_projections": map[string]interface{}{
-			"monthly_trend": "+12%",
-
-			"optimization_potential": "$3,200",
-
-			"recommendations": []string{
-				"rightsizing_instances",
-
-				"reserved_capacity",
-
-				"unused_resource_cleanup",
-			},
+		"cost_projections": json.RawMessage("{}"),
 		},
 
-		"performance_trends": map[string]interface{}{
-			"latency_trend": "+5ms over 30 days",
-
-			"throughput_trend": "-2% over 30 days",
-
-			"availability_trend": "99.95% stable",
-		},
+		"performance_trends": json.RawMessage("{}"),
 	}
 
 	return analytics, nil
@@ -945,8 +906,7 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 
 	// This would analyze current usage trends and project future capacity needs.
 
-	planning := map[string]interface{}{
-		"current_utilization": map[string]interface{}{
+	planning := json.RawMessage("{}"){
 			"cpu": "68%",
 
 			"memory": "74%",
@@ -956,26 +916,9 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 			"network": "34%",
 		},
 
-		"projected_utilization": map[string]interface{}{
-			"cpu": "85%",
+		"projected_utilization": json.RawMessage("{}"),
 
-			"memory": "89%",
-
-			"storage": "67%",
-
-			"network": "45%",
-		},
-
-		"recommendations": []map[string]interface{}{
-			{
-				"action": "add_compute_nodes",
-
-				"quantity": 3,
-
-				"timeline": "6 weeks",
-
-				"estimated_cost": 12000.00,
-			},
+		"recommendations": []json.RawMessage("{}"),
 
 			{
 				"action": "expand_storage",
@@ -988,13 +931,7 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 			},
 		},
 
-		"risk_assessment": map[string]interface{}{
-			"capacity_exhaustion_risk": "medium",
-
-			"performance_degradation_risk": "low",
-
-			"cost_impact": "medium",
-		},
+		"risk_assessment": json.RawMessage("{}"),
 	}
 
 	return planning, nil
@@ -1007,49 +944,20 @@ func (i *IntegratedO2IMS) GetComplianceReport(ctx context.Context) (map[string]i
 
 	// This would generate a comprehensive compliance report.
 
-	report := map[string]interface{}{
-		"overall_compliance": "95%",
-
-		"timestamp": time.Now(),
-
-		"categories": map[string]interface{}{
-			"security": map[string]interface{}{
-				"score": "98%",
-
-				"issues": []string{},
+	report := json.RawMessage("{}"){
+			"security": json.RawMessage("{}"),
 
 				"recommendations": []string{
 					"enable_pod_security_policies",
 				},
 			},
 
-			"performance": map[string]interface{}{
-				"score": "92%",
-
-				"sla_compliance": "99.5%",
-
-				"issues": []string{
-					"high_latency_detected_in_region_us-east",
-				},
+			"performance": json.RawMessage("{}"),
 			},
 
-			"availability": map[string]interface{}{
-				"score": "99%",
+			"availability": json.RawMessage("{}"),
 
-				"uptime": "99.95%",
-
-				"mttr": "15 minutes",
-
-				"mtbf": "720 hours",
-			},
-
-			"cost": map[string]interface{}{
-				"score": "87%",
-
-				"efficiency": "good",
-
-				"waste_detected": "$1,200/month",
-			},
+			"cost": json.RawMessage("{}"),
 		},
 	}
 

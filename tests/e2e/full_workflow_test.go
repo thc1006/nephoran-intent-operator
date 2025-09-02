@@ -18,7 +18,7 @@ import (
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)", func() {
+var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func() {
 	var (
 		ctx             context.Context
 		namespace       string
@@ -78,12 +78,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 			Skip("Skipping LLM service interaction until service is available in test environment")
 
 			// This would be enabled when LLM service is running
-			llmRequest := map[string]interface{}{
-				"intent":            createdIntent.Spec.Intent,
-				"intent_type":       string(createdIntent.Spec.IntentType),
-				"target_components": createdIntent.Spec.TargetComponents,
-				"priority":          createdIntent.Spec.Priority,
-			}
+			llmRequest := json.RawMessage("{}")
 
 			jsonPayload, err := json.Marshal(llmRequest)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -129,12 +124,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 			By("Step 5: Verifying RAG knowledge retrieval (if service available)")
 			Skip("Skipping RAG service interaction until service is available in test environment")
 
-			ragQuery := map[string]interface{}{
-				"query":       "UPF scaling best practices and resource requirements",
-				"intent_type": "scaling",
-				"context":     "network_function_scaling",
-				"top_k":       5,
-			}
+			ragQuery := json.RawMessage("{}")
 
 			ragPayload, err := json.Marshal(ragQuery)
 			Expect(err).ShouldNot(HaveOccurred())

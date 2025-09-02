@@ -1,7 +1,9 @@
 package errors
 
 import (
-	"crypto/sha256"
+	
+	"encoding/json"
+"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -64,7 +66,7 @@ type ErrorPattern struct {
 
 	RelatedPatterns []string `json:"related_patterns"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ErrorCorrelation represents correlations between errors.

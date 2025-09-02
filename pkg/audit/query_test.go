@@ -67,10 +67,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 			NetworkContext: &NetworkContext{
 				SourcePort: 8080,
 			},
-			Data: map[string]interface{}{
-				"session_id": "session_123",
-				"duration":   300,
-			},
+			Data: json.RawMessage("{}"),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -88,10 +85,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 			NetworkContext: &NetworkContext{
 				SourcePort: 8080,
 			},
-			Data: map[string]interface{}{
-				"failure_reason": "invalid_password",
-				"attempts":       3,
-			},
+			Data: json.RawMessage("{}"),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -111,10 +105,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				ResourceID:   "user123",
 				Operation:    "read",
 			},
-			Data: map[string]interface{}{
-				"records_accessed": 5,
-				"sensitive":        true,
-			},
+			Data: json.RawMessage("{}"),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -129,10 +120,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				Username: "charlie",
 				Role:     "operator",
 			},
-			Data: map[string]interface{}{
-				"policy_id":   "policy_456",
-				"change_type": "security_update",
-			},
+			Data: json.RawMessage("{}"),
 		},
 		{
 			ID:        uuid.New().String(),
@@ -147,10 +135,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				Username: "",
 				Role:     "",
 			},
-			Data: map[string]interface{}{
-				"violation_type": "suspicious_activity",
-				"risk_score":     95,
-			},
+			Data: json.RawMessage("{}"),
 		},
 	}
 }
@@ -198,9 +183,7 @@ func (suite *QueryEngineTestSuite) TestBasicEventRetrieval() {
 func (suite *QueryEngineTestSuite) TestEventFiltering() {
 	suite.Run("filter by event type", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"event_type": "authentication",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -212,8 +195,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by multiple event types", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"event_type": []string{"authentication", "authentication_failed"},
+			Filters: json.RawMessage("{}"),
 			},
 			Limit: 100,
 		}
@@ -232,9 +214,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by severity", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"severity": "critical",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -246,10 +226,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by severity range", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"min_severity": "warning",
-				"max_severity": "critical",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -265,9 +242,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by component", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"component": "auth-service",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -282,9 +257,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by user", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"user_id": "user1",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -299,9 +272,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by result", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"result": "failure",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -496,8 +467,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			TextSearch: "auth",
 			StartTime:  now.Add(-24 * time.Hour),
 			EndTime:    now.Add(-1 * time.Hour),
-			Filters: map[string]interface{}{
-				"severity": []string{"info", "warning"},
+			Filters: json.RawMessage("{}"),
 				"result":   "success",
 			},
 			SortBy:    "timestamp",
@@ -519,9 +489,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 
 	suite.Run("nested data filtering", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"data.sensitive": true,
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -532,9 +500,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 
 	suite.Run("user context filtering", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"user_context.role": "admin",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -549,9 +515,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 
 	suite.Run("resource context filtering", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"resource_context.operation": "read",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -599,12 +563,8 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 func (suite *QueryEngineTestSuite) TestAggregations() {
 	suite.Run("count by event type", func() {
 		query := &Query{
-			Aggregations: map[string]interface{}{
-				"event_types": map[string]interface{}{
-					"terms": map[string]interface{}{
-						"field": "event_type",
-						"size":  10,
-					},
+			Aggregations: json.RawMessage("{}"){
+					"terms": json.RawMessage("{}"),
 				},
 			},
 			Limit: 0, // No events, just aggregations
@@ -618,11 +578,8 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 
 	suite.Run("count by severity", func() {
 		query := &Query{
-			Aggregations: map[string]interface{}{
-				"severities": map[string]interface{}{
-					"terms": map[string]interface{}{
-						"field": "severity",
-					},
+			Aggregations: json.RawMessage("{}"){
+					"terms": json.RawMessage("{}"),
 				},
 			},
 			Limit: 0,
@@ -636,12 +593,8 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 
 	suite.Run("date histogram", func() {
 		query := &Query{
-			Aggregations: map[string]interface{}{
-				"events_over_time": map[string]interface{}{
-					"date_histogram": map[string]interface{}{
-						"field":    "timestamp",
-						"interval": "1h",
-					},
+			Aggregations: json.RawMessage("{}"){
+					"date_histogram": json.RawMessage("{}"),
 				},
 			},
 			Limit: 0,
@@ -672,9 +625,7 @@ func (suite *QueryEngineTestSuite) TestQueryPerformance() {
 		}
 
 		query := &Query{
-			Filters: map[string]interface{}{
-				"component": "component_0",
-			},
+			Filters: json.RawMessage("{}"),
 			SortBy:    "timestamp",
 			SortOrder: "desc",
 			Limit:     100,
@@ -705,9 +656,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 
 	suite.Run("invalid filter value", func() {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"severity": "invalid_severity",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -757,10 +706,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 					WithLimit(50)
 			},
 			expected: &Query{
-				Filters: map[string]interface{}{
-					"event_type": EventTypeAuthentication,
-					"severity":   SeverityError,
-				},
+				Filters: json.RawMessage("{}"),
 				Limit: 50,
 			},
 		},
@@ -777,9 +723,7 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 			expected: &Query{
 				StartTime: time.Now().Add(-24 * time.Hour),
 				EndTime:   time.Now(),
-				Filters: map[string]interface{}{
-					"component": "auth-service",
-				},
+				Filters: json.RawMessage("{}"),
 				SortBy:    "timestamp",
 				SortOrder: "desc",
 			},
@@ -791,23 +735,16 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 					WithQuery("error").
 					WithUser("user123").
 					WithResult(ResultFailure).
-					WithAggregation("severity_counts", map[string]interface{}{
-						"terms": map[string]interface{}{
+					WithAggregation("severity_counts", json.RawMessage("{}"){
 							"field": "severity",
 						},
 					})
 			},
 			expected: &Query{
 				TextSearch: "error",
-				Filters: map[string]interface{}{
-					"user_id": "user123",
-					"result":  ResultFailure,
-				},
-				Aggregations: map[string]interface{}{
-					"severity_counts": map[string]interface{}{
-						"terms": map[string]interface{}{
-							"field": "severity",
-						},
+				Filters: json.RawMessage("{}"),
+				Aggregations: json.RawMessage("{}"){
+						"terms": json.RawMessage("{}"),
 					},
 				},
 			},
@@ -872,9 +809,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 	b.Run("simple filter", func(b *testing.B) {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"component": "comp_0",
-			},
+			Filters: json.RawMessage("{}"),
 			Limit: 100,
 		}
 
@@ -886,8 +821,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 	b.Run("complex filter with sort", func(b *testing.B) {
 		query := &Query{
-			Filters: map[string]interface{}{
-				"severity": []string{"error", "warning"},
+			Filters: json.RawMessage("{}"),
 			},
 			SortBy:    "timestamp",
 			SortOrder: "desc",

@@ -1184,19 +1184,7 @@ func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 		hitRate = float64(l.stats.Hits) / float64(total) * 100
 	}
 
-	return map[string]interface{}{
-		"hits": l.stats.Hits,
-
-		"misses": l.stats.Misses,
-
-		"hit_rate": hitRate,
-
-		"evictions": l.stats.Evictions,
-
-		"total_loads": l.stats.TotalLoads,
-
-		"avg_load_time": l.stats.LoadTime / time.Duration(l.stats.TotalLoads+1),
-	}
+	return json.RawMessage("{}")
 }
 
 // ClearCache clears all caches.
@@ -1330,13 +1318,7 @@ func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
 
 	defer l.mu.RUnlock()
 
-	data := map[string]interface{}{
-		"metadata": l.metadata,
-
-		"keywordIndex": l.keywordIndex,
-
-		"compressedData": l.compressedData,
-	}
+	data := json.RawMessage("{}")
 
 	compressed, err := l.compress(data)
 	if err != nil {

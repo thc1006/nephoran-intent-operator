@@ -1,7 +1,9 @@
 package providers
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -165,7 +167,7 @@ type TokenResponse struct {
 
 	// Provider-specific fields.
 
-	Extra map[string]interface{} `json:"extra,omitempty"`
+	Extra json.RawMessage `json:"extra,omitempty"`
 }
 
 // UserInfo represents user information from identity provider.
@@ -223,7 +225,7 @@ type UserInfo struct {
 
 	ProviderID string `json:"provider_id"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 }
 
 // Organization represents user's organization.
@@ -377,7 +379,7 @@ type IDTokenClaims struct {
 
 	Roles []string `json:"roles,omitempty"`
 
-	Extra map[string]interface{} `json:"-"`
+	Extra json.RawMessage `json:"-"`
 }
 
 // JWKS represents JSON Web Key Set.
@@ -439,7 +441,7 @@ type ProviderConfig struct {
 
 	Features []ProviderFeature `json:"features"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ProviderEndpoints represents OAuth2/OIDC endpoints.

@@ -1081,13 +1081,7 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 
 		rc.crlCache.mu.RLock()
 
-		stats["crl_cache"] = map[string]interface{}{
-			"entries": len(rc.crlCache.cache),
-
-			"max_size": rc.crlCache.maxSize,
-
-			"ttl": rc.crlCache.ttl.String(),
-		}
+		stats["crl_cache"] = json.RawMessage("{}")
 
 		rc.crlCache.mu.RUnlock()
 
@@ -1097,13 +1091,7 @@ func (rc *RevocationChecker) GetCacheStats() map[string]interface{} {
 
 		rc.ocspCache.mu.RLock()
 
-		stats["ocsp_cache"] = map[string]interface{}{
-			"entries": len(rc.ocspCache.cache),
-
-			"max_size": rc.ocspCache.maxSize,
-
-			"ttl": rc.ocspCache.ttl.String(),
-		}
+		stats["ocsp_cache"] = json.RawMessage("{}")
 
 		rc.ocspCache.mu.RUnlock()
 

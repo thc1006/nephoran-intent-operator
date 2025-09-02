@@ -51,7 +51,7 @@ type PerformanceComparison struct {
 }
 
 func main() {
-	fmt.Println("🚀 Nephoran Intent Operator - Go 1.24+ Performance Comparison")
+	fmt.Println("?? Nephoran Intent Operator - Go 1.24+ Performance Comparison")
 	fmt.Println("============================================================")
 
 	// Create test framework
@@ -74,12 +74,12 @@ func main() {
 	// Save current metrics as new baseline
 	saveMetricsAsBaseline(currentMetrics)
 
-	fmt.Println("✅ Performance comparison completed successfully!")
+	fmt.Println("??Performance comparison completed successfully!")
 }
 
 // runPerformanceTests executes comprehensive performance tests
 func runPerformanceTests(framework *testing.Go1_24TestFramework) *PerformanceMetrics {
-	fmt.Println("📊 Running performance tests...")
+	fmt.Println("?? Running performance tests...")
 
 	var memStatsBefore, memStatsAfter runtime.MemStats
 	runtime.GC()
@@ -152,9 +152,7 @@ func benchmarkJSONProcessing() int64 {
 	processor := performance.NewJSONOptimized()
 
 	// Test data
-	testData := map[string]interface{}{
-		"intent": "NetworkIntent",
-		"spec": map[string]interface{}{
+	testData := json.RawMessage("{}"){
 			"networkFunction": "AMF",
 			"parameters":      []string{"param1", "param2", "param3"},
 		},
@@ -217,7 +215,7 @@ func benchmarkCryptographicOperations() int64 {
 func loadBaselineMetrics() *PerformanceMetrics {
 	file, err := os.Open("performance-baseline.json")
 	if err != nil {
-		fmt.Println("📋 No baseline metrics found, creating new baseline...")
+		fmt.Println("?? No baseline metrics found, creating new baseline...")
 		return nil
 	}
 	defer file.Close()
@@ -228,7 +226,7 @@ func loadBaselineMetrics() *PerformanceMetrics {
 		return nil
 	}
 
-	fmt.Printf("📈 Loaded baseline metrics from: %s\n", metrics.Timestamp.Format("2006-01-02 15:04:05"))
+	fmt.Printf("?? Loaded baseline metrics from: %s\n", metrics.Timestamp.Format("2006-01-02 15:04:05"))
 	return &metrics
 }
 
@@ -244,7 +242,7 @@ func comparePerformance(baseline, current *PerformanceMetrics) *PerformanceCompa
 		}
 	}
 
-	fmt.Println("🔍 Comparing performance metrics...")
+	fmt.Println("?? Comparing performance metrics...")
 
 	results := []ComparisonResult{
 		compareMetric("HTTP Requests/sec", float64(baseline.HTTPRequestsPerSec), float64(current.HTTPRequestsPerSec)),
@@ -334,7 +332,7 @@ func generateJSONReport(comparison *PerformanceComparison) {
 		return
 	}
 
-	fmt.Println("📄 JSON report generated: performance-comparison.json")
+	fmt.Println("?? JSON report generated: performance-comparison.json")
 }
 
 // generateTextReport creates a human-readable text report
@@ -363,7 +361,7 @@ func generateTextReport(comparison *PerformanceComparison) {
 		fmt.Fprintf(file, "  Status: %s\n\n", result.Status)
 	}
 
-	fmt.Println("📄 Text report generated: performance-comparison.txt")
+	fmt.Println("?? Text report generated: performance-comparison.txt")
 }
 
 // generateMarkdownReport creates a markdown performance report
@@ -386,11 +384,11 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	fmt.Fprintf(file, "|--------|-----------|-----------|-------------|--------|\n")
 
 	for _, result := range comparison.Results {
-		status := "✅"
+		status := "??
 		if result.Status == "Degraded" {
-			status = "❌"
+			status = "??
 		} else if result.Status == "Unchanged" {
-			status = "🔄"
+			status = "??"
 		}
 
 		fmt.Fprintf(file, "| %s | %.2f | %.2f | %.2f%% | %s %s |\n",
@@ -419,7 +417,7 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	fmt.Fprintf(file, "3. Continue optimization efforts\n")
 	fmt.Fprintf(file, "4. Update performance baselines\n")
 
-	fmt.Println("📄 Markdown report generated: performance-comparison.md")
+	fmt.Println("?? Markdown report generated: performance-comparison.md")
 }
 
 // saveMetricsAsBaseline saves current metrics as new baseline
@@ -438,5 +436,5 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 		return
 	}
 
-	fmt.Println("💾 Current metrics saved as new baseline")
+	fmt.Println("?�� Current metrics saved as new baseline")
 }

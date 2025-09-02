@@ -42,15 +42,12 @@ type SharedMockRAGService struct {
 func NewSharedMockRAGService() *SharedMockRAGService {
 	return &SharedMockRAGService{
 		responses: make(map[string]*rag.RetrievalResponse),
-		documents: []map[string]interface{}{
-			{
-				"content":    "AMF (Access and Mobility Management Function) is a key component of 5G Core Network",
-				"metadata":   map[string]interface{}{"source": "3GPP TS 23.501", "section": "6.2.2"},
+		documents: []json.RawMessage("{}"){"source": "3GPP TS 23.501", "section": "6.2.2"},
 				"similarity": 0.9,
 			},
 			{
 				"content":    "SMF (Session Management Function) handles PDU sessions in 5G networks",
-				"metadata":   map[string]interface{}{"source": "3GPP TS 23.502", "section": "4.3.2"},
+				"metadata":   json.RawMessage("{}"),
 				"similarity": 0.85,
 			},
 		},
@@ -101,12 +98,7 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 
 	// Convert rag.Doc to map[string]interface{}
 	for i, doc := range documents {
-		response.Documents[i] = map[string]interface{}{
-			"id":         doc.ID,
-			"content":    doc.Content,
-			"confidence": doc.Confidence,
-			"metadata":   doc.Metadata,
-		}
+		response.Documents[i] = json.RawMessage("{}")
 	}
 
 	if args.Error(1) != nil {
@@ -228,15 +220,7 @@ func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, 
 	}
 
 	// Return mock calculation result
-	result := map[string]interface{}{
-		"cpu_requirements":     "500m",
-		"memory_requirements":  "1Gi",
-		"storage_requirements": "10Gi",
-		"estimated_cost":       0.05,
-		"optimization_suggestions": []string{
-			"Consider using CPU burst for variable workloads",
-			"Memory overcommit ratio can be increased to 1.2",
-		},
+	result := json.RawMessage("{}"),
 	}
 
 	if args.Error(1) != nil {

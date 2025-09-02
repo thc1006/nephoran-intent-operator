@@ -74,19 +74,11 @@ func (s *E2ETestSuite) TearDownSuite() {
 func (s *E2ETestSuite) TestFullWorkflow_IntentIngestionToHandoff() {
 	s.T().Run("ingests intent and creates handoff file", func(t *testing.T) {
 		// Prepare test intent
-		intent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		intent := json.RawMessage("{}"){
 				"name":      "e2e-test-intent",
 				"namespace": "default",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-				"replicas":   3,
-				"source":     "e2e-test",
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		intentJSON, err := json.Marshal(intent)
@@ -147,8 +139,7 @@ func (s *E2ETestSuite) TestMetricsCollection() {
 	s.T().Run("metrics endpoints provide Prometheus metrics", func(t *testing.T) {
 		// Send a few requests first to generate metrics
 		for i := 0; i < 5; i++ {
-			intent := map[string]interface{}{
-				"spec": map[string]interface{}{
+			intent := json.RawMessage("{}"){
 					"intent": fmt.Sprintf("Metrics test intent %d", i),
 				},
 			}
@@ -237,10 +228,7 @@ func (s *E2ETestSuite) TestLoadHandling() {
 			requests    = 50
 		)
 
-		intent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"spec": map[string]interface{}{
+		intent := json.RawMessage("{}"){
 				"intentType": "scaling",
 				"target":     "load-test-deployment",
 				"replicas":   2,
@@ -296,8 +284,7 @@ func (s *E2ETestSuite) TestLoadHandling() {
 func (s *E2ETestSuite) TestServiceRecovery() {
 	s.T().Run("service recovers gracefully from simulated failures", func(t *testing.T) {
 		// Verify service is working
-		intent := map[string]interface{}{
-			"spec": map[string]interface{}{
+		intent := json.RawMessage("{}"){
 				"intent": "Recovery test intent",
 			},
 		}
@@ -343,17 +330,10 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 		for workerID := 0; workerID < numWorkers; workerID++ {
 			go func(id int) {
 				for i := 0; i < requestsPerWorker; i++ {
-					intent := map[string]interface{}{
-						"apiVersion": "intent.nephoran.com/v1alpha1",
-						"kind":       "NetworkIntent",
-						"metadata": map[string]interface{}{
+					intent := json.RawMessage("{}"){
 							"name": fmt.Sprintf("integrity-test-w%d-r%d", id, i),
 						},
-						"spec": map[string]interface{}{
-							"intentType": "scaling",
-							"target":     fmt.Sprintf("worker-%d-target-%d", id, i),
-							"replicas":   i + 1,
-						},
+						"spec": json.RawMessage("{}"),
 					}
 
 					intentJSON, err := json.Marshal(intent)
@@ -421,47 +401,22 @@ func (s *E2ETestSuite) TestDataIntegrity() {
 func (s *E2ETestSuite) createTestSchema() {
 	schemaFile := filepath.Join(s.tempDir, "intent.schema.json")
 
-	schema := map[string]interface{}{
-		"$schema": "http://json-schema.org/draft-07/schema#",
-		"type":    "object",
-		"title":   "NetworkIntent Schema",
-		"properties": map[string]interface{}{
-			"apiVersion": map[string]interface{}{
-				"type": "string",
-				"enum": []string{"intent.nephoran.com/v1alpha1"},
+	schema := json.RawMessage("{}"){
+			"apiVersion": json.RawMessage("{}"),
 			},
-			"kind": map[string]interface{}{
-				"type": "string",
-				"enum": []string{"NetworkIntent"},
+			"kind": json.RawMessage("{}"),
 			},
-			"metadata": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"name": map[string]interface{}{
-						"type": "string",
-					},
-					"namespace": map[string]interface{}{
-						"type": "string",
-					},
+			"metadata": json.RawMessage("{}"){
+					"name": json.RawMessage("{}"),
+					"namespace": json.RawMessage("{}"),
 				},
 			},
-			"spec": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"intentType": map[string]interface{}{
-						"type": "string",
-						"enum": []string{"scaling", "deployment", "configuration"},
+			"spec": json.RawMessage("{}"){
+					"intentType": json.RawMessage("{}"),
 					},
-					"target": map[string]interface{}{
-						"type": "string",
-					},
-					"replicas": map[string]interface{}{
-						"type":    "integer",
-						"minimum": 0,
-					},
-					"intent": map[string]interface{}{
-						"type": "string",
-					},
+					"target": json.RawMessage("{}"),
+					"replicas": json.RawMessage("{}"),
+					"intent": json.RawMessage("{}"),
 				},
 			},
 		},

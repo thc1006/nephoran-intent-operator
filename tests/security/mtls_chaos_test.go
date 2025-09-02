@@ -659,10 +659,7 @@ func (f *FaultInjector) injectIntermittentCAFailure(duration time.Duration, inte
 		Type:      "INTERMITTENT_CA_FAILURE",
 		StartTime: time.Now(),
 		Duration:  duration,
-		Parameters: map[string]interface{}{
-			"interval":    interval,
-			"failureRate": failureRate,
-		},
+		Parameters: json.RawMessage("{}"),
 		StopChannel: make(chan bool),
 	}
 
@@ -703,9 +700,7 @@ func (f *FaultInjector) injectNetworkPartition(target string, duration time.Dura
 		Type:      "NETWORK_PARTITION",
 		StartTime: time.Now(),
 		Duration:  duration,
-		Parameters: map[string]interface{}{
-			"target": target,
-		},
+		Parameters: json.RawMessage("{}"),
 		StopChannel: make(chan bool),
 	}
 
@@ -726,10 +721,7 @@ func (f *FaultInjector) injectNetworkDegradation(packetLoss int, latency time.Du
 		Type:      "NETWORK_DEGRADATION",
 		StartTime: time.Now(),
 		Duration:  duration,
-		Parameters: map[string]interface{}{
-			"packetLoss": packetLoss,
-			"latency":    latency,
-		},
+		Parameters: json.RawMessage("{}"),
 		StopChannel: make(chan bool),
 	}
 

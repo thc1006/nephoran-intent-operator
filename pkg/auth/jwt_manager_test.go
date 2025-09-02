@@ -174,9 +174,7 @@ import (
 		{
 			name:     "Token with custom claims",
 			userInfo: user,
-			customClaims: map[string]interface{}{
-				"custom_field": "custom_value",
-				"roles":        []string{"admin", "user"},
+			customClaims: json.RawMessage("{}"),
 			},
 			expectError: false,
 			checkToken: func(t *testing.T, tokenStr string) {
@@ -565,8 +563,7 @@ import (
 	uf := authtestutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	customClaims := map[string]interface{}{
-		"roles":       []string{"admin", "user"},
+	customClaims := json.RawMessage("{}"),
 		"permissions": []string{"read", "write"},
 		"department":  "engineering",
 	}
@@ -658,8 +655,7 @@ import (
 		{
 			name:     "Token pair with custom claims",
 			userInfo: user,
-			customClaims: map[string]interface{}{
-				"roles": []string{"admin"},
+			customClaims: json.RawMessage("{}"),
 			},
 			expectError: false,
 			checkTokens: func(t *testing.T, accessToken, refreshToken string) {

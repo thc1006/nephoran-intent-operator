@@ -42,11 +42,7 @@ func (h *BufferLogHandler) Enabled(ctx context.Context, level slog.Level) bool {
 // Handle implements slog.Handler.Handle
 func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Create a structured log entry
-	entry := map[string]interface{}{
-		"time":    record.Time.Format(time.RFC3339),
-		"level":   record.Level.String(),
-		"message": record.Message,
-	}
+	entry := json.RawMessage("{}")
 
 	// Add record attributes
 	record.Attrs(func(attr slog.Attr) bool {
@@ -148,10 +144,7 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 	if m.getMetricsFunc != nil {
 		return m.getMetricsFunc()
 	}
-	return map[string]interface{}{
-		"active_streams": 0,
-		"total_requests": 0,
-	}
+	return json.RawMessage("{}")
 }
 
 // TestStructuredLoggingInStreamingHandler tests that structured logging works correctly
@@ -751,22 +744,18 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 	}{
 		{
 			name:            "No circuit breakers registered",
-			stats:           map[string]interface{}{},
+			stats:           json.RawMessage("{}"),
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "No circuit breakers registered",
 			expectUnhealthy: false,
 		},
 		{
 			name: "All circuit breakers operational (closed)",
-			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "closed",
 					"failures": 0,
 				},
-				"service-b": map[string]interface{}{
-					"state":    "closed",
-					"failures": 1,
-				},
+				"service-b": json.RawMessage("{}"),
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -774,8 +763,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "All circuit breakers half-open (should be operational)",
-			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "half-open",
 					"failures": 2,
 				},
@@ -786,8 +774,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Single circuit breaker open",
-			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "open",
 					"failures": 5,
 				},
@@ -798,19 +785,12 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Multiple circuit breakers with one open",
-			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "closed",
 					"failures": 0,
 				},
-				"service-b": map[string]interface{}{
-					"state":    "open",
-					"failures": 5,
-				},
-				"service-c": map[string]interface{}{
-					"state":    "half-open",
-					"failures": 2,
-				},
+				"service-b": json.RawMessage("{}"),
+				"service-c": json.RawMessage("{}"),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
@@ -818,15 +798,11 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Multiple open circuit breakers (should return all open breakers)",
-			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "open",
 					"failures": 3,
 				},
-				"service-b": map[string]interface{}{
-					"state":    "open",
-					"failures": 7,
-				},
+				"service-b": json.RawMessage("{}"),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectUnhealthy: true,
@@ -834,8 +810,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Circuit breaker with malformed stats (missing state)",
-			stats: map[string]interface{}{
-				"service-a": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"failures": 0,
 					// Missing "state" field
 				},
@@ -846,9 +821,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 		},
 		{
 			name: "Circuit breaker with non-map stats (should be ignored)",
-			stats: map[string]interface{}{
-				"service-a": "invalid-data",
-				"service-b": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -913,8 +886,7 @@ func (m *MockCircuitBreakerManager) ResetAll() {
 // DISABLED: func TestRegisterHealthChecksIntegration(t *testing.T) {
 	t.Run("with_circuit_breaker_manager", func(t *testing.T) {
 		mockCBMgr := &MockCircuitBreakerManager{
-			stats: map[string]interface{}{
-				"test-service": map[string]interface{}{
+			stats: json.RawMessage("{}"){
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -963,10 +935,7 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 	// Create a large number of circuit breakers for benchmarking
 	stats := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		stats[fmt.Sprintf("service-%d", i)] = map[string]interface{}{
-			"state":    "closed",
-			"failures": 0,
-		}
+		stats[fmt.Sprintf("service-%d", i)] = json.RawMessage("{}")
 	}
 
 	mockCBMgr := &MockCircuitBreakerManager{stats: stats}

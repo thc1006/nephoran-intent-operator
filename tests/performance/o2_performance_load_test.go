@@ -84,7 +84,7 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	defer pm.mutex.RUnlock()
 
 	if len(pm.durations) == 0 {
-		return map[string]interface{}{}
+		return json.RawMessage("{}")
 	}
 
 	// Sort durations for percentile calculations
@@ -105,18 +105,7 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	p95 := sortedDurations[count*95/100]
 	p99 := sortedDurations[count*99/100]
 
-	return map[string]interface{}{
-		"requestCount":  pm.requestCount,
-		"errorCount":    pm.errorCount,
-		"errorRate":     float64(pm.errorCount) / float64(pm.requestCount) * 100,
-		"avgDuration":   time.Duration(pm.totalDuration / pm.requestCount),
-		"minDuration":   time.Duration(pm.minDuration),
-		"maxDuration":   time.Duration(pm.maxDuration),
-		"p50Duration":   p50,
-		"p95Duration":   p95,
-		"p99Duration":   p99,
-		"throughputRPS": float64(pm.requestCount) / (time.Duration(pm.totalDuration).Seconds()),
-	}
+	return json.RawMessage("{}")
 }
 
 var _ = Describe("O2 Performance and Load Testing Suite", func() {
@@ -144,26 +133,8 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 			ServerAddress: "127.0.0.1",
 			ServerPort:    0,
 			TLSEnabled:    false,
-			DatabaseConfig: map[string]interface{}{
-				"type":            "memory",
-				"database":        "o2_perf_test_db",
-				"connectionPool":  100,
-				"maxIdleConns":    25,
-				"maxOpenConns":    100,
-				"connMaxLifetime": "1h",
-			},
-			PerformanceConfig: map[string]interface{}{
-				"maxConcurrentRequests": 500,
-				"requestTimeout":        "30s",
-				"keepAliveTimeout":      "60s",
-				"idleTimeout":           "120s",
-				"readTimeout":           "30s",
-				"writeTimeout":          "30s",
-				"enableCompression":     true,
-				"cacheEnabled":          true,
-				"cacheSize":             1000,
-				"cacheTTL":              "5m",
-			},
+			DatabaseConfig: json.RawMessage("{}"),
+			PerformanceConfig: json.RawMessage("{}"),
 		}
 
 		var err error
@@ -265,10 +236,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								Utilization: 20.0,
 							},
 						},
-						Extensions: map[string]interface{}{
-							"performanceTest": true,
-							"iteration":       i,
-						},
+						Extensions: json.RawMessage("{}"),
 					}
 
 					poolJSON, err := json.Marshal(pool)
@@ -532,9 +500,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								metrics.RecordRequest(readDuration, readSuccess)
 
 								// UPDATE operation
-								updateData := map[string]interface{}{
-									"description": fmt.Sprintf("Updated pool %d-%d", workerID, j),
-								}
+								updateData := json.RawMessage("{}")
 								updateJSON, err := json.Marshal(updateData)
 								if err == nil {
 									start = time.Now()
@@ -609,10 +575,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 						Name:           fmt.Sprintf("Memory Test Pool %d", i),
 						Provider:       "kubernetes",
 						OCloudID:       "memory-test-ocloud",
-						Extensions: map[string]interface{}{
-							"largeData": strings.Repeat("x", 1000), // 1KB of data per resource
-							"iteration": i,
-							"metadata": map[string]interface{}{
+						Extensions: json.RawMessage("{}"){
 								"createdAt": time.Now().Format(time.RFC3339),
 								"testType":  "memory-stress",
 							},
@@ -747,10 +710,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 							Name:           fmt.Sprintf("Intent Pool %d", intentID),
 							Provider:       "kubernetes",
 							OCloudID:       "scalability-test-ocloud",
-							Extensions: map[string]interface{}{
-								"intentID":        intentID,
-								"processingStart": time.Now().Format(time.RFC3339),
-							},
+							Extensions: json.RawMessage("{}"),
 						}
 
 						poolJSON, err := json.Marshal(pool)
@@ -785,8 +745,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 						}
 
 						// Update resource (intent processing step 3)
-						updateData := map[string]interface{}{
-							"extensions": map[string]interface{}{
+						updateData := json.RawMessage("{}"){
 								"intentID":           intentID,
 								"processingComplete": time.Now().Format(time.RFC3339),
 								"status":             "processed",

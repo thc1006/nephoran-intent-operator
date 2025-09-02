@@ -186,11 +186,7 @@ func setupAPIRoutes(router *mux.Router, logger *slog.Logger) {
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":    "healthy",
-		"timestamp": time.Now().UTC(),
-		"service":   "nephoran-intent-operator",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
 
 func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
@@ -217,22 +213,11 @@ func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
 
 func listIntentsHandler(w http.ResponseWriter, r *http.Request) {
 	// Example: List all network intents
-	intents := []map[string]interface{}{
-		{
-			"id":          "intent-001",
-			"name":        "scale-up-cnf",
-			"status":      "active",
-			"created_at":  time.Now().Add(-24 * time.Hour),
-			"target_type": "deployment",
-			"target_name": "o-ran-du",
-		},
+	intents := []json.RawMessage("{}"),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"intents": intents,
-		"total":   len(intents),
-	})
+	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
 
 func createIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -264,14 +249,7 @@ func getIntentHandler(w http.ResponseWriter, r *http.Request) {
 	intentID := vars["id"]
 
 	// Example response
-	intent := map[string]interface{}{
-		"id":          intentID,
-		"name":        "scale-up-cnf",
-		"status":      "active",
-		"created_at":  time.Now().Add(-24 * time.Hour),
-		"target_type": "deployment",
-		"target_name": "o-ran-du",
-		"parameters": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"replicas":    3,
 			"cpu_request": "500m",
 			"mem_request": "1Gi",
@@ -305,11 +283,7 @@ func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 	intentID := vars["id"]
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":      intentID,
-		"status":  "deleted",
-		"message": "Intent successfully deleted",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
 
 func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -330,13 +304,7 @@ func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":        intentID,
-		"operation": "scale",
-		"status":    "in_progress",
-		"replicas":  scaleRequest["replicas"],
-		"message":   "Scaling operation initiated",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
 
 func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
@@ -347,9 +315,7 @@ func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Perform validation
-	validationResult := map[string]interface{}{
-		"valid":    true,
-		"errors":   []string{},
+	validationResult := json.RawMessage("{}"),
 		"warnings": []string{},
 	}
 
@@ -373,17 +339,7 @@ func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	// Example metrics response
-	metrics := map[string]interface{}{
-		"total_intents":      42,
-		"active_intents":     15,
-		"pending_intents":    3,
-		"failed_intents":     2,
-		"total_scaling_ops":  156,
-		"successful_scaling": 150,
-		"failed_scaling":     6,
-		"avg_response_time":  "125ms",
-		"uptime":             "72h15m",
-	}
+	metrics := json.RawMessage("{}")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)

@@ -31,7 +31,9 @@ limitations under the License.
 package krm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"io"
 	"os"
@@ -318,7 +320,7 @@ type SecurityEvent struct {
 
 	Message string `json:"message"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }

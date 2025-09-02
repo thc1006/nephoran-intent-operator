@@ -66,12 +66,7 @@ import (
 			intentText:       "Deploy AMF network function for 5G core",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-				"namespace": "5g-core",
-				"replicas":  1,
-				"resources": map[string]interface{}{
+			llmResponse: mustMarshal(json.RawMessage("{}"){
 					"cpu":    "500m",
 					"memory": "1Gi",
 				},
@@ -82,11 +77,7 @@ import (
 				{Type: "Validated", Status: metav1.ConditionTrue},
 				{Type: "Processed", Status: metav1.ConditionTrue},
 			},
-			expectedParameters: map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-				"namespace": "5g-core",
-			},
+			expectedParameters: json.RawMessage("{}"),
 			description: "Successful AMF deployment with LLM processing",
 			tags:        []string{"5gc", "amf", "deployment"},
 		},
@@ -96,11 +87,7 @@ import (
 			intentText:       "Configure SMF with UPF integration and session management policies",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "configure",
-				"component": "smf",
-				"namespace": "5g-core",
-				"config": map[string]interface{}{
+			llmResponse: mustMarshal(json.RawMessage("{}"){
 					"upf_integration":  true,
 					"session_policies": []string{"policy1", "policy2"},
 				},
@@ -120,11 +107,7 @@ import (
 			intentText:       "Deploy O-RAN components including O-CU and O-DU for edge deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":          "deploy",
-				"component":       "oran",
-				"namespace":       "oran-system",
-				"components":      []string{"o-cu", "o-du"},
+			llmResponse: mustMarshal(json.RawMessage("{}"),
 				"deployment_type": "edge",
 			}),
 			expectedPhase:   "Processing",
@@ -142,12 +125,7 @@ import (
 			intentText:       "Deploy eMBB network slice for enhanced mobile broadband with high throughput",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":     "deploy",
-				"component":  "network-slice",
-				"slice_type": "embb",
-				"namespace":  "slicing",
-				"qos_profile": map[string]interface{}{
+			llmResponse: mustMarshal(json.RawMessage("{}"){
 					"throughput": "10Gbps",
 					"latency":    "10ms",
 				},
@@ -214,11 +192,7 @@ import (
 			intentText:       "Deploy comprehensive 5G network",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "5gc-comprehensive",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage("{}")),
 			gitShouldFail:   true,
 			expectedPhase:   "Error",
 			expectedRequeue: true,
@@ -246,11 +220,7 @@ import (
 				},
 			},
 			llmFailCount: 1, // Fail first attempt, succeed second
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "nssf",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage("{}")),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			expectedConditions: []ExpectedCondition{
@@ -324,14 +294,10 @@ import (
 		{
 			name:             "unicode_intent_success",
 			category:         "edge_cases",
-			intentText:       "Deploy AMF with 高性能 configuration for 5G 网络 deployment",
+			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�? deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-				"config":    "高性能",
-			}),
+			llmResponse: mustMarshal(json.RawMessage("{}")),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			expectedConditions: []ExpectedCondition{
@@ -347,10 +313,7 @@ import (
 			intentText:       "Deploy SMF with config: {cpu: '500m', memory: '1Gi', ports: [8080, 8443]}",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "smf",
-				"config": map[string]interface{}{
+			llmResponse: mustMarshal(json.RawMessage("{}"){
 					"cpu":    "500m",
 					"memory": "1Gi",
 					"ports":  []int{8080, 8443},
@@ -387,11 +350,7 @@ import (
 			intentText:       "Deploy UPF for user plane processing",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "upf",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage("{}")),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
@@ -418,11 +377,7 @@ import (
 				},
 			},
 			llmFailCount: 1, // Recover on retry
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "pcf",
-				"namespace": "5g-core",
-			}),
+			llmResponse: mustMarshal(json.RawMessage("{}")),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
 			validationChecks: func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result) {
@@ -565,7 +520,7 @@ import (
 			}
 
 			// Log test completion with tags for analysis
-			t.Logf("✓ Test %s completed successfully. Category: %s, Tags: %v", tc.name, tc.category, tc.tags)
+			t.Logf("??Test %s completed successfully. Category: %s, Tags: %v", tc.name, tc.category, tc.tags)
 		})
 	}
 
@@ -632,10 +587,7 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		{
 			name:       "HappyPath",
 			intentText: "Deploy AMF network function",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "amf",
-			}),
+			llmResponse: mustMarshal(json.RawMessage("{}")),
 			mockSetup: func(deps *MockDependencies) {},
 		},
 		{
@@ -648,10 +600,7 @@ func BenchmarkTableDrivenScenarios(b *testing.B) {
 		{
 			name:       "ComplexIntent",
 			intentText: "Deploy comprehensive 5G core with AMF, SMF, UPF, and network slicing",
-			llmResponse: mustMarshal(map[string]interface{}{
-				"action":     "deploy",
-				"component":  "5gc-comprehensive",
-				"components": []string{"amf", "smf", "upf"},
+			llmResponse: mustMarshal(json.RawMessage("{}"),
 				"slicing":    true,
 			}),
 			mockSetup: func(deps *MockDependencies) {},

@@ -939,7 +939,7 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 
 		RelevantDocs: []string{},
 
-		Metadata: map[string]interface{}{"intent_type": intentType},
+		Metadata: json.RawMessage("{}"),
 
 		ConfidenceScore: confidence,
 	}, nil
@@ -1256,7 +1256,7 @@ func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest
 
 		RelevantDocs: []string{},
 
-		Metadata: map[string]interface{}{"domain": "o-ran"},
+		Metadata: json.RawMessage(`{"domain":"o-ran"}`),
 
 		ConfidenceScore: 0.8,
 	}, nil
@@ -1308,7 +1308,7 @@ func (s *FiveGCoreContextStrategy) select5GCoreContext(request *ContextInjection
 
 		RelevantDocs: []string{},
 
-		Metadata: map[string]interface{}{"domain": "5gc"},
+		Metadata: json.RawMessage(`{"domain":"5gc"}`),
 
 		ConfidenceScore: 0.8,
 	}, nil

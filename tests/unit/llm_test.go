@@ -61,12 +61,7 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 
 	// Setup standard successful response
 	llmMock.On("ProcessIntent", mock.Anything, mock.Anything).Return(
-		map[string]interface{}{
-			"type":            "NetworkFunctionDeployment",
-			"networkFunction": "AMF",
-			"replicas":        int64(3),
-			"namespace":       "telecom-core",
-			"resources": map[string]interface{}{
+		json.RawMessage("{}"){
 				"requests": map[string]string{
 					"cpu":    "1000m",
 					"memory": "2Gi",
@@ -76,11 +71,7 @@ func (suite *LLMTestSuite) setupLLMMocks() {
 					"memory": "4Gi",
 				},
 			},
-			"config": map[string]interface{}{
-				"plmn": map[string]string{
-					"mcc": "001",
-					"mnc": "01",
-				},
+			"config": json.RawMessage("{}"),
 				"slice_support": []string{"eMBB", "URLLC"},
 			},
 		}, nil)
@@ -211,20 +202,14 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						Title:   "AMF Configuration Guide",
 						Content: "Access and Mobility Management Function configuration procedures...",
 						Source:  "3GPP TS 23.501",
-						Metadata: map[string]interface{}{
-							"category":  "5G Core",
-							"authority": "3GPP",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 					{
 						ID:      "doc2",
 						Title:   "SMF Deployment",
 						Content: "Session Management Function deployment in Kubernetes...",
 						Source:  "O-RAN WG4",
-						Metadata: map[string]interface{}{
-							"category":  "5G Core",
-							"authority": "O-RAN",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 				}
 
@@ -245,18 +230,14 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						Title:   "Network Function Guide",
 						Content: "General network function information...",
 						Source:  "3GPP TS 23.501",
-						Metadata: map[string]interface{}{
-							"authority": "3GPP",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 					{
 						ID:      "doc2",
 						Title:   "Network Function Guide",
 						Content: "General network function information...",
 						Source:  "Blog Post",
-						Metadata: map[string]interface{}{
-							"authority": "Blog",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 				}
 
@@ -277,25 +258,19 @@ func (suite *LLMTestSuite) TestContextBuilder() {
 						ID:      "doc1",
 						Content: "AMF configuration details for 5G SA networks...",
 						Source:  "3GPP TS 23.501",
-						Metadata: map[string]interface{}{
-							"category": "AMF",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 					{
 						ID:      "doc2",
 						Content: "SMF session management procedures...",
 						Source:  "3GPP TS 23.502",
-						Metadata: map[string]interface{}{
-							"category": "SMF",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 					{
 						ID:      "doc3",
 						Content: "Another AMF configuration example...",
 						Source:  "O-RAN WG4",
-						Metadata: map[string]interface{}{
-							"category": "AMF",
-						},
+						Metadata: json.RawMessage("{}"),
 					},
 				}
 

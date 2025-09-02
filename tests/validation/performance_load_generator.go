@@ -415,20 +415,13 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 
 	for i, intent := range intents {
 
-		body := map[string]interface{}{
-			"apiVersion": "nephoran.io/v1",
-
-			"kind": "NetworkIntent",
-
-			"metadata": map[string]interface{}{
+		body := json.RawMessage("{}"){
 				"name": fmt.Sprintf("vegeta-test-%d", i),
 
 				"namespace": "default",
 			},
 
-			"spec": map[string]interface{}{
-				"intent": intent,
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		bodyBytes, _ := json.Marshal(body)
@@ -791,20 +784,13 @@ func (crs *ConstantRateScenario) Generate(ctx context.Context) <-chan *LoadReque
 }
 
 func (crs *ConstantRateScenario) generateIntentBody(id int) []byte {
-	intent := map[string]interface{}{
-		"apiVersion": "nephoran.io/v1",
-
-		"kind": "NetworkIntent",
-
-		"metadata": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"name": fmt.Sprintf("constant-rate-%d", id),
 
 			"namespace": "default",
 		},
 
-		"spec": map[string]interface{}{
-			"intent": fmt.Sprintf("Deploy test function %d", id),
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	body, _ := json.Marshal(intent)
@@ -919,20 +905,13 @@ func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 }
 
 func (rus *RampUpScenario) generateIntentBody(id int) []byte {
-	intent := map[string]interface{}{
-		"apiVersion": "nephoran.io/v1",
-
-		"kind": "NetworkIntent",
-
-		"metadata": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"name": fmt.Sprintf("ramp-up-%d", id),
 
 			"namespace": "default",
 		},
 
-		"spec": map[string]interface{}{
-			"intent": fmt.Sprintf("Deploy function during ramp %d", id),
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	body, _ := json.Marshal(intent)
@@ -1065,20 +1044,13 @@ func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 }
 
 func (ss *SpikeScenario) generateRequest(id, rate int) *LoadRequest {
-	intent := map[string]interface{}{
-		"apiVersion": "nephoran.io/v1",
-
-		"kind": "NetworkIntent",
-
-		"metadata": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"name": fmt.Sprintf("spike-%d-rate-%d", id, rate),
 
 			"namespace": "default",
 		},
 
-		"spec": map[string]interface{}{
-			"intent": fmt.Sprintf("Deploy function during spike %d", id),
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	body, _ := json.Marshal(intent)
@@ -1245,12 +1217,7 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 
 	intent := intents[id%len(intents)]
 
-	body := map[string]interface{}{
-		"apiVersion": "nephoran.io/v1",
-
-		"kind": "NetworkIntent",
-
-		"metadata": map[string]interface{}{
+	body := json.RawMessage("{}"){
 			"name": fmt.Sprintf("realistic-%d", id),
 
 			"namespace": "default",
@@ -1262,9 +1229,7 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 			},
 		},
 
-		"spec": map[string]interface{}{
-			"intent": intent,
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	bodyBytes, _ := json.Marshal(body)

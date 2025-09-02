@@ -465,11 +465,7 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogout(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-
-		"message": "Logged out successfully",
-	})
+	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
 
 // Private helper methods.
@@ -546,11 +542,7 @@ func (lm *LDAPAuthMiddleware) tryBasicAuth(r *http.Request) (*AuthContext, error
 
 		IsAdmin: lm.hasAdminRole(userInfo.Roles),
 
-		Attributes: map[string]interface{}{
-			"auth_method": "basic",
-
-			"ldap_dn": userInfo.ProviderID,
-		},
+		Attributes: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -799,15 +791,7 @@ func (lm *LDAPAuthMiddleware) writeErrorResponse(w http.ResponseWriter, status i
 
 	w.WriteHeader(status)
 
-	errorResponse := map[string]interface{}{
-		"error": code,
-
-		"error_description": message,
-
-		"status": status,
-
-		"timestamp": time.Now().Unix(),
-	}
+	errorResponse := json.RawMessage("{}")
 
 	json.NewEncoder(w).Encode(errorResponse)
 }

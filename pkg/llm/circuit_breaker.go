@@ -700,27 +700,7 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 
 	defer cb.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"name": cb.name,
-
-		"state": cb.state.String(),
-
-		"failure_count": cb.failureCount,
-
-		"success_count": cb.successCount,
-
-		"request_count": cb.requestCount,
-
-		"failure_rate": cb.metrics.FailureRate,
-
-		"state_change_time": cb.stateChangeTime,
-
-		"last_failure_time": cb.lastFailureTime,
-
-		"last_success_time": cb.lastSuccessTime,
-
-		"half_open_requests": cb.halfOpenRequests,
-	}
+	return json.RawMessage("{}")
 }
 
 // updateMetrics safely updates metrics.

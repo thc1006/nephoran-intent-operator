@@ -817,51 +817,7 @@ func ValidateIPAddress(value interface{}) error {
 func ValidateCompleteConfiguration(constants *Constants) error {
 	// Convert constants to map for validation.
 
-	config := map[string]interface{}{
-		// Network configuration.
-
-		"metrics_port": constants.MetricsPort,
-
-		"health_port": constants.HealthProbePort,
-
-		"llm_timeout": constants.LLMTimeout,
-
-		"git_timeout": constants.GitTimeout,
-
-		"k8s_timeout": constants.KubernetesTimeout,
-
-		"max_retries": constants.MaxRetries,
-
-		"jitter_factor": constants.JitterFactor,
-
-		"backoff_multiplier": constants.BackoffMultiplier,
-
-		// Security configuration.
-
-		"max_input_length": constants.MaxInputLength,
-
-		"max_output_length": constants.MaxOutputLength,
-
-		"context_boundary": constants.ContextBoundary,
-
-		"allowed_domains": constants.AllowedDomains,
-
-		"blocked_keywords": constants.BlockedKeywords,
-
-		// Resilience configuration.
-
-		"cb_failure_threshold": constants.CircuitBreakerFailureThreshold,
-
-		"cb_recovery_timeout": constants.CircuitBreakerRecoveryTimeout,
-
-		"cb_request_timeout": constants.CircuitBreakerRequestTimeout,
-
-		"cb_success_threshold": constants.CircuitBreakerSuccessThreshold,
-
-		"cb_min_requests": constants.CircuitBreakerMinimumRequests,
-
-		"cb_failure_rate": constants.CircuitBreakerFailureRate,
-	}
+	config := json.RawMessage("{}")
 
 	// Validate each section.
 

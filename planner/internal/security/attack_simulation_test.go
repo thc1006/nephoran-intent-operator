@@ -143,9 +143,9 @@ import (
 			}
 
 			if scenario.expectBlock && didBlock {
-				t.Logf("✓ Successfully blocked attack: %s - %s", scenario.name, scenario.description)
+				t.Logf("??Successfully blocked attack: %s - %s", scenario.name, scenario.description)
 			} else if !scenario.expectBlock && !didBlock {
-				t.Logf("✓ Allowed legitimate access: %s", scenario.name)
+				t.Logf("??Allowed legitimate access: %s", scenario.name)
 			}
 		})
 	}
@@ -219,7 +219,7 @@ import (
 			}
 
 			if test.expected && blocked {
-				t.Logf("✓ Successfully blocked SQL injection: %s", test.name)
+				t.Logf("??Successfully blocked SQL injection: %s", test.name)
 			}
 		})
 	}
@@ -274,7 +274,7 @@ import (
 			}
 
 			if test.expected && blocked {
-				t.Logf("✓ Successfully blocked command injection: %s", test.name)
+				t.Logf("??Successfully blocked command injection: %s", test.name)
 			}
 		})
 	}
@@ -366,7 +366,7 @@ import (
 			}
 
 			if scenario.expectSafe && isSafe {
-				t.Logf("✓ Successfully sanitized %s attack: %s", scenario.attackType, scenario.name)
+				t.Logf("??Successfully sanitized %s attack: %s", scenario.attackType, scenario.name)
 			}
 		})
 	}
@@ -455,9 +455,9 @@ import (
 			}
 
 			if scenario.expectBlock && blocked {
-				t.Logf("✓ Successfully blocked SSRF attack: %s", scenario.name)
+				t.Logf("??Successfully blocked SSRF attack: %s", scenario.name)
 			} else if !scenario.expectBlock && !blocked {
-				t.Logf("⚠ URL validation passed (may need application-level SSRF protection): %s", scenario.description)
+				t.Logf("??URL validation passed (may need application-level SSRF protection): %s", scenario.description)
 			}
 		})
 	}
@@ -579,7 +579,7 @@ import (
 				}
 
 				if test.expectBlock && blocked {
-					t.Logf("✓ Successfully blocked malicious JSON: %s", test.name)
+					t.Logf("??Successfully blocked malicious JSON: %s", test.name)
 				}
 			}
 		})
@@ -646,7 +646,7 @@ import (
 
 			// Check if timing variance is suspiciously high (potential timing leak)
 			if variance > avg*10 {
-				t.Logf("⚠ High timing variance detected for %s (may indicate timing leak)", test.name)
+				t.Logf("??High timing variance detected for %s (may indicate timing leak)", test.name)
 			}
 		})
 	}
@@ -661,9 +661,7 @@ import (
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message": "test response",
-		})
+		json.NewEncoder(w).Encode(json.RawMessage("{}"))
 	}))
 	defer server.Close()
 
@@ -731,7 +729,7 @@ import (
 			}
 
 			if test.expectBlock && blocked {
-				t.Logf("✓ Successfully blocked header injection: %s", test.name)
+				t.Logf("??Successfully blocked header injection: %s", test.name)
 			}
 		})
 	}
@@ -762,7 +760,7 @@ import (
 		if err == nil {
 			t.Error("Malicious regex input should have been rejected")
 		} else {
-			t.Logf("✓ Successfully rejected ReDoS attempt in %v", elapsed)
+			t.Logf("??Successfully rejected ReDoS attempt in %v", elapsed)
 		}
 	})
 
@@ -781,7 +779,7 @@ import (
 		if err == nil {
 			t.Error("Extremely large input should have been rejected")
 		} else {
-			t.Logf("✓ Successfully rejected memory exhaustion attempt in %v", elapsed)
+			t.Logf("??Successfully rejected memory exhaustion attempt in %v", elapsed)
 		}
 	})
 
@@ -800,7 +798,7 @@ import (
 		if err == nil {
 			t.Error("Extremely deep path should have been rejected")
 		} else {
-			t.Logf("✓ Successfully rejected deep recursion attempt in %v", elapsed)
+			t.Logf("??Successfully rejected deep recursion attempt in %v", elapsed)
 		}
 	})
 }

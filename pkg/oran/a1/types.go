@@ -64,7 +64,7 @@ type PolicyType struct {
 
 	Schema map[string]interface{} `json:"schema" validate:"required"`
 
-	CreateSchema map[string]interface{} `json:"create_schema,omitempty"`
+	CreateSchema json.RawMessage `json:"create_schema,omitempty"`
 
 	CreatedAt time.Time `json:"created_at,omitempty"`
 
@@ -94,7 +94,7 @@ type PolicyInstanceInfo struct {
 
 	RequestID string `json:"request_id,omitempty"`
 
-	AdditionalParams map[string]interface{} `json:"additional_params,omitempty"`
+	AdditionalParams json.RawMessage `json:"additional_params,omitempty"`
 }
 
 // PolicyStatus represents the status of an O-RAN A1 policy instance.
@@ -112,7 +112,7 @@ type PolicyStatus struct {
 
 	ModifiedAt time.Time `json:"modified_at,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additional_info,omitempty"`
 }
 
 // EnrichmentInfoType represents A1-EI type definition per O-RAN specification.
@@ -126,7 +126,7 @@ type EnrichmentInfoType struct {
 
 	EiJobDataSchema map[string]interface{} `json:"ei_job_data_schema" validate:"required"`
 
-	EiJobResultSchema map[string]interface{} `json:"ei_job_result_schema,omitempty"`
+	EiJobResultSchema json.RawMessage `json:"ei_job_result_schema,omitempty"`
 
 	CreatedAt time.Time `json:"created_at,omitempty"`
 
@@ -162,9 +162,9 @@ type EnrichmentInfoJob struct {
 type EnrichmentJobDef struct {
 	DeliveryInfo []DeliveryInfo `json:"delivery_info,omitempty"`
 
-	JobParameters map[string]interface{} `json:"job_parameters,omitempty"`
+	JobParameters json.RawMessage `json:"job_parameters,omitempty"`
 
-	JobResultSchema map[string]interface{} `json:"job_result_schema,omitempty"`
+	JobResultSchema json.RawMessage `json:"job_result_schema,omitempty"`
 
 	StatusNotificationURI string `json:"status_notification_uri,omitempty"`
 }
@@ -176,7 +176,7 @@ type DeliveryInfo struct {
 
 	BootStrapServer string `json:"boot_strap_server,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additional_info,omitempty"`
 }
 
 // EnrichmentInfoJobStatus represents the status of an EI job.
@@ -188,7 +188,7 @@ type EnrichmentInfoJobStatus struct {
 
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 
-	StatusInfo map[string]interface{} `json:"status_info,omitempty"`
+	StatusInfo json.RawMessage `json:"status_info,omitempty"`
 }
 
 // ConsumerInfo represents A1-C consumer information.
@@ -218,7 +218,7 @@ type ConsumerMetadata struct {
 
 	SupportedTypes []int `json:"supported_types,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additional_info,omitempty"`
 }
 
 // PolicyNotification represents A1 policy notifications.
@@ -236,7 +236,7 @@ type PolicyNotification struct {
 
 	Message string `json:"message,omitempty"`
 
-	AdditionalDetails map[string]interface{} `json:"additional_details,omitempty"`
+	AdditionalDetails json.RawMessage `json:"additional_details,omitempty"`
 }
 
 // A1ServerConfig holds configuration for the A1 server.
@@ -641,7 +641,7 @@ type RequestContext struct {
 
 	QueryParams map[string][]string `json:"query_params,omitempty"`
 
-	Authentication map[string]interface{} `json:"authentication,omitempty"`
+	Authentication json.RawMessage `json:"authentication,omitempty"`
 
 	StartTime time.Time `json:"start_time"`
 }
@@ -669,7 +669,7 @@ type HealthCheck struct {
 
 	Uptime time.Duration `json:"uptime,omitempty"`
 
-	Components map[string]interface{} `json:"components,omitempty"`
+	Components json.RawMessage `json:"components,omitempty"`
 
 	Checks []ComponentCheck `json:"checks,omitempty"`
 }
@@ -687,7 +687,7 @@ type ComponentCheck struct {
 
 	Duration time.Duration `json:"duration,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // Common HTTP status codes used in A1 interface.

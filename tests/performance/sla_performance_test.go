@@ -1,7 +1,9 @@
 package performance_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -347,7 +349,7 @@ type ProfileData struct {
 	Type      string                 `json:"type"`
 	StartTime time.Time              `json:"start_time"`
 	EndTime   time.Time              `json:"end_time"`
-	Data      map[string]interface{} `json:"data"`
+	Data      json.RawMessage `json:"data"`
 }
 
 // ResourceMonitor monitors system resource usage

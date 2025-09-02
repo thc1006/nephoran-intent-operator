@@ -47,15 +47,15 @@ type JSONSchemaValidator struct {
 
 	Type interface{} `json:"type,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	Required []string `json:"required,omitempty"`
 
 	AdditionalProps interface{} `json:"additionalProperties,omitempty"`
 
-	PatternProps map[string]interface{} `json:"patternProperties,omitempty"`
+	PatternProps json.RawMessage `json:"patternProperties,omitempty"`
 
-	Dependencies map[string]interface{} `json:"dependencies,omitempty"`
+	Dependencies json.RawMessage `json:"dependencies,omitempty"`
 
 	AllOf []interface{} `json:"allOf,omitempty"`
 

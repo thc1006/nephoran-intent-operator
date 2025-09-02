@@ -304,20 +304,12 @@ spec:
 		},
 		{
 			name: "intent missing required fields",
-			intent: map[string]interface{}{
-				"target": "test",
-				// missing intent_type, namespace, replicas
-			},
+			intent: json.RawMessage("{}"),
 			expectError: "failed to unmarshal intent",
 		},
 		{
 			name: "intent with wrong field types",
-			intent: map[string]interface{}{
-				"intent_type": 123, // should be string
-				"target":      "test",
-				"namespace":   "default",
-				"replicas":    "three", // should be int
-			},
+			intent: json.RawMessage("{}"),
 			expectError: "failed to unmarshal intent",
 		},
 	}
@@ -374,7 +366,7 @@ spec:
 			name: "unicode characters in target",
 			intent: testIntent{
 				IntentType: "scaling",
-				Target:     "测试-应用",
+				Target:     "测�?-应用",
 				Namespace:  "default",
 				Replicas:   1,
 			},

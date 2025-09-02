@@ -107,15 +107,7 @@ func (ah *AuthenticatedLLMProcessorHandler) writeAuthError(w http.ResponseWriter
 
 	w.WriteHeader(http.StatusUnauthorized)
 
-	response := map[string]interface{}{
-		"error": "authentication_required",
-
-		"message": message,
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"status": "error",
-	}
+	response := json.RawMessage("{}")
 
 	// Ignore JSON encoding error - error would be written to response writer anyway.
 

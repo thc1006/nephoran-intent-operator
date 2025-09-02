@@ -117,14 +117,8 @@ func ExamplePorchClientUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
-						"name":      "example-config",
-						"namespace": "default",
-					},
-					Data: map[string]interface{}{
-						"message": "Hello from Porch!",
-						"version": "1.0.0",
-					},
+					Metadata: json.RawMessage("{}"),
+					Data: json.RawMessage("{}"),
 				},
 			},
 		},
@@ -207,20 +201,14 @@ data:
 	functionReq := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-			ConfigMap: map[string]interface{}{
-				"namespace": "production",
-			},
+			ConfigMap: json.RawMessage("{}"),
 		},
 		Resources: []KRMResource{
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: map[string]interface{}{
-					"name": "test-config",
-				},
-				Data: map[string]interface{}{
-					"key": "value",
-				},
+				Metadata: json.RawMessage("{}"),
+				Data: json.RawMessage("{}"),
 			},
 		},
 	}
@@ -323,19 +311,13 @@ func ExampleAdvancedUsage() error {
 				},
 				{
 					Image: "gcr.io/kpt-fn/apply-replacements:v0.1.1",
-					ConfigMap: map[string]interface{}{
-						"replacements": []interface{}{
-							map[string]interface{}{
-								"source": map[string]interface{}{
-									"objref": map[string]interface{}{
-										"kind": "ConfigMap",
-										"name": "app-config",
-									},
+					ConfigMap: json.RawMessage("{}"){
+							json.RawMessage("{}"){
+									"objref": json.RawMessage("{}"),
 									"fieldref": "data.app-name",
 								},
 								"targets": []interface{}{
-									map[string]interface{}{
-										"select": map[string]interface{}{
+									json.RawMessage("{}"){
 											"kind": "Deployment",
 										},
 										"fieldPaths": []string{"metadata.name"},
@@ -350,44 +332,22 @@ func ExampleAdvancedUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
-						"name":      "app-config",
-						"namespace": "default",
-					},
-					Data: map[string]interface{}{
-						"app-name": "my-application",
-						"version":  "1.0.0",
-					},
+					Metadata: json.RawMessage("{}"),
+					Data: json.RawMessage("{}"),
 				},
 				{
 					APIVersion: "apps/v1",
 					Kind:       "Deployment",
-					Metadata: map[string]interface{}{
-						"name":      "placeholder-deployment",
-						"namespace": "default",
-					},
-					Spec: map[string]interface{}{
-						"replicas": 3,
-						"selector": map[string]interface{}{
-							"matchLabels": map[string]interface{}{
-								"app": "my-application",
-							},
+					Metadata: json.RawMessage("{}"),
+					Spec: json.RawMessage("{}"){
+							"matchLabels": json.RawMessage("{}"),
 						},
-						"template": map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"labels": map[string]interface{}{
-									"app": "my-application",
-								},
+						"template": json.RawMessage("{}"){
+								"labels": json.RawMessage("{}"),
 							},
-							"spec": map[string]interface{}{
-								"containers": []interface{}{
-									map[string]interface{}{
-										"name":  "app",
-										"image": "nginx:1.21",
-										"ports": []interface{}{
-											map[string]interface{}{
-												"containerPort": 80,
-											},
+							"spec": json.RawMessage("{}"){
+									json.RawMessage("{}"){
+											json.RawMessage("{}"),
 										},
 									},
 								},
@@ -460,19 +420,12 @@ func ExampleWorkflowUsage() error {
 				{
 					APIVersion: "v1",
 					Kind:       "Service",
-					Metadata: map[string]interface{}{
-						"name":      "example-service",
-						"namespace": "default",
-					},
-					Spec: map[string]interface{}{
-						"selector": map[string]interface{}{
+					Metadata: json.RawMessage("{}"),
+					Spec: json.RawMessage("{}"){
 							"app": "example",
 						},
 						"ports": []interface{}{
-							map[string]interface{}{
-								"port":       80,
-								"targetPort": 8080,
-							},
+							json.RawMessage("{}"),
 						},
 					},
 				},

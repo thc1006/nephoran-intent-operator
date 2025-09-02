@@ -205,20 +205,12 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 	}
 
-	response := map[string]interface{}{
-		"type": "NetworkFunctionDeployment",
-
-		"name": fmt.Sprintf("%s-deployment", nfType),
-
-		"namespace": namespace,
-
-		"spec": map[string]interface{}{
+	response := json.RawMessage("{}"){
 			"replicas": 1,
 
 			"image": fmt.Sprintf("registry.local/%s:latest", nfType),
 
-			"resources": map[string]interface{}{
-				"requests": map[string]string{"cpu": "500m", "memory": "1Gi"},
+			"resources": json.RawMessage("{}"),
 
 				"limits": map[string]string{"cpu": "1000m", "memory": "2Gi"},
 			},
@@ -256,16 +248,8 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 
 	}
 
-	response := map[string]interface{}{
-		"type": "NetworkFunctionScale",
-
-		"name": fmt.Sprintf("%s-deployment", nfType),
-
-		"namespace": namespace,
-
-		"spec": map[string]interface{}{
-			"scaling": map[string]interface{}{
-				"horizontal": map[string]interface{}{
+	response := json.RawMessage("{}"){
+			"scaling": json.RawMessage("{}"){
 					"replicas": 3,
 				},
 			},

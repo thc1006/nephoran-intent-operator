@@ -31,7 +31,9 @@ limitations under the License.
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -457,40 +459,17 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 
 	// Generate Kustomization file.
 
-	kustomization := map[string]interface{}{
-		"apiVersion": "kustomize.config.k8s.io/v1beta1",
-
-		"kind": "Kustomization",
-
-		"metadata": map[string]interface{}{
+	kustomization := json.RawMessage("{}"){
 			"name": pkg.Spec.PackageName,
 
-			"annotations": map[string]interface{}{
-				"config.k8s.io/local-config": "true",
-			},
+			"annotations": json.RawMessage("{}"),
 		},
 
 		"resources": csc.getResourceFileNames(content),
 
-		"commonLabels": map[string]interface{}{
-			"app.kubernetes.io/name": pkg.Spec.PackageName,
+		"commonLabels": json.RawMessage("{}"),
 
-			"app.kubernetes.io/version": pkg.Spec.Revision,
-
-			"app.kubernetes.io/managed-by": "nephoran-intent-operator",
-
-			"nephoran.io/cluster": cluster.Name,
-
-			"nephoran.io/package": pkg.Spec.PackageName,
-		},
-
-		"commonAnnotations": map[string]interface{}{
-			"nephoran.io/deployed-at": time.Now().Format(time.RFC3339),
-
-			"nephoran.io/source-repo": pkg.Spec.Repository,
-
-			"nephoran.io/source-rev": pkg.Spec.Revision,
-		},
+		"commonAnnotations": json.RawMessage("{}"),
 	}
 
 	kustomizationYAML, err := yaml.Marshal(kustomization)
@@ -508,21 +487,10 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 
 	if !csc.hasNamespaceResource(content) {
 
-		namespace := map[string]interface{}{
-			"apiVersion": "v1",
-
-			"kind": "Namespace",
-
-			"metadata": map[string]interface{}{
+		namespace := json.RawMessage("{}"){
 				"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
 
-				"labels": map[string]interface{}{
-					"nephoran.io/managed": "true",
-
-					"nephoran.io/cluster": cluster.Name,
-
-					"nephoran.io/package": pkg.Spec.PackageName,
-				},
+				"labels": json.RawMessage("{}"),
 			},
 		}
 

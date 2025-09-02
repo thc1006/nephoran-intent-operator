@@ -1,7 +1,9 @@
 package availability
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -230,7 +232,7 @@ type HealthCheckResult struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyGraph represents the dependency relationships.
@@ -1701,17 +1703,7 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 
 		Layer: layer,
 
-		Metadata: map[string]interface{}{
-			"dependency_type": string(dep.Type),
-
-			"circuit_breaker_state": health.CircuitBreakerState,
-
-			"failure_count": health.FailureCount,
-
-			"availability": health.Availability,
-
-			"failure_mode": string(dep.FailureMode),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	return metric, nil

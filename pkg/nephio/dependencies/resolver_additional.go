@@ -90,11 +90,7 @@ func (r *dependencyResolver) extractResolvedPackages(resCtx *ResolutionContext) 
 // buildResultMetadata builds metadata for the resolution result.
 
 func (r *dependencyResolver) buildResultMetadata(resCtx *ResolutionContext) map[string]interface{} {
-	return map[string]interface{}{
-		"resolver_version": "1.0.0",
-
-		"timestamp": time.Now(),
-	}
+	return json.RawMessage("{}")
 }
 
 // updateResolutionMetrics updates metrics based on resolution result.

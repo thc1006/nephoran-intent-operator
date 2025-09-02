@@ -1,7 +1,9 @@
 package mtls
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/x509"
 	"fmt"
 	"sync"
@@ -73,7 +75,7 @@ type ConnectionInfo struct {
 
 	CertificateInfo *ConnectionCertInfo `json:"certificate_info"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ConnectionCertInfo holds certificate information for a connection.
@@ -125,7 +127,7 @@ type CertificateMonitorInfo struct {
 
 	HealthStatus CertificateHealth `json:"health_status"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // CertificateHealth represents the health status of a certificate.
@@ -176,7 +178,7 @@ type AlertRule struct {
 
 	Enabled bool `json:"enabled"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AlertCondition defines conditions that trigger alerts.
@@ -252,7 +254,7 @@ type Metric struct {
 
 	Help string `json:"help"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Alert represents a triggered alert.
@@ -272,7 +274,7 @@ type Alert struct {
 
 	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // NewMTLSMonitor creates a new mTLS monitor.
@@ -812,13 +814,7 @@ func (m *MTLSMonitor) checkCertificateExpiryAlert(rule *AlertRule) *Alert {
 
 				Timestamp: time.Now(),
 
-				Metadata: map[string]interface{}{
-					"certificate_path": cert.CertificatePath,
-
-					"expires_at": cert.NotAfter,
-
-					"expires_in_days": cert.ExpiresInDays,
-				},
+				Metadata: json.RawMessage("{}"),
 			}
 		}
 	}
@@ -845,13 +841,7 @@ func (m *MTLSMonitor) checkConnectionFailureAlert(rule *AlertRule) *Alert {
 
 			Timestamp: time.Now(),
 
-			Metadata: map[string]interface{}{
-				"total_requests": stats.TotalRequests,
-
-				"total_errors": stats.TotalErrors,
-
-				"error_rate": stats.ErrorRate,
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 	}
 

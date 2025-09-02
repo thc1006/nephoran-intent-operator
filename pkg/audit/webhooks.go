@@ -760,13 +760,7 @@ func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.Admissi
 
 	// Example: Add security labels.
 
-	patches = append(patches, map[string]interface{}{
-		"op": "add",
-
-		"path": "/metadata/labels/security.nephoran.io~1audited",
-
-		"value": "true",
-	})
+	patches = append(patches, json.RawMessage("{}"))
 
 	return patches
 }

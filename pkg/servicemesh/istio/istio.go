@@ -229,19 +229,13 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 	if defaults.MTLSMode != "" {
 
 		peerAuth := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": "security.istio.io/v1beta1",
-
-				"kind": "PeerAuthentication",
-
-				"metadata": map[string]interface{}{
+			Object: json.RawMessage("{}"){
 					"name": "default",
 
 					"namespace": m.meshConfig.Namespace,
 				},
 
-				"spec": map[string]interface{}{
-					"mtls": map[string]interface{}{
+				"spec": json.RawMessage("{}"){
 						"mode": defaults.MTLSMode,
 					},
 				},
@@ -271,18 +265,13 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 	if defaults.DefaultDenyAll {
 
 		authPolicy := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": "security.istio.io/v1beta1",
-
-				"kind": "AuthorizationPolicy",
-
-				"metadata": map[string]interface{}{
+			Object: json.RawMessage("{}"){
 					"name": "default-deny-all",
 
 					"namespace": m.meshConfig.Namespace,
 				},
 
-				"spec": map[string]interface{}{},
+				"spec": json.RawMessage("{}"),
 			},
 		}
 
@@ -382,21 +371,13 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 	// Convert to Istio PeerAuthentication.
 
 	peerAuth := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "security.istio.io/v1beta1",
-
-			"kind": "PeerAuthentication",
-
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"name": policy.Name,
 
 				"namespace": policy.Namespace,
 			},
 
-			"spec": map[string]interface{}{
-				"selector": m.convertSelector(policy.Spec.Selector),
-
-				"mtls": map[string]interface{}{
+			"spec": json.RawMessage("{}"){
 					"mode": policy.Spec.Mode,
 				},
 			},
@@ -410,9 +391,7 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 		portLevelMtls := make(map[string]interface{})
 
 		for _, portMtls := range policy.Spec.PortLevelMTLS {
-			portLevelMtls[fmt.Sprintf("%d", portMtls.Port)] = map[string]interface{}{
-				"mode": portMtls.Mode,
-			}
+			portLevelMtls[fmt.Sprintf("%d", portMtls.Port)] = json.RawMessage("{}")
 		}
 
 		peerAuth.Object["spec"].(map[string]interface{})["portLevelMtls"] = portLevelMtls
@@ -446,24 +425,13 @@ func (m *IstioMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstra
 	// Convert to Istio AuthorizationPolicy.
 
 	authPolicy := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "security.istio.io/v1beta1",
-
-			"kind": "AuthorizationPolicy",
-
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"name": policy.Name,
 
 				"namespace": policy.Namespace,
 			},
 
-			"spec": map[string]interface{}{
-				"selector": m.convertSelector(policy.Spec.Selector),
-
-				"action": policy.Spec.Action,
-
-				"rules": m.convertAuthorizationRules(policy.Spec.Rules),
-			},
+			"spec": json.RawMessage("{}"),
 		},
 	}
 
@@ -494,18 +462,13 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 	// Create VirtualService for traffic management.
 
 	vs := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "networking.istio.io/v1beta1",
-
-			"kind": "VirtualService",
-
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"name": policy.Name,
 
 				"namespace": policy.Namespace,
 			},
 
-			"spec": map[string]interface{}{},
+			"spec": json.RawMessage("{}"),
 		},
 	}
 
@@ -517,8 +480,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 		for _, dest := range policy.Spec.TrafficShifting.Destinations {
 
-			route := map[string]interface{}{
-				"destination": map[string]interface{}{
+			route := json.RawMessage("{}"){
 					"host": dest.Service,
 				},
 
@@ -529,8 +491,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 				route["destination"].(map[string]interface{})["subset"] = dest.Version
 			}
 
-			http = append(http, map[string]interface{}{
-				"route": []interface{}{route},
+			http = append(http, json.RawMessage("{}"){route},
 			})
 
 		}
@@ -542,18 +503,13 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 	// Create DestinationRule for circuit breaker, load balancing, etc.
 
 	dr := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "networking.istio.io/v1beta1",
-
-			"kind": "DestinationRule",
-
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"name": policy.Name + "-dr",
 
 				"namespace": policy.Namespace,
 			},
 
-			"spec": map[string]interface{}{},
+			"spec": json.RawMessage("{}"),
 		},
 	}
 
@@ -563,21 +519,12 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 	if policy.Spec.CircuitBreaker != nil {
 
-		trafficPolicy["connectionPool"] = map[string]interface{}{
-			"tcp": map[string]interface{}{
+		trafficPolicy["connectionPool"] = json.RawMessage("{}"){
 				"maxConnections": 100,
 			},
 		}
 
-		trafficPolicy["outlierDetection"] = map[string]interface{}{
-			"consecutiveErrors": policy.Spec.CircuitBreaker.ConsecutiveErrors,
-
-			"interval": policy.Spec.CircuitBreaker.Interval,
-
-			"baseEjectionTime": policy.Spec.CircuitBreaker.BaseEjectionTime,
-
-			"maxEjectionPercent": policy.Spec.CircuitBreaker.MaxEjectionPercent,
-		}
+		trafficPolicy["outlierDetection"] = json.RawMessage("{}")
 
 	}
 
@@ -588,13 +535,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 		if vs.Object["spec"].(map[string]interface{})["http"] != nil {
 			for _, http := range vs.Object["spec"].(map[string]interface{})["http"].([]interface{}) {
-				http.(map[string]interface{})["retries"] = map[string]interface{}{
-					"attempts": policy.Spec.Retry.Attempts,
-
-					"perTryTimeout": policy.Spec.Retry.PerTryTimeout,
-
-					"retryOn": policy.Spec.Retry.RetryOn,
-				}
+				http.(map[string]interface{})["retries"] = json.RawMessage("{}")
 			}
 		}
 	}
@@ -618,27 +559,20 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 
 		case "round-robin":
 
-			trafficPolicy["loadBalancer"] = map[string]interface{}{
-				"simple": "ROUND_ROBIN",
-			}
+			trafficPolicy["loadBalancer"] = json.RawMessage("{}")
 
 		case "least-conn":
 
-			trafficPolicy["loadBalancer"] = map[string]interface{}{
-				"simple": "LEAST_CONN",
-			}
+			trafficPolicy["loadBalancer"] = json.RawMessage("{}")
 
 		case "random":
 
-			trafficPolicy["loadBalancer"] = map[string]interface{}{
-				"simple": "RANDOM",
-			}
+			trafficPolicy["loadBalancer"] = json.RawMessage("{}")
 
 		case "consistent-hash":
 
 			if policy.Spec.LoadBalancer.ConsistentHash != nil {
-				trafficPolicy["loadBalancer"] = map[string]interface{}{
-					"consistentHash": map[string]interface{}{
+				trafficPolicy["loadBalancer"] = json.RawMessage("{}"){
 						"httpHeaderName": policy.Spec.LoadBalancer.ConsistentHash.HashKey,
 
 						"minimumRingSize": policy.Spec.LoadBalancer.ConsistentHash.MinimumRingSize,
@@ -1333,7 +1267,7 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 					fromSource["namespaces"] = source.Namespaces
 				}
 
-				from = append(from, map[string]interface{}{"source": fromSource})
+				from = append(from, json.RawMessage("{}"))
 
 			}
 
@@ -1359,7 +1293,7 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 					toOp["paths"] = operation.Paths
 				}
 
-				to = append(to, map[string]interface{}{"operation": toOp})
+				to = append(to, json.RawMessage("{}"))
 
 			}
 
@@ -1375,9 +1309,7 @@ func (m *IstioMesh) convertAuthorizationRules(rules []abstraction.AuthorizationR
 
 			for _, condition := range rule.When {
 
-				whenCond := map[string]interface{}{
-					"key": condition.Key,
-				}
+				whenCond := json.RawMessage("{}")
 
 				if len(condition.Values) > 0 {
 					whenCond["values"] = condition.Values

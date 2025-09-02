@@ -28,11 +28,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 		// Create mock server for testing
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Default successful response
-			response := map[string]interface{}{
-				"type":      "NetworkFunctionDeployment",
-				"name":      "test-nf",
-				"namespace": "default",
-				"spec": map[string]interface{}{
+			response := json.RawMessage("{}"){
 					"replicas": float64(1),
 					"image":    "test:latest",
 				},
@@ -178,11 +174,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 					return
 				}
 				// Third attempt succeeds
-				response := map[string]interface{}{
-					"type":      "NetworkFunctionDeployment",
-					"name":      "test-nf",
-					"namespace": "default",
-					"spec": map[string]interface{}{
+				response := json.RawMessage("{}"){
 						"replicas": float64(1),
 						"image":    "test:latest",
 					},

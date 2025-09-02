@@ -37,6 +37,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -141,7 +142,7 @@ type Repository struct {
 
 	Version string `json:"version,omitempty"`
 
-	mu sync.RWMutex
+	mu sync.RWMutex `json:"-"`
 }
 
 // RepositoryConfig defines repository configuration.
@@ -299,9 +300,9 @@ type SchemaProperty struct {
 
 	Pattern string `json:"pattern,omitempty" yaml:"pattern,omitempty"`
 
-	Minimum *float64 `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	Minimum string `json:"minimum,omitempty" yaml:"minimum,omitempty"`
 
-	Maximum *float64 `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	Maximum string `json:"maximum,omitempty" yaml:"maximum,omitempty"`
 }
 
 // FunctionExample provides usage examples for a function.
@@ -333,17 +334,17 @@ type FunctionDocumentation struct {
 // QualityMetrics provides quality assessment of the function.
 
 type QualityMetrics struct {
-	TestCoverage float64 `json:"testCoverage,omitempty" yaml:"testCoverage,omitempty"`
+	TestCoverage string `json:"testCoverage,omitempty" yaml:"testCoverage,omitempty"`
 
-	CodeQuality float64 `json:"codeQuality,omitempty" yaml:"codeQuality,omitempty"`
+	CodeQuality string `json:"codeQuality,omitempty" yaml:"codeQuality,omitempty"`
 
-	Documentation float64 `json:"documentation,omitempty" yaml:"documentation,omitempty"`
+	Documentation string `json:"documentation,omitempty" yaml:"documentation,omitempty"`
 
-	CommunityScore float64 `json:"communityScore,omitempty" yaml:"communityScore,omitempty"`
+	CommunityScore string `json:"communityScore,omitempty" yaml:"communityScore,omitempty"`
 
-	SecurityScore float64 `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
+	SecurityScore string `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
 
-	OverallScore float64 `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
+	OverallScore string `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
 }
 
 // PerformanceInfo provides performance characteristics.
@@ -1426,7 +1427,7 @@ type CacheStatus struct {
 
 	Items int `json:"items"`
 
-	HitRate float64 `json:"hitRate"`
+	HitRate string `json:"hitRate"`
 
 	LastClean time.Time `json:"lastClean"`
 }
@@ -1490,7 +1491,7 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 
 		score := r.calculateSearchScore(function, terms)
 
-		if score > 0 {
+		if score != "0" {
 			matches = append(matches, function)
 		}
 
@@ -1519,26 +1520,26 @@ func (r *Registry) performSearch(functions []*FunctionMetadata, query *SearchQue
 	return matches
 }
 
-func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string) float64 {
-	score := 0.0
+func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string) string {
+	score := 0
 
 	// Check name (highest weight).
 
 	if strings.Contains(strings.ToLower(function.Name), terms) {
-		score += 10.0
+		score += 10
 	}
 
 	// Check description.
 
 	if strings.Contains(strings.ToLower(function.Description), terms) {
-		score += 5.0
+		score += 5
 	}
 
 	// Check keywords.
 
 	for _, keyword := range function.Keywords {
 		if strings.Contains(strings.ToLower(keyword), terms) {
-			score += 3.0
+			score += 3
 		}
 	}
 
@@ -1546,11 +1547,11 @@ func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string
 
 	for _, category := range function.Categories {
 		if strings.Contains(strings.ToLower(category), terms) {
-			score += 2.0
+			score += 2
 		}
 	}
 
-	return score
+	return strconv.Itoa(score)
 }
 
 func (c *FunctionCache) getStatus() *CacheStatus {

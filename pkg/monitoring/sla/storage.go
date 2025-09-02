@@ -1,7 +1,9 @@
 package sla
 
 import (
-	"compress/gzip"
+	
+	"encoding/json"
+"compress/gzip"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -169,7 +171,7 @@ type DataPoint struct {
 
 	Labels map[string]string `json:"labels"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // TimeSeries represents a time series with metadata.

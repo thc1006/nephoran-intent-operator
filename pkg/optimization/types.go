@@ -17,7 +17,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"time"
 
@@ -428,7 +430,7 @@ type OptimizationRecommendation struct {
 
 	Automation AutomationLevel `json:"automationLevel"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // OptimizationRecommendationEngine represents the engine that generates recommendations.
@@ -710,7 +712,7 @@ type MLModelMetadata struct {
 
 	LastValidated time.Time `json:"lastValidated"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	InputFeatures []string `json:"inputFeatures"`
 

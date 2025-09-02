@@ -78,7 +78,7 @@ type TestQuery struct {
 	ID         string                 `json:"id"`
 	Query      string                 `json:"query"`
 	IntentType string                 `json:"intent_type"`
-	Context    map[string]interface{} `json:"context"`
+	Context    json.RawMessage `json:"context"`
 	Weight     float64                `json:"weight"`
 	Expected   ExpectedResult         `json:"expected"`
 }
@@ -227,7 +227,7 @@ type EnvironmentInfo struct {
 	GoVersion         string                 `json:"go_version"`
 	KubernetesVersion string                 `json:"kubernetes_version"`
 	ClusterNodes      int                    `json:"cluster_nodes"`
-	Configuration     map[string]interface{} `json:"configuration"`
+	Configuration     json.RawMessage `json:"configuration"`
 }
 
 // TimePoint represents a data point in time series
@@ -658,9 +658,7 @@ func (bf *BenchmarkFramework) collectEnvironmentInfo() EnvironmentInfo {
 		CPUCores:     runtime.NumCPU(),
 		Memory:       int64(memStats.Sys / 1024 / 1024), // MB
 		GoVersion:    runtime.Version(),
-		Configuration: map[string]interface{}{
-			"max_procs": runtime.GOMAXPROCS(0),
-		},
+		Configuration: json.RawMessage("{}"),
 	}
 }
 
@@ -703,7 +701,7 @@ type RequestResult struct {
 // ComponentDataPoint represents a data point for component metrics
 type ComponentDataPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
-	Metrics   map[string]interface{} `json:"metrics"`
+	Metrics   json.RawMessage `json:"metrics"`
 }
 
 // loadBaselineMetrics loads baseline metrics from file

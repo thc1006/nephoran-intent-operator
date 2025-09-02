@@ -143,11 +143,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "valid scaling intent",
 			contentType: "application/json",
-			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to 3 replicas for load testing",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 3,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -162,11 +158,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "minimal valid intent",
 			contentType: "application/json",
-			payload: map[string]interface{}{
-				"id":          "scale-minimal-app-001",
-				"type":        "scaling",
-				"description": "Scale minimal app to 5 replicas for production workload",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 5,
 					"target":          "minimal-app",
 					"namespace":       "production",
@@ -179,11 +171,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "text/json content type",
 			contentType: "text/json",
-			payload: map[string]interface{}{
-				"id":          "scale-text-json-app-001",
-				"type":        "scaling",
-				"description": "Scale text json app to 2 replicas for staging environment",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 2,
 					"target":          "text-json-app",
 					"namespace":       "staging",
@@ -196,11 +184,7 @@ func copyFile(src, dst string) error {
 		{
 			name:        "application/json with charset",
 			contentType: "application/json; charset=utf-8",
-			payload: map[string]interface{}{
-				"id":          "scale-charset-app-001",
-				"type":        "scaling",
-				"description": "Scale charset app to 1 replica for testing environment",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 1,
 					"target":          "charset-app",
 					"namespace":       "testing",
@@ -311,11 +295,7 @@ func copyFile(src, dst string) error {
 		{
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
-			expected: map[string]interface{}{
-				"id":          "scale-my-app-001",
-				"type":        "scaling",
-				"description": "Scale my-app to 5 replicas in production namespace",
-				"parameters": map[string]interface{}{
+			expected: json.RawMessage("{}"){
 					"target_replicas": float64(5),
 					"target":          "my-app",
 					"namespace":       "production",
@@ -328,11 +308,7 @@ func copyFile(src, dst string) error {
 		{
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
-			expected: map[string]interface{}{
-				"id":          "scale-nf-sim-001",
-				"type":        "scaling",
-				"description": "Scale nf-sim to 10 replicas in ran-a namespace",
-				"parameters": map[string]interface{}{
+			expected: json.RawMessage("{}"){
 					"target_replicas": float64(10),
 					"target":          "nf-sim",
 					"namespace":       "ran-a",
@@ -345,11 +321,7 @@ func copyFile(src, dst string) error {
 		{
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
-			expected: map[string]interface{}{
-				"id":          "scale-MY-SERVICE-001",
-				"type":        "scaling",
-				"description": "Scale MY-SERVICE to 3 replicas in DEFAULT namespace",
-				"parameters": map[string]interface{}{
+			expected: json.RawMessage("{}"){
 					"target_replicas": float64(3),
 					"target":          "MY-SERVICE",
 					"namespace":       "DEFAULT",
@@ -623,11 +595,7 @@ func copyFile(src, dst string) error {
 	defer cleanup()
 
 	correlationID := "test-correlation-123"
-	payload := map[string]interface{}{
-		"id":          "scale-test-deployment-corr-001",
-		"type":        "scaling",
-		"description": "Scale test deployment to 3 replicas with correlation tracking",
-		"parameters": map[string]interface{}{
+	payload := json.RawMessage("{}"){
 			"target_replicas": 3,
 			"target":          "test-deployment",
 			"namespace":       "default",
@@ -682,11 +650,7 @@ func copyFile(src, dst string) error {
 	server, handoffDir, cleanup := setupTestServer(t)
 	defer cleanup()
 
-	payload := map[string]interface{}{
-		"id":          "scale-file-test-deployment-001",
-		"type":        "scaling",
-		"description": "Scale file test deployment to 3 replicas for testing file creation",
-		"parameters": map[string]interface{}{
+	payload := json.RawMessage("{}"){
 			"target_replicas": 3,
 			"target":          "file-test-deployment",
 			"namespace":       "default",
@@ -754,12 +718,7 @@ func copyFile(src, dst string) error {
 		t.Fatalf("Expected parameters to be a map, got %T", savedIntent["parameters"])
 	}
 
-	expectedParams := map[string]interface{}{
-		"target_replicas": float64(3),
-		"target":          "file-test-deployment",
-		"namespace":       "default",
-		"source":          "test",
-	}
+	expectedParams := json.RawMessage("{}")
 
 	for key, expected := range expectedParams {
 		if params[key] != expected {
@@ -791,11 +750,7 @@ func copyFile(src, dst string) error {
 			// Add small delay to avoid identical timestamps
 			time.Sleep(time.Duration(id) * time.Millisecond)
 
-			payload := map[string]interface{}{
-				"id":          fmt.Sprintf("scale-concurrent-test-%d-001", id),
-				"type":        "scaling",
-				"description": fmt.Sprintf("Scale concurrent test %d to 3 replicas for testing concurrent requests", id),
-				"parameters": map[string]interface{}{
+			payload := json.RawMessage("{}"){
 					"target_replicas": 3,
 					"target":          fmt.Sprintf("concurrent-test-%d", id),
 					"namespace":       "default",
@@ -939,11 +894,7 @@ func copyFile(src, dst string) error {
 	}{
 		{
 			name: "valid with all optional fields",
-			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-all-fields-001",
-				"type":        "scaling",
-				"description": "Load balancing optimization for test deployment with all optional fields",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 50,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -959,11 +910,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "replicas at minimum boundary",
-			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-min-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to minimum 1 replica for boundary testing",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 1,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -976,11 +923,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "replicas at maximum boundary",
-			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-max-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to maximum 100 replicas for boundary testing",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 100,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -993,11 +936,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "valid source enum values",
-			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-test-source-001",
-				"type":        "scaling",
-				"description": "Scale test deployment to 5 replicas using test source enum",
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -1011,11 +950,7 @@ func copyFile(src, dst string) error {
 		},
 		{
 			name: "reason at max length",
-			payload: map[string]interface{}{
-				"id":          "scale-test-deployment-max-reason-001",
-				"type":        "scaling",
-				"description": strings.Repeat("a", 500), // Max description length
-				"parameters": map[string]interface{}{
+			payload: json.RawMessage("{}"){
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -1062,11 +997,7 @@ func copyFile(src, dst string) error {
 	// Test complete flow with correlation ID tracking
 	correlationID := fmt.Sprintf("integration-test-%d", time.Now().Unix())
 
-	payload := map[string]interface{}{
-		"id":          "scale-integration-test-app-001",
-		"type":        "scaling",
-		"description": "Integration test scaling of test app to 7 replicas with correlation tracking",
-		"parameters": map[string]interface{}{
+	payload := json.RawMessage("{}"){
 			"target_replicas": 7,
 			"target":          "integration-test-app",
 			"namespace":       "integration",

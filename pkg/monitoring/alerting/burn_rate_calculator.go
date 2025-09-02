@@ -1027,15 +1027,5 @@ func (brc *BurnRateCalculator) GetStats() map[string]interface{} {
 
 	brc.cacheMutex.RUnlock()
 
-	return map[string]interface{}{
-		"calculation_count": brc.calculationCount,
-
-		"last_calculation": brc.lastCalculation,
-
-		"average_query_latency": avgLatency,
-
-		"cache_size": cacheSize,
-
-		"cache_hit_rate": brc.cacheHitRate,
-	}
+	return json.RawMessage("{}")
 }

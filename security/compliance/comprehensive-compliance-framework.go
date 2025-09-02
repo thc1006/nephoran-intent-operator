@@ -3,7 +3,9 @@
 package compliance
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -133,7 +135,7 @@ type ComplianceViolation struct {
 	Impact           string                 `json:"impact"`
 	CVSS             float64                `json:"cvss,omitempty"`
 	References       []string               `json:"references,omitempty"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Metadata         json.RawMessage `json:"metadata,omitempty"`
 }
 
 type RemediationGuidance struct {
@@ -173,7 +175,7 @@ type ComplianceAuditEvent struct {
 	Resource    string                 `json:"resource"`
 	Action      string                 `json:"action"`
 	Result      string                 `json:"result"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 type ComplianceTrends struct {
@@ -248,7 +250,7 @@ type ComplianceAlert struct {
 	Acknowledged bool                   `json:"acknowledged"` // Added for compatibility
 	Violation    *ComplianceViolation   `json:"violation,omitempty"`
 	Actions      []string               `json:"actions,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NewComplianceMetricsCollector creates a new compliance metrics collector
@@ -394,7 +396,7 @@ type OPAPolicy struct {
 	LastEvaluated   *time.Time             `json:"last_evaluated,omitempty"`
 	EvaluationCount int64                  `json:"evaluation_count"`
 	ViolationCount  int64                  `json:"violation_count"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 	Dependencies    []string               `json:"dependencies,omitempty"`
 	TestCases       []PolicyTestCase       `json:"test_cases,omitempty"`
 }
@@ -570,7 +572,7 @@ type PolicyTestCase struct {
 	TestID            string                 `json:"test_id"`
 	Name              string                 `json:"name"`
 	Description       string                 `json:"description"`
-	Input             map[string]interface{} `json:"input"`
+	Input             json.RawMessage `json:"input"`
 	ExpectedOutput    interface{}            `json:"expected_output"`
 	ExpectedViolation bool                   `json:"expected_violation"`
 }

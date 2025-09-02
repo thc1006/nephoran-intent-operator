@@ -1,7 +1,9 @@
 package integration_tests
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -36,7 +38,7 @@ type WeaviateClass struct {
 
 	Vectorizer string `json:"vectorizer"`
 
-	ModuleConfig map[string]interface{} `json:"moduleConfig"`
+	ModuleConfig json.RawMessage `json:"moduleConfig"`
 }
 
 // WeaviateProperty represents a property in a Weaviate class.
@@ -56,7 +58,7 @@ type WeaviateObject struct {
 
 	Class string `json:"class"`
 
-	Properties map[string]interface{} `json:"properties"`
+	Properties json.RawMessage `json:"properties"`
 
 	Vector []float32 `json:"vector,omitempty"`
 
@@ -78,7 +80,7 @@ type SearchObject struct {
 
 	Class string `json:"class"`
 
-	Properties map[string]interface{} `json:"properties"`
+	Properties json.RawMessage `json:"properties"`
 
 	Vector []float32 `json:"vector,omitempty"`
 
@@ -181,8 +183,7 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 
 		Vectorizer: "text2vec-openai",
 
-		ModuleConfig: map[string]interface{}{
-			"text2vec-openai": map[string]interface{}{
+		ModuleConfig: json.RawMessage("{}"){
 				"model": "text-embedding-3-small",
 			},
 		},
@@ -349,21 +350,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 
 			Class: "TelecomDocument",
 
-			Properties: map[string]interface{}{
-				"title": doc.title,
-
-				"content": doc.content,
-
-				"documentType": doc.documentType,
-
-				"category": doc.category,
-
-				"tags": doc.tags,
-
-				"version": "1.0",
-
-				"releaseDate": time.Now().Add(-time.Duration(i*30) * 24 * time.Hour),
-			},
+			Properties: json.RawMessage("{}"),
 
 			Vector: f.generateMockEmbedding(doc.content),
 
@@ -445,19 +432,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 
 			Class: "NetworkFunction",
 
-			Properties: map[string]interface{}{
-				"name": nf.name,
-
-				"description": nf.description,
-
-				"type": nf.funcType,
-
-				"interfaces": nf.interfaces,
-
-				"deploymentRequirements": nf.deploymentRequirements,
-
-				"scalingPolicy": nf.scalingPolicy,
-			},
+			Properties: json.RawMessage("{}"),
 
 			Vector: f.generateMockEmbedding(nf.description + " " + nf.deploymentRequirements),
 

@@ -305,8 +305,7 @@ func (s *O2IMSServiceImpl) DeleteResourcePool(ctx context.Context, resourcePoolI
 	// Check if pool has resources.
 
 	// Check if pool has resources using filter map
-	filterMap := map[string]interface{}{
-		"resource_pool_ids": []string{resourcePoolID},
+	filterMap := json.RawMessage("{}"),
 		"limit":             1,
 	}
 	resources, err := s.storage.ListResources(ctx, filterMap)
@@ -530,8 +529,7 @@ func (s *O2IMSServiceImpl) DeleteResourceType(ctx context.Context, resourceTypeI
 	// Check if type is in use by any resources.
 
 	// Check if type is in use using filter map
-	filterMap := map[string]interface{}{
-		"resource_type_ids": []string{resourceTypeID},
+	filterMap := json.RawMessage("{}"),
 		"limit":             1,
 	}
 	resources, err := s.storage.ListResources(ctx, filterMap)
@@ -1405,20 +1403,11 @@ func (is *InventoryServiceImpl) DiscoverInfrastructure(ctx context.Context, prov
 
 	// Create discovery result.
 
-	discovery := map[string]interface{}{
-		"providerId": provider,
-
-		"discoveryId": fmt.Sprintf("disc-%d", time.Now().Unix()),
-
-		"status": "IN_PROGRESS",
-
-		"startedAt": time.Now(),
-
-		"resources": []interface{}{},
+	discovery := json.RawMessage("{}"){},
 
 		"resourcePools": []interface{}{},
 
-		"summary": map[string]interface{}{},
+		"summary": json.RawMessage("{}"),
 	}
 
 	// In a real implementation, this would discover actual infrastructure.
@@ -1463,7 +1452,7 @@ func (is *InventoryServiceImpl) UpdateInventory(ctx context.Context, request int
 
 	logger.Info("inventory update completed", "updates_processed", len(updates))
 
-	return map[string]interface{}{"processed": len(updates)}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // TrackAsset tracks an asset in the inventory.

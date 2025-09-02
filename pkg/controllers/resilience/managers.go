@@ -40,7 +40,7 @@ func (m *BulkheadManager) Stop(ctx context.Context) error  { return nil }
 func (m *BulkheadManager) Execute(ctx context.Context, key string, fn func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 	return fn(ctx)
 }
-func (m *BulkheadManager) CheckHealth() map[string]interface{} { return map[string]interface{}{} }
+func (m *BulkheadManager) CheckHealth() map[string]interface{} { return json.RawMessage("{}") }
 func (m *BulkheadManager) GetMetrics() *BulkheadMetrics        { return &BulkheadMetrics{} }
 
 // CircuitBreakerManager methods
@@ -48,14 +48,14 @@ func (m *CircuitBreakerManager) Start(ctx context.Context) error                
 func (m *CircuitBreakerManager) Stop(ctx context.Context) error                                 { return nil }
 func (m *CircuitBreakerManager) CanExecute(key string) bool                                     { return true }
 func (m *CircuitBreakerManager) RecordResult(key string, success bool, duration ...interface{}) {}
-func (m *CircuitBreakerManager) CheckHealth() map[string]interface{}                            { return map[string]interface{}{} }
+func (m *CircuitBreakerManager) CheckHealth() map[string]interface{}                            { return json.RawMessage("{}") }
 func (m *CircuitBreakerManager) GetMetrics() *CircuitBreakerMetrics                             { return &CircuitBreakerMetrics{} }
 
 // RateLimiterManager methods
 func (m *RateLimiterManager) Start(ctx context.Context) error     { return nil }
 func (m *RateLimiterManager) Stop(ctx context.Context) error      { return nil }
 func (m *RateLimiterManager) Allow(key string) bool               { return true }
-func (m *RateLimiterManager) CheckHealth() map[string]interface{} { return map[string]interface{}{} }
+func (m *RateLimiterManager) CheckHealth() map[string]interface{} { return json.RawMessage("{}") }
 func (m *RateLimiterManager) GetMetrics() *RateLimitMetrics       { return &RateLimitMetrics{} }
 
 // Note: BulkheadConfig, CircuitBreakerConfig, and RateLimitConfig are defined in manager.go

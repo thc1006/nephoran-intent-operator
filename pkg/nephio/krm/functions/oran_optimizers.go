@@ -447,10 +447,7 @@ func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList
 
 func (o *FiveGCoreOptimizer) parseOptimizationConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return map[string]interface{}{
-			"optimizationTarget": "balanced",
-
-			"expectedLoad": map[string]interface{}{
+		return json.RawMessage("{}"){
 				"peakUsers": 100000,
 
 				"averageUsers": 50000,
@@ -1031,13 +1028,7 @@ func (o *NetworkSliceOptimizer) findResourceIndex(resources []porch.KRMResource,
 
 func (n *MultiVendorNormalizer) parseNormalizationConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return map[string]interface{}{
-			"targetVendor": "generic",
-
-			"normalizeInterfaces": true,
-
-			"normalizeParameters": true,
-		}
+		return json.RawMessage("{}")
 	}
 
 	return config
@@ -1217,11 +1208,7 @@ func (n *MultiVendorNormalizer) convertEricssonToGeneric(ericssonConfig interfac
 
 	// For now, return a placeholder.
 
-	return map[string]interface{}{
-		"converted": true,
-
-		"source": "ericsson",
-	}
+	return json.RawMessage("{}")
 }
 
 func (n *MultiVendorNormalizer) normalizeInterfaceMap(interfaces map[string]interface{}) map[string]interface{} {

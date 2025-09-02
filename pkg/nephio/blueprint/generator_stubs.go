@@ -277,48 +277,26 @@ func (g *Generator) generateXAppDescriptor(genCtx *GenerationContext) (string, e
 // Template data building helpers.
 
 func (g *Generator) buildRICTemplateData(genCtx *GenerationContext, ricType string) map[string]interface{} {
-	return map[string]interface{}{
-		"Name": fmt.Sprintf("%s-%s-ric", genCtx.Intent.Name, ricType),
-
-		"Namespace": genCtx.TargetNamespace,
-
-		"RICType": ricType,
-	}
+	return json.RawMessage("{}")
 }
 
 func (g *Generator) buildXAppTemplateData(genCtx *GenerationContext) map[string]interface{} {
-	return map[string]interface{}{
-		"Name": fmt.Sprintf("%s-xapp", genCtx.Intent.Name),
-
-		"Namespace": genCtx.TargetNamespace,
-
-		"Image": "placeholder-xapp:latest",
-	}
+	return json.RawMessage("{}")
 }
 
 func (g *Generator) buildNetworkSliceTemplateData(genCtx *GenerationContext) map[string]interface{} {
-	return map[string]interface{}{
-		"Name": fmt.Sprintf("%s-slice", genCtx.Intent.Name),
-
-		"NetworkSlice": genCtx.NetworkSlice,
-
-		"Namespace": genCtx.TargetNamespace,
-	}
+	return json.RawMessage("{}")
 }
 
 func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interface{} {
-	return map[string]interface{}{
-		"plmn_list": []map[string]string{
-			{"mcc": "001", "mnc": "01"},
+	return json.RawMessage("{}"),
 		},
 	}
 }
 
 func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interface{} {
-	return map[string]interface{}{
-		"user_plane_information": map[string]interface{}{
-			"up_nodes": map[string]interface{}{
-				"gNB1": map[string]interface{}{
+	return json.RawMessage("{}"){
+			"up_nodes": json.RawMessage("{}"){
 					"type": "AN",
 				},
 			},
@@ -327,8 +305,7 @@ func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interfa
 }
 
 func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]interface{} {
-	return map[string]interface{}{
-		"gtpu": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"forwarder": "gtp5g",
 		},
 	}
@@ -339,8 +316,7 @@ func (g *Generator) extractResources(deployConfig map[string]interface{}) map[st
 		return resources
 	}
 
-	return map[string]interface{}{
-		"requests": map[string]string{"cpu": "100m", "memory": "128Mi"},
+	return json.RawMessage("{}"),
 
 		"limits": map[string]string{"cpu": "500m", "memory": "512Mi"},
 	}

@@ -14,13 +14,13 @@ import (
 // PackageRevision represents the result of a package operation.
 
 type PackageRevision struct {
-	Name string
+	Name string `json:"name,omitempty"`
 
-	Revision string
+	Revision string `json:"revision,omitempty"`
 
-	CommitURL string
+	CommitURL string `json:"commitUrl,omitempty"`
 
-	PackagePath string
+	PackagePath string `json:"packagePath,omitempty"`
 }
 
 // DirectClient provides direct access to Porch API without Kubernetes.

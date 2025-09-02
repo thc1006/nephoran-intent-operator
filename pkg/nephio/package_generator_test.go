@@ -182,56 +182,34 @@ import (
 
 // Helper function to create test parameters based on intent type
 func createTestParameters(intentType string) map[string]interface{} {
-	baseParams := map[string]interface{}{
-		"name":      "test-app",
-		"namespace": "test-namespace",
-		"component": "test-component",
-		"intent_id": "test-intent",
-	}
+	baseParams := json.RawMessage("{}")
 
 	switch intentType {
 	case "deployment", "":
 		baseParams["replicas"] = 3
 		baseParams["image"] = "test-image:latest"
-		baseParams["ports"] = []map[string]interface{}{
-			{
-				"Name":     "http",
-				"Port":     8080,
-				"Protocol": "TCP",
-			},
+		baseParams["ports"] = []json.RawMessage("{}"),
 		}
-		baseParams["env"] = []map[string]interface{}{
-			{
-				"Name":  "ENV_VAR",
-				"Value": "test-value",
-			},
+		baseParams["env"] = []json.RawMessage("{}"),
 		}
-		baseParams["resources"] = map[string]interface{}{
-			"Requests": map[string]interface{}{
+		baseParams["resources"] = json.RawMessage("{}"){
 				"CPU":    "100m",
 				"Memory": "128Mi",
 			},
-			"Limits": map[string]interface{}{
-				"CPU":    "200m",
-				"Memory": "256Mi",
-			},
+			"Limits": json.RawMessage("{}"),
 		}
 	case "scaling":
 		baseParams["target"] = "existing-deployment"
 		baseParams["replicas"] = 5
 	case "policy":
-		baseParams["policy_spec"] = map[string]interface{}{
-			"podSelector": map[string]interface{}{
+		baseParams["policy_spec"] = json.RawMessage("{}"){
 				"matchLabels": map[string]string{
 					"app": "test-app",
 				},
 			},
 			"policyTypes": []string{"Ingress", "Egress"},
 		}
-		baseParams["a1_policy"] = map[string]interface{}{
-			"policy_type_id":     20000,
-			"policy_instance_id": "slice-policy-001",
-			"policy_data": map[string]interface{}{
+		baseParams["a1_policy"] = json.RawMessage("{}"){
 				"scope":  "network-slice",
 				"target": "slice-001",
 			},

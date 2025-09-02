@@ -25,7 +25,7 @@ type ProcessIntentRequest struct {
 
 // ProcessIntentResponse represents the processed intent response
 type ProcessIntentResponse struct {
-	StructuredIntent map[string]interface{} `json:"structured_intent"`
+	StructuredIntent json.RawMessage `json:"structured_intent"`
 	Confidence       float64                `json:"confidence"`
 	Reasoning        string                 `json:"reasoning,omitempty"`
 	Metadata         ResponseMetadata       `json:"metadata"`

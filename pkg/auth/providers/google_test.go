@@ -206,28 +206,16 @@ import (
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := map[string]interface{}{
-					"access_token":  "google-access-token-123",
-					"refresh_token": "google-refresh-token-456",
-					"token_type":    "Bearer",
-					"expires_in":    3600,
-					"id_token":      "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.test-id-token",
-					"scope":         "openid email profile",
-				}
+				response := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_grant",
-					"error_description": "Invalid authorization code",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error": "invalid_request",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -305,26 +293,16 @@ import (
 			refreshToken := r.FormValue("refresh_token")
 			switch refreshToken {
 			case "valid-refresh-token":
-				response := map[string]interface{}{
-					"access_token": "new-google-access-token",
-					"token_type":   "Bearer",
-					"expires_in":   3600,
-					"scope":        "openid email profile",
-				}
+				response := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "expired-refresh-token":
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_grant",
-					"error_description": "Token has expired",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error": "invalid_grant",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -435,8 +413,7 @@ import (
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
 				w.WriteHeader(http.StatusUnauthorized)
-				response := map[string]interface{}{
-					"error": map[string]interface{}{
+				response := json.RawMessage("{}"){
 						"code":    401,
 						"message": "Invalid Credentials",
 						"status":  "UNAUTHENTICATED",
@@ -445,8 +422,7 @@ import (
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusForbidden)
-				response := map[string]interface{}{
-					"error": map[string]interface{}{
+				response := json.RawMessage("{}"){
 						"code":    403,
 						"message": "Forbidden",
 						"status":  "PERMISSION_DENIED",
@@ -546,10 +522,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				userInfo := map[string]interface{}{
-					"id":    "123456789",
-					"email": "testuser@example.com",
-				}
+				userInfo := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
@@ -621,9 +594,7 @@ import (
 				w.Write([]byte("success"))
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error": "invalid_token",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -781,14 +752,7 @@ func createMockGoogleServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/token":
-			response := map[string]interface{}{
-				"access_token":  "test-access-token",
-				"refresh_token": "test-refresh-token",
-				"token_type":    "Bearer",
-				"expires_in":    3600,
-				"id_token":      "test-id-token",
-				"scope":         "openid email profile",
-			}
+			response := json.RawMessage("{}")
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/oauth2/v2/userinfo":

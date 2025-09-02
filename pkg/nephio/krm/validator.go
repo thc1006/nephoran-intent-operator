@@ -31,7 +31,9 @@ limitations under the License.
 package krm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"fmt"
 	"sync"
@@ -179,7 +181,7 @@ type ValidationRequest struct {
 
 	Image string `json:"image"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	TestResources []porch.KRMResource `json:"testResources,omitempty"`
 

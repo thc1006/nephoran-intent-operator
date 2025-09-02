@@ -212,12 +212,7 @@ func (ai *AutomationIntegration) GetAutomationEngine() *AutomationEngine {
 // GetHealthStatus returns the overall health status.
 
 func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
-	status := map[string]interface{}{
-		"healthy": true,
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"components": map[string]interface{}{},
+	status := json.RawMessage("{}")"),
 	}
 
 	// Check CA Manager health.
@@ -226,11 +221,7 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 		caHealth := ai.caManager.HealthCheck(context.Background())
 
-		caStatus := map[string]interface{}{
-			"healthy": len(caHealth) == 0,
-
-			"backends": caHealth,
-		}
+		caStatus := json.RawMessage("{}")
 
 		if len(caHealth) > 0 {
 			status["healthy"] = false
@@ -244,13 +235,7 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 
 	if ai.automationEngine != nil {
 
-		engineStatus := map[string]interface{}{
-			"healthy": true,
-
-			"provisioning_queue": ai.automationEngine.GetProvisioningQueueSize(),
-
-			"renewal_queue": ai.automationEngine.GetRenewalQueueSize(),
-		}
+		engineStatus := json.RawMessage("{}")
 
 		status["components"].(map[string]interface{})["automation_engine"] = engineStatus
 
@@ -262,12 +247,9 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 // GetMetrics returns integration metrics.
 
 func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
-	metrics := map[string]interface{}{
-		"timestamp": time.Now().Format(time.RFC3339),
+	metrics := json.RawMessage("{}")"),
 
-		"ca_manager": map[string]interface{}{},
-
-		"automation_engine": map[string]interface{}{},
+		"automation_engine": json.RawMessage("{}"),
 	}
 
 	// Add CA Manager metrics if available.
@@ -275,23 +257,14 @@ func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 	if ai.caManager != nil && ai.caManager.monitor != nil {
 		// This would collect CA manager metrics.
 
-		metrics["ca_manager"] = map[string]interface{}{
-			"certificates_issued": 0, // Placeholder
-
-			"certificates_revoked": 0, // Placeholder
-
-			"backend_health": map[string]bool{},
+		metrics["ca_manager"] = json.RawMessage("{}"),
 		}
 	}
 
 	// Add Automation Engine metrics.
 
 	if ai.automationEngine != nil {
-		metrics["automation_engine"] = map[string]interface{}{
-			"provisioning_queue_size": ai.automationEngine.GetProvisioningQueueSize(),
-
-			"renewal_queue_size": ai.automationEngine.GetRenewalQueueSize(),
-		}
+		metrics["automation_engine"] = json.RawMessage("{}")
 	}
 
 	return metrics

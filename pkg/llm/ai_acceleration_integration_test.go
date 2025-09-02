@@ -236,26 +236,17 @@ import (
 			{
 				id:     "doc1",
 				vector: generateRandomVector(dimensions),
-				metadata: map[string]interface{}{
-					"category": "technology",
-					"score":    0.95,
-				},
+				metadata: json.RawMessage("{}"),
 			},
 			{
 				id:     "doc2",
 				vector: generateRandomVector(dimensions),
-				metadata: map[string]interface{}{
-					"category": "science",
-					"score":    0.87,
-				},
+				metadata: json.RawMessage("{}"),
 			},
 			{
 				id:     "doc3",
 				vector: generateRandomVector(dimensions),
-				metadata: map[string]interface{}{
-					"category": "technology",
-					"score":    0.92,
-				},
+				metadata: json.RawMessage("{}"),
 			},
 		}
 
@@ -512,10 +503,7 @@ import (
 						// Index operation
 						vectorID := fmt.Sprintf("worker_%d_vec_%d", workerID, j)
 						vector := generateRandomVector(config.VectorDimensions)
-						metadata := map[string]interface{}{
-							"worker": workerID,
-							"index":  j,
-						}
+						metadata := json.RawMessage("{}")
 
 						err := accelerator.IndexVector(ctx, vectorID, vector, metadata)
 						if err != nil {

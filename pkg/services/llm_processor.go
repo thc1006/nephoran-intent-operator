@@ -369,9 +369,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
 
-				Metadata: map[string]interface{}{
-					"supported_models": models,
-				},
+				Metadata: json.RawMessage("{}"),
 			}
 		})
 	}

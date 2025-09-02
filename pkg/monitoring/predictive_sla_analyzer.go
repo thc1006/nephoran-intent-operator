@@ -2,7 +2,9 @@
 package monitoring
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sync"
@@ -35,7 +37,7 @@ type PredictiveModel struct {
 	TrainingData []*MetricsData         `json:"-"`
 	LastTrained  time.Time              `json:"lastTrained"`
 	Accuracy     float64                `json:"accuracy"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 // SLAThreshold defines SLA thresholds for metrics
@@ -436,7 +438,7 @@ func (psa *PredictiveSLAAnalyzer) detectAnomalies(data []*MetricsData, metricNam
 					Deviation:     deviation,
 					Severity:      fmt.Sprintf("%.2f", math.Min(deviation/threshold, 1.0)),
 					AnomalyScore:  math.Min(deviation/threshold, 1.0),
-					Context:       map[string]interface{}{"description": fmt.Sprintf("Point %d deviates by %.2f from mean", i, deviation)},
+					Context:       json.RawMessage("{}"),
 				})
 			}
 		}

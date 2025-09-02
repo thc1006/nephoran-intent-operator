@@ -760,15 +760,7 @@ func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *Stre
 
 	// Send confirmation.
 
-	response := map[string]interface{}{
-		"type": "subscription_created",
-
-		"subscription_id": subscription.ID,
-
-		"stream_type": subscription.Type,
-
-		"status": "active",
-	}
+	response := json.RawMessage("{}")
 
 	s.sendMessage(conn, response)
 
@@ -816,13 +808,7 @@ func (s *StreamingService) handleUnsubscribe(conn *StreamConnection, request *St
 
 	// Send confirmation.
 
-	response := map[string]interface{}{
-		"type": "subscription_removed",
-
-		"subscription_id": request.SubscriptionID,
-
-		"status": "inactive",
-	}
+	response := json.RawMessage("{}")
 
 	s.sendMessage(conn, response)
 
@@ -872,7 +858,7 @@ type StreamingAlarmData struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 }
 
 // StreamingPerformanceData represents performance data for streaming.
@@ -890,7 +876,7 @@ type StreamingPerformanceData struct {
 
 	Labels map[string]string `json:"labels"`
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 }
 
 // ConfigurationChange represents configuration changes.
@@ -910,7 +896,7 @@ type ConfigurationChange struct {
 
 	User string `json:"user"`
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 }
 
 // closeConnection closes a streaming connection.
@@ -995,11 +981,7 @@ func (s *StreamingService) sendMessage(conn *StreamConnection, message interface
 // sendError sends an error message to a connection.
 
 func (s *StreamingService) sendError(conn *StreamConnection, message string, err error) {
-	errorMsg := map[string]interface{}{
-		"type": "error",
-
-		"message": message,
-	}
+	errorMsg := json.RawMessage("{}")
 
 	if err != nil {
 		errorMsg["details"] = err.Error()
@@ -1165,17 +1147,7 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 
 		// Send to connection.
 
-		message := map[string]interface{}{
-			"type": "data",
-
-			"stream_type": subscription.Type,
-
-			"subscription_id": subscription.ID,
-
-			"data": data,
-
-			"timestamp": time.Now(),
-		}
+		message := json.RawMessage("{}")
 
 		// Handle backpressure.
 
@@ -1334,26 +1306,12 @@ func (s *StreamingService) handleListSubscriptions(conn *StreamConnection) {
 	subscriptions := make([]map[string]interface{}, 0, len(conn.Subscriptions))
 
 	for _, sub := range conn.Subscriptions {
-		subscriptions = append(subscriptions, map[string]interface{}{
-			"id": sub.ID,
-
-			"stream_type": sub.Type,
-
-			"created_at": sub.CreatedAt,
-
-			"active": sub.Active,
-
-			"message_count": sub.MessageCount,
-		})
+		subscriptions = append(subscriptions, json.RawMessage("{}"))
 	}
 
 	conn.mutex.RUnlock()
 
-	response := map[string]interface{}{
-		"type": "subscription_list",
-
-		"subscriptions": subscriptions,
-	}
+	response := json.RawMessage("{}")
 
 	s.sendMessage(conn, response)
 }
@@ -1371,19 +1329,7 @@ func (s *StreamingService) handleGetStatus(conn *StreamConnection) {
 
 	s.subscriptionsMutex.RUnlock()
 
-	response := map[string]interface{}{
-		"type": "status",
-
-		"connection_id": conn.ID,
-
-		"total_connections": totalConnections,
-
-		"total_subscriptions": totalSubscriptions,
-
-		"server_time": time.Now(),
-
-		"uptime": time.Since(conn.LastActivity),
-	}
+	response := json.RawMessage("{}")
 
 	s.sendMessage(conn, response)
 }

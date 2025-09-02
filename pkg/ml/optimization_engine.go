@@ -5,7 +5,9 @@
 package ml
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"time"
@@ -82,7 +84,7 @@ type NetworkIntent struct {
 
 	Priority string `json:"priority"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -212,7 +214,7 @@ type DataPoint struct {
 
 	Features map[string]float64 `json:"features"`
 
-	Labels map[string]interface{} `json:"labels"`
+	Labels json.RawMessage `json:"labels"`
 
 	Metadata map[string]string `json:"metadata"`
 }
@@ -1166,11 +1168,7 @@ func (oe *OptimizationEngine) GetModelMetrics() map[string]interface{} {
 	metrics := make(map[string]interface{})
 
 	for name, model := range oe.models {
-		metrics[name] = map[string]interface{}{
-			"accuracy": model.GetAccuracy(),
-
-			"last_training": model.GetLastTraining(),
-		}
+		metrics[name] = json.RawMessage("{}")
 	}
 
 	return metrics

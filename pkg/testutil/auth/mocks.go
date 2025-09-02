@@ -862,20 +862,7 @@ func (ms *OAuth2MockServer) handleUserInfo(w http.ResponseWriter, r *http.Reques
 func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.Request) {
 	baseURL := ms.Server.URL
 
-	config := map[string]interface{}{
-		"issuer": baseURL,
-
-		"authorization_endpoint": baseURL + "/oauth/authorize",
-
-		"token_endpoint": baseURL + "/oauth/token",
-
-		"userinfo_endpoint": baseURL + "/userinfo",
-
-		"jwks_uri": baseURL + "/.well-known/jwks.json",
-
-		"scopes_supported": []string{
-			"openid", "email", "profile",
-		},
+	config := json.RawMessage("{}"),
 
 		"response_types_supported": []string{
 			"code",
@@ -907,8 +894,7 @@ func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.R
 }
 
 func (ms *OAuth2MockServer) handleJWKS(w http.ResponseWriter, r *http.Request) {
-	jwks := map[string]interface{}{
-		"keys": []map[string]interface{}{
+	jwks := json.RawMessage("{}"){
 			{
 				"kty": "RSA",
 

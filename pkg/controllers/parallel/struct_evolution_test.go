@@ -92,13 +92,7 @@ import (
 
 	t.Run("Migration from legacy format", func(t *testing.T) {
 		// Simulate a legacy task from external storage/API
-		legacyData := map[string]interface{}{
-			"id":             "migrated-task-1",
-			"intent_id":      "intent-migrate-1",
-			"correlation_id": "migrate-corr-1",
-			"timeout":        time.Duration(45 * time.Second),
-			"priority":       75,
-		}
+		legacyData := json.RawMessage("{}")
 
 		// Use the evolution layer to migrate
 		evolution := &TaskEvolution{}

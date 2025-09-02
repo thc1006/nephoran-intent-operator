@@ -153,7 +153,7 @@ type TokenInfo struct {
 
 	ExpiresAt time.Time `json:"expires_at"`
 
-	Claims map[string]interface{} `json:"claims"`
+	Claims json.RawMessage `json:"claims"`
 
 	Subject string `json:"subject"`
 
@@ -179,7 +179,7 @@ type RBACPolicy struct {
 
 	Resources []*Resource `json:"resources"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	CreatedAt time.Time `json:"created_at"`
 

@@ -1,7 +1,9 @@
 package audit
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -94,7 +96,7 @@ type Query struct {
 
 	// Advanced filters.
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	TextSearch string `json:"text_search,omitempty"`
 
@@ -102,7 +104,7 @@ type Query struct {
 
 	GroupBy []string `json:"group_by,omitempty"`
 
-	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
+	Aggregations json.RawMessage `json:"aggregations,omitempty"`
 }
 
 // AggregationType defines supported aggregation operations.
@@ -145,7 +147,7 @@ const (
 type QueryResult struct {
 	Events []*types.AuditEvent `json:"events,omitempty"`
 
-	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
+	Aggregations json.RawMessage `json:"aggregations,omitempty"`
 
 	TotalCount int64 `json:"total_count"`
 

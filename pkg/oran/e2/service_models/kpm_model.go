@@ -457,11 +457,7 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 				ActionType: "REPORT",
 
-				ActionDefinition: map[string]interface{}{
-					"event_trigger": json.RawMessage(eventTrigger),
-
-					"action_def": json.RawMessage(actionDef),
-				},
+				ActionDefinition: json.RawMessage("{}"),
 			},
 		},
 

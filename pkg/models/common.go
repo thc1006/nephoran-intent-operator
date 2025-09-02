@@ -28,7 +28,7 @@ func NewBaseModel() BaseModel {
 
 // NetworkIntent represents a network configuration intent
 type NetworkIntent struct {
-	BaseModel
+	BaseModel `json:",inline" yaml:",inline"`
 	Spec   NetworkIntentSpec   `json:"spec" yaml:"spec"`
 	Status NetworkIntentStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
@@ -73,7 +73,7 @@ type ValidationResult struct {
 
 // NetworkConfiguration represents a processed network configuration
 type NetworkConfiguration struct {
-	BaseModel
+	BaseModel `json:",inline" yaml:",inline"`
 	IntentID      string          `json:"intent_id" yaml:"intent_id"`
 	ConfigType    string          `json:"config_type" yaml:"config_type"`
 	Configuration json.RawMessage `json:"configuration" yaml:"configuration"`
@@ -91,7 +91,7 @@ type ConfigStatus struct {
 
 // ExecutionPolicy represents an execution policy for intents
 type ExecutionPolicy struct {
-	BaseModel
+	BaseModel `json:",inline" yaml:",inline"`
 	Name        string                `json:"name" yaml:"name"`
 	Description string                `json:"description,omitempty" yaml:"description,omitempty"`
 	Rules       []ExecutionRule       `json:"rules" yaml:"rules"`
@@ -120,7 +120,7 @@ type ExecutionPolicyStatus struct {
 
 // ProcessingMetrics contains metrics for intent processing
 type ProcessingMetrics struct {
-	BaseModel
+	BaseModel `json:",inline" yaml:",inline"`
 	IntentID       string        `json:"intent_id" yaml:"intent_id"`
 	ProcessingTime time.Duration `json:"processing_time" yaml:"processing_time"`
 	ValidationTime time.Duration `json:"validation_time" yaml:"validation_time"`

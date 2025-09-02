@@ -263,57 +263,35 @@ import (
 	}{
 		{
 			name: "valid intent",
-			intent: map[string]interface{}{
-				"version":   "1.0.0",
-				"timestamp": time.Now().Format(time.RFC3339),
-				"action":    "scale-up",
-				"target":    "application",
-				"params":    map[string]interface{}{"count": 3},
+			intent: json.RawMessage("{}"){"count": 3},
 			},
 			shouldError: false,
 			description: "should accept valid intent",
 		},
 		{
 			name: "command injection in target",
-			intent: map[string]interface{}{
-				"version":   "1.0.0",
-				"timestamp": time.Now().Format(time.RFC3339),
-				"action":    "scale-up",
-				"target":    "app; rm -rf /",
-				"params":    map[string]interface{}{},
+			intent: json.RawMessage("{}")"),
 			},
 			shouldError: true,
 			description: "should reject command injection in target",
 		},
 		{
 			name: "path traversal in target",
-			intent: map[string]interface{}{
-				"version":   "1.0.0",
-				"timestamp": time.Now().Format(time.RFC3339),
-				"action":    "deploy",
-				"target":    "../../etc/passwd",
-				"params":    map[string]interface{}{},
+			intent: json.RawMessage("{}")"),
 			},
 			shouldError: true,
 			description: "should reject path traversal in target",
 		},
 		{
 			name: "invalid action",
-			intent: map[string]interface{}{
-				"version":   "1.0.0",
-				"timestamp": time.Now().Format(time.RFC3339),
-				"action":    "execute-arbitrary-command",
-				"target":    "app",
-				"params":    map[string]interface{}{},
+			intent: json.RawMessage("{}")"),
 			},
 			shouldError: true,
 			description: "should reject invalid actions",
 		},
 		{
 			name: "missing required fields",
-			intent: map[string]interface{}{
-				"action": "scale-up",
-			},
+			intent: json.RawMessage("{}"),
 			shouldError: true,
 			description: "should reject intent with missing fields",
 		},

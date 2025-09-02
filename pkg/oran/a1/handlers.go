@@ -1613,13 +1613,7 @@ func (h *A1Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request) 
 
 		Version: "1.0.0",
 
-		Components: map[string]interface{}{
-			"a1_policy": "UP",
-
-			"a1_consumer": "UP",
-
-			"a1_enrichment": "DEGRADED",
-		},
+		Components: json.RawMessage("{}"),
 	}
 
 	w.Header().Set("Content-Type", ContentTypeJSON)

@@ -148,7 +148,7 @@ type ProcessingBatchRequest struct {
 
 	IntentType string `json:"intent_type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Priority int `json:"priority"`
 
@@ -172,7 +172,7 @@ type MissingProcessingResult struct {
 
 	Batched bool `json:"batched"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Error error `json:"error,omitempty"`
 }
@@ -485,9 +485,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 
 	// Create request payload.
 
-	reqPayload := map[string]interface{}{
-		"intent": intent,
-	}
+	reqPayload := json.RawMessage("{}")
 
 	reqBody, err := json.Marshal(reqPayload)
 	if err != nil {
@@ -558,11 +556,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 
 		Batched: false,
 
-		Metadata: map[string]interface{}{
-			"method": "rag",
-
-			"api_url": pe.processEndpoint,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -585,9 +579,7 @@ func (pe *ProcessingEngine) processWithBaseClient(ctx context.Context, intent st
 
 		Batched: false,
 
-		Metadata: map[string]interface{}{
-			"method": "base_client",
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 

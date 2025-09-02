@@ -1,7 +1,9 @@
 package security
 
 import (
-	"crypto/rand"
+	
+	"encoding/json"
+"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -107,7 +109,7 @@ type StructuredPrompt struct {
 
 	ForbiddenTopics []string `json:"forbidden_topics"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // NewStructuredPrompt creates a new structured prompt with security boundaries.
@@ -160,13 +162,7 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 			"Internal configuration details",
 		},
 
-		Metadata: map[string]interface{}{
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-
-			"version": "1.0",
-
-			"security_mode": "strict",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 

@@ -167,8 +167,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Stub implementation - return a generic response.
 
 	return &RAGResponse{
-		Context: map[string]interface{}{
-			"retrieved_documents": []string{},
+		Context: json.RawMessage("{}"),
 
 			"context_summary": "Mock context for intent: " + request.Query,
 		},
@@ -177,7 +176,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 		SourceDocuments: []interface{}{},
 
-		Metadata: map[string]interface{}{},
+		Metadata: json.RawMessage("{}"),
 
 		RetrievalTime: 100,
 
@@ -316,11 +315,7 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingStarted,
 
-		string(intentProcessing.UID), false, map[string]interface{}{
-			"intent": intentProcessing.Spec.OriginalIntent,
-
-			"priority": intentProcessing.Spec.Priority,
-		}); err != nil {
+		string(intentProcessing.UID), false, json.RawMessage("{}")); err != nil {
 		log.Error(err, "Failed to publish processing start event")
 	}
 
@@ -528,13 +523,7 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 	// Create enhanced context.
 
-	enhancedContext := map[string]interface{}{
-		"original_intent": intent,
-
-		"retrieved_documents": response.SourceDocuments,
-
-		"retrieval_metadata": response.Metadata,
-	}
+	enhancedContext := json.RawMessage("{}")
 
 	// Create RAG metrics.
 
@@ -846,13 +835,7 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingCompleted,
 
-		string(intentProcessing.UID), true, map[string]interface{}{
-			"quality_score": result.QualityScore,
-
-			"token_usage": result.TokenUsage,
-
-			"processing_duration": intentProcessing.Status.ProcessingDuration.Duration.String(),
-		}); err != nil {
+		string(intentProcessing.UID), true, json.RawMessage("{}")); err != nil {
 		log.Error(err, "Failed to publish completion event")
 	}
 
@@ -906,13 +889,7 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 		if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventRetryRequired,
 
-			string(intentProcessing.UID), false, map[string]interface{}{
-				"retry_count": intentProcessing.Status.RetryCount,
-
-				"error": err.Error(),
-
-				"backoff_duration": backoffDuration.String(),
-			}); pubErr != nil {
+			string(intentProcessing.UID), false, json.RawMessage("{}")); pubErr != nil {
 			log.Error(pubErr, "Failed to publish retry event")
 		}
 
@@ -960,11 +937,7 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 	if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingFailed,
 
-		string(intentProcessing.UID), false, map[string]interface{}{
-			"retry_count": intentProcessing.Status.RetryCount,
-
-			"final_error": err.Error(),
-		}); pubErr != nil {
+		string(intentProcessing.UID), false, json.RawMessage("{}")); pubErr != nil {
 		log.Error(pubErr, "Failed to publish failure event")
 	}
 

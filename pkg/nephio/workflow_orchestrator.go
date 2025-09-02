@@ -31,7 +31,9 @@ limitations under the License.
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -218,7 +220,7 @@ type WorkflowPhaseExecution struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Results map[string]interface{} `json:"results,omitempty"`
+	Results json.RawMessage `json:"results,omitempty"`
 
 	Errors []string `json:"errors,omitempty"`
 
@@ -318,7 +320,7 @@ type ClusterCapability struct {
 
 	Version string `json:"version"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Status string `json:"status"`
 }
@@ -439,9 +441,9 @@ type PackageVariant struct {
 type SpecializationRequest struct {
 	ClusterContext *ClusterContext `json:"clusterContext"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
-	ResourceOverrides map[string]interface{} `json:"resourceOverrides,omitempty"`
+	ResourceOverrides json.RawMessage `json:"resourceOverrides,omitempty"`
 
 	NetworkSlice *NetworkSliceSpec `json:"networkSlice,omitempty"`
 
@@ -595,7 +597,7 @@ type WorkflowAction struct {
 
 	Type WorkflowActionType `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Required bool `json:"required"`
 
@@ -652,7 +654,7 @@ type WorkflowCondition struct {
 
 	Expression string `json:"expression"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Required bool `json:"required"`
 }
@@ -1259,8 +1261,7 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 
 	execution.BlueprintPackage = blueprint
 
-	phaseExec.Results = map[string]interface{}{
-		"blueprint": map[string]interface{}{
+	phaseExec.Results = json.RawMessage("{}"){
 			"name": blueprint.Name,
 
 			"repository": blueprint.Repository,
@@ -1364,11 +1365,7 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 
 	}
 
-	phaseExec.Results = map[string]interface{}{
-		"variants": len(execution.PackageVariants),
-
-		"clusters": len(clusters),
-	}
+	phaseExec.Results = json.RawMessage("{}")
 
 	span.SetAttributes(
 
@@ -1446,13 +1443,7 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 	execution.Results.ValidationResults = validationResults
 
-	phaseExec.Results = map[string]interface{}{
-		"totalValidations": len(validationResults),
-
-		"passed": len(validationResults) - len(validationErrors),
-
-		"failed": len(validationErrors),
-	}
+	phaseExec.Results = json.RawMessage("{}")
 
 	if len(validationErrors) > 0 {
 
@@ -1514,11 +1505,7 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 			}
 		}
 
-		phaseExec.Results = map[string]interface{}{
-			"approvalType": "automatic",
-
-			"approved": len(execution.PackageVariants),
-		}
+		phaseExec.Results = json.RawMessage("{}")
 
 		return nil
 
@@ -1530,13 +1517,7 @@ func (nwo *NephioWorkflowOrchestrator) executeApprovalPhase(ctx context.Context,
 
 	logger.Info("Manual approval required", "variants", len(execution.PackageVariants))
 
-	phaseExec.Results = map[string]interface{}{
-		"approvalType": "manual",
-
-		"status": "pending",
-
-		"required": len(execution.PackageVariants),
-	}
+	phaseExec.Results = json.RawMessage("{}")
 
 	// For now, we'll simulate approval.
 
@@ -1645,13 +1626,7 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 
 	execution.Results.DeploymentResults = deploymentResults
 
-	phaseExec.Results = map[string]interface{}{
-		"totalDeployments": len(execution.Deployments),
-
-		"successful": len(deploymentResults),
-
-		"failed": len(execution.Deployments) - len(deploymentResults),
-	}
+	phaseExec.Results = json.RawMessage("{}")
 
 	logger.Info("Deployment phase completed",
 
@@ -1710,11 +1685,7 @@ func (nwo *NephioWorkflowOrchestrator) executeMonitoringPhase(ctx context.Contex
 
 	execution.Results.ClusterHealth = clusterHealthMap
 
-	phaseExec.Results = map[string]interface{}{
-		"clustersMonitored": len(clusterHealthMap),
-
-		"healthyCount": nwo.countHealthyClusters(clusterHealthMap),
-	}
+	phaseExec.Results = json.RawMessage("{}")
 
 	logger.Info("Monitoring phase completed",
 
@@ -1771,11 +1742,7 @@ func (nwo *NephioWorkflowOrchestrator) executeRollbackPhase(ctx context.Context,
 
 	}
 
-	phaseExec.Results = map[string]interface{}{
-		"rolledBack": rollbackCount,
-
-		"total": len(execution.Deployments),
-	}
+	phaseExec.Results = json.RawMessage("{}")
 
 	logger.Info("Rollback phase completed", "rolledBack", rollbackCount)
 
@@ -1897,13 +1864,7 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 		pr := execution.PackageVariants[0].PackageRevision
 
-		_ = map[string]interface{}{
-			"repository": pr.Spec.Repository,
-
-			"packageName": pr.Spec.PackageName,
-
-			"revision": pr.Spec.Revision,
-		}
+		_ = json.RawMessage("{}")
 
 		packageInfoJSON := fmt.Sprintf(`{"repository":"%s","packageName":"%s","revision":"%s"}`, pr.Spec.Repository, pr.Spec.PackageName, pr.Spec.Revision)
 
@@ -1915,21 +1876,12 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 
 	if len(execution.Deployments) > 0 {
 
-		deploymentInfo := map[string]interface{}{
-			"phase": "Deployed",
-
-			"targets": make([]map[string]interface{}, 0, len(execution.Deployments)),
+		deploymentInfo := json.RawMessage("{}"), 0, len(execution.Deployments)),
 		}
 
 		for _, deployment := range execution.Deployments {
 
-			target := map[string]interface{}{
-				"cluster": deployment.TargetCluster.Name,
-
-				"namespace": nwo.config.DefaultNamespace,
-
-				"status": deployment.Status,
-			}
+			target := json.RawMessage("{}")
 
 			deploymentInfo["targets"] = append(deploymentInfo["targets"].([]map[string]interface{}), target)
 

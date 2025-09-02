@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -48,7 +49,7 @@ type ServiceConfig struct {
 	Timeout        time.Duration          `json:"timeout"`
 	Retries        int                    `json:"retries"`
 	CircuitBreaker *CircuitBreakerConfig  `json:"circuit_breaker,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata"`
+	Metadata       json.RawMessage `json:"metadata"`
 }
 
 // HealthStatus represents health status
@@ -56,7 +57,7 @@ type HealthStatus struct {
 	Healthy   bool                   `json:"healthy"`
 	Message   string                 `json:"message"`
 	LastCheck time.Time              `json:"last_check"`
-	Details   map[string]interface{} `json:"details"`
+	Details   json.RawMessage `json:"details"`
 }
 
 // NetworkIntent represents a network intent
@@ -65,9 +66,9 @@ type NetworkIntent struct {
 	Type            string                 `json:"type"`
 	Priority        int                    `json:"priority"`
 	Description     string                 `json:"description"`
-	Parameters      map[string]interface{} `json:"parameters"`
+	Parameters      json.RawMessage `json:"parameters"`
 	TargetResources []string               `json:"target_resources"`
-	Constraints     map[string]interface{} `json:"constraints"`
+	Constraints     json.RawMessage `json:"constraints"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 	Status          string                 `json:"status"`
@@ -82,7 +83,7 @@ type ScalingIntent struct {
 	CurrentScale   int                    `json:"current_scale"`
 	ScaleDirection string                 `json:"scale_direction"` // "up", "down", "auto"
 	Reason         string                 `json:"reason"`
-	Metadata       map[string]interface{} `json:"metadata"`
+	Metadata       json.RawMessage `json:"metadata"`
 	CreatedAt      time.Time              `json:"created_at"`
 	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
 	Status         string                 `json:"status"`

@@ -33,16 +33,7 @@ import (
 			setupFunc: func(t *testing.T) string {
 				dir := t.TempDir()
 				stateFile := filepath.Join(dir, StateFileName)
-				stateData := map[string]interface{}{
-					"version": "1.0",
-					"states": map[string]*FileState{
-						"test": {
-							FilePath:    "/test/file.json",
-							SHA256:      "abc123",
-							Size:        100,
-							ProcessedAt: time.Now(),
-							Status:      "processed",
-						},
+				stateData := json.RawMessage("{}"),
 					},
 				}
 				data, _ := json.Marshal(stateData)

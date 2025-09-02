@@ -1,7 +1,9 @@
 package ca
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -390,7 +392,7 @@ type ValidationEvent struct {
 
 	Severity string `json:"severity"`
 
-	Details map[string]interface{} `json:"details"`
+	Details json.RawMessage `json:"details"`
 }
 
 // EmergencyBypassController manages emergency bypass procedures.
@@ -1481,11 +1483,7 @@ func (e *RealtimeValidationEngine) sendValidationEvent(cert *x509.Certificate, r
 
 		Severity: "high",
 
-		Details: map[string]interface{}{
-			"errors": result.Errors,
-
-			"warnings": result.Warnings,
-		},
+		Details: json.RawMessage("{}"),
 	}
 
 	select {

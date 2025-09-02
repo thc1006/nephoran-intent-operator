@@ -332,9 +332,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
 
-				Metadata: map[string]interface{}{
-					"supported_models": models,
-				},
+				Metadata: json.RawMessage("{}"),
 			}
 		})
 	}
@@ -638,27 +636,7 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 // statusHandler provides service status information.
 
 func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) {
-	status := map[string]interface{}{
-		"service": "llm-processor",
-
-		"version": sm.config.ServiceVersion,
-
-		"uptime": time.Since(startTime).String(),
-
-		"healthy": sm.healthChecker.IsHealthy(),
-
-		"ready": sm.healthChecker.IsReady(),
-
-		"backend_type": sm.config.LLMBackendType,
-
-		"model": sm.config.LLMModelName,
-
-		"rag_enabled": sm.config.RAGEnabled,
-
-		"authentication": sm.oauth2Manager.GetAuthenticationInfo(),
-
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}
+	status := json.RawMessage("{}")
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -676,13 +654,7 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 // metricsHandler provides comprehensive metrics.
 
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	metrics := map[string]interface{}{
-		"service": "llm-processor",
-
-		"version": sm.config.ServiceVersion,
-
-		"uptime": time.Since(startTime).String(),
-	}
+	metrics := json.RawMessage("{}")
 
 	// Add token manager metrics.
 

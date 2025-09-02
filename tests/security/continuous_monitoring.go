@@ -61,7 +61,7 @@ type SecurityAlert struct {
 	Resource    string                 `json:"resource"`
 	Namespace   string                 `json:"namespace"`
 	Tags        []string               `json:"tags"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 	Status      string                 `json:"status"`
 	ResponseID  string                 `json:"response_id,omitempty"`
 }
@@ -79,7 +79,7 @@ type ThreatDetection struct {
 	Remediation string                 `json:"remediation"`
 	Severity    string                 `json:"severity"`
 	Status      string                 `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // ThreatIndicator represents indicators of compromise
@@ -105,7 +105,7 @@ type ComplianceDrift struct {
 	Severity      string                 `json:"severity"`
 	AutoRemediate bool                   `json:"auto_remediate"`
 	RemediationID string                 `json:"remediation_id,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	Metadata      json.RawMessage `json:"metadata"`
 }
 
 // MetricValue represents a monitoring metric
@@ -117,7 +117,7 @@ type MetricValue struct {
 	Labels    map[string]string      `json:"labels"`
 	Threshold *ThresholdConfig       `json:"threshold,omitempty"`
 	Status    string                 `json:"status"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata"`
 }
 
 // ThresholdConfig defines alerting thresholds
@@ -135,7 +135,7 @@ type HealthStatus struct {
 	Message      string                 `json:"message"`
 	Metrics      map[string]float64     `json:"metrics"`
 	Dependencies []string               `json:"dependencies"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Metadata     json.RawMessage `json:"metadata"`
 }
 
 // AuditEvent represents security audit events
@@ -149,7 +149,7 @@ type AuditEvent struct {
 	Result    string                 `json:"result"`
 	Risk      string                 `json:"risk"`
 	Source    string                 `json:"source"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata"`
 }
 
 // ResponseAction represents automated security responses
@@ -162,7 +162,7 @@ type ResponseAction struct {
 	Description string                 `json:"description"`
 	Result      string                 `json:"result"`
 	Duration    time.Duration          `json:"duration"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // AlertManager handles alert routing and notifications
@@ -451,11 +451,7 @@ func (m *ContinuousSecurityMonitor) detectContainerThreats(ctx context.Context) 
 						},
 					},
 					Remediation: "Remove privileged flag from container security context",
-					Metadata: map[string]interface{}{
-						"pod_name":       pod.Name,
-						"container_name": container.Name,
-						"namespace":      pod.Namespace,
-					},
+					Metadata: json.RawMessage("{}"),
 				}
 				threats = append(threats, threat)
 			}
@@ -527,12 +523,7 @@ func (m *ContinuousSecurityMonitor) detectSecretsExposure(ctx context.Context) [
 									},
 								},
 								Remediation: "Use volume mounts instead of environment variables for secrets",
-								Metadata: map[string]interface{}{
-									"pod_name":    pod.Name,
-									"secret_name": secret.Name,
-									"env_var":     env.Name,
-									"namespace":   pod.Namespace,
-								},
+								Metadata: json.RawMessage("{}"),
 							}
 							threats = append(threats, threat)
 						}
@@ -571,10 +562,7 @@ func (m *ContinuousSecurityMonitor) detectComplianceDrift(ctx context.Context) [
 			ExpectedState: "All pods should have network policies",
 			Severity:      "MEDIUM",
 			AutoRemediate: false,
-			Metadata: map[string]interface{}{
-				"control_description": "Minimize the admission of containers which lack network policies",
-				"pod_count":           len(pods.Items),
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 		drifts = append(drifts, drift)
 	}
@@ -610,11 +598,7 @@ func (m *ContinuousSecurityMonitor) remediateComplianceDrift(ctx context.Context
 		Description: fmt.Sprintf("Auto-remediated compliance drift: %s", drift.Control),
 		Result:      "success",
 		Duration:    2 * time.Second,
-		Metadata: map[string]interface{}{
-			"framework": drift.Framework,
-			"control":   drift.Control,
-			"resource":  drift.Resource,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	m.addResponseAction(action)
@@ -631,10 +615,7 @@ func (m *ContinuousSecurityMonitor) handleSecurityAlert(ctx context.Context, ale
 		ActionType:  "automated_response",
 		Status:      "in_progress",
 		Description: fmt.Sprintf("Handling alert: %s", alert.Title),
-		Metadata: map[string]interface{}{
-			"alert_severity": alert.Severity,
-			"alert_category": alert.Category,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	start := time.Now()

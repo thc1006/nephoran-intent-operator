@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -15,7 +17,7 @@ type SystemInfo struct {
 	Version                string                 `json:"version"`
 	APIVersions            []string               `json:"apiVersions"`
 	SupportedResourceTypes []string               `json:"supportedResourceTypes"`
-	Extensions             map[string]interface{} `json:"extensions,omitempty"`
+	Extensions             json.RawMessage `json:"extensions,omitempty"`
 	Timestamp              time.Time              `json:"timestamp"`
 }
 
@@ -34,7 +36,7 @@ type ResourcePool struct {
 
 	GlobalLocationID string `json:"globalLocationId,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Nephoran-specific extensions.
 
@@ -146,7 +148,7 @@ type ResourceStatus struct {
 
 	Conditions []ResourceCondition `json:"conditions,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // ResourceCondition represents a condition of the resource.
@@ -220,7 +222,7 @@ type CreateResourcePoolRequest struct {
 
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -238,7 +240,7 @@ type UpdateResourcePoolRequest struct {
 
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -272,7 +274,7 @@ type Node struct {
 
 	Location *NodeLocation `json:"location,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -292,7 +294,7 @@ type NodeStatus struct {
 
 	Conditions []NodeCondition `json:"conditions,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	Alarms []string `json:"alarms,omitempty"`
 }

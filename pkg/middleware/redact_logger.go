@@ -896,21 +896,5 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 // GetStats returns statistics about the logger (can be extended).
 
 func (rl *RedactLogger) GetStats() map[string]interface{} {
-	return map[string]interface{}{
-		"enabled": rl.config.Enabled,
-
-		"log_level": rl.config.LogLevel.String(),
-
-		"skip_paths_count": len(rl.config.SkipPaths),
-
-		"sensitive_headers": len(rl.config.SensitiveHeaders),
-
-		"sensitive_params": len(rl.config.SensitiveQueryParams),
-
-		"sensitive_json_fields": len(rl.config.SensitiveJSONFields),
-
-		"log_request_body": rl.config.LogRequestBody,
-
-		"log_response_body": rl.config.LogResponseBody,
-	}
+	return json.RawMessage("{}")
 }

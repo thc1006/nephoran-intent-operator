@@ -459,13 +459,7 @@ func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 
 		RetryAfter: cb.config.ResetTimeout,
 
-		Metadata: map[string]interface{}{
-			"circuit_breaker_state": CircuitBreakerState(atomic.LoadInt32(&cb.state)).String(),
-
-			"failures": atomic.LoadInt64(&cb.failures),
-
-			"requests": atomic.LoadInt64(&cb.requests),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 
@@ -498,19 +492,7 @@ func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
 
 	cb.windowMutex.RUnlock()
 
-	return map[string]interface{}{
-		"name": cb.config.Name,
-
-		"state": cb.GetState().String(),
-
-		"failures": atomic.LoadInt64(&cb.failures),
-
-		"requests": atomic.LoadInt64(&cb.requests),
-
-		"window_failures": windowFailures,
-
-		"half_open_calls": atomic.LoadInt64(&cb.halfOpenCalls),
-	}
+	return json.RawMessage("{}")
 }
 
 // Reset resets the circuit breaker to its initial state.
@@ -926,32 +908,14 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 
 		Timestamp: time.Now(),
 
-		Metadata: map[string]interface{}{
-			"active": atomic.LoadInt64(&b.active),
-
-			"queued": atomic.LoadInt64(&b.queued),
-
-			"rejected": atomic.LoadInt64(&b.rejected),
-
-			"completed": atomic.LoadInt64(&b.completed),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 
 // GetMetrics returns current bulkhead metrics.
 
 func (b *Bulkhead) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"name": b.config.Name,
-
-		"active": atomic.LoadInt64(&b.active),
-
-		"queued": atomic.LoadInt64(&b.queued),
-
-		"rejected": atomic.LoadInt64(&b.rejected),
-
-		"completed": atomic.LoadInt64(&b.completed),
-	}
+	return json.RawMessage("{}")
 }
 
 // Close shuts down the bulkhead.
@@ -1057,9 +1021,7 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 
 				Timestamp: time.Now(),
 
-				Metadata: map[string]interface{}{
-					"timeout": timeout.String(),
-				},
+				Metadata: json.RawMessage("{}"),
 			}
 		}
 

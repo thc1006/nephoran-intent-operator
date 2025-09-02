@@ -1,7 +1,9 @@
 package latency
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sort"
@@ -140,7 +142,7 @@ type DataPoint struct {
 
 	Value time.Duration `json:"value"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // SeriesStatistics contains statistical information about a time series.
@@ -448,7 +450,7 @@ type ImplementationDetails struct {
 
 	CodeChanges []CodeChange `json:"code_changes"`
 
-	ConfigChanges map[string]interface{} `json:"config_changes"`
+	ConfigChanges json.RawMessage `json:"config_changes"`
 
 	EstimatedEffort string `json:"estimated_effort"`
 }
@@ -685,9 +687,7 @@ func (a *LatencyAnalyzer) storeHistoricalData(data *IntentProfile) {
 
 			Value: latency.Duration,
 
-			Metadata: map[string]interface{}{
-				"intent_id": data.IntentID,
-			},
+			Metadata: json.RawMessage("{}"),
 		})
 
 		// Update statistics.

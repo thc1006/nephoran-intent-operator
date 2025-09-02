@@ -281,9 +281,7 @@ import (
 
 	// Test updateDeployment with replica update
 	updateReq := &UpdateResourceRequest{
-		Specification: map[string]interface{}{
-			"replicas": float64(5),
-		},
+		Specification: json.RawMessage("{}"),
 		Labels: map[string]string{
 			"updated": "true",
 		},

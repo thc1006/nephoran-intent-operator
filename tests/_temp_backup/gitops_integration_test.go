@@ -689,10 +689,7 @@ func handleGitClone(w http.ResponseWriter, r *http.Request, tracker *GitRequestT
 		return
 	}
 
-	response := map[string]interface{}{
-		"status": "success",
-		"path":   "/tmp/repo",
-	}
+	response := json.RawMessage("{}")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -705,10 +702,7 @@ func handleGitCommit(w http.ResponseWriter, r *http.Request, tracker *GitRequest
 	}
 
 	commitHash := fmt.Sprintf("commit-%d-%d", time.Now().Unix(), tracker.GetRequestCount("git-commit"))
-	response := map[string]interface{}{
-		"status":     "success",
-		"commitHash": commitHash,
-	}
+	response := json.RawMessage("{}")
 
 	// Set deployment status to pending
 	tracker.SetDeploymentStatus(commitHash, "pending")
@@ -724,9 +718,7 @@ func handleGitPush(w http.ResponseWriter, r *http.Request, tracker *GitRequestTr
 		return
 	}
 
-	response := map[string]interface{}{
-		"status": "success",
-	}
+	response := json.RawMessage("{}")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -742,7 +734,7 @@ func handleNephioPackageGen(w http.ResponseWriter, r *http.Request, tracker *Git
 		IntentName      string                 `json:"intentName"`
 		NetworkFunction string                 `json:"networkFunction"`
 		TargetCluster   string                 `json:"targetCluster"`
-		Parameters      map[string]interface{} `json:"parameters"`
+		Parameters      json.RawMessage `json:"parameters"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -758,21 +750,14 @@ func handleNephioPackageGen(w http.ResponseWriter, r *http.Request, tracker *Git
 	packageName := fmt.Sprintf("%s-%s", request.NetworkFunction, request.TargetCluster)
 	tracker.generatedPackages[packageName] = "generated"
 
-	response := map[string]interface{}{
-		"status":      "success",
-		"packageName": packageName,
-		"files":       len(files),
-	}
+	response := json.RawMessage("{}")
 	json.NewEncoder(w).Encode(response)
 }
 
 func handleNephioPackageRevision(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("nephio-package-revision")
 
-	response := map[string]interface{}{
-		"status":   "success",
-		"revision": "v1",
-	}
+	response := json.RawMessage("{}")
 	json.NewEncoder(w).Encode(response)
 }
 

@@ -187,7 +187,7 @@ type ManifestTemplate struct {
 
 	Dependencies []string `json:"dependencies"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ManifestPolicyRule defines policy enforcement rules.
@@ -205,7 +205,7 @@ type ManifestPolicyRule struct {
 
 	ViolationAction string `json:"violationAction"` // reject, modify, warn
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ManifestPolicyCheck defines policy checking logic.
@@ -237,7 +237,7 @@ type GenerationSession struct {
 
 	GeneratedManifests map[string]string `json:"generatedManifests"`
 
-	ManifestMetadata map[string]interface{} `json:"manifestMetadata"`
+	ManifestMetadata json.RawMessage `json:"manifestMetadata"`
 
 	ValidationResults []ValidationResult `json:"validationResults"`
 
@@ -347,7 +347,7 @@ type ManifestCache struct {
 type ManifestCacheEntry struct {
 	Manifests map[string]string `json:"manifests"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -601,13 +601,7 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 				NextPhase: interfaces.PhaseGitOpsCommit,
 
-				Data: map[string]interface{}{
-					"generatedManifests": cached.Manifests,
-
-					"manifestMetadata": cached.Metadata,
-
-					"correlationId": session.CorrelationID,
-				},
+				Data: json.RawMessage("{}"),
 
 				Metrics: map[string]float64{
 					"generation_time_ms": float64(time.Since(startTime).Milliseconds()),
@@ -780,15 +774,7 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	// Create result.
 
-	resultData := map[string]interface{}{
-		"generatedManifests": generatedManifests,
-
-		"manifestMetadata": manifestMetadata,
-
-		"correlationId": session.CorrelationID,
-
-		"networkFunctions": len(session.NetworkFunctions),
-	}
+	resultData := json.RawMessage("{}")
 
 	if len(session.ValidationResults) > 0 {
 		resultData["validationResults"] = session.ValidationResults
@@ -833,13 +819,7 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 				CorrelationID: session.CorrelationID,
 
-				Data: map[string]interface{}{
-					"intentId": intentID,
-
-					"manifestsGenerated": len(generatedManifests),
-
-					"generationTimeMs": session.Metrics.TotalTime.Milliseconds(),
-				},
+				Data: json.RawMessage("{}"),
 			},
 		},
 	}
@@ -998,7 +978,7 @@ type nfManifestResult struct {
 
 	Manifests map[string]string `json:"manifests"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // generateNetworkFunctionManifests generates manifests for a single network function.
@@ -1020,11 +1000,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 		manifests[manifestName] = deploymentManifest
 
-		metadata[manifestName] = map[string]interface{}{
-			"type": "deployment",
-
-			"nf": nf.Name,
-		}
+		metadata[manifestName] = json.RawMessage("{}")
 
 	} else {
 		return nil, nil, fmt.Errorf("failed to generate deployment manifest: %w", err)
@@ -1039,11 +1015,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 			manifests[manifestName] = serviceManifest
 
-			metadata[manifestName] = map[string]interface{}{
-				"type": "service",
-
-				"nf": nf.Name,
-			}
+			metadata[manifestName] = json.RawMessage("{}")
 
 		} else {
 			c.Logger.Info("Failed to generate service manifest", "nf", nf.Name, "error", err)
@@ -1059,11 +1031,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 			manifests[manifestName] = configMapManifest
 
-			metadata[manifestName] = map[string]interface{}{
-				"type": "configmap",
-
-				"nf": nf.Name,
-			}
+			metadata[manifestName] = json.RawMessage("{}")
 
 		} else {
 			c.Logger.Info("Failed to generate configmap manifest", "nf", nf.Name, "error", err)
@@ -1078,11 +1046,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 
 				manifests[name] = manifest
 
-				metadata[name] = map[string]interface{}{
-					"type": "rbac",
-
-					"nf": nf.Name,
-				}
+				metadata[name] = json.RawMessage("{}")
 
 			}
 		} else {
@@ -1096,40 +1060,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 // prepareTemplateVariables prepares variables for template processing.
 
 func (c *SpecializedManifestGenerationController) prepareTemplateVariables(nf *interfaces.PlannedNetworkFunction, resourcePlan *interfaces.ResourcePlan) map[string]interface{} {
-	return map[string]interface{}{
-		"NetworkFunction": nf,
-
-		"ResourcePlan": resourcePlan,
-
-		"Namespace": c.Config.DefaultNamespace,
-
-		"Name": nf.Name,
-
-		"Type": nf.Type,
-
-		"Image": nf.Image,
-
-		"Version": nf.Version,
-
-		"Replicas": nf.Replicas,
-
-		"Resources": nf.Resources,
-
-		"Ports": nf.Ports,
-
-		"Environment": nf.Environment,
-
-		"Configuration": nf.Configuration,
-
-		"DeploymentPattern": resourcePlan.DeploymentPattern,
-
-		"Labels": map[string]string{
-			"app.kubernetes.io/name": nf.Name,
-
-			"app.kubernetes.io/component": nf.Type,
-
-			"app.kubernetes.io/managed-by": "nephoran-intent-operator",
-		},
+	return json.RawMessage("{}"),
 	}
 }
 
@@ -1701,21 +1632,7 @@ func (c *SpecializedManifestGenerationController) GetHealthStatus(ctx context.Co
 
 	defer c.mutex.RUnlock()
 
-	c.healthStatus.Metrics = map[string]interface{}{
-		"totalGenerated": c.metrics.TotalGenerated,
-
-		"successRate": c.getSuccessRate(),
-
-		"averageGenerationTime": c.metrics.AverageGenerationTime.Milliseconds(),
-
-		"validationSuccessRate": c.metrics.ValidationSuccessRate,
-
-		"policyComplianceRate": c.metrics.PolicyComplianceRate,
-
-		"cacheHitRate": c.metrics.CacheHitRate,
-
-		"activeGeneration": c.getActiveGenerationCount(),
-	}
+	c.healthStatus.Metrics = json.RawMessage("{}")
 
 	c.healthStatus.LastChecked = time.Now()
 
@@ -1998,15 +1915,7 @@ func (c *SpecializedManifestGenerationController) performHealthCheck() {
 
 		LastChecked: time.Now(),
 
-		Metrics: map[string]interface{}{
-			"successRate": successRate,
-
-			"activeGeneration": activeCount,
-
-			"totalGenerated": c.metrics.TotalGenerated,
-
-			"validationSuccessRate": c.metrics.ValidationSuccessRate,
-		},
+		Metrics: json.RawMessage("{}"),
 	}
 }
 

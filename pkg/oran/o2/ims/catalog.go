@@ -1,7 +1,9 @@
 package ims
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -79,9 +81,9 @@ type ProcessedTemplate struct {
 
 	Dependencies []string `json:"dependencies"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
-	Outputs map[string]interface{} `json:"outputs"`
+	Outputs json.RawMessage `json:"outputs"`
 
 	Metadata map[string]string `json:"metadata"`
 }
@@ -99,7 +101,7 @@ type TemplateResource struct {
 
 	Namespace string `json:"namespace,omitempty"`
 
-	Specification map[string]interface{} `json:"specification"`
+	Specification json.RawMessage `json:"specification"`
 
 	Dependencies []string `json:"dependencies"`
 }
@@ -161,9 +163,9 @@ type TemplateExample struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
-	Expected map[string]interface{} `json:"expected"`
+	Expected json.RawMessage `json:"expected"`
 }
 
 // TemplateChange represents a change in template version.

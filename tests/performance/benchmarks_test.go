@@ -197,11 +197,7 @@ func BenchmarkContextBuilding(b *testing.B) {
 			Title:   fmt.Sprintf("Telecom Document %d", i),
 			Content: fmt.Sprintf("This is document %d about network functions, AMF, SMF, UPF deployment procedures and 5G SA network configuration details...", i),
 			Source:  "3GPP TS 23.501",
-			Metadata: map[string]interface{}{
-				"category":  "5G Core",
-				"authority": "3GPP",
-				"recency":   0.9,
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 	}
 

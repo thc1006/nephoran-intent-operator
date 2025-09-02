@@ -319,7 +319,7 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 					Type:      TaskTypeLLMProcessing,
 					Priority:  10, // Very high priority
 					Status:    TaskStatusPending,
-					InputData: map[string]interface{}{"intent": "chaos"},
+					InputData: json.RawMessage(`{"intent":"chaos"}`),
 					Timeout:   1 * time.Second, // Short timeout to create instability
 				}
 

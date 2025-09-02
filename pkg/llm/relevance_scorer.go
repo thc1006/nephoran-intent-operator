@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -85,7 +87,7 @@ type RelevanceScore struct {
 	DomainScore    float32                `json:"domain_score"`
 	IntentScore    float32                `json:"intent_score"`
 	Explanation    string                 `json:"explanation"`
-	Factors        map[string]interface{} `json:"factors"`
+	Factors        json.RawMessage `json:"factors"`
 	ProcessingTime time.Duration          `json:"processing_time"`
 	CacheUsed      bool                   `json:"cache_used"`
 }
@@ -98,7 +100,7 @@ type RelevanceRequest struct {
 	Position      int                     `json:"position"`
 	OriginalScore float32                 `json:"original_score"`
 	Context       string                  `json:"context"`
-	UserProfile   map[string]interface{}  `json:"user_profile,omitempty"`
+	UserProfile   json.RawMessage  `json:"user_profile,omitempty"`
 }
 
 // ScoredDocument represents a document with relevance scoring
@@ -326,21 +328,7 @@ func (rs *RelevanceScorerImpl) CalculateRelevance(ctx context.Context, request *
 	explanation := rs.generateExplanation(scores, request)
 
 	// Create factors map
-	factors := map[string]interface{}{
-		"semantic_similarity": scores.semantic,
-		"source_authority":    scores.authority,
-		"document_recency":    scores.recency,
-		"domain_specificity":  scores.domain,
-		"intent_alignment":    scores.intent,
-		"position_penalty":    positionPenalty,
-		"original_score":      request.OriginalScore,
-		"weights": map[string]float64{
-			"semantic":  rs.config.SemanticWeight,
-			"authority": rs.config.AuthorityWeight,
-			"recency":   rs.config.RecencyWeight,
-			"domain":    rs.config.DomainWeight,
-			"intent":    rs.config.IntentAlignmentWeight,
-		},
+	factors := json.RawMessage("{}"),
 	}
 
 	processingTime := time.Since(startTime)

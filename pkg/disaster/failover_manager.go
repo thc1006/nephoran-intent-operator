@@ -31,7 +31,9 @@ limitations under the License.
 package disaster
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"net"
@@ -239,7 +241,7 @@ type FailoverRecord struct {
 
 	Error string `json:"error,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // FailoverStep represents a step in the failover process.
@@ -259,7 +261,7 @@ type FailoverStep struct {
 
 	Error string `json:"error,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RTOPlan defines the Recovery Time Objective plan.
@@ -307,7 +309,7 @@ type RegionHealthStatus struct {
 
 	HealthCheckResults map[string]bool `json:"health_check_results"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // StateSyncManager manages state synchronization between regions.
@@ -681,9 +683,7 @@ func (fm *FailoverManager) TriggerFailover(ctx context.Context, targetRegion str
 
 		Steps: make([]FailoverStep, 0),
 
-		Metadata: map[string]interface{}{
-			"rto_target": fm.rtoPlan.TargetRTO.String(),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Execute failover plan.
@@ -1244,15 +1244,7 @@ func (fm *FailoverManager) setupMonitoring(ctx context.Context, targetRegion str
 
 	// For simulation, we'll update some configuration.
 
-	step.Metadata["monitoring_setup"] = map[string]interface{}{
-		"prometheus_updated": true,
-
-		"grafana_updated": true,
-
-		"alerts_updated": true,
-
-		"region": targetRegion,
-	}
+	step.Metadata["monitoring_setup"] = json.RawMessage("{}")
 
 	fm.logger.Info("Monitoring setup completed for new active region", "region", targetRegion)
 

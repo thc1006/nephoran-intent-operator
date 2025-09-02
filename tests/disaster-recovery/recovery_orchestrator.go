@@ -1,7 +1,9 @@
 package disaster_recovery
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -60,7 +62,7 @@ type RecoveryStep struct {
 
 	Type RecoveryStepType `json:"type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timeout time.Duration `json:"timeout"`
 
@@ -169,7 +171,7 @@ type NotificationTarget struct {
 
 	Address string `json:"address"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // StepExecutor interface for implementing custom recovery steps.
@@ -201,7 +203,7 @@ type RecoveryExecution struct {
 
 	Metrics RecoveryExecutionMetrics `json:"metrics"`
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 }
 
 // StepExecution tracks the execution of a single step.

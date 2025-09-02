@@ -5,7 +5,9 @@
 package alerting
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -476,7 +478,7 @@ type WorkflowExecution struct {
 
 	Status string `json:"status"`
 
-	Result map[string]interface{} `json:"result,omitempty"`
+	Result json.RawMessage `json:"result,omitempty"`
 
 	Error string `json:"error,omitempty"`
 }
@@ -514,7 +516,7 @@ type EscalationEvent struct {
 
 	Stakeholder *StakeholderReference `json:"stakeholder,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // EscalationRequest represents a request to start escalation.
@@ -764,7 +766,7 @@ type Ticket struct {
 
 	URL string `json:"url,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // TicketUpdate represents an update to a ticket.
@@ -778,7 +780,7 @@ type TicketUpdate struct {
 
 	Comment string `json:"comment,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // EscalationStatistics tracks escalation performance.
@@ -1232,11 +1234,7 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 
 		Timestamp: time.Now(),
 
-		Details: map[string]interface{}{
-			"policy_id": request.PolicyID,
-
-			"priority": request.Priority,
-		},
+		Details: json.RawMessage("{}"),
 	})
 
 	// Start escalation process.

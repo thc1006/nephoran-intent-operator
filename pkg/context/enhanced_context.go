@@ -662,33 +662,7 @@ func (c *EnhancedContext) ToMap() map[string]interface{} {
 
 	defer c.mu.RUnlock()
 
-	result := map[string]interface{}{
-		"request_id": c.requestID,
-
-		"trace_id": c.traceID,
-
-		"span_id": c.spanID,
-
-		"parent_span_id": c.parentSpanID,
-
-		"user_id": c.userID,
-
-		"session_id": c.sessionID,
-
-		"tenant_id": c.tenantID,
-
-		"service_name": c.serviceName,
-
-		"component_name": c.componentName,
-
-		"operation_name": c.operationName,
-
-		"start_time": c.startTime,
-
-		"duration": c.Duration(),
-
-		"cancel_reason": c.cancelReason,
-	}
+	result := json.RawMessage("{}")
 
 	// Add metadata.
 

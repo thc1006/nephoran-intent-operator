@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
@@ -362,13 +364,13 @@ type CloudProviderConfigO2 struct {
 	Zone          string                 `json:"zone,omitempty"`
 	Endpoint      string                 `json:"endpoint,omitempty"`
 	Credentials   map[string]string      `json:"credentials"`
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 	Capabilities  []string               `json:"capabilities"`
 	Status        string                 `json:"status"`
 	CreatedAt     time.Time              `json:"createdAt"`
 	UpdatedAt     time.Time              `json:"updatedAt"`
 	LastSync      time.Time              `json:"lastSync,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Metadata      json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Type alias for backward compatibility
@@ -383,7 +385,7 @@ type LifecycleOperation struct {
 	Status       string                 `json:"status"`
 	StartTime    time.Time              `json:"startTime"`
 	EndTime      *time.Time             `json:"endTime,omitempty"`
-	Parameters   map[string]interface{} `json:"parameters,omitempty"`
+	Parameters   json.RawMessage `json:"parameters,omitempty"`
 	ErrorMessage string                 `json:"errorMessage,omitempty"`
 }
 
@@ -393,9 +395,9 @@ type InfrastructureAsset struct {
 	Type           string                 `json:"type"`
 	Location       string                 `json:"location,omitempty"`
 	Status         string                 `json:"status"`
-	Properties     map[string]interface{} `json:"properties,omitempty"`
+	Properties     json.RawMessage `json:"properties,omitempty"`
 	LastDiscovered time.Time              `json:"lastDiscovered"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Alert type with O2 suffix to avoid conflicts
@@ -410,7 +412,7 @@ type AlertO2 struct {
 	Status      string                 `json:"status"`
 	Labels      map[string]string      `json:"labels,omitempty"`
 	Annotations map[string]string      `json:"annotations,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Performance monitoring types
@@ -421,7 +423,7 @@ type PerformanceMetrics struct {
 	Memory     *MemoryMetrics         `json:"memoryMetrics,omitempty"`
 	Network    *NetworkMetrics        `json:"networkMetrics,omitempty"`
 	Storage    *StorageMetrics        `json:"storageMetrics,omitempty"`
-	Custom     map[string]interface{} `json:"customMetrics,omitempty"`
+	Custom     json.RawMessage `json:"customMetrics,omitempty"`
 }
 
 type CPUMetrics struct {
@@ -513,7 +515,7 @@ type OperatorInstallRequest struct {
 	Channel   string                 `json:"channel,omitempty"`
 	Source    string                 `json:"source,omitempty"`
 	Version   string                 `json:"version,omitempty"`
-	Config    map[string]interface{} `json:"config,omitempty"`
+	Config    json.RawMessage `json:"config,omitempty"`
 }
 
 type OperatorInstance struct {
@@ -524,7 +526,7 @@ type OperatorInstance struct {
 	Channel     string                 `json:"channel"`
 	InstallPlan string                 `json:"installPlan,omitempty"`
 	InstalledAt time.Time              `json:"installedAt"`
-	Config      map[string]interface{} `json:"config,omitempty"`
+	Config      json.RawMessage `json:"config,omitempty"`
 }
 
 type CustomResourceSpec struct {
@@ -532,7 +534,7 @@ type CustomResourceSpec struct {
 	Kind       string                 `json:"kind"`
 	Name       string                 `json:"name"`
 	Namespace  string                 `json:"namespace"`
-	Spec       map[string]interface{} `json:"spec"`
+	Spec       json.RawMessage `json:"spec"`
 }
 
 type OperatorInfo struct {
@@ -603,7 +605,7 @@ type SecurityStatus struct {
 	Policies    []string               `json:"policies"`
 	Violations  []SecurityViolation    `json:"violations,omitempty"`
 	LastChecked time.Time              `json:"lastChecked"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	Details     json.RawMessage `json:"details,omitempty"`
 }
 
 type SecurityViolation struct {
@@ -625,19 +627,19 @@ type SecurityPolicy struct {
 
 type SecurityRule struct {
 	Action     string                 `json:"action"`
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 	Targets    []string               `json:"targets"`
 	Priority   int                    `json:"priority"`
 }
 
 type TrafficRule struct {
-	Source      map[string]interface{}   `json:"source"`
-	Destination map[string]interface{}   `json:"destination"`
-	Match       map[string]interface{}   `json:"match,omitempty"`
+	Source      json.RawMessage   `json:"source"`
+	Destination json.RawMessage   `json:"destination"`
+	Match       json.RawMessage   `json:"match,omitempty"`
 	Route       []map[string]interface{} `json:"route,omitempty"`
-	Fault       map[string]interface{}   `json:"fault,omitempty"`
+	Fault       json.RawMessage   `json:"fault,omitempty"`
 	Timeout     string                   `json:"timeout,omitempty"`
-	Retries     map[string]interface{}   `json:"retries,omitempty"`
+	Retries     json.RawMessage   `json:"retries,omitempty"`
 }
 
 type TraceData struct {
@@ -647,7 +649,7 @@ type TraceData struct {
 	OperationName string                   `json:"operationName"`
 	StartTime     time.Time                `json:"startTime"`
 	Duration      time.Duration            `json:"duration"`
-	Tags          map[string]interface{}   `json:"tags,omitempty"`
+	Tags          json.RawMessage   `json:"tags,omitempty"`
 	Logs          []map[string]interface{} `json:"logs,omitempty"`
 }
 
@@ -661,7 +663,7 @@ type HealthEventO2 struct {
 	HealthStatus   string                 `json:"healthStatus"`
 	PreviousStatus string                 `json:"previousStatus,omitempty"`
 	Timestamp      time.Time              `json:"timestamp"`
-	Details        map[string]interface{} `json:"details,omitempty"`
+	Details        json.RawMessage `json:"details,omitempty"`
 }
 
 type HealthTrendsO2 struct {

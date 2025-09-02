@@ -235,10 +235,7 @@ func generateBenchmarkFiles(b *testing.B, dir string, count, size int) []string 
 
 // generateIntentContent creates realistic O-RAN intent JSON content
 func generateIntentContent(targetSize int) []byte {
-	baseIntent := map[string]interface{}{
-		"apiVersion": "nephoran.com/v1alpha1",
-		"kind":       "NetworkIntent",
-		"metadata": map[string]interface{}{
+	baseIntent := json.RawMessage("{}"){
 			"name":      fmt.Sprintf("intent-%d", time.Now().UnixNano()),
 			"namespace": "o-ran",
 			"labels": map[string]string{
@@ -247,14 +244,11 @@ func generateIntentContent(targetSize int) []byte {
 				"o-ran-release": "l-release",
 			},
 		},
-		"spec": map[string]interface{}{
-			"action": "deploy",
-			"target": map[string]interface{}{
+		"spec": json.RawMessage("{}"){
 				"type": "du",
 				"name": "o-du-benchmark",
 			},
-			"parameters": map[string]interface{}{
-				"networkFunctions": []map[string]interface{}{
+			"parameters": json.RawMessage("{}"){
 					{
 						"name": "o-du-high",
 						"type": "distributed-unit",
@@ -265,11 +259,7 @@ func generateIntentContent(targetSize int) []byte {
 						},
 					},
 				},
-				"connectivity": map[string]interface{}{
-					"fronthaul": map[string]string{
-						"interface": "eth0",
-						"bandwidth": "25Gbps",
-					},
+				"connectivity": json.RawMessage("{}"),
 					"midhaul": map[string]string{
 						"interface": "eth1",
 						"bandwidth": "10Gbps",
@@ -281,11 +271,7 @@ func generateIntentContent(targetSize int) []byte {
 					"availability": "99.999%",
 				},
 			},
-			"constraints": map[string]interface{}{
-				"placement": map[string]string{
-					"zone": "edge",
-					"rack": "edge-001",
-				},
+			"constraints": json.RawMessage("{}"),
 				"security": map[string]string{
 					"isolation":  "strict",
 					"encryption": "enabled",

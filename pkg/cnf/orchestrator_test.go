@@ -362,8 +362,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 			template = &CNFTemplate{
 				Function: nephoranv1.CNFFunctionAMF,
-				DefaultValues: map[string]interface{}{
-					"image": map[string]interface{}{
+				DefaultValues: json.RawMessage("{}"){
 						"repository": "5gc/amf",
 						"tag":        "latest",
 					},
@@ -676,7 +675,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 
 			template = &CNFTemplate{
 				Function:      nephoranv1.CNFFunctionAMF,
-				DefaultValues: map[string]interface{}{},
+				DefaultValues: json.RawMessage("{}"),
 			}
 		})
 

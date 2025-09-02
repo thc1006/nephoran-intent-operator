@@ -19,13 +19,7 @@ import (
 // Returns a legacy-format scaling intent with all required fields populated.
 // Uses stable, cross-platform-safe values.
 func generateValidIntent(t testing.TB) map[string]interface{} {
-	return map[string]interface{}{
-		"intent_type": "scaling",
-		"target":      "test-deployment",
-		"namespace":   "default",
-		"replicas":    3,
-		"source":      "test",
-	}
+	return json.RawMessage("{}")
 }
 
 // generateValidIntentJSON creates a valid intent JSON string for testing

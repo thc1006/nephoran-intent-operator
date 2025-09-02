@@ -261,7 +261,7 @@ type SanitizationResult struct {
 
 	SanitizedValue interface{} `json:"sanitized_value"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Violation represents a sanitization violation.
@@ -986,7 +986,7 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 	obj, ok := value.(map[string]interface{})
 
 	if !ok {
-		return map[string]interface{}{}, violations
+		return json.RawMessage("{}"), violations
 	}
 
 	// Check nesting depth.
@@ -1003,7 +1003,7 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 			Severity: ViolationSeverityError,
 		})
 
-		return map[string]interface{}{}, violations
+		return json.RawMessage("{}"), violations
 
 	}
 

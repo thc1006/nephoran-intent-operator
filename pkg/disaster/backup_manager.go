@@ -264,7 +264,7 @@ type BackupRecord struct {
 
 	EncryptionInfo *EncryptionInfo `json:"encryption_info,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	RetentionClass string `json:"retention_class"` // daily, weekly, monthly
 }
@@ -292,7 +292,7 @@ type ComponentBackup struct {
 
 	Error string `json:"error,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // EncryptionInfo holds encryption metadata.
@@ -1164,25 +1164,13 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 
 			bm.logger.Error("Failed to backup repository", "name", repo.Name, "error", err)
 
-			repos[repo.Name] = map[string]interface{}{
-				"status": "failed",
-
-				"error": err.Error(),
-			}
+			repos[repo.Name] = json.RawMessage("{}")
 
 			continue
 
 		}
 
-		repos[repo.Name] = map[string]interface{}{
-			"status": "success",
-
-			"size": size,
-
-			"url": repo.URL,
-
-			"branch": repo.Branch,
-		}
+		repos[repo.Name] = json.RawMessage("{}")
 
 		totalSize += size
 
@@ -1415,15 +1403,7 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 
 				totalSize += size
 
-				pvcs[fmt.Sprintf("%s/%s", ns, pvc.Name)] = map[string]interface{}{
-					"size": size,
-
-					"storage_class": pvc.Spec.StorageClassName,
-
-					"access_modes": pvc.Spec.AccessModes,
-
-					"status": string(pvc.Status.Phase),
-				}
+				pvcs[fmt.Sprintf("%s/%s", ns, pvc.Name)] = json.RawMessage("{}")
 
 			}
 		}
@@ -1436,13 +1416,7 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 
 	backupPath := fmt.Sprintf("/tmp/pv-backup-metadata-%d.json", start.Unix())
 
-	metadata := map[string]interface{}{
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"pvcs": pvcs,
-
-		"total_size": totalSize,
-	}
+	metadata := json.RawMessage("{}")
 
 	data, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
@@ -1499,19 +1473,7 @@ func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRe
 
 	// Collect system state information.
 
-	systemState := map[string]interface{}{
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"cluster_info": bm.getClusterInfo(ctx),
-
-		"node_info": bm.getNodeInfo(ctx),
-
-		"namespace_info": bm.getNamespaceInfo(ctx),
-
-		"backup_config": bm.config,
-
-		"backup_history": bm.backupHistory,
-	}
+	systemState := json.RawMessage("{}")
 
 	data, err := json.MarshalIndent(systemState, "", "  ")
 	if err != nil {
@@ -1581,13 +1543,7 @@ func (bm *BackupManager) getNodeInfo(ctx context.Context) map[string]interface{}
 
 	for _, node := range nodes.Items {
 
-		nodeInfo := map[string]interface{}{
-			"name": node.Name,
-
-			"ready": isNodeReady(node),
-
-			"version": node.Status.NodeInfo.KubeletVersion,
-		}
+		nodeInfo := json.RawMessage("{}")
 
 		nodeList = append(nodeList, nodeInfo)
 

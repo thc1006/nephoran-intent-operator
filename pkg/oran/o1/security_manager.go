@@ -4243,17 +4243,7 @@ func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) 
 
 		LastAudit: time.Now().Add(-24 * time.Hour),
 
-		Metrics: map[string]interface{}{
-			"active_sessions": csm.authenticationMgr.GetActiveSessions(),
-
-			"managed_certificates": csm.certificateManager.GetCertificateCount(),
-
-			"security_alerts": csm.getActiveAlertCount(),
-
-			"compliance_score": csm.complianceMonitor.GetOverallScore(),
-
-			"vulnerability_count": csm.vulnerabilityScanner.GetVulnerabilityCount(),
-		},
+		Metrics: json.RawMessage("{}"),
 	}
 
 	return status, nil

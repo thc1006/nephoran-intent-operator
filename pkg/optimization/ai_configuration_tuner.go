@@ -31,7 +31,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -601,7 +603,7 @@ const (
 type SystemConfiguration struct {
 	ID string `json:"id"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -1693,11 +1695,7 @@ func (oe *OptimizationEngine) SuggestConfiguration(ctx context.Context, history 
 	return &SystemConfiguration{
 		ID: fmt.Sprintf("config_%d", time.Now().Unix()),
 
-		Parameters: map[string]interface{}{
-			"llm_max_tokens": 2048,
-
-			"cache_ttl_seconds": 600,
-		},
+		Parameters: json.RawMessage("{}"),
 
 		Timestamp: time.Now(),
 

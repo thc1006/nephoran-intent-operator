@@ -43,7 +43,7 @@ type YANGModel struct {
 
 	Organization string `json:"organization,omitempty"`
 
-	Schema map[string]interface{} `json:"schema"`
+	Schema json.RawMessage `json:"schema"`
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
@@ -89,7 +89,7 @@ type YANGNode struct {
 
 	Keys []string `json:"keys,omitempty"`
 
-	Constraints map[string]interface{} `json:"constraints,omitempty"`
+	Constraints json.RawMessage `json:"constraints,omitempty"`
 }
 
 // NewYANGModelRegistry creates a new YANG model registry.
@@ -139,19 +139,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{
-				"hardware": &YANGNode{
-					Name: "hardware",
-
-					Type: "container",
-
-					Children: map[string]*YANGNode{
-						"component": {
-							Name: "component",
-
-							Type: "list",
-
-							Keys: []string{"name"},
+			Schema: json.RawMessage("{}"),
 
 							Children: map[string]*YANGNode{
 								"name": {
@@ -209,19 +197,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{
-				"software-inventory": &YANGNode{
-					Name: "software-inventory",
-
-					Type: "container",
-
-					Children: map[string]*YANGNode{
-						"software-slot": {
-							Name: "software-slot",
-
-							Type: "list",
-
-							Keys: []string{"name"},
+			Schema: json.RawMessage("{}"),
 
 							Children: map[string]*YANGNode{
 								"name": {
@@ -241,8 +217,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 									DataType: "enumeration",
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"valid", "invalid", "empty"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -269,8 +244,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 									DataType: "enumeration",
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"read-only", "read-write"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -317,19 +291,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{
-				"performance-measurement-objects": &YANGNode{
-					Name: "performance-measurement-objects",
-
-					Type: "container",
-
-					Children: map[string]*YANGNode{
-						"measurement-object": {
-							Name: "measurement-object",
-
-							Type: "list",
-
-							Keys: []string{"measurement-object-id"},
+			Schema: json.RawMessage("{}"),
 
 							Children: map[string]*YANGNode{
 								"measurement-object-id": {
@@ -405,19 +367,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{
-				"active-alarm-list": &YANGNode{
-					Name: "active-alarm-list",
-
-					Type: "container",
-
-					Children: map[string]*YANGNode{
-						"active-alarms": {
-							Name: "active-alarms",
-
-							Type: "list",
-
-							Keys: []string{"fault-id", "fault-source"},
+			Schema: json.RawMessage("{}"),
 
 							Children: map[string]*YANGNode{
 								"fault-id": {
@@ -447,8 +397,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 									DataType: "enumeration",
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"critical", "major", "minor", "warning"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -495,19 +444,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 
 			Organization: "IETF",
 
-			Schema: map[string]interface{}{
-				"interfaces": &YANGNode{
-					Name: "interfaces",
-
-					Type: "container",
-
-					Children: map[string]*YANGNode{
-						"interface": {
-							Name: "interface",
-
-							Type: "list",
-
-							Keys: []string{"name"},
+			Schema: json.RawMessage("{}"),
 
 							Children: map[string]*YANGNode{
 								"name": {
@@ -1226,17 +1163,7 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 	modelStats := make(map[string]interface{})
 
 	for name, model := range yr.models {
-		modelStats[name] = map[string]interface{}{
-			"version": model.Version,
-
-			"revision": model.Revision,
-
-			"namespace": model.Namespace,
-
-			"load_time": model.LoadTime,
-
-			"has_schema": len(model.Schema) > 0,
-		}
+		modelStats[name] = json.RawMessage("{}")
 	}
 
 	stats["models"] = modelStats

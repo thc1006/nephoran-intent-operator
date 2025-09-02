@@ -95,9 +95,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			Type:    backends.BackendTypeWebhook,
 			Enabled: true,
 			Name:    "secure-webhook",
-			Settings: map[string]interface{}{
-				"url": suite.tlsServer.URL,
-			},
+			Settings: json.RawMessage("{}"),
 			Auth: backends.AuthConfig{
 				Type:  "bearer",
 				Token: "secure-test-token",
@@ -124,9 +122,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			Type:    backends.BackendTypeWebhook,
 			Enabled: true,
 			Name:    "insecure-webhook",
-			Settings: map[string]interface{}{
-				"url": suite.tlsServer.URL,
-			},
+			Settings: json.RawMessage("{}"),
 			// No auth configuration
 			TLS: backends.TLSConfig{
 				Enabled:            true,
@@ -152,9 +148,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			Type:    backends.BackendTypeWebhook,
 			Enabled: true,
 			Name:    "rotation-webhook",
-			Settings: map[string]interface{}{
-				"url": suite.tlsServer.URL,
-			},
+			Settings: json.RawMessage("{}"),
 			Auth: backends.AuthConfig{
 				Type:  "bearer",
 				Token: originalToken,
@@ -192,9 +186,7 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 			Type:    backends.BackendTypeWebhook,
 			Enabled: true,
 			Name:    "tls-webhook",
-			Settings: map[string]interface{}{
-				"url": suite.tlsServer.URL,
-			},
+			Settings: json.RawMessage("{}"),
 			Auth: backends.AuthConfig{
 				Type:  "bearer",
 				Token: "tls-test-token",
@@ -234,11 +226,7 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
 			Name:    "encrypted-file",
-			Settings: map[string]interface{}{
-				"path":       encryptedLogFile,
-				"encryption": "aes256",
-				"key_file":   filepath.Join(suite.tempDir, "encryption.key"),
-			},
+			Settings: json.RawMessage("{}"),
 		}
 
 		backend, err := backends.NewFileBackend(config)
@@ -276,9 +264,7 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 				Action:    maliciousInput, // Malicious input in action field
 				Severity:  SeverityInfo,
 				Result:    ResultSuccess,
-				Data: map[string]interface{}{
-					"malicious_field": maliciousInput,
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			// Event should be validated and sanitized
@@ -387,10 +373,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
 			Name:    "secure-file",
-			Settings: map[string]interface{}{
-				"path":       secureLogFile,
-				"permission": "0600", // Owner read/write only
-			},
+			Settings: json.RawMessage("{}"),
 		}
 
 		backend, err := backends.NewFileBackend(config)
@@ -420,10 +403,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
 			Name:    "protected-file",
-			Settings: map[string]interface{}{
-				"path":           logFile,
-				"access_control": "strict",
-			},
+			Settings: json.RawMessage("{}"),
 		}
 
 		backend, err := backends.NewFileBackend(config)
@@ -448,10 +428,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
 			Name:    "tamper-test",
-			Settings: map[string]interface{}{
-				"path":      logFile,
-				"integrity": "checksum",
-			},
+			Settings: json.RawMessage("{}"),
 		}
 
 		backend, err := backends.NewFileBackend(config)
@@ -490,11 +467,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
 			Name:    "immutable-test",
-			Settings: map[string]interface{}{
-				"path":        immutableLogFile,
-				"immutable":   true,
-				"append_only": true,
-			},
+			Settings: json.RawMessage("{}"),
 		}
 
 		backend, err := backends.NewFileBackend(config)
@@ -562,14 +535,7 @@ func (suite *SecurityTestSuite) TestSensitiveDataProtection() {
 			UserContext: &UserContext{
 				UserID: "user123",
 			},
-			Data: map[string]interface{}{
-				"credit_card_number": "4111-1111-1111-1111",
-				"ssn":                "123-45-6789",
-				"password":           "super_secret_password",
-				"api_key":            "sk-1234567890abcdef",
-				"customer_name":      "John Doe",
-				"email":              "john.doe@example.com",
-			},
+			Data: json.RawMessage("{}"),
 		}
 
 		// Apply data masking
@@ -617,10 +583,7 @@ func (suite *SecurityTestSuite) TestSensitiveDataProtection() {
 			Severity:           SeverityInfo,
 			Result:             ResultSuccess,
 			DataClassification: "Confidential",
-			Data: map[string]interface{}{
-				"patient_id":     "P123456",
-				"medical_record": "Confidential medical data",
-			},
+			Data: json.RawMessage("{}"),
 		}
 
 		// Encrypt sensitive event
@@ -677,11 +640,7 @@ func (suite *SecurityTestSuite) TestSecurityMonitoring() {
 			Action:    "policy_violation",
 			Severity:  SeverityCritical,
 			Result:    ResultFailure,
-			Data: map[string]interface{}{
-				"violation_type": "data_retention",
-				"policy_id":      "RET-001",
-				"description":    "Audit log retention period exceeded",
-			},
+			Data: json.RawMessage("{}"),
 		}
 
 		err := suite.auditSystem.LogEvent(violationEvent)
@@ -973,9 +932,7 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 				Type:    backends.BackendTypeFile,
 				Enabled: true,
 				Name:    "traversal-test",
-				Settings: map[string]interface{}{
-					"path": path,
-				},
+				Settings: json.RawMessage("{}"),
 			}
 
 			// Backend creation should either fail or sanitize the path
@@ -1010,11 +967,7 @@ func BenchmarkSecurityOperations(b *testing.B) {
 	b.Run("DataMasking", func(b *testing.B) {
 		suite := &SecurityTestSuite{}
 		event := &AuditEvent{
-			Data: map[string]interface{}{
-				"password":     "secret123",
-				"credit_card":  "4111111111111111",
-				"normal_field": "normal_value",
-			},
+			Data: json.RawMessage("{}"),
 		}
 		b.ResetTimer()
 

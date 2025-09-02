@@ -17,7 +17,9 @@ limitations under the License.
 package parallel
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -112,10 +114,10 @@ type Task struct {
 	Status TaskStatus `json:"status"`
 
 	// InputData contains input parameters for the task
-	InputData map[string]interface{} `json:"input_data,omitempty"`
+	InputData json.RawMessage `json:"input_data,omitempty"`
 
 	// OutputData contains results from task execution
-	OutputData map[string]interface{} `json:"output_data,omitempty"`
+	OutputData json.RawMessage `json:"output_data,omitempty"`
 
 	// Error contains error information if task failed
 	Error error `json:"-"`
@@ -824,11 +826,7 @@ func (e *ParallelProcessingEngine) handleTaskResult(task *Task) {
 				task.Error,
 				string(task.Type),
 				"task_execution",
-				map[string]interface{}{
-					"taskID":   task.ID,
-					"intentID": task.IntentID,
-					"retries":  task.RetryCount,
-				})
+				json.RawMessage("{}"))
 		}
 	} else {
 		e.logger.V(1).Info("Task completed successfully",
@@ -954,9 +952,7 @@ func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, inte
 		Type:     TaskTypeIntentParsing,
 		Priority: priorityToInt(intent.Spec.Priority),
 		Status:   TaskStatusPending,
-		InputData: map[string]interface{}{
-			"intent": intent,
-		},
+		InputData: json.RawMessage("{}"),
 		Timeout:   e.config.IntentTimeout,
 		CreatedAt: time.Now(),
 		Metadata: map[string]string{
@@ -975,9 +971,7 @@ func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, inte
 		Priority:     priorityToInt(intent.Spec.Priority),
 		Status:       TaskStatusPending,
 		Dependencies: []string{intentTask.ID},
-		InputData: map[string]interface{}{
-			"parsed_intent": "placeholder",
-		},
+		InputData: json.RawMessage("{}"),
 		Timeout:   e.config.LLMTimeout,
 		CreatedAt: time.Now(),
 		Metadata: map[string]string{
@@ -1101,10 +1095,7 @@ func (w *Worker) processIntentParsing(ctx context.Context, task *Task) error {
 	// Simulate intent parsing work
 	select {
 	case <-time.After(100 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"parsed": true,
-			"type":   "example",
-		}
+		task.OutputData = json.RawMessage("{}")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1115,10 +1106,7 @@ func (w *Worker) processLLMTask(ctx context.Context, task *Task) error {
 	// Simulate LLM processing work
 	select {
 	case <-time.After(500 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"llm_response": "example response",
-			"confidence":   0.85,
-		}
+		task.OutputData = json.RawMessage("{}")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1129,8 +1117,7 @@ func (w *Worker) processRAGQuery(ctx context.Context, task *Task) error {
 	// Simulate RAG query work
 	select {
 	case <-time.After(200 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"rag_results": []string{"result1", "result2"},
+		task.OutputData = json.RawMessage("{}"),
 		}
 		return nil
 	case <-ctx.Done():
@@ -1142,9 +1129,7 @@ func (w *Worker) processResourcePlanning(ctx context.Context, task *Task) error 
 	// Simulate resource planning work
 	select {
 	case <-time.After(300 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"resource_plan": "example plan",
-		}
+		task.OutputData = json.RawMessage("{}")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1155,10 +1140,7 @@ func (w *Worker) processManifestGeneration(ctx context.Context, task *Task) erro
 	// Simulate manifest generation work
 	select {
 	case <-time.After(400 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"manifests": map[string]string{
-				"deployment.yaml": "example manifest",
-			},
+		task.OutputData = json.RawMessage("{}"),
 		}
 		return nil
 	case <-ctx.Done():
@@ -1170,9 +1152,7 @@ func (w *Worker) processGitOpsCommit(ctx context.Context, task *Task) error {
 	// Simulate GitOps commit work
 	select {
 	case <-time.After(1000 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"commit_hash": "abc123",
-		}
+		task.OutputData = json.RawMessage("{}")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1183,9 +1163,7 @@ func (w *Worker) processDeployment(ctx context.Context, task *Task) error {
 	// Simulate deployment work
 	select {
 	case <-time.After(2000 * time.Millisecond):
-		task.OutputData = map[string]interface{}{
-			"deployment_status": "deployed",
-		}
+		task.OutputData = json.RawMessage("{}")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

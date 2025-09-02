@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // Missing types for fault_manager.go compilation
@@ -23,7 +25,7 @@ type AlarmRecord struct {
 	AlarmRaisedTime       *time.Time             `json:"alarm_raised_time"`
 	AlarmClearedTime      *time.Time             `json:"alarm_cleared_time,omitempty"`
 	AckTime               *time.Time             `json:"ack_time,omitempty"`
-	AdditionalInformation map[string]interface{} `json:"additional_information,omitempty"`
+	AdditionalInformation json.RawMessage `json:"additional_information,omitempty"`
 }
 
 // AlarmHistoryRequest represents a request for alarm history
@@ -42,7 +44,7 @@ type AlarmSubscription struct {
 	ObjectClass    []string               `json:"object_class,omitempty"`
 	EventType      []string               `json:"event_type,omitempty"`
 	Severity       []string               `json:"severity,omitempty"`
-	Filters        map[string]interface{} `json:"filters,omitempty"`
+	Filters        json.RawMessage `json:"filters,omitempty"`
 	NotifyURI      string                 `json:"notify_uri,omitempty"`
 }
 
@@ -50,7 +52,7 @@ type AlarmSubscription struct {
 type CorrelationRule struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
-	Pattern     map[string]interface{} `json:"pattern"`
+	Pattern     json.RawMessage `json:"pattern"`
 	Action      string                 `json:"action"`
 	TimeWindow  time.Duration          `json:"time_window"`
 	Enabled     bool                   `json:"enabled"`

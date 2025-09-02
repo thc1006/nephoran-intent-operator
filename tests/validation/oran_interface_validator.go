@@ -7,7 +7,9 @@
 package test_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -113,7 +115,7 @@ type A1Policy struct {
 
 	PolicyTypeID string `json:"policyTypeId"`
 
-	PolicyData map[string]interface{} `json:"policyData"`
+	PolicyData json.RawMessage `json:"policyData"`
 
 	Status string `json:"status"` // ACTIVE, INACTIVE, ERROR
 
@@ -131,7 +133,7 @@ type E2Subscription struct {
 
 	ServiceModel string `json:"serviceModel"`
 
-	EventTrigger map[string]interface{} `json:"eventTrigger"`
+	EventTrigger json.RawMessage `json:"eventTrigger"`
 
 	Actions []E2Action `json:"actions"`
 
@@ -147,7 +149,7 @@ type E2Action struct {
 
 	ActionType string `json:"actionType"` // REPORT, INSERT, POLICY
 
-	Definition map[string]interface{} `json:"definition"`
+	Definition json.RawMessage `json:"definition"`
 
 	SubsequentActions []int `json:"subsequentActions,omitempty"`
 }
@@ -159,7 +161,7 @@ type XAppConfig struct {
 
 	Version string `json:"version"`
 
-	ConfigData map[string]interface{} `json:"configData"`
+	ConfigData json.RawMessage `json:"configData"`
 
 	Status string `json:"status"` // RUNNING, STOPPED, ERROR
 
@@ -173,7 +175,7 @@ type ManagedElement struct {
 
 	ElementType string `json:"elementType"` // AMF, SMF, UPF, gNodeB, etc.
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	Status string `json:"status"` // ACTIVE, INACTIVE, ERROR
 
@@ -189,7 +191,7 @@ type O1Configuration struct {
 
 	ConfigType string `json:"configType"` // FCAPS
 
-	ConfigData map[string]interface{} `json:"configData"`
+	ConfigData json.RawMessage `json:"configData"`
 
 	Version int `json:"version"`
 
@@ -211,7 +213,7 @@ type E2Node struct {
 
 	LastHeartbeat time.Time `json:"lastHeartbeat"`
 
-	Capabilities map[string]interface{} `json:"capabilities"`
+	Capabilities json.RawMessage `json:"capabilities"`
 }
 
 // PLMNID represents a Public Land Mobile Network identifier.
@@ -233,7 +235,7 @@ type ServiceModel struct {
 
 	Functions []string `json:"functions"`
 
-	Capabilities map[string]interface{} `json:"capabilities"`
+	Capabilities json.RawMessage `json:"capabilities"`
 }
 
 // NewORANInterfaceValidator creates a new O-RAN interface validator.
@@ -315,10 +317,10 @@ func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ A1 Policy Management: 1/1 points")
+		ginkgo.By("??A1 Policy Management: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ A1 Policy Management: 0/1 points")
+		ginkgo.By("??A1 Policy Management: 0/1 points")
 	}
 
 	// Test 2: Near-RT RIC Integration (0.5 points).
@@ -327,10 +329,10 @@ func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ A1 RIC Integration: 1/1 points")
+		ginkgo.By("??A1 RIC Integration: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ A1 RIC Integration: 0/1 points")
+		ginkgo.By("??A1 RIC Integration: 0/1 points")
 	}
 
 	return score
@@ -349,10 +351,10 @@ func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ E2 Node Management: 1/1 points")
+		ginkgo.By("??E2 Node Management: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ E2 Node Management: 0/1 points")
+		ginkgo.By("??E2 Node Management: 0/1 points")
 	}
 
 	// Test 2: Service Model Compliance (1 point).
@@ -361,10 +363,10 @@ func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ E2 Service Model Compliance: 1/1 points")
+		ginkgo.By("??E2 Service Model Compliance: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ E2 Service Model Compliance: 0/1 points")
+		ginkgo.By("??E2 Service Model Compliance: 0/1 points")
 	}
 
 	return score
@@ -383,10 +385,10 @@ func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ O1 FCAPS Operations: 1/1 points")
+		ginkgo.By("??O1 FCAPS Operations: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ O1 FCAPS Operations: 0/1 points")
+		ginkgo.By("??O1 FCAPS Operations: 0/1 points")
 	}
 
 	// Test 2: NETCONF/YANG Compliance (1 point).
@@ -395,10 +397,10 @@ func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ O1 NETCONF/YANG Compliance: 1/1 points")
+		ginkgo.By("??O1 NETCONF/YANG Compliance: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ O1 NETCONF/YANG Compliance: 0/1 points")
+		ginkgo.By("??O1 NETCONF/YANG Compliance: 0/1 points")
 	}
 
 	return score
@@ -417,10 +419,10 @@ func (oiv *ORANInterfaceValidator) validateO2InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("✓ O2 Cloud Infrastructure Management: 1/1 points")
+		ginkgo.By("??O2 Cloud Infrastructure Management: 1/1 points")
 
 	} else {
-		ginkgo.By("✗ O2 Cloud Infrastructure Management: 0/1 points")
+		ginkgo.By("??O2 Cloud Infrastructure Management: 0/1 points")
 	}
 
 	return score
@@ -508,13 +510,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 
 			PolicyTypeID: "traffic-steering",
 
-			PolicyData: map[string]interface{}{
-				"primaryPathWeight": 0.8,
-
-				"secondaryPathWeight": 0.2,
-
-				"targetThroughput": "1Gbps",
-			},
+			PolicyData: json.RawMessage("{}"),
 
 			Status: "ACTIVE",
 
@@ -569,7 +565,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 
 		}
 
-		ginkgo.By("✓ A1 Policy Management CRUD operations completed successfully")
+		ginkgo.By("??A1 Policy Management CRUD operations completed successfully")
 
 		return true
 
@@ -625,13 +621,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 		Version: "1.0.0",
 
-		ConfigData: map[string]interface{}{
-			"optimizationTarget": "qoe",
-
-			"mlModel": "neural-network",
-
-			"updateInterval": "10s",
-		},
+		ConfigData: json.RawMessage("{}"),
 
 		Status: "RUNNING",
 
@@ -655,13 +645,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 		PolicyTypeID: "qoe-optimization",
 
-		PolicyData: map[string]interface{}{
-			"targetQoE": 8.5,
-
-			"resourceBudget": "high",
-
-			"optimizationAlgo": "gradient-descent",
-		},
+		PolicyData: json.RawMessage("{}"),
 
 		Status: "ACTIVE",
 
@@ -692,7 +676,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 	oiv.ricMockService.UndeployXApp(xappConfig.Name)
 
-	ginkgo.By("✓ A1 RIC Integration completed successfully")
+	ginkgo.By("??A1 RIC Integration completed successfully")
 
 	return true
 }
@@ -821,11 +805,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 			ServiceModel: "KPM",
 
-			EventTrigger: map[string]interface{}{
-				"reportingPeriod": 1000, // 1 second
-
-				"granularityPeriod": 100,
-			},
+			EventTrigger: json.RawMessage("{}"),
 
 			Actions: []E2Action{
 				{
@@ -833,11 +813,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 					ActionType: "REPORT",
 
-					Definition: map[string]interface{}{
-						"measurementType": "DRB.UEThpDl",
-
-						"cellID": "001",
-					},
+					Definition: json.RawMessage("{}"),
 				},
 			},
 
@@ -884,7 +860,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 		oiv.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 
-		ginkgo.By("✓ E2 Node Management completed successfully")
+		ginkgo.By("??E2 Node Management completed successfully")
 
 		return true
 
@@ -910,8 +886,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: map[string]interface{}{
-				"measurementTypes": []string{"DRB.UEThpDl", "DRB.UEThpUl", "RRU.PrbUsedDl"},
+			Capabilities: json.RawMessage("{}"),
 
 				"granularityPeriods": []int{100, 1000, 10000},
 			},
@@ -926,8 +901,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"CONTROL", "POLICY"},
 
-			Capabilities: map[string]interface{}{
-				"controlActions": []string{"QoS_CONTROL", "MOBILITY_CONTROL"},
+			Capabilities: json.RawMessage("{}"),
 
 				"policyTypes": []string{"ADMISSION_CONTROL", "LOAD_BALANCING"},
 			},
@@ -942,8 +916,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: map[string]interface{}{
-				"networkInfo": []string{"CELL_INFO", "UE_INFO", "BEARER_INFO"},
+			Capabilities: json.RawMessage("{}"),
 			},
 		},
 	}
@@ -990,7 +963,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 	}
 
-	ginkgo.By("✓ E2 Service Model Compliance completed successfully")
+	ginkgo.By("??E2 Service Model Compliance completed successfully")
 
 	return true
 }
@@ -1007,11 +980,7 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 
 		ServiceModel: "KPM",
 
-		EventTrigger: map[string]interface{}{
-			"reportingPeriod": 1000,
-
-			"granularityPeriod": 100,
-		},
+		EventTrigger: json.RawMessage("{}"),
 
 		Actions: []E2Action{
 			{
@@ -1019,16 +988,7 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 
 				ActionType: "REPORT",
 
-				Definition: map[string]interface{}{
-					"measurementType": "DRB.UEThpDl",
-
-					"cellID": "001",
-
-					"plmnID": map[string]string{
-						"mcc": "001",
-
-						"mnc": "01",
-					},
+				Definition: json.RawMessage("{}"),
 				},
 			},
 		},
@@ -1063,10 +1023,7 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 
 		ServiceModel: "RC",
 
-		EventTrigger: map[string]interface{}{
-			"controlPeriod": 5000, // 5 seconds
-
-		},
+		EventTrigger: json.RawMessage("{}"),
 
 		Actions: []E2Action{
 			{
@@ -1074,12 +1031,7 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 
 				ActionType: "CONTROL",
 
-				Definition: map[string]interface{}{
-					"controlType": "QoS_CONTROL",
-
-					"targetUE": "ue-001",
-
-					"qosParams": map[string]interface{}{
+				Definition: json.RawMessage("{}"){
 						"5qi": 1,
 
 						"arp": 1,
@@ -1118,10 +1070,7 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 
 		ServiceModel: "NI",
 
-		EventTrigger: map[string]interface{}{
-			"reportingPeriod": 10000, // 10 seconds
-
-		},
+		EventTrigger: json.RawMessage("{}"),
 
 		Actions: []E2Action{
 			{
@@ -1129,11 +1078,7 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 
 				ActionType: "REPORT",
 
-				Definition: map[string]interface{}{
-					"informationType": "CELL_INFO",
-
-					"cellID": "001",
-				},
+				Definition: json.RawMessage("{}"),
 			},
 		},
 
@@ -1235,7 +1180,7 @@ func (oiv *ORANInterfaceValidator) testO1FCAPSOperations(ctx context.Context) bo
 
 	}
 
-	ginkgo.By("✓ O1 FCAPS Operations completed successfully")
+	ginkgo.By("??O1 FCAPS Operations completed successfully")
 
 	return true
 }
@@ -1250,8 +1195,7 @@ func (oiv *ORANInterfaceValidator) testO1FaultManagement(ctx context.Context) bo
 
 		ElementType: "AMF",
 
-		Configuration: map[string]interface{}{
-			"faultMonitoring": map[string]interface{}{
+		Configuration: json.RawMessage("{}"){
 				"enabled": true,
 
 				"severity": []string{"CRITICAL", "MAJOR", "MINOR"},
@@ -1296,8 +1240,7 @@ func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Con
 
 		ConfigType: "FCAPS",
 
-		ConfigData: map[string]interface{}{
-			"performanceCounters": map[string]interface{}{
+		ConfigData: json.RawMessage("{}"){
 				"collection_interval": "15m",
 
 				"counters": []string{
@@ -1364,24 +1307,16 @@ func (oiv *ORANInterfaceValidator) testO1PerformanceManagement(ctx context.Conte
 func (oiv *ORANInterfaceValidator) testO1SecurityManagement(ctx context.Context) bool {
 	// Test security configuration.
 
-	securityConfig := map[string]interface{}{
-		"authentication": map[string]interface{}{
+	securityConfig := json.RawMessage("{}"){
 			"enabled": true,
 
 			"method": "certificate",
 		},
 
-		"authorization": map[string]interface{}{
-			"enabled": true,
-
-			"roles": []string{"admin", "operator", "viewer"},
+		"authorization": json.RawMessage("{}"),
 		},
 
-		"encryption": map[string]interface{}{
-			"transport": "TLS",
-
-			"version": "1.3",
-		},
+		"encryption": json.RawMessage("{}"),
 	}
 
 	// Apply security configuration through SMO.
@@ -1449,22 +1384,8 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 
 	// Test YANG model validation.
 
-	yangModel := map[string]interface{}{
-		"module": "o-ran-sc-ric-1.0",
-
-		"namespace": "urn:o-ran:sc:yang:o-ran-sc-ric",
-
-		"prefix": "o-ran-ric",
-
-		"organization": "O-RAN Software Community",
-
-		"description": "O-RAN Near-RT RIC YANG model",
-
-		"schema": map[string]interface{}{
-			"container": map[string]interface{}{
-				"name": "ric-config",
-
-				"leaf": []map[string]interface{}{
+	yangModel := json.RawMessage("{}"){
+			"container": json.RawMessage("{}"){
 					{
 						"name": "ric-id",
 
@@ -1505,7 +1426,7 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 
 	}
 
-	ginkgo.By("✓ O1 NETCONF/YANG Compliance completed successfully")
+	ginkgo.By("??O1 NETCONF/YANG Compliance completed successfully")
 
 	return true
 }
@@ -1545,16 +1466,7 @@ func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{
 func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bool {
 	// Simulate NETCONF session establishment.
 
-	session := map[string]interface{}{
-		"sessionId": "netconf-session-001",
-
-		"capabilities": []string{
-			"urn:ietf:params:netconf:base:1.0",
-
-			"urn:ietf:params:netconf:base:1.1",
-
-			"urn:o-ran:netconf:capability:1.0",
-		},
+	session := json.RawMessage("{}"),
 
 		"transport": "SSH",
 
@@ -1569,12 +1481,7 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 
 	// Test get operation.
 
-	getConfig := map[string]interface{}{
-		"operation": "get-config",
-
-		"source": "running",
-
-		"filter": map[string]interface{}{
+	getConfig := json.RawMessage("{}"){
 			"type": "xpath",
 
 			"xpath": "/ric-config",
@@ -1583,29 +1490,18 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 
 	// Test edit-config operation.
 
-	editConfig := map[string]interface{}{
-		"operation": "edit-config",
-
-		"target": "candidate",
-
-		"config": map[string]interface{}{
-			"ric-config": map[string]interface{}{
-				"ric-id": "ric-001",
-
-				"xapp-namespace": "ricxapp",
-			},
+	editConfig := json.RawMessage("{}"){
+			"ric-config": json.RawMessage("{}"),
 		},
 	}
 
 	// Test commit operation.
 
-	commit := map[string]interface{}{
-		"operation": "commit",
-	}
+	commit := json.RawMessage("{}")
 
 	// Simulate NETCONF operations execution.
 
-	operations := []map[string]interface{}{getConfig, editConfig, commit}
+	operations := []json.RawMessage("{}")
 
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {
@@ -1702,7 +1598,7 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 
 	}
 
-	ginkgo.By("✓ O2 Cloud Infrastructure Management completed successfully")
+	ginkgo.By("??O2 Cloud Infrastructure Management completed successfully")
 
 	return true
 }
@@ -1712,10 +1608,8 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context) bool {
 	// Test Terraform template generation.
 
-	terraformTemplate := map[string]interface{}{
-		"terraform": map[string]interface{}{
-			"required_providers": map[string]interface{}{
-				"kubernetes": map[string]interface{}{
+	terraformTemplate := json.RawMessage("{}"){
+			"required_providers": json.RawMessage("{}"){
 					"source": "hashicorp/kubernetes",
 
 					"version": "~> 2.0",
@@ -1723,10 +1617,8 @@ func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context)
 			},
 		},
 
-		"resource": map[string]interface{}{
-			"kubernetes_namespace": map[string]interface{}{
-				"upf_namespace": map[string]interface{}{
-					"metadata": map[string]interface{}{
+		"resource": json.RawMessage("{}"){
+				"upf_namespace": json.RawMessage("{}"){
 						"name": "upf-production",
 
 						"labels": map[string]string{
@@ -1738,18 +1630,11 @@ func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context)
 				},
 			},
 
-			"kubernetes_deployment": map[string]interface{}{
-				"upf_deployment": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"name": "upf",
-
-						"namespace": "${kubernetes_namespace.upf_namespace.metadata.0.name}",
+			"kubernetes_deployment": json.RawMessage("{}"){
+					"metadata": json.RawMessage("{}")",
 					},
 
-					"spec": map[string]interface{}{
-						"replicas": 3,
-
-						"selector": map[string]interface{}{
+					"spec": json.RawMessage("{}"){
 							"match_labels": map[string]string{
 								"app": "upf",
 							},
@@ -1800,13 +1685,7 @@ func (oiv *ORANInterfaceValidator) validateTerraformTemplate(template map[string
 func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context) bool {
 	// Test cloud provider configurations.
 
-	cloudProviders := []map[string]interface{}{
-		{
-			"provider": "aws",
-
-			"region": "us-west-2",
-
-			"resources": map[string]interface{}{
+	cloudProviders := []json.RawMessage("{}"){
 				"ec2_instances": 3,
 
 				"rds_instances": 1,
@@ -1820,13 +1699,7 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 
 			"region": "West US 2",
 
-			"resources": map[string]interface{}{
-				"virtual_machines": 3,
-
-				"sql_databases": 1,
-
-				"storage_accounts": 2,
-			},
+			"resources": json.RawMessage("{}"),
 		},
 
 		{
@@ -1834,13 +1707,7 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 
 			"region": "us-west1",
 
-			"resources": map[string]interface{}{
-				"compute_instances": 3,
-
-				"cloud_sql": 1,
-
-				"storage_buckets": 2,
-			},
+			"resources": json.RawMessage("{}"),
 		},
 	}
 
@@ -1886,23 +1753,7 @@ func (oiv *ORANInterfaceValidator) testResourceLifecycleManagement(ctx context.C
 
 	// Create resource.
 
-	resource := map[string]interface{}{
-		"id": "upf-cluster-001",
-
-		"type": "kubernetes-cluster",
-
-		"status": "provisioning",
-
-		"provider": "aws",
-
-		"region": "us-west-2",
-
-		"nodeCount": 3,
-
-		"nodeType": "m5.large",
-
-		"createdAt": time.Now().Format(time.RFC3339),
-	}
+	resource := json.RawMessage("{}")
 
 	// Simulate provisioning time.
 

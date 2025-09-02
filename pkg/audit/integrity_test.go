@@ -301,10 +301,7 @@ func (suite *IntegrityTestSuite) TestIntegrityValidation() {
 func (suite *IntegrityTestSuite) TestTamperDetection() {
 	suite.Run("detect data field tampering", func() {
 		event := createIntegrityTestEvent("tamper-data-test")
-		event.Data = map[string]interface{}{
-			"sensitive_field": "original_value",
-			"user_id":         "user123",
-		}
+		event.Data = json.RawMessage("{}")
 
 		err := suite.integrityChain.ProcessEvent(event)
 		suite.NoError(err)
@@ -513,11 +510,7 @@ func (suite *IntegrityTestSuite) TestIntegrityRecovery() {
 func (suite *IntegrityTestSuite) TestForensicAnalysis() {
 	suite.Run("forensic event analysis", func() {
 		event := createIntegrityTestEvent("forensic-test")
-		event.Data = map[string]interface{}{
-			"source_ip":     "192.168.1.100",
-			"session_id":    "sess_12345",
-			"forensic_flag": true,
-		}
+		event.Data = json.RawMessage("{}")
 
 		err := suite.integrityChain.ProcessEvent(event)
 		suite.NoError(err)
@@ -578,9 +571,7 @@ func createIntegrityTestEvent(action string) *types.AuditEvent {
 		UserContext: &types.UserContext{
 			UserID: "test-user",
 		},
-		Data: map[string]interface{}{
-			"test_field": "test_value",
-		},
+		Data: json.RawMessage("{}"),
 	}
 }
 

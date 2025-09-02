@@ -464,15 +464,7 @@ data:
 // generateKptfile generates the Kptfile for the package.
 
 func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, error) {
-	data := map[string]interface{}{
-		"Name": intent.Name,
-
-		"Namespace": intent.Namespace,
-
-		"Description": fmt.Sprintf("Network function package for %s", intent.Name),
-
-		"Intent": intent.Spec.Intent,
-	}
+	data := json.RawMessage("{}")
 
 	var buf bytes.Buffer
 
@@ -656,21 +648,7 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 // generateReadme generates the README for the package.
 
 func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, error) {
-	data := map[string]interface{}{
-		"Name": intent.Name,
-
-		"Intent": intent.Spec.Intent,
-
-		"GeneratedAt": time.Now().Format("2006-01-02 15:04:05 UTC"),
-
-		"Description": fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
-
-		"Contents": "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
-
-		"ORANDetails": pg.extractORANDetailsFromProcessed(intent.Spec.ProcessedParameters),
-
-		"NetworkSliceDetails": pg.extractNetworkSliceDetailsFromProcessed(intent.Spec.ProcessedParameters),
-	}
+	data := json.RawMessage("{}")
 
 	var buf bytes.Buffer
 
@@ -720,12 +698,7 @@ func (pg *PackageGenerator) extractNetworkSliceDetailsFromProcessed(processedPar
 // generateFunctionConfig generates the function configuration.
 
 func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (string, error) {
-	fnConfig := map[string]interface{}{
-		"apiVersion": "fn.kpt.dev/v1alpha1",
-
-		"kind": "SetNamespace",
-
-		"metadata": map[string]interface{}{
+	fnConfig := json.RawMessage("{}"){
 			"name": "set-namespace",
 
 			"annotations": map[string]string{
@@ -733,9 +706,7 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 			},
 		},
 
-		"spec": map[string]interface{}{
-			"namespace": intent.Namespace,
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	yamlData, err := yaml.Marshal(fnConfig)
@@ -753,25 +724,7 @@ func extractDeploymentData(params map[string]interface{}) map[string]interface{}
 
 	// This would parse the structured output from the LLM.
 
-	data := map[string]interface{}{
-		"Name": params["name"],
-
-		"Namespace": params["namespace"],
-
-		"Component": params["component"],
-
-		"IntentID": params["intent_id"],
-
-		"Replicas": params["replicas"],
-
-		"Image": params["image"],
-
-		"Ports": params["ports"],
-
-		"Env": params["env"],
-
-		"Resources": params["resources"],
-	}
+	data := json.RawMessage("{}")
 
 	return data
 }
@@ -779,33 +732,14 @@ func extractDeploymentData(params map[string]interface{}) map[string]interface{}
 func extractServiceData(params map[string]interface{}) map[string]interface{} {
 	// Extract service configuration from parameters.
 
-	return map[string]interface{}{
-		"Name": params["name"],
-
-		"Namespace": params["namespace"],
-
-		"Component": params["component"],
-
-		"Type": "ClusterIP",
-
-		"Ports": params["ports"],
-	}
+	return json.RawMessage("{}")
 }
 
 func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 	// Extract O-RAN specific configuration.
 
 	if o1Config, ok := params["o1_config"]; ok {
-		return map[string]interface{}{
-			"Name": params["name"],
-
-			"Namespace": params["namespace"],
-
-			"Component": "o-ran",
-
-			"Data": map[string]string{
-				"o1-config.yaml": fmt.Sprintf("%v", o1Config),
-			},
+		return json.RawMessage("{}"),
 		}
 	}
 
@@ -815,12 +749,7 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 func generateSetters(params map[string]interface{}) string {
 	// Generate setters.yaml for Kpt functions.
 
-	setters := map[string]interface{}{
-		"apiVersion": "v1",
-
-		"kind": "ConfigMap",
-
-		"metadata": map[string]interface{}{
+	setters := json.RawMessage("{}"){
 			"name": "setters",
 
 			"annotations": map[string]string{
@@ -828,13 +757,7 @@ func generateSetters(params map[string]interface{}) string {
 			},
 		},
 
-		"data": map[string]interface{}{
-			"namespace": params["namespace"],
-
-			"replicas": fmt.Sprintf("%v", params["replicas"]),
-
-			"image": params["image"],
-		},
+		"data": json.RawMessage("{}"),
 	}
 
 	yamlData, _ := yaml.Marshal(setters)
@@ -845,40 +768,21 @@ func generateSetters(params map[string]interface{}) string {
 func generateScalingPatch(params map[string]interface{}) string {
 	// Generate a structured patch for scaling operations with enhanced metadata.
 
-	patch := map[string]interface{}{
-		"apiVersion": "apps/v1",
-
-		"kind": "Deployment",
-
-		"metadata": map[string]interface{}{
+	patch := json.RawMessage("{}"){
 			"name": params["target"],
 
-			"annotations": map[string]interface{}{
-				"porch.kpt.dev/managed": "true",
-
-				"nephoran.com/intent": "scaling",
-
-				"nephoran.com/timestamp": time.Now().Format(time.RFC3339),
-			},
+			"annotations": json.RawMessage("{}"),
 		},
 
-		"spec": map[string]interface{}{
-			"replicas": params["replicas"],
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	// Add resource requests/limits if provided.
 
 	if resources, ok := params["resources"].(map[string]interface{}); ok {
 		if patch["spec"].(map[string]interface{})["template"] == nil {
-			patch["spec"].(map[string]interface{})["template"] = map[string]interface{}{
-				"spec": map[string]interface{}{
-					"containers": []map[string]interface{}{
-						{
-							"name": "main",
-
-							"resources": resources,
-						},
+			patch["spec"].(map[string]interface{})["template"] = json.RawMessage("{}"){
+					"containers": []json.RawMessage("{}"),
 					},
 				},
 			}
@@ -899,12 +803,7 @@ func generateScalingPatch(params map[string]interface{}) string {
 }
 
 func generateScalingSetters(params map[string]interface{}) string {
-	setters := map[string]interface{}{
-		"apiVersion": "v1",
-
-		"kind": "ConfigMap",
-
-		"metadata": map[string]interface{}{
+	setters := json.RawMessage("{}"){
 			"name": "scaling-setters",
 
 			"annotations": map[string]string{
@@ -912,11 +811,7 @@ func generateScalingSetters(params map[string]interface{}) string {
 			},
 		},
 
-		"data": map[string]interface{}{
-			"target": params["target"],
-
-			"replicas": fmt.Sprintf("%v", params["replicas"]),
-		},
+		"data": json.RawMessage("{}"),
 	}
 
 	yamlData, _ := yaml.Marshal(setters)
@@ -927,12 +822,7 @@ func generateScalingSetters(params map[string]interface{}) string {
 func generatePolicyResource(params map[string]interface{}) string {
 	// Generate network policy or other policy resources.
 
-	policy := map[string]interface{}{
-		"apiVersion": "networking.k8s.io/v1",
-
-		"kind": "NetworkPolicy",
-
-		"metadata": map[string]interface{}{
+	policy := json.RawMessage("{}"){
 			"name": params["name"],
 
 			"namespace": params["namespace"],
@@ -1048,26 +938,13 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	// Create Kptfile for the package.
 
-	kptfile := map[string]interface{}{
-		"apiVersion": "kpt.dev/v1",
-
-		"kind": "Kptfile",
-
-		"metadata": map[string]interface{}{
+	kptfile := json.RawMessage("{}"){
 			"name": fmt.Sprintf("%s-scaling-patch", intent.Name),
 
-			"annotations": map[string]interface{}{
-				"nephoran.com/intent-id": string(intent.UID),
-
-				"nephoran.com/intent-type": "scaling",
-
-				"nephoran.com/generated": time.Now().Format(time.RFC3339),
-			},
+			"annotations": json.RawMessage("{}"),
 		},
 
-		"info": map[string]interface{}{
-			"description": fmt.Sprintf("Scaling patch for %s", params["target"]),
-		},
+		"info": json.RawMessage("{}"),
 	}
 
 	kptfileYAML, _ := yaml.Marshal(kptfile)

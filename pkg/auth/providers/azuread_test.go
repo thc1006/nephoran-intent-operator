@@ -206,22 +206,12 @@ import (
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := map[string]interface{}{
-					"access_token":  "azure-access-token-123",
-					"refresh_token": "azure-refresh-token-456",
-					"token_type":    "Bearer",
-					"expires_in":    3600,
-					"id_token":      "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.test-azure-id-token",
-					"scope":         "openid email profile User.Read",
-				}
+				response := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_grant",
-					"error_description": "AADSTS70002: Error validating credentials. AADSTS54005: OAuth2 Authorization code was already redeemed",
-					"error_codes":       []int{70002, 54005},
+				response := json.RawMessage("{}"),
 					"timestamp":         "2023-01-01 12:00:00Z",
 					"trace_id":          "test-trace-id",
 					"correlation_id":    "test-correlation-id",
@@ -229,10 +219,7 @@ import (
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_request",
-					"error_description": "Invalid request",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -312,29 +299,17 @@ import (
 			refreshToken := r.FormValue("refresh_token")
 			switch refreshToken {
 			case "valid-refresh-token":
-				response := map[string]interface{}{
-					"access_token":  "new-azure-access-token",
-					"refresh_token": "new-azure-refresh-token",
-					"token_type":    "Bearer",
-					"expires_in":    3600,
-					"scope":         "openid email profile User.Read",
-				}
+				response := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "expired-refresh-token":
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_grant",
-					"error_description": "AADSTS70008: The provided authorization code or refresh token has expired due to inactivity",
-					"error_codes":       []int{70008},
+				response := json.RawMessage("{}"),
 				}
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_grant",
-					"error_description": "Invalid refresh token",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -449,8 +424,7 @@ import (
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
 				w.WriteHeader(http.StatusUnauthorized)
-				response := map[string]interface{}{
-					"error": map[string]interface{}{
+				response := json.RawMessage("{}"){
 						"code":    "InvalidAuthenticationToken",
 						"message": "Access token is empty.",
 					},
@@ -458,8 +432,7 @@ import (
 				json.NewEncoder(w).Encode(response)
 			default:
 				w.WriteHeader(http.StatusForbidden)
-				response := map[string]interface{}{
-					"error": map[string]interface{}{
+				response := json.RawMessage("{}"){
 						"code":    "Forbidden",
 						"message": "Insufficient privileges to complete the operation.",
 					},
@@ -565,8 +538,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				groups := map[string]interface{}{
-					"value": []map[string]interface{}{
+				groups := json.RawMessage("{}"){
 						{
 							"id":          "group1-1234-5678-9012-123456789012",
 							"displayName": "Engineering Team",
@@ -582,8 +554,7 @@ import (
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(groups)
 			case "no-groups-token":
-				groups := map[string]interface{}{
-					"value": []map[string]interface{}{},
+				groups := json.RawMessage("{}")"),
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(groups)
@@ -656,10 +627,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				userInfo := map[string]interface{}{
-					"id":                "123456789",
-					"userPrincipalName": "testuser@example.com",
-				}
+				userInfo := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
@@ -730,10 +698,7 @@ import (
 				w.WriteHeader(http.StatusOK)
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
-				response := map[string]interface{}{
-					"error":             "invalid_request",
-					"error_description": "Invalid token",
-				}
+				response := json.RawMessage("{}")
 				json.NewEncoder(w).Encode(response)
 			}
 		}
@@ -899,14 +864,7 @@ func createMockAzureADServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/test-tenant/oauth2/v2.0/token":
-			response := map[string]interface{}{
-				"access_token":  "test-access-token",
-				"refresh_token": "test-refresh-token",
-				"token_type":    "Bearer",
-				"expires_in":    3600,
-				"id_token":      "test-id-token",
-				"scope":         "openid email profile User.Read",
-			}
+			response := json.RawMessage("{}")
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/v1.0/me":

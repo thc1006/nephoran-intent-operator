@@ -760,12 +760,7 @@ func (cm *CoordinationManager) executePhase(ctx context.Context, intentName type
 
 	if nextPhase != "" {
 
-		metadata := map[string]interface{}{
-			"completedPhase": phase,
-
-			"duration": time.Since(time.Now()), // This would be properly calculated
-
-		}
+		metadata := json.RawMessage("{}")
 
 		return cm.stateManager.TransitionPhase(ctx, intentName, nextPhase, metadata)
 
@@ -850,13 +845,7 @@ func (cm *CoordinationManager) isPhaseSatisfied(state *IntentState, phase interf
 func (cm *CoordinationManager) executePhaseTransition(ctx context.Context, intentName types.NamespacedName, fromPhase, toPhase interfaces.ProcessingPhase, data interface{}) error {
 	// Update state.
 
-	metadata := map[string]interface{}{
-		"fromPhase": fromPhase,
-
-		"toPhase": toPhase,
-
-		"data": data,
-	}
+	metadata := json.RawMessage("{}")
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, toPhase, metadata)
 }
@@ -984,19 +973,13 @@ func (cm *CoordinationManager) skipPhase(ctx context.Context, intentName types.N
 		return cm.failIntent(ctx, intentName, fmt.Errorf("no next phase after skip"))
 	}
 
-	metadata := map[string]interface{}{
-		"skippedPhase": phase,
-
-		"reason": "error_strategy_skip",
-	}
+	metadata := json.RawMessage("{}")
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, nextPhase, metadata)
 }
 
 func (cm *CoordinationManager) failIntent(ctx context.Context, intentName types.NamespacedName, err error) error {
-	metadata := map[string]interface{}{
-		"error": err.Error(),
-	}
+	metadata := json.RawMessage("{}")
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, interfaces.PhaseFailed, metadata)
 }
@@ -1006,11 +989,7 @@ func (cm *CoordinationManager) rollbackIntent(ctx context.Context, intentName ty
 
 	// This is a simplified implementation.
 
-	metadata := map[string]interface{}{
-		"rollbackFromPhase": phase,
-
-		"reason": "error_strategy_rollback",
-	}
+	metadata := json.RawMessage("{}")
 
 	return cm.stateManager.TransitionPhase(ctx, intentName, interfaces.PhaseFailed, metadata)
 }

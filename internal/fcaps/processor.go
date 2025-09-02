@@ -5,7 +5,9 @@
 package fcaps
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"log"
 	"time"
 
@@ -65,7 +67,7 @@ type MeasurementsForVfScalingFields struct {
 
 	VNicUsageArray []VNicUsage `json:"vNicUsageArray,omitempty"`
 
-	AdditionalFields map[string]interface{} `json:"additionalFields,omitempty"`
+	AdditionalFields json.RawMessage `json:"additionalFields,omitempty"`
 }
 
 // VNicUsage represents network interface usage metrics.

@@ -541,32 +541,14 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
 	if !ic.enabled {
-		return map[string]interface{}{
-			"enabled": false,
-		}
+		return json.RawMessage("{}")
 	}
 
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"enabled": true,
-
-		"length": len(ic.chain),
-
-		"last_sequence": ic.sequenceNum,
-
-		"last_hash": ic.lastHash,
-
-		"key_id": ic.keyID,
-
-		"version": IntegrityVersion,
-
-		"hash_algorithm": HashAlgorithm,
-
-		"sign_algorithm": SignatureAlgorithm,
-	}
+	return json.RawMessage("{}")
 }
 
 // ExportChain exports the integrity chain for backup or transfer.
@@ -660,7 +642,7 @@ func (ic *IntegrityChain) calculateEventHash(event *types.AuditEvent) (string, e
 
 		Result types.EventResult `json:"result"`
 
-		Data map[string]interface{} `json:"data"`
+		Data json.RawMessage `json:"data"`
 	}{
 		ID: event.ID,
 

@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -92,7 +94,7 @@ type EnhancedResponse struct {
 	Sources        []*rag.SearchResult    `json:"sources,omitempty"`
 	ProcessingTime time.Duration          `json:"processing_time"`
 	IntentType     string                 `json:"intent_type,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
@@ -303,8 +305,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 	}
 
 	// Add telecom-specific filters
-	ragRequest.SearchFilters = map[string]interface{}{
-		"confidence": map[string]interface{}{
+	ragRequest.SearchFilters = json.RawMessage("{}"){
 			"operator": "GreaterThan",
 			"value":    rep.config.RAGConfidenceThreshold,
 		},
@@ -334,12 +335,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 		Confidence: ragResponse.Confidence,
 		Sources:    ragResponse.SourceDocuments,
 		IntentType: intentType,
-		Metadata: map[string]interface{}{
-			"rag_retrieval_time":  ragResponse.RetrievalTime,
-			"rag_generation_time": ragResponse.GenerationTime,
-			"documents_used":      len(ragResponse.SourceDocuments),
-			"used_cache":          ragResponse.UsedCache,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -365,9 +361,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithBase(ctx context.Context, intent
 		UsedRAG:    false,
 		Confidence: 0.8, // Default confidence for base responses
 		IntentType: rep.classifyIntentType(intent),
-		Metadata: map[string]interface{}{
-			"method": "base_llm",
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -420,11 +414,7 @@ func (rep *RAGEnhancedProcessorImpl) SearchKnowledgeBase(ctx context.Context, qu
 
 // GetHealth returns the health status of the processor and its dependencies
 func (rep *RAGEnhancedProcessorImpl) GetHealth() map[string]interface{} {
-	health := map[string]interface{}{
-		"status":      "healthy",
-		"rag_enabled": rep.config.EnableRAG,
-		"metrics":     rep.GetMetrics(),
-	}
+	health := json.RawMessage("{}")
 
 	// Add base client health if available
 	if healthChecker, ok := rep.baseClient.(interface{ GetHealth() map[string]interface{} }); ok {
@@ -439,11 +429,7 @@ func (rep *RAGEnhancedProcessorImpl) GetHealth() map[string]interface{} {
 	// Add Weaviate health
 	if rep.weaviateClient != nil {
 		weaviateHealth := rep.weaviateClient.GetHealthStatus()
-		health["weaviate"] = map[string]interface{}{
-			"healthy":    weaviateHealth["status"],
-			"version":    weaviateHealth["client"],
-			"last_check": time.Now(),
-		}
+		health["weaviate"] = json.RawMessage("{}")
 	}
 
 	return health

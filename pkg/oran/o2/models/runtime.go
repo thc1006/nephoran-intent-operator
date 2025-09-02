@@ -19,7 +19,7 @@ type RuntimeMetadata struct {
 // RuntimeStatus represents the detailed runtime status of a resource
 type RuntimeStatus struct {
 	Metadata       RuntimeMetadata        `json:"metadata"`
-	ResourceConfig map[string]interface{} `json:"resource_config"`
+	ResourceConfig json.RawMessage `json:"resource_config"`
 	CurrentLoad    float64                `json:"current_load,omitempty"`
 	MemoryUsage    float64                `json:"memory_usage,omitempty"`
 	CPUUtilization float64                `json:"cpu_utilization,omitempty"`
@@ -39,5 +39,5 @@ type HealthStatus struct {
 	Status    string                 `json:"status"`
 	Message   string                 `json:"message,omitempty"`
 	LastCheck time.Time              `json:"last_check"`
-	Details   map[string]interface{} `json:"details,omitempty"`
+	Details   json.RawMessage `json:"details,omitempty"`
 }

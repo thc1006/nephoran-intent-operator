@@ -99,17 +99,11 @@ func (c *clientImpl) ProcessIntent(ctx context.Context, intent *Intent) (*Proces
 	// 3. Create a Nephio package
 	// 4. Publish to Porch
 
-	generatedSpec := map[string]interface{}{
-		"apiVersion": "v1",
-		"kind":       "ConfigMap",
-		"metadata": map[string]interface{}{
+	generatedSpec := json.RawMessage("{}"){
 			"name":      intent.Name + "-config",
 			"namespace": c.config.Namespace,
 		},
-		"data": map[string]interface{}{
-			"intent-id":   intent.ID,
-			"intent-type": intent.IntentType,
-		},
+		"data": json.RawMessage("{}"),
 	}
 
 	result := &ProcessingResult{
@@ -148,9 +142,7 @@ func (c *clientImpl) ListIntents(ctx context.Context, filter *IntentFilter) ([]*
 			Description:     "Deploy UPF with 3 replicas",
 			IntentType:      "NetworkFunctionDeployment",
 			NetworkFunction: "UPF",
-			Parameters: map[string]interface{}{
-				"replicas": 3,
-				"resources": map[string]interface{}{
+			Parameters: json.RawMessage("{}"){
 					"cpu":    "2000m",
 					"memory": "4Gi",
 				},

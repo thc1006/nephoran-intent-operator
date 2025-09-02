@@ -43,12 +43,7 @@ func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context
 			return time.Now()
 		}(),
 		AckRequired: true,
-		Metadata: map[string]interface{}{
-			"event_type":      alarm.EventType,
-			"probable_cause":  alarm.ProbableCause,
-			"managed_element": alarm.ObjectInstance,
-			"additional_info": alarm.AdditionalText,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	return f.SendNotification(ctx, notification)

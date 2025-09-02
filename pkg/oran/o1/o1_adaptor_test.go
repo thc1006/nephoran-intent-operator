@@ -237,11 +237,7 @@ import (
 				Type:      "notification",
 				Timestamp: time.Now(),
 				Source:    "test-source",
-				Data: map[string]interface{}{
-					"event_type":  "alarm",
-					"severity":    "major",
-					"description": "Test alarm event",
-				},
+				Data: json.RawMessage("{}"),
 			},
 			managedElementID: "test-element",
 			expectedAlarm:    true,

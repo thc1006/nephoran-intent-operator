@@ -918,23 +918,7 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 		}
 	}
 
-	return map[string]interface{}{
-		"active_sessions": activeSessions,
-
-		"expired_sessions": expiredSessions,
-
-		"total_sessions": len(sm.sessions),
-
-		"provider_counts": providerCounts,
-
-		"active_states": len(sm.stateStore),
-
-		"registered_providers": len(sm.providers),
-
-		"sso_enabled": sm.config.EnableSSO,
-
-		"session_timeout": sm.config.SessionTimeout,
-	}
+	return json.RawMessage("{}")
 }
 
 // Helper methods.

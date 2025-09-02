@@ -553,15 +553,7 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 
 	// Build optimized payload.
 
-	payload := map[string]interface{}{
-		"model": "gpt-4o-mini",
-
-		"messages": []map[string]string{
-			{
-				"role": "system",
-
-				"content": oci.getOptimizedSystemPrompt(intentType),
-			},
+	payload := json.RawMessage("{}"),
 
 			{
 				"role": "user",

@@ -82,12 +82,7 @@ func (g *Generator) Generate() error {
 }
 
 func (g *Generator) generateKptfile(packageDir string) error {
-	kptfile := map[string]interface{}{
-		"apiVersion": "kpt.dev/v1",
-
-		"kind": "Kptfile",
-
-		"metadata": map[string]interface{}{
+	kptfile := json.RawMessage("{}"){
 			"name": filepath.Base(packageDir),
 
 			"annotations": map[string]string{
@@ -95,18 +90,13 @@ func (g *Generator) generateKptfile(packageDir string) error {
 			},
 		},
 
-		"info": map[string]interface{}{
-			"description": fmt.Sprintf("Scaling patch for %s", g.Intent.Target),
-		},
+		"info": json.RawMessage("{}"),
 
-		"pipeline": map[string]interface{}{
-			"mutators": []map[string]interface{}{
+		"pipeline": json.RawMessage("{}"){
 				{
 					"image": "gcr.io/kpt-fn/apply-setters:v0.2.0",
 
-					"configMap": map[string]interface{}{
-						"replicas": fmt.Sprintf("%d", g.Intent.Replicas),
-					},
+					"configMap": json.RawMessage("{}"),
 				},
 			},
 		},
@@ -123,19 +113,13 @@ func (g *Generator) generateKptfile(packageDir string) error {
 }
 
 func (g *Generator) generatePatch(packageDir string) error {
-	patch := map[string]interface{}{
-		"apiVersion": "apps/v1",
-
-		"kind": "Deployment",
-
-		"metadata": map[string]interface{}{
+	patch := json.RawMessage("{}"){
 			"name": g.Intent.Target,
 
 			"namespace": g.Intent.Namespace,
 		},
 
-		"spec": map[string]interface{}{
-			"replicas": g.Intent.Replicas, // kpt-set: ${replicas}
+		"spec": json.RawMessage("{}")
 
 		},
 	}
@@ -157,12 +141,7 @@ func (g *Generator) generatePatch(packageDir string) error {
 }
 
 func (g *Generator) generateSetters(packageDir string) error {
-	setters := map[string]interface{}{
-		"apiVersion": "v1",
-
-		"kind": "ConfigMap",
-
-		"metadata": map[string]interface{}{
+	setters := json.RawMessage("{}"){
 			"name": "setters",
 
 			"namespace": g.Intent.Namespace,

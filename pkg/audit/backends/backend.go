@@ -5,7 +5,9 @@
 package backends
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -208,7 +210,7 @@ type FilterConfig struct {
 type QueryRequest struct {
 	Query string `json:"query"`
 
-	Filters map[string]interface{} `json:"filters"`
+	Filters json.RawMessage `json:"filters"`
 
 	StartTime time.Time `json:"start_time"`
 
@@ -240,7 +242,7 @@ type QueryResponse struct {
 
 	QueryTime time.Duration `json:"query_time"`
 
-	Aggregations map[string]interface{} `json:"aggregations,omitempty"`
+	Aggregations json.RawMessage `json:"aggregations,omitempty"`
 }
 
 // BackendStatus represents the health status of a backend.

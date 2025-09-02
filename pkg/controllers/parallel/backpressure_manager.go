@@ -25,7 +25,9 @@ limitations under the License.
 package parallel
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"time"
 
@@ -56,7 +58,7 @@ type BackpressureAction struct {
 	Name       string                 `json:"name"`
 	Threshold  float64                `json:"threshold"`
 	Action     string                 `json:"action"` // throttle, reject, shed_load, degrade
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // BackpressureMetrics tracks backpressure metrics.
@@ -137,12 +139,7 @@ func (bm *BackpressureManager) GetStats() (map[string]interface{}, error) {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 
-	stats := map[string]interface{}{
-		"current_load":  bm.currentLoad,
-		"thresholds":    bm.thresholds,
-		"metrics":       bm.metrics,
-		"actions_count": len(bm.actions),
-	}
+	stats := json.RawMessage("{}")
 
 	return stats, nil
 }

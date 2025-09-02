@@ -58,11 +58,7 @@ func BenchmarkLLMProcessorSuite(b *testing.B) {
 // benchmarkSingleRequest tests single request processing using Go 1.24+ testing features
 func benchmarkSingleRequest(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	intent := "Deploy AMF with 3 replicas for production environment"
-	params := map[string]interface{}{
-		"model":       "gpt-4o-mini",
-		"max_tokens":  2048,
-		"temperature": 0.1,
-	}
+	params := json.RawMessage("{}")
 
 	b.ResetTimer()
 	b.ReportAllocs() // Go 1.24+ enhanced allocation reporting
@@ -101,10 +97,7 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrency-%d", concurrency), func(b *testing.B) {
 			intent := "Deploy SMF with auto-scaling enabled"
-			params := map[string]interface{}{
-				"model":      "gpt-4o-mini",
-				"max_tokens": 1024,
-			}
+			params := json.RawMessage("{}")
 
 			// Enhanced memory stats collection
 			var startMemStats, endMemStats runtime.MemStats
@@ -160,10 +153,7 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 // benchmarkMemoryEfficiency tests memory usage and GC behavior using Go 1.24+ runtime features
 func benchmarkMemoryEfficiency(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	intent := "Deploy UPF with high-performance configuration"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 4096,
-	}
+	params := json.RawMessage("{}")
 
 	// Collect detailed GC stats using Go 1.24+ debug enhancements
 	var startGCStats, endGCStats debug.GCStats
@@ -223,10 +213,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 	// No Configure method available on actual CircuitBreaker implementation
 
 	intent := "Deploy NSSF for network slicing"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 1024,
-	}
+	params := json.RawMessage("{}")
 
 	// Test scenarios
 	scenarios := []struct {
@@ -290,10 +277,7 @@ func benchmarkCachePerformance(b *testing.B, ctx context.Context, processor *Enh
 
 	// Pre-populate cache with some entries
 	baseIntent := "Deploy AMF with configuration"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 1024,
-	}
+	params := json.RawMessage("{}")
 
 	cacheScenarios := []struct {
 		name          string
@@ -368,10 +352,7 @@ func benchmarkWorkerPoolEfficiency(b *testing.B, ctx context.Context, processor 
 	}
 
 	intent := "Deploy 5G Core components"
-	params := map[string]interface{}{
-		"model":      "gpt-4o-mini",
-		"max_tokens": 2048,
-	}
+	params := json.RawMessage("{}")
 
 	for _, config := range poolConfigs {
 		b.Run(config.name, func(b *testing.B) {
@@ -530,11 +511,7 @@ func (m *BenchmarkMockLLMClient) ProcessRequest(ctx context.Context, request *LL
 		StatusCode: 200,
 		Size:       len(response),
 		FromCache:  false,
-		Metadata: map[string]interface{}{
-			"tokens_used":   tokenCount,
-			"model":         model,
-			"finish_reason": "stop",
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -612,10 +589,7 @@ func (p *EnhancedLLMProcessor) processWithTokenLimit(ctx context.Context, intent
 	// Create LLM request
 	request := &LLMRequest{
 		Payload: intent,
-		Metadata: map[string]interface{}{
-			"model":      params["model"].(string),
-			"max_tokens": params["max_tokens"].(int),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Process through client

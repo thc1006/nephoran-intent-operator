@@ -48,7 +48,7 @@ func (s *SLAValidationTestSuite) measureAvailabilityDirect(ctx context.Context) 
 		Type:       MeasurementTypeAvailability,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "direct_uptime"},
+		Metadata:   json.RawMessage(`{"method":"direct_uptime"}`),
 	}
 
 	// Simulate measurements
@@ -70,7 +70,7 @@ func (s *SLAValidationTestSuite) measureAvailabilityErrorRate(ctx context.Contex
 		Type:       MeasurementTypeAvailability,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "error_rate_inverse"},
+		Metadata:   json.RawMessage(`{"method":"error_rate_inverse"}`),
 	}
 
 	// Simulate measurements
@@ -91,7 +91,7 @@ func (s *SLAValidationTestSuite) measureAvailabilityComponents(ctx context.Conte
 		Type:       MeasurementTypeAvailability,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "component_aggregation"},
+		Metadata:   json.RawMessage(`{"method":"component_aggregation"}`),
 	}
 
 	// Simulate measurements
@@ -114,7 +114,7 @@ func (s *SLAValidationTestSuite) measureLatencyEndToEnd(ctx context.Context) *Me
 		Type:       MeasurementTypeLatency,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "end_to_end"},
+		Metadata:   json.RawMessage(`{"method":"end_to_end"}`),
 	}
 
 	// Simulate latency measurements (in seconds)
@@ -141,7 +141,7 @@ func (s *SLAValidationTestSuite) measureLatencyComponents(ctx context.Context) *
 		Type:       MeasurementTypeLatency,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "component_aggregation"},
+		Metadata:   json.RawMessage(`{"method":"component_aggregation"}`),
 	}
 
 	// Simulate measurements
@@ -162,7 +162,7 @@ func (s *SLAValidationTestSuite) measureLatencyTracing(ctx context.Context) *Mea
 		Type:       MeasurementTypeLatency,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "distributed_tracing"},
+		Metadata:   json.RawMessage(`{"method":"distributed_tracing"}`),
 	}
 
 	// Simulate measurements
@@ -185,7 +185,7 @@ func (s *SLAValidationTestSuite) measureThroughputDirect(ctx context.Context) *M
 		Type:       MeasurementTypeThroughput,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "direct_load_testing"},
+		Metadata:   json.RawMessage(`{"method":"direct_load_testing"}`),
 	}
 
 	// Simulate throughput measurements (intents per minute)
@@ -206,7 +206,7 @@ func (s *SLAValidationTestSuite) measureThroughputCounters(ctx context.Context) 
 		Type:       MeasurementTypeThroughput,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "prometheus_counters"},
+		Metadata:   json.RawMessage(`{"method":"prometheus_counters"}`),
 	}
 
 	// Simulate measurements
@@ -227,7 +227,7 @@ func (s *SLAValidationTestSuite) measureThroughputQueue(ctx context.Context) *Me
 		Type:       MeasurementTypeThroughput,
 		Values:     make([]float64, 0),
 		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "queue_analysis"},
+		Metadata:   json.RawMessage(`{"method":"queue_analysis"}`),
 	}
 
 	// Simulate measurements

@@ -1,7 +1,9 @@
 package integration_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -41,7 +43,7 @@ type TestPipelineQuery struct {
 	ExpectedDocCount   int                    `json:"expected_doc_count"`
 	MinRelevanceScore  float32                `json:"min_relevance_score"`
 	ExpectedKeywords   []string               `json:"expected_keywords"`
-	Context            map[string]interface{} `json:"context"`
+	Context            json.RawMessage `json:"context"`
 	ExpectedPromptSize int                    `json:"expected_prompt_size"`
 }
 
@@ -88,11 +90,7 @@ func (cb *MockContextBuilder) AddDocuments(docs []*shared.TelecomDocument) {
 
 // GetMetrics returns retrieval metrics
 func (cb *MockContextBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"retrieval_calls": cb.retrievalCalls,
-		"document_count":  len(cb.documents),
-		"last_query":      cb.lastQuery,
-	}
+	return json.RawMessage("{}")
 }
 
 // MockRAGAwarePromptBuilder implements prompt building for testing
@@ -144,12 +142,7 @@ If the context doesn't contain sufficient information, please indicate what addi
 
 // GetMetrics returns prompt building metrics
 func (pb *MockRAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"build_calls":       pb.buildCalls,
-		"prompts_generated": len(pb.generatedPrompts),
-		"last_query":        pb.lastQuery,
-		"context_length":    len(pb.lastContext),
-	}
+	return json.RawMessage("{}")
 }
 
 // SetupSuite initializes the test suite
@@ -261,11 +254,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.7,
 			ExpectedKeywords:   []string{"amf", "high availability", "deployment", "configuration"},
 			ExpectedPromptSize: 800,
-			Context: map[string]interface{}{
-				"technology":  "5g",
-				"component":   "amf",
-				"requirement": "high_availability",
-			},
+			Context: json.RawMessage("{}"),
 		},
 		{
 			Query:              "What are the key features of O-RAN E2 interface?",
@@ -274,10 +263,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.75,
 			ExpectedKeywords:   []string{"o-ran", "e2", "interface", "features"},
 			ExpectedPromptSize: 700,
-			Context: map[string]interface{}{
-				"standard":  "oran",
-				"interface": "e2",
-			},
+			Context: json.RawMessage("{}"),
 		},
 		{
 			Query:              "Create network slice for IoT use case with low latency",
@@ -286,11 +272,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.65,
 			ExpectedKeywords:   []string{"network slice", "iot", "low latency", "create"},
 			ExpectedPromptSize: 600,
-			Context: map[string]interface{}{
-				"use_case":    "iot",
-				"requirement": "low_latency",
-				"action":      "create",
-			},
+			Context: json.RawMessage("{}"),
 		},
 		{
 			Query:              "Develop xApp for traffic steering optimization",
@@ -299,11 +281,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			MinRelevanceScore:  0.6,
 			ExpectedKeywords:   []string{"xapp", "traffic steering", "optimization", "development"},
 			ExpectedPromptSize: 750,
-			Context: map[string]interface{}{
-				"component": "xapp",
-				"algorithm": "traffic_steering",
-				"goal":      "optimization",
-			},
+			Context: json.RawMessage("{}"),
 		},
 	}
 }
@@ -403,7 +381,7 @@ func (suite *EndToEndRAGPipelineTestSuite) TestCompleteRAGPipelineWorkflow() {
 
 // TestPipelineComponentIntegration tests individual component integration
 func (suite *EndToEndRAGPipelineTestSuite) TestPipelineComponentIntegration() {
-	// Test ContextBuilder ↔ RelevanceScorer Integration
+	// Test ContextBuilder ??RelevanceScorer Integration
 	suite.Run("ContextBuilder_RelevanceScorer_Integration", func() {
 		query := "AMF deployment configuration"
 
@@ -433,7 +411,7 @@ func (suite *EndToEndRAGPipelineTestSuite) TestPipelineComponentIntegration() {
 		suite.NotEmpty(score.Explanation, "Score should have explanation")
 	})
 
-	// Test RelevanceScorer ↔ PromptBuilder Integration
+	// Test RelevanceScorer ??PromptBuilder Integration
 	suite.Run("RelevanceScorer_PromptBuilder_Integration", func() {
 		// Create a scored document
 		doc := suite.testDocuments[0]

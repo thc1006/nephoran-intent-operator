@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -33,7 +35,7 @@ type Report struct {
 	Format      string                 `json:"format"` // JSON, XML, PDF, HTML
 	GeneratedAt time.Time              `json:"generated_at"`
 	ExpiresAt   time.Time              `json:"expires_at,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 	Size        int64                  `json:"size"`
 }
 
@@ -46,7 +48,7 @@ type ReportSchedule struct {
 	Schedule    string                 `json:"schedule"` // CRON expression
 	Template    string                 `json:"template"`
 	Recipients  []string               `json:"recipients"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Parameters  json.RawMessage `json:"parameters"`
 	Enabled     bool                   `json:"enabled"`
 	NextRun     time.Time              `json:"next_run"`
 	LastRun     time.Time              `json:"last_run"`
@@ -67,7 +69,7 @@ type Notification struct {
 	Target      string                 `json:"target,omitempty"`
 	Timestamp   time.Time              `json:"timestamp"`
 	AckRequired bool                   `json:"ack_required"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NotificationChannel interface for sending notifications (used by multiple managers)
@@ -90,14 +92,14 @@ type SecurityPolicy struct {
 	Enforcement string                 `json:"enforcement"` // STRICT, PERMISSIVE
 	ValidFrom   time.Time              `json:"valid_from"`
 	ValidUntil  time.Time              `json:"valid_until"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // SecurityRule represents a security rule (avoid duplicate)
 type SecurityRule struct {
 	RuleID      string                 `json:"rule_id"`
 	Action      string                 `json:"action"` // ALLOW, DENY, LOG
-	Conditions  map[string]interface{} `json:"conditions"`
+	Conditions  json.RawMessage `json:"conditions"`
 	Priority    int                    `json:"priority"`
 	Description string                 `json:"description"`
 	Enabled     bool                   `json:"enabled"`
@@ -295,11 +297,11 @@ type NetworkFunction struct {
 	NFType         string                 `json:"nf_type"`
 	Status         string                 `json:"status"`
 	NFStatus       string                 `json:"nf_status"`
-	Configuration  map[string]interface{} `json:"configuration"`
+	Configuration  json.RawMessage `json:"configuration"`
 	NFServices     []interface{}          `json:"nf_services,omitempty"`
 	HeartBeatTimer int                    `json:"heartbeat_timer,omitempty"`
 	LastUpdated    time.Time              `json:"last_updated"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NetworkFunctionUpdate represents updates to a network function
@@ -309,8 +311,8 @@ type NetworkFunctionUpdate struct {
 	NFStatus       *string                `json:"nf_status,omitempty"`
 	HeartBeatTimer *int                   `json:"heartbeat_timer,omitempty"`
 	NFServices     []interface{}          `json:"nf_services,omitempty"`
-	Configuration  map[string]interface{} `json:"configuration,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Configuration  json.RawMessage `json:"configuration,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DiscoveryCriteria represents criteria for discovering network functions
@@ -320,7 +322,7 @@ type DiscoveryCriteria struct {
 	Status      string                 `json:"status,omitempty"`
 	NamePattern string                 `json:"name_pattern,omitempty"`
 	Limit       int                    `json:"limit,omitempty"`
-	Filters     map[string]interface{} `json:"filters,omitempty"`
+	Filters     json.RawMessage `json:"filters,omitempty"`
 }
 
 // NetworkFunctionStatus represents the status of a network function
@@ -340,7 +342,7 @@ type NetworkFunctionStatus struct {
 	Load                float64                `json:"load"`
 	LoadTimeStamp       time.Time              `json:"load_timestamp"`
 	LastSeen            time.Time              `json:"last_seen"`
-	Metrics             map[string]interface{} `json:"metrics,omitempty"`
+	Metrics             json.RawMessage `json:"metrics,omitempty"`
 	Errors              []string               `json:"errors,omitempty"`
 }
 
@@ -349,12 +351,12 @@ type NetworkFunctionConfig struct {
 	ID            string                 `json:"id"`
 	ConfigID      string                 `json:"config_id"`
 	ConfigName    string                 `json:"config_name"`
-	Configuration map[string]interface{} `json:"configuration"`
-	Schema        map[string]interface{} `json:"schema,omitempty"`
+	Configuration json.RawMessage `json:"configuration"`
+	Schema        json.RawMessage `json:"schema,omitempty"`
 	Version       string                 `json:"version"`
 	AppliedAt     time.Time              `json:"applied_at"`
 	Description   string                 `json:"description"`
-	ConfigData    map[string]interface{} `json:"config_data"`
+	ConfigData    json.RawMessage `json:"config_data"`
 }
 
 // NotificationTemplate represents a notification template
@@ -365,7 +367,7 @@ type NotificationTemplate struct {
 	Template  string                 `json:"template"`
 	Subject   string                 `json:"subject,omitempty"`
 	Body      string                 `json:"body,omitempty"`
-	Variables map[string]interface{} `json:"variables,omitempty"`
+	Variables json.RawMessage `json:"variables,omitempty"`
 }
 
 // Alarm represents a basic alarm structure
@@ -388,7 +390,7 @@ type Alarm struct {
 	AdditionalText    string                 `json:"additional_text,omitempty"`
 	AckState          string                 `json:"ack_state,omitempty"`
 	AlarmState        string                 `json:"alarm_state,omitempty"`
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	Metadata          json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Additional missing types for O1 system
@@ -402,7 +404,7 @@ type PerformanceThreshold struct {
 	Operator string                 `json:"operator"`
 	Value    float64                `json:"value"`
 	Enabled  bool                   `json:"enabled"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // EscalationRule represents an escalation rule
@@ -414,7 +416,7 @@ type EscalationRule struct {
 	TargetLevel  int                    `json:"target_level"`
 	DelayMinutes int                    `json:"delay_minutes"`
 	Enabled      bool                   `json:"enabled"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 // SMOIntegrationLayer represents the SMO integration layer
@@ -425,7 +427,7 @@ type SMOIntegrationLayer struct {
 	Status       string                 `json:"status"`
 	Version      string                 `json:"version"`
 	Capabilities []string               `json:"capabilities,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 // FunctionType represents a function type
@@ -434,8 +436,8 @@ type FunctionType struct {
 	Name           string                 `json:"name"`
 	Category       string                 `json:"category"`
 	Version        string                 `json:"version"`
-	Specifications map[string]interface{} `json:"specifications,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Specifications json.RawMessage `json:"specifications,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DeploymentTemplate represents a deployment template
@@ -443,11 +445,11 @@ type DeploymentTemplate struct {
 	ID         string                 `json:"id"`
 	Name       string                 `json:"name"`
 	Type       string                 `json:"type"`
-	Template   map[string]interface{} `json:"template"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Template   json.RawMessage `json:"template"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 	Version    string                 `json:"version"`
 	CreatedAt  time.Time              `json:"created_at"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ConfigRequest represents a configuration request
@@ -455,13 +457,13 @@ type ConfigRequest struct {
 	ID             string                 `json:"id"`
 	Type           string                 `json:"type"`
 	Target         string                 `json:"target"`
-	Configuration  map[string]interface{} `json:"configuration"`
+	Configuration  json.RawMessage `json:"configuration"`
 	RequestedBy    string                 `json:"requested_by"`
 	RequestedAt    time.Time              `json:"requested_at"`
 	Priority       string                 `json:"priority,omitempty"`
 	ObjectInstance string                 `json:"object_instance,omitempty"`
-	Attributes     map[string]interface{} `json:"attributes,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Attributes     json.RawMessage `json:"attributes,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ConfigResponse represents a configuration response
@@ -469,13 +471,13 @@ type ConfigResponse struct {
 	ID             string                 `json:"id"`
 	RequestID      string                 `json:"request_id"`
 	Status         string                 `json:"status"`
-	Result         map[string]interface{} `json:"result,omitempty"`
+	Result         json.RawMessage `json:"result,omitempty"`
 	ErrorMessage   string                 `json:"error_message,omitempty"`
 	ProcessedAt    time.Time              `json:"processed_at"`
 	ObjectInstance string                 `json:"object_instance,omitempty"`
-	Attributes     map[string]interface{} `json:"attributes,omitempty"`
+	Attributes     json.RawMessage `json:"attributes,omitempty"`
 	Timestamp      time.Time              `json:"timestamp"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Additional client types
@@ -485,20 +487,20 @@ type PerformanceRequest struct {
 	ID         string                 `json:"id"`
 	MetricType string                 `json:"metric_type"`
 	Target     string                 `json:"target"`
-	TimeRange  map[string]interface{} `json:"time_range,omitempty"`
-	Filters    map[string]interface{} `json:"filters,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	TimeRange  json.RawMessage `json:"time_range,omitempty"`
+	Filters    json.RawMessage `json:"filters,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PerformanceResponse represents a performance response
 type PerformanceResponse struct {
 	ID              string                 `json:"id"`
 	RequestID       string                 `json:"request_id"`
-	Metrics         map[string]interface{} `json:"metrics"`
+	Metrics         json.RawMessage `json:"metrics"`
 	Status          string                 `json:"status"`
 	Timestamp       time.Time              `json:"timestamp"`
 	PerformanceData []PerformanceData      `json:"performance_data,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PerformanceSubscription represents a performance subscription
@@ -506,11 +508,11 @@ type PerformanceSubscription struct {
 	ID              string                 `json:"id"`
 	MetricType      string                 `json:"metric_type"`
 	Callback        string                 `json:"callback"`
-	Filters         map[string]interface{} `json:"filters,omitempty"`
+	Filters         json.RawMessage `json:"filters,omitempty"`
 	Status          string                 `json:"status"`
 	CreatedAt       time.Time              `json:"created_at"`
 	ReportingPeriod time.Duration          `json:"reporting_period,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PerformanceMeasurement represents a performance measurement
@@ -524,16 +526,16 @@ type PerformanceMeasurement struct {
 	MeasurementType string                 `json:"measurement_type,omitempty"`
 	Value           float64                `json:"value,omitempty"`
 	Unit            string                 `json:"unit,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AlarmFilter represents an alarm filter
 type AlarmFilter struct {
 	Severity  string                 `json:"severity,omitempty"`
 	Source    string                 `json:"source,omitempty"`
-	TimeRange map[string]interface{} `json:"time_range,omitempty"`
+	TimeRange json.RawMessage `json:"time_range,omitempty"`
 	Status    string                 `json:"status,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AlarmResponse represents an alarm response
@@ -543,7 +545,7 @@ type AlarmResponse struct {
 	RequestID string                 `json:"request_id,omitempty"`
 	Status    string                 `json:"status"`
 	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // FileUploadRequest represents a file upload request
@@ -553,7 +555,7 @@ type FileUploadRequest struct {
 	FileType string                 `json:"file_type"`
 	Size     int64                  `json:"size"`
 	Checksum string                 `json:"checksum,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // FileUploadResponse represents a file upload response
@@ -564,7 +566,7 @@ type FileUploadResponse struct {
 	UploadURL    string                 `json:"upload_url,omitempty"`
 	FileID       string                 `json:"file_id,omitempty"`
 	ErrorMessage string                 `json:"error_message,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 // FileDownloadResponse represents a file download response
@@ -574,7 +576,7 @@ type FileDownloadResponse struct {
 	DownloadURL string                 `json:"download_url"`
 	Status      string                 `json:"status"`
 	ExpiresAt   time.Time              `json:"expires_at"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // HeartbeatResponse represents a heartbeat response
@@ -583,16 +585,16 @@ type HeartbeatResponse struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Version   string                 `json:"version"`
 	Uptime    time.Duration          `json:"uptime"`
-	Health    map[string]interface{} `json:"health,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Health    json.RawMessage `json:"health,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PerformanceData represents performance data
 type PerformanceData struct {
 	ID        string                 `json:"id"`
 	Timestamp time.Time              `json:"timestamp"`
-	Metrics   map[string]interface{} `json:"metrics"`
+	Metrics   json.RawMessage `json:"metrics"`
 	Source    string                 `json:"source"`
 	DataType  string                 `json:"data_type"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }

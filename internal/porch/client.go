@@ -40,12 +40,7 @@ func CreateDraftPackageRevision(
 	}
 
 	u := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "porch.kpt.dev/v1alpha1",
-
-			"kind": "PackageRevision",
-
-			"metadata": map[string]interface{}{
+		Object: json.RawMessage("{}"){
 				"generateName": fmt.Sprintf("%s.%s.", repository, packageName),
 
 				"namespace": namespace,
@@ -55,17 +50,7 @@ func CreateDraftPackageRevision(
 				"annotations": annotations,
 			},
 
-			"spec": map[string]interface{}{
-				"lifecycle": "Draft",
-
-				"repository": repository,
-
-				"packageName": packageName,
-
-				"workspaceName": workspace,
-
-				"revision": 0,
-			},
+			"spec": json.RawMessage("{}"),
 		},
 	}
 

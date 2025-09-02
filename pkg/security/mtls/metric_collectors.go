@@ -351,13 +351,7 @@ func (c *CertificateMetricCollector) CollectMetrics(monitor *MTLSMonitor) ([]*Me
 				"health_status": string(cert.HealthStatus),
 			},
 
-			Metadata: map[string]interface{}{
-				"certificate_path": cert.CertificatePath,
-
-				"expires_at": cert.NotAfter,
-
-				"rotation_count": cert.RotationCount,
-			},
+			Metadata: json.RawMessage("{}"),
 		})
 
 	}

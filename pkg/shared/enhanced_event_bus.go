@@ -340,13 +340,7 @@ func (eb *EnhancedEventBus) PublishStateChange(ctx context.Context, event StateC
 
 		Success: true,
 
-		Data: map[string]interface{}{
-			"oldPhase": event.OldPhase,
-
-			"newPhase": event.NewPhase,
-
-			"version": event.Version,
-		},
+		Data: json.RawMessage("{}"),
 
 		Timestamp: time.Now().UnixNano(),
 

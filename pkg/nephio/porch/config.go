@@ -31,7 +31,9 @@ limitations under the License.
 package porch
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -695,7 +697,7 @@ type WorkflowStageConfig struct {
 type WorkflowTriggerConfig struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 
 	Schedule string `json:"schedule,omitempty"`
 
@@ -707,7 +709,7 @@ type WorkflowTriggerConfig struct {
 type WorkflowConditionConfig struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 
 	Operator string `json:"operator,omitempty"`
 
@@ -719,7 +721,7 @@ type WorkflowConditionConfig struct {
 type WorkflowActionConfig struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Timeout time.Duration `json:"timeout,omitempty"`
 
@@ -739,7 +741,7 @@ type ApproverConfig struct {
 
 	Permissions []string `json:"permissions,omitempty"`
 
-	Constraints map[string]interface{} `json:"constraints,omitempty"`
+	Constraints json.RawMessage `json:"constraints,omitempty"`
 }
 
 // NotificationConfig defines notification configuration.
@@ -753,7 +755,7 @@ type NotificationConfig struct {
 
 	Events []string `json:"events,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ValidationPolicyConfig defines validation policy configuration.
@@ -775,7 +777,7 @@ type ValidationPolicyConfig struct {
 type ValidatorConfig struct {
 	Image string `json:"image"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Resources *FunctionResourceLimits `json:"resources,omitempty"`
 
@@ -1007,7 +1009,7 @@ type AuditRetentionConfig struct {
 type AuditDestinationConfig struct {
 	Type string `json:"type"` // file, webhook, s3, elasticsearch
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Format string `json:"format,omitempty"`
 
@@ -1043,7 +1045,7 @@ type MetricsCollectorConfig struct {
 
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Interval time.Duration `json:"interval,omitempty"`
 
@@ -1059,7 +1061,7 @@ type MetricsExporterConfig struct {
 
 	Endpoint string `json:"endpoint"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Headers map[string]string `json:"headers,omitempty"`
 
@@ -1077,7 +1079,7 @@ type LoggingConfig struct {
 
 	File *LogFileConfig `json:"file,omitempty"`
 
-	Fields map[string]interface{} `json:"fields,omitempty"`
+	Fields json.RawMessage `json:"fields,omitempty"`
 
 	Filters []LogFilterConfig `json:"filters,omitempty"`
 
@@ -1103,7 +1105,7 @@ type LogFileConfig struct {
 type LogFilterConfig struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // LogProcessorConfig defines log processor configuration.
@@ -1111,7 +1113,7 @@ type LogFilterConfig struct {
 type LogProcessorConfig struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // TracingConfig defines tracing configuration.
@@ -1127,7 +1129,7 @@ type TracingConfig struct {
 
 	Headers map[string]string `json:"headers,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	Exporters []TracingExporterConfig `json:"exporters,omitempty"`
 }
@@ -1141,7 +1143,7 @@ type TracingExporterConfig struct {
 
 	Endpoint string `json:"endpoint"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Headers map[string]string `json:"headers,omitempty"`
 
@@ -1175,7 +1177,7 @@ type HealthCheckDefinition struct {
 
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Timeout time.Duration `json:"timeout,omitempty"`
 
@@ -1205,7 +1207,7 @@ type AlertReceiverConfig struct {
 
 	Type string `json:"type"` // email, slack, webhook, pagerduty
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Enabled bool `json:"enabled,omitempty"`
 }
@@ -1385,7 +1387,7 @@ type EncryptionAtRestConfig struct {
 
 	Algorithm string `json:"algorithm,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // EncryptionInTransitConfig defines encryption in transit configuration.
@@ -1421,7 +1423,7 @@ type ServiceMeshSecurityConfig struct {
 
 	MTLS *mTLSConfig `json:"mtls,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // mTLSConfig defines mutual TLS configuration.
@@ -1511,7 +1513,7 @@ type CertificateConfig struct {
 type CertificateAuthority struct {
 	Type string `json:"type"` // internal, external, vault
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	CertFile string `json:"certFile,omitempty"`
 
@@ -1525,7 +1527,7 @@ type CertificateAuthority struct {
 type SecretManagementConfig struct {
 	Provider string `json:"provider"` // kubernetes, vault, aws-secrets-manager
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Encryption *SecretEncryptionConfig `json:"encryption,omitempty"`
 
@@ -1581,7 +1583,7 @@ type ScanningConfig struct {
 
 	FailOnSeverity string `json:"failOnSeverity,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ComplianceScanConfig defines compliance scanning configuration.
@@ -1671,7 +1673,7 @@ type CacheLayerConfig struct {
 
 	TTL time.Duration `json:"ttl,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled,omitempty"`
 }
@@ -1685,7 +1687,7 @@ type CacheStrategyConfig struct {
 
 	Resources []string `json:"resources,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // CacheInvalidationConfig defines cache invalidation configuration.
@@ -1697,7 +1699,7 @@ type CacheInvalidationConfig struct {
 
 	TTL time.Duration `json:"ttl,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ConnectionPoolingConfig defines connection pooling configuration.
@@ -1909,7 +1911,7 @@ type StorageConfig struct {
 
 	Prefix string `json:"prefix,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Encryption *EncryptionAtRestConfig `json:"encryption,omitempty"`
 }

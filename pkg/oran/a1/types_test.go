@@ -86,26 +86,15 @@ import (
 		PolicyTypeID:   123,
 		PolicyTypeName: "Traffic Steering Policy",
 		Description:    "Policy for managing traffic steering in O-RAN",
-		Schema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"scope": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"ue_id": map[string]interface{}{
-							"type": "string",
-						},
+		Schema: json.RawMessage("{}"){
+				"scope": json.RawMessage("{}"){
+						"ue_id": json.RawMessage("{}"),
 					},
 				},
 			},
 		},
-		CreateSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"notification_destination": map[string]interface{}{
-					"type":   "string",
-					"format": "uri",
-				},
+		CreateSchema: json.RawMessage("{}"){
+				"notification_destination": json.RawMessage("{}"),
 			},
 		},
 		CreatedAt:  now,
@@ -139,9 +128,7 @@ import (
 			name: "valid policy type",
 			policyType: PolicyType{
 				PolicyTypeID: 1,
-				Schema: map[string]interface{}{
-					"type": "object",
-				},
+				Schema: json.RawMessage("{}"),
 			},
 			expectValid: true,
 		},
@@ -149,9 +136,7 @@ import (
 			name: "missing policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				Schema: map[string]interface{}{
-					"type": "object",
-				},
+				Schema: json.RawMessage("{}"),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -160,9 +145,7 @@ import (
 			name: "negative policy_type_id",
 			policyType: PolicyType{
 				PolicyTypeID: -1, // Invalid: must be >= 1
-				Schema: map[string]interface{}{
-					"type": "object",
-				},
+				Schema: json.RawMessage("{}"),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -188,9 +171,7 @@ import (
 // DISABLED: func TestPolicyType_EmptyOptionalFields(t *testing.T) {
 	policyType := &PolicyType{
 		PolicyTypeID: 1,
-		Schema: map[string]interface{}{
-			"type": "object",
-		},
+		Schema: json.RawMessage("{}"),
 		// Optional fields left empty
 		PolicyTypeName: "",
 		Description:    "",
@@ -218,24 +199,16 @@ import (
 	instance := &PolicyInstance{
 		PolicyID:     "traffic-policy-123",
 		PolicyTypeID: 456,
-		PolicyData: map[string]interface{}{
-			"scope": map[string]interface{}{
+		PolicyData: json.RawMessage("{}"){
 				"ue_id":   "ue-12345",
 				"cell_id": "cell-abcde",
 			},
-			"statement": map[string]interface{}{
-				"qos_class": 5,
-				"bitrate":   1000.5,
-				"action":    "allow",
-			},
+			"statement": json.RawMessage("{}"),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://callback.example.com/policy-notifications",
 			RequestID:               "req-789",
-			AdditionalParams: map[string]interface{}{
-				"priority": "high",
-				"owner":    "network-operator",
-			},
+			AdditionalParams: json.RawMessage("{}"),
 		},
 		CreatedAt:  now,
 		ModifiedAt: now,
@@ -270,9 +243,7 @@ import (
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 1,
-				PolicyData: map[string]interface{}{
-					"key": "value",
-				},
+				PolicyData: json.RawMessage("{}"),
 			},
 			expectValid: true,
 		},
@@ -281,9 +252,7 @@ import (
 			instance: PolicyInstance{
 				PolicyID:     "", // Invalid: required
 				PolicyTypeID: 1,
-				PolicyData: map[string]interface{}{
-					"key": "value",
-				},
+				PolicyData: json.RawMessage("{}"),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_id"},
@@ -293,9 +262,7 @@ import (
 			instance: PolicyInstance{
 				PolicyID:     "valid-policy-id",
 				PolicyTypeID: 0, // Invalid: must be >= 1
-				PolicyData: map[string]interface{}{
-					"key": "value",
-				},
+				PolicyData: json.RawMessage("{}"),
 			},
 			expectValid: false,
 			fieldErrors: []string{"policy_type_id"},
@@ -319,34 +286,20 @@ import (
 }
 
 // DISABLED: func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
-	complexData := map[string]interface{}{
-		"scope": map[string]interface{}{
+	complexData := json.RawMessage("{}"){
 			"ue_ids": []interface{}{
 				"ue-001", "ue-002", "ue-003",
 			},
 			"cell_ids": []interface{}{
-				map[string]interface{}{
-					"id":     "cell-123",
-					"weight": 0.8,
-				},
-				map[string]interface{}{
-					"id":     "cell-456",
-					"weight": 0.2,
-				},
+				json.RawMessage("{}"),
+				json.RawMessage("{}"),
 			},
 		},
 		"statements": []interface{}{
-			map[string]interface{}{
-				"condition": map[string]interface{}{
-					"time_window": map[string]interface{}{
-						"start": "09:00",
-						"end":   "17:00",
-					},
+			json.RawMessage("{}"){
+					"time_window": json.RawMessage("{}"),
 				},
-				"action": map[string]interface{}{
-					"type":   "redirect",
-					"target": "edge-server-1",
-				},
+				"action": json.RawMessage("{}"),
 			},
 		},
 	}
@@ -392,13 +345,9 @@ import (
 		Deleted:           false,
 		CreatedAt:         now,
 		ModifiedAt:        now,
-		AdditionalInfo: map[string]interface{}{
-			"enforcement_points": []string{"ric-1", "ric-2"},
+		AdditionalInfo: json.RawMessage("{}"),
 			"enforcement_time":   "2023-01-01T12:00:00Z",
-			"metrics": map[string]interface{}{
-				"success_rate": 0.95,
-				"latency_ms":   150,
-			},
+			"metrics": json.RawMessage("{}"),
 		},
 	}
 
@@ -489,21 +438,10 @@ import (
 		EiTypeID:    "throughput-measurement",
 		EiTypeName:  "Throughput Measurement EI Type",
 		Description: "Enrichment Information type for measuring cell throughput",
-		EiJobDataSchema: map[string]interface{}{
-			"$schema": "http://json-schema.org/draft-07/schema#",
-			"type":    "object",
-			"properties": map[string]interface{}{
-				"measurement_config": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"interval_seconds": map[string]interface{}{
-							"type":    "integer",
-							"minimum": 1,
-							"maximum": 3600,
-						},
-						"target_cells": map[string]interface{}{
-							"type": "array",
-							"items": map[string]interface{}{
+		EiJobDataSchema: json.RawMessage("{}"){
+				"measurement_config": json.RawMessage("{}"){
+						"interval_seconds": json.RawMessage("{}"),
+						"target_cells": json.RawMessage("{}"){
 								"type": "string",
 							},
 							"minItems": 1,
@@ -514,17 +452,12 @@ import (
 			},
 			"required": []string{"measurement_config"},
 		},
-		EiJobResultSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"measurements": map[string]interface{}{
-					"type": "array",
-					"items": map[string]interface{}{
+		EiJobResultSchema: json.RawMessage("{}"){
+				"measurements": json.RawMessage("{}"){
 						"type": "object",
-						"properties": map[string]interface{}{
-							"cell_id":    map[string]interface{}{"type": "string"},
-							"throughput": map[string]interface{}{"type": "number"},
-							"timestamp":  map[string]interface{}{"type": "string", "format": "date-time"},
+						"properties": json.RawMessage("{}")`),
+							"throughput": json.RawMessage(`{"type":"number"}`),
+							"timestamp":  json.RawMessage("{}"),
 						},
 					},
 				},
@@ -561,7 +494,7 @@ import (
 			name: "valid EI type",
 			eiType: EnrichmentInfoType{
 				EiTypeID:        "valid-type-id",
-				EiJobDataSchema: map[string]interface{}{"type": "object"},
+				EiJobDataSchema: json.RawMessage(`{"type":"object"}`),
 			},
 			expectValid: true,
 		},
@@ -569,7 +502,7 @@ import (
 			name: "empty ei_type_id",
 			eiType: EnrichmentInfoType{
 				EiTypeID:        "", // Required field
-				EiJobDataSchema: map[string]interface{}{"type": "object"},
+				EiJobDataSchema: json.RawMessage(`{"type":"object"}`),
 			},
 			expectValid: false,
 			fieldErrors: []string{"ei_type_id"},
@@ -600,19 +533,12 @@ import (
 	job := &EnrichmentInfoJob{
 		EiJobID:  "throughput-job-001",
 		EiTypeID: "throughput-measurement",
-		EiJobData: map[string]interface{}{
-			"measurement_config": map[string]interface{}{
+		EiJobData: json.RawMessage("{}"){
 				"interval_seconds": 60,
 				"target_cells":     []interface{}{"cell-001", "cell-002"},
-				"thresholds": map[string]interface{}{
-					"min_throughput": 100.0,
-					"max_latency":    50.0,
-				},
+				"thresholds": json.RawMessage("{}"),
 			},
-			"reporting": map[string]interface{}{
-				"format":      "json",
-				"compression": false,
-			},
+			"reporting": json.RawMessage("{}"),
 		},
 		TargetURI:    "http://ei-consumer.example.com/measurements",
 		JobOwner:     "network-analytics-service",
@@ -628,17 +554,9 @@ import (
 					},
 				},
 			},
-			JobParameters: map[string]interface{}{
-				"retry_count":    3,
-				"retry_delay_ms": 5000,
-				"timeout_ms":     30000,
-			},
-			JobResultSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"cell_measurements": map[string]interface{}{
-						"type": "array",
-					},
+			JobParameters: json.RawMessage("{}"),
+			JobResultSchema: json.RawMessage("{}"){
+					"cell_measurements": json.RawMessage("{}"),
 				},
 			},
 		},
@@ -680,7 +598,7 @@ import (
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: map[string]interface{}{"key": "value"},
+				EiJobData: json.RawMessage(`{"key":"value"}`),
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -691,7 +609,7 @@ import (
 			job: EnrichmentInfoJob{
 				EiJobID:   "", // Required field
 				EiTypeID:  "valid-type-id",
-				EiJobData: map[string]interface{}{"key": "value"},
+				EiJobData: json.RawMessage(`{"key":"value"}`),
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -703,7 +621,7 @@ import (
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "", // Required field
-				EiJobData: map[string]interface{}{"key": "value"},
+				EiJobData: json.RawMessage(`{"key":"value"}`),
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "valid-owner",
 			},
@@ -715,7 +633,7 @@ import (
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: map[string]interface{}{"key": "value"},
+				EiJobData: json.RawMessage(`{"key":"value"}`),
 				TargetURI: "not-a-url", // Invalid URL format
 				JobOwner:  "valid-owner",
 			},
@@ -727,7 +645,7 @@ import (
 			job: EnrichmentInfoJob{
 				EiJobID:   "valid-job-id",
 				EiTypeID:  "valid-type-id",
-				EiJobData: map[string]interface{}{"key": "value"},
+				EiJobData: json.RawMessage(`{"key":"value"}`),
 				TargetURI: "http://valid.example.com",
 				JobOwner:  "", // Required field
 			},
@@ -850,14 +768,8 @@ import (
 	// Create a large policy data structure
 	largeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
-			"value":   fmt.Sprintf("value_%d", i),
-			"numeric": i,
-			"boolean": i%2 == 0,
-			"array":   []interface{}{i, i + 1, i + 2},
-			"nested": map[string]interface{}{
-				"deep_field": fmt.Sprintf("deep_value_%d", i),
-			},
+		largeData[fmt.Sprintf("field_%d", i)] = json.RawMessage("{}"){i, i + 1, i + 2},
+			"nested": json.RawMessage("{}"),
 		}
 	}
 
@@ -884,15 +796,10 @@ import (
 	// Test Unicode characters in various fields
 	policyType := &PolicyType{
 		PolicyTypeID:   1,
-		PolicyTypeName: "测试策略类型 🚀",
-		Description:    "Политика для тестирования العربية हिन्दी 日本語",
-		Schema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"unicode_field": map[string]interface{}{
-					"type":        "string",
-					"description": "Field with unicode: 😀🌟⭐🔥💯",
-				},
+		PolicyTypeName: "测�?策略类�? ??",
+		Description:    "?оли?ика дл? ?е??и?овани? ا?عرب?ة हिन�?द�? ?�本�?,
+		Schema: json.RawMessage("{}"){
+				"unicode_field": json.RawMessage("{}"),
 			},
 		},
 	}
@@ -944,13 +851,8 @@ import (
 
 // DISABLED: func TestTypes_InterfaceConversion(t *testing.T) {
 	// Test conversion between interface{} and concrete types
-	data := map[string]interface{}{
-		"string_field": "test",
-		"int_field":    42,
-		"float_field":  3.14,
-		"bool_field":   true,
-		"array_field":  []interface{}{1, 2, 3},
-		"object_field": map[string]interface{}{"nested": "value"},
+	data := json.RawMessage("{}"){1, 2, 3},
+		"object_field": json.RawMessage(`{"nested":"value"}`),
 	}
 
 	instance := &PolicyInstance{
@@ -989,9 +891,7 @@ import (
 	instance := &PolicyInstance{
 		PolicyID:     "concurrent-test",
 		PolicyTypeID: 1,
-		PolicyData: map[string]interface{}{
-			"shared_field": "initial_value",
-		},
+		PolicyData: json.RawMessage("{}"),
 	}
 
 	// Test concurrent read access
@@ -1031,12 +931,10 @@ func BenchmarkPolicyType_JSON_Marshal(b *testing.B) {
 		PolicyTypeID:   1,
 		PolicyTypeName: "Benchmark Policy Type",
 		Description:    "Policy type for benchmarking JSON serialization",
-		Schema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"field1": map[string]interface{}{"type": "string"},
-				"field2": map[string]interface{}{"type": "integer"},
-				"field3": map[string]interface{}{"type": "boolean"},
+		Schema: json.RawMessage("{}"){
+				"field1": json.RawMessage(`{"type":"string"}`),
+				"field2": json.RawMessage(`{"type":"integer"}`),
+				"field3": json.RawMessage(`{"type":"boolean"}`),
 			},
 		},
 		CreatedAt:  time.Now(),
@@ -1053,11 +951,7 @@ func BenchmarkPolicyInstance_JSON_Marshal(b *testing.B) {
 	instance := &PolicyInstance{
 		PolicyID:     "benchmark-policy",
 		PolicyTypeID: 1,
-		PolicyData: map[string]interface{}{
-			"field1": "value1",
-			"field2": 42,
-			"field3": true,
-			"nested": map[string]interface{}{
+		PolicyData: json.RawMessage("{}"){
 				"sub_field": "sub_value",
 			},
 		},
@@ -1075,10 +969,7 @@ func BenchmarkLargePolicyData_JSON_Marshal(b *testing.B) {
 	// Create large policy data
 	largeData := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
-			"value":   fmt.Sprintf("value_%d", i),
-			"numeric": i,
-			"array":   []interface{}{i, i + 1, i + 2},
+		largeData[fmt.Sprintf("field_%d", i)] = json.RawMessage("{}"){i, i + 1, i + 2},
 		}
 	}
 

@@ -222,7 +222,7 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 			if len(detection.FunctionalRegressions) > 0 {
 				for _, regression := range detection.FunctionalRegressions {
 
-					ginkgo.By(fmt.Sprintf("Functional regression detected in %s: pass rate %.1f%% → %.1f%%",
+					ginkgo.By(fmt.Sprintf("Functional regression detected in %s: pass rate %.1f%% ??%.1f%%",
 
 						regression.TestCategory, regression.BaselinePassRate, regression.CurrentPassRate))
 
@@ -274,7 +274,7 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 			if len(detection.ProductionRegressions) > 0 {
 				for _, regression := range detection.ProductionRegressions {
 
-					ginkgo.By(fmt.Sprintf("Production readiness regression: %s (%.2f → %.2f)",
+					ginkgo.By(fmt.Sprintf("Production readiness regression: %s (%.2f ??%.2f)",
 
 						regression.Metric, regression.BaselineValue, regression.CurrentValue))
 
@@ -561,21 +561,7 @@ func detectCIEnvironment() bool {
 // GetRegressionMetrics returns current regression metrics for monitoring.
 
 func (rts *RegressionTestSuite) GetRegressionMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"regression_tests_enabled": true,
-
-		"baseline_count": rts.getBaselineCount(),
-
-		"last_regression_check": time.Now().Format(time.RFC3339),
-
-		"regression_detection_accuracy": 95.0,
-
-		"ci_mode_enabled": rts.config.CIMode,
-
-		"alert_system_enabled": rts.config.RegressionConfig.EnableAlerting,
-
-		"trend_analysis_enabled": rts.config.RegressionConfig.EnableTrendAnalysis,
-	}
+	return json.RawMessage("{}")
 }
 
 func (rts *RegressionTestSuite) getBaselineCount() int {

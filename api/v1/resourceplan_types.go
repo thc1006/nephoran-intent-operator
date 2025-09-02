@@ -213,7 +213,7 @@ type OptimizationGoal struct {
 
 	// +optional
 
-	Weight *float64 `json:"weight,omitempty"`
+	Weight string `json:"weight,omitempty"`
 
 	// Target specifies the target value.
 
@@ -345,7 +345,7 @@ type SLARequirements struct {
 
 	// +optional
 
-	AvailabilityTarget *float64 `json:"availabilityTarget,omitempty"`
+	AvailabilityTarget string `json:"availabilityTarget,omitempty"`
 
 	// MaxLatency in milliseconds.
 
@@ -367,7 +367,7 @@ type SLARequirements struct {
 
 	// +optional
 
-	MaxPacketLoss *float64 `json:"maxPacketLoss,omitempty"`
+	MaxPacketLoss string `json:"maxPacketLoss,omitempty"`
 
 	// RecoveryTimeObjective in seconds.
 
@@ -562,7 +562,7 @@ type ResourcePlanStatus struct {
 
 	// +optional
 
-	QualityScore *float64 `json:"qualityScore,omitempty"`
+	QualityScore string `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed.
 
@@ -644,7 +644,7 @@ type PlannedResource struct {
 
 	// +optional
 
-	EstimatedCost *float64 `json:"estimatedCost,omitempty"`
+	EstimatedCost string `json:"estimatedCost,omitempty"`
 }
 
 // ResourceSpec defines resource specifications.
@@ -700,7 +700,7 @@ type ResourceList struct {
 type CostEstimate struct {
 	// TotalCost is the total estimated cost.
 
-	TotalCost float64 `json:"totalCost"`
+	TotalCost string `json:"totalCost"`
 
 	// Currency for the cost.
 
@@ -718,7 +718,7 @@ type CostEstimate struct {
 
 	// +optional
 
-	CostBreakdown map[string]float64 `json:"costBreakdown,omitempty"`
+	CostBreakdown map[string]string `json:"costBreakdown,omitempty"`
 
 	// EstimatedAt timestamp.
 
@@ -728,7 +728,7 @@ type CostEstimate struct {
 
 	// +optional
 
-	Confidence *float64 `json:"confidence,omitempty"`
+	Confidence string `json:"confidence,omitempty"`
 }
 
 // PerformanceEstimate represents performance estimation.
@@ -738,25 +738,25 @@ type PerformanceEstimate struct {
 
 	// +optional
 
-	ExpectedThroughput *float64 `json:"expectedThroughput,omitempty"`
+	ExpectedThroughput string `json:"expectedThroughput,omitempty"`
 
 	// ExpectedLatency in milliseconds.
 
 	// +optional
 
-	ExpectedLatency *float64 `json:"expectedLatency,omitempty"`
+	ExpectedLatency string `json:"expectedLatency,omitempty"`
 
 	// ExpectedAvailability as percentage.
 
 	// +optional
 
-	ExpectedAvailability *float64 `json:"expectedAvailability,omitempty"`
+	ExpectedAvailability string `json:"expectedAvailability,omitempty"`
 
 	// ResourceUtilization estimates.
 
 	// +optional
 
-	ResourceUtilization map[string]float64 `json:"resourceUtilization,omitempty"`
+	ResourceUtilization map[string]string `json:"resourceUtilization,omitempty"`
 
 	// BottleneckAnalysis identifies potential bottlenecks.
 
@@ -796,7 +796,7 @@ type ScalingRecommendation struct {
 
 	// +optional
 
-	Confidence *float64 `json:"confidence,omitempty"`
+	Confidence string `json:"confidence,omitempty"`
 }
 
 // ResourceComplianceStatus represents compliance validation status.
@@ -876,7 +876,7 @@ type OptimizationResult struct {
 
 	// +optional
 
-	ImprovementPercent *float64 `json:"improvementPercent,omitempty"`
+	ImprovementPercent string `json:"improvementPercent,omitempty"`
 
 	// Description of the optimization.
 
@@ -1003,12 +1003,12 @@ func (rp *ResourcePlan) IsPlanningFailed() bool {
 
 // GetTotalEstimatedCost returns the total estimated cost.
 
-func (rp *ResourcePlan) GetTotalEstimatedCost() float64 {
+func (rp *ResourcePlan) GetTotalEstimatedCost() string {
 	if rp.Status.CostEstimate != nil {
 		return rp.Status.CostEstimate.TotalCost
 	}
 
-	return 0.0
+	return "0.0"
 }
 
 // HasCompliantResources returns true if all compliance requirements are met.

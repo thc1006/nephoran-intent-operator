@@ -86,9 +86,7 @@ import (
 					return
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"received": len(body),
-				})
+				json.NewEncoder(w).Encode(json.RawMessage("{}"))
 			})
 
 			// Apply middleware

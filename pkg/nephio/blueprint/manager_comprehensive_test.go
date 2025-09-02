@@ -976,10 +976,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 
 	// Test cache operations
 	testKey := "test-key"
-	testValue := map[string]interface{}{
-		"data":        "test-data",
-		"expire_time": time.Now().Add(time.Hour),
-	}
+	testValue := json.RawMessage("{}")
 
 	// Store in cache
 	manager.cache.Store(testKey, testValue)
@@ -991,10 +988,7 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 
 	// Test cache cleanup
 	expiredKey := "expired-key"
-	expiredValue := map[string]interface{}{
-		"data":        "expired-data",
-		"expire_time": time.Now().Add(-time.Hour), // Expired
-	}
+	expiredValue := json.RawMessage("{}")
 	manager.cache.Store(expiredKey, expiredValue)
 
 	// Run cleanup

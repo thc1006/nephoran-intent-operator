@@ -37,7 +37,7 @@ type PackageRequest struct {
 
 	Intent *intent.NetworkIntent `json:"intent"`
 
-	Files map[string]interface{} `json:"files,omitempty"`
+	Files json.RawMessage `json:"files,omitempty"`
 }
 
 // PorchPackageRevision represents a package revision in Porch.
@@ -141,11 +141,7 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 
 	url := fmt.Sprintf("%s/api/v1/proposals", c.baseURL)
 
-	body := map[string]interface{}{
-		"packageRevision": revision.Name,
-
-		"namespace": revision.Namespace,
-	}
+	body := json.RawMessage("{}")
 
 	data, err := json.Marshal(body)
 	if err != nil {
@@ -248,18 +244,13 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, error) {
 	url := fmt.Sprintf("%s/api/v1/repositories/%s/packages", c.baseURL, req.Repository)
 
-	body := map[string]interface{}{
-		"metadata": map[string]interface{}{
+	body := json.RawMessage("{}"){
 			"name": req.Package,
 
 			"namespace": req.Namespace,
 		},
 
-		"spec": map[string]interface{}{
-			"workspace": req.Workspace,
-
-			"intent": req.Intent,
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	data, err := json.Marshal(body)
@@ -294,8 +285,7 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevision) (*PorchPackageRevision, error) {
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s", c.baseURL, existing.Name)
 
-	body := map[string]interface{}{
-		"spec": map[string]interface{}{
+	body := json.RawMessage("{}"){
 			"workspace": req.Workspace,
 
 			"intent": req.Intent,
@@ -353,11 +343,7 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 	for path, content := range overlays {
 
-		body := map[string]interface{}{
-			"path": path,
-
-			"content": content,
-		}
+		body := json.RawMessage("{}")
 
 		data, err := json.Marshal(body)
 		if err != nil {

@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -17,7 +19,7 @@ type ResourceLifecycleEvent struct {
 	Timestamp  time.Time              `json:"timestamp"`
 	Source     string                 `json:"source,omitempty"`
 	Actor      string                 `json:"actor,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type ResourceEventBus interface {
@@ -115,7 +117,7 @@ type ValidationPolicy struct {
 	Conditions   []PolicyCondition      `json:"conditions"`
 	Actions      []ValidationAction     `json:"actions"`
 	Priority     int                    `json:"priority"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 type TransitionPolicy struct {
@@ -126,7 +128,7 @@ type TransitionPolicy struct {
 	Conditions []PolicyCondition      `json:"conditions"`
 	Actions    []TransitionAction     `json:"actions"`
 	Timeout    time.Duration          `json:"timeout,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type RetentionPolicy struct {
@@ -137,7 +139,7 @@ type RetentionPolicy struct {
 	MaxCount     int                    `json:"maxCount,omitempty"`
 	Conditions   []PolicyCondition      `json:"conditions"`
 	Actions      []RetentionAction      `json:"actions"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 type NotificationPolicy struct {
@@ -148,7 +150,7 @@ type NotificationPolicy struct {
 	Recipients []NotificationRecipient `json:"recipients"`
 	Template   string                  `json:"template,omitempty"`
 	Throttling *ThrottlingConfig       `json:"throttling,omitempty"`
-	Metadata   map[string]interface{}  `json:"metadata,omitempty"`
+	Metadata   json.RawMessage  `json:"metadata,omitempty"`
 }
 
 type AutomationPolicy struct {
@@ -158,7 +160,7 @@ type AutomationPolicy struct {
 	Conditions []PolicyCondition      `json:"conditions"`
 	Actions    []AutomationAction     `json:"actions"`
 	Schedule   string                 `json:"schedule,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 type PolicyCondition struct {
@@ -170,18 +172,18 @@ type PolicyCondition struct {
 
 type ValidationAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 type TransitionAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 	Delay      time.Duration          `json:"delay,omitempty"`
 }
 
 type RetentionAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 type NotificationRecipient struct {
@@ -205,6 +207,6 @@ type PolicyTrigger struct {
 
 type AutomationAction struct {
 	Type       string                 `json:"type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 	Timeout    time.Duration          `json:"timeout,omitempty"`
 }

@@ -31,7 +31,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"fmt"
 	"sort"
@@ -228,7 +230,7 @@ type ValidationSpec struct {
 
 	Requester string `json:"requester,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ValidationResult contains comprehensive validation results.
@@ -270,7 +272,7 @@ type ValidationResult struct {
 
 	CacheHits int `json:"cacheHits"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PackageValidation contains validation results for a single package.
@@ -459,7 +461,7 @@ type DependencyConflict struct {
 
 	DetectionMethod string `json:"detectionMethod"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // Validation error and warning types.
@@ -479,7 +481,7 @@ type ValidationError struct {
 
 	Field string `json:"field,omitempty"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	Remediation string `json:"remediation,omitempty"`
 
@@ -501,7 +503,7 @@ type ValidationWarning struct {
 
 	Impact WarningImpact `json:"impact"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // Enum definitions.
@@ -2465,7 +2467,7 @@ func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context
 
 					Message: conflict.Description,
 
-					Context: map[string]interface{}{"conflictId": conflict.ID},
+					Context: json.RawMessage("{}"),
 				})
 
 			}

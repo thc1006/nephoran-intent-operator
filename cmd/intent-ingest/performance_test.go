@@ -24,10 +24,7 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := map[string]interface{}{
-		"apiVersion": "intent.nephoran.com/v1alpha1",
-		"kind":       "NetworkIntent",
-		"spec": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"intent": "Deploy nginx with 3 replicas",
 		},
 	}
@@ -92,17 +89,11 @@ func BenchmarkHTTPHandler_MetricsEndpoint(b *testing.B) {
 
 // BenchmarkJSONMarshal benchmarks JSON marshaling performance
 func BenchmarkJSONMarshal(b *testing.B) {
-	intent := map[string]interface{}{
-		"apiVersion": "intent.nephoran.com/v1alpha1",
-		"kind":       "NetworkIntent",
-		"metadata": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"name":      "test-intent",
 			"namespace": "default",
 		},
-		"spec": map[string]interface{}{
-			"intent":   "Deploy nginx with 3 replicas",
-			"replicas": 3,
-			"resources": map[string]interface{}{
+		"spec": json.RawMessage("{}"){
 				"cpu":    "100m",
 				"memory": "128Mi",
 			},
@@ -155,8 +146,7 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := map[string]interface{}{
-		"spec": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"intent": "Benchmark concurrent processing",
 		},
 	}
@@ -207,10 +197,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	defer server.Close()
 
 	// Create large intent payload to test memory usage
-	largeIntent := map[string]interface{}{
-		"apiVersion": "intent.nephoran.com/v1alpha1",
-		"kind":       "NetworkIntent",
-		"spec": map[string]interface{}{
+	largeIntent := json.RawMessage("{}"){
 			"intent":   "Large intent for memory testing",
 			"metadata": make(map[string]interface{}),
 		},
@@ -246,8 +233,7 @@ func BenchmarkResponseTime(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := map[string]interface{}{
-		"spec": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"intent": "Response time benchmark",
 		},
 	}
@@ -295,8 +281,7 @@ func BenchmarkThroughput(b *testing.B) {
 	server := createBenchmarkServer(b, handoffDir)
 	defer server.Close()
 
-	intent := map[string]interface{}{
-		"spec": map[string]interface{}{
+	intent := json.RawMessage("{}"){
 			"intent": "Throughput benchmark",
 		},
 	}
@@ -405,12 +390,7 @@ intent_ingest_request_duration_seconds_count %d
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		response := map[string]interface{}{
-			"status":    "success",
-			"message":   "Intent ingested successfully",
-			"requestId": fmt.Sprintf("req-%d", requestCounter),
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
+		response := json.RawMessage("{}")
 
 		json.NewEncoder(w).Encode(response)
 	})
@@ -474,8 +454,7 @@ func FuzzHTTPIngest(f *testing.F) {
 	defer server.Close()
 
 	t.Run("response time is under 100ms", func(t *testing.T) {
-		intent := map[string]interface{}{
-			"spec": map[string]interface{}{
+		intent := json.RawMessage("{}"){
 				"intent": "Performance test intent",
 			},
 		}
@@ -499,8 +478,7 @@ func FuzzHTTPIngest(f *testing.F) {
 		const concurrency = 50
 		const requestsPerWorker = 10
 
-		intent := map[string]interface{}{
-			"spec": map[string]interface{}{
+		intent := json.RawMessage("{}"){
 				"intent": "Concurrency test intent",
 			},
 		}

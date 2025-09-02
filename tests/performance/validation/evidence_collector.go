@@ -74,7 +74,7 @@ type TestMethodology struct {
 
 	SampleSize int `json:"sample_size"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 
 	Controls []string `json:"controls"`
 
@@ -114,7 +114,7 @@ type MeasurementData struct {
 
 	CollectionPeriod *TimePeriod `json:"collection_period"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // DataPoint represents a single measurement.
@@ -130,7 +130,7 @@ type DataPoint struct {
 
 	Quality string `json:"quality"` // "good", "suspect", "invalid"
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 }
 
 // TimePeriod represents a time period.
@@ -752,7 +752,7 @@ type BaselineData struct {
 
 	QualityScore float64 `json:"quality_score"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // EnvironmentInfo contains environment information.
@@ -942,7 +942,7 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 
 			Labels: map[string]string{},
 
-			Context: map[string]interface{}{},
+			Context: json.RawMessage("{}"),
 		}
 	}
 
@@ -965,11 +965,7 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 			Duration: dataPoints[len(dataPoints)-1].Timestamp.Sub(dataPoints[0].Timestamp),
 		},
 
-		Metadata: map[string]interface{}{
-			"collection_method": "automated",
-
-			"precision": ec.config.MetricsPrecision,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 

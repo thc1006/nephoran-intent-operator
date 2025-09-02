@@ -1,7 +1,9 @@
 package automation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -30,7 +32,7 @@ type Alert struct {
 
 	Tags map[string]string `json:"tags"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Resolved bool `json:"resolved"`
 

@@ -1,7 +1,9 @@
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"errors"
 	"fmt"
 	"time"
@@ -23,7 +25,7 @@ type RequestOptions struct {
 	RetryPolicy *RetryPolicy             `json:"retry_policy,omitempty"`
 	RateLimiter GenericRateLimiterConfig `json:"rate_limiter,omitempty"`
 	Headers     map[string]string        `json:"headers,omitempty"`
-	Metadata    map[string]interface{}   `json:"metadata,omitempty"`
+	Metadata    json.RawMessage   `json:"metadata,omitempty"`
 }
 
 // GenericRateLimiterConfig configures rate limiting for generic use cases
@@ -67,7 +69,7 @@ type HealthStatus struct {
 	Latency     time.Duration          `json:"latency"`
 	LastChecked time.Time              `json:"last_checked"`
 	Errors      []string               `json:"errors,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	Details     json.RawMessage `json:"details,omitempty"`
 }
 
 // ClientMetrics provides client performance metrics

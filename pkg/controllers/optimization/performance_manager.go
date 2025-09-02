@@ -31,7 +31,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -390,15 +392,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "scale_up",
 
-			Parameters: map[string]interface{}{
-				"metric": "cpu",
-
-				"current": analysis.CPUUtilization,
-
-				"threshold": pm.config.CPUScaleUpThreshold,
-
-				"suggestion": "increase worker count by 25%",
-			},
+			Parameters: json.RawMessage("{}"),
 		})
 	}
 
@@ -414,13 +408,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "optimize_cache",
 
-			Parameters: map[string]interface{}{
-				"metric": "memory",
-
-				"current": analysis.MemoryUtilization,
-
-				"suggestion": "reduce cache size or implement compression",
-			},
+			Parameters: json.RawMessage("{}"),
 		})
 	}
 
@@ -436,15 +424,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "scale_up",
 
-			Parameters: map[string]interface{}{
-				"metric": "queue_depth",
-
-				"current": analysis.MaxQueueDepth,
-
-				"threshold": pm.config.QueueDepthThreshold,
-
-				"suggestion": "increase worker pools for bottleneck phases",
-			},
+			Parameters: json.RawMessage("{}"),
 		})
 	}
 
@@ -460,15 +440,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "optimize_performance",
 
-			Parameters: map[string]interface{}{
-				"metric": "response_time",
-
-				"current": analysis.AverageResponseTime.String(),
-
-				"threshold": pm.config.ResponseTimeThreshold.String(),
-
-				"suggestion": "enable advanced caching and connection pooling",
-			},
+			Parameters: json.RawMessage("{}"),
 		})
 	}
 
@@ -485,13 +457,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 
 			Action: "optimize_cache",
 
-			Parameters: map[string]interface{}{
-				"metric": "cache_hit_rate",
-
-				"current": analysis.CacheHitRate,
-
-				"suggestion": "increase cache size or adjust TTL settings",
-			},
+			Parameters: json.RawMessage("{}"),
 		})
 	}
 
@@ -973,7 +939,7 @@ type Recommendation struct {
 
 	Action string `json:"action"` // scale_up, scale_down, optimize_cache, etc.
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Confidence float64 `json:"confidence"` // 0.0 to 1.0
 }

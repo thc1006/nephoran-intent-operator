@@ -455,18 +455,12 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      "rendered-deployment",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage("{}"),
 		},
 		{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: map[string]interface{}{
-				"name":      "rendered-service",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage("{}"),
 		},
 	}
 

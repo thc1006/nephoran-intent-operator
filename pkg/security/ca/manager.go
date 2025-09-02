@@ -1,7 +1,9 @@
 package ca
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -444,7 +446,7 @@ type BackendInfo struct {
 
 	Features []string `json:"features"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 }
 
 // NewCAManager creates a new CA manager.

@@ -244,7 +244,7 @@ type ExternalIssueRequest struct {
 
 	ExtKeyUsages []string `json:"ext_key_usages,omitempty"`
 
-	CustomFields map[string]interface{} `json:"custom_fields,omitempty"`
+	CustomFields json.RawMessage `json:"custom_fields,omitempty"`
 
 	RequestID string `json:"request_id,omitempty"`
 
@@ -322,11 +322,11 @@ type ExternalHealthResponse struct {
 
 	Timestamp string `json:"timestamp"`
 
-	Components map[string]interface{} `json:"components,omitempty"`
+	Components json.RawMessage `json:"components,omitempty"`
 
 	Features []string `json:"features,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // NewExternalBackend creates a new external PKI backend.

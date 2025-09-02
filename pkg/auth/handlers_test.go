@@ -72,10 +72,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Valid login request",
 			method: "POST",
 			path:   "/auth/login",
-			body: map[string]interface{}{
-				"provider":     "test",
-				"redirect_uri": "http://localhost:8080/callback",
-			},
+			body: json.RawMessage("{}"),
 			expectStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -89,11 +86,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Login with PKCE",
 			method: "POST",
 			path:   "/auth/login",
-			body: map[string]interface{}{
-				"provider":     "test",
-				"redirect_uri": "http://localhost:8080/callback",
-				"use_pkce":     true,
-			},
+			body: json.RawMessage("{}"),
 			expectStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -108,9 +101,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Missing provider",
 			method: "POST",
 			path:   "/auth/login",
-			body: map[string]interface{}{
-				"redirect_uri": "http://localhost:8080/callback",
-			},
+			body: json.RawMessage("{}"),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -123,10 +114,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Invalid provider",
 			method: "POST",
 			path:   "/auth/login",
-			body: map[string]interface{}{
-				"provider":     "invalid",
-				"redirect_uri": "http://localhost:8080/callback",
-			},
+			body: json.RawMessage("{}"),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -139,10 +127,7 @@ func setupTestManagers(tc *authtestutil.TestContext) (*authtestutil.JWTManagerMo
 			name:   "Invalid redirect URI",
 			method: "POST",
 			path:   "/auth/login",
-			body: map[string]interface{}{
-				"provider":     "test",
-				"redirect_uri": "javascript:alert('xss')",
-			},
+			body: json.RawMessage("{}"),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string

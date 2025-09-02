@@ -3,7 +3,9 @@
 package providers
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
@@ -52,10 +54,10 @@ type Resource struct {
 	Status ResourceStatus `json:"status"`
 
 	// Resource specification (varies by type)
-	Spec map[string]interface{} `json:"spec"`
+	Spec json.RawMessage `json:"spec"`
 
 	// Current state/configuration
-	State map[string]interface{} `json:"state,omitempty"`
+	State json.RawMessage `json:"state,omitempty"`
 
 	// Metadata and labels
 	Labels map[string]string `json:"labels,omitempty"`
@@ -69,14 +71,14 @@ type Resource struct {
 type ResourceRequest struct {
 	Name   string                 `json:"name"`
 	Type   ResourceType           `json:"type"`
-	Spec   map[string]interface{} `json:"spec"`
+	Spec   json.RawMessage `json:"spec"`
 	Labels map[string]string      `json:"labels,omitempty"`
 }
 
 // ProviderConfig represents configuration for a provider
 type ProviderConfig struct {
 	Type        string                 `json:"type"`
-	Config      map[string]interface{} `json:"config"`
+	Config      json.RawMessage `json:"config"`
 	Credentials map[string]string      `json:"credentials,omitempty"`
 }
 
@@ -169,7 +171,7 @@ type CreateResourcePoolRequest struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // UpdateResourcePoolRequest represents a request to update a resource pool.
@@ -185,7 +187,7 @@ type UpdateResourcePoolRequest struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // ResourcePoolFilter represents filters for resource pool queries.

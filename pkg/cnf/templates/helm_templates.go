@@ -200,18 +200,13 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	// Resource requirements.
 
-	values["resources"] = map[string]interface{}{
-		"requests": map[string]interface{}{
+	values["resources"] = json.RawMessage("{}"){
 			"cpu": cnf.Spec.Resources.CPU.String(),
 
 			"memory": cnf.Spec.Resources.Memory.String(),
 		},
 
-		"limits": map[string]interface{}{
-			"cpu": cnf.Spec.Resources.CPU.String(),
-
-			"memory": cnf.Spec.Resources.Memory.String(),
-		},
+		"limits": json.RawMessage("{}"),
 	}
 
 	// Override limits if specified.
@@ -235,43 +230,23 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 	// Storage configuration.
 
 	if cnf.Spec.Resources.Storage != nil {
-		values["persistence"] = map[string]interface{}{
-			"enabled": true,
-
-			"size": cnf.Spec.Resources.Storage.String(),
-		}
+		values["persistence"] = json.RawMessage("{}")
 	}
 
 	// DPDK configuration.
 
 	if cnf.Spec.Resources.DPDK != nil && cnf.Spec.Resources.DPDK.Enabled {
-		values["dpdk"] = map[string]interface{}{
-			"enabled": true,
-
-			"cores": cnf.Spec.Resources.DPDK.Cores,
-
-			"memory": cnf.Spec.Resources.DPDK.Memory,
-
-			"driver": cnf.Spec.Resources.DPDK.Driver,
-		}
+		values["dpdk"] = json.RawMessage("{}")
 	}
 
 	// Service mesh configuration.
 
 	if cnf.Spec.ServiceMesh != nil && cnf.Spec.ServiceMesh.Enabled {
 
-		values["serviceMesh"] = map[string]interface{}{
-			"enabled": true,
-
-			"type": cnf.Spec.ServiceMesh.Type,
-		}
+		values["serviceMesh"] = json.RawMessage("{}")
 
 		if cnf.Spec.ServiceMesh.MTLS != nil {
-			values["serviceMesh"].(map[string]interface{})["mtls"] = map[string]interface{}{
-				"enabled": cnf.Spec.ServiceMesh.MTLS.Enabled,
-
-				"mode": cnf.Spec.ServiceMesh.MTLS.Mode,
-			}
+			values["serviceMesh"].(map[string]interface{})["mtls"] = json.RawMessage("{}")
 		}
 
 	}
@@ -280,20 +255,10 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	if cnf.Spec.Monitoring != nil && cnf.Spec.Monitoring.Enabled {
 
-		values["monitoring"] = map[string]interface{}{
-			"enabled": true,
-		}
+		values["monitoring"] = json.RawMessage("{}")
 
 		if cnf.Spec.Monitoring.Prometheus != nil {
-			values["monitoring"].(map[string]interface{})["prometheus"] = map[string]interface{}{
-				"enabled": cnf.Spec.Monitoring.Prometheus.Enabled,
-
-				"port": cnf.Spec.Monitoring.Prometheus.Port,
-
-				"path": cnf.Spec.Monitoring.Prometheus.Path,
-
-				"interval": cnf.Spec.Monitoring.Prometheus.Interval,
-			}
+			values["monitoring"].(map[string]interface{})["prometheus"] = json.RawMessage("{}")
 		}
 
 	}
@@ -302,13 +267,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	if cnf.Spec.AutoScaling != nil && cnf.Spec.AutoScaling.Enabled {
 
-		values["autoscaling"] = map[string]interface{}{
-			"enabled": true,
-
-			"minReplicas": cnf.Spec.AutoScaling.MinReplicas,
-
-			"maxReplicas": cnf.Spec.AutoScaling.MaxReplicas,
-		}
+		values["autoscaling"] = json.RawMessage("{}")
 
 		if cnf.Spec.AutoScaling.CPUUtilization != nil {
 			values["autoscaling"].(map[string]interface{})["targetCPUUtilizationPercentage"] = *cnf.Spec.AutoScaling.CPUUtilization
@@ -323,9 +282,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 	// Security configuration.
 
 	if len(cnf.Spec.SecurityPolicies) > 0 {
-		values["security"] = map[string]interface{}{
-			"policies": cnf.Spec.SecurityPolicies,
-		}
+		values["security"] = json.RawMessage("{}")
 	}
 
 	return values, nil
@@ -345,8 +302,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 		Repository: "https://charts.5g-core.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "5gc/amf",
 
 				"tag": "latest",
@@ -354,18 +310,14 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"sbi": 8080,
 
 					"sctp": 38412,
 				},
 			},
 
-			"config": map[string]interface{}{
-				"plmnId": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"mcc": "001",
 
 					"mnc": "01",
@@ -373,8 +325,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"amfId": "0x000001",
 
-				"guami": map[string]interface{}{
-					"plmnId": map[string]interface{}{
+				"guami": json.RawMessage("{}"){
 						"mcc": "001",
 
 						"mnc": "01",
@@ -387,8 +338,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 					"amfPointer": "0x01",
 				},
 
-				"tai": map[string]interface{}{
-					"plmnId": map[string]interface{}{
+				"tai": json.RawMessage("{}"){
 						"mcc": "001",
 
 						"mnc": "01",
@@ -398,8 +348,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				},
 			},
 
-			"security": map[string]interface{}{
-				"tls": map[string]interface{}{
+			"security": json.RawMessage("{}"){
 					"enabled": true,
 				},
 			},
@@ -465,8 +414,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 		Repository: "https://charts.5g-core.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "5gc/smf",
 
 				"tag": "latest",
@@ -474,18 +422,14 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"sbi": 8080,
 
 					"pfcp": 8805,
 				},
 			},
 
-			"config": map[string]interface{}{
-				"plmnId": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"mcc": "001",
 
 					"mnc": "01",
@@ -495,11 +439,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 				"dnn": "internet",
 
-				"pfcp": map[string]interface{}{
-					"addr": "0.0.0.0",
-
-					"port": 8805,
-				},
+				"pfcp": json.RawMessage("{}"),
 			},
 		},
 
@@ -551,8 +491,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 		Repository: "https://charts.5g-core.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "5gc/upf",
 
 				"tag": "latest",
@@ -560,54 +499,31 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"pfcp": 8805,
 
 					"gtpu": 2152,
 				},
 			},
 
-			"config": map[string]interface{}{
-				"dnn": "internet",
-
-				"pfcp": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"addr": "0.0.0.0",
 
 					"port": 8805,
 				},
 
-				"gtpu": map[string]interface{}{
-					"addr": "0.0.0.0",
-
-					"port": 2152,
-				},
+				"gtpu": json.RawMessage("{}"),
 			},
 
-			"dpdk": map[string]interface{}{
-				"enabled": true,
+			"dpdk": json.RawMessage("{}"),
 
-				"cores": 4,
-
-				"memory": 2048,
-
-				"driver": "vfio-pci",
-			},
-
-			"resources": map[string]interface{}{
-				"requests": map[string]interface{}{
+			"resources": json.RawMessage("{}"){
 					"memory": "4Gi",
 
 					"cpu": "2",
 				},
 
-				"limits": map[string]interface{}{
-					"memory": "8Gi",
-
-					"cpu": "4",
-				},
+				"limits": json.RawMessage("{}"),
 			},
 		},
 
@@ -671,8 +587,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 
 		Repository: "https://charts.5g-core.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "5gc/nrf",
 
 				"tag": "latest",
@@ -680,18 +595,12 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"sbi": 8080,
 				},
 			},
 
-			"config": map[string]interface{}{
-				"nfInstanceId": "12345678-1234-1234-1234-123456789013",
-
-				"database": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"type": "mongodb",
 
 					"url": "mongodb://nrf-mongodb:27017",
@@ -739,8 +648,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 		Repository: "https://charts.o-ran.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "oran/near-rt-ric",
 
 				"tag": "latest",
@@ -748,36 +656,22 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"a1": 10000,
 
 					"e2": 36421,
 				},
 			},
 
-			"config": map[string]interface{}{
-				"ricId": "12345",
-
-				"plmnId": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"mcc": "001",
 
 					"mnc": "01",
 				},
 
-				"a1": map[string]interface{}{
-					"addr": "0.0.0.0",
+				"a1": json.RawMessage("{}"),
 
-					"port": 10000,
-				},
-
-				"e2": map[string]interface{}{
-					"addr": "0.0.0.0",
-
-					"port": 36421,
-				},
+				"e2": json.RawMessage("{}"),
 			},
 		},
 
@@ -829,8 +723,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 		Repository: "https://charts.o-ran.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "oran/o-du",
 
 				"tag": "latest",
@@ -838,10 +731,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"f1c": 38472,
 
 					"f1u": 2152,
@@ -850,22 +740,13 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				},
 			},
 
-			"config": map[string]interface{}{
-				"duId": "1",
-
-				"cellId": "1",
-
-				"f1": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"addr": "0.0.0.0",
 
 					"port": 38472,
 				},
 
-				"e2": map[string]interface{}{
-					"addr": "0.0.0.0",
-
-					"port": 36421,
-				},
+				"e2": json.RawMessage("{}"),
 			},
 		},
 
@@ -929,8 +810,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 
 		Repository: "https://charts.o-ran.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "oran/o-cu-cp",
 
 				"tag": "latest",
@@ -938,10 +818,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"service": map[string]interface{}{
-				"type": "ClusterIP",
-
-				"ports": map[string]interface{}{
+			"service": json.RawMessage("{}"){
 					"f1c": 38472,
 
 					"ng": 38412,
@@ -952,22 +829,13 @@ func (m *HelmTemplateManager) initORANTemplates() {
 				},
 			},
 
-			"config": map[string]interface{}{
-				"cuId": "1",
-
-				"cellId": "1",
-
-				"f1": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"addr": "0.0.0.0",
 
 					"port": 38472,
 				},
 
-				"ng": map[string]interface{}{
-					"addr": "0.0.0.0",
-
-					"port": 38412,
-				},
+				"ng": json.RawMessage("{}"),
 			},
 		},
 
@@ -1013,8 +881,7 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 
 		Repository: "https://charts.edge.io",
 
-		Values: map[string]interface{}{
-			"image": map[string]interface{}{
+		Values: json.RawMessage("{}"){
 				"repository": "edge/ue-simulator",
 
 				"tag": "latest",
@@ -1022,24 +889,15 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 				"pullPolicy": "IfNotPresent",
 			},
 
-			"config": map[string]interface{}{
-				"ues": map[string]interface{}{
+			"config": json.RawMessage("{}"){
 					"count": 100,
 
 					"imsiStart": "001010000000001",
 				},
 
-				"amf": map[string]interface{}{
-					"addr": "amf-service",
+				"amf": json.RawMessage("{}"),
 
-					"port": 38412,
-				},
-
-				"gnb": map[string]interface{}{
-					"addr": "gnb-service",
-
-					"port": 38412,
-				},
+				"gnb": json.RawMessage("{}"),
 			},
 		},
 	}
@@ -1640,23 +1498,7 @@ func (m *HelmTemplateManager) GetFunctionInfo(function nephoranv1.CNFFunction) (
 		return nil, err
 	}
 
-	info := map[string]interface{}{
-		"function": template.Function,
-
-		"chartName": template.ChartName,
-
-		"chartVersion": template.ChartVersion,
-
-		"repository": template.Repository,
-
-		"interfaces": len(template.Interfaces),
-
-		"configMaps": len(template.ConfigMaps),
-
-		"secrets": len(template.Secrets),
-
-		"services": len(template.Services),
-	}
+	info := json.RawMessage("{}")
 
 	return info, nil
 }

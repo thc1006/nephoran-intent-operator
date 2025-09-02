@@ -194,12 +194,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Type:        "scan_results",
 					Source:      "security-scanner",
 					Description: "Comprehensive security scan results",
-					Data: map[string]interface{}{
-						"scan_id":             securityScanner.GenerateReport(),
-						"vulnerability_count": 5,
-						"risk_score":          75.5,
-						"scan_duration":       "5m30s",
-					},
+					Data: json.RawMessage("{}"),
 				}
 
 				err = incidentResp.AddEvidence(incident.ID, evidence)
@@ -252,12 +247,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Type:        "remediation_guidance",
 					Source:      "ai-assistant",
 					Description: "AI-generated remediation recommendations",
-					Data: map[string]interface{}{
-						"query":      ragRequest.Query,
-						"response":   ragResponse.Answer,
-						"confidence": ragResponse.Confidence,
-						"sources":    len(ragResponse.SourceDocuments),
-					},
+					Data: json.RawMessage("{}"),
 				}
 
 				err = incidentResp.AddEvidence(incident.ID, evidence)

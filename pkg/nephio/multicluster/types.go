@@ -1,6 +1,7 @@
 package multicluster
 
 import (
+	"encoding/json"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,7 +115,7 @@ type RecommendationAction struct {
 
 	Command string
 
-	Parameters map[string]interface{}
+	Parameters json.RawMessage
 
 	Validation string
 }
@@ -266,7 +267,7 @@ type Task struct {
 
 	Image string `json:"image,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // UpstreamLock contains information about the upstream source.

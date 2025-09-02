@@ -29,7 +29,7 @@ type PackageSpec struct {
 
 	Workspace string `json:"workspace"`
 
-	Resources map[string]interface{} `json:"resources,omitempty"`
+	Resources json.RawMessage `json:"resources,omitempty"`
 }
 
 // PackageStatus represents the status of a package.

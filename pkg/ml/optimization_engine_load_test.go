@@ -117,11 +117,7 @@ func (lt *LoadTester) executeRequest(ctx context.Context) {
 		ID:          fmt.Sprintf("load-test-%d", rand.Int63()),
 		Description: "Load test intent",
 		Priority:    randomPriority(),
-		Parameters: map[string]interface{}{
-			"bandwidth": fmt.Sprintf("%dGbps", rand.Intn(10)+1),
-			"latency":   fmt.Sprintf("%dms", rand.Intn(50)+1),
-			"qos":       randomQoS(),
-		},
+		Parameters: json.RawMessage("{}"),
 		Timestamp: time.Now(),
 	}
 

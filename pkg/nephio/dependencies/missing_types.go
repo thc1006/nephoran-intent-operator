@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -179,7 +181,7 @@ type UsageDataPoint struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ConstraintSolverConfig provides configuration for the constraint solver.

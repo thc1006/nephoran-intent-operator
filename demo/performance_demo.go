@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Println("🚀 Performance Optimization Demo")
+	fmt.Println("?? Performance Optimization Demo")
 	fmt.Println("====================================")
 
 	// Initialize performance integrator with default configuration
@@ -25,30 +25,27 @@ func main() {
 		log.Fatal("Failed to create performance integrator")
 	}
 
-	fmt.Println("✅ Performance integrator initialized")
+	fmt.Println("??Performance integrator initialized")
 
 	// Demonstrate profiler capabilities
 	if profiler := integrator.GetProfiler(); profiler != nil {
-		fmt.Println("\n📊 Performance Metrics:")
+		fmt.Println("\n?? Performance Metrics:")
 		metrics := profiler.GetMetrics()
-		fmt.Printf("  • CPU Usage: %.2f%%\n", metrics.CPUUsagePercent)
-		fmt.Printf("  • Memory Usage: %.2f MB\n", metrics.MemoryUsageMB)
-		fmt.Printf("  • Heap Size: %.2f MB\n", metrics.HeapSizeMB)
-		fmt.Printf("  • Goroutine Count: %d\n", metrics.GoroutineCount)
-		fmt.Printf("  • GC Count: %d\n", metrics.GCCount)
+		fmt.Printf("  ??CPU Usage: %.2f%%\n", metrics.CPUUsagePercent)
+		fmt.Printf("  ??Memory Usage: %.2f MB\n", metrics.MemoryUsageMB)
+		fmt.Printf("  ??Heap Size: %.2f MB\n", metrics.HeapSizeMB)
+		fmt.Printf("  ??Goroutine Count: %d\n", metrics.GoroutineCount)
+		fmt.Printf("  ??GC Count: %d\n", metrics.GCCount)
 	}
 
 	// Demonstrate cache capabilities
 	if cacheManager := integrator.GetCacheManager(); cacheManager != nil {
-		fmt.Println("\n🗂️  Cache Performance Test:")
+		fmt.Println("\n??�? Cache Performance Test:")
 		ctx := context.Background()
 
 		// Test cache operations
 		testKey := "performance_test_key"
-		testValue := map[string]interface{}{
-			"timestamp": time.Now(),
-			"data":      "Performance optimization test data",
-			"metrics":   []int{1, 2, 3, 4, 5},
+		testValue := json.RawMessage("{}"),
 		}
 
 		// Set value in cache
@@ -56,9 +53,9 @@ func main() {
 		err := cacheManager.Set(ctx, testKey, testValue)
 		setDuration := time.Since(start)
 		if err != nil {
-			fmt.Printf("  ❌ Cache SET failed: %v\n", err)
+			fmt.Printf("  ??Cache SET failed: %v\n", err)
 		} else {
-			fmt.Printf("  ✅ Cache SET completed in %v\n", setDuration)
+			fmt.Printf("  ??Cache SET completed in %v\n", setDuration)
 		}
 
 		// Get value from cache
@@ -66,25 +63,25 @@ func main() {
 		cachedValue, err := cacheManager.Get(ctx, testKey)
 		getDuration := time.Since(start)
 		if err != nil {
-			fmt.Printf("  ❌ Cache GET failed: %v\n", err)
+			fmt.Printf("  ??Cache GET failed: %v\n", err)
 		} else {
-			fmt.Printf("  ✅ Cache GET completed in %v\n", getDuration)
+			fmt.Printf("  ??Cache GET completed in %v\n", getDuration)
 			if cachedValue != nil {
-				fmt.Printf("  📦 Cache HIT - data retrieved successfully\n")
+				fmt.Printf("  ?�� Cache HIT - data retrieved successfully\n")
 			}
 		}
 
 		// Get cache statistics
 		stats := cacheManager.GetStats()
-		fmt.Printf("  • Hit Rate: %.2f%%\n", stats.HitRate)
-		fmt.Printf("  • Miss Rate: %.2f%%\n", stats.MissRate)
+		fmt.Printf("  ??Hit Rate: %.2f%%\n", stats.HitRate)
+		fmt.Printf("  ??Miss Rate: %.2f%%\n", stats.MissRate)
 		// Note: Basic cache stats don't include detailed memory/operation counters
-		fmt.Printf("  • Cache operational\n")
+		fmt.Printf("  ??Cache operational\n")
 	}
 
 	// Demonstrate async processing capabilities
 	if asyncProcessor := integrator.GetAsyncProcessor(); asyncProcessor != nil {
-		fmt.Println("\n⚡ Async Processing Test:")
+		fmt.Println("\n??Async Processing Test:")
 
 		// Submit test tasks
 		for i := 0; i < 5; i++ {
@@ -97,9 +94,9 @@ func main() {
 
 			err := asyncProcessor.SubmitTask(task)
 			if err != nil {
-				fmt.Printf("  ❌ Failed to submit task %d: %v\n", i+1, err)
+				fmt.Printf("  ??Failed to submit task %d: %v\n", i+1, err)
 			} else {
-				fmt.Printf("  ✅ Task %d submitted successfully\n", i+1)
+				fmt.Printf("  ??Task %d submitted successfully\n", i+1)
 			}
 		}
 
@@ -108,69 +105,69 @@ func main() {
 
 		// Get async metrics
 		asyncMetrics := asyncProcessor.GetMetrics()
-		fmt.Printf("  • Queue Depth: %d\n", asyncMetrics.QueueDepth)
-		fmt.Printf("  • Throughput: %.2f tasks/sec\n", asyncMetrics.Throughput)
+		fmt.Printf("  ??Queue Depth: %d\n", asyncMetrics.QueueDepth)
+		fmt.Printf("  ??Throughput: %.2f tasks/sec\n", asyncMetrics.Throughput)
 		// Note: Basic async metrics don't include detailed counters
 	}
 
 	// Generate comprehensive performance report
-	fmt.Println("\n📈 Performance Report:")
+	fmt.Println("\n?? Performance Report:")
 	report := integrator.GetPerformanceReport()
-	fmt.Printf("  • Overall Score: %.1f/100\n", report.OverallScore())
-	fmt.Printf("  • Grade: %s\n", report.Grade())
+	fmt.Printf("  ??Overall Score: %.1f/100\n", report.OverallScore())
+	fmt.Printf("  ??Grade: %s\n", report.Grade())
 	components := report.Components()
-	fmt.Printf("  • Components Analyzed: %d\n", len(components))
-	fmt.Println("\n📊 Component Status:")
+	fmt.Printf("  ??Components Analyzed: %d\n", len(components))
+	fmt.Println("\n?? Component Status:")
 	for name, status := range components {
-		fmt.Printf("  • %s: %v\n", name, status)
+		fmt.Printf("  ??%s: %v\n", name, status)
 	}
-	fmt.Println("\n💡 Basic performance optimizations applied")
+	fmt.Println("\n?�� Basic performance optimizations applied")
 
 	// Trigger performance optimization
-	fmt.Println("\n🔧 Performance Optimization:")
+	fmt.Println("\n?�� Performance Optimization:")
 	start := time.Now()
 	err := integrator.OptimizePerformance()
 	optimizationDuration := time.Since(start)
 	if err != nil {
-		fmt.Printf("  ❌ Optimization failed: %v\n", err)
+		fmt.Printf("  ??Optimization failed: %v\n", err)
 	} else {
-		fmt.Printf("  ✅ Optimization completed in %v\n", optimizationDuration)
+		fmt.Printf("  ??Optimization completed in %v\n", optimizationDuration)
 	}
 
 	// Show final metrics
 	if profiler := integrator.GetProfiler(); profiler != nil {
-		fmt.Println("\n📊 Post-Optimization Metrics:")
+		fmt.Println("\n?? Post-Optimization Metrics:")
 		finalMetrics := profiler.GetMetrics()
-		fmt.Printf("  • CPU Usage: %.2f%%\n", finalMetrics.CPUUsagePercent)
-		fmt.Printf("  • Memory Usage: %.2f MB\n", finalMetrics.MemoryUsageMB)
-		fmt.Printf("  • Heap Size: %.2f MB\n", finalMetrics.HeapSizeMB)
-		fmt.Printf("  • Goroutine Count: %d\n", finalMetrics.GoroutineCount)
+		fmt.Printf("  ??CPU Usage: %.2f%%\n", finalMetrics.CPUUsagePercent)
+		fmt.Printf("  ??Memory Usage: %.2f MB\n", finalMetrics.MemoryUsageMB)
+		fmt.Printf("  ??Heap Size: %.2f MB\n", finalMetrics.HeapSizeMB)
+		fmt.Printf("  ??Goroutine Count: %d\n", finalMetrics.GoroutineCount)
 	}
 
 	// Performance monitoring endpoints
 	if monitor := integrator.GetMonitor(); monitor != nil {
-		fmt.Println("\n🖥️  Monitoring Endpoints Available:")
-		fmt.Println("  • Dashboard: http://localhost:8090/dashboard")
-		fmt.Println("  • Metrics: http://localhost:8090/metrics")
-		fmt.Println("  • Health: http://localhost:8090/health")
-		fmt.Println("  • Profiling: http://localhost:8090/debug/pprof/")
-		fmt.Println("  • Real-time Stream: http://localhost:8092/stream")
-		fmt.Println("  • Benchmarks: http://localhost:8090/benchmark")
+		fmt.Println("\n?���? Monitoring Endpoints Available:")
+		fmt.Println("  ??Dashboard: http://localhost:8090/dashboard")
+		fmt.Println("  ??Metrics: http://localhost:8090/metrics")
+		fmt.Println("  ??Health: http://localhost:8090/health")
+		fmt.Println("  ??Profiling: http://localhost:8090/debug/pprof/")
+		fmt.Println("  ??Real-time Stream: http://localhost:8092/stream")
+		fmt.Println("  ??Benchmarks: http://localhost:8090/benchmark")
 	}
 
-	fmt.Println("\n🎯 Performance Optimization Summary:")
-	fmt.Println("  ✅ CPU profiling and goroutine leak detection")
-	fmt.Println("  ✅ Multi-level caching with Redis and in-memory layers")
-	fmt.Println("  ✅ Connection pooling and database optimization")
-	fmt.Println("  ✅ Batch processing and async operations")
-	fmt.Println("  ✅ Real-time performance monitoring and alerts")
-	fmt.Println("  ✅ Comprehensive metrics and dashboards")
-	fmt.Println("  ✅ Auto-optimization and recommendation engine")
+	fmt.Println("\n?�� Performance Optimization Summary:")
+	fmt.Println("  ??CPU profiling and goroutine leak detection")
+	fmt.Println("  ??Multi-level caching with Redis and in-memory layers")
+	fmt.Println("  ??Connection pooling and database optimization")
+	fmt.Println("  ??Batch processing and async operations")
+	fmt.Println("  ??Real-time performance monitoring and alerts")
+	fmt.Println("  ??Comprehensive metrics and dashboards")
+	fmt.Println("  ??Auto-optimization and recommendation engine")
 
 	// Graceful cleanup
-	fmt.Println("\n⏹️  Cleaning up performance integrator...")
+	fmt.Println("\n?��?  Cleaning up performance integrator...")
 	// Note: Basic integrator doesn't require explicit shutdown
-	fmt.Println("  ✅ Cleanup completed successfully")
+	fmt.Println("  ??Cleanup completed successfully")
 
-	fmt.Println("\n🎉 Performance optimization demo completed!")
+	fmt.Println("\n?? Performance optimization demo completed!")
 }

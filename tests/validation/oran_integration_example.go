@@ -387,10 +387,10 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 
 			ginkgo.By(fmt.Sprintf("O-RAN Integration: %s", func() string {
 				if report.OverallPassed {
-					return "✅ PASSED"
+					return "??PASSED"
 				}
 
-				return "❌ FAILED"
+				return "??FAILED"
 			}()))
 
 			// Expect significant O-RAN contribution to overall score.
@@ -413,13 +413,7 @@ func (oits *ORANInterfaceTestSuite) testA1PolicySecurity(ctx context.Context) bo
 
 	// Add security metadata.
 
-	policy.PolicyData["security"] = map[string]interface{}{
-		"authentication": true,
-
-		"authorization": "rbac",
-
-		"encryption": "tls",
-	}
+	policy.PolicyData["security"] = json.RawMessage("{}")
 
 	err := oits.validator.ricMockService.CreatePolicy(policy)
 	if err != nil {
@@ -455,11 +449,7 @@ func (oits *ORANInterfaceTestSuite) testE2Security(ctx context.Context) bool {
 
 	node := oits.testFactory.CreateE2Node("gnodeb")
 
-	node.Capabilities["security"] = map[string]interface{}{
-		"authentication": "certificate",
-
-		"encryption": "ipsec",
-	}
+	node.Capabilities["security"] = json.RawMessage("{}")
 
 	err := oits.validator.e2MockService.RegisterNode(node)
 	if err != nil {

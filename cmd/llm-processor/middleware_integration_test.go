@@ -843,10 +843,7 @@ import (
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status":     "success",
-				"request_id": r.Header.Get("X-Request-ID"),
-			})
+			json.NewEncoder(w).Encode(json.RawMessage("{}"))
 		}))
 	router.Handle("/process", processHandler).Methods("POST")
 

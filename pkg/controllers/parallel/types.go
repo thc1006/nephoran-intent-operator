@@ -1,7 +1,9 @@
 package parallel
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"time"
 
@@ -27,7 +29,7 @@ type ControllerTaskResult struct {
 	Error       error                  `json:"error,omitempty"`
 	Duration    time.Duration          `json:"duration"`
 	CompletedAt time.Time              `json:"completed_at"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ParallelProcessor manages parallel execution of controller tasks

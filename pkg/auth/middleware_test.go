@@ -132,12 +132,7 @@ import (
 			name: "Expired JWT token",
 			setupRequest: func() *http.Request {
 				// Create expired token
-				expiredToken := tc.CreateTestToken(map[string]interface{}{
-					"iss": "test-issuer",
-					"sub": user.Subject,
-					"exp": time.Now().Add(-time.Hour).Unix(),
-					"iat": time.Now().Add(-2 * time.Hour).Unix(),
-				})
+				expiredToken := tc.CreateTestToken(json.RawMessage("{}"))
 
 				req := httptest.NewRequest("GET", "/protected", nil)
 				req.Header.Set("Authorization", "Bearer "+expiredToken)

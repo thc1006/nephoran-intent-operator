@@ -1,7 +1,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -739,7 +741,7 @@ type VectorSearchResult struct {
 type VectorMatch struct {
 	VectorID string                 `json:"vector_id"`
 	Score    float32                `json:"score"`
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Placeholder implementations

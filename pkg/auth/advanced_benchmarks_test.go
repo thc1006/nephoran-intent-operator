@@ -874,7 +874,7 @@ func generateAuthorizationRequests(resourceTypes, count int) []AuthorizationRequ
 		requests[i] = AuthorizationRequest{
 			Resource: fmt.Sprintf("resource-%d", i%resourceTypes),
 			Action:   actions[i%len(actions)],
-			Context:  map[string]interface{}{"tenant": fmt.Sprintf("tenant-%d", i%10)},
+			Context:  json.RawMessage("{}"),
 		}
 	}
 
@@ -890,10 +890,7 @@ func generateTestUser(username string, groupCount int) User {
 	return User{
 		Username: username,
 		Groups:   groups,
-		Attributes: map[string]interface{}{
-			"department": "engineering",
-			"level":      "senior",
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 }
 
@@ -1227,7 +1224,7 @@ func (a *EnhancedAuthSystem) Cleanup() {}
 
 func (a *EnhancedAuthSystem) ValidateJWTToken(ctx context.Context, token string) (*JWTValidationResult, error) {
 	time.Sleep(100 * time.Microsecond) // Simulate validation time
-	return &JWTValidationResult{Valid: true, Claims: map[string]interface{}{"sub": "test"}}, nil
+	return &JWTValidationResult{Valid: true, Claims: json.RawMessage(`{"sub":"test"}`)}, nil
 }
 
 func (a *EnhancedAuthSystem) ValidateJWTTokenCached(ctx context.Context, token string) (*JWTValidationResult, error) {

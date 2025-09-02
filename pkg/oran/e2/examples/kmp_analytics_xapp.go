@@ -97,7 +97,7 @@ type AnalysisResult struct {
 
 	AnalysisType string `json:"analysis_type"`
 
-	Results map[string]interface{} `json:"results"`
+	Results json.RawMessage `json:"results"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -222,25 +222,7 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 			{
 				TriggerType: "periodic",
 
-				Conditions: map[string]interface{}{
-					"measurement_types": []string{
-						"DRB.UEThpDl", // Downlink UE throughput
-
-						"DRB.UEThpUl", // Uplink UE throughput
-
-						"RRU.PrbUsedDl", // Downlink PRB utilization
-
-						"RRU.PrbUsedUl", // Uplink PRB utilization
-
-						"DRB.RlcSduDelayDl", // Downlink RLC SDU delay
-
-						"DRB.RlcSduDelayUl", // Uplink RLC SDU delay
-
-						"TB.ErrTotNbrDl", // Downlink transport block errors
-
-						"TB.ErrTotNbrUl", // Uplink transport block errors
-
-					},
+				Conditions: json.RawMessage("{}"),
 
 					"granularity_period": "1000ms",
 
@@ -259,11 +241,7 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 
 				ActionType: "report",
 
-				ActionDefinition: map[string]interface{}{
-					"format": "json",
-
-					"compression": false,
-				},
+				ActionDefinition: json.RawMessage("{}"),
 			},
 		},
 
@@ -671,15 +649,7 @@ func (x *KMPAnalyticsXApp) analyzeTrends() map[string]interface{} {
 			trend = "stable"
 		}
 
-		results[metricName] = map[string]interface{}{
-			"trend": trend,
-
-			"confidence": float64(abs(increasing-decreasing)) / float64(len(recentValues)-1),
-
-			"recent_average": calculateAverage(recentValues),
-
-			"historical_average": history.Statistics.Mean,
-		}
+		results[metricName] = json.RawMessage("{}")
 
 	}
 
@@ -701,13 +671,7 @@ func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
 
 		correlation := x.calculateCorrelation(throughputDL.Values, prbUsedDL.Values)
 
-		results["throughput_prb_correlation"] = map[string]interface{}{
-			"correlation_coefficient": correlation,
-
-			"interpretation": x.interpretCorrelation(correlation),
-
-			"metric_pair": "DRB.UEThpDl vs RRU.PrbUsedDl",
-		}
+		results["throughput_prb_correlation"] = json.RawMessage("{}")
 
 	}
 

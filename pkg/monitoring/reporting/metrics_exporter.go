@@ -220,7 +220,7 @@ type MetricPoint struct {
 
 	Unit string `json:"unit,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // MetricBatch represents a batch of metrics.
@@ -252,7 +252,7 @@ type ExportResult struct {
 
 	Error string `json:"error,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // StreamMetric represents a streaming metric.
@@ -1477,21 +1477,11 @@ func (de *DataDogExporter) convertToDataDogFormat(batch MetricBatch) map[string]
 
 		points := [][]float64{{float64(metric.Timestamp.Unix()), metric.Value}}
 
-		series[i] = map[string]interface{}{
-			"metric": metric.Name,
-
-			"points": points,
-
-			"tags": tags,
-
-			"type": "gauge",
-		}
+		series[i] = json.RawMessage("{}")
 
 	}
 
-	return map[string]interface{}{
-		"series": series,
-	}
+	return json.RawMessage("{}")
 }
 
 // NewRelicExporter exports metrics to New Relic.
@@ -1578,17 +1568,7 @@ func (nr *NewRelicExporter) convertToNewRelicFormat(batch MetricBatch) []map[str
 
 	for i, metric := range batch.Metrics {
 
-		event := map[string]interface{}{
-			"eventType": "NephoranMetric",
-
-			"name": metric.Name,
-
-			"value": metric.Value,
-
-			"timestamp": metric.Timestamp.Unix(),
-
-			"source": batch.Source,
-		}
+		event := json.RawMessage("{}")
 
 		// Add labels as attributes.
 

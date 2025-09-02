@@ -45,7 +45,7 @@ import (
 
 // LifecycleManager provides comprehensive PackageRevision lifecycle orchestration.
 
-// Manages state transitions (Draft → Proposed → Published → Deleted), lifecycle events,.
+// Manages state transitions (Draft ??Proposed ??Published ??Deleted), lifecycle events,.
 
 // validation gates, rollback capabilities, concurrent lifecycle management, and metrics tracking.
 
@@ -977,11 +977,7 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 
 		Timestamp: time.Now(),
 
-		Metadata: map[string]interface{}{
-			"lockID": lock.ID,
-
-			"operation": operation,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	lm.TriggerEvent(ctx, lockEvent)
@@ -1039,11 +1035,7 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 
 		Timestamp: time.Now(),
 
-		Metadata: map[string]interface{}{
-			"lockID": lockID,
-
-			"operation": lock.Operation,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	lm.TriggerEvent(ctx, releaseEvent)

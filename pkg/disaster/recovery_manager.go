@@ -31,7 +31,9 @@ limitations under the License.
 package disaster
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -187,7 +189,7 @@ type ComponentStatus struct {
 
 	LastRecovery time.Time `json:"last_recovery"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RecoveryStep represents a step in the recovery process.
@@ -245,7 +247,7 @@ type Alert struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // NewDisasterRecoveryManager creates a new disaster recovery manager.
@@ -633,9 +635,7 @@ func (drm *DisasterRecoveryManager) performHealthChecks(ctx context.Context) {
 
 					Timestamp: time.Now(),
 
-					Metadata: map[string]interface{}{
-						"error": err.Error(),
-					},
+					Metadata: json.RawMessage("{}"),
 				})
 
 			}
@@ -807,11 +807,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 
 			Timestamp: time.Now(),
 
-			Metadata: map[string]interface{}{
-				"error": err.Error(),
-
-				"duration": duration.String(),
-			},
+			Metadata: json.RawMessage("{}"),
 		})
 
 		return err

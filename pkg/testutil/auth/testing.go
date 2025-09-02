@@ -3,7 +3,9 @@
 package authtestutil
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -57,7 +59,7 @@ type LegacyTokenInfo struct {
 
 	UserAgent string `json:"user_agent,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	LastUsed time.Time `json:"last_used"`
 
@@ -85,9 +87,9 @@ type AccessRequest struct {
 
 	Action string `json:"action"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	IPAddress string `json:"ip_address,omitempty"`
 
@@ -111,7 +113,7 @@ type AccessDecision struct {
 
 	MissingPermissions []string `json:"missing_permissions,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	EvaluatedAt time.Time `json:"evaluated_at"`
 
@@ -709,14 +711,8 @@ func (j *JWTManagerMock) GetJWKS() (map[string]interface{}, error) {
 	}
 
 	// Mock JWKS response matching real implementation format
-	return map[string]interface{}{
-		"keys": []interface{}{
-			map[string]interface{}{
-				"kty": "RSA",
-				"use": "sig",
-				"kid": j.keyID,
-				"alg": "RS256",
-			},
+	return json.RawMessage("{}"){
+			json.RawMessage("{}"),
 		},
 	}, nil
 }
@@ -1917,11 +1913,7 @@ func (tc *TestContext) CreateTestUser(userID string) *providers.UserInfo {
 
 		Roles: []string{"viewer"},
 
-		Attributes: map[string]interface{}{
-			"department": "engineering",
-
-			"team": "platform",
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 }
 

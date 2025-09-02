@@ -31,7 +31,9 @@ limitations under the License.
 package blueprint
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -575,7 +577,7 @@ type SecurityCheck struct {
 
 	Target string `json:"target"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // VulnerabilityInfo represents a vulnerabilityinfo.
@@ -679,7 +681,7 @@ type ComplianceCheck struct {
 
 	Target string `json:"target"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // NewValidator creates a new blueprint validator.

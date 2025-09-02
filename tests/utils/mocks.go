@@ -3,7 +3,9 @@
 package testutils
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -387,9 +389,9 @@ type LLMResponse struct {
 
 	Confidence float64 `json:"confidence"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
-	Manifests map[string]interface{} `json:"manifests"`
+	Manifests json.RawMessage `json:"manifests"`
 
 	ProcessingTime int64 `json:"processing_time"`
 
@@ -1218,25 +1220,14 @@ func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 
 		Confidence: confidence,
 
-		Parameters: map[string]interface{}{
-			"replicas": 3,
+		Parameters: json.RawMessage("{}"),
 
-			"scaling": true,
-
-			"cpu_request": "500m",
-
-			"memory_request": "1Gi",
-		},
-
-		Manifests: map[string]interface{}{
-			"deployment": map[string]interface{}{
+		Manifests: json.RawMessage("{}"){
 				"apiVersion": "apps/v1",
 
 				"kind": "Deployment",
 
-				"metadata": map[string]interface{}{
-					"name": intentType + "-deployment",
-				},
+				"metadata": json.RawMessage("{}"),
 			},
 		},
 

@@ -725,17 +725,7 @@ func (sd *ServiceDiscovery) provisionCertificateForService(ctx context.Context, 
 
 		Priority: PriorityNormal,
 
-		Metadata: map[string]interface{}{
-			"discovered_by": "service-discovery",
-
-			"discovery_timestamp": discovered.DiscoveredAt.Format(time.RFC3339),
-
-			"template_used": discovered.Template,
-
-			"dns_names": strings.Join(dnsNames, ","),
-
-			"request_id": fmt.Sprintf("discovery-%s-%s-%d", discovered.Namespace, discovered.Name, time.Now().Unix()),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Submit provisioning request.

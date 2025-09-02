@@ -57,7 +57,7 @@ func main() {
 
 				FaultFields *ves.FaultFields `json:"faultFields,omitempty"`
 
-				MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+				MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 			}{
 				CommonEventHeader: ves.CommonEventHeader{
 					Domain: *domain,

@@ -626,9 +626,7 @@ func (ar *AutomatedRemediation) clearCache(ctx context.Context, componentName st
 	if componentName == "rag-api" {
 		// Execute cache clear command.
 
-		return ar.executeCustomScript(ctx, componentName, map[string]interface{}{
-			"script": "kubectl exec deployment/rag-api -- redis-cli FLUSHALL",
-		})
+		return ar.executeCustomScript(ctx, componentName, json.RawMessage("{}"))
 	}
 
 	return nil
@@ -1015,10 +1013,7 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 
 				Template: "scale_deployment",
 
-				Parameters: map[string]interface{}{
-					"replicas": 2, // Double the replicas
-
-				},
+				Parameters: json.RawMessage("{}"),
 
 				Timeout: 3 * time.Minute,
 			},

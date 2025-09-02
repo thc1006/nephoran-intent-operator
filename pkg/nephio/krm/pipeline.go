@@ -375,13 +375,13 @@ type PipelineExecution struct {
 
 	// State management.
 
-	Variables map[string]interface{} `json:"variables"`
+	Variables json.RawMessage `json:"variables"`
 
 	Checkpoints []*ExecutionCheckpoint `json:"checkpoints"`
 
 	// Context.
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	Metadata map[string]string `json:"metadata"`
 }
@@ -407,7 +407,7 @@ type StageExecution struct {
 
 	Retries int `json:"retries"`
 
-	Output map[string]interface{} `json:"output"`
+	Output json.RawMessage `json:"output"`
 }
 
 // FunctionExecution represents execution of a function within a stage.
@@ -443,7 +443,7 @@ type FunctionExecution struct {
 
 	Logs []string `json:"logs"`
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 }
 
 // DependencyStatus represents dependency status.
@@ -526,7 +526,7 @@ type ExecutionResult struct {
 
 	Message string `json:"message"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -540,7 +540,7 @@ type ExecutionCheckpoint struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Variables map[string]interface{} `json:"variables"`
+	Variables json.RawMessage `json:"variables"`
 
 	Resources []porch.KRMResource `json:"resources"`
 

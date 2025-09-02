@@ -1063,11 +1063,7 @@ func (c *Catalog) buildCacheKey(criteria *SearchCriteria) string {
 }
 
 func (c *Catalog) cacheSearchResults(key string, results []*Template) {
-	c.repoCache.Store(key, map[string]interface{}{
-		"templates": results,
-
-		"expiry": time.Now().Add(c.config.CacheTTL),
-	})
+	c.repoCache.Store(key, json.RawMessage("{}"))
 }
 
 func (c *Catalog) calculateChecksum(template *Template) string {

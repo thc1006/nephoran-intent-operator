@@ -784,10 +784,7 @@ func createChaosTestEvent(action string) *AuditEvent {
 		UserContext: &UserContext{
 			UserID: "chaos-test-user",
 		},
-		Data: map[string]interface{}{
-			"test_type": "chaos",
-			"timestamp": time.Now().Unix(),
-		},
+		Data: json.RawMessage("{}"),
 	}
 }
 
@@ -825,9 +822,7 @@ func createSizedChaosEvent(action string, targetSize int) *AuditEvent {
 		Action:    action,
 		Severity:  SeverityInfo,
 		Result:    ResultSuccess,
-		Data: map[string]interface{}{
-			"padding": string(padding),
-		},
+		Data: json.RawMessage("{}"),
 	}
 }
 

@@ -440,25 +440,17 @@ func generateNetworkIntentPayload() interface{} {
 		"Enable network slicing for IoT devices",
 	}
 
-	return map[string]interface{}{
-		"apiVersion": "nephoran.com/v1",
-		"kind":       "NetworkIntent",
-		"metadata": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"name":      fmt.Sprintf("intent-%d", rand.Intn(100000)),
 			"namespace": "default",
 		},
-		"spec": map[string]interface{}{
-			"description": intents[rand.Intn(len(intents))],
-			"priority":    []string{"low", "medium", "high"}[rand.Intn(3)],
+		"spec": json.RawMessage("{}")[rand.Intn(3)],
 		},
 	}
 }
 
 func generatePolicyPayload() interface{} {
-	return map[string]interface{}{
-		"policy_id":      fmt.Sprintf("policy-%d", rand.Intn(100000)),
-		"policy_type_id": 1001,
-		"policy_data": map[string]interface{}{
+	return json.RawMessage("{}"){
 			"max_throughput":    rand.Intn(10000) + 1000,
 			"min_throughput":    rand.Intn(1000) + 100,
 			"latency_target_ms": rand.Intn(50) + 10,
@@ -472,10 +464,7 @@ func generatePolicyPayload() interface{} {
 }
 
 func generateScalingPayload() interface{} {
-	return map[string]interface{}{
-		"e2nodeset_name": fmt.Sprintf("e2nodeset-%d", rand.Intn(10)),
-		"replicas":       rand.Intn(10) + 1,
-		"scaling_type":   []string{"horizontal", "vertical"}[rand.Intn(2)],
+	return json.RawMessage("{}")[rand.Intn(2)],
 	}
 }
 
@@ -634,6 +623,6 @@ func RunProductionLoadTest() error {
 		return fmt.Errorf("throughput %.2f RPS below 900 RPS requirement", results.Throughput)
 	}
 
-	fmt.Println("\n✅ All performance requirements met!")
+	fmt.Println("\n??All performance requirements met!")
 	return nil
 }

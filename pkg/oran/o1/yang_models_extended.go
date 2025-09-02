@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -42,7 +44,7 @@ type ORANYANGModel struct {
 
 	Augmentations []YANGAugmentation `json:"augmentations"`
 
-	Extensions map[string]interface{} `json:"extensions"`
+	Extensions json.RawMessage `json:"extensions"`
 }
 
 // YANGDeviation represents YANG model deviations.
@@ -64,7 +66,7 @@ type YANGAugmentation struct {
 
 	Nodes map[string]*YANGNode `json:"nodes"`
 
-	Conditions map[string]interface{} `json:"conditions,omitempty"`
+	Conditions json.RawMessage `json:"conditions,omitempty"`
 }
 
 // ORANModelValidator provides O-RAN specific validation.
@@ -84,7 +86,7 @@ type ORANModelValidator struct {
 type ValidationConstraint struct {
 	Type string `json:"type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	ErrorMsg string `json:"error_message"`
 
@@ -190,7 +192,7 @@ type TypeDef struct {
 
 	Type string `json:"type"`
 
-	Constraints map[string]interface{} `json:"constraints"`
+	Constraints json.RawMessage `json:"constraints"`
 
 	Default interface{} `json:"default,omitempty"`
 
@@ -320,25 +322,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 
 			Contact: "www.o-ran.org",
 
-			Schema: map[string]interface{}{
-				"active-alarm-list": &YANGNode{
-					Name: "active-alarm-list",
-
-					Type: "container",
-
-					Description: "List of active alarms",
-
-					Config: false,
-
-					Children: map[string]*YANGNode{
-						"active-alarms": {
-							Name: "active-alarms",
-
-							Type: "list",
-
-							Description: "List of active alarms in the system",
-
-							Keys: []string{"fault-id", "fault-source"},
+			Schema: json.RawMessage("{}"),
 
 							Config: false,
 
@@ -382,8 +366,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 
 									Config: false,
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"critical", "major", "minor", "warning"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -436,12 +419,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 
 									Config: false,
 
-									Constraints: map[string]interface{}{
-										"enum": []string{
-											"communications", "quality-of-service", "processing-error",
-
-											"equipment", "environmental",
-										},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -512,8 +490,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 
 							DataType: "enumeration",
 
-							Constraints: map[string]interface{}{
-								"enum": []string{"critical", "major", "minor", "warning"},
+							Constraints: json.RawMessage("{}"),
 							},
 						},
 
@@ -562,21 +539,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 			Contact: "www.o-ran.org",
 
-			Schema: map[string]interface{}{
-				"performance-measurement-objects": &YANGNode{
-					Name: "performance-measurement-objects",
-
-					Type: "container",
-
-					Description: "Performance measurement object definitions",
-
-					Children: map[string]*YANGNode{
-						"measurement-object": {
-							Name: "measurement-object",
-
-							Type: "list",
-
-							Keys: []string{"measurement-object-id"},
+			Schema: json.RawMessage("{}"),
 
 							Description: "List of measurement objects",
 
@@ -612,8 +575,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 									Description: "Measurement function",
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"O-RU", "O-DU", "O-CU", "SMO", "NON-RT-RIC", "NEAR-RT-RIC"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -666,8 +628,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 											DataType: "enumeration",
 
-											Constraints: map[string]interface{}{
-												"enum": []string{"CC", "SI", "DER", "GAUGE"},
+											Constraints: json.RawMessage("{}"),
 											},
 										},
 
@@ -680,9 +641,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 
 											Description: "Collection interval in seconds",
 
-											Constraints: map[string]interface{}{
-												"range": "1..86400",
-											},
+											Constraints: json.RawMessage("{}"),
 										},
 									},
 								},
@@ -770,27 +729,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 			Contact: "www.o-ran.org",
 
-			Schema: map[string]interface{}{
-				"managed-element": &YANGNode{
-					Name: "managed-element",
-
-					Type: "container",
-
-					Description: "Managed element configuration",
-
-					Children: map[string]*YANGNode{
-						"function-type": {
-							Name: "function-type",
-
-							Type: "leaf",
-
-							DataType: "enumeration",
-
-							Description: "Type of O-RAN function",
-
-							Mandatory: true,
-
-							Constraints: map[string]interface{}{
+			Schema: json.RawMessage("{}"){
 								"enum": []string{"O-RU", "O-DU", "O-CU-CP", "O-CU-UP", "SMO", "NON-RT-RIC", "NEAR-RT-RIC"},
 							},
 						},
@@ -832,8 +771,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 											DataType: "enumeration",
 
-											Constraints: map[string]interface{}{
-												"enum": []string{"A1", "E2", "F1", "Xn", "N1", "N2", "N3", "O1", "O2", "OPEN-FRONTHAUL"},
+											Constraints: json.RawMessage("{}"),
 											},
 										},
 
@@ -844,8 +782,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 											DataType: "enumeration",
 
-											Constraints: map[string]interface{}{
-												"enum": []string{"locked", "unlocked", "shutting-down"},
+											Constraints: json.RawMessage("{}"),
 											},
 										},
 
@@ -858,8 +795,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 											Config: false,
 
-											Constraints: map[string]interface{}{
-												"enum": []string{"enabled", "disabled"},
+											Constraints: json.RawMessage("{}"),
 											},
 										},
 									},
@@ -912,8 +848,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 
 											Config: false,
 
-											Constraints: map[string]interface{}{
-												"enum": []string{"valid", "invalid", "empty"},
+											Constraints: json.RawMessage("{}"),
 											},
 										},
 									},
@@ -954,39 +889,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 			Contact: "www.o-ran.org",
 
-			Schema: map[string]interface{}{
-				"security-policies": &YANGNode{
-					Name: "security-policies",
-
-					Type: "container",
-
-					Description: "Security policy configuration",
-
-					Children: map[string]*YANGNode{
-						"access-control-policy": {
-							Name: "access-control-policy",
-
-							Type: "container",
-
-							Description: "Access control policy configuration",
-
-							Children: map[string]*YANGNode{
-								"authentication": {
-									Name: "authentication",
-
-									Type: "container",
-
-									Description: "Authentication configuration",
-
-									Children: map[string]*YANGNode{
-										"method": {
-											Name: "method",
-
-											Type: "leaf",
-
-											DataType: "enumeration",
-
-											Constraints: map[string]interface{}{
+			Schema: json.RawMessage("{}"){
 												"enum": []string{"password", "public-key", "certificate", "oauth2"},
 											},
 										},
@@ -1150,8 +1053,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 
 							Config: false,
 
-							Constraints: map[string]interface{}{
-								"enum": []string{"low", "medium", "high", "critical"},
+							Constraints: json.RawMessage("{}"),
 							},
 						},
 
@@ -1212,32 +1114,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 			Contact: "www.o-ran.org",
 
-			Schema: map[string]interface{}{
-				"file-download": &YANGNode{
-					Name: "file-download",
-
-					Type: "rpc",
-
-					Description: "Download file from remote location",
-
-					Children: map[string]*YANGNode{
-						"input": {
-							Name: "input",
-
-							Type: "container",
-
-							Children: map[string]*YANGNode{
-								"remote-file-path": {
-									Name: "remote-file-path",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Description: "Remote file path",
-
-									Mandatory: true,
-								},
+			Schema: json.RawMessage("{}"),
 
 								"local-file-path": {
 									Name: "local-file-path",
@@ -1292,8 +1169,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 
 									DataType: "enumeration",
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"success", "failure", "in-progress"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -1446,32 +1322,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANG
 
 			Contact: "www.o-ran.org",
 
-			Schema: map[string]interface{}{
-				"troubleshooting-log": &YANGNode{
-					Name: "troubleshooting-log",
-
-					Type: "rpc",
-
-					Description: "Start troubleshooting log collection",
-
-					Children: map[string]*YANGNode{
-						"input": {
-							Name: "input",
-
-							Type: "container",
-
-							Children: map[string]*YANGNode{
-								"log-file-name": {
-									Name: "log-file-name",
-
-									Type: "leaf",
-
-									DataType: "string",
-
-									Description: "Log file name",
-
-									Mandatory: true,
-								},
+			Schema: json.RawMessage("{}"),
 
 								"log-level": {
 									Name: "log-level",
@@ -1480,8 +1331,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANG
 
 									DataType: "enumeration",
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"error", "warn", "info", "debug", "trace"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -1558,8 +1408,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANG
 
 									Config: false,
 
-									Constraints: map[string]interface{}{
-										"enum": []string{"emergency", "alert", "critical", "error", "warning", "notice", "info", "debug"},
+									Constraints: json.RawMessage("{}"),
 									},
 								},
 
@@ -1638,11 +1487,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANInterfaceManagementModel() *ORAN
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{
-
-				// Full schema would be implemented here.
-
-			},
+			Schema: json.RawMessage("{}"),
 		},
 
 		ORANVersion: "7.0.0",
@@ -1672,11 +1517,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANProcessingElementsModel() *ORANY
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{
-
-				// Full schema would be implemented here.
-
-			},
+			Schema: json.RawMessage("{}"),
 		},
 
 		ORANVersion: "7.0.0",
@@ -1700,7 +1541,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANHardwareBaseModel() *ORANYANGMod
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{}, // Base schema
+			Schema: json.RawMessage("{}"), // Base schema
 
 		},
 
@@ -1723,7 +1564,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANSoftwareBaseModel() *ORANYANGMod
 
 			Organization: "O-RAN Alliance",
 
-			Schema: map[string]interface{}{}, // Base schema
+			Schema: json.RawMessage("{}"), // Base schema
 
 		},
 

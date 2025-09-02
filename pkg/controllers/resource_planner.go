@@ -76,7 +76,7 @@ type SecurityPolicy struct {
 
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // HealthCheckSpec represents a healthcheckspec.

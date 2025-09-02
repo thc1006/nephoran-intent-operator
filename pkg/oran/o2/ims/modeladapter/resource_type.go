@@ -1,7 +1,9 @@
 package modeladapter
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
@@ -71,7 +73,7 @@ type InternalResourceTypeSpec struct {
 
 	// Properties and features.
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	Capabilities []string `json:"capabilities,omitempty"`
 
@@ -357,8 +359,7 @@ func CreateDefaultNetworkResourceType() *InternalResourceType {
 		Specifications: &InternalResourceTypeSpec{
 			Category: models.ResourceCategoryNetwork,
 
-			Properties: map[string]interface{}{
-				"serviceTypes": []string{"ClusterIP", "NodePort", "LoadBalancer"},
+			Properties: json.RawMessage("{}"),
 
 				"protocols": []string{"TCP", "UDP"},
 			},
@@ -393,8 +394,7 @@ func CreateDefaultStorageResourceType() *InternalResourceType {
 		Specifications: &InternalResourceTypeSpec{
 			Category: models.ResourceCategoryStorage,
 
-			Properties: map[string]interface{}{
-				"accessModes": []string{"ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"},
+			Properties: json.RawMessage("{}"),
 
 				"volumeModes": []string{"Filesystem", "Block"},
 			},

@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sort"
@@ -212,7 +214,7 @@ type DependencyGraph struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // GraphNode represents a node in the dependency graph (a package).
@@ -276,7 +278,7 @@ type GraphNode struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // GraphEdge represents an edge in the dependency graph (a dependency relationship).
@@ -332,7 +334,7 @@ type GraphEdge struct {
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyCycle represents a circular dependency cycle.
@@ -496,7 +498,7 @@ type GraphBuildSpec struct {
 
 	Tags map[string]string `json:"tags,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Enums and constants.

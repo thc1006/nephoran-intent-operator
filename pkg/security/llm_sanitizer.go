@@ -524,19 +524,19 @@ func (s *LLMSanitizer) escapeDelimiters(input string) string {
 
 		"|>": "|&gt;",
 
-		"###": "##â€‹#", // Zero-width space inserted
+		"###": "##??", // Zero-width space inserted
 
-		"---": "--â€‹-",
+		"---": "--??",
 
-		"```": "``â€‹`",
+		"```": "``?‹`",
 
-		"[[": "[â€‹[",
+		"[[": "[?‹[",
 
-		"]]": "]â€‹]",
+		"]]": "]?‹]",
 
-		"{{": "{â€‹{",
+		"{{": "{?‹{",
 
-		"}}": "}â€‹}",
+		"}}": "}?‹}",
 	}
 
 	result := input
@@ -705,17 +705,7 @@ func (s *LLMSanitizer) GetMetrics() map[string]interface{} {
 
 	defer s.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"total_requests": s.metrics.totalRequests,
-
-		"blocked_requests": s.metrics.blockedRequests,
-
-		"sanitized_requests": s.metrics.sanitizedRequests,
-
-		"suspicious_patterns": s.metrics.suspiciousPatterns,
-
-		"block_rate": float64(s.metrics.blockedRequests) / float64(s.metrics.totalRequests),
-	}
+	return json.RawMessage("{}")
 }
 
 // ValidateSystemPromptIntegrity verifies the system prompt hasn't been tampered with.

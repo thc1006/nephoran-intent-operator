@@ -986,9 +986,7 @@ func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession,
 func (ns *NetconfServer) handleGet(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
 	// Basic get operation - returns operational data.
 
-	response.Data = map[string]interface{}{
-		"message": "Get operation not fully implemented",
-	}
+	response.Data = json.RawMessage("{}")
 
 	response.OK = &struct{}{}
 }
@@ -996,9 +994,7 @@ func (ns *NetconfServer) handleGet(ctx context.Context, session *NetconfSession,
 func (ns *NetconfServer) handleGetConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
 	// Get configuration data.
 
-	response.Data = map[string]interface{}{
-		"message": "Get-config operation not fully implemented",
-	}
+	response.Data = json.RawMessage("{}")
 
 	response.OK = &struct{}{}
 }
@@ -1224,19 +1220,7 @@ func (ns *NetconfServer) GetSessions() map[string]interface{} {
 	sessions := make(map[string]interface{})
 
 	for id, session := range ns.sessions {
-		sessions[id] = map[string]interface{}{
-			"id": session.ID,
-
-			"authenticated": session.authenticated,
-
-			"last_activity": session.lastActivity,
-
-			"capabilities": len(session.capabilities),
-
-			"locks": len(session.locks),
-
-			"subscriptions": len(session.subscriptions),
-		}
+		sessions[id] = json.RawMessage("{}")
 	}
 
 	return sessions

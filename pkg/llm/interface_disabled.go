@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -75,7 +77,7 @@ type ProcessingRequest struct {
 
 	Temperature float32 `json:"temperature,omitempty"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // ProcessingResponse represents a processing response (stub).
@@ -91,5 +93,5 @@ type ProcessingResponse struct {
 
 	Cached bool `json:"cached"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }

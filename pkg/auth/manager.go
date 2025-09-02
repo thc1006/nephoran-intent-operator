@@ -296,11 +296,7 @@ func (am *Manager) ListProviders() map[string]interface{} {
 	ldapProviders := make(map[string]interface{})
 
 	for name := range am.ldapProviders {
-		ldapProviders[name] = map[string]interface{}{
-			"type": "ldap",
-
-			"enabled": true,
-		}
+		ldapProviders[name] = json.RawMessage("{}")
 	}
 
 	result["ldap"] = ldapProviders
@@ -310,11 +306,7 @@ func (am *Manager) ListProviders() map[string]interface{} {
 	oauth2Providers := make(map[string]interface{})
 
 	for name := range am.oauthProviders {
-		oauth2Providers[name] = map[string]interface{}{
-			"type": "oauth2",
-
-			"enabled": true,
-		}
+		oauth2Providers[name] = json.RawMessage("{}")
 	}
 
 	result["oauth2"] = oauth2Providers
@@ -397,16 +389,7 @@ func (am *Manager) ValidateSession(ctx context.Context, sessionID string) (*User
 // HandleHealthCheck handles health check requests.
 
 func (am *Manager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	health := map[string]interface{}{
-		"status": "healthy",
-
-		"services": map[string]string{
-			"jwt_manager": "unknown",
-
-			"session_manager": "unknown",
-
-			"rbac_manager": "unknown",
-		},
+	health := json.RawMessage("{}"),
 	}
 
 	if am.jwtManager != nil {

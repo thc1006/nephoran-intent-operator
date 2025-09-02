@@ -32,7 +32,7 @@ type Recommendation struct {
 
 	// Implementation details
 	Action       string                 `json:"action"`        // Specific action to take
-	Parameters   map[string]interface{} `json:"parameters"`    // Action parameters
+	Parameters   json.RawMessage `json:"parameters"`    // Action parameters
 	EstimatedROI float64                `json:"estimated_roi"` // Expected return on investment
 
 	// Business impact
@@ -44,5 +44,5 @@ type Recommendation struct {
 	Source     string                 `json:"source"`     // Source of recommendation
 	Confidence float64                `json:"confidence"` // Confidence level (0-1)
 	Status     string                 `json:"status"`     // pending, approved, implemented, rejected
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 }

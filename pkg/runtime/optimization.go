@@ -178,18 +178,7 @@ func GetRuntimeStats() map[string]interface{} {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	return map[string]interface{}{
-		"gomaxprocs":      runtime.GOMAXPROCS(0),
-		"num_cpu":         runtime.NumCPU(),
-		"num_goroutine":   runtime.NumGoroutine(),
-		"num_gc":          m.NumGC,
-		"gc_pause_ns":     m.PauseNs[(m.NumGC+255)%256],
-		"heap_alloc_mb":   bToMb(m.HeapAlloc),
-		"heap_sys_mb":     bToMb(m.HeapSys),
-		"heap_in_use_mb":  bToMb(m.HeapInuse),
-		"stack_in_use_mb": bToMb(m.StackInuse),
-		"next_gc_mb":      bToMb(m.NextGC),
-	}
+	return json.RawMessage("{}")
 }
 
 // bToMb converts bytes to megabytes

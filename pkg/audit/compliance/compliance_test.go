@@ -106,10 +106,7 @@ func (suite *ComplianceTestSuite) TestSOC2ComplianceRequirements() {
 				Severity:           types.SeverityNotice,
 				Result:             types.ResultSuccess,
 				DataClassification: "Confidential",
-				Data: map[string]interface{}{
-					"records_accessed": 150,
-					"data_type":        "customer_pii",
-				},
+				Data: json.RawMessage("{}"),
 				Timestamp: time.Now(),
 			},
 			expectedControls: []string{"CC6.7", "CC7.1"},
@@ -125,11 +122,7 @@ func (suite *ComplianceTestSuite) TestSOC2ComplianceRequirements() {
 				Action:    "configuration_update",
 				Severity:  types.SeverityWarning,
 				Result:    types.ResultSuccess,
-				Data: map[string]interface{}{
-					"change_type":       "security_policy",
-					"approval_required": true,
-					"change_ticket":     "CHG-2023-1234",
-				},
+				Data: json.RawMessage("{}"),
 				Timestamp: time.Now(),
 			},
 			expectedControls: []string{"CC8.1", "CC3.3"},
@@ -201,11 +194,7 @@ func (suite *ComplianceTestSuite) TestISO27001ComplianceRequirements() {
 				Action:    "sensitive_query",
 				Severity:  types.SeverityNotice,
 				Result:    types.ResultSuccess,
-				Data: map[string]interface{}{
-					"query_type":   "customer_data",
-					"record_count": 25,
-					"purpose":      "customer_support",
-				},
+				Data: json.RawMessage("{}"),
 				Timestamp: time.Now(),
 			},
 			expectedControls: []string{"A.12.4.1", "A.12.4.2"},
@@ -221,11 +210,7 @@ func (suite *ComplianceTestSuite) TestISO27001ComplianceRequirements() {
 				Action:    "violation_detected",
 				Severity:  types.SeverityCritical,
 				Result:    types.ResultFailure,
-				Data: map[string]interface{}{
-					"violation_type": "unauthorized_access_attempt",
-					"source_ip":      "192.168.1.100",
-					"target_system":  "production_database",
-				},
+				Data: json.RawMessage("{}"),
 				Timestamp: time.Now(),
 			},
 			expectedControls: []string{"A.16.1.1", "A.16.1.2"},
@@ -277,11 +262,7 @@ func (suite *ComplianceTestSuite) TestPCIDSSComplianceRequirements() {
 				Action:    "card_data_access",
 				Severity:  types.SeverityNotice,
 				Result:    types.ResultSuccess,
-				Data: map[string]interface{}{
-					"cardholder_data": true,
-					"card_numbers":    5,
-					"purpose":         "transaction_processing",
-				},
+				Data: json.RawMessage("{}"),
 				DataClassification: "Cardholder Data",
 				Timestamp:          time.Now(),
 			},
@@ -301,10 +282,7 @@ func (suite *ComplianceTestSuite) TestPCIDSSComplianceRequirements() {
 				UserContext: &types.UserContext{
 					UserID: "payment_user",
 				},
-				Data: map[string]interface{}{
-					"failure_reason": "invalid_credentials",
-					"attempt_count":  3,
-				},
+				Data: json.RawMessage("{}"),
 				Timestamp: time.Now(),
 			},
 			expectedReq:        "8.1.1",
@@ -381,9 +359,7 @@ func (suite *ComplianceTestSuite) TestRetentionManagement() {
 				name: "PCI DSS authentication event",
 				event: &types.AuditEvent{
 					EventType: types.EventTypeAuthentication,
-					Data: map[string]interface{}{
-						"cardholder_data": true,
-					},
+					Data: json.RawMessage("{}"),
 				},
 				complianceStandards: []types.ComplianceStandard{types.CompliancePCIDSS},
 				expectedMin:         365 * 24 * time.Hour, // 1 year
@@ -504,18 +480,14 @@ func (suite *ComplianceTestSuite) TestComplianceReportGeneration() {
 	//		{
 	//			ID:        uuid.New().String(),
 	//			EventType: types.EventTypeDataAccess,
-	//			Data: map[string]interface{}{
-	//				"cardholder_data": true,
-	//			},
+	//			Data: json.RawMessage("{}"),
 	//			DataClassification: "Cardholder Data",
 	//			Timestamp:          time.Now(),
 	//		},
 	//		{
 	//			ID:        uuid.New().String(),
 	//			EventType: types.EventTypeAuthenticationFailed,
-	//			Data: map[string]interface{}{
-	//				"failure_reason": "invalid_card",
-	//			},
+	//			Data: json.RawMessage("{}"),
 	//			Timestamp: time.Now(),
 	//		},
 	//	}
@@ -588,10 +560,7 @@ func (suite *ComplianceTestSuite) TestComplianceReportGeneration() {
 //			Action:    "customer_data_query",
 //			Severity:  types.SeverityNotice,
 //			Result:    types.ResultSuccess,
-//			Data: map[string]interface{}{
-//				"cardholder_data": true,
-//				"pii_records":     25,
-//			},
+//			Data: json.RawMessage("{}"),
 //			DataClassification: "Sensitive",
 //			Timestamp:          time.Now(),
 //		}

@@ -305,8 +305,7 @@ import (
 		DependencyStatus: map[string]health.Status{
 			"ric": health.StatusHealthy,
 		},
-		CircuitBreakerStats: map[string]interface{}{
-			"a1": map[string]interface{}{
+		CircuitBreakerStats: json.RawMessage("{}"){
 				"state": "closed",
 			},
 		},

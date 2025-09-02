@@ -9,7 +9,9 @@
 package reporting
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"fmt"
 	"sort"
@@ -199,7 +201,7 @@ type ComplianceRequirement struct {
 
 	Remediation *RemediationPlan `json:"remediation,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ComplianceStatus represents the status of compliance.
@@ -254,7 +256,7 @@ type Evidence struct {
 
 	Description string `json:"description"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Control represents a security control.
@@ -278,7 +280,7 @@ type Control struct {
 
 	TestResults []TestResult `json:"test_results"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // TestResult represents control test results.
@@ -300,7 +302,7 @@ type TestResult struct {
 
 	Evidence []string `json:"evidence"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RemediationPlan represents a plan to address non-compliance.
@@ -328,7 +330,7 @@ type RemediationPlan struct {
 
 	Risk string `json:"risk"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RemediationTask represents a task in a remediation plan.
@@ -350,7 +352,7 @@ type RemediationTask struct {
 
 	Dependencies []string `json:"dependencies"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ComplianceReport represents a comprehensive compliance report.
@@ -378,7 +380,7 @@ type ComplianceReport struct {
 
 	Recommendations []ComplianceRecommendation `json:"recommendations"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ComplianceSummary provides high-level compliance summary.
@@ -492,7 +494,7 @@ type AuditEvent struct {
 
 	UserAgent string `json:"user_agent"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Attestation represents a compliance attestation.

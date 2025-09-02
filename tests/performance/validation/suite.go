@@ -1,7 +1,9 @@
 package performance_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sort"
@@ -124,7 +126,7 @@ type LoadPattern struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // TestScenario represents a telecommunications-specific test scenario.
@@ -138,7 +140,7 @@ type TestScenario struct {
 
 	Complexity string `json:"complexity"` // "simple", "moderate", "complex"
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // EnvVariant represents different environment configurations.
@@ -148,7 +150,7 @@ type EnvVariant struct {
 
 	Description string `json:"description"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // HypothesisTest represents a formal hypothesis test.

@@ -1,7 +1,9 @@
 package health
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -90,7 +92,7 @@ type DependencyConfig struct {
 
 	// Custom metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyType represents the type of dependency.
@@ -231,7 +233,7 @@ type DependencyHealth struct {
 
 	// Additional details.
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // HealthCheckConfig configures health check behavior.
@@ -259,7 +261,7 @@ type ResponseValidation struct {
 
 	RequiredFields []string `json:"required_fields,omitempty"`
 
-	ExpectedValues map[string]interface{} `json:"expected_values,omitempty"`
+	ExpectedValues json.RawMessage `json:"expected_values,omitempty"`
 
 	MaxResponseSize int64 `json:"max_response_size,omitempty"`
 }
@@ -1096,13 +1098,7 @@ func (dht *DependencyHealthTracker) checkLLMAPI(ctx context.Context, config *Dep
 
 		ResponseTime: time.Since(start),
 
-		Details: map[string]interface{}{
-			"status_code": resp.StatusCode,
-
-			"endpoint": url,
-
-			"message": message,
-		},
+		Details: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -1133,11 +1129,7 @@ func (dht *DependencyHealthTracker) checkKubernetesAPI(ctx context.Context, conf
 
 		ResponseTime: time.Since(start),
 
-		Details: map[string]interface{}{
-			"server_version": version.GitVersion,
-
-			"platform": version.Platform,
-		},
+		Details: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -1257,15 +1249,7 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 
 		ResponseTime: time.Since(start),
 
-		Details: map[string]interface{}{
-			"status_code": resp.StatusCode,
-
-			"endpoint": url,
-
-			"message": message,
-
-			"method": method,
-		},
+		Details: json.RawMessage("{}"),
 	}, nil
 }
 

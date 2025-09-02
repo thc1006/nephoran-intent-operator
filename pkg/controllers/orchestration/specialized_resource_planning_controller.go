@@ -130,7 +130,7 @@ type ResourceProfile struct {
 
 	IOPSRequirement int64 `json:"iopsRequirement"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ScalingProfile defines how resources scale with load.
@@ -182,7 +182,7 @@ type NetworkFunctionTemplate struct {
 
 	PreferredNodes []string `json:"preferredNodes"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ResourceConstraintRule defines resource constraints.
@@ -200,7 +200,7 @@ type ResourceConstraintRule struct {
 
 	ViolationAction string `json:"violationAction"` // reject, warn, optimize
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ResourceConstraintCheck defines constraint checking logic.
@@ -224,7 +224,7 @@ type PlanningSession struct {
 
 	// Input data.
 
-	LLMResponse map[string]interface{} `json:"llmResponse"`
+	LLMResponse json.RawMessage `json:"llmResponse"`
 
 	RequiredNFs []string `json:"requiredNFs"`
 
@@ -531,11 +531,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 				NextPhase: interfaces.PhaseManifestGeneration,
 
-				Data: map[string]interface{}{
-					"resourcePlan": cached.Plan,
-
-					"correlationId": session.CorrelationID,
-				},
+				Data: json.RawMessage("{}"),
 
 				Metrics: map[string]float64{
 					"planning_time_ms": float64(time.Since(startTime).Milliseconds()),
@@ -673,13 +669,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 	// Create result.
 
-	resultData := map[string]interface{}{
-		"resourcePlan": resourcePlan,
-
-		"correlationId": session.CorrelationID,
-
-		"networkFunctions": networkFunctions,
-	}
+	resultData := json.RawMessage("{}")
 
 	if optimizedPlan != nil {
 		resultData["optimizedPlan"] = optimizedPlan
@@ -718,13 +708,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 				CorrelationID: session.CorrelationID,
 
-				Data: map[string]interface{}{
-					"intentId": intentID,
-
-					"networkFunctions": len(networkFunctions),
-
-					"planningTimeMs": session.Metrics.TotalTime.Milliseconds(),
-				},
+				Data: json.RawMessage("{}"),
 			},
 		},
 	}
@@ -1834,17 +1818,7 @@ func (c *SpecializedResourcePlanningController) GetHealthStatus(ctx context.Cont
 
 	defer c.mutex.RUnlock()
 
-	c.healthStatus.Metrics = map[string]interface{}{
-		"totalPlanned": c.metrics.TotalPlanned,
-
-		"successRate": c.getSuccessRate(),
-
-		"averagePlanningTime": c.metrics.AveragePlanningTime.Milliseconds(),
-
-		"cacheHitRate": c.metrics.CacheHitRate,
-
-		"activePlanning": c.getActivePlanningCount(),
-	}
+	c.healthStatus.Metrics = json.RawMessage("{}")
 
 	c.healthStatus.LastChecked = time.Now()
 
@@ -2113,13 +2087,7 @@ func (c *SpecializedResourcePlanningController) performHealthCheck() {
 
 		LastChecked: time.Now(),
 
-		Metrics: map[string]interface{}{
-			"successRate": successRate,
-
-			"activePlanning": activeCount,
-
-			"totalPlanned": c.metrics.TotalPlanned,
-		},
+		Metrics: json.RawMessage("{}"),
 	}
 }
 

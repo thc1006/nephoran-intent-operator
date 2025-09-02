@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/sha256"
 	"fmt"
 	"sync"
@@ -260,7 +262,7 @@ type AnalysisSpec struct {
 
 	Requester string `json:"requester,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AnalysisResult contains comprehensive analysis results.
@@ -330,7 +332,7 @@ type AnalysisResult struct {
 
 	Statistics *AnalysisStatistics `json:"statistics"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PackageAnalysis contains analysis for a single package.
@@ -592,7 +594,7 @@ type OptimizationRecommendations struct {
 
 	RecommendationModel string `json:"recommendationModel,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Enum definitions.

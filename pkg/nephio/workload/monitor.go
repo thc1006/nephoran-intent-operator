@@ -1,7 +1,9 @@
 package workload
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -76,7 +78,7 @@ type HealthCheck struct {
 
 	Enabled bool `json:"enabled"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // HealthSnapshot represents a point-in-time health snapshot.
@@ -504,7 +506,7 @@ type NotificationChannel struct {
 
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -570,7 +572,7 @@ type Dashboard struct {
 
 	Panels []string `json:"panels"`
 
-	Variables map[string]interface{} `json:"variables"`
+	Variables json.RawMessage `json:"variables"`
 
 	RefreshRate string `json:"refresh_rate"`
 }
@@ -584,9 +586,9 @@ type DataSource struct {
 
 	URL string `json:"url"`
 
-	Auth map[string]interface{} `json:"auth"`
+	Auth json.RawMessage `json:"auth"`
 
-	Settings map[string]interface{} `json:"settings"`
+	Settings json.RawMessage `json:"settings"`
 }
 
 // Panel represents a dashboard panel.
@@ -602,7 +604,7 @@ type Panel struct {
 
 	DataSource string `json:"data_source"`
 
-	Visualization map[string]interface{} `json:"visualization"`
+	Visualization json.RawMessage `json:"visualization"`
 
 	Thresholds []Threshold `json:"thresholds"`
 }
@@ -642,7 +644,7 @@ type PredictiveModel struct {
 
 	MetricName string `json:"metric_name"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Accuracy float64 `json:"accuracy"`
 

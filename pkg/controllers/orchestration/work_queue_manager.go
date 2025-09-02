@@ -31,7 +31,9 @@ limitations under the License.
 package orchestration
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -54,7 +56,7 @@ type ProcessingJob struct {
 
 	Priority int `json:"priority"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Context *interfaces.ProcessingContext `json:"context"`
 
@@ -828,7 +830,7 @@ type JobResult struct {
 
 	Success bool `json:"success"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	Error string `json:"error,omitempty"`
 
@@ -1036,19 +1038,5 @@ func (m *WorkQueueMetrics) GetMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"jobsEnqueued": m.JobsEnqueued,
-
-		"jobsStarted": m.JobsStarted,
-
-		"jobsCompleted": m.JobsCompleted,
-
-		"jobsFailed": m.JobsFailed,
-
-		"queueDepths": m.QueueDepths,
-
-		"processingTimes": m.ProcessingTimes,
-
-		"activeJobCount": m.ActiveJobCount,
-	}
+	return json.RawMessage("{}")
 }

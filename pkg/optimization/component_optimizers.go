@@ -31,7 +31,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -70,13 +72,13 @@ type OptimizationResult struct {
 
 	AppliedStrategies []string `json:"appliedStrategies"`
 
-	ConfigChanges map[string]interface{} `json:"configChanges"`
+	ConfigChanges json.RawMessage `json:"configChanges"`
 
 	ExpectedImpact *ExpectedImpact `json:"expectedImpact"`
 
 	ValidationMetrics []string `json:"validationMetrics"`
 
-	RollbackData map[string]interface{} `json:"rollbackData"`
+	RollbackData json.RawMessage `json:"rollbackData"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -1118,11 +1120,7 @@ func (opt *LLMProcessorOptimizer) shouldOptimizeTokens(analysis *ComponentAnalys
 func (opt *LLMProcessorOptimizer) optimizeTokenUsage(ctx context.Context, analysis *ComponentAnalysis) (interface{}, error) {
 	// Implementation logic for token optimization.
 
-	return map[string]interface{}{
-		"max_tokens": 2048,
-
-		"compression_enabled": true,
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // Additional placeholder methods would be implemented similarly...

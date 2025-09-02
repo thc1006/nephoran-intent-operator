@@ -114,7 +114,7 @@ type ResourceProfile struct {
 
 	Dependencies []nephoranv1.CNFFunction `json:"dependencies"`
 
-	Characteristics map[string]interface{} `json:"characteristics"`
+	Characteristics json.RawMessage `json:"characteristics"`
 }
 
 // CNFResourceRequirements defines resource requirements for CNFs.
@@ -174,7 +174,7 @@ type DeploymentPattern struct {
 
 	DefaultReplicas int32 `json:"default_replicas"`
 
-	ScalingCharacteristics map[string]interface{} `json:"scaling_characteristics"`
+	ScalingCharacteristics json.RawMessage `json:"scaling_characteristics"`
 
 	AffinityRules []string `json:"affinity_rules"`
 
@@ -1187,13 +1187,7 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 
 	}
 
-	resourceData := map[string]interface{}{
-		"total_cpu": totalCPU,
-
-		"total_memory": totalMemory,
-
-		"estimated_monthly_cost": totalCost,
-	}
+	resourceData := json.RawMessage("{}")
 
 	resourceDataBytes, err := json.Marshal(resourceData)
 	if err != nil {

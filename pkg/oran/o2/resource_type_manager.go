@@ -1,7 +1,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -223,7 +225,7 @@ type YANGModel struct {
 
 	Tags map[string]string `json:"tags,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -271,7 +273,7 @@ type YANGDeviation struct {
 
 	Reference string `json:"reference,omitempty"`
 
-	Condition map[string]interface{} `json:"condition,omitempty"`
+	Condition json.RawMessage `json:"condition,omitempty"`
 }
 
 // CompiledSchema represents a compiled YANG schema.
@@ -301,7 +303,7 @@ type CompiledSchema struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // YANGNode represents a node in the YANG schema tree.
@@ -341,7 +343,7 @@ type YANGNode struct {
 
 	// Extensions.
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 }
 
 // YANGDataType represents a YANG data type.
@@ -367,7 +369,7 @@ type YANGDataType struct {
 
 	// Extensions.
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 }
 
 // YANGRestriction represents a restriction on a YANG data type.
@@ -429,7 +431,7 @@ type YANGConstraint struct {
 
 	Description string `json:"description,omitempty"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // ValidationResult represents the result of YANG validation.
@@ -499,7 +501,7 @@ type Schema struct {
 
 	Tags map[string]string `json:"tags,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Lifecycle.
 

@@ -92,9 +92,7 @@ import (
 			case http.MethodPut:
 				w.WriteHeader(http.StatusCreated)
 			case http.MethodGet:
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"slice_id": "test-slice",
-					"qos_parameters": map[string]interface{}{
+				json.NewEncoder(w).Encode(json.RawMessage("{}"){
 						"latency_ms":      10,
 						"throughput_mbps": 100,
 					},
@@ -130,9 +128,7 @@ import (
 		instance := &A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1000,
-			PolicyData: map[string]interface{}{
-				"slice_id": "test-slice",
-				"qos_parameters": map[string]interface{}{
+			PolicyData: json.RawMessage("{}"){
 					"latency_ms":      10,
 					"throughput_mbps": 100,
 				},
@@ -375,9 +371,7 @@ import (
 		PolicyTypeID: 1,
 		Name:         "Test Policy Type",
 		Description:  "Test retry mechanism",
-		PolicySchema: map[string]interface{}{
-			"type": "object",
-		},
+		PolicySchema: json.RawMessage("{}"),
 	}
 
 	ctx := context.Background()
@@ -516,10 +510,7 @@ import (
 	adaptor, err := NewA1Adaptor(config)
 	require.NoError(t, err)
 
-	policyData := map[string]interface{}{
-		"threshold": 10.5,
-		"action":    "throttle",
-	}
+	policyData := json.RawMessage("{}")
 
 	ctx := context.Background()
 	err = adaptor.createPolicyInstanceWithRetry(ctx, 1, "policy-1", policyData)
@@ -672,18 +663,12 @@ import (
 			PolicyTypeID: 1,
 			Name:         "Test Policy",
 			Description:  "A test policy type",
-			PolicySchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"param1": map[string]interface{}{
-						"type": "string",
-					},
+			PolicySchema: json.RawMessage("{}"){
+					"param1": json.RawMessage("{}"),
 				},
 				"required": []string{"param1"},
 			},
-			CreateSchema: map[string]interface{}{
-				"type": "object",
-			},
+			CreateSchema: json.RawMessage("{}"),
 		}
 
 		assert.Equal(t, 1, policyType.PolicyTypeID)
@@ -698,9 +683,7 @@ import (
 		instance := A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1,
-			PolicyData: map[string]interface{}{
-				"param1": "value1",
-			},
+			PolicyData: json.RawMessage("{}"),
 			Status: A1PolicyStatus{
 				EnforcementStatus: "ENFORCED",
 				EnforcementReason: "Policy applied successfully",

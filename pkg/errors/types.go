@@ -1,7 +1,9 @@
 package errors
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"time"
 )
 
@@ -181,7 +183,7 @@ type ProcessingError struct {
 
 	SpanID string `json:"span_id,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	// Error chain.
 

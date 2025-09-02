@@ -153,7 +153,7 @@ type SecurityIncident struct {
 
 	Actions []*ResponseAction `json:"actions"`
 
-	Artifacts map[string]interface{} `json:"artifacts"`
+	Artifacts json.RawMessage `json:"artifacts"`
 
 	MITRE *MITREMapping `json:"mitre,omitempty"`
 
@@ -175,7 +175,7 @@ type Evidence struct {
 
 	Description string `json:"description"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Hash string `json:"hash"`
 
@@ -213,7 +213,7 @@ type ResponseAction struct {
 
 	Result string `json:"result"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Automated bool `json:"automated"`
 }
@@ -289,7 +289,7 @@ type ResponsePlaybook struct {
 type PlaybookTrigger struct {
 	Type string `json:"type"`
 
-	Conditions map[string]interface{} `json:"conditions"`
+	Conditions json.RawMessage `json:"conditions"`
 }
 
 // PlaybookAction represents a playbook action.
@@ -301,7 +301,7 @@ type PlaybookAction struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Timeout time.Duration `json:"timeout"`
 
@@ -351,7 +351,7 @@ type Condition struct {
 type Action struct {
 	Type string `json:"type"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // ForensicsCollector handles evidence collection.
@@ -1212,9 +1212,7 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 				{
 					Type: "category",
 
-					Conditions: map[string]interface{}{
-						"category": "malware",
-					},
+					Conditions: json.RawMessage("{}"),
 				},
 			},
 
@@ -1226,9 +1224,7 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 
 					Description: "Isolate infected host",
 
-					Parameters: map[string]interface{}{
-						"isolation_type": "network",
-					},
+					Parameters: json.RawMessage("{}"),
 
 					Timeout: 5 * time.Minute,
 				},
@@ -1240,8 +1236,7 @@ func (ir *IncidentResponse) loadDefaultPlaybooks() {
 
 					Description: "Collect forensic evidence",
 
-					Parameters: map[string]interface{}{
-						"evidence_types": []string{"memory", "disk", "network"},
+					Parameters: json.RawMessage("{}"),
 					},
 
 					Timeout: 30 * time.Minute,

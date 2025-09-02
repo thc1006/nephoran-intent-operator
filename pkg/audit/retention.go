@@ -1,7 +1,9 @@
 package audit
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -229,7 +231,7 @@ type LegalHold struct {
 
 	Status string `json:"status"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RetentionAction represents an action taken by the retention policy.
@@ -249,7 +251,7 @@ type RetentionAction struct {
 
 	Status string `json:"status"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // NewRetentionManager creates a new retention manager.
@@ -461,21 +463,7 @@ func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 
 	for name, policy := range rm.policies {
 
-		policyStatus := map[string]interface{}{
-			"retention_period": policy.config.RetentionPeriod.String(),
-
-			"last_execution": policy.lastExecution,
-
-			"events_retained": policy.eventsRetained,
-
-			"events_archived": policy.eventsArchived,
-
-			"events_deleted": policy.eventsDeleted,
-
-			"storage_usage": policy.storageUsage,
-
-			"legal_holds_count": len(policy.legalHolds),
-		}
+		policyStatus := json.RawMessage("{}")
 
 		// Add legal hold information.
 

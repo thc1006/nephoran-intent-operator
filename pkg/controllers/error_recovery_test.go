@@ -510,11 +510,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Setting up LLM client for concurrent processing")
-			successResponse := map[string]interface{}{
-				"action":    "deploy",
-				"component": "concurrent-nf",
-				"replicas":  1,
-			}
+			successResponse := json.RawMessage("{}")
 			successResponseBytes, _ := json.Marshal(successResponse)
 			// Update mock dependencies for concurrent processing test
 			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)
@@ -925,12 +921,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			)
 
 			// Set up successful LLM processing
-			mockResponse := map[string]interface{}{
-				"action":        "deploy",
-				"component":     "e2nodeset",
-				"resource_name": "cascading-test-e2nodeset",
-				"replicas":      3,
-			}
+			mockResponse := json.RawMessage("{}")
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			// Update mock dependencies for cascading failure test
 			mockDeps := networkIntentReconciler.GetDependencies().(*MockDependencies)

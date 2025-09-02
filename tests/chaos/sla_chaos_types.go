@@ -1,7 +1,9 @@
 package chaos
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -64,7 +66,7 @@ type SafetyCheck struct {
 	Type       SafetyCheckType        `json:"type"`
 	Threshold  float64                `json:"threshold"`
 	Action     SafetyAction           `json:"action"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // SafetyCheckType defines types of safety checks
@@ -95,7 +97,7 @@ type ChaosExperiment struct {
 	Description      string                 `json:"description"`
 	Type             ExperimentType         `json:"type"`
 	Target           ExperimentTarget       `json:"target"`
-	Parameters       map[string]interface{} `json:"parameters"`
+	Parameters       json.RawMessage `json:"parameters"`
 	Duration         time.Duration          `json:"duration"`
 	ExpectedBehavior *ExpectedBehavior      `json:"expected_behavior"`
 	SafetyChecks     []*SafetyCheck         `json:"safety_checks"`
@@ -196,7 +198,7 @@ type SafetyViolation struct {
 	Severity    ViolationSeverity      `json:"severity"`
 	Timestamp   time.Time              `json:"timestamp"`
 	Action      SafetyAction           `json:"action"`
-	Context     map[string]interface{} `json:"context"`
+	Context     json.RawMessage `json:"context"`
 	Resolved    bool                   `json:"resolved"`
 	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
 }
@@ -290,7 +292,7 @@ type ConsistencyCheck struct {
 	Expected   interface{}            `json:"expected"`
 	Tolerance  float64                `json:"tolerance"`
 	CheckType  ConsistencyCheckType   `json:"check_type"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // ConsistencyCheckType defines types of consistency checks
@@ -311,7 +313,7 @@ type DataInconsistency struct {
 	Deviation float64                `json:"deviation"`
 	Timestamp time.Time              `json:"timestamp"`
 	Severity  InconsistencySeverity  `json:"severity"`
-	Context   map[string]interface{} `json:"context"`
+	Context   json.RawMessage `json:"context"`
 	Resolved  bool                   `json:"resolved"`
 }
 
@@ -337,7 +339,7 @@ type SLAViolation struct {
 	EndTime         *time.Time             `json:"end_time,omitempty"`
 	Duration        time.Duration          `json:"duration"`
 	Impact          *ViolationImpact       `json:"impact"`
-	Context         map[string]interface{} `json:"context"`
+	Context         json.RawMessage `json:"context"`
 	Acknowledged    bool                   `json:"acknowledged"`
 	Resolved        bool                   `json:"resolved"`
 	ResolutionNotes string                 `json:"resolution_notes,omitempty"`
@@ -349,7 +351,7 @@ type ViolationImpact struct {
 	BusinessImpact    string                 `json:"business_impact"`
 	TechnicalImpact   string                 `json:"technical_impact"`
 	DownstreamEffects []string               `json:"downstream_effects"`
-	Metrics           map[string]interface{} `json:"metrics"`
+	Metrics           json.RawMessage `json:"metrics"`
 }
 
 // AlertEvent represents an alert event
@@ -363,7 +365,7 @@ type AlertEvent struct {
 	StartsAt     time.Time              `json:"starts_at"`
 	EndsAt       *time.Time             `json:"ends_at,omitempty"`
 	GeneratorURL string                 `json:"generator_url"`
-	Context      map[string]interface{} `json:"context"`
+	Context      json.RawMessage `json:"context"`
 	Source       string                 `json:"source"`
 	Fingerprint  string                 `json:"fingerprint"`
 }
@@ -533,7 +535,7 @@ type FailureInstance struct {
 	ID         string                 `json:"id"`
 	Type       ExperimentType         `json:"type"`
 	Target     ExperimentTarget       `json:"target"`
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 	StartTime  time.Time              `json:"start_time"`
 	Status     FailureStatus          `json:"status"`
 	Impact     *FailureImpact         `json:"impact"`
@@ -621,7 +623,7 @@ type ChaosObservation struct {
 	Component   string                 `json:"component"`
 	Description string                 `json:"description"`
 	Severity    ObservationSeverity    `json:"severity"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // ObservationType defines types of chaos observations

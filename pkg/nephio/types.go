@@ -1,7 +1,9 @@
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -30,7 +32,7 @@ type Resource struct {
 	Kind       string                 `json:"kind"`
 	APIVersion string                 `json:"api_version"`
 	Metadata   ResourceMetadata       `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec"`
+	Spec       json.RawMessage `json:"spec"`
 }
 
 // ResourceMetadata represents resource metadata
@@ -74,7 +76,7 @@ type Intent struct {
 	Description     string                 `json:"description"`
 	IntentType      string                 `json:"intent_type"`
 	NetworkFunction string                 `json:"network_function,omitempty"`
-	Parameters      map[string]interface{} `json:"parameters"`
+	Parameters      json.RawMessage `json:"parameters"`
 	Status          string                 `json:"status"`
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
@@ -91,7 +93,7 @@ type IntentProcessor interface {
 type ProcessingResult struct {
 	IntentID      string                 `json:"intent_id"`
 	PackageID     string                 `json:"package_id,omitempty"`
-	GeneratedSpec map[string]interface{} `json:"generated_spec"`
+	GeneratedSpec json.RawMessage `json:"generated_spec"`
 	Status        string                 `json:"status"`
 	Message       string                 `json:"message,omitempty"`
 	ProcessedAt   time.Time              `json:"processed_at"`

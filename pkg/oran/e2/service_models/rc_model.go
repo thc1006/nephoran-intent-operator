@@ -108,7 +108,7 @@ type RCControlResult struct {
 
 	Cause string `json:"cause,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // E2SMRCEventTriggerDefinition represents RC event trigger.
@@ -122,7 +122,7 @@ type E2SMRCEventTriggerDefinition struct {
 type E2SMRCEventTriggerDefinitionFormat1 struct {
 	TriggerType string `json:"trigger_type"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 // E2SMRCActionDefinition represents RC action definition.
@@ -138,7 +138,7 @@ type E2SMRCActionDefinitionFormat1 struct {
 
 	ControlStyle int `json:"control_style"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 // E2SMRCControlHeader represents RC control header.
@@ -393,9 +393,9 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: map[string]interface{}{"data": header},
+		ControlHeader: json.RawMessage("{}"),
 
-		ControlMessage: map[string]interface{}{"data": message},
+		ControlMessage: json.RawMessage("{}"),
 
 		ControlAckRequest: true,
 	}
@@ -499,9 +499,9 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: map[string]interface{}{"data": header},
+		ControlHeader: json.RawMessage("{}"),
 
-		ControlMessage: map[string]interface{}{"data": message},
+		ControlMessage: json.RawMessage("{}"),
 
 		ControlAckRequest: true,
 	}
@@ -584,9 +584,9 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: map[string]interface{}{"data": header},
+		ControlHeader: json.RawMessage("{}"),
 
-		ControlMessage: map[string]interface{}{"data": message},
+		ControlMessage: json.RawMessage("{}"),
 
 		ControlAckRequest: true,
 	}
@@ -668,9 +668,9 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 
 		CallProcessID: "", // Empty string instead of nil
 
-		ControlHeader: map[string]interface{}{"data": header},
+		ControlHeader: json.RawMessage("{}"),
 
-		ControlMessage: map[string]interface{}{"data": message},
+		ControlMessage: json.RawMessage("{}"),
 
 		ControlAckRequest: true,
 	}

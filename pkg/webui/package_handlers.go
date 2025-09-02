@@ -336,13 +336,7 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	}
 
-	result := map[string]interface{}{
-		"items": paginatedItems,
-
-		"meta": meta,
-
-		"links": links,
-	}
+	result := json.RawMessage("{}")
 
 	// Cache the result.
 
@@ -890,15 +884,7 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 
 	// Convert to API response format.
 
-	deploymentStatus := map[string]interface{}{
-		"package_name": status.PackageName,
-
-		"overall_status": status.OverallStatus,
-
-		"last_updated": status.LastUpdated,
-
-		"cluster_status": status.ClusterStatuses,
-	}
+	deploymentStatus := json.RawMessage("{}")
 
 	// Cache the result.
 
@@ -1055,7 +1041,7 @@ func (s *NephoranAPIServer) deletePackage(w http.ResponseWriter, r *http.Request
 func (s *NephoranAPIServer) listPackageRevisions(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement actual package revision listing.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"revisions": []interface{}{}})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){}})
 }
 
 // getPackageRevision handles GET /api/v1/packages/{name}/revisions/{revision}.
@@ -1121,7 +1107,7 @@ func (s *NephoranAPIServer) lintPackage(w http.ResponseWriter, r *http.Request) 
 func (s *NephoranAPIServer) getPackageResources(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement actual package resource retrieval.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"resources": []interface{}{}})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){}})
 }
 
 // updatePackageResources handles PUT /api/v1/packages/{name}/resources.
@@ -1157,7 +1143,7 @@ func (s *NephoranAPIServer) getPackageDiff(w http.ResponseWriter, r *http.Reques
 
 	// TODO: Implement actual package diff.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"diff": ""})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // getPackageHistory handles GET /api/v1/packages/{name}/history.
@@ -1175,7 +1161,7 @@ func (s *NephoranAPIServer) getPackageHistory(w http.ResponseWriter, r *http.Req
 
 	// TODO: Implement actual package history.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"history": []interface{}{}})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){}})
 }
 
 // deployPackage handles POST /api/v1/packages/{name}/deploy.
@@ -1211,7 +1197,7 @@ func (s *NephoranAPIServer) getPackageTargetClusters(w http.ResponseWriter, r *h
 
 	// TODO: Implement actual target cluster retrieval.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"clusters": []interface{}{}})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){}})
 }
 
 // listPackageTemplates handles GET /api/v1/packages/templates.
@@ -1223,7 +1209,7 @@ func (s *NephoranAPIServer) listPackageTemplates(w http.ResponseWriter, r *http.
 
 	// TODO: Implement actual template listing.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"templates": []interface{}{}})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){}})
 }
 
 // getPackageTemplate handles GET /api/v1/packages/templates/{template}.
@@ -1253,7 +1239,7 @@ func (s *NephoranAPIServer) listBlueprints(w http.ResponseWriter, r *http.Reques
 
 	// TODO: Implement actual blueprint listing.
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"blueprints": []interface{}{}})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){}})
 }
 
 // getBlueprint handles GET /api/v1/packages/blueprints/{blueprint}.

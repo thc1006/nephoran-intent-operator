@@ -58,11 +58,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "test-file",
-		Settings: map[string]interface{}{
-			"path":       logFile,
-			"format":     "json",
-			"permission": "0644",
-		},
+		Settings: json.RawMessage("{}"),
 		Format: "json",
 	}
 
@@ -117,14 +113,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackendWithRotation() {
 		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "test-file-rotation",
-		Settings: map[string]interface{}{
-			"path":        logFile,
-			"format":      "json",
-			"max_size":    1024, // 1KB for testing
-			"max_backups": 3,
-			"max_age":     7,
-			"compress":    true,
-		},
+		Settings: json.RawMessage("{}"),
 	}
 
 	backend, err := NewFileBackend(config)
@@ -152,10 +141,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackendCompression() {
 		Enabled:     true,
 		Name:        "test-compressed",
 		Compression: true,
-		Settings: map[string]interface{}{
-			"path":   logFile,
-			"format": "json",
-		},
+		Settings: json.RawMessage("{}"),
 	}
 
 	backend, err := NewFileBackend(config)
@@ -182,19 +168,9 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 		case r.Method == "POST" && strings.Contains(r.URL.Path, "_bulk"):
 			// Mock bulk indexing response
 			w.Header().Set("Content-Type", "application/json")
-			response := map[string]interface{}{
-				"took":   5,
-				"errors": false,
-				"items": []map[string]interface{}{
+			response := json.RawMessage("{}"){
 					{
-						"index": map[string]interface{}{
-							"_index":   "audit-logs",
-							"_type":    "_doc",
-							"_id":      "1",
-							"_version": 1,
-							"result":   "created",
-							"status":   201,
-						},
+						"index": json.RawMessage("{}"),
 					},
 				},
 			}
@@ -202,10 +178,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 		case r.Method == "GET" && r.URL.Path == "/":
 			// Mock cluster info response
 			w.Header().Set("Content-Type", "application/json")
-			response := map[string]interface{}{
-				"name":         "test-node",
-				"cluster_name": "test-cluster",
-				"version": map[string]interface{}{
+			response := json.RawMessage("{}"){
 					"number": "7.10.0",
 				},
 			}
@@ -213,13 +186,9 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 		case r.Method == "POST" && strings.Contains(r.URL.Path, "_search"):
 			// Mock search response
 			w.Header().Set("Content-Type", "application/json")
-			response := map[string]interface{}{
-				"took": 5,
-				"hits": map[string]interface{}{
-					"total": map[string]interface{}{"value": 1},
-					"hits": []map[string]interface{}{
-						{
-							"_source": map[string]interface{}{
+			response := json.RawMessage("{}"){
+					"total": json.RawMessage("{}"),
+					"hits": []json.RawMessage("{}"){
 								"id":        "test-event",
 								"timestamp": time.Now().Format(time.RFC3339),
 								"message":   "Test event",
@@ -239,8 +208,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 		Type:    backends.BackendTypeElasticsearch,
 		Enabled: true,
 		Name:    "test-elasticsearch",
-		Settings: map[string]interface{}{
-			"urls":  []string{server.URL},
+		Settings: json.RawMessage("{}"),
 			"index": "audit-logs",
 		},
 		Timeout: 30 * time.Second,
@@ -298,17 +266,11 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 			suite.Contains(auth, "Splunk")
 
 			w.Header().Set("Content-Type", "application/json")
-			response := map[string]interface{}{
-				"text": "Success",
-				"code": 0,
-			}
+			response := json.RawMessage("{}")
 			json.NewEncoder(w).Encode(response)
 		case r.Method == "GET" && strings.Contains(r.URL.Path, "/services/collector/health"):
 			w.Header().Set("Content-Type", "application/json")
-			response := map[string]interface{}{
-				"text": "HEC is available",
-				"code": 0,
-			}
+			response := json.RawMessage("{}")
 			json.NewEncoder(w).Encode(response)
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -320,11 +282,7 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 		Type:    backends.BackendTypeSplunk,
 		Enabled: true,
 		Name:    "test-splunk",
-		Settings: map[string]interface{}{
-			"url":   server.URL,
-			"token": "test-token",
-			"index": "audit",
-		},
+		Settings: json.RawMessage("{}"),
 		Auth: AuthConfig{
 			Type:  "hec",
 			Token: "test-token",
@@ -382,10 +340,7 @@ func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
 		Type:    backends.BackendTypeWebhook,
 		Enabled: true,
 		Name:    "test-webhook",
-		Settings: map[string]interface{}{
-			"url":     server.URL,
-			"method":  "POST",
-			"headers": map[string]string{"Content-Type": "application/json"},
+		Settings: json.RawMessage("{}"),
 		},
 		Timeout: 10 * time.Second,
 	}
@@ -421,11 +376,7 @@ func (suite *TestBackendIntegrationSuite) TestSyslogBackend() {
 		Type:    backends.BackendTypeSyslog,
 		Enabled: true,
 		Name:    "test-syslog",
-		Settings: map[string]interface{}{
-			"network": "unix",
-			"address": syslogFile,
-			"tag":     "nephoran-audit",
-		},
+		Settings: json.RawMessage("{}"),
 	}
 
 	backend, err := NewSyslogBackend(config)
@@ -480,8 +431,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchWithContainer() {
 		Type:    backends.BackendTypeElasticsearch,
 		Enabled: true,
 		Name:    "test-elasticsearch-container",
-		Settings: map[string]interface{}{
-			"urls":  []string{esURL},
+		Settings: json.RawMessage("{}"),
 			"index": "audit-logs-test",
 		},
 		Timeout: 30 * time.Second,
@@ -535,9 +485,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 				Type:    backends.BackendTypeFile,
 				Enabled: true,
 				Name:    "test-file",
-				Settings: map[string]interface{}{
-					"path": filepath.Join(suite.tempDir, "factory_test.log"),
-				},
+				Settings: json.RawMessage("{}"),
 			},
 			expectError: false,
 		},
@@ -675,9 +623,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "performance-test",
-		Settings: map[string]interface{}{
-			"path": logFile,
-		},
+		Settings: json.RawMessage("{}"),
 		BufferSize: 1000,
 	}
 
@@ -727,9 +673,7 @@ func createTestEvent(action string) *audit.AuditEvent {
 			ResourceType: "deployment",
 			Operation:    "create",
 		},
-		Data: map[string]interface{}{
-			"test_field": "test_value",
-		},
+		Data: json.RawMessage("{}"),
 	}
 }
 
@@ -771,9 +715,7 @@ func BenchmarkFileBackendWriteEvent(b *testing.B) {
 		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "benchmark",
-		Settings: map[string]interface{}{
-			"path": logFile,
-		},
+		Settings: json.RawMessage("{}"),
 	}
 
 	backend, err := NewFileBackend(config)
@@ -801,9 +743,7 @@ func BenchmarkFileBackendWriteBatch(b *testing.B) {
 		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "benchmark-batch",
-		Settings: map[string]interface{}{
-			"path": logFile,
-		},
+		Settings: json.RawMessage("{}"),
 	}
 
 	backend, err := NewFileBackend(config)

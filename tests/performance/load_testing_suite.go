@@ -67,8 +67,8 @@ type RequestTemplate struct {
 	QueryType      string                 `json:"query_type"`
 	QueryTemplates []string               `json:"query_templates"`
 	IntentTypes    []string               `json:"intent_types"`
-	Parameters     map[string]interface{} `json:"parameters"`
-	ContextData    map[string]interface{} `json:"context_data"`
+	Parameters     json.RawMessage `json:"parameters"`
+	ContextData    json.RawMessage `json:"context_data"`
 }
 
 // LoadTestResults contains comprehensive load test results
@@ -806,7 +806,7 @@ type LoadTestRequest struct {
 	Scenario   string                 `json:"scenario"`
 	Query      string                 `json:"query"`
 	IntentType string                 `json:"intent_type"`
-	Context    map[string]interface{} `json:"context"`
+	Context    json.RawMessage `json:"context"`
 	Timestamp  time.Time              `json:"timestamp"`
 }
 

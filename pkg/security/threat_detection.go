@@ -3,7 +3,9 @@
 package security
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -130,7 +132,7 @@ type SecurityEvent struct {
 	SourceIP        string                 `json:"source_ip"`
 	Target          string                 `json:"target"`
 	Description     string                 `json:"description"`
-	RawData         map[string]interface{} `json:"raw_data"`
+	RawData         json.RawMessage `json:"raw_data"`
 	ThreatScore     int                    `json:"threat_score"`
 	Tags            []string               `json:"tags"`
 	Context         map[string]string      `json:"context"`
@@ -162,7 +164,7 @@ type ActiveThreat struct {
 	Active      bool                   `json:"active"`
 	Mitigated   bool                   `json:"mitigated"`
 	Indicators  []ThreatIndicator      `json:"indicators"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // ThreatIndicator represents an indicator of compromise (IoC)
@@ -352,13 +354,7 @@ func (td *ThreatDetector) ProcessRequest(r *http.Request) *SecurityEvent {
 		SourceIP:    clientIP,
 		Target:      r.Host,
 		Description: fmt.Sprintf("%s %s from %s", r.Method, r.URL.Path, clientIP),
-		RawData: map[string]interface{}{
-			"method":     r.Method,
-			"path":       r.URL.Path,
-			"user_agent": r.UserAgent(),
-			"referer":    r.Referer(),
-			"headers":    r.Header,
-		},
+		RawData: json.RawMessage("{}"),
 		Tags:            []string{"http", "inbound"},
 		Context:         make(map[string]string),
 		ResponseActions: make([]string, 0),
@@ -665,13 +661,7 @@ func (td *ThreatDetector) createSecurityIncident(event *SecurityEvent) {
 		Evidence:    []*Evidence{},
 		Timeline:    []*TimelineEvent{},
 		Actions:     []*ResponseAction{},
-		Artifacts: map[string]interface{}{
-			"threat_score": event.ThreatScore,
-			"source_ip":    event.SourceIP,
-			"event_type":   event.EventType,
-			"auto_created": true,
-			"event_id":     event.ID,
-		},
+		Artifacts: json.RawMessage("{}"),
 	}
 
 	td.mu.Lock()

@@ -1,7 +1,9 @@
 package providers
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // EventType represents the type of provider event
@@ -54,13 +56,13 @@ type ResourceEvent struct {
 	Description string        `json:"description,omitempty"`
 
 	// Context and metadata
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 	Labels  map[string]string      `json:"labels,omitempty"`
 	Source  string                 `json:"source"` // provider name
 
 	// State change information (if applicable)
-	OldState map[string]interface{} `json:"oldState,omitempty"`
-	NewState map[string]interface{} `json:"newState,omitempty"`
+	OldState json.RawMessage `json:"oldState,omitempty"`
+	NewState json.RawMessage `json:"newState,omitempty"`
 }
 
 // ProviderEvent represents an event at the provider level
@@ -80,7 +82,7 @@ type ProviderEvent struct {
 	Description string        `json:"description,omitempty"`
 
 	// Context and metadata
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 	Labels  map[string]string      `json:"labels,omitempty"`
 
 	// Error information (if applicable)
@@ -142,7 +144,7 @@ type WebhookConfig struct {
 type QueueConfig struct {
 	Type      string                 `json:"type"` // redis, kafka, sqs, etc.
 	Topic     string                 `json:"topic"`
-	Config    map[string]interface{} `json:"config"`
+	Config    json.RawMessage `json:"config"`
 	BatchSize int                    `json:"batchSize,omitempty"`
 	Timeout   time.Duration          `json:"timeout,omitempty"`
 }

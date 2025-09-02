@@ -31,7 +31,9 @@ limitations under the License.
 package orchestration
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -56,7 +58,7 @@ type ProcessingEvent struct {
 
 	Success bool `json:"success"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -698,17 +700,5 @@ func (m *EventBusMetrics) GetMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"totalEventsPublished": m.TotalEventsPublished,
-
-		"totalEventsProcessed": m.TotalEventsProcessed,
-
-		"eventsPerType": m.EventsPerType,
-
-		"failedHandlers": m.FailedHandlers,
-
-		"averageProcessingTime": m.AverageProcessingTime.String(),
-
-		"bufferUtilization": m.BufferUtilization,
-	}
+	return json.RawMessage("{}")
 }

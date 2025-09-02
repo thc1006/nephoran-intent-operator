@@ -126,9 +126,9 @@ type Asset struct {
 
 	// Asset properties.
 
-	Properties map[string]interface{} `json:"properties"`
+	Properties json.RawMessage `json:"properties"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -188,7 +188,7 @@ type AssetRelationship struct {
 
 	RelationType string `json:"relationType"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -206,7 +206,7 @@ type ComplianceCheck struct {
 
 	Result string `json:"result"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -224,7 +224,7 @@ type AuditEntry struct {
 
 	ResourceID string `json:"resourceId"`
 
-	Changes map[string]interface{} `json:"changes,omitempty"`
+	Changes json.RawMessage `json:"changes,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -1207,19 +1207,11 @@ func (s *InventoryManagementService) trackAssetChanges(existing, updated *Asset)
 	}
 
 	if !equalMaps(existing.Properties, updated.Properties) {
-		changes["properties"] = map[string]interface{}{
-			"from": existing.Properties,
-
-			"to": updated.Properties,
-		}
+		changes["properties"] = json.RawMessage("{}")
 	}
 
 	if !equalStringMaps(existing.Tags, updated.Tags) {
-		changes["tags"] = map[string]interface{}{
-			"from": existing.Tags,
-
-			"to": updated.Tags,
-		}
+		changes["tags"] = json.RawMessage("{}")
 	}
 
 	return changes

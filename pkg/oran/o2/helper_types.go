@@ -5,7 +5,9 @@
 package o2
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -80,7 +82,7 @@ type DeploymentTemplate struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Status *TemplateStatus `json:"status"`
 
@@ -184,7 +186,7 @@ type Deployment struct {
 
 	ParentDeploymentID string `json:"parentDeploymentId,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Deployment specification.
 
@@ -268,7 +270,7 @@ type CreateDeploymentRequest struct {
 
 	ParentDeploymentID string `json:"parentDeploymentId,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -290,7 +292,7 @@ type UpdateDeploymentRequest struct {
 
 	InputParameters *runtime.RawExtension `json:"inputParameters,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -354,7 +356,7 @@ type ResourceHealth struct {
 
 	Checks []*HealthCheckResult `json:"checks,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	Alerts []interface{} `json:"alerts,omitempty"`
 
@@ -374,7 +376,7 @@ type HealthCheckResult struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // Alarm represents an alarm in the system.
@@ -404,7 +406,7 @@ type Alarm struct {
 
 	AcknowledgedBy string `json:"acknowledgedBy,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additionalInfo,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additionalInfo,omitempty"`
 }
 
 // AlarmFilter defines filters for alarm queries.
@@ -444,7 +446,7 @@ type MetricsData struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -488,7 +490,7 @@ type InfrastructureDiscovery struct {
 
 	Capabilities []string `json:"capabilities,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // InventoryUpdate represents an update to the infrastructure inventory.
@@ -504,7 +506,7 @@ type InventoryUpdate struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Changes map[string]interface{} `json:"changes,omitempty"`
+	Changes json.RawMessage `json:"changes,omitempty"`
 
 	Source string `json:"source,omitempty"`
 }
@@ -548,7 +550,7 @@ type ProvisionResourceRequest struct {
 
 	Tags map[string]string `json:"tags,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ScaleResourceRequest represents a request to scale a resource.
@@ -564,7 +566,7 @@ type ScaleResourceRequest struct {
 
 	Resources *ResourceRequirements `json:"resources,omitempty"`
 
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 // MigrateResourceRequest represents a request to migrate a resource.
@@ -580,7 +582,7 @@ type MigrateResourceRequest struct {
 
 	PreservePersistence bool `json:"preservePersistence"`
 
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 // BackupResourceRequest represents a request to backup a resource.
@@ -594,7 +596,7 @@ type BackupResourceRequest struct {
 
 	Compression bool `json:"compression"`
 
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 // BackupInfo represents information about a backup.
@@ -618,7 +620,7 @@ type BackupInfo struct {
 
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ResourceHistoryEntry represents a history entry for a resource.
@@ -632,7 +634,7 @@ type ResourceHistoryEntry struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Changes map[string]interface{} `json:"changes,omitempty"`
+	Changes json.RawMessage `json:"changes,omitempty"`
 
 	User string `json:"user,omitempty"`
 
@@ -696,7 +698,7 @@ type ParameterConstraints struct {
 
 	AllowedValues []interface{} `json:"allowedValues,omitempty"`
 
-	Validation map[string]interface{} `json:"validation,omitempty"`
+	Validation json.RawMessage `json:"validation,omitempty"`
 }
 
 // ValidationRule defines validation rules for templates.
@@ -714,7 +716,7 @@ type ValidationRule struct {
 
 	Severity string `json:"severity"` // ERROR, WARNING, INFO
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // CompatibilityInfo defines compatibility information.
@@ -782,7 +784,7 @@ type DeploymentStatus struct {
 
 	LastHealthCheck time.Time `json:"lastHealthCheck"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // DeploymentProgress represents the progress of a deployment operation.
@@ -836,7 +838,7 @@ type DeploymentEvent struct {
 
 	Count int32 `json:"count"`
 
-	AdditionalData map[string]interface{} `json:"additionalData,omitempty"`
+	AdditionalData json.RawMessage `json:"additionalData,omitempty"`
 }
 
 // DeployedResource represents a resource that has been deployed.
@@ -860,7 +862,7 @@ type DeployedResource struct {
 
 	Endpoints []*ResourceEndpoint `json:"endpoints,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -884,7 +886,7 @@ type ResourceStatus struct {
 
 	Conditions []ResourceCondition `json:"conditions,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 }
 
 // ResourceCondition represents a condition of the resource.
@@ -1034,7 +1036,7 @@ type ResourceMapping struct {
 
 	InfrastructureType string `json:"infrastructureType"`
 
-	Mapping map[string]interface{} `json:"mapping"`
+	Mapping json.RawMessage `json:"mapping"`
 
 	Constraints []string `json:"constraints,omitempty"`
 }
@@ -1050,7 +1052,7 @@ type NetworkMapping struct {
 
 	VLAN *int `json:"vlan,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // StorageMapping defines storage resource mappings.
@@ -1064,7 +1066,7 @@ type StorageMapping struct {
 
 	Performance string `json:"performance,omitempty"` // HIGH, MEDIUM, LOW
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // TemplateDependency represents a dependency of a deployment template.
@@ -1364,7 +1366,7 @@ type NetworkRequirement struct {
 
 	Latency time.Duration `json:"latency,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // StorageRequirement defines storage requirements.
@@ -1384,7 +1386,7 @@ type StorageRequirement struct {
 
 	StorageClass string `json:"storageClass,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // AcceleratorRequirement defines accelerator requirements (GPU, FPGA, etc.).
@@ -1398,7 +1400,7 @@ type AcceleratorRequirement struct {
 
 	Memory string `json:"memory,omitempty"`
 
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Properties json.RawMessage `json:"properties,omitempty"`
 }
 
 // ResourceSpec defines resource specifications for provisioning.

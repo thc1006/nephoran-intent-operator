@@ -32,6 +32,7 @@ package porch
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -512,7 +513,7 @@ type KptfileContent struct {
 
 	Kind string `json:"kind"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Info *PackageMetadata `json:"info,omitempty"`
 
@@ -560,7 +561,7 @@ type FunctionConfig struct {
 
 	ConfigPath string `json:"configPath,omitempty"`
 
-	ConfigMap map[string]interface{} `json:"configMap,omitempty"`
+	ConfigMap json.RawMessage `json:"configMap,omitempty"`
 
 	Selectors []ResourceSelector `json:"selectors,omitempty"`
 
@@ -618,7 +619,7 @@ type TransformationRequest struct {
 
 	Rules []TransformationRule `json:"rules"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	Options *TransformationOptions `json:"options,omitempty"`
 }
@@ -648,7 +649,7 @@ type TransformationRule struct {
 
 	Conditions []TransformationCond `json:"conditions,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // TransformationOp defines a transformation operation.
@@ -720,7 +721,7 @@ type ORANValidationRequest struct {
 
 	Rules []ComplianceRule `json:"rules,omitempty"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	Options *ORANValidationOptions `json:"options,omitempty"`
 }
@@ -770,7 +771,7 @@ type ORANValidationResult struct {
 
 	Message string `json:"message,omitempty"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Severity string `json:"severity,omitempty"`
 }
@@ -802,13 +803,13 @@ type KRMResource struct {
 
 	Kind string `json:"kind"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
-	Spec map[string]interface{} `json:"spec,omitempty"`
+	Spec json.RawMessage `json:"spec,omitempty"`
 
-	Status map[string]interface{} `json:"status,omitempty"`
+	Status json.RawMessage `json:"status,omitempty"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // ResourceSelector defines resource selection criteria.
@@ -986,7 +987,7 @@ type ORANInterface struct {
 
 	Endpoint string `json:"endpoint,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -1384,7 +1385,7 @@ const (
 type WorkflowTrigger struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 }
 
 // Approver defines who can approve workflow stages.
@@ -1414,7 +1415,7 @@ type RetryPolicy struct {
 type WorkflowCondition struct {
 	Type string `json:"type"`
 
-	Condition map[string]interface{} `json:"condition"`
+	Condition json.RawMessage `json:"condition"`
 }
 
 // WorkflowAction defines actions to execute in a stage.
@@ -1422,7 +1423,7 @@ type WorkflowCondition struct {
 type WorkflowAction struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 // FailureAction defines what to do on stage failure.
@@ -1430,7 +1431,7 @@ type WorkflowAction struct {
 type FailureAction struct {
 	Type string `json:"type"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // WorkflowResult contains workflow execution results.
@@ -1444,7 +1445,7 @@ type WorkflowResult struct {
 
 	Timestamp *metav1.Time `json:"timestamp"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // Network slice supporting types.
@@ -2061,7 +2062,7 @@ type TransitionResult struct {
 	Duration      time.Duration            `json:"duration"`
 	RollbackPoint *RollbackPoint           `json:"rollbackPoint,omitempty"`
 	Warnings      []string                 `json:"warnings,omitempty"`
-	Metadata      map[string]interface{}   `json:"metadata,omitempty"`
+	Metadata      json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RollbackPoint represents a point-in-time snapshot for rollback.
@@ -2072,7 +2073,7 @@ type RollbackPoint struct {
 	CreatedAt   *metav1.Time             `json:"createdAt"`
 	Description string                   `json:"description,omitempty"`
 	Resources   []KRMResource            `json:"resources"`
-	Metadata    map[string]interface{}   `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // LifecycleManagerConfig configures the lifecycle manager.
@@ -2126,7 +2127,7 @@ type LifecycleManagerHealth struct {
 	FailedTransitions         int64                  `json:"failedTransitions"`
 	AverageTransitionDuration time.Duration          `json:"averageTransitionDuration,omitempty"`
 	PendingRollbacks          int                    `json:"pendingRollbacks"`
-	Details                   map[string]interface{} `json:"details,omitempty"`
+	Details                   json.RawMessage `json:"details,omitempty"`
 	Errors                    []string               `json:"errors,omitempty"`
 }
 
@@ -2347,7 +2348,7 @@ type ComplianceWarning struct {
 type NetworkFunctionSpec struct {
 	Type       string
 	Interfaces []ORANInterface
-	Resources  map[string]interface{}
+	Resources  json.RawMessage
 	Metadata   map[string]string
 }
 

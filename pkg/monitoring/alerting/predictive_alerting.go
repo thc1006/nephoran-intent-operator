@@ -5,7 +5,9 @@
 package alerting
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -95,7 +97,7 @@ type ForecastResult struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Components map[string]interface{} `json:"components"`
+	Components json.RawMessage `json:"components"`
 }
 
 // TimeSeriesData represents time series data for ML processing.
@@ -105,7 +107,7 @@ type TimeSeriesData struct {
 
 	Value float64 `json:"value"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PredictiveConfig holds configuration for predictive alerting.
@@ -279,7 +281,7 @@ type PredictionModel struct {
 
 	ValidationSplit float64 `json:"validation_split"`
 
-	Hyperparameters map[string]interface{} `json:"hyperparameters"`
+	Hyperparameters json.RawMessage `json:"hyperparameters"`
 }
 
 // HistoricalDataset contains historical SLA data for training.
@@ -885,11 +887,7 @@ func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 
 		ValidationSplit: 0.2,
 
-		Hyperparameters: map[string]interface{}{
-			"learning_rate": 0.01,
-
-			"regularization": 0.001,
-		},
+		Hyperparameters: json.RawMessage("{}"),
 	}
 
 	return model, nil
@@ -1661,13 +1659,7 @@ func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLATyp
 
 		Timestamp: time.Now().Add(horizon),
 
-		Components: map[string]interface{}{
-			"base_value": baseValue,
-
-			"trend_adjustment": trendAdjustment,
-
-			"seasonal_adjustment": seasonalAdjustment,
-		},
+		Components: json.RawMessage("{}"),
 	}
 
 	pa.logger.DebugWithContext("Generated forecast",
@@ -1807,7 +1799,7 @@ func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 
 				Value: 99.95 + float64(time.Now().Unix()%100)/10000,
 
-				Metadata: map[string]interface{}{"source": "mock"},
+				Metadata: json.RawMessage(`{"source":"mock"}`),
 			},
 		}
 

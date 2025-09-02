@@ -489,16 +489,8 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(k8sClient.Create(ctx, netconfIntent)).To(Succeed())
 
 				By("Testing YANG model validation")
-				yangModel := map[string]interface{}{
-					"module":       "o-ran-sc-ric-1.0",
-					"namespace":    "urn:o-ran:sc:yang:o-ran-sc-ric",
-					"prefix":       "o-ran-ric",
-					"organization": "O-RAN Software Community",
-					"description":  "O-RAN Near-RT RIC YANG model",
-					"schema": map[string]interface{}{
-						"container": map[string]interface{}{
-							"name": "ric-config",
-							"leaf": []map[string]interface{}{
+				yangModel := json.RawMessage("{}"){
+						"container": json.RawMessage("{}"){
 								{
 									"name":      "ric-id",
 									"type":      "string",
@@ -528,13 +520,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 			It("should handle NETCONF session management", func() {
 				By("Testing NETCONF session capabilities")
-				session := map[string]interface{}{
-					"sessionId": "netconf-session-001",
-					"capabilities": []string{
-						"urn:ietf:params:netconf:base:1.0",
-						"urn:ietf:params:netconf:base:1.1",
-						"urn:o-ran:netconf:capability:1.0",
-					},
+				session := json.RawMessage("{}"),
 					"transport": "SSH",
 					"status":    "active",
 				}
@@ -558,19 +544,15 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(k8sClient.Create(ctx, cloudIntent)).To(Succeed())
 
 				By("Testing Infrastructure as Code template generation")
-				terraformTemplate := map[string]interface{}{
-					"terraform": map[string]interface{}{
-						"required_providers": map[string]interface{}{
-							"kubernetes": map[string]interface{}{
+				terraformTemplate := json.RawMessage("{}"){
+						"required_providers": json.RawMessage("{}"){
 								"source":  "hashicorp/kubernetes",
 								"version": "~> 2.0",
 							},
 						},
 					},
-					"resource": map[string]interface{}{
-						"kubernetes_namespace": map[string]interface{}{
-							"upf_namespace": map[string]interface{}{
-								"metadata": map[string]interface{}{
+					"resource": json.RawMessage("{}"){
+							"upf_namespace": json.RawMessage("{}"){
 									"name": "upf-production",
 									"labels": map[string]string{
 										"app.kubernetes.io/name":      "upf",
@@ -587,11 +569,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(isValid).To(BeTrue())
 
 				By("Testing multi-cloud provider configurations")
-				cloudProviders := []map[string]interface{}{
-					{
-						"provider": "aws",
-						"region":   "us-west-2",
-						"resources": map[string]interface{}{
+				cloudProviders := []json.RawMessage("{}"){
 							"ec2_instances": 3,
 							"rds_instances": 1,
 							"s3_buckets":    2,
@@ -600,20 +578,12 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					{
 						"provider": "azure",
 						"region":   "West US 2",
-						"resources": map[string]interface{}{
-							"virtual_machines": 3,
-							"sql_databases":    1,
-							"storage_accounts": 2,
-						},
+						"resources": json.RawMessage("{}"),
 					},
 					{
 						"provider": "gcp",
 						"region":   "us-west1",
-						"resources": map[string]interface{}{
-							"compute_instances": 3,
-							"cloud_sql":         1,
-							"storage_buckets":   2,
-						},
+						"resources": json.RawMessage("{}"),
 					},
 				}
 
@@ -624,15 +594,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				}
 
 				By("Testing resource lifecycle management")
-				resource := map[string]interface{}{
-					"id":        "upf-cluster-001",
-					"type":      "kubernetes-cluster",
-					"status":    "provisioning",
-					"provider":  "aws",
-					"region":    "us-west-2",
-					"nodeCount": 3,
-					"nodeType":  "m5.large",
-				}
+				resource := json.RawMessage("{}")
 
 				By("Simulating resource lifecycle operations")
 				// Provisioning
@@ -813,9 +775,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 		GinkgoWriter.Printf("Compliance Level: %.1f%%\n", float64(finalScore)/float64(targetScore)*100)
 
 		if finalScore == targetScore {
-			GinkgoWriter.Printf("âœ… Full O-RAN compliance achieved!\n")
+			GinkgoWriter.Printf("??Full O-RAN compliance achieved!\n")
 		} else {
-			GinkgoWriter.Printf("âš ï¸  Partial O-RAN compliance: %d points missing\n", targetScore-finalScore)
+			GinkgoWriter.Printf("? ï?  Partial O-RAN compliance: %d points missing\n", targetScore-finalScore)
 		}
 
 		Expect(finalScore).To(BeNumerically(">=", targetScore-1), "Should achieve near-complete O-RAN compliance")

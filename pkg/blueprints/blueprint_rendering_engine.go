@@ -31,7 +31,9 @@ limitations under the License.
 package blueprints
 
 import (
-	"bytes"
+	
+	"encoding/json"
+"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -289,17 +291,7 @@ func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, re
 // buildRenderingContext creates the context for template rendering.
 
 func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest) map[string]interface{} {
-	context := map[string]interface{}{
-		"Intent": req.Intent,
-
-		"Metadata": req.Metadata,
-
-		"Values": req.Parameters,
-
-		"Timestamp": time.Now(),
-
-		"Config": bre.config,
-	}
+	context := json.RawMessage("{}")
 
 	// Add intent-specific values.
 
@@ -337,8 +329,7 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 
 	// Add O-RAN specific context.
 
-	context["ORANInterfaces"] = map[string]interface{}{
-		"A1": map[string]interface{}{
+	context["ORANInterfaces"] = json.RawMessage("{}"){
 			"Version": "v1.0.0",
 
 			"Endpoint": "/a1-p",
@@ -346,44 +337,22 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 			"Port": 8080,
 		},
 
-		"O1": map[string]interface{}{
-			"Version": "v1.0.0",
+		"O1": json.RawMessage("{}"),
 
-			"Port": 830,
+		"O2": json.RawMessage("{}"),
 
-			"Protocol": "NETCONF",
-		},
-
-		"O2": map[string]interface{}{
-			"Version": "v1.0.0",
-
-			"Port": 8081,
-
-			"Protocol": "HTTP",
-		},
-
-		"E2": map[string]interface{}{
-			"Version": "v1.0.0",
-
-			"Port": 36422,
-
-			"Protocol": "SCTP",
-		},
+		"E2": json.RawMessage("{}"),
 	}
 
 	// Add 5G Core specific context.
 
-	context["FiveGCore"] = map[string]interface{}{
-		"PLMN": map[string]interface{}{
+	context["FiveGCore"] = json.RawMessage("{}"){
 			"MCC": "001",
 
 			"MNC": "01",
 		},
 
-		"NetworkSlicing": map[string]interface{}{
-			"Enabled": true,
-
-			"DefaultSlice": map[string]interface{}{
+		"NetworkSlicing": json.RawMessage("{}"){
 				"SST": 1,
 
 				"SD": "000001",
@@ -1124,12 +1093,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	for i, cm := range rendered.ConfigMaps {
 
-		configMap := map[string]interface{}{
-			"apiVersion": "v1",
-
-			"kind": "ConfigMap",
-
-			"metadata": map[string]interface{}{
+		configMap := json.RawMessage("{}"){
 				"name": cm.Name,
 
 				"namespace": cm.Namespace,
@@ -1155,12 +1119,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	for i, secret := range rendered.Secrets {
 
-		secretResource := map[string]interface{}{
-			"apiVersion": "v1",
-
-			"kind": "Secret",
-
-			"metadata": map[string]interface{}{
+		secretResource := json.RawMessage("{}"){
 				"name": secret.Name,
 
 				"namespace": secret.Namespace,
@@ -1186,19 +1145,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 
 	// Generate metadata file.
 
-	metadataFile := map[string]interface{}{
-		"name": rendered.Name,
-
-		"version": rendered.Version,
-
-		"description": rendered.Description,
-
-		"oranCompliant": rendered.ORANCompliant,
-
-		"metadata": rendered.Metadata,
-
-		"dependencies": rendered.Dependencies,
-	}
+	metadataFile := json.RawMessage("{}")
 
 	content, err := yaml.Marshal(metadataFile)
 	if err != nil {

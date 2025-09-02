@@ -27,14 +27,14 @@ func (r *RAGServiceStub) ProcessQuery(ctx context.Context, request *rag.RAGReque
 			Content:    "Mock search result 1 for query: " + request.Query,
 			Score:      0.85,
 			Confidence: 0.85,
-			Metadata:   map[string]interface{}{"source": "test"},
+			Metadata:   json.RawMessage(`{"source":"test"}`),
 		},
 		{
 			ID:         "doc-2",
 			Content:    "Mock search result 2 for query: " + request.Query,
 			Score:      0.75,
 			Confidence: 0.75,
-			Metadata:   map[string]interface{}{"source": "test"},
+			Metadata:   json.RawMessage(`{"source":"test"}`),
 		},
 	}
 

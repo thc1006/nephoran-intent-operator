@@ -17,7 +17,9 @@ limitations under the License.
 package orchestrator
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -108,7 +110,7 @@ type ServiceDeploymentRequest struct {
 
 	// Nephio package configuration
 	PackageRevision   string                 `json:"package_revision"`
-	ConfigurationData map[string]interface{} `json:"configuration_data"`
+	ConfigurationData json.RawMessage `json:"configuration_data"`
 
 	// Lifecycle policies
 	UpdatePolicy   UpdatePolicy   `json:"update_policy"`
@@ -157,7 +159,7 @@ type ResourceRequirements struct {
 type ORANComponent struct {
 	ComponentType    string                 `json:"component_type"` // "CU-CP", "CU-UP", "DU", "RU"
 	ComponentVersion string                 `json:"component_version"`
-	Configuration    map[string]interface{} `json:"configuration"`
+	Configuration    json.RawMessage `json:"configuration"`
 	Interfaces       []InterfaceSpec        `json:"interfaces"`
 	Placement        PlacementPolicy        `json:"placement"`
 }
@@ -166,7 +168,7 @@ type ORANComponent struct {
 type InterfaceSpec struct {
 	InterfaceName  string                 `json:"interface_name"`
 	InterfaceType  string                 `json:"interface_type"` // "O1", "E2", "A1", "F1", etc.
-	EndpointConfig map[string]interface{} `json:"endpoint_config"`
+	EndpointConfig json.RawMessage `json:"endpoint_config"`
 	SecurityPolicy string                 `json:"security_policy"`
 }
 
@@ -270,7 +272,7 @@ type TransactionStep struct {
 	StepID      string                 `json:"step_id"`
 	StepType    string                 `json:"step_type"`
 	Action      string                 `json:"action"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Parameters  json.RawMessage `json:"parameters"`
 	Timeout     time.Duration          `json:"timeout"`
 	RetryPolicy RetryPolicy            `json:"retry_policy"`
 	ExecutedAt  *time.Time             `json:"executed_at,omitempty"`
@@ -283,7 +285,7 @@ type TransactionStep struct {
 type CompensationStep struct {
 	StepID      string                 `json:"step_id"`
 	Action      string                 `json:"action"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Parameters  json.RawMessage `json:"parameters"`
 	ExecutedAt  *time.Time             `json:"executed_at,omitempty"`
 	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 	Error       string                 `json:"error,omitempty"`
@@ -427,10 +429,7 @@ func (s *ServiceLifecycleManager) DeployService(req ServiceDeploymentRequest) (*
 		EventType:  "deployment_started",
 		WorkflowID: workflowID,
 		Timestamp:  time.Now(),
-		Data: map[string]interface{}{
-			"service_name": req.ServiceName,
-			"service_type": req.ServiceType,
-		},
+		Data: json.RawMessage("{}"),
 	}
 	s.eventStore.RecordEvent(event)
 
@@ -515,9 +514,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "validate_request",
 			StepType: "validation",
 			Action:   "validate_deployment_request",
-			Parameters: map[string]interface{}{
-				"request": req,
-			},
+			Parameters: json.RawMessage("{}"),
 			Timeout: 30 * time.Second,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      3,
@@ -528,10 +525,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "allocate_resources",
 			StepType: "resource_management",
 			Action:   "allocate_cluster_resources",
-			Parameters: map[string]interface{}{
-				"clusters":  req.TargetClusters,
-				"resources": req.ResourceRequests,
-			},
+			Parameters: json.RawMessage("{}"),
 			Timeout: 2 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      2,
@@ -542,11 +536,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "create_nephio_packages",
 			StepType: "package_management",
 			Action:   "create_and_publish_packages",
-			Parameters: map[string]interface{}{
-				"service_name":    req.ServiceName,
-				"oran_components": req.ORANComponents,
-				"configuration":   req.ConfigurationData,
-			},
+			Parameters: json.RawMessage("{}"),
 			Timeout: 5 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      3,
@@ -557,11 +547,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "deploy_oran_components",
 			StepType: "deployment",
 			Action:   "deploy_oran_network_functions",
-			Parameters: map[string]interface{}{
-				"components":      req.ORANComponents,
-				"clusters":        req.TargetClusters,
-				"deployment_mode": req.DeploymentMode,
-			},
+			Parameters: json.RawMessage("{}"),
 			Timeout: 10 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      2,
@@ -572,10 +558,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "configure_network_slices",
 			StepType: "configuration",
 			Action:   "setup_network_slices",
-			Parameters: map[string]interface{}{
-				"slices":       req.NetworkSlices,
-				"service_name": req.ServiceName,
-			},
+			Parameters: json.RawMessage("{}"),
 			Timeout: 3 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      3,
@@ -586,11 +569,7 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 			StepID:   "verify_deployment",
 			StepType: "validation",
 			Action:   "verify_service_health",
-			Parameters: map[string]interface{}{
-				"service_name":  req.ServiceName,
-				"components":    req.ORANComponents,
-				"health_checks": true,
-			},
+			Parameters: json.RawMessage("{}"),
 			Timeout: 5 * time.Minute,
 			RetryPolicy: RetryPolicy{
 				MaxRetries:      5,
@@ -603,38 +582,27 @@ func (s *ServiceLifecycleManager) createDeploymentSaga(sagaID string, req Servic
 		{
 			StepID: "cleanup_verification",
 			Action: "cleanup_health_checks",
-			Parameters: map[string]interface{}{
-				"service_name": req.ServiceName,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 		{
 			StepID: "remove_network_slices",
 			Action: "cleanup_network_slices",
-			Parameters: map[string]interface{}{
-				"slices": req.NetworkSlices,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 		{
 			StepID: "undeploy_components",
 			Action: "undeploy_oran_components",
-			Parameters: map[string]interface{}{
-				"components": req.ORANComponents,
-				"clusters":   req.TargetClusters,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 		{
 			StepID: "delete_packages",
 			Action: "delete_nephio_packages",
-			Parameters: map[string]interface{}{
-				"service_name": req.ServiceName,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 		{
 			StepID: "release_resources",
 			Action: "deallocate_cluster_resources",
-			Parameters: map[string]interface{}{
-				"clusters": req.TargetClusters,
-			},
+			Parameters: json.RawMessage("{}"),
 		},
 	}
 
@@ -884,7 +852,7 @@ type (
 		EventType  string                 `json:"event_type"`
 		WorkflowID string                 `json:"workflow_id"`
 		Timestamp  time.Time              `json:"timestamp"`
-		Data       map[string]interface{} `json:"data"`
+		Data       json.RawMessage `json:"data"`
 	}
 	WorkflowResult   struct{}
 	ExecutionMetrics struct{}

@@ -176,18 +176,14 @@ func (mm *MockManager) setupWeaviateMock() {
 
 		// Mock response for semantic search.
 
-		response := map[string]interface{}{
-			"data": map[string]interface{}{
-				"Get": map[string]interface{}{
-					"TelecomKnowledge": []map[string]interface{}{
+		response := json.RawMessage("{}"){
+				"Get": json.RawMessage("{}"){
 						{
 							"title": "AMF Configuration Guide",
 
 							"content": "Access and Mobility Management Function configuration for 5G networks...",
 
-							"_additional": map[string]interface{}{
-								"certainty": 0.95,
-							},
+							"_additional": json.RawMessage("{}"),
 						},
 
 						{
@@ -195,9 +191,7 @@ func (mm *MockManager) setupWeaviateMock() {
 
 							"content": "Session Management Function deployment in containerized environments...",
 
-							"_additional": map[string]interface{}{
-								"certainty": 0.87,
-							},
+							"_additional": json.RawMessage("{}"),
 						},
 					},
 				},
@@ -258,35 +252,11 @@ func (mm *MockManager) setupLLMMock() {
 
 		// Mock structured response for network intent processing.
 
-		response := map[string]interface{}{
-			"id": "mock-completion-id",
-
-			"object": "chat.completion",
-
-			"created": time.Now().Unix(),
-
-			"model": "gpt-4o-mini",
-
-			"choices": []map[string]interface{}{
+		response := json.RawMessage("{}"){
 				{
 					"index": 0,
 
-					"message": map[string]interface{}{
-						"role": "assistant",
-
-						"content": `{
-
-							"type": "NetworkFunctionDeployment",
-
-							"networkFunction": "AMF",
-
-							"replicas": 3,
-
-							"namespace": "telecom-core",
-
-							"resources": {
-
-								"requests": {"cpu": "1000m", "memory": "2Gi"},
+					"message": json.RawMessage("{}"),
 
 								"limits": {"cpu": "2000m", "memory": "4Gi"}
 
@@ -342,10 +312,7 @@ func (mm *MockManager) setupLLMMock() {
 
 		// Mock embedding response.
 
-		response := map[string]interface{}{
-			"object": "list",
-
-			"data": []map[string]interface{}{
+		response := json.RawMessage("{}"){
 				{
 					"object": "embedding",
 
@@ -384,14 +351,7 @@ func (mm *MockManager) setupORANMock() {
 	router.HandleFunc("/a1-p/v2/policytypes", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_a1_policy_types")
 
-		response := []map[string]interface{}{
-			{
-				"policy_type_id": 1000,
-
-				"name": "QoS Policy",
-
-				"description": "Quality of Service policy for network slices",
-			},
+		response := []json.RawMessage("{}"),
 
 			{
 				"policy_type_id": 2000,
@@ -412,16 +372,8 @@ func (mm *MockManager) setupORANMock() {
 	router.HandleFunc("/restconf/data/ietf-interfaces:interfaces", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o1_interfaces")
 
-		response := map[string]interface{}{
-			"ietf-interfaces:interfaces": map[string]interface{}{
-				"interface": []map[string]interface{}{
-					{
-						"name": "eth0",
-
-						"type": "iana-if-type:ethernetCsmacd",
-
-						"enabled": true,
-					},
+		response := json.RawMessage("{}"){
+				"interface": []json.RawMessage("{}"),
 				},
 			},
 		}
@@ -440,24 +392,11 @@ func (mm *MockManager) setupORANMock() {
 
 			w.WriteHeader(http.StatusCreated)
 
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"deployment_id": "mock-deployment-123",
-
-				"status": "creating",
-			})
+			json.NewEncoder(w).Encode(json.RawMessage("{}"))
 
 		} else {
 
-			response := []map[string]interface{}{
-				{
-					"deployment_id": "mock-deployment-123",
-
-					"name": "amf-deployment",
-
-					"status": "running",
-
-					"replicas": 3,
-				},
+			response := []json.RawMessage("{}"),
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -480,19 +419,10 @@ func (mm *MockManager) setupPrometheusMock() {
 	router.HandleFunc("/api/v1/query", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("prometheus_query")
 
-		response := map[string]interface{}{
-			"status": "success",
-
-			"data": map[string]interface{}{
+		response := json.RawMessage("{}"){
 				"resultType": "vector",
 
-				"result": []map[string]interface{}{
-					{
-						"metric": map[string]string{
-							"__name__": "nephran_intent_processing_duration_seconds",
-
-							"instance": "localhost:8080",
-						},
+				"result": []json.RawMessage("{}"),
 
 						"value": []interface{}{
 							time.Now().Unix(),

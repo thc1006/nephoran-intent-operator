@@ -31,7 +31,9 @@ limitations under the License.
 package porch
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -100,7 +102,7 @@ type VersionRequirement struct {
 
 type DependencyConstraints struct {
 	MaxDepth    int                    `json:"max_depth"`
-	Constraints map[string]interface{} `json:"constraints"`
+	Constraints json.RawMessage `json:"constraints"`
 }
 
 type DependencyCycle struct {
@@ -152,7 +154,7 @@ type ResolutionResult struct {
 	Errors           []string               `json:"errors,omitempty"`
 	Duration         time.Duration          `json:"duration"`
 	Stats            *ResolutionStats       `json:"stats,omitempty"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Metadata         json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ResolutionStats contains statistics about the resolution process
@@ -179,7 +181,7 @@ type DependencyNode struct {
 	Package      *PackageReference      `json:"package"`
 	Dependencies []*DependencyNode      `json:"dependencies,omitempty"`
 	Dependents   []*DependencyNode      `json:"dependents,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata     json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyEdge represents an edge in the dependency graph
@@ -188,7 +190,7 @@ type DependencyEdge struct {
 	To         *DependencyNode        `json:"to"`
 	Constraint string                 `json:"constraint"`
 	EdgeType   string                 `json:"edge_type"` // "requires", "conflicts", "recommends"
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // GraphStats contains statistics about the dependency graph
@@ -1196,7 +1198,7 @@ type VersionSelection struct {
 	Alternatives    []string               `json:"alternatives"`       // Other versions that could have been selected
 	Confidence      float64                `json:"confidence"`         // Confidence score for this selection (0-1)
 	Constraints     []*VersionConstraint   `json:"constraints"`        // Constraints that influenced this selection
-	Metadata        map[string]interface{} `json:"metadata,omitempty"` // Additional metadata
+	Metadata        json.RawMessage `json:"metadata,omitempty"` // Additional metadata
 }
 
 // PackageInfo represents a packageinfo.

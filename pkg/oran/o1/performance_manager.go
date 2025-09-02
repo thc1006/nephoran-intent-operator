@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -249,7 +251,7 @@ type MeasurementCollection struct {
 
 	Filter *MeasurementFilter `json:"filter,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	LastCollection time.Time `json:"last_collection"`
 
@@ -347,7 +349,7 @@ type MeasurementData struct {
 
 	Quality string `json:"quality"` // GOOD, QUESTIONABLE, BAD
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 
 	CollectionID string `json:"collection_id"`
 
@@ -395,7 +397,7 @@ type AggregatedData struct {
 
 	Quality string `json:"quality"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BinManager manages data bins for different time granularities.
@@ -617,7 +619,7 @@ type HistoricalQuery struct {
 
 	Aggregation string `json:"aggregation,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	OrderBy string `json:"order_by,omitempty"`
 
@@ -747,7 +749,7 @@ type AnomalyPrediction struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AnomalyFeedback provides feedback for model improvement.
@@ -773,7 +775,7 @@ type ModelInfo struct {
 
 	LastTrained time.Time `json:"last_trained"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // BaselineManager manages performance baselines.
@@ -855,7 +857,7 @@ type AnomalyAlert struct {
 
 	ResolvedAt time.Time `json:"resolved_at,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // AnomalyEscalationRule defines anomaly alert escalation.
@@ -955,7 +957,7 @@ type Visualization struct {
 
 	DataSeries []string `json:"data_series"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // ReportGenerator interface for different report generation methods.
@@ -983,7 +985,7 @@ type GeneratedReport struct {
 
 	Size int64 `json:"size"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Status string `json:"status"`
 }
@@ -1077,7 +1079,7 @@ type CalculatedKPI struct {
 
 	Period time.Duration `json:"period"`
 
-	InputData map[string]interface{} `json:"input_data"`
+	InputData json.RawMessage `json:"input_data"`
 
 	Quality string `json:"quality"`
 
@@ -1137,7 +1139,7 @@ type GrafanaDashboard struct {
 
 	Tags []string `json:"tags"`
 
-	Dashboard map[string]interface{} `json:"dashboard"`
+	Dashboard json.RawMessage `json:"dashboard"`
 
 	FolderID int `json:"folder_id"`
 
@@ -1157,7 +1159,7 @@ type GrafanaDatasource struct {
 
 	URL string `json:"url"`
 
-	Settings map[string]interface{} `json:"settings"`
+	Settings json.RawMessage `json:"settings"`
 }
 
 // GrafanaAlertRule represents a Grafana alert rule.
@@ -1171,7 +1173,7 @@ type GrafanaAlertRule struct {
 
 	Datasource string `json:"datasource"`
 
-	Settings map[string]interface{} `json:"settings"`
+	Settings json.RawMessage `json:"settings"`
 
 	Frequency time.Duration `json:"frequency"`
 
@@ -1804,7 +1806,7 @@ type MeasurementCollectionRequest struct {
 
 	Filter *MeasurementFilter `json:"filter,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // MeasurementQuery represents a query for measurement data.
@@ -1822,7 +1824,7 @@ type MeasurementQuery struct {
 
 	Aggregation string `json:"aggregation,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	Limit int `json:"limit,omitempty"`
 }

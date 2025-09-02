@@ -32,24 +32,7 @@ type ProblemDetail struct {
 // handleGetServiceInfo returns service information.
 
 func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Request) {
-	serviceInfo := map[string]interface{}{
-		"name": "Nephoran O2 IMS",
-
-		"version": "1.0.0",
-
-		"description": "O-RAN Infrastructure Management Service",
-
-		"apiVersion": "v1",
-
-		"specification": "O-RAN.WG6.O2ims-Interface-v01.01",
-
-		"capabilities": []string{
-			"InfrastructureInventory",
-
-			"InfrastructureMonitoring",
-
-			"InfrastructureProvisioning",
-		},
+	serviceInfo := json.RawMessage("{}"),
 
 		"supported_providers": s.providerRegistry.GetSupportedProviders(),
 
@@ -78,16 +61,7 @@ func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 // handleReadinessCheck returns readiness status.
 
 func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Request) {
-	ready := map[string]interface{}{
-		"status": "READY",
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"checks": map[string]string{
-			"database": "OK",
-
-			"providers": "OK",
-		},
+	ready := json.RawMessage("{}"),
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, ready)

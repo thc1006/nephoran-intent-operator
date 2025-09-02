@@ -3,7 +3,9 @@
 package o2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -211,7 +213,7 @@ type Alert struct {
 
 	Status string `json:"status"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // MetricsCollector interface for collecting metrics from different sources.
@@ -1305,13 +1307,7 @@ type stubMetricsCollector struct {
 // CollectMetrics performs collectmetrics operation.
 
 func (c *stubMetricsCollector) CollectMetrics(ctx context.Context) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"collector": c.name,
-
-		"timestamp": time.Now(),
-
-		"status": "healthy",
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // GetName performs getname operation.

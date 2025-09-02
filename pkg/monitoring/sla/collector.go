@@ -1,7 +1,9 @@
 package sla
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"runtime"
 	"strings"
@@ -169,7 +171,7 @@ type MetricSample struct {
 
 	Priority Priority `json:"priority"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // MetricType defines the type of metric.

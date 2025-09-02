@@ -31,7 +31,9 @@ limitations under the License.
 package audit
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
@@ -47,7 +49,7 @@ type (
 	BackendConfig struct {
 		Type string `json:"type"` // "elasticsearch", "file", etc.
 
-		Config map[string]interface{} `json:"config"` // Backend-specific config
+		Config json.RawMessage `json:"config"` // Backend-specific config
 
 		Enabled bool `json:"enabled"`
 
@@ -86,7 +88,7 @@ type ComplianceEvent struct {
 
 	Status string `json:"status"`
 
-	Evidence map[string]interface{} `json:"evidence,omitempty"`
+	Evidence json.RawMessage `json:"evidence,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -178,7 +180,7 @@ type StandardSummary struct {
 type ComplianceLoggerConfig struct {
 	Backend string `json:"backend"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Standards []string `json:"standards,omitempty"`
 

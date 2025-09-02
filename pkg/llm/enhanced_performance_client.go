@@ -1114,35 +1114,13 @@ func (c *EnhancedPerformanceClient) GetHealthStatus() map[string]interface{} {
 
 	defer c.healthCheckMutex.RUnlock()
 
-	return map[string]interface{}{
-		"healthy": c.isHealthy,
-
-		"last_check": c.lastHealthCheck,
-
-		"circuit_breaker": c.circuitBreaker.HealthCheck(),
-
-		"active_requests": len(c.activeRequests),
-
-		"performance_stats": c.performanceOpt.GetLatencyProfile(),
-	}
+	return json.RawMessage("{}")
 }
 
 // GetMetrics returns comprehensive metrics.
 
 func (c *EnhancedPerformanceClient) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"performance": c.performanceOpt.GetLatencyProfile(),
-
-		"retry_engine": c.retryEngine.GetMetrics(),
-
-		"batch_processor": c.batchProcessor.GetStats(),
-
-		"circuit_breaker": c.circuitBreaker.GetStats(),
-
-		"token_usage": c.getTokenUsageStats(),
-
-		"cost_tracking": c.getCostTrackingStats(),
-	}
+	return json.RawMessage("{}")
 }
 
 func (c *EnhancedPerformanceClient) getTokenUsageStats() map[string]interface{} {
@@ -1150,13 +1128,7 @@ func (c *EnhancedPerformanceClient) getTokenUsageStats() map[string]interface{} 
 
 	defer c.tokenTracker.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"total_tokens": c.tokenTracker.totalTokens,
-
-		"tokens_by_model": c.tokenTracker.tokensByModel,
-
-		"tokens_by_intent": c.tokenTracker.tokensByIntent,
-	}
+	return json.RawMessage("{}")
 }
 
 func (c *EnhancedPerformanceClient) getCostTrackingStats() map[string]interface{} {
@@ -1166,17 +1138,7 @@ func (c *EnhancedPerformanceClient) getCostTrackingStats() map[string]interface{
 
 	utilization := (c.costCalculator.totalCost / c.costCalculator.budgetLimit) * 100
 
-	return map[string]interface{}{
-		"total_cost": c.costCalculator.totalCost,
-
-		"costs_by_model": c.costCalculator.costsByModel,
-
-		"budget_limit": c.costCalculator.budgetLimit,
-
-		"budget_utilization": utilization,
-
-		"alert_threshold": c.costCalculator.alertThreshold,
-	}
+	return json.RawMessage("{}")
 }
 
 // Close gracefully shuts down the client.

@@ -24,9 +24,9 @@ type A1PolicyTypeRegistration struct {
 
 	PolicyTypeVersion string `json:"policy_type_version"`
 
-	PolicySchema map[string]interface{} `json:"policy_schema"`
+	PolicySchema json.RawMessage `json:"policy_schema"`
 
-	CreateSchema map[string]interface{} `json:"create_schema,omitempty"`
+	CreateSchema json.RawMessage `json:"create_schema,omitempty"`
 
 	Description string `json:"description,omitempty"`
 

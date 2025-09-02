@@ -57,7 +57,7 @@ type MetricsRecord struct {
 	Value     float64                `json:"value"`
 	Labels    map[string]string      `json:"labels"`
 	Tags      []string               `json:"tags,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // MetricsQuery represents a query for retrieving metrics
@@ -568,11 +568,7 @@ func (ims *InMemoryMetricsStorage) GetStorageStats() map[string]interface{} {
 	ims.mu.RLock()
 	defer ims.mu.RUnlock()
 
-	stats := map[string]interface{}{
-		"total_records": len(ims.records),
-		"metric_count":  len(ims.indices),
-		"storage_type":  "in-memory",
-	}
+	stats := json.RawMessage("{}")
 
 	// Calculate memory usage estimation
 	var memoryUsage int

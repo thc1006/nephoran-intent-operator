@@ -44,14 +44,9 @@ func (s *ORANComplianceTestSuite) SetupSuite() {
 func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 	s.Run("A1_PolicyTypeManagement", func() {
 		// Test policy type creation
-		policyType := map[string]interface{}{
-			"policy_type_id": 1001,
-			"name":           "QoS_Policy",
-			"description":    "QoS optimization policy",
-			"policy_schema": map[string]interface{}{
+		policyType := json.RawMessage("{}"){
 				"type": "object",
-				"properties": map[string]interface{}{
-					"max_throughput": map[string]interface{}{
+				"properties": json.RawMessage("{}"){
 						"type":    "integer",
 						"minimum": 0,
 					},
@@ -65,11 +60,7 @@ func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 
 	s.Run("A1_PolicyInstanceManagement", func() {
 		// Test policy instance creation
-		policy := map[string]interface{}{
-			"ric_id":         "ric_001",
-			"policy_id":      "policy_001",
-			"policy_type_id": 1001,
-			"policy_data": map[string]interface{}{
+		policy := json.RawMessage("{}"){
 				"max_throughput": 1000,
 			},
 		}
@@ -164,8 +155,7 @@ func (s *ORANComplianceTestSuite) TestO1InterfaceCompliance() {
 		s.Assert().Equal(200, resp.StatusCode)
 
 		// Test alarm subscription
-		subscription := map[string]interface{}{
-			"filter": map[string]interface{}{
+		subscription := json.RawMessage("{}"){
 				"severity": []string{"CRITICAL", "MAJOR"},
 			},
 			"callback_url": "http://test-callback/alarms",
@@ -195,11 +185,7 @@ func (s *ORANComplianceTestSuite) TestO2InterfaceCompliance() {
 
 	s.Run("O2_DeploymentManagement", func() {
 		// Test deployment descriptor
-		deployment := map[string]interface{}{
-			"name":        "test-nf-deployment",
-			"description": "Test network function deployment",
-			"nf_type":     "DU",
-			"resources": map[string]interface{}{
+		deployment := json.RawMessage("{}"){
 				"cpu":     "4",
 				"memory":  "8Gi",
 				"storage": "100Gi",
@@ -231,16 +217,11 @@ func (s *ORANComplianceTestSuite) TestO2InterfaceCompliance() {
 func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 	s.Run("E2_SetupProcedure", func() {
 		// Test E2 setup request
-		setup := map[string]interface{}{
-			"global_e2_node_id": map[string]interface{}{
+		setup := json.RawMessage("{}"){
 				"gnb_id":  "001",
 				"plmn_id": "00101",
 			},
-			"ran_functions": []map[string]interface{}{
-				{
-					"ran_function_id":         1,
-					"ran_function_definition": "KPM Service Model",
-				},
+			"ran_functions": []json.RawMessage("{}"),
 			},
 		}
 
@@ -250,17 +231,10 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 
 	s.Run("E2_SubscriptionManagement", func() {
 		// Test subscription creation
-		subscription := map[string]interface{}{
-			"subscription_id": "sub_001",
-			"ran_function_id": 1,
-			"event_triggers": map[string]interface{}{
+		subscription := json.RawMessage("{}"){
 				"period_ms": 1000,
 			},
-			"action_list": []map[string]interface{}{
-				{
-					"action_id":   1,
-					"action_type": "REPORT",
-				},
+			"action_list": []json.RawMessage("{}"),
 			},
 		}
 
@@ -298,11 +272,7 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_ServiceRegistration", func() {
 		// Test service registration with SMO
-		service := map[string]interface{}{
-			"service_id":   "nephoran-operator",
-			"service_type": "rApp",
-			"version":      "2.0.0",
-			"capabilities": []string{"intent-processing", "policy-management"},
+		service := json.RawMessage("{}"),
 			"endpoint":     "http://nephoran:8080",
 		}
 
@@ -312,16 +282,11 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 
 	s.Run("SMO_PolicyCoordination", func() {
 		// Test policy coordination
-		policy := map[string]interface{}{
-			"policy_id": "coord_policy_001",
-			"scope": map[string]interface{}{
+		policy := json.RawMessage("{}"){
 				"ric_ids":  []string{"ric_001", "ric_002"},
 				"cell_ids": []string{"cell_001", "cell_002"},
 			},
-			"objectives": map[string]interface{}{
-				"throughput_optimization": true,
-				"energy_efficiency":       true,
-			},
+			"objectives": json.RawMessage("{}"),
 		}
 
 		resp := s.makeRequest("POST", "/SMO/v1/policies/coordinate", policy)
@@ -330,10 +295,7 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 
 	s.Run("SMO_WorkflowOrchestration", func() {
 		// Test workflow creation
-		workflow := map[string]interface{}{
-			"workflow_id": "wf_001",
-			"name":        "Network Slice Deployment",
-			"steps": []map[string]interface{}{
+		workflow := json.RawMessage("{}"){
 				{
 					"step_id": "1",
 					"action":  "deploy_nf",

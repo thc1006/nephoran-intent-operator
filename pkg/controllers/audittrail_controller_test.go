@@ -732,8 +732,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 
 	suite.Run("configmap reference handling", func() {
 		// Create a configmap for backend configuration
-		configData := map[string]interface{}{
-			"elasticsearch": map[string]interface{}{
+		configData := json.RawMessage("{}"){
 				"urls":  []string{"http://elasticsearch:9200"},
 				"index": "audit-logs",
 			},

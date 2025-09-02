@@ -362,12 +362,6 @@ func (c *MTLSGitClient) GetHealth() (*HealthStatus, error) {
 
 		Timestamp: time.Now(),
 
-		Details: map[string]interface{}{
-			"repo_url": c.config.GitRepoURL,
-
-			"branch": c.config.GitBranch,
-
-			"mtls_enabled": true,
-		},
+		Details: json.RawMessage("{}"),
 	}, nil
 }

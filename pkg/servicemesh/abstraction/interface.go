@@ -3,7 +3,9 @@
 package abstraction
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/x509"
 	"time"
 
@@ -109,7 +111,7 @@ type ServiceMeshConfig struct {
 
 	MultiCluster *MultiClusterConfig `json:"multiCluster,omitempty"`
 
-	CustomConfig map[string]interface{} `json:"customConfig,omitempty"`
+	CustomConfig json.RawMessage `json:"customConfig,omitempty"`
 }
 
 // CertificateConfig defines certificate management configuration.
@@ -381,7 +383,7 @@ type ServiceStatus struct {
 
 	Policies []string `json:"policies"`
 
-	Metrics map[string]interface{} `json:"metrics"`
+	Metrics json.RawMessage `json:"metrics"`
 }
 
 // CertificateStatus represents certificate status for a service.

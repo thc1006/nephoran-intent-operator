@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"crypto/tls"
+	
+	"encoding/json"
+"crypto/tls"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -94,7 +96,7 @@ type NetconfEvent struct {
 
 	Source string `json:"source"`
 
-	Data map[string]interface{} `json:"data"`
+	Data json.RawMessage `json:"data"`
 
 	XML string `json:"xml,omitempty"`
 }

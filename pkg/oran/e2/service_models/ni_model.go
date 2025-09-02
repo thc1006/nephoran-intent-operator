@@ -304,7 +304,7 @@ type NIIndicationMessageFormat1 struct {
 
 	MessageType NIMessageType `json:"message_type"`
 
-	DecodedFields map[string]interface{} `json:"decoded_fields,omitempty"`
+	DecodedFields json.RawMessage `json:"decoded_fields,omitempty"`
 
 	CaptureTimestamp time.Time `json:"capture_timestamp"`
 
@@ -370,7 +370,7 @@ type NIInterfaceStatus struct {
 
 	Latency float64 `json:"latency_ms,omitempty"`
 
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo json.RawMessage `json:"additional_info,omitempty"`
 }
 
 // NIOperationalState defines operational state of interface.
@@ -454,7 +454,7 @@ type NIControlMessageFormat1 struct {
 
 	ControlAction NIControlAction `json:"control_action"`
 
-	ControlParameter map[string]interface{} `json:"control_parameter,omitempty"`
+	ControlParameter json.RawMessage `json:"control_parameter,omitempty"`
 }
 
 // NIControlMessageFormat2 for message injection.
@@ -525,7 +525,7 @@ type NIControlOutcomeFormat1 struct {
 
 	ResultDescription string `json:"result_description,omitempty"`
 
-	ResultDetails map[string]interface{} `json:"result_details,omitempty"`
+	ResultDetails json.RawMessage `json:"result_details,omitempty"`
 }
 
 // NIControlResult defines control result status.

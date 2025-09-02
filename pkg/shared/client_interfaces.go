@@ -1,7 +1,9 @@
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -29,7 +31,7 @@ type LLMRequest struct {
 	MaxTokens   int                    `json:"max_tokens,omitempty"`
 	Temperature float32                `json:"temperature,omitempty"`
 	Stream      bool                   `json:"stream,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // LLMResponse represents a response from an LLM service
@@ -50,7 +52,7 @@ type StreamingChunk struct {
 	Done      bool                   `json:"done"`
 	IsLast    bool                   `json:"is_last"`
 	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 	Error     *LLMError              `json:"error,omitempty"`
 }
 
@@ -95,5 +97,5 @@ type ModelCapabilities struct {
 	CostPerToken         float64                `json:"cost_per_token"`
 	SupportedMimeTypes   []string               `json:"supported_mime_types"`
 	ModelVersion         string                 `json:"model_version"`
-	Features             map[string]interface{} `json:"features"`
+	Features             json.RawMessage `json:"features"`
 }

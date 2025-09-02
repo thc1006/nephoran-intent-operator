@@ -151,10 +151,7 @@ import (
 		Message:      "Vulnerability scan detected critical issues",
 		Acknowledged: false, // Added acknowledged field
 		Actions:      []string{"review", "remediate"},
-		Metadata: map[string]interface{}{
-			"scan_id": "scan-123",
-			"issues":  5,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	assert.Equal(t, "alert-001", alert.ID)
@@ -209,9 +206,7 @@ import (
 		UpdatedAt:       &time.Time{},
 		EvaluationCount: 100,
 		ViolationCount:  5,
-		Metadata: map[string]interface{}{
-			"author": "test-suite",
-			"tags":   []string{"security", "test"},
+		Metadata: json.RawMessage("{}"),
 		},
 		Dependencies: []string{"base-policy"},
 	}
@@ -248,10 +243,7 @@ import (
 		ErrorMessage:      "",
 		RollbackPlan:      "Remove network policy if issues occur",
 		ResourcesAffected: []string{"namespace/default"},
-		Details: map[string]interface{}{
-			"policy_name": "default-deny-all",
-			"namespace":   "default",
-		},
+		Details: json.RawMessage("{}"),
 	}
 
 	assert.Equal(t, "remediation-001", action.ID)
@@ -271,13 +263,8 @@ import (
 		testID:      "test-001",
 		name:        "Test Pod Security",
 		description: "Test that pods without security context are flagged",
-		input: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Pod",
-			"metadata":   map[string]string{"name": "test-pod"},
-			"spec": map[string]interface{}{
-				"securityContext": nil,
-			},
+		input: json.RawMessage("{}"),
+			"spec": json.RawMessage("{}"),
 		},
 		expectedOutput:    "violation",
 		expectedViolation: true,

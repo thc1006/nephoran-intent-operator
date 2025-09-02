@@ -123,14 +123,9 @@ func BenchmarkJWTManager_GenerateTokenWithClaims(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
 
-	customClaims := map[string]interface{}{
-		"roles":       []string{"admin", "user", "moderator"},
+	customClaims := json.RawMessage("{}"),
 		"permissions": []string{"read", "write", "delete"},
-		"metadata": map[string]interface{}{
-			"department": "engineering",
-			"team":       "backend",
-			"level":      5,
-		},
+		"metadata": json.RawMessage("{}"),
 	}
 
 	b.ResetTimer()
@@ -227,11 +222,7 @@ func BenchmarkSessionManager_CreateSessionPerf(b *testing.B) {
 	user := suite.testUsers[0]
 	ctx := context.Background()
 
-	metadata := map[string]interface{}{
-		"ip_address": "192.168.1.100",
-		"user_agent": "benchmark-client",
-		"timestamp":  time.Now().Format(time.RFC3339),
-	}
+	metadata := json.RawMessage("{}")
 
 	b.ResetTimer()
 	b.ReportAllocs()

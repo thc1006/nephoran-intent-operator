@@ -4,6 +4,7 @@ package o2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -297,7 +298,7 @@ type TrafficPolicy struct {
 
 	Type string `json:"type"`
 
-	Rules map[string]interface{} `json:"rules"`
+	Rules json.RawMessage `json:"rules"`
 }
 
 // RegistryConfig configuration for container registry.
@@ -551,7 +552,7 @@ type HelmChartSpec struct {
 
 	Version string `json:"version"`
 
-	Values map[string]interface{} `json:"values,omitempty"`
+	Values json.RawMessage `json:"values,omitempty"`
 
 	ValuesFiles []string `json:"valuesFiles,omitempty"`
 }

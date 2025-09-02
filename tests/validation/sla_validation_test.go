@@ -1,7 +1,9 @@
 package test_validation
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sort"
@@ -91,7 +93,7 @@ type MeasurementSet struct {
 	Type       MeasurementType        `json:"type"`
 	Values     []float64              `json:"values"`
 	Timestamps []time.Time            `json:"timestamps"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 
 	// Statistical properties
 	Mean        float64         `json:"mean"`
@@ -331,7 +333,7 @@ type ValidationEvidence struct {
 	Source       string                 `json:"source"`
 	Timestamp    time.Time              `json:"timestamp"`
 	Data         interface{}            `json:"data"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	Metadata     json.RawMessage `json:"metadata"`
 	Authenticity *AuthenticitySeal      `json:"authenticity"`
 }
 

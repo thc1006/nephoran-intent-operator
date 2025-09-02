@@ -130,19 +130,11 @@ func (ah *Handlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) 
 
 		config := provider.GetConfiguration()
 
-		providers[name] = map[string]interface{}{
-			"name": config.Name,
-
-			"type": config.Type,
-
-			"features": config.Features,
-		}
+		providers[name] = json.RawMessage("{}")
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"providers": providers,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // InitiateLoginHandler initiates OAuth2 login flow.
@@ -322,9 +314,7 @@ func (ah *Handlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	ah.sessionManager.ClearSessionCookie(w)
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Logged out successfully",
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // GetUserInfoHandler returns current user information.
@@ -351,27 +341,7 @@ func (ah *Handlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	userInfo := map[string]interface{}{
-		"user_id": authContext.UserID,
-
-		"session_id": authContext.SessionID,
-
-		"provider": authContext.Provider,
-
-		"roles": authContext.Roles,
-
-		"permissions": authContext.Permissions,
-
-		"is_admin": authContext.IsAdmin,
-
-		"user_info": sessionInfo.UserInfo,
-
-		"created_at": sessionInfo.CreatedAt,
-
-		"last_activity": sessionInfo.LastActivity,
-
-		"expires_at": sessionInfo.ExpiresAt,
-	}
+	userInfo := json.RawMessage("{}")
 
 	ah.writeJSONResponse(w, http.StatusOK, userInfo)
 }
@@ -423,9 +393,7 @@ func (ah *Handlers) ListSessionsHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"sessions": sessions,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // RevokeSessionHandler revokes a specific session.
@@ -476,9 +444,7 @@ func (ah *Handlers) RevokeSessionHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Session revoked successfully",
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // GenerateTokenHandler generates API tokens.
@@ -552,15 +518,7 @@ func (ah *Handlers) GenerateTokenHandler(w http.ResponseWriter, r *http.Request)
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"access_token": accessToken,
-
-		"token_type": "Bearer",
-
-		"expires_at": tokenInfo.ExpiresAt,
-
-		"scope": tokenInfo.Scope,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // RefreshTokenHandler refreshes a token.
@@ -595,13 +553,7 @@ func (ah *Handlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"access_token": accessToken,
-
-		"token_type": "Bearer",
-
-		"expires_at": tokenInfo.ExpiresAt,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // RevokeTokenHandler revokes a token.
@@ -635,9 +587,7 @@ func (ah *Handlers) RevokeTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Token revoked successfully",
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // RBAC Handlers.
@@ -651,9 +601,7 @@ func (ah *Handlers) ListRolesHandler(w http.ResponseWriter, r *http.Request) {
 
 	roles := ah.rbacManager.ListRoles(r.Context())
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"roles": roles,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // CreateRoleHandler creates a new role (admin only).
@@ -760,9 +708,7 @@ func (ah *Handlers) DeleteRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Role deleted successfully",
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // GetUserRolesHandler gets user roles.
@@ -794,11 +740,7 @@ func (ah *Handlers) GetUserRolesHandler(w http.ResponseWriter, r *http.Request) 
 
 	roles := ah.rbacManager.GetUserRoles(r.Context(), userID)
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"user_id": userID,
-
-		"roles": roles,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // AssignRoleHandler assigns a role to a user (admin only).
@@ -832,9 +774,7 @@ func (ah *Handlers) AssignRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Role assigned successfully",
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // RevokeRoleHandler revokes a role from a user (admin only).
@@ -858,9 +798,7 @@ func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Role revoked successfully",
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // ListPermissionsHandler lists all permissions.
@@ -868,9 +806,7 @@ func (ah *Handlers) RevokeRoleHandler(w http.ResponseWriter, r *http.Request) {
 func (ah *Handlers) ListPermissionsHandler(w http.ResponseWriter, r *http.Request) {
 	permissions := ah.rbacManager.ListPermissions(r.Context())
 
-	ah.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"permissions": permissions,
-	})
+	ah.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // Helper methods.
@@ -928,15 +864,7 @@ func (ah *Handlers) writeErrorResponse(w http.ResponseWriter, status int, code, 
 
 	w.WriteHeader(status)
 
-	errorResponse := map[string]interface{}{
-		"error": code,
-
-		"error_description": message,
-
-		"status": status,
-
-		"timestamp": time.Now().Unix(),
-	}
+	errorResponse := json.RawMessage("{}")
 
 	json.NewEncoder(w).Encode(errorResponse)
 }

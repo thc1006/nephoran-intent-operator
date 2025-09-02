@@ -27,23 +27,13 @@ func createTestPolicyType() *PolicyType {
 		PolicyTypeID:   1,
 		PolicyTypeName: "test-policy-type",
 		Description:    "Test policy type for unit tests",
-		Schema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"scope": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"ue_id": map[string]interface{}{
-							"type": "string",
-						},
+		Schema: json.RawMessage("{}"){
+				"scope": json.RawMessage("{}"){
+						"ue_id": json.RawMessage("{}"),
 					},
 				},
-				"statement": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"qos_class": map[string]interface{}{
-							"type": "integer",
-						},
+				"statement": json.RawMessage("{}"){
+						"qos_class": json.RawMessage("{}"),
 					},
 				},
 			},
@@ -57,13 +47,10 @@ func createTestPolicyInstance() *PolicyInstance {
 	return &PolicyInstance{
 		PolicyID:     "test-policy-1",
 		PolicyTypeID: 1,
-		PolicyData: map[string]interface{}{
-			"scope": map[string]interface{}{
+		PolicyData: json.RawMessage("{}"){
 				"ue_id": "test-ue-123",
 			},
-			"statement": map[string]interface{}{
-				"qos_class": 5,
-			},
+			"statement": json.RawMessage("{}"),
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://test-callback.com",
@@ -82,9 +69,7 @@ func createTestPolicyStatus() *PolicyStatus {
 		Deleted:           false,
 		CreatedAt:         time.Now(),
 		ModifiedAt:        time.Now(),
-		AdditionalInfo: map[string]interface{}{
-			"enforcement_node": "test-ric",
-		},
+		AdditionalInfo: json.RawMessage("{}"),
 	}
 }
 
@@ -93,17 +78,11 @@ func createTestEIType() *EnrichmentInfoType {
 		EiTypeID:    "test-ei-type-1",
 		EiTypeName:  "Test EI Type",
 		Description: "Test enrichment information type",
-		EiJobDataSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"config": map[string]interface{}{
-					"type": "object",
-				},
+		EiJobDataSchema: json.RawMessage("{}"){
+				"config": json.RawMessage("{}"),
 			},
 		},
-		EiJobResultSchema: map[string]interface{}{
-			"type": "object",
-		},
+		EiJobResultSchema: json.RawMessage("{}"),
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
 	}
@@ -113,8 +92,7 @@ func createTestEIJob() *EnrichmentInfoJob {
 	return &EnrichmentInfoJob{
 		EiJobID:  "test-ei-job-1",
 		EiTypeID: "test-ei-type-1",
-		EiJobData: map[string]interface{}{
-			"config": map[string]interface{}{
+		EiJobData: json.RawMessage("{}"){
 				"param1": "value1",
 			},
 		},
@@ -735,11 +713,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:       "successful register consumer",
 			consumerID: "new-consumer",
-			requestBody: map[string]interface{}{
-				"consumer_name": "New Consumer",
-				"callback_url":  "http://new-consumer.com/callback",
-				"description":   "A new test consumer",
-			},
+			requestBody: json.RawMessage("{}"),
 			setupMocks: func(service *MockA1Service, storage *MockA1Storage) {
 				// Check consumer doesn't exist
 				storage.On("GetConsumer", mock.AnythingOfType("*context.valueCtx"), "new-consumer").Return((*Consumer)(nil), NewA1Error(ErrorTypeConsumerNotFound, "Not found", http.StatusNotFound, nil))
@@ -752,10 +726,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:       "consumer already exists",
 			consumerID: "existing-consumer",
-			requestBody: map[string]interface{}{
-				"consumer_name": "Existing Consumer",
-				"callback_url":  "http://existing.com/callback",
-			},
+			requestBody: json.RawMessage("{}"),
 			setupMocks: func(service *MockA1Service, storage *MockA1Storage) {
 				existingConsumer := createTestConsumer()
 				existingConsumer.ConsumerID = "existing-consumer"
@@ -824,12 +795,8 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:    "successful create EI job",
 			eiJobID: "new-ei-job",
-			requestBody: map[string]interface{}{
-				"ei_type_id": "test-ei-type-1",
-				"ei_job_data": map[string]interface{}{
-					"config": map[string]interface{}{
-						"param1": "value1",
-					},
+			requestBody: json.RawMessage("{}"){
+					"config": json.RawMessage("{}"),
 				},
 				"target_uri": "http://consumer.com/ei",
 				"job_owner":  "test-owner",
@@ -853,9 +820,7 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 		{
 			name:    "EI type not found",
 			eiJobID: "new-ei-job",
-			requestBody: map[string]interface{}{
-				"ei_type_id":  "non-existent-type",
-				"ei_job_data": map[string]interface{}{},
+			requestBody: json.RawMessage("{}")"),
 				"target_uri":  "http://consumer.com/ei",
 				"job_owner":   "test-owner",
 			},

@@ -249,7 +249,7 @@ func BenchmarkTaskSubmission(b *testing.B) {
 			Type:      TaskTypeLLMProcessing,
 			Priority:  1,
 			Status:    TaskStatusPending,
-			InputData: map[string]interface{}{"intent": "benchmark task"},
+			InputData: json.RawMessage(`{"intent":"benchmark task"}`),
 			Timeout:   10 * time.Second,
 		}
 

@@ -1,7 +1,9 @@
 package auth
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rsa"
 	"net/http"
 	"time"
@@ -146,7 +148,7 @@ type UserSession struct {
 
 	Permissions []string `json:"permissions"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	// SSO state.
 

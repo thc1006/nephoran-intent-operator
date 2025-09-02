@@ -47,9 +47,7 @@
 //	// Create provider instances
 //	config := providers.ProviderConfig{
 //		Type: "aws",
-//		Config: map[string]interface{}{
-//			"region": "us-west-2",
-//		},
+//		Config: json.RawMessage("{}"),
 //		Credentials: map[string]string{
 //			"accessKey": "...",
 //			"secretKey": "...",
@@ -73,10 +71,7 @@
 //	req := providers.ResourceRequest{
 //		Name: "my-cluster",
 //		Type: providers.ResourceTypeCluster,
-//		Spec: map[string]interface{}{
-//			"nodeCount": 3,
-//			"nodeSize":  "m5.large",
-//		},
+//		Spec: json.RawMessage("{}"),
 //	}
 //
 //	resource, err := provider.CreateResource(ctx, req)

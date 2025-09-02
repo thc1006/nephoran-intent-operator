@@ -27,7 +27,7 @@ type ProcessIntentResponse struct {
 	ProcessingTime string                 `json:"processing_time"`
 	RequestID      string                 `json:"request_id"`
 	ServiceVersion string                 `json:"service_version"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 	Status         string                 `json:"status"`
 	Error          string                 `json:"error,omitempty"`
 }
@@ -152,14 +152,7 @@ func (s *LLMProcessorService) processIntentHandler(w http.ResponseWriter, r *htt
 }
 
 func (s *LLMProcessorService) statusHandler(w http.ResponseWriter, r *http.Request) {
-	status := map[string]interface{}{
-		"service":   "llm-processor",
-		"version":   s.serviceVersion,
-		"uptime":    time.Since(s.startTime).String(),
-		"healthy":   s.healthy,
-		"ready":     s.ready,
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}
+	status := json.RawMessage("{}")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
@@ -455,20 +448,12 @@ var _ = Describe("LLM Processor Service Tests", func() {
 	Context("Service Integration with Different LLM Responses", func() {
 		It("Should handle complex JSON responses from LLM", func() {
 			By("Setting up service with complex response")
-			complexResponse := map[string]interface{}{
-				"action":    "deploy",
-				"component": "5g-core",
-				"replicas":  3,
-				"resources": map[string]interface{}{
+			complexResponse := json.RawMessage("{}"){
 					"cpu":    "2000m",
 					"memory": "4Gi",
 				},
-				"networking": map[string]interface{}{
-					"ports": []int{8080, 9090},
-					"ingress": map[string]interface{}{
-						"enabled":  true,
-						"hostname": "core.example.com",
-					},
+				"networking": json.RawMessage("{}"),
+					"ingress": json.RawMessage("{}"),
 				},
 			}
 			complexResponseBytes, _ := json.Marshal(complexResponse)

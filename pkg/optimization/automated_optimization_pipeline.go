@@ -31,7 +31,9 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -212,7 +214,7 @@ type OptimizationRequest struct {
 
 	Deadline time.Time `json:"deadline,omitempty"`
 
-	Context map[string]interface{} `json:"context"`
+	Context json.RawMessage `json:"context"`
 
 	AutoApproved bool `json:"autoApproved"`
 }
@@ -234,7 +236,7 @@ type OptimizationExecution struct {
 
 	Errors []error `json:"errors,omitempty"`
 
-	RollbackData map[string]interface{} `json:"rollbackData,omitempty"`
+	RollbackData json.RawMessage `json:"rollbackData,omitempty"`
 }
 
 // ExecutionStatus represents the status of an optimization execution.
@@ -473,7 +475,7 @@ type PerformanceBaseline struct {
 
 	Metrics map[string]float64 `json:"metrics"`
 
-	SystemConfiguration map[string]interface{} `json:"systemConfiguration"`
+	SystemConfiguration json.RawMessage `json:"systemConfiguration"`
 
 	ValidityPeriod time.Duration `json:"validityPeriod"`
 }

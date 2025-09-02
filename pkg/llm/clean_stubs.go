@@ -568,11 +568,7 @@ func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
 // GetMetrics performs getmetrics operation.
 
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_builder_enabled": false,
-
-		"status": "not_implemented",
-	}
+	return json.RawMessage("{}")
 }
 
 // generateMockHybridSearchResults generates mock search results for hybrid search.

@@ -629,15 +629,7 @@ func (b *VaultBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 
 		Features: b.GetSupportedFeatures(),
 
-		Metrics: map[string]interface{}{
-			"sealed": health.Sealed,
-
-			"initialized": health.Initialized,
-
-			"cluster_id": health.ClusterID,
-
-			"cluster_name": health.ClusterName,
-		},
+		Metrics: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -779,11 +771,7 @@ func (b *VaultBackend) authenticateAppRole(ctx context.Context, authConfig *Vaul
 		path = fmt.Sprintf("auth/%s/login", authConfig.MountPath)
 	}
 
-	data := map[string]interface{}{
-		"role_id": authConfig.RoleID,
-
-		"secret_id": authConfig.SecretID,
-	}
+	data := json.RawMessage("{}")
 
 	resp, err := b.client.Logical().Write(path, data)
 	if err != nil {
@@ -806,11 +794,7 @@ func (b *VaultBackend) authenticateKubernetes(ctx context.Context, authConfig *V
 		path = fmt.Sprintf("auth/%s/login", authConfig.MountPath)
 	}
 
-	data := map[string]interface{}{
-		"role": authConfig.Role,
-
-		"jwt": authConfig.JWT,
-	}
+	data := json.RawMessage("{}")
 
 	resp, err := b.client.Logical().Write(path, data)
 	if err != nil {

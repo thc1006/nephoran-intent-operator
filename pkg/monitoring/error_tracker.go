@@ -17,7 +17,9 @@ limitations under the License.
 package monitoring
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -162,7 +164,7 @@ type ErrorRecord struct {
 	Severity string `json:"severity"`
 
 	// Context provides additional error context
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	// StackTrace contains the stack trace if available
 	StackTrace string `json:"stackTrace,omitempty"`

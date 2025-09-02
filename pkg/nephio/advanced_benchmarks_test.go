@@ -82,12 +82,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 					CPU:    "500m",
 					Memory: "1Gi",
 				},
-				Configuration: map[string]interface{}{
-					"complexity":     scenario.complexity,
-					"resourceCount":  scenario.resourceCount,
-					"configMapCount": scenario.configMapCount,
-					"secretCount":    scenario.secretCount,
-				},
+				Configuration: json.RawMessage("{}"),
 			}
 
 			var totalGenTime, validationTime int64
@@ -182,10 +177,7 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 				Name:    scenario.functionType,
 				Version: "v1.0.0",
 				Image:   fmt.Sprintf("nephio/%s:latest", scenario.functionType),
-				Config: map[string]interface{}{
-					"inputSize":      scenario.inputSize,
-					"transformCount": scenario.transformCount,
-				},
+				Config: json.RawMessage("{}"),
 			}
 
 			// Generate test input resources
@@ -723,10 +715,7 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 		resources[i] = KRMResource{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      fmt.Sprintf("test-deployment-%d", i),
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage("{}"),
 			Spec: generateResourceSpec(baseSize),
 		}
 	}
@@ -736,26 +725,21 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 
 func generateResourceSpec(sizeBytes int) map[string]interface{} {
 	// Generate realistic Kubernetes resource spec
-	spec := map[string]interface{}{
-		"replicas": 3,
-		"selector": map[string]interface{}{
+	spec := json.RawMessage("{}"){
 			"matchLabels": map[string]string{
 				"app": "test-app",
 			},
 		},
-		"template": map[string]interface{}{
-			"metadata": map[string]interface{}{
+		"template": json.RawMessage("{}"){
 				"labels": map[string]string{
 					"app": "test-app",
 				},
 			},
-			"spec": map[string]interface{}{
-				"containers": []map[string]interface{}{
+			"spec": json.RawMessage("{}"){
 					{
 						"name":  "main",
 						"image": "nginx:latest",
-						"ports": []map[string]interface{}{
-							{"containerPort": 80},
+						"ports": []json.RawMessage("{}"),
 						},
 					},
 				},
@@ -827,24 +811,15 @@ func generateTestResource(resourceType string) KRMResource {
 		return KRMResource{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name":      "test-deployment",
-				"namespace": "default",
-			},
-			Spec: map[string]interface{}{
-				"replicas": 3,
-			},
+			Metadata: json.RawMessage("{}"),
+			Spec: json.RawMessage("{}"),
 		}
 	case "service":
 		return KRMResource{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Metadata: map[string]interface{}{
-				"name":      "test-service",
-				"namespace": "default",
-			},
-			Spec: map[string]interface{}{
-				"ports": []map[string]interface{}{
+			Metadata: json.RawMessage("{}"),
+			Spec: json.RawMessage("{}"){
 					{"port": 80, "targetPort": 8080},
 				},
 			},
@@ -853,10 +828,7 @@ func generateTestResource(resourceType string) KRMResource {
 		return KRMResource{
 			APIVersion: "v1",
 			Kind:       "ConfigMap",
-			Metadata: map[string]interface{}{
-				"name":      "test-configmap",
-				"namespace": "default",
-			},
+			Metadata: json.RawMessage("{}"),
 			Data: map[string]string{
 				"key": "value",
 			},

@@ -394,14 +394,12 @@ func (suite *AvailabilityTrackingTestSuite) TestSyntheticMonitoring() {
 			BusinessImpact: availability.ImpactCritical,
 			Region:         "test-region",
 			Config: availability.CheckConfig{
-				IntentPayload: map[string]interface{}{
-					"intent": "Deploy a 5G AMF with high availability",
-				},
+				IntentPayload: json.RawMessage("{}"),
 				FlowSteps: []availability.IntentFlowStep{
 					{
 						Name:           "create-intent",
 						Action:         "create_intent",
-						Payload:        map[string]interface{}{"type": "amf"},
+						Payload:        json.RawMessage(`{"type":"amf"}`),
 						ExpectedStatus: "processing",
 						MaxWaitTime:    10 * time.Second,
 					},

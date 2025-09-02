@@ -45,7 +45,7 @@ type SecurityValidationResults struct {
 	SecurityControls     []SecurityControlResult            `json:"security_controls"`
 	ComplianceFrameworks map[string]AutoSecComplianceResult `json:"compliance_frameworks"`
 	Recommendations      []SecurityRecommendation           `json:"recommendations"`
-	DetailedFindings     map[string]interface{}             `json:"detailed_findings"`
+	DetailedFindings     json.RawMessage             `json:"detailed_findings"`
 }
 
 // SecurityControlResult represents the result of a security control validation
@@ -59,7 +59,7 @@ type SecurityControlResult struct {
 	Evidence      []string               `json:"evidence"`
 	Remediation   string                 `json:"remediation"`
 	ExecutionTime time.Duration          `json:"execution_time"`
-	Details       map[string]interface{} `json:"details"`
+	Details       json.RawMessage `json:"details"`
 }
 
 // AutoSecComplianceResult represents compliance framework validation results

@@ -125,7 +125,7 @@ func (am *AlertMonitor) checkAlerts() {
 			State:     AlertStateFiring,
 			StartsAt:  time.Now(),
 			Labels:    map[string]string{"instance": "sla-service", "job": "monitoring"},
-			Context:   map[string]interface{}{"experiment": "chaos-test"},
+			Context:   json.RawMessage(`{"experiment":"chaos-test"}`),
 		}
 		am.alerts = append(am.alerts, alert)
 	}
@@ -207,7 +207,7 @@ func (fpt *FalsePositiveTracker) checkForFalsePositives() {
 			Severity:  AlertSeverityWarning,
 			State:     AlertStateFiring,
 			StartsAt:  time.Now(),
-			Context:   map[string]interface{}{"type": "false_positive"},
+			Context:   json.RawMessage(`{"type":"false_positive"}`),
 		}
 		fpt.alertEvents = append(fpt.alertEvents, falseAlert)
 	}

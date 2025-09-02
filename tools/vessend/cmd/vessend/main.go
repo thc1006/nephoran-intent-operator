@@ -92,7 +92,7 @@ type MeasurementFields struct {
 
 	VNicUsageArray []VNicUsage `json:"vNicUsageArray"`
 
-	AdditionalFields map[string]interface{} `json:"additionalFields"`
+	AdditionalFields json.RawMessage `json:"additionalFields"`
 }
 
 // VNicUsage represents a vnicusage.
@@ -151,9 +151,9 @@ func main() {
 
 	if config.InsecureTLS {
 
-		log.Println("тЪая╕П  WARNING: TLS certificate verification is disabled. This is insecure and should only be used in development.")
+		log.Println("?ая?  WARNING: TLS certificate verification is disabled. This is insecure and should only be used in development.")
 
-		log.Println("тЪая╕П  WARNING: Your connection is vulnerable to man-in-the-middle attacks.")
+		log.Println("?ая?  WARNING: Your connection is vulnerable to man-in-the-middle attacks.")
 
 	}
 
@@ -377,7 +377,7 @@ func validateCredentialStrength(username, password string) {
 
 		if strings.EqualFold(password, weak) {
 
-			log.Println("тЪая╕П  WARNING: Weak password detected. Please use a strong password in production.")
+			log.Println("?ая?  WARNING: Weak password detected. Please use a strong password in production.")
 
 			break
 
@@ -387,13 +387,13 @@ func validateCredentialStrength(username, password string) {
 
 	if username == password {
 
-		log.Println("тЪая╕П  WARNING: Username and password are identical. This is extremely insecure.")
+		log.Println("?ая?  WARNING: Username and password are identical. This is extremely insecure.")
 
 	}
 
 	if len(password) < 8 {
 
-		log.Println("тЪая╕П  WARNING: Password is shorter than 8 characters. Consider using a longer password.")
+		log.Println("?ая?  WARNING: Password is shorter than 8 characters. Consider using a longer password.")
 
 	}
 
@@ -548,14 +548,7 @@ func (s *EventSender) createEvent() VESEvent {
 				},
 			},
 
-			AdditionalFields: map[string]interface{}{
-
-				"kpm.p95_latency_ms": 85.3 + float64(cryptoRandInt64(20000))/1000.0,
-
-				"kpm.prb_utilization": 0.3 + float64(cryptoRandInt64(600))/1000.0,
-
-				"kpm.ue_count": 30 + int(cryptoRandInt64(40)),
-			},
+			AdditionalFields: json.RawMessage("{}"),
 		}
 
 	case "heartbeat":

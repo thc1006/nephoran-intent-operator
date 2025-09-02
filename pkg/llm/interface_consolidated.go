@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"log/slog"
 	"strings"
 	"sync"
@@ -47,24 +49,10 @@ type ConsolidatedStreamingProcessor struct {
 
 func (sp *ConsolidatedStreamingProcessor) GetMetrics() map[string]interface{} {
 	if sp == nil {
-		return map[string]interface{}{
-			"status": "disabled",
-		}
+		return json.RawMessage("{}")
 	}
 
-	return map[string]interface{}{
-		"active_streams": 0,
-
-		"total_streams": 0,
-
-		"completed_streams": 0,
-
-		"failed_streams": 0,
-
-		"total_bytes_streamed": 0,
-
-		"status": "stub",
-	}
+	return json.RawMessage("{}")
 }
 
 // Shutdown gracefully shuts down the streaming processor (stub implementation).
@@ -194,7 +182,7 @@ type ProcessingRequest struct {
 
 	ProcessingTimeout time.Duration `json:"processing_timeout,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ProcessingResponse represents a response from LLM processing.
@@ -222,7 +210,7 @@ type ProcessingResponse struct {
 
 	ExtractedIntent string `json:"extracted_intent,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // StreamingRequest represents a request for streaming LLM processing.
@@ -248,7 +236,7 @@ type StreamingRequest struct {
 
 	ClientID string `json:"client_id,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // WeaviateConnectionPool is a stub type for the connection pool.
@@ -476,15 +464,7 @@ func (tt *ConsolidatedSimpleTokenTracker) GetStats() map[string]interface{} {
 		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
 	}
 
-	return map[string]interface{}{
-		"total_tokens": tt.totalTokens,
-
-		"total_cost": tt.totalCost,
-
-		"request_count": tt.requestCount,
-
-		"avg_tokens_per_request": avgTokensPerRequest,
-	}
+	return json.RawMessage("{}")
 }
 
 // RequestContext contains context for LLM requests.
@@ -685,32 +665,14 @@ func (scm *StreamingContextManager) Close() {
 
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	if cb == nil || cb.metrics == nil {
-		return map[string]interface{}{
-			"status": "disabled",
-		}
+		return json.RawMessage("{}")
 	}
 
 	cb.metrics.mutex.RLock()
 
 	defer cb.metrics.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"total_queries": cb.metrics.TotalQueries,
-
-		"successful_queries": cb.metrics.SuccessfulQueries,
-
-		"failed_queries": cb.metrics.FailedQueries,
-
-		"average_query_duration": cb.metrics.AverageQueryDuration.String(),
-
-		"average_documents_found": cb.metrics.AverageDocumentsFound,
-
-		"cache_hits": cb.metrics.CacheHits,
-
-		"cache_misses": cb.metrics.CacheMisses,
-
-		"total_latency": cb.metrics.TotalLatency.String(),
-	}
+	return json.RawMessage("{}")
 }
 
 // Document represents a document for context building.
@@ -724,41 +686,21 @@ type Document struct {
 
 	Source string `json:"source"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // GetMetrics returns metrics for the ConsolidatedRelevanceScorer.
 
 func (rs *ConsolidatedRelevanceScorer) GetMetrics() map[string]interface{} {
 	if rs == nil || rs.metrics == nil {
-		return map[string]interface{}{
-			"status": "disabled",
-		}
+		return json.RawMessage("{}")
 	}
 
 	rs.metrics.mutex.RLock()
 
 	defer rs.metrics.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"total_scores": rs.metrics.TotalScores,
-
-		"average_scoring_time": rs.metrics.AverageScoringTime.String(),
-
-		"cache_hit_rate": rs.metrics.CacheHitRate,
-
-		"semantic_scores": rs.metrics.SemanticScores,
-
-		"authority_scores": rs.metrics.AuthorityScores,
-
-		"recency_scores": rs.metrics.RecencyScores,
-
-		"domain_scores": rs.metrics.DomainScores,
-
-		"intent_scores": rs.metrics.IntentScores,
-
-		"last_updated": rs.metrics.LastUpdated.Format("2006-01-02T15:04:05Z07:00"),
-	}
+	return json.RawMessage("{}")
 }
 
 // IntentRequest represents a legacy request structure (backward compatibility).
@@ -779,8 +721,5 @@ func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
 
 // GetMetrics returns metrics for the RAG-aware prompt builder stub
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_builder_enabled": false,
-		"stub_mode":              true,
-	}
+	return json.RawMessage("{}")
 }

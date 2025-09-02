@@ -1,7 +1,9 @@
 package compliance
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -149,7 +151,7 @@ type ControlAssessment struct {
 
 	Findings []string `json:"findings"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ComplianceViolation represents a specific compliance violation.
@@ -177,7 +179,7 @@ type ComplianceViolation struct {
 
 	Evidence []string `json:"evidence"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ComplianceRecommendation provides actionable recommendations.
@@ -199,7 +201,7 @@ type ComplianceRecommendation struct {
 
 	Effort string `json:"effort"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ComplianceEvidence represents evidence for compliance controls.

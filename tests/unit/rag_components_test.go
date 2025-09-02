@@ -42,7 +42,7 @@ func (suite *RAGComponentsTestSuite) testLoadDocument() {
 		ID:       "test-doc-1",
 		Content:  "This is a test document content for loading verification.",
 		Type:     "txt",
-		Metadata: map[string]interface{}{"author": "test"},
+		Metadata: json.RawMessage(`{"author":"test"}`),
 	})
 
 	suite.NoError(err)
@@ -76,10 +76,7 @@ func (suite *RAGComponentsTestSuite) testLoadDocumentWithMetadata() {
 		MaxFileSize:      10 * 1024 * 1024,
 	})
 
-	metadata := map[string]interface{}{
-		"category": "technical",
-		"version":  "1.0",
-		"tags":     []string{"network", "5g"},
+	metadata := json.RawMessage("{}"),
 	}
 
 	doc, err := loader.LoadDocument(suite.ctx, &rag.DocumentSource{
@@ -262,10 +259,7 @@ func (suite *RAGComponentsTestSuite) testChunkTelecomContent() {
 		Network slicing allows multiple virtual networks to run on a single physical infrastructure. 
 		The Core Network (5GC) includes functions like AMF, SMF, UPF, and PCF for different network operations.`,
 		Type: "technical",
-		Metadata: map[string]interface{}{
-			"domain":   "5g_core",
-			"standard": "3gpp",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	chunks, err := chunker.ChunkDocument(suite.ctx, doc)
@@ -598,11 +592,7 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 			{
 				DocumentID: "doc1",
 				Score:      0.9,
-				Metadata: map[string]interface{}{
-					"category": "5g_core",
-					"standard": "3gpp",
-					"version":  "17.0",
-				},
+				Metadata: json.RawMessage("{}"),
 			},
 		}, nil)
 
@@ -613,10 +603,7 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 
 	results, err := service.RetrieveDocuments(suite.ctx, &rag.RetrievalRequest{
 		Query: "5G core network",
-		Filters: map[string]interface{}{
-			"category": "5g_core",
-			"standard": "3gpp",
-		},
+		Filters: json.RawMessage("{}"),
 		MaxResults: 5,
 	})
 

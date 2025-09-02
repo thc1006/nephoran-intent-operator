@@ -75,7 +75,7 @@ type ResourceList struct {
 
 	// FunctionConfig contains configuration passed to the function.
 
-	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
+	FunctionConfig json.RawMessage `json:"functionConfig,omitempty"`
 
 	// Results contains any results or messages from processing.
 
@@ -99,15 +99,15 @@ type FunctionConfig struct {
 
 	// Metadata for the function config.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	// Data contains the actual configuration.
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	// Spec contains structured configuration.
 
-	Spec map[string]interface{} `json:"spec,omitempty"`
+	Spec json.RawMessage `json:"spec,omitempty"`
 }
 
 // ExecutionContext provides context information for function execution.
@@ -127,7 +127,7 @@ type ExecutionContext struct {
 
 	// Execution metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	// Timing information.
 

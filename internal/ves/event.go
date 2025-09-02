@@ -2,7 +2,9 @@
 package ves
 
 import (
-	"crypto/rand"
+	
+	"encoding/json"
+"crypto/rand"
 	"encoding/hex"
 	"time"
 )
@@ -46,7 +48,7 @@ type HeartbeatFields struct {
 
 	HeartbeatInterval int `json:"heartbeatInterval"`
 
-	AdditionalFields map[string]interface{} `json:"additionalFields,omitempty"`
+	AdditionalFields json.RawMessage `json:"additionalFields,omitempty"`
 }
 
 // FaultFields represents fault domain specific fields.
@@ -77,7 +79,7 @@ type Event struct {
 
 		FaultFields *FaultFields `json:"faultFields,omitempty"`
 
-		MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+		MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 	} `json:"event"`
 }
 
@@ -96,7 +98,7 @@ func NewHeartbeatEvent(sourceName string, interval int) *Event {
 
 			FaultFields *FaultFields `json:"faultFields,omitempty"`
 
-			MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+			MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 		}{
 			CommonEventHeader: CommonEventHeader{
 				Domain: "heartbeat",
@@ -168,7 +170,7 @@ func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
 
 			FaultFields *FaultFields `json:"faultFields,omitempty"`
 
-			MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
+			MeasurementFields json.RawMessage `json:"measurementFields,omitempty"`
 		}{
 			CommonEventHeader: CommonEventHeader{
 				Domain: "fault",

@@ -1,7 +1,9 @@
 package o1
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -137,9 +139,9 @@ type EnhancedAlarm struct {
 	RecommendedActions []string               `json:"recommended_actions,omitempty"`
 	BusinessImpact     string                 `json:"business_impact,omitempty"`
 	EscalationLevel    int                    `json:"escalation_level"`
-	Thresholds         map[string]interface{} `json:"thresholds,omitempty"`
+	Thresholds         json.RawMessage `json:"thresholds,omitempty"`
 	Masked             bool                   `json:"masked"`
-	EnrichmentData     map[string]interface{} `json:"enrichment_data,omitempty"`
+	EnrichmentData     json.RawMessage `json:"enrichment_data,omitempty"`
 }
 
 // AlarmHistoryEntry represents a historical alarm entry
@@ -153,7 +155,7 @@ type AlarmHistoryEntry struct {
 	SystemID    string                 `json:"system_id,omitempty"`
 	Timestamp   time.Time              `json:"timestamp"`
 	Description string                 `json:"description,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AlarmCorrelationEngine handles alarm correlation and grouping
@@ -200,7 +202,7 @@ type AlarmMaskingManager struct {
 type AlarmMask struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
-	Conditions  map[string]interface{} `json:"conditions"`
+	Conditions  json.RawMessage `json:"conditions"`
 	Active      bool                   `json:"active"`
 	StartTime   *time.Time             `json:"start_time,omitempty"`
 	EndTime     *time.Time             `json:"end_time,omitempty"`
@@ -216,7 +218,7 @@ type RootCauseAnalyzer struct {
 // RCARule represents a root cause analysis rule
 type RCARule struct {
 	ID          string                 `json:"id"`
-	Pattern     map[string]interface{} `json:"pattern"`
+	Pattern     json.RawMessage `json:"pattern"`
 	RootCause   string                 `json:"root_cause"`
 	Actions     []string               `json:"actions"`
 	Confidence  float64                `json:"confidence"`

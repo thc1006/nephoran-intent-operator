@@ -62,16 +62,7 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bool {
 	// Simulate NETCONF session establishment.
 
-	session := map[string]interface{}{
-		"sessionId": "netconf-session-001",
-
-		"capabilities": []string{
-			"urn:ietf:params:netconf:base:1.0",
-
-			"urn:ietf:params:netconf:base:1.1",
-
-			"urn:o-ran:netconf:capability:1.0",
-		},
+	session := json.RawMessage("{}"),
 
 		"transport": "SSH",
 
@@ -86,12 +77,7 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 	// Test get operation.
 
-	getConfig := map[string]interface{}{
-		"operation": "get-config",
-
-		"source": "running",
-
-		"filter": map[string]interface{}{
+	getConfig := json.RawMessage("{}"){
 			"type": "xpath",
 
 			"xpath": "/ric-config",
@@ -100,29 +86,18 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 
 	// Test edit-config operation.
 
-	editConfig := map[string]interface{}{
-		"operation": "edit-config",
-
-		"target": "candidate",
-
-		"config": map[string]interface{}{
-			"ric-config": map[string]interface{}{
-				"ric-id": "ric-001",
-
-				"xapp-namespace": "ricxapp",
-			},
+	editConfig := json.RawMessage("{}"){
+			"ric-config": json.RawMessage("{}"),
 		},
 	}
 
 	// Test commit operation.
 
-	commit := map[string]interface{}{
-		"operation": "commit",
-	}
+	commit := json.RawMessage("{}")
 
 	// Simulate NETCONF operations execution.
 
-	operations := []map[string]interface{}{getConfig, editConfig, commit}
+	operations := []json.RawMessage("{}")
 
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {

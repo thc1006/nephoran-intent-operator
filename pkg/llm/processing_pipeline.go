@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -144,7 +146,7 @@ type TrainingExample struct {
 
 	Label string `json:"label"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ContextEnricher adds context information to the processing.
@@ -250,7 +252,7 @@ type Policy struct {
 
 	Rules []PolicyRule `json:"rules"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -376,7 +378,7 @@ type ProcessingContext struct {
 
 	ProcessingStart time.Time `json:"processing_start"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // NewProcessingPipeline creates a new processing pipeline.
@@ -1200,19 +1202,7 @@ func (rp *ResponsePostprocessor) Postprocess(response map[string]interface{}, co
 // addMetadataEnrichment adds processing metadata.
 
 func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-	processingMetadata := map[string]interface{}{
-		"request_id": context.RequestID,
-
-		"processing_time": time.Since(context.ProcessingStart).Milliseconds(),
-
-		"intent_type": context.Classification.IntentType,
-
-		"confidence_score": context.Classification.Confidence,
-
-		"network_function": context.Classification.NetworkFunction,
-
-		"processed_at": time.Now().Format(time.RFC3339),
-	}
+	processingMetadata := json.RawMessage("{}")
 
 	response["processing_metadata"] = processingMetadata
 
@@ -1223,11 +1213,7 @@ func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]inter
 
 func (rp *ResponsePostprocessor) addValidationEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
 	if context.ValidationResult != nil {
-		response["validation_result"] = map[string]interface{}{
-			"valid": context.ValidationResult.Valid,
-
-			"score": context.ValidationResult.Score,
-		}
+		response["validation_result"] = json.RawMessage("{}")
 	}
 
 	return response, nil
@@ -1236,13 +1222,7 @@ func (rp *ResponsePostprocessor) addValidationEnrichment(response map[string]int
 // addTrackingEnrichment adds tracking information.
 
 func (rp *ResponsePostprocessor) addTrackingEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
-	response["tracking"] = map[string]interface{}{
-		"trace_id": context.RequestID,
-
-		"timestamp": time.Now().Format(time.RFC3339),
-
-		"version": "v1.0.0",
-	}
+	response["tracking"] = json.RawMessage("{}")
 
 	return response, nil
 }
@@ -1292,7 +1272,7 @@ type DeploymentPattern struct {
 
 	Description string `json:"description"`
 
-	Template map[string]interface{} `json:"template"`
+	Template json.RawMessage `json:"template"`
 
 	Requirements []string `json:"requirements"`
 }

@@ -6,7 +6,9 @@
 package security
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // StreamFilter defines filtering criteria for streaming data.
@@ -414,7 +416,7 @@ type SecurityPolicy struct {
 
 	UpdatedAt time.Time `json:"updatedAt"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PolicyException defines exceptions to a security policy.
@@ -486,7 +488,7 @@ type PolicyRequest struct {
 
 	RequestID string `json:"requestID,omitempty"`
 
-	SessionInfo map[string]interface{} `json:"sessionInfo,omitempty"`
+	SessionInfo json.RawMessage `json:"sessionInfo,omitempty"`
 }
 
 // RequestContext provides additional context for policy evaluation.
@@ -508,7 +510,7 @@ type RequestContext struct {
 
 	TLSInfo *TLSInfo `json:"tlsInfo,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 }
 
 // Geolocation represents geographic location information.
@@ -600,7 +602,7 @@ type Obligation struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Mandatory bool `json:"mandatory"`
 
@@ -616,7 +618,7 @@ type Advice struct {
 
 	Description string `json:"description"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 
 	Priority string `json:"priority"` // low, medium, high
 }
@@ -678,7 +680,7 @@ type NotificationMessage struct {
 
 	Type string `json:"type"` // info, warning, error, alert
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	Recipients []string `json:"recipients,omitempty"`
 
@@ -738,7 +740,7 @@ type SecurityStatus struct {
 
 	PolicyStatus *PolicyStatus `json:"policyStatus,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	Alerts []*SecurityAlert `json:"alerts,omitempty"`
 
@@ -810,7 +812,7 @@ type SecurityAlert struct {
 
 	Tags []string `json:"tags,omitempty"`
 
-	Evidence map[string]interface{} `json:"evidence,omitempty"`
+	Evidence json.RawMessage `json:"evidence,omitempty"`
 
 	Actions []*AlertAction `json:"actions,omitempty"`
 }
@@ -830,7 +832,7 @@ type AlertAction struct {
 
 	Result string `json:"result,omitempty"`
 
-	Evidence map[string]interface{} `json:"evidence,omitempty"`
+	Evidence json.RawMessage `json:"evidence,omitempty"`
 }
 
 // StatisticalSummary represents statistical summary data.
@@ -852,7 +854,7 @@ type StatisticalSummary struct {
 
 	Histogram map[string]int64 `json:"histogram,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AuditPolicy defines audit policy configuration.
@@ -1140,7 +1142,7 @@ type AuditEntry struct {
 
 	Result string `json:"result"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // ComplianceReportGenerator interface for generating compliance reports.
@@ -1174,7 +1176,7 @@ type ComplianceAssessment struct {
 
 	Evidence []*ComplianceEvidence `json:"evidence,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ComplianceFinding represents a compliance finding (minimal definition).
@@ -1222,7 +1224,7 @@ type ComplianceReport struct {
 
 	Format string `json:"format"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // VPNConfig defines VPN configuration.
@@ -1410,7 +1412,7 @@ type VulnReport struct {
 
 	Summary *VulnReportSummary `json:"summary"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // VulnReportSummary provides summary information for vulnerability reports.

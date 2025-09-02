@@ -1,7 +1,9 @@
 package models
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -39,7 +41,7 @@ type Subscription struct {
 
 	Status *SubscriptionStatus `json:"status"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -73,7 +75,7 @@ type SubscriptionFilter struct {
 
 	// Custom filters.
 
-	CustomFilters map[string]interface{} `json:"customFilters,omitempty"`
+	CustomFilters json.RawMessage `json:"customFilters,omitempty"`
 
 	// Time filters.
 
@@ -327,7 +329,7 @@ type InfrastructureEvent struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Extensions json.RawMessage `json:"extensions,omitempty"`
 
 	// Geographic and temporal context.
 
@@ -543,7 +545,7 @@ type CreateSubscriptionRequest struct {
 	ConsumerSubscriptionID string                 `json:"consumerSubscriptionId,omitempty"`
 	EventTypes             []string               `json:"eventTypes"`
 	Filter                 *SubscriptionFilter    `json:"filter,omitempty"`
-	Metadata               map[string]interface{} `json:"metadata,omitempty"`
+	Metadata               json.RawMessage `json:"metadata,omitempty"`
 }
 
 // UpdateSubscriptionRequest represents a request to update a subscription.
@@ -552,5 +554,5 @@ type UpdateSubscriptionRequest struct {
 	EventTypes []string               `json:"eventTypes,omitempty"`
 	Status     string                 `json:"status,omitempty"`
 	Filter     *SubscriptionFilter    `json:"filter,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }

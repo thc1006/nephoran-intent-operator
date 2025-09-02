@@ -131,15 +131,7 @@ func (s *O2APIServer) handleScaleResource(w http.ResponseWriter, r *http.Request
 
 	s.metrics.RecordResourceOperation("scale", "resource", "unknown", "success")
 
-	s.writeJSONResponse(w, r, StatusAccepted, map[string]interface{}{
-		"status": "scaling_initiated",
-
-		"resourceId": resourceID,
-
-		"scaleType": req.ScaleType,
-
-		"targetReplicas": req.TargetReplicas,
-	})
+	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage("{}"))
 }
 
 // handleMigrateResource migrates a resource.
@@ -179,15 +171,7 @@ func (s *O2APIServer) handleMigrateResource(w http.ResponseWriter, r *http.Reque
 
 	s.metrics.RecordResourceOperation("migrate", "resource", req.TargetProvider, "success")
 
-	s.writeJSONResponse(w, r, StatusAccepted, map[string]interface{}{
-		"status": "migration_initiated",
-
-		"resourceId": resourceID,
-
-		"sourceProvider": req.SourceProvider,
-
-		"targetProvider": req.TargetProvider,
-	})
+	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage("{}"))
 }
 
 // handleBackupResource creates a backup of a resource.
@@ -252,9 +236,7 @@ func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Reque
 
 	// Create a restore request with backupID.
 
-	restoreReq := map[string]interface{}{
-		"backupId": backupID,
-	}
+	restoreReq := json.RawMessage("{}")
 
 	result, err := s.resourceManager.RestoreResource(r.Context(), resourceID, restoreReq)
 
@@ -376,11 +358,7 @@ func (s *O2APIServer) handleSyncInventory(w http.ResponseWriter, r *http.Request
 
 	}
 
-	s.writeJSONResponse(w, r, StatusAccepted, map[string]interface{}{
-		"status": "inventory_sync_initiated",
-
-		"updatesCount": len(updates),
-	})
+	s.writeJSONResponse(w, r, StatusAccepted, json.RawMessage("{}"))
 }
 
 // handleGetAssets retrieves inventory assets.

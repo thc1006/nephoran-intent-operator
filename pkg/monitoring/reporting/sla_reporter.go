@@ -86,7 +86,7 @@ type SLAViolation struct {
 
 	BusinessImpact BusinessImpact `json:"business_impact"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // DataPoint represents a time-series data point.
@@ -120,7 +120,7 @@ type SLAReport struct {
 
 	BusinessMetrics BusinessMetrics `json:"business_metrics"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Period represents a time period for reporting.

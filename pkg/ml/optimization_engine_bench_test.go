@@ -194,10 +194,7 @@ func BenchmarkOptimizeNetworkDeployment(b *testing.B) {
 				ID:          "test-intent",
 				Description: "Benchmark test intent",
 				Priority:    "high",
-				Parameters: map[string]interface{}{
-					"bandwidth": "10Gbps",
-					"latency":   "5ms",
-				},
+				Parameters: json.RawMessage("{}"),
 			}
 
 			ctx := context.Background()

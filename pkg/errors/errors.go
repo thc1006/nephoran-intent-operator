@@ -3,7 +3,9 @@
 package errors
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -229,7 +231,7 @@ type ServiceError struct {
 
 	StackTrace []StackFrame `json:"stack_trace,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Tags []string `json:"tags,omitempty"`
 
@@ -267,7 +269,7 @@ type ServiceError struct {
 
 	GoroutineID string `json:"goroutine_id,omitempty"`
 
-	DebugInfo map[string]interface{} `json:"debug_info,omitempty"`
+	DebugInfo json.RawMessage `json:"debug_info,omitempty"`
 }
 
 // Error implements the error interface.

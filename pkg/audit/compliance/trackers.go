@@ -1,7 +1,9 @@
 package compliance
 
 import (
-	"sync"
+	
+	"encoding/json"
+"sync"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
@@ -96,7 +98,7 @@ type ControlStatus struct {
 
 	Remediation []RemediationAction `json:"remediation"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RemediationAction represents an action to remediate compliance issues.
@@ -220,31 +222,7 @@ func (st *SOC2Tracker) GetStatus() map[string]interface{} {
 
 	defer st.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"standard": "SOC2",
-
-		"authentication_events": st.authenticationEvents,
-
-		"authorization_events": st.authorizationEvents,
-
-		"data_access_events": st.dataAccessEvents,
-
-		"system_changes": st.systemChanges,
-
-		"security_violations": st.securityViolations,
-
-		"last_activity": st.lastActivity,
-
-		"security_controls": st.securityControls,
-
-		"availability_controls": st.availabilityControls,
-
-		"processing_integrity": st.processingIntegrityControls,
-
-		"confidentiality": st.confidentialityControls,
-
-		"privacy": st.privacyControls,
-	}
+	return json.RawMessage("{}")
 }
 
 func (st *SOC2Tracker) initializeSOC2Controls() {
@@ -383,21 +361,7 @@ func (it *ISO27001Tracker) GetStatus() map[string]interface{} {
 
 	defer it.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"standard": "ISO27001",
-
-		"information_security": it.informationSecurity,
-
-		"access_management": it.accessManagement,
-
-		"incident_management": it.incidentManagement,
-
-		"business_continuity": it.businessContinuity,
-
-		"last_activity": it.lastActivity,
-
-		"annex_a_controls": it.annexAControls,
-	}
+	return json.RawMessage("{}")
 }
 
 func (it *ISO27001Tracker) initializeISO27001Controls() {
@@ -532,21 +496,7 @@ func (pt *PCIDSSTracker) GetStatus() map[string]interface{} {
 
 	defer pt.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"standard": "PCI_DSS",
-
-		"cardholder_data_access": pt.cardholderDataAccess,
-
-		"authentication_attempts": pt.authenticationAttempts,
-
-		"network_security_events": pt.networkSecurityEvents,
-
-		"vulnerability_events": pt.vulnerabilityEvents,
-
-		"last_activity": pt.lastActivity,
-
-		"requirements": pt.requirements,
-	}
+	return json.RawMessage("{}")
 }
 
 func (pt *PCIDSSTracker) initializePCIDSSRequirements() {

@@ -159,10 +159,7 @@ func BenchmarkVectorSearch(b *testing.B) {
 				numVectors := 10000
 				for i := 0; i < numVectors; i++ {
 					vector := generateRandomVector(dim)
-					metadata := map[string]interface{}{
-						"id":       i,
-						"category": fmt.Sprintf("cat_%d", i%10),
-					}
+					metadata := json.RawMessage("{}")
 
 					err := accelerator.IndexVector(ctx, fmt.Sprintf("vec_%d", i), vector, metadata)
 					if err != nil {

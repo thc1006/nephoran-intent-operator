@@ -7,21 +7,14 @@ func createTestFunctionRequest() *FunctionRequest {
 	return &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			ConfigMap: map[string]interface{}{
-				"key1": "value1",
-			},
+			ConfigMap: json.RawMessage("{}"),
 		},
 		Resources: []KRMResource{
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: map[string]interface{}{
-					"name":      "test-config",
-					"namespace": "default",
-				},
-				Data: map[string]interface{}{
-					"config": "test-value",
-				},
+				Metadata: json.RawMessage("{}"),
+				Data: json.RawMessage("{}"),
 			},
 		},
 		Context: &FunctionContext{

@@ -230,10 +230,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				Action:    "suspicious_activity",
 				Severity:  SeverityCritical,
 				Result:    ResultFailure,
-				Data: map[string]interface{}{
-					"violation_type": "brute_force",
-					"attempts":       10,
-				},
+				Data: json.RawMessage("{}"),
 			},
 		}
 
@@ -355,11 +352,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Operation:    "update",
 				Namespace:    "default",
 			},
-			Data: map[string]interface{}{
-				"generation":       1,
-				"resource_version": "12345",
-				"reconcile_reason": "spec_change",
-			},
+			Data: json.RawMessage("{}"),
 		}
 
 		err := suite.auditSystem.LogEvent(reconcileEvent)
@@ -397,10 +390,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Operation:    "create",
 				Namespace:    "production",
 			},
-			Data: map[string]interface{}{
-				"admission_allowed":  true,
-				"validation_time_ms": 15,
-				"policies_evaluated": []string{"security-policy", "resource-quota"},
+			Data: json.RawMessage("{}"),
 			},
 		}
 
@@ -429,10 +419,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				UserAgent: "kubectl/v1.28.0",
 				RequestID: "req-" + uuid.New().String(),
 			},
-			Data: map[string]interface{}{
-				"token_type": "bearer",
-				"token_exp":  time.Now().Add(1 * time.Hour).Unix(),
-				"scopes":     []string{"openid", "email", "profile"},
+			Data: json.RawMessage("{}"),
 			},
 		}
 
@@ -510,10 +497,7 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 						UserContext: &UserContext{
 							UserID: fmt.Sprintf("user-%d", goroutineID),
 						},
-						Data: map[string]interface{}{
-							"goroutine_id": goroutineID,
-							"event_index":  i,
-						},
+						Data: json.RawMessage("{}"),
 					}
 
 					err := suite.auditSystem.LogEvent(event)
@@ -686,10 +670,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID:     "compliance-user-1",
 					AuthMethod: "mfa",
 				},
-				Data: map[string]interface{}{
-					"mfa_method": "totp",
-					"device_id":  "device123",
-				},
+				Data: json.RawMessage("{}"),
 			},
 			{
 				ID:                 uuid.New().String(),
@@ -704,11 +685,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID: "payment-processor",
 					Role:   "service_account",
 				},
-				Data: map[string]interface{}{
-					"cardholder_data": true,
-					"transaction_id":  "txn_789",
-					"amount":          100.00,
-				},
+				Data: json.RawMessage("{}"),
 			},
 			{
 				ID:        uuid.New().String(),
@@ -721,11 +698,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				UserContext: &UserContext{
 					UserID: "suspicious-user",
 				},
-				Data: map[string]interface{}{
-					"violation_type":    "unauthorized_pii_access",
-					"records_attempted": 500,
-					"blocked":           true,
-				},
+				Data: json.RawMessage("{}"),
 			},
 		}
 
@@ -881,13 +854,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					Operation:    "create",
 					APIVersion:   "v1",
 				},
-				Data: map[string]interface{}{
-					"verb":          "create",
-					"resource":      "pods",
-					"namespace":     "default",
-					"response_code": 201,
-					"user_agent":    "kubectl/v1.28.0",
-				},
+				Data: json.RawMessage("{}"),
 			},
 			{
 				ID:        uuid.New().String(),
@@ -907,11 +874,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					Operation:    "get",
 					APIVersion:   "v1",
 				},
-				Data: map[string]interface{}{
-					"verb":          "get",
-					"resource":      "nodes",
-					"response_code": 200,
-				},
+				Data: json.RawMessage("{}"),
 			},
 		}
 

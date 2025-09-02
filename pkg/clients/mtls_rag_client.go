@@ -30,7 +30,7 @@ type RAGSearchRequest struct {
 
 	Limit int `json:"limit,omitempty"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 
 	HybridSearch bool `json:"hybrid_search,omitempty"`
 
@@ -42,7 +42,7 @@ type RAGSearchRequest struct {
 
 	ExpandQuery bool `json:"expand_query,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RAGSearchResponse represents a response from the RAG service.
@@ -56,7 +56,7 @@ type RAGSearchResponse struct {
 
 	Query string `json:"query"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 }
 
 // RAGDocumentRequest represents a document ingestion request.
@@ -80,7 +80,7 @@ type IngestionOptions struct {
 
 	UpdateExisting bool `json:"update_existing,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RAGDocumentResponse represents a response from document ingestion.
@@ -98,7 +98,7 @@ type RAGDocumentResponse struct {
 
 	Errors []string `json:"errors,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RAGStatsResponse represents statistics from the RAG service.
@@ -118,7 +118,7 @@ type RAGStatsResponse struct {
 
 	DocumentTypes map[string]int `json:"document_types"`
 
-	PerformanceStats map[string]interface{} `json:"performance_stats"`
+	PerformanceStats json.RawMessage `json:"performance_stats"`
 }
 
 // SearchDocuments searches for documents using the RAG service with mTLS.
@@ -157,11 +157,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 
 		ExpandQuery: query.ExpandQuery,
 
-		Metadata: map[string]interface{}{
-			"request_type": "document_search",
-
-			"timestamp": time.Now(),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Set defaults.

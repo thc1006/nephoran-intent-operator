@@ -192,10 +192,7 @@ import (
 	require.NoError(t, err)
 
 	t.Run("AssessCompliance", func(t *testing.T) {
-		testSystem := map[string]interface{}{
-			"has_mtls": false,
-			"has_rbac": false,
-		}
+		testSystem := json.RawMessage("{}")
 
 		report, err := checker.AssessCompliance(testSystem)
 		assert.NoError(t, err)

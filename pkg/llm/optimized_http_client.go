@@ -936,7 +936,7 @@ type LLMRequest struct {
 
 	Headers map[string]string `json:"headers,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // LLMResponse represents a llmresponse.
@@ -952,7 +952,7 @@ type LLMResponse struct {
 
 	FromCache bool `json:"from_cache"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // TransportStats represents a transportstats.

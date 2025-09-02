@@ -1,7 +1,9 @@
 package availability
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/tls"
 	"fmt"
 	"math/rand"
@@ -119,9 +121,9 @@ type CheckConfig struct {
 
 	// Intent flow configuration.
 
-	IntentPayload map[string]interface{} `json:"intent_payload,omitempty"`
+	IntentPayload json.RawMessage `json:"intent_payload,omitempty"`
 
-	ExpectedResponse map[string]interface{} `json:"expected_response,omitempty"`
+	ExpectedResponse json.RawMessage `json:"expected_response,omitempty"`
 
 	FlowSteps []IntentFlowStep `json:"flow_steps,omitempty"`
 
@@ -195,7 +197,7 @@ type SyntheticResult struct {
 
 	StepResults []StepResult `json:"step_results,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // StepResult represents the result of a single step in a multi-step check.
@@ -1014,17 +1016,7 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 
 		Layer: LayerAPI, // Most synthetic checks are API-level
 
-		Metadata: map[string]interface{}{
-			"region": check.Region,
-
-			"total_checks": len(results),
-
-			"success_count": successCount,
-
-			"error_count": errorCount,
-
-			"check_type": string(check.Type),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	return metric, nil

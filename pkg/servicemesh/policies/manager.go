@@ -503,14 +503,8 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 				Action: "ALLOW",
 
 				Rules: []interface{}{
-					map[string]interface{}{
-						"from": []interface{}{
-							map[string]interface{}{
-								"principals": []string{
-									fmt.Sprintf("cluster.local/ns/%s/sa/%s",
-
-										config.Namespace, allowedComm.Source),
-								},
+					json.RawMessage("{}"){
+							json.RawMessage("{}"),
 							},
 						},
 					},

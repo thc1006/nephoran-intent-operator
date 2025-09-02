@@ -939,11 +939,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 				Image: "5g-core-validator", // Use existing validator function
 
-				Config: map[string]interface{}{
-					"intentType": string(intent.Spec.IntentType),
-
-					"components": intent.Spec.TargetComponents,
-				},
+				Config: json.RawMessage("{}"),
 			},
 		},
 
@@ -979,9 +975,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 					Image: "network-slice-optimizer",
 
-					Config: map[string]interface{}{
-						"sliceId": intent.Spec.NetworkSlice,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 
@@ -1009,11 +1003,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 				Image: "multi-vendor-normalizer",
 
-				Config: map[string]interface{}{
-					"intentType": string(intent.Spec.IntentType),
-
-					"targetComponents": intent.Spec.TargetComponents,
-				},
+				Config: json.RawMessage("{}"),
 
 				// Optional optimization.
 
@@ -1044,13 +1034,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 					Image: "5g-core-validator",
 
-					Config: map[string]interface{}{
-						"intentType": string(intent.Spec.IntentType),
-
-						"targetComponents": intent.Spec.TargetComponents,
-
-						"strictMode": true,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 
@@ -1091,13 +1075,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-optimizer", // Use 5G optimizer for deployments
 
-					Config: map[string]interface{}{
-						"deploymentType": "production",
-
-						"scalingPolicy": "auto",
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 
@@ -1119,11 +1097,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-validator", // Use 5G validator for configuration
 
-					Config: map[string]interface{}{
-						"configType": "network-function",
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 
@@ -1145,11 +1119,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-optimizer", // Use 5G optimizer for scaling
 
-					Config: map[string]interface{}{
-						"scalingType": "horizontal",
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 
@@ -1173,11 +1143,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 					Image: "5g-core-validator", // Use validator as default
 
-					Config: map[string]interface{}{
-						"intentType": string(intent.Spec.IntentType),
-
-						"targetComponents": intent.Spec.TargetComponents,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 
@@ -1290,10 +1256,7 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 
 	for stageName := range execution.Stages {
 
-		functionConfig := map[string]interface{}{
-			"image": fmt.Sprintf("krm/%s:latest", stageName), // Assuming standard naming
-
-			"config": map[string]interface{}{
+		functionConfig := json.RawMessage("{}"){
 				"executedAt": time.Now().Format(time.RFC3339),
 
 				"status": "completed",

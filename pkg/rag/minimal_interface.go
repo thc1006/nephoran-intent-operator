@@ -1,7 +1,9 @@
 package rag
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -37,7 +39,7 @@ type EmbeddingRequest struct {
 	Model     string                 `json:"model,omitempty"`
 	UseCache  bool                   `json:"use_cache"`
 	RequestID string                 `json:"request_id"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // EmbeddingResponse represents the response containing embeddings
@@ -46,7 +48,7 @@ type EmbeddingResponse struct {
 	Model      string                 `json:"model"`
 	TokenCount int                    `json:"token_count"`
 	RequestID  string                 `json:"request_id"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // EmbeddingMetrics contains metrics about the embedding service
@@ -137,7 +139,7 @@ type SearchResult struct {
 	Confidence float32                `json:"confidence,omitempty"`
 	Distance   float32                `json:"distance,omitempty"`
 	Source     string                 `json:"source,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RAGService provides RAG functionality
@@ -175,10 +177,7 @@ func (s *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RA
 
 // GetHealth returns the health status of the RAG service
 func (s *RAGService) GetHealth() map[string]interface{} {
-	return map[string]interface{}{
-		"status": "healthy",
-		"client": "noop",
-	}
+	return json.RawMessage("{}")
 }
 
 // GenerateEmbedding generates an embedding for the given text
@@ -192,15 +191,15 @@ type RAGRequest struct {
 	Query            string                 `json:"query"`
 	Context          string                 `json:"context,omitempty"`
 	Limit            int                    `json:"limit,omitempty"`
-	Filters          map[string]interface{} `json:"filters,omitempty"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Filters          json.RawMessage `json:"filters,omitempty"`
+	Metadata         json.RawMessage `json:"metadata,omitempty"`
 	IntentType       string                 `json:"intent_type,omitempty"`
 	MaxResults       int                    `json:"max_results,omitempty"`
 	MinConfidence    float64                `json:"min_confidence,omitempty"`
 	UseHybridSearch  bool                   `json:"use_hybrid_search,omitempty"`
 	EnableReranking  bool                   `json:"enable_reranking,omitempty"`
 	IncludeSourceRefs bool                  `json:"include_source_refs,omitempty"`
-	SearchFilters    map[string]interface{} `json:"search_filters,omitempty"`
+	SearchFilters    json.RawMessage `json:"search_filters,omitempty"`
 }
 
 // RAGProcessResponse represents the response from a RAG processing operation
@@ -216,7 +215,7 @@ type RAGProcessResponse struct {
 	TotalTime       time.Duration    `json:"total_time"`
 	UsedCache       bool             `json:"used_cache"`
 	IntentType      string           `json:"intent_type,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RAGResponse represents a response from RAG system (alias for compatibility)
@@ -231,14 +230,14 @@ type RetrievalResponse struct {
 	AverageRelevanceScore float64                  `json:"average_relevance_score"`
 	TopRelevanceScore     float64                  `json:"top_relevance_score"`
 	QueryWasEnhanced      bool                     `json:"query_was_enhanced"`
-	Metadata              map[string]interface{}   `json:"metadata,omitempty"`
+	Metadata              json.RawMessage   `json:"metadata,omitempty"`
 }
 
 // RetrievalRequest represents a request for document retrieval
 type RetrievalRequest struct {
 	Query   string `json:"query"`
 	Limit   int    `json:"limit,omitempty"`
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 }
 
 // Doc represents a document (alias for compatibility)
@@ -248,9 +247,9 @@ type Doc = Document
 type QueryRequest struct {
 	Query     string                 `json:"query"`
 	Context   string                 `json:"context,omitempty"`
-	Filters   map[string]interface{} `json:"filters,omitempty"`
+	Filters   json.RawMessage `json:"filters,omitempty"`
 	Limit     int                    `json:"limit,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // QueryResponse represents a query response
@@ -263,7 +262,7 @@ type QueryResponse struct {
 	ProcessingTime time.Duration          `json:"processing_time"`
 	EmbeddingCost  float64                `json:"embedding_cost"`
 	ProviderUsed   string                 `json:"provider_used"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RAGClientConfig holds configuration for RAG client
@@ -310,8 +309,8 @@ type WeaviateClient interface {
 type SearchQuery struct {
 	Query   string                 `json:"query"`
 	Limit   int                    `json:"limit,omitempty"`
-	Filters map[string]interface{} `json:"filters,omitempty"`
-	Options map[string]interface{} `json:"options,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 // SearchResponse represents search response
@@ -330,7 +329,7 @@ type Document struct {
 	Content    string                 `json:"content"`
 	Source     string                 `json:"source,omitempty"`
 	Confidence float64                `json:"confidence,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metadata   json.RawMessage `json:"metadata,omitempty"`
 }
 
 // SearchOption provides functional options for search
@@ -429,10 +428,7 @@ func (c *NoopWeaviateClient) AddDocument(ctx context.Context, doc *Document) err
 
 // GetHealthStatus implements WeaviateClient
 func (c *NoopWeaviateClient) GetHealthStatus() map[string]interface{} {
-	return map[string]interface{}{
-		"status": "healthy",
-		"client": "noop-weaviate",
-	}
+	return json.RawMessage("{}")
 }
 
 // HealthCheck implements WeaviateClient

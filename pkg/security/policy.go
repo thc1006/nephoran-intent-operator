@@ -1,7 +1,9 @@
 package security
 
 import (
-	"crypto/rand"
+	
+	"encoding/json"
+"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -16,7 +18,7 @@ type ExecutionSecurityPolicy struct {
 	Name      string                 `json:"name"`
 	Version   string                 `json:"version"`
 	Rules     []ExecutionPolicyRule  `json:"rules"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata"`
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
 	mu        sync.RWMutex

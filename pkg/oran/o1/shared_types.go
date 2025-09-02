@@ -48,10 +48,5 @@ func (brg *BaseReportGenerator) GetGeneratorType() string {
 
 func (brg *BaseReportGenerator) GenerateReport(ctx context.Context, template interface{}, data interface{}) (interface{}, error) {
 	// Base implementation - to be overridden by specific generators
-	return map[string]interface{}{
-		"generator": brg.name,
-		"template":  template,
-		"data":      data,
-		"timestamp": time.Now(),
-	}, nil
+	return json.RawMessage("{}"), nil
 }

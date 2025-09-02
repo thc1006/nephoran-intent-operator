@@ -269,11 +269,7 @@ func NewHSMBackend(config *HSMBackendConfig, logger *logging.StructuredLogger) *
 // Initialize sets up the HSM backend.
 
 func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
-	h.logger.Info("Initializing HSM backend", slog.Any("config", map[string]interface{}{
-		"provider_type": h.config.ProviderType,
-
-		"token_label": h.config.TokenLabel,
-	}))
+	h.logger.Info("Initializing HSM backend", slog.Any("config", json.RawMessage("{}")))
 
 	// Create HSM provider based on configuration.
 
@@ -959,15 +955,7 @@ func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 
 		status, _ := b.hsm.GetStatus()
 
-		info.Metrics = map[string]interface{}{
-			"connected": status.Connected,
-
-			"slot_id": status.SlotID,
-
-			"session_open": status.SessionOpen,
-
-			"key_count": status.KeyCount,
-		}
+		info.Metrics = json.RawMessage("{}")
 
 	}
 

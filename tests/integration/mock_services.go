@@ -109,11 +109,7 @@ func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.Intent
 
 		CacheHit: false,
 
-		Metadata: map[string]interface{}{
-			"mock_call_count": m.callCount,
-
-			"model_name": "mock-llm-model",
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -598,15 +594,7 @@ func (m *MockRedisService) GetStats() map[string]interface{} {
 
 	defer m.mu.RUnlock()
 
-	return map[string]interface{}{
-		"hits": m.hitCount,
-
-		"misses": m.missCount,
-
-		"hit_rate": m.GetHitRate(),
-
-		"cache_size": len(m.cache),
-	}
+	return json.RawMessage("{}")
 }
 
 // SetError configures an error for a specific operation.

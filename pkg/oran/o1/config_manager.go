@@ -105,7 +105,7 @@ type ConfigurationVersion struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	ConfigData map[string]interface{} `json:"config_data"`
+	ConfigData json.RawMessage `json:"config_data"`
 
 	Metadata map[string]string `json:"metadata"`
 
@@ -135,7 +135,7 @@ type ConfigurationSnapshot struct {
 
 	Elements map[string]*ConfigurationVersion `json:"elements"`
 
-	SystemState map[string]interface{} `json:"system_state"`
+	SystemState json.RawMessage `json:"system_state"`
 
 	Creator string `json:"creator"`
 }
@@ -201,7 +201,7 @@ type TemplateParam struct {
 type TemplateConstraint struct {
 	Type string `json:"type"` // DEPENDENCY, CONFLICT, RESOURCE
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Message string `json:"message"`
 }
@@ -251,9 +251,9 @@ type ConfigurationProfile struct {
 
 	BaseProfile string `json:"base_profile,omitempty"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
-	Overrides map[string]interface{} `json:"overrides"`
+	Overrides json.RawMessage `json:"overrides"`
 
 	Tags []string `json:"tags"`
 
@@ -319,7 +319,7 @@ type ConfigurationBaseline struct {
 
 	ElementID string `json:"element_id"`
 
-	BaselineData map[string]interface{} `json:"baseline_data"`
+	BaselineData json.RawMessage `json:"baseline_data"`
 
 	CreatedAt time.Time `json:"created_at"`
 
@@ -409,7 +409,7 @@ type ValidationRule struct {
 
 	Enabled bool `json:"enabled"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // ValidationResult represents validation results.
@@ -497,7 +497,7 @@ type RollbackOperation struct {
 
 	AffectedObjects []string `json:"affected_objects"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // BulkConfigurationManager handles bulk configuration operations.
@@ -545,7 +545,7 @@ type ConfigurationOperation struct {
 
 	Type string `json:"type"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	Metadata map[string]string `json:"metadata"`
 }
@@ -561,7 +561,7 @@ type OperationResult struct {
 
 	AppliedAt time.Time `json:"applied_at"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // WorkerPool manages concurrent operation execution.
@@ -1417,7 +1417,7 @@ type DriftDetectionResult struct {
 
 	DetectedAt time.Time `json:"detected_at"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // DriftItem represents a specific configuration drift.

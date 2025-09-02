@@ -1,7 +1,9 @@
 package performance_tests
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // ResourceUsageMetrics contains resource usage statistics
@@ -11,7 +13,7 @@ type ResourceUsageMetrics struct {
 	DiskIO      float64                `json:"disk_io"`
 	NetworkIO   float64                `json:"network_io"`
 	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // TimePointMetric represents a point in time with a value (avoiding redeclaration)

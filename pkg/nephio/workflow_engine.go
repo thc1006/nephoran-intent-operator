@@ -31,7 +31,9 @@ limitations under the License.
 package nephio
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -110,7 +112,7 @@ type RollbackStrategy struct {
 
 	NotifyOnFailure bool `json:"notifyOnFailure"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // RollbackStep defines a rollback step.
@@ -120,7 +122,7 @@ type RollbackStep struct {
 
 	Action string `json:"action"`
 
-	Config map[string]interface{} `json:"config"`
+	Config json.RawMessage `json:"config"`
 
 	Timeout time.Duration `json:"timeout"`
 
@@ -142,7 +144,7 @@ type ApprovalStrategy struct {
 
 	NotifyChannels []string `json:"notifyChannels,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ApprovalRequirement defines approval requirements.
@@ -170,7 +172,7 @@ type AutoApprovalRule struct {
 
 	Timeout time.Duration `json:"timeout"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // NotificationStrategy defines notification behavior.
@@ -184,7 +186,7 @@ type NotificationStrategy struct {
 
 	Templates map[string]string `json:"templates,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // NotificationEvent defines when to send notifications.
@@ -194,7 +196,7 @@ type NotificationEvent struct {
 
 	Conditions []string `json:"conditions,omitempty"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // NotificationChannel defines notification channels.
@@ -204,7 +206,7 @@ type NotificationChannel struct {
 
 	Endpoint string `json:"endpoint"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 
 	Enabled bool `json:"enabled"`
 }
@@ -220,7 +222,7 @@ type TimeoutStrategy struct {
 
 	OnTimeout string `json:"onTimeout"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 // ValidationResult represents workflow validation results.

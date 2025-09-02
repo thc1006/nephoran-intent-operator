@@ -31,7 +31,9 @@ limitations under the License.
 package webui
 
 import (
-	"fmt"
+	
+	"encoding/json"
+"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -76,7 +78,7 @@ type StreamMessage struct {
 
 	Data interface{} `json:"data"` // actual event data
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // WebSocketMessage represents a WebSocket-specific message with additional controls.
@@ -102,7 +104,7 @@ type SystemEvent struct {
 
 	Message string `json:"message"` // human-readable message
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -250,11 +252,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 		Send: make(chan []byte, 256),
 
-		Filters: map[string]interface{}{
-			"event_type": eventType,
-
-			"filters": filters,
-		},
+		Filters: json.RawMessage("{}"),
 
 		LastSeen: time.Now(),
 	}
@@ -289,13 +287,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-				"connection_id": connectionID,
-
-				"event_type": eventType,
-
-				"server_time": time.Now(),
-			},
+			Data: json.RawMessage("{}"),
 		},
 
 		Action: "welcome",
@@ -470,11 +462,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-				"filters": msg.Filters,
-
-				"active": true,
-			},
+			Data: json.RawMessage("{}"),
 		},
 
 		Action: "subscribe_response",
@@ -498,9 +486,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection, msg *WebSocketMessage) {
 	// Reset filters to default.
 
-	conn.Filters = map[string]interface{}{
-		"event_type": "none",
-	}
+	conn.Filters = json.RawMessage("{}")
 
 	// Send unsubscription confirmation.
 
@@ -514,9 +500,7 @@ func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-				"active": false,
-			},
+			Data: json.RawMessage("{}"),
 		},
 
 		Action: "unsubscribe_response",
@@ -586,22 +570,7 @@ func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, 
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-				"connection_id": conn.ID,
-
-				"user_id": conn.UserID,
-
-				"connected_since": conn.LastSeen,
-
-				"total_ws_connections": totalConnections,
-
-				"total_sse_connections": sseConnections,
-
-				"filters": conn.Filters,
-
-				"server_uptime": time.Since(time.Now()), // Would track actual uptime
-
-			},
+			Data: json.RawMessage("{}"),
 		},
 
 		Action: "status_response",
@@ -633,11 +602,7 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 
 			Source: "nephoran-api-server",
 
-			Data: map[string]interface{}{
-				"error_code": code,
-
-				"error_message": message,
-			},
+			Data: json.RawMessage("{}"),
 		},
 
 		Action: "error",
@@ -750,11 +715,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Flusher: flusher,
 
-		Filters: map[string]interface{}{
-			"event_type": eventType,
-
-			"filters": filters,
-		},
+		Filters: json.RawMessage("{}"),
 
 		LastSeen: time.Now(),
 	}
@@ -788,13 +749,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Source: "nephoran-api-server",
 
-		Data: map[string]interface{}{
-			"connection_id": connectionID,
-
-			"event_type": eventType,
-
-			"server_time": time.Now(),
-		},
+		Data: json.RawMessage("{}"),
 	}
 
 	s.sendSSEMessage(sseConn, &welcomeMsg)
@@ -830,11 +785,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 			// Send keep-alive ping.
 
-			fmt.Fprintf(w, "event: ping\ndata: %s\n\n", mustMarshalString(map[string]interface{}{
-				"timestamp": time.Now(),
-
-				"type": "keepalive",
-			}))
+			fmt.Fprintf(w, "event: ping\ndata: %s\n\n", mustMarshalString(json.RawMessage("{}")))
 
 			flusher.Flush()
 
@@ -884,50 +835,16 @@ func (s *NephoranAPIServer) listActiveStreams(w http.ResponseWriter, r *http.Req
 	// Add WebSocket connections.
 
 	for id, conn := range s.wsConnections {
-		streams = append(streams, map[string]interface{}{
-			"id": id,
-
-			"type": "websocket",
-
-			"user_id": conn.UserID,
-
-			"filters": conn.Filters,
-
-			"last_seen": conn.LastSeen,
-
-			"connected_at": conn.LastSeen, // Would track actual connection time
-
-		})
+		streams = append(streams, json.RawMessage("{}"))
 	}
 
 	// Add SSE connections.
 
 	for id, conn := range s.sseConnections {
-		streams = append(streams, map[string]interface{}{
-			"id": id,
-
-			"type": "sse",
-
-			"user_id": conn.UserID,
-
-			"filters": conn.Filters,
-
-			"last_seen": conn.LastSeen,
-
-			"connected_at": conn.LastSeen, // Would track actual connection time
-
-		})
+		streams = append(streams, json.RawMessage("{}"))
 	}
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"active_streams": streams,
-
-		"total_ws": len(s.wsConnections),
-
-		"total_sse": len(s.sseConnections),
-
-		"total_streams": len(streams),
-	})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // Helper functions.
@@ -1099,17 +1016,7 @@ func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request
 
 	// TODO: Implement actual stream info retrieval.
 
-	streamInfo := map[string]interface{}{
-		"stream_id": streamID,
-
-		"status": "active",
-
-		"type": "websocket",
-
-		"created_at": time.Now(),
-
-		"message_count": 0,
-	}
+	streamInfo := json.RawMessage("{}")
 
 	s.writeJSONResponse(w, http.StatusOK, streamInfo)
 }
@@ -1125,13 +1032,7 @@ func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) 
 
 	s.logger.Info("Closing stream", "streamID", streamID)
 
-	response := map[string]interface{}{
-		"stream_id": streamID,
-
-		"status": "closed",
-
-		"closed_at": time.Now(),
-	}
+	response := json.RawMessage("{}")
 
 	s.writeJSONResponse(w, http.StatusOK, response)
 }

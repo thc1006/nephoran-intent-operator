@@ -444,54 +444,7 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: map[string]interface{}{
-			"measurement_types": []string{
-				// DRB-level measurements.
-
-				"DRB.RlcSduDelayDl",
-
-				"DRB.RlcSduDelayUl",
-
-				"DRB.RlcSduVolumeDl",
-
-				"DRB.RlcSduVolumeUl",
-
-				"DRB.UEThpDl",
-
-				"DRB.UEThpUl",
-
-				// RRU-level measurements.
-
-				"RRU.PrbTotDl",
-
-				"RRU.PrbTotUl",
-
-				"RRU.PrbUsedDl",
-
-				"RRU.PrbUsedUl",
-
-				// Transport Block measurements.
-
-				"TB.TotNbrDl",
-
-				"TB.TotNbrUl",
-
-				"TB.ErrTotNbrDl",
-
-				"TB.ErrTotNbrUl",
-
-				// MAC-layer measurements.
-
-				"MAC.UESchedDlInitialTx",
-
-				"MAC.UESchedUlInitialTx",
-
-				// Carrier measurements.
-
-				"CARR.PDSCHMCSDist",
-
-				"CARR.PUSCHMCSDist",
-			},
+		Configuration: json.RawMessage("{}"),
 
 			"granularity_period": "1000ms",
 
@@ -507,13 +460,7 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 
 			"max_concurrent_measurements": 100,
 
-			"measurement_filtering": map[string]interface{}{
-				"threshold_based": true,
-
-				"time_based": true,
-
-				"condition_based": true,
-			},
+			"measurement_filtering": json.RawMessage("{}"),
 		},
 	}
 }
@@ -538,22 +485,7 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_FAILURE",
 		},
 
-		Configuration: map[string]interface{}{
-			"control_actions": []string{
-				"QoS_flow_mapping",
-
-				"Traffic_steering",
-
-				"Dual_connectivity",
-
-				"Mobility_control",
-
-				"Carrier_aggregation",
-
-				"RRM_optimization",
-
-				"Beamforming_control",
-			},
+		Configuration: json.RawMessage("{}"),
 
 			"control_outcomes": []string{
 				"successful",
@@ -606,20 +538,7 @@ func CreateReportServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: map[string]interface{}{
-			"report_types": []string{
-				"performance_statistics",
-
-				"fault_management",
-
-				"configuration_management",
-
-				"accounting_management",
-
-				"security_management",
-
-				"custom_analytics",
-			},
+		Configuration: json.RawMessage("{}"),
 
 			"data_formats": []string{"JSON", "XML", "BINARY", "ASN1_PER"},
 
@@ -802,13 +721,7 @@ func (p *KMPServiceModelPlugin) processIndication(ctx context.Context, request i
 
 	// Process measurement data.
 
-	processedData := map[string]interface{}{
-		"timestamp": time.Now(),
-
-		"measurements": indicationData,
-
-		"processed_by": "KMP Plugin v" + p.version,
-	}
+	processedData := json.RawMessage("{}")
 
 	return processedData, nil
 }
@@ -948,13 +861,7 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 
 	// Return control acknowledge.
 
-	outcomeData, _ := json.Marshal(map[string]interface{}{
-		"outcome": outcome,
-
-		"processed_by": "RC Plugin v" + p.version,
-
-		"timestamp": time.Now(),
-	})
+	outcomeData, _ := json.Marshal(json.RawMessage("{}"))
 
 	return &RICControlAcknowledge{
 		RICRequestID: req.RICRequestID,

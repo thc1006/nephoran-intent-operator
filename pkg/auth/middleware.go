@@ -79,7 +79,7 @@ type AuthContext struct {
 
 	IsAdmin bool `json:"is_admin"`
 
-	Attributes map[string]interface{} `json:"attributes"`
+	Attributes json.RawMessage `json:"attributes"`
 }
 
 
@@ -628,15 +628,7 @@ func (am *AuthMiddleware) writeErrorResponse(w http.ResponseWriter, status int, 
 
 	w.WriteHeader(status)
 
-	errorResponse := map[string]interface{}{
-		"error": code,
-
-		"error_description": message,
-
-		"status": status,
-
-		"timestamp": time.Now().Unix(),
-	}
+	errorResponse := json.RawMessage("{}")
 
 	json.NewEncoder(w).Encode(errorResponse)
 }

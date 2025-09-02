@@ -61,14 +61,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			)
 
 			// Set up mock LLM client for successful processing
-			mockResponse := map[string]interface{}{
-				"action":      "scale",
-				"target_type": "E2NodeSet",
-				"target_name": "test-e2nodeset",
-				"replicas":    5,
-				"reason":      "capacity_increase",
-				"priority":    "high",
-			}
+			mockResponse := json.RawMessage("{}")
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			networkIntentReconciler.LLMClient = &MockLLMClient{
 				Response: string(mockResponseBytes),
@@ -178,12 +171,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			By("Third reconciliation should succeed after LLM recovery")
 			// Setup successful response for third attempt
-			mockResponse := map[string]interface{}{
-				"action":    "deploy",
-				"component": "network-function",
-				"replicas":  2,
-				"ha_mode":   true,
-			}
+			mockResponse := json.RawMessage("{}")
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			mockLLMClient.Response = string(mockResponseBytes)
 			mockLLMClient.Error = nil
@@ -444,13 +432,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				RetryDelay:    time.Second * 1,
 			}
 
-			mockResponse := map[string]interface{}{
-				"action":      "scale",
-				"target_type": "E2NodeSet",
-				"target_name": e2nodeSet.Name,
-				"replicas":    4,
-				"namespace":   namespaceName,
-			}
+			mockResponse := json.RawMessage("{}")
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			networkIntentReconciler.LLMClient = &MockLLMClient{
 				Response: string(mockResponseBytes),

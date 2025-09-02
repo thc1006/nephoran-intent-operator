@@ -1075,17 +1075,7 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 // GetMetrics returns current metrics.
 
 func (m *Manager) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"queue_depth": len(m.operationQueue),
-
-		"concurrent_operations": len(m.semaphore),
-
-		"last_health_check": m.lastHealthCheck,
-
-		"cache_size": func() int {
-			size := 0
-
-			m.cache.Range(func(_, _ interface{}) bool {
+	return json.RawMessage("{}")) bool {
 				size++
 
 				return true

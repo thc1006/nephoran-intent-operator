@@ -1,7 +1,9 @@
 package controllers
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -162,7 +164,7 @@ type PlannedNetworkFunction struct {
 
 	Resources ResourceRequirements `json:"resources"`
 
-	Configuration map[string]interface{} `json:"configuration"`
+	Configuration json.RawMessage `json:"configuration"`
 
 	Dependencies []string `json:"dependencies"`
 
@@ -202,7 +204,7 @@ type SliceConfiguration struct {
 
 	Isolation string `json:"isolation"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 }
 
 // NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources.

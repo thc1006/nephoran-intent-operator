@@ -1,7 +1,9 @@
 package performance_tests
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log"
 	"math"
@@ -303,7 +305,7 @@ type TestDocument struct {
 	Category   string                 `json:"category"`
 	Complexity string                 `json:"complexity"`
 	Size       int                    `json:"size"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Metadata   json.RawMessage `json:"metadata"`
 }
 
 // NewRAGPerformanceTestSuite creates a new RAG performance test suite

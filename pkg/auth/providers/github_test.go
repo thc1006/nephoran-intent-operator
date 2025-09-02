@@ -182,11 +182,7 @@ import (
 			code := r.FormValue("code")
 			switch code {
 			case "valid-code":
-				response := map[string]interface{}{
-					"access_token": "github-access-token-123",
-					"token_type":   "Bearer",
-					"scope":        "user:email,read:org,read:user",
-				}
+				response := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
@@ -303,13 +299,7 @@ import (
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
 			if token == "no-email-token" {
-				emails := []map[string]interface{}{
-					{
-						"email":      "noemail@example.com",
-						"verified":   true,
-						"primary":    true,
-						"visibility": "private",
-					},
+				emails := []json.RawMessage("{}"),
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(emails)
@@ -389,10 +379,7 @@ import (
 
 			switch token {
 			case "valid-token":
-				userInfo := map[string]interface{}{
-					"id":    123456789,
-					"login": "testuser",
-				}
+				userInfo := json.RawMessage("{}")
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(userInfo)
 			case "invalid-token":
@@ -664,11 +651,7 @@ func createMockGitHubServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/login/oauth/access_token":
-			response := map[string]interface{}{
-				"access_token": "test-access-token",
-				"token_type":   "Bearer",
-				"scope":        "user:email,read:org,read:user",
-			}
+			response := json.RawMessage("{}")
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		case "/user":

@@ -138,12 +138,8 @@ func (m *LoadTestMetrics) Finalize() {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_load_test_db",
-		},
-		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
+		DatabaseConfig: json.RawMessage("{}"),
+		ProviderConfigs: json.RawMessage("{}"){
 				"enabled": true,
 			},
 		},
@@ -631,12 +627,8 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_benchmark_db",
-		},
-		ProviderConfigs: map[string]interface{}{
-			"kubernetes": map[string]interface{}{
+		DatabaseConfig: json.RawMessage("{}"),
+		ProviderConfigs: json.RawMessage("{}"){
 				"enabled": true,
 			},
 		},
@@ -755,10 +747,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false,
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "o2_memory_test_db",
-		},
+		DatabaseConfig: json.RawMessage("{}"),
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)

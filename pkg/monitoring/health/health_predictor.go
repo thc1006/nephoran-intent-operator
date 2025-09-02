@@ -1,7 +1,9 @@
 package health
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -126,7 +128,7 @@ type PredictionModel struct {
 
 	TrainingDataSize int `json:"training_data_size"`
 
-	Hyperparameters map[string]interface{} `json:"hyperparameters"`
+	Hyperparameters json.RawMessage `json:"hyperparameters"`
 
 	// Model state.
 
@@ -232,7 +234,7 @@ type FeatureVector struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DataQualityMetrics tracks the quality of training data.
@@ -330,7 +332,7 @@ type HealthWarning struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // WarningType defines the type of warning.
@@ -746,7 +748,7 @@ type DetectedAnomaly struct {
 
 	Description string `json:"description"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 // NewHealthPredictor creates a new health predictor.
@@ -1150,11 +1152,7 @@ func (hp *HealthPredictor) createModel(component string) (*PredictionModel, erro
 
 		TrainingDataSize: 0,
 
-		Hyperparameters: map[string]interface{}{
-			"learning_rate": 0.01,
-
-			"regularization": 0.001,
-		},
+		Hyperparameters: json.RawMessage("{}"),
 
 		weights: []float64{},
 

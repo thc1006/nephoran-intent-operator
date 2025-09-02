@@ -31,7 +31,9 @@ limitations under the License.
 package errors
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -216,9 +218,9 @@ type AdvancedRecoveryResult struct {
 
 	// Result data.
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
-	RecoveredState map[string]interface{} `json:"recoveredState,omitempty"`
+	RecoveredState json.RawMessage `json:"recoveredState,omitempty"`
 
 	// Performance metrics.
 
@@ -548,7 +550,7 @@ type DegradationLevel struct {
 
 	Features []string `json:"features"`
 
-	Limits map[string]interface{} `json:"limits"`
+	Limits json.RawMessage `json:"limits"`
 }
 
 // FallbackManager manages fallback strategies.
@@ -578,7 +580,7 @@ type FallbackStrategy struct {
 
 	Conditions []string `json:"conditions"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // FallbackHandler defines the interface for fallback execution.
@@ -1644,11 +1646,7 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "process_intent",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-			return map[string]interface{}{
-				"fallback": true,
-
-				"message": "Using simplified processing due to service degradation",
-			}, nil
+			return json.RawMessage("{}"), nil
 		},
 
 		Priority: 1,
@@ -1666,11 +1664,7 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "query",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-			return map[string]interface{}{
-				"fallback": true,
-
-				"cached_data": "Using cached knowledge base results",
-			}, nil
+			return json.RawMessage("{}"), nil
 		},
 
 		Priority: 1,

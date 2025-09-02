@@ -144,7 +144,7 @@ type A1ProblemDetail struct {
 
 	RequestID string `json:"request_id,omitempty"`
 
-	Extensions map[string]interface{} `json:"-"`
+	Extensions json.RawMessage `json:"-"`
 }
 
 // A1Error represents an A1-specific error with context information.
@@ -162,7 +162,7 @@ type A1Error struct {
 
 	Cause error `json:"-"`
 
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context json.RawMessage `json:"context,omitempty"`
 
 	Retryable bool `json:"retryable,omitempty"`
 

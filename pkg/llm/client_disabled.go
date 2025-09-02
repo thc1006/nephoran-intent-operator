@@ -253,13 +253,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	// Create request.
 
-	reqBody := map[string]interface{}{
-		"intent": intent,
-
-		"model": c.modelName,
-
-		"max_tokens": c.maxTokens,
-	}
+	reqBody := json.RawMessage("{}")
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {

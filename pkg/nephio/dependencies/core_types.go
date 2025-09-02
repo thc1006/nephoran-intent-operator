@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -499,7 +501,7 @@ type ChangeEvent struct {
 
 	Initiator string `json:"initiator"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // PackageInfo represents a packageinfo.

@@ -351,19 +351,13 @@ func (m *MockProvider) GetScalingCapabilities(ctx context.Context, resourceID st
 // GetMetrics returns provider metrics (CloudProvider interface)
 func (m *MockProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 	// Mock implementation
-	return map[string]interface{}{
-		"cpu_usage":    "25%",
-		"memory_usage": "60%",
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // GetResourceMetrics returns resource-specific metrics (CloudProvider interface)
 func (m *MockProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
 	// Mock implementation
-	return map[string]interface{}{
-		"cpu_usage":    "30%",
-		"memory_usage": "45%",
-	}, nil
+	return json.RawMessage("{}"), nil
 }
 
 // GetResourceHealth returns resource health (CloudProvider interface)
@@ -555,7 +549,7 @@ func (a *ProviderAdapter) CreateResource(ctx context.Context, req ResourceReques
 	cloudReq := &CreateResourceRequest{
 		Name:          req.Name,
 		Type:          string(req.Type),
-		Specification: map[string]interface{}{"spec": req.Spec},
+		Specification: json.RawMessage("{}"),
 		Labels:        req.Labels,
 	}
 
@@ -633,7 +627,7 @@ func (a *ProviderAdapter) ListResources(ctx context.Context, filter ResourceFilt
 func (a *ProviderAdapter) UpdateResource(ctx context.Context, id string, req ResourceRequest) (*Resource, error) {
 	// Convert to CloudProvider request format
 	cloudReq := &UpdateResourceRequest{
-		Specification: map[string]interface{}{"spec": req.Spec},
+		Specification: json.RawMessage("{}"),
 		Labels:        req.Labels,
 	}
 
@@ -706,26 +700,10 @@ func MockProviderConstructor(config ProviderConfig) (Provider, error) {
 
 // GetMockProviderSchema returns the configuration schema for mock provider
 func GetMockProviderSchema() map[string]interface{} {
-	return map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"name": map[string]interface{}{
-				"type":        "string",
-				"description": "Name of the mock provider instance",
-				"default":     "mock-provider",
-			},
-			"simulateLatency": map[string]interface{}{
-				"type":        "boolean",
-				"description": "Whether to simulate network latency",
-				"default":     false,
-			},
-			"errorRate": map[string]interface{}{
-				"type":        "number",
-				"description": "Simulated error rate (0.0 to 1.0)",
-				"default":     0.0,
-				"minimum":     0.0,
-				"maximum":     1.0,
-			},
+	return json.RawMessage("{}"){
+			"name": json.RawMessage("{}"),
+			"simulateLatency": json.RawMessage("{}"),
+			"errorRate": json.RawMessage("{}"),
 		},
 	}
 }

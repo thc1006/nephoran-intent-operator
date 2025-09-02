@@ -1,7 +1,9 @@
 package availability
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -141,7 +143,7 @@ type AvailabilityMetric struct {
 
 	Layer ServiceLayer `json:"layer"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // ServiceEndpointConfig defines configuration for service endpoint monitoring.
@@ -191,7 +193,7 @@ type UserJourneyConfig struct {
 
 	SLAThreshold time.Duration `json:"sla_threshold"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // UserJourneyStep represents a single step in a user journey.
@@ -970,17 +972,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 		Layer: endpoint.Layer,
 
-		Metadata: map[string]interface{}{
-			"url": endpoint.URL,
-
-			"method": endpoint.Method,
-
-			"expected_status": endpoint.ExpectedStatus,
-
-			"actual_status": func() int {
-				if resp != nil {
-					return resp.StatusCode
-				}
+		Metadata: json.RawMessage("{}")
 
 				return 0
 			}(),
@@ -1159,11 +1151,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: map[string]interface{}{
-				"reason": "no_pods_found",
-
-				"pod_count": 0,
-			},
+			Metadata: json.RawMessage("{}"),
 		}, nil
 	}
 
@@ -1214,15 +1202,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 	return &ComponentStatus{
 		Status: status,
 
-		Metadata: map[string]interface{}{
-			"total_pods": totalPods,
-
-			"healthy_pods": healthyPods,
-
-			"health_ratio": healthRatio,
-
-			"restart_count": restartCount,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -1251,9 +1231,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: map[string]interface{}{
-				"reason": "no_deployments_found",
-			},
+			Metadata: json.RawMessage("{}"),
 		}, nil
 	}
 
@@ -1278,15 +1256,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 	return &ComponentStatus{
 		Status: status,
 
-		Metadata: map[string]interface{}{
-			"desired_replicas": desiredReplicas,
-
-			"available_replicas": availableReplicas,
-
-			"ready_replicas": deployment.Status.ReadyReplicas,
-
-			"updated_replicas": deployment.Status.UpdatedReplicas,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -1315,9 +1285,7 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 		return &ComponentStatus{
 			Status: HealthUnhealthy,
 
-			Metadata: map[string]interface{}{
-				"reason": "no_services_found",
-			},
+			Metadata: json.RawMessage("{}"),
 		}, nil
 	}
 
@@ -1330,11 +1298,7 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 	return &ComponentStatus{
 		Status: HealthHealthy,
 
-		Metadata: map[string]interface{}{
-			"service_type": string(service.Spec.Type),
-
-			"port_count": len(service.Spec.Ports),
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -1469,12 +1433,6 @@ func (ujc *UserJourneyCollector) collectJourneyMetric(ctx context.Context, journ
 
 		Layer: LayerAPI, // Most user journeys are API-driven
 
-		Metadata: map[string]interface{}{
-			"success_rate": successRate,
-
-			"step_count": len(journey.Steps),
-
-			"sla_threshold": journey.SLAThreshold.String(),
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }

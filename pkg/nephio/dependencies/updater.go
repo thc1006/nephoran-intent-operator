@@ -33,7 +33,9 @@ limitations under the License.
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -257,7 +259,7 @@ type UpdateSpec struct {
 
 	Environment string `json:"environment,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // UpdateResult contains comprehensive update execution results.
@@ -315,7 +317,7 @@ type UpdateResult struct {
 
 	Statistics *UpdateStatistics `json:"statistics"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // DependencyUpdate represents a single dependency update.
@@ -381,7 +383,7 @@ type DependencyUpdate struct {
 
 	CreatedBy string `json:"createdBy,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PropagationSpec defines parameters for update propagation.
@@ -433,7 +435,7 @@ type PropagationSpec struct {
 
 	Reason string `json:"reason,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PropagationResult contains update propagation results.
@@ -483,7 +485,7 @@ type PropagationResult struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ImpactAnalysis contains comprehensive impact analysis results.
@@ -545,7 +547,7 @@ type ImpactAnalysis struct {
 
 	// Metadata.
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // Enum definitions.

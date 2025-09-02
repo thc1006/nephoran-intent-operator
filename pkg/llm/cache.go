@@ -1127,35 +1127,7 @@ func (c *ResponseCache) GetStats() map[string]interface{} {
 
 	metrics := c.GetMetrics()
 
-	return map[string]interface{}{
-		"l1_size": l1Size,
-
-		"l2_size": l2Size,
-
-		"l1_max_size": c.l1MaxSize,
-
-		"l2_max_size": c.l2MaxSize,
-
-		"semantic_index_size": semanticIndexSize,
-
-		"ttl": c.ttl.String(),
-
-		"similarity_threshold": c.similarityThreshold,
-
-		"adaptive_ttl": c.adaptiveTTL,
-
-		"prewarm_enabled": c.prewarmEnabled,
-
-		"hit_rate": metrics.HitRate,
-
-		"l1_hit_rate": metrics.L1HitRate,
-
-		"l2_hit_rate": metrics.L2HitRate,
-
-		"semantic_hits": metrics.SemanticHits,
-
-		"evictions": metrics.Evictions,
-	}
+	return json.RawMessage("{}")
 }
 
 // Stop gracefully shuts down the cache.

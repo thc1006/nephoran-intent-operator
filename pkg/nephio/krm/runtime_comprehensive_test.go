@@ -17,7 +17,9 @@ limitations under the License.
 package krm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -40,17 +42,17 @@ import (
 type KRMResource struct {
 	APIVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
-	Metadata   map[string]interface{} `json:"metadata"`
-	Spec       map[string]interface{} `json:"spec,omitempty"`
-	Status     map[string]interface{} `json:"status,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+	Metadata   json.RawMessage `json:"metadata"`
+	Spec       json.RawMessage `json:"spec,omitempty"`
+	Status     json.RawMessage `json:"status,omitempty"`
+	Data       json.RawMessage `json:"data,omitempty"`
 }
 
 // FunctionConfig defines KRM function configuration
 type FunctionConfig struct {
 	Image      string                 `json:"image"`
 	ConfigPath string                 `json:"configPath,omitempty"`
-	ConfigMap  map[string]interface{} `json:"configMap,omitempty"`
+	ConfigMap  json.RawMessage `json:"configMap,omitempty"`
 	Selectors  []ResourceSelector     `json:"selectors,omitempty"`
 	Exec       *ExecConfig            `json:"exec,omitempty"`
 }
@@ -113,7 +115,7 @@ type FunctionContext struct {
 type Pipeline struct {
 	Name      string                 `json:"name"`
 	Functions []FunctionConfig       `json:"functions"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PipelineRequest represents a pipeline execution request
@@ -238,11 +240,7 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				Description: "Set basic labels on resources",
 				Config: &FunctionConfig{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-					ConfigMap: map[string]interface{}{
-						"labels": map[string]string{
-							"app": "my-app",
-							"env": "production",
-						},
+					ConfigMap: json.RawMessage("{}"),
 					},
 				},
 				Input: []KRMResource{
@@ -760,13 +758,8 @@ func generateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata: map[string]interface{}{
-			"name":      name,
-			"namespace": namespace,
-		},
-		Spec: map[string]interface{}{
-			"testField": "testValue",
-		},
+		Metadata: json.RawMessage("{}"),
+		Spec: json.RawMessage("{}"),
 	}
 }
 
@@ -893,8 +886,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
+				ConfigMap: json.RawMessage("{}"){
 						"app": "test-app",
 						"env": "production",
 					},
@@ -929,9 +921,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage("{}"),
 			},
 			Resources: resources,
 		}
@@ -957,9 +947,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
-				ConfigMap: map[string]interface{}{
-					"substring": "prod",
-				},
+				ConfigMap: json.RawMessage("{}"),
 			},
 			Resources: resources,
 		}
@@ -990,16 +978,9 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
-				ConfigMap: map[string]interface{}{
-					"interfaces": []interface{}{
-						map[string]interface{}{
-							"name": "N2",
-							"type": "AMF-gNB",
-						},
-						map[string]interface{}{
-							"name": "N11",
-							"type": "AMF-SMF",
-						},
+				ConfigMap: json.RawMessage("{}"){
+						json.RawMessage("{}"),
+						json.RawMessage("{}"),
 					},
 				},
 			},
@@ -1031,8 +1012,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
-				ConfigMap: map[string]interface{}{
-					"sliceConfig": map[string]interface{}{
+				ConfigMap: json.RawMessage("{}"){
 						"sliceType": "eMBB",
 						"sst":       1,
 						"sd":        "000001",
@@ -1075,14 +1055,11 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage("{}"),
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
+				ConfigMap: json.RawMessage("{}"){
 						"app": "test-app",
 						"env": "production",
 					},
@@ -1148,9 +1125,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage("{}"),
 			},
 			{
 				Image: "test/failing-function:v1.0.0",
@@ -1179,8 +1154,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
+				ConfigMap: json.RawMessage("{}"){
 						"app": "test",
 					},
 				},
@@ -1200,7 +1174,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{}, // Missing required 'labels' field
+				ConfigMap: json.RawMessage("{}"), // Missing required 'labels' field
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1219,7 +1193,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{}, // Missing required field, but validation is disabled
+				ConfigMap: json.RawMessage("{}"), // Missing required field, but validation is disabled
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1261,8 +1235,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 				req := &FunctionRequest{
 					FunctionConfig: FunctionConfig{
 						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-						ConfigMap: map[string]interface{}{
-							"labels": map[string]interface{}{
+						ConfigMap: json.RawMessage("{}"){
 								"worker": fmt.Sprintf("worker-%d", id),
 								"job":    fmt.Sprintf("job-%d", j),
 							},
@@ -1320,8 +1293,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: funcImage,
-				ConfigMap: map[string]interface{}{
-					"labels":    map[string]interface{}{"test": "value"},
+				ConfigMap: json.RawMessage("{}")`),
 					"namespace": "test-namespace",
 				},
 			},
@@ -1397,8 +1369,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{"test": "value"},
+				ConfigMap: json.RawMessage("{}")`),
 				},
 			},
 			Resources: []KRMResource{
@@ -1427,8 +1398,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{"test": "value"},
+				ConfigMap: json.RawMessage("{}")`),
 				},
 			},
 			Resources: []KRMResource{
@@ -1461,8 +1431,7 @@ func BenchmarkFunctionExecution(b *testing.B) {
 	req := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-			ConfigMap: map[string]interface{}{
-				"labels": map[string]interface{}{
+			ConfigMap: json.RawMessage("{}"){
 					"app": "test-app",
 					"env": "production",
 				},
@@ -1497,14 +1466,11 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		Functions: []FunctionConfig{
 			{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
-				ConfigMap: map[string]interface{}{
-					"namespace": "production",
-				},
+				ConfigMap: json.RawMessage("{}"),
 			},
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: map[string]interface{}{
-					"labels": map[string]interface{}{
+				ConfigMap: json.RawMessage("{}"){
 						"app": "test-app",
 						"env": "production",
 					},

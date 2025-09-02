@@ -428,19 +428,7 @@ func (p *LDAPClient) Authenticate(ctx context.Context, username, password string
 
 		ProviderID: userDN,
 
-		Attributes: map[string]interface{}{
-			"ldap_dn": ldapUser.DN,
-
-			"title": ldapUser.Title,
-
-			"department": ldapUser.Department,
-
-			"phone": ldapUser.Phone,
-
-			"manager": ldapUser.Manager,
-
-			"active": ldapUser.Active,
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 
 	p.logger.Info("User authenticated successfully",
@@ -502,19 +490,7 @@ func (p *LDAPClient) SearchUser(ctx context.Context, username string) (*UserInfo
 
 		ProviderID: userDN,
 
-		Attributes: map[string]interface{}{
-			"ldap_dn": ldapUser.DN,
-
-			"title": ldapUser.Title,
-
-			"department": ldapUser.Department,
-
-			"phone": ldapUser.Phone,
-
-			"manager": ldapUser.Manager,
-
-			"active": ldapUser.Active,
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 
 	return userInfo, nil

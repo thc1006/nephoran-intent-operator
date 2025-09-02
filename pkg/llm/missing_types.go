@@ -226,15 +226,7 @@ func (mi *MissingMetricsIntegrator) GetComprehensiveMetrics() map[string]interfa
 	mi.mutex.RLock()
 	defer mi.mutex.RUnlock()
 
-	return map[string]interface{}{
-		"total_requests":      mi.aggregatedStats.TotalRequests,
-		"successful_requests": mi.aggregatedStats.SuccessfulRequests,
-		"failed_requests":     mi.aggregatedStats.FailedRequests,
-		"avg_response_time":   mi.aggregatedStats.AvgResponseTime,
-		"total_tokens":        mi.aggregatedStats.TotalTokens,
-		"error_rate":          mi.aggregatedStats.ErrorRate,
-		"last_updated":        mi.aggregatedStats.LastUpdated,
-	}
+	return json.RawMessage("{}")
 }
 
 // RecordFallbackAttempt records a fallback attempt (overloaded signatures for compatibility)

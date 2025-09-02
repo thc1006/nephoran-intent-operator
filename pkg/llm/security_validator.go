@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"crypto/subtle"
+	
+	"encoding/json"
+"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net"
@@ -164,7 +166,7 @@ type ValidationResult struct {
 
 	SanitizedInput string `json:"sanitized_input"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // RateLimiter implements token bucket rate limiting.
@@ -791,29 +793,7 @@ func (sv *SecurityValidator) removePII(input string) string {
 func (sv *SecurityValidator) auditLog(r *http.Request, result *ValidationResult) {
 	if !result.Valid || (result.Valid && sv.config.LogSuccessfulRequests) || (!result.Valid && sv.config.LogFailedRequests) {
 
-		logData := map[string]interface{}{
-			"client_ip": sv.getClientIP(r),
-
-			"user_agent": r.UserAgent(),
-
-			"method": r.Method,
-
-			"path": r.URL.Path,
-
-			"valid": result.Valid,
-
-			"risk_score": result.RiskScore,
-
-			"errors": result.Errors,
-
-			"warnings": result.Warnings,
-
-			"detected_threats": result.DetectedThreats,
-
-			"applied_filters": result.AppliedFilters,
-
-			"processing_time": result.ProcessingTime.String(),
-		}
+		logData := json.RawMessage("{}")
 
 		if result.Valid {
 			sv.logger.Info("Security validation passed", "audit", logData)

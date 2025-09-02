@@ -1197,10 +1197,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 			policyRules: []string{
 				"allow read on sensitive-data if time between 09:00 and 17:00",
 			},
-			userContext: map[string]interface{}{
-				"time": "14:30",
-				"user": "test-user",
-			},
+			userContext: json.RawMessage("{}"),
 			resource:      "sensitive-data",
 			action:        "read",
 			expectAllowed: true,
@@ -1210,10 +1207,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 			policyRules: []string{
 				"allow * on internal-resource if ip in 192.168.1.0/24",
 			},
-			userContext: map[string]interface{}{
-				"ip_address": "192.168.1.100",
-				"user":       "test-user",
-			},
+			userContext: json.RawMessage("{}"),
 			resource:      "internal-resource",
 			action:        "write",
 			expectAllowed: true,

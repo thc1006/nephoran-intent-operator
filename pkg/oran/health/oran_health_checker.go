@@ -1,7 +1,9 @@
 package oranhealth
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -79,7 +81,7 @@ type HealthSnapshot struct {
 
 	DependencyStatus map[string]health.Status `json:"dependency_status"`
 
-	CircuitBreakerStats map[string]interface{} `json:"circuit_breaker_stats"`
+	CircuitBreakerStats json.RawMessage `json:"circuit_breaker_stats"`
 
 	Metrics HealthMetrics `json:"metrics"`
 }
@@ -245,11 +247,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-a1",
 
-			Metadata: map[string]interface{}{
-				"interface_type": "A1",
-
-				"protocol": "HTTP/REST",
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 	})
 
@@ -299,11 +297,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-e2",
 
-			Metadata: map[string]interface{}{
-				"interface_type": "E2",
-
-				"protocol": "E2AP/HTTP",
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 	})
 
@@ -343,11 +337,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-o1",
 
-			Metadata: map[string]interface{}{
-				"interface_type": "O1",
-
-				"protocol": "NETCONF/YANG",
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 	})
 
@@ -385,11 +375,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 
 			Component: "oran-o2",
 
-			Metadata: map[string]interface{}{
-				"interface_type": "O2",
-
-				"protocol": "HTTP/REST",
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 	})
 

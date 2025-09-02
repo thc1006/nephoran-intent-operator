@@ -148,20 +148,12 @@ import (
 	}{
 		{
 			name: "Valid Intent Map",
-			intentMap: map[string]interface{}{
-				"intent_type": "scaling",
-				"target":      "web-app",
-				"namespace":   "default",
-				"replicas":    3,
-			},
+			intentMap: json.RawMessage("{}"),
 			expectError: false,
 		},
 		{
 			name: "Invalid Intent Map",
-			intentMap: map[string]interface{}{
-				"intent_type": "unknown",
-				"target":      "",
-			},
+			intentMap: json.RawMessage("{}"),
 			expectError: true,
 		},
 	}

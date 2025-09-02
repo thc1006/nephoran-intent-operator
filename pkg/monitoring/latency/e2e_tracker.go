@@ -1,7 +1,9 @@
 package latency
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sync"
@@ -215,7 +217,7 @@ type IntentTrace struct {
 
 	TraceContext trace.SpanContext `json:"trace_context"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	BudgetViolations []BudgetViolation `json:"budget_violations"`
 

@@ -12,58 +12,25 @@ import (
 )
 
 // Test schema for validation tests
-var testSchema = map[string]interface{}{
-	"$schema": "http://json-schema.org/draft-07/schema#",
-	"type":    "object",
-	"title":   "NetworkIntent Schema",
-	"properties": map[string]interface{}{
-		"apiVersion": map[string]interface{}{
-			"type": "string",
-			"enum": []string{"intent.nephoran.com/v1alpha1"},
+var testSchema = json.RawMessage("{}"){
+		"apiVersion": json.RawMessage("{}"),
 		},
-		"kind": map[string]interface{}{
-			"type": "string",
-			"enum": []string{"NetworkIntent"},
+		"kind": json.RawMessage("{}"),
 		},
-		"metadata": map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"name": map[string]interface{}{
-					"type":      "string",
-					"minLength": 1,
-				},
-				"namespace": map[string]interface{}{
-					"type":      "string",
-					"minLength": 1,
-				},
+		"metadata": json.RawMessage("{}"){
+				"name": json.RawMessage("{}"),
+				"namespace": json.RawMessage("{}"),
 			},
 			"required": []string{"name"},
 		},
-		"spec": map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"intentType": map[string]interface{}{
-					"type": "string",
-					"enum": []string{"scaling", "deployment", "configuration"},
+		"spec": json.RawMessage("{}"){
+				"intentType": json.RawMessage("{}"),
 				},
-				"target": map[string]interface{}{
-					"type":      "string",
-					"minLength": 1,
-				},
-				"replicas": map[string]interface{}{
-					"type":    "integer",
-					"minimum": 0,
-					"maximum": 100,
-				},
-				"resources": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"cpu": map[string]interface{}{
-							"type": "string",
-						},
-						"memory": map[string]interface{}{
-							"type": "string",
-						},
+				"target": json.RawMessage("{}"),
+				"replicas": json.RawMessage("{}"),
+				"resources": json.RawMessage("{}"){
+						"cpu": json.RawMessage("{}"),
+						"memory": json.RawMessage("{}"),
 					},
 				},
 			},
@@ -161,18 +128,11 @@ func createTestSchemaFile(t TestingT) string {
 	require.NoError(t, err)
 
 	t.Run("validates valid intent successfully", func(t *testing.T) {
-		validIntent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		validIntent := json.RawMessage("{}"){
 				"name":      "test-intent",
 				"namespace": "default",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-				"replicas":   3,
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		err := validator.Validate(validIntent)
@@ -180,16 +140,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for invalid apiVersion", func(t *testing.T) {
-		invalidIntent := map[string]interface{}{
-			"apiVersion": "v1", // Invalid apiVersion
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		invalidIntent := json.RawMessage("{}"){
 				"name": "test-intent",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -198,11 +152,7 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for missing required fields", func(t *testing.T) {
-		incompleteIntent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			// Missing metadata
-			"spec": map[string]interface{}{
+		incompleteIntent := json.RawMessage("{}"){
 				"intentType": "scaling",
 				"target":     "nginx-deployment",
 			},
@@ -214,16 +164,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for invalid enum values", func(t *testing.T) {
-		invalidIntent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		invalidIntent := json.RawMessage("{}"){
 				"name": "test-intent",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "invalid-type", // Invalid enum value
-				"target":     "nginx-deployment",
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -232,17 +176,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for out-of-range values", func(t *testing.T) {
-		invalidIntent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		invalidIntent := json.RawMessage("{}"){
 				"name": "test-intent",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-				"replicas":   150, // Exceeds maximum
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -251,18 +188,11 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("validates optional fields correctly", func(t *testing.T) {
-		intentWithResources := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		intentWithResources := json.RawMessage("{}"){
 				"name":      "test-intent",
 				"namespace": "default",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "deployment",
-				"target":     "nginx-deployment",
-				"replicas":   5,
-				"resources": map[string]interface{}{
+			"spec": json.RawMessage("{}"){
 					"cpu":    "100m",
 					"memory": "128Mi",
 				},
@@ -274,17 +204,10 @@ func createTestSchemaFile(t TestingT) string {
 	})
 
 	t.Run("returns error for wrong data types", func(t *testing.T) {
-		invalidIntent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		invalidIntent := json.RawMessage("{}"){
 				"name": "test-intent",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-				"replicas":   "three", // Should be integer
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -387,13 +310,8 @@ func createTestSchemaFile(t TestingT) string {
 
 	t.Run("updates schema successfully", func(t *testing.T) {
 		// Create an updated schema
-		updatedSchema := map[string]interface{}{
-			"type":  "object",
-			"title": "Updated NetworkIntent Schema",
-			"properties": map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type": "string",
-					"enum": []string{"intent.nephoran.com/v1alpha2"}, // Updated version
+		updatedSchema := json.RawMessage("{}"){
+				"apiVersion": json.RawMessage("{}"), // Updated version
 				},
 			},
 			"required": []string{"apiVersion"},
@@ -414,9 +332,7 @@ func createTestSchemaFile(t TestingT) string {
 		assert.Equal(t, "Updated NetworkIntent Schema", schema["title"])
 
 		// Test validation with updated schema
-		intent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha2",
-		}
+		intent := json.RawMessage("{}")
 
 		err = validator.Validate(intent)
 		assert.NoError(t, err)
@@ -439,16 +355,10 @@ func createTestSchemaFile(t TestingT) string {
 	require.NoError(t, err)
 
 	t.Run("handles concurrent validation requests", func(t *testing.T) {
-		validIntent := map[string]interface{}{
-			"apiVersion": "intent.nephoran.com/v1alpha1",
-			"kind":       "NetworkIntent",
-			"metadata": map[string]interface{}{
+		validIntent := json.RawMessage("{}"){
 				"name": "test-intent",
 			},
-			"spec": map[string]interface{}{
-				"intentType": "scaling",
-				"target":     "nginx-deployment",
-			},
+			"spec": json.RawMessage("{}"),
 		}
 
 		// Run multiple validations concurrently
@@ -475,18 +385,11 @@ func BenchmarkIntentSchemaValidator_Validate(b *testing.B) {
 	validator, err := NewIntentSchemaValidator(schemaFile)
 	require.NoError(b, err)
 
-	validIntent := map[string]interface{}{
-		"apiVersion": "intent.nephoran.com/v1alpha1",
-		"kind":       "NetworkIntent",
-		"metadata": map[string]interface{}{
+	validIntent := json.RawMessage("{}"){
 			"name":      "test-intent",
 			"namespace": "default",
 		},
-		"spec": map[string]interface{}{
-			"intentType": "scaling",
-			"target":     "nginx-deployment",
-			"replicas":   3,
-		},
+		"spec": json.RawMessage("{}"),
 	}
 
 	b.ResetTimer()

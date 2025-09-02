@@ -1877,21 +1877,13 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 
 						for _, iface := range config.Interfaces {
 
-							envVar := map[string]interface{}{
-								"name": fmt.Sprintf("ORAN_%s_ENABLED", iface.Type),
-
-								"value": fmt.Sprintf("%t", iface.Enabled),
-							}
+							envVar := json.RawMessage("{}")
 
 							envVars = append(envVars, envVar)
 
 							if iface.Endpoint != nil {
 
-								envVar = map[string]interface{}{
-									"name": fmt.Sprintf("ORAN_%s_ENDPOINT", iface.Type),
-
-									"value": iface.Endpoint.URL,
-								}
+								envVar = json.RawMessage("{}")
 
 								envVars = append(envVars, envVar)
 
@@ -1932,13 +1924,7 @@ func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMReso
 						for _, iface := range config.Interfaces {
 							if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 
-								port := map[string]interface{}{
-									"name": fmt.Sprintf("%s-port", strings.ToLower(iface.Name)),
-
-									"containerPort": iface.Endpoint.Port,
-
-									"protocol": "TCP",
-								}
+								port := json.RawMessage("{}")
 
 								if iface.Protocol != nil {
 									port["protocol"] = strings.ToUpper(iface.Protocol.Type)
@@ -1976,15 +1962,7 @@ func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMR
 	for _, iface := range config.Interfaces {
 		if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 
-			port := map[string]interface{}{
-				"name": fmt.Sprintf("%s-port", strings.ToLower(iface.Name)),
-
-				"port": iface.Endpoint.Port,
-
-				"targetPort": iface.Endpoint.Port,
-
-				"protocol": "TCP",
-			}
+			port := json.RawMessage("{}")
 
 			if iface.Protocol != nil {
 				port["protocol"] = strings.ToUpper(iface.Protocol.Type)
@@ -2015,12 +1993,7 @@ func (f *ORANInterfaceConfigFunction) generateA1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-a1-policies", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "A1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2068,23 +2041,14 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-o1-netconf", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "O1",
 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
 
-				Data: map[string]interface{}{
-					"netconf-port": fmt.Sprintf("%d", iface.O1Config.NETCONF.Port),
-
-					"call-home": fmt.Sprintf("%t", iface.O1Config.NETCONF.CallHome),
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			if len(iface.O1Config.NETCONF.Capabilities) > 0 {
@@ -2114,12 +2078,7 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-o1-yang", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "O1",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2168,23 +2127,14 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-o2-ims", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "O2",
 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
 
-				Data: map[string]interface{}{
-					"inventory-url": iface.O2Config.IMS.InventoryURL,
-
-					"subscription-url": iface.O2Config.IMS.SubscriptionURL,
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			if len(iface.O2Config.IMS.ResourcePools) > 0 {
@@ -2214,12 +2164,7 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 
 				Kind: "Secret",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-o2-cloud-creds", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "O2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2270,12 +2215,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-e2-nodes", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2312,12 +2252,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-e2-service-models", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
@@ -2354,29 +2289,14 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: map[string]interface{}{
-					"name": fmt.Sprintf("%s-e2-sctp", iface.Name),
-
-					"namespace": "default",
-
-					"labels": map[string]interface{}{
+				Metadata: json.RawMessage("{}"){
 						"nephoran.com/oran-interface": "E2",
 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
 
-				Data: map[string]interface{}{
-					"sctp-port": fmt.Sprintf("%d", iface.E2Config.SCTP.Port),
-
-					"sctp-streams": fmt.Sprintf("%d", iface.E2Config.SCTP.Streams),
-
-					"sctp-max-in-streams": fmt.Sprintf("%d", iface.E2Config.SCTP.MaxInStreams),
-
-					"sctp-max-out-streams": fmt.Sprintf("%d", iface.E2Config.SCTP.MaxOutStreams),
-
-					"sctp-heartbeat-interval": iface.E2Config.SCTP.HeartbeatInterval,
-				},
+				Data: json.RawMessage("{}"),
 			}
 
 			resources = append(resources, configMap)
@@ -2400,31 +2320,16 @@ func (f *ORANInterfaceConfigFunction) generateServiceMonitor(config *ORANInterfa
 
 		Kind: "ServiceMonitor",
 
-		Metadata: map[string]interface{}{
-			"name": "oran-interfaces-monitor",
-
-			"namespace": "default",
-
-			"labels": map[string]interface{}{
+		Metadata: json.RawMessage("{}"){
 				"nephoran.com/oran-interfaces": "enabled",
 			},
 		},
 
-		Spec: map[string]interface{}{
-			"selector": map[string]interface{}{
-				"matchLabels": map[string]interface{}{
-					"nephoran.com/oran-enabled": "true",
-				},
+		Spec: json.RawMessage("{}"){
+				"matchLabels": json.RawMessage("{}"),
 			},
 
-			"endpoints": []map[string]interface{}{
-				{
-					"port": "metrics",
-
-					"interval": "30s",
-
-					"path": "/metrics",
-				},
+			"endpoints": []json.RawMessage("{}"),
 			},
 		},
 	}

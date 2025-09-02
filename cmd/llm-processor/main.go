@@ -88,9 +88,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 	}
 
 	// Wrap result with processing metadata
-	response := map[string]interface{}{
-		"original_intent": intent,
-		"processing_metadata": map[string]interface{}{
+	response := json.RawMessage("{}"){
 			"model_used":         p.Config.LLMModelName,
 			"confidence_score":   0.95,
 			"processing_time_ms": 150.0,
@@ -102,10 +100,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 		response["type"] = "NetworkFunctionDeployment"
 		response["name"] = "test-deployment"
 		response["namespace"] = "5g-core"
-		response["spec"] = map[string]interface{}{
-			"replicas": 3,
-			"image":    "registry.5g.local/test:latest",
-		}
+		response["spec"] = json.RawMessage("{}")
 	}
 
 	// Convert back to JSON string

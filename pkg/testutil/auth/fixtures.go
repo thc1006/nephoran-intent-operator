@@ -52,11 +52,7 @@ func (f *UserFactory) CreateBasicUser() *providers.UserInfo {
 
 		Roles: []string{"viewer"},
 
-		Attributes: map[string]interface{}{
-			"department": "engineering",
-
-			"created_at": time.Now().Format(time.RFC3339),
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 }
 
@@ -670,11 +666,7 @@ func (f *SessionFactory) CreateBasicSession(userID string) *TestSession {
 
 		UserAgent: "test-user-agent",
 
-		Metadata: map[string]interface{}{
-			"login_method": "oauth2",
-
-			"provider": "test",
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 }
 
@@ -765,18 +757,7 @@ func CreateTestData() map[string]interface{} {
 
 	sf := NewSessionFactory()
 
-	data := map[string]interface{}{
-		"users": map[string]*providers.UserInfo{
-			"basic": uf.CreateBasicUser(),
-
-			"admin": uf.CreateAdminUser(),
-
-			"github": uf.CreateUserWithProvider("github"),
-
-			"google": uf.CreateUserWithProvider("google"),
-
-			"azure": uf.CreateUserWithProvider("azuread"),
-		},
+	data := json.RawMessage("{}"),
 
 		"tokens": map[string]jwt.MapClaims{
 			"valid": tf.CreateBasicToken("test-user"),

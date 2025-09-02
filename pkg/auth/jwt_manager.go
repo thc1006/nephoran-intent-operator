@@ -1,7 +1,9 @@
 package auth
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -138,7 +140,7 @@ type NephoranJWTClaims struct {
 
 	// Custom attributes.
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 }
 
 // TokenStore interface for storing and retrieving tokens.
@@ -208,7 +210,7 @@ type TokenInfo struct {
 
 	UserAgent string `json:"user_agent,omitempty"`
 
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Attributes json.RawMessage `json:"attributes,omitempty"`
 
 	LastUsed time.Time `json:"last_used"`
 
@@ -1315,21 +1317,8 @@ func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 
 	// Create JWKS response.
 
-	return map[string]interface{}{
-		"keys": []interface{}{
-			map[string]interface{}{
-				"kty": "RSA",
-
-				"use": "sig",
-
-				"kid": jm.keyID,
-
-				"alg": "RS256",
-
-				"n": encodeBase64URL(jm.verifyingKey.N.Bytes()),
-
-				"e": encodeBase64URL(big.NewInt(int64(jm.verifyingKey.E)).Bytes()),
-			},
+	return json.RawMessage("{}"){
+			json.RawMessage("{}"),
 		},
 	}, nil
 }

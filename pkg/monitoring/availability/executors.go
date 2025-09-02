@@ -49,11 +49,7 @@ func (e *HTTPCheckExecutor) Execute(ctx context.Context, check *SyntheticCheck) 
 
 		Region: check.Region,
 
-		Metadata: map[string]interface{}{
-			"stub": true,
-
-			"url": check.Config.URL,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -127,11 +123,7 @@ func (e *IntentFlowExecutor) Execute(ctx context.Context, check *SyntheticCheck)
 			},
 		},
 
-		Metadata: map[string]interface{}{
-			"stub": true,
-
-			"endpoint": e.endpoint,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -171,15 +163,7 @@ func (e *DatabaseCheckExecutor) Execute(ctx context.Context, check *SyntheticChe
 
 		Region: check.Region,
 
-		Metadata: map[string]interface{}{
-			"stub": true,
-
-			"connection_string": check.Config.ConnectionString,
-
-			"query": check.Config.Query,
-
-			"rows_affected": 1,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -225,11 +209,7 @@ func (e *ExternalServiceExecutor) Execute(ctx context.Context, check *SyntheticC
 
 		Region: check.Region,
 
-		Metadata: map[string]interface{}{
-			"stub": true,
-
-			"service_name": check.Config.ServiceName,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -269,13 +249,7 @@ func (e *ChaosCheckExecutor) Execute(ctx context.Context, check *SyntheticCheck)
 
 		Region: check.Region,
 
-		Metadata: map[string]interface{}{
-			"stub": true,
-
-			"chaos_enabled": false,
-
-			"fault_injected": false,
-		},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 

@@ -31,7 +31,9 @@ limitations under the License.
 package blueprints
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -1787,13 +1789,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 				Kind: "Deployment",
 
-				Metadata: map[string]interface{}{
-					"name": "near-rt-ric",
-				},
+				Metadata: json.RawMessage("{}"),
 
-				Spec: map[string]interface{}{
-					"replicas": 1,
-				},
+				Spec: json.RawMessage("{}"),
 			},
 		},
 
@@ -1827,13 +1825,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 				Kind: "Deployment",
 
-				Metadata: map[string]interface{}{
-					"name": "xapp",
-				},
+				Metadata: json.RawMessage("{}"),
 
-				Spec: map[string]interface{}{
-					"replicas": 1,
-				},
+				Spec: json.RawMessage("{}"),
 			},
 		},
 
@@ -1872,13 +1866,9 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 
 					Kind: "Deployment",
 
-					Metadata: map[string]interface{}{
-						"name": "amf",
-					},
+					Metadata: json.RawMessage("{}"),
 
-					Spec: map[string]interface{}{
-						"replicas": 2,
-					},
+					Spec: json.RawMessage("{}"),
 				},
 			},
 

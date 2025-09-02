@@ -31,7 +31,9 @@ limitations under the License.
 package disaster
 
 import (
-	"archive/tar"
+	
+	"encoding/json"
+"archive/tar"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -183,7 +185,7 @@ type BackupMetadata struct {
 	Size        int64                  `json:"size"`
 	Checksums   map[string]string      `json:"checksums"`
 	Environment string                 `json:"environment"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // RestoreResult represents the result of a restore operation
@@ -193,7 +195,7 @@ type RestoreResult struct {
 	Success   bool                   `json:"success"`
 	Message   string                 `json:"message"`
 	Duration  time.Duration          `json:"duration"`
-	Metadata  map[string]interface{} `json:"metadata"`
+	Metadata  json.RawMessage `json:"metadata"`
 	Timestamp time.Time              `json:"timestamp"`
 }
 
@@ -734,9 +736,7 @@ func (rm *RestoreManager) listLocalBackups() ([]BackupMetadata, error) {
 
 			Size: info.Size(),
 
-			Metadata: map[string]interface{}{
-				"path": file,
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 
 		backups = append(backups, backup)

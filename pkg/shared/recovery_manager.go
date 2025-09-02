@@ -31,7 +31,9 @@ limitations under the License.
 package shared
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -204,7 +206,7 @@ type RecoveryAttempt struct {
 
 	StateAfterRecovery *IntentState `json:"stateAfterRecovery,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // RecoveryAction represents an action taken during recovery.
@@ -220,7 +222,7 @@ type RecoveryAction struct {
 
 	Error string `json:"error,omitempty"`
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // NewRecoveryManager creates a new recovery manager.
@@ -373,9 +375,7 @@ func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.N
 
 		RecoveryActions: make([]RecoveryAction, 0),
 
-		Metadata: map[string]interface{}{
-			"reason": reason,
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Store attempt.
@@ -860,13 +860,7 @@ func (rm *RecoveryManager) executeRestartRecovery(ctx context.Context, attempt *
 
 	// Transition back to the current phase to restart.
 
-	metadata := map[string]interface{}{
-		"recovery_type": "restart",
-
-		"attempt_number": attempt.AttemptNumber,
-
-		"recovery_id": attempt.ID,
-	}
+	metadata := json.RawMessage("{}")
 
 	if err := rm.stateManager.TransitionPhase(ctx, attempt.IntentName, attempt.Phase, metadata); err != nil {
 
@@ -900,15 +894,7 @@ func (rm *RecoveryManager) executeRollbackRecovery(ctx context.Context, attempt 
 
 	// Transition to previous phase.
 
-	metadata := map[string]interface{}{
-		"recovery_type": "rollback",
-
-		"attempt_number": attempt.AttemptNumber,
-
-		"recovery_id": attempt.ID,
-
-		"rollback_from": attempt.Phase,
-	}
+	metadata := json.RawMessage("{}")
 
 	if err := rm.stateManager.TransitionPhase(ctx, attempt.IntentName, previousPhase, metadata); err != nil {
 
@@ -938,15 +924,7 @@ func (rm *RecoveryManager) executeSkipRecovery(ctx context.Context, attempt *Rec
 
 	// Transition to next phase.
 
-	metadata := map[string]interface{}{
-		"recovery_type": "skip",
-
-		"attempt_number": attempt.AttemptNumber,
-
-		"recovery_id": attempt.ID,
-
-		"skipped_phase": attempt.Phase,
-	}
+	metadata := json.RawMessage("{}")
 
 	if err := rm.stateManager.TransitionPhase(ctx, attempt.IntentName, nextPhase, metadata); err != nil {
 

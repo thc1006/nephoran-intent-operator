@@ -20,9 +20,7 @@ func (c *ClientImpl) GetConfig(ctx context.Context, path string) (*ConfigRespons
 
 	response := &ConfigResponse{
 		ObjectInstance: path,
-		Attributes: map[string]interface{}{
-			"status": "active",
-			"config": map[string]interface{}{
+		Attributes: json.RawMessage("{}"){
 				"example_parameter": "example_value",
 			},
 		},
@@ -58,22 +56,14 @@ func (c *ClientImpl) GetPerformanceData(ctx context.Context, request *Performanc
 		{
 			ID:        "perf_data_1",
 			Timestamp: time.Now(),
-			Metrics: map[string]interface{}{
-				"RRCConnections":  150.0,
-				"unit":            "connections",
-				"object_instance": "cell_001",
-			},
+			Metrics: json.RawMessage("{}"),
 			Source:   "cell_001",
 			DataType: "RRCConnections",
 		},
 		{
 			ID:        "perf_data_2",
 			Timestamp: time.Now(),
-			Metrics: map[string]interface{}{
-				"Throughput":      1024.5,
-				"unit":            "Mbps",
-				"object_instance": "cell_001",
-			},
+			Metrics: json.RawMessage("{}"),
 			Source:   "cell_001",
 			DataType: "Throughput",
 		},
@@ -238,7 +228,7 @@ func (c *ClientImpl) UploadFile(ctx context.Context, file *FileUploadRequest) (*
 		FileID:    fmt.Sprintf("file_%d", time.Now().Unix()),
 		Status:    "success",
 		RequestID: fmt.Sprintf("req_%d", time.Now().Unix()),
-		Metadata:  map[string]interface{}{"message": "File uploaded successfully", "timestamp": time.Now()},
+		Metadata:  json.RawMessage("{}"),
 	}
 
 	return response, nil
@@ -255,7 +245,7 @@ func (c *ClientImpl) DownloadFile(ctx context.Context, fileID string) (*FileDown
 		DownloadURL: "https://example.com/download/" + fileID,
 		Status:      "success",
 		ExpiresAt:   time.Now().Add(24 * time.Hour),
-		Metadata:    map[string]interface{}{"type": "log", "size": 1024, "filename": "example_file.log"},
+		Metadata:    json.RawMessage("{}"),
 	}
 
 	return response, nil
@@ -272,8 +262,8 @@ func (c *ClientImpl) SendHeartbeat(ctx context.Context) (*HeartbeatResponse, err
 		Timestamp: now,
 		Version:   "1.0.0",
 		Uptime:    time.Since(time.Now().Add(-24 * time.Hour)),
-		Health:    map[string]interface{}{"status": "healthy"},
-		Metadata:  map[string]interface{}{"request_id": "heartbeat_" + fmt.Sprintf("%d", now.Unix())},
+		Health:    json.RawMessage(`{"status":"healthy"}`),
+		Metadata:  json.RawMessage("{}"),
 	}
 
 	return response, nil
@@ -290,7 +280,7 @@ func NewConfigGetRequest(path string) *ConfigRequest {
 		ObjectInstance: path,
 		RequestedAt:    time.Now(),
 		RequestedBy:    "system",
-		Configuration:  map[string]interface{}{},
+		Configuration:  json.RawMessage("{}"),
 	}
 }
 
@@ -312,7 +302,7 @@ func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigReques
 func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity string) *PerformanceRequest {
 	return &PerformanceRequest{
 		MetricType: strings.Join(measurementTypes, ","),
-		TimeRange:  map[string]interface{}{"start": startTime, "end": endTime, "granularity": granularity},
+		TimeRange:  json.RawMessage("{}"),
 	}
 }
 

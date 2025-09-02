@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -60,7 +61,7 @@ type LLMRequest struct {
 	TopP        float32                `json:"top_p"`
 	Stream      bool                   `json:"stream"`
 	Stop        []string               `json:"stop"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // ChatMessage represents a chat message

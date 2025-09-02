@@ -1,7 +1,9 @@
 package dependencies
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -211,7 +213,7 @@ type DependencyChange struct {
 	Reason      string                 `json:"reason"`
 	ChangedAt   time.Time              `json:"changedAt"`
 	ChangedBy   string                 `json:"changedBy"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ChangeTrackerInterface defines the interface for tracking dependency changes

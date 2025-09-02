@@ -3,7 +3,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"time"
 )
 
@@ -121,7 +123,7 @@ type TelecomDocument struct {
 
 	Version string `json:"version,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Embedding []float32 `json:"embedding,omitempty"`
 
@@ -173,7 +175,7 @@ type RAGRequest struct {
 
 	IncludeSourceRefs bool `json:"include_source_refs"`
 
-	SearchFilters map[string]interface{} `json:"search_filters,omitempty"`
+	SearchFilters json.RawMessage `json:"search_filters,omitempty"`
 }
 
 // RAGResponse stub.
@@ -201,7 +203,7 @@ type SearchQuery struct {
 
 	MinScore float32 `json:"min_score"`
 
-	Filters map[string]interface{} `json:"filters,omitempty"`
+	Filters json.RawMessage `json:"filters,omitempty"`
 }
 
 // SimpleTokenTracker stub.

@@ -342,20 +342,5 @@ func (srs *SimpleRelevanceScorer) GetMetrics() map[string]interface{} {
 		successRate = float64(srs.metrics.SuccessfulScores) / float64(srs.metrics.TotalScores) * 100.0
 	}
 
-	return map[string]interface{}{
-		"relevance_scorer_enabled":    true,
-		"status":                      "active",
-		"implementation":              "simple",
-		"embedding_service_available": srs.embeddingService != nil,
-		"using_interface_abstraction": true,
-		"legacy_compatibility":        srs.legacyEmbedding != nil,
-		"total_scores":                srs.metrics.TotalScores,
-		"successful_scores":           srs.metrics.SuccessfulScores,
-		"failed_scores":               srs.metrics.FailedScores,
-		"success_rate":                fmt.Sprintf("%.2f%%", successRate),
-		"embedding_calls":             srs.metrics.EmbeddingCalls,
-		"fallback_uses":               srs.metrics.FallbackUses,
-		"average_processing_time_ms":  srs.metrics.AverageLatency.Milliseconds(),
-		"last_updated":                srs.metrics.LastUpdated.Format(time.RFC3339),
-	}
+	return json.RawMessage("{}")
 }

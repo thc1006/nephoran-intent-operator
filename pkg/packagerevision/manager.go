@@ -31,7 +31,9 @@ limitations under the License.
 package packagerevision
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -49,7 +51,7 @@ import (
 
 // PackageRevisionManager orchestrates the complete NetworkIntent to PackageRevision lifecycle.
 
-// Manages Draft → Proposed → Published state transitions, validation workflows,.
+// Manages Draft ??Proposed ??Published state transitions, validation workflows,.
 
 // template rendering, YANG model validation, and O-RAN compliance checks.
 
@@ -192,7 +194,7 @@ type TransitionResult struct {
 
 	Notifications []*NotificationResult `json:"notifications,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ValidationResult contains configuration validation results.

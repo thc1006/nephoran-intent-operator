@@ -2,7 +2,9 @@
 package monitoring
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -48,7 +50,7 @@ const (
 type Metric struct {
 	Name        string            `json:"name" yaml:"name"`
 	Type        MetricType        `json:"type" yaml:"type"`
-	Value       float64           `json:"value" yaml:"value"`
+	Value       string            `json:"value" yaml:"value"`
 	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Timestamp   time.Time         `json:"timestamp" yaml:"timestamp"`
 	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
@@ -198,7 +200,7 @@ type TLSConfig struct {
 type AlertCondition struct {
 	Name      string          `json:"name"`
 	Condition string          `json:"condition"`
-	Threshold float64         `json:"threshold"`
+	Threshold string          `json:"threshold"`
 	Duration  metav1.Duration `json:"duration"`
 	Severity  AlertSeverity   `json:"severity"`
 	Message   string          `json:"message"`
@@ -216,7 +218,7 @@ type SyntheticCheckStatus struct {
 	LastResult *CheckResult `json:"lastResult,omitempty"`
 
 	// SuccessRate over the last window
-	SuccessRate float64 `json:"successRate,omitempty"`
+	SuccessRate string `json:"successRate,omitempty"`
 
 	// AverageLatency over the last window
 	AverageLatency metav1.Duration `json:"averageLatency,omitempty"`
@@ -249,7 +251,7 @@ type CheckResult struct {
 	// Additional fields for compatibility
 	CheckID      string  `json:"check_id,omitempty"`
 	Message      string  `json:"message,omitempty"`
-	Availability float64 `json:"availability,omitempty"`
+	Availability string `json:"availability,omitempty"`
 
 	// Metadata contains additional check-specific information
 	Metadata map[string]string `json:"metadata,omitempty"`
@@ -313,7 +315,7 @@ type AlertRule struct {
 	Enabled     bool              `json:"enabled"`
 	LastFired   *time.Time        `json:"last_fired,omitempty"`
 	Channels    []string          `json:"channels,omitempty"`
-	Threshold   float64           `json:"threshold"`
+	Threshold   string            `json:"threshold"`
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
@@ -360,7 +362,7 @@ type MetricsCollector interface {
 	UpdateGitOpsSyncStatus(repository, branch string, inSync bool)
 
 	// System metrics
-	UpdateResourceUtilization(resourceType, unit string, value float64)
+	UpdateResourceUtilization(resourceType, unit string, value string)
 	UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration)
 
 	// Missing HTTP and streaming metrics methods
@@ -421,9 +423,9 @@ type MetricsData struct {
 	Namespace string                 `json:"namespace,omitempty"`
 	Pod       string                 `json:"pod,omitempty"`
 	Container string                 `json:"container,omitempty"`
-	Metrics   map[string]float64     `json:"metrics"`
+	Metrics   map[string]string      `json:"metrics"`
 	Labels    map[string]string      `json:"labels,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NWDAFAnalytics represents NWDAF analytics data
@@ -432,9 +434,9 @@ type NWDAFAnalytics struct {
 	Type          NWDAFAnalyticsType     `json:"type"`
 	AnalyticsType NWDAFAnalyticsType     `json:"analytics_type"`
 	Timestamp     time.Time              `json:"timestamp"`
-	Data          map[string]interface{} `json:"data"`
+	Data          json.RawMessage `json:"data"`
 	Consumer      string                 `json:"consumer"`
-	Confidence    float64                `json:"confidence"`
+	Confidence    string                 `json:"confidence"`
 	Validity      time.Duration          `json:"validity"`
 }
 
@@ -459,17 +461,17 @@ type PerformanceMetrics struct {
 	Timestamp     time.Time          `json:"timestamp"`
 	ResponseTime  time.Duration      `json:"response_time"`
 	Latency       time.Duration      `json:"latency"`
-	Throughput    float64            `json:"throughput"`
-	ErrorRate     float64            `json:"error_rate"`
-	ResourceUsage map[string]float64 `json:"resource_usage,omitempty"`
+	Throughput    string             `json:"throughput"`
+	ErrorRate     string             `json:"error_rate"`
+	ResourceUsage map[string]string  `json:"resource_usage,omitempty"`
 }
 
 // SeasonalityDetector represents seasonal pattern detection
 type SeasonalityDetector struct {
 	Pattern    string        `json:"pattern"`
-	Confidence float64       `json:"confidence"`
+	Confidence string        `json:"confidence"`
 	Period     time.Duration `json:"period"`
-	Amplitude  float64       `json:"amplitude"`
+	Amplitude  string        `json:"amplitude"`
 }
 
 // DetectSeasonality detects seasonal patterns in the data
@@ -489,7 +491,7 @@ type SystemHealth struct {
 	OverallStatus HealthStatus                `json:"overall_status"`
 	Components    map[string]*ComponentHealth `json:"components"`
 	LastUpdated   time.Time                   `json:"last_updated"`
-	HealthScore   float64                     `json:"health_score"`
+	HealthScore   string                      `json:"health_score"`
 	Issues        []string                    `json:"issues,omitempty"`
 }
 
@@ -542,52 +544,52 @@ type AlertItem struct {
 type ReportSummary struct {
 	TotalMetrics     int                `json:"total_metrics"`
 	AlertsTriggered  int                `json:"alerts_triggered"`
-	PerformanceScore float64            `json:"performance_score"`
+	PerformanceScore string             `json:"performance_score"`
 	AvgResponseTime  time.Duration      `json:"avg_response_time"`
 	TotalRequests    int64              `json:"total_requests"`
-	ErrorRate        float64            `json:"error_rate"`
-	ResourceUsage    map[string]float64 `json:"resource_usage,omitempty"`
+	ErrorRate        string             `json:"error_rate"`
+	ResourceUsage    map[string]string  `json:"resource_usage,omitempty"`
 }
 
 // TrendAnalysis represents trend analysis results
 type TrendAnalysis struct {
 	Direction  string    `json:"direction"`  // "increasing", "decreasing", "stable"
-	Strength   float64   `json:"strength"`   // 0-1 scale
-	Confidence float64   `json:"confidence"` // 0-1 scale
+	Strength   string    `json:"strength"`   // 0-1 scale
+	Confidence string    `json:"confidence"` // 0-1 scale
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
-	Slope      float64   `json:"slope"`
-	R2Score    float64   `json:"r2_score"`
+	Slope      string    `json:"slope"`
+	R2Score    string    `json:"r2_score"`
 }
 
 // PredictionResult represents prediction analysis results
 type PredictionResult struct {
 	Timestamp      time.Time          `json:"timestamp"`
-	PredictedValue float64            `json:"predicted_value"`
-	Confidence     float64            `json:"confidence"`
-	LowerBound     float64            `json:"lower_bound"`
-	UpperBound     float64            `json:"upper_bound"`
+	PredictedValue string             `json:"predicted_value"`
+	Confidence     string             `json:"confidence"`
+	LowerBound     string             `json:"lower_bound"`
+	UpperBound     string             `json:"upper_bound"`
 	PredictionType string             `json:"prediction_type"`
 	ModelUsed      string             `json:"model_used"`
-	Features       map[string]float64 `json:"features,omitempty"`
+	Features       map[string]string  `json:"features,omitempty"`
 }
 
 // AnomalyPoint represents an anomaly detection result
 type AnomalyPoint struct {
 	Timestamp     time.Time              `json:"timestamp"`
-	Value         float64                `json:"value"`
-	ExpectedValue float64                `json:"expected_value"`
-	Deviation     float64                `json:"deviation"`
+	Value         string                 `json:"value"`
+	ExpectedValue string                 `json:"expected_value"`
+	Deviation     string                 `json:"deviation"`
 	Severity      string                 `json:"severity"`
-	AnomalyScore  float64                `json:"anomaly_score"`
-	Context       map[string]interface{} `json:"context,omitempty"`
+	AnomalyScore  string                 `json:"anomaly_score"`
+	Context       json.RawMessage `json:"context,omitempty"`
 }
 
 // PredictionPoint represents a single prediction data point
 type PredictionPoint struct {
 	Timestamp  time.Time `json:"timestamp"`
-	Value      float64   `json:"value"`
-	Confidence float64   `json:"confidence"`
+	Value      string    `json:"value"`
+	Confidence string    `json:"confidence"`
 	Source     string    `json:"source"`
 	ModelName  string    `json:"model_name"`
 }
@@ -596,8 +598,8 @@ type PredictionPoint struct {
 type SeasonalityInfo struct {
 	Pattern    string        `json:"pattern"`
 	Period     time.Duration `json:"period"`
-	Confidence float64       `json:"confidence"`
-	Amplitude  float64       `json:"amplitude"`
-	Phase      float64       `json:"phase,omitempty"`
+	Confidence string        `json:"confidence"`
+	Amplitude  string        `json:"amplitude"`
+	Phase      string        `json:"phase,omitempty"`
 	Detected   bool          `json:"detected"`
 }

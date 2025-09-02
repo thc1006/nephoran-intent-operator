@@ -467,8 +467,7 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 
 func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return map[string]interface{}{
-			"interfaces": []string{"A1", "O1", "O2", "E2"},
+		return json.RawMessage("{}"),
 
 			"strictMode": false,
 

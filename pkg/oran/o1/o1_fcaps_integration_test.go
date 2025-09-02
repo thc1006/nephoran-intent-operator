@@ -477,10 +477,7 @@ var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {
 				ServiceID: "5g-data",
 				StartTime: time.Now().Add(-10 * time.Minute),
 				EndTime:   time.Now(),
-				ResourceUsage: map[string]interface{}{
-					"data_volume_mb": 10000, // Suspicious spike
-					"location":       "New York",
-				},
+				ResourceUsage: json.RawMessage("{}"),
 			}
 
 			isFraud, fraudType, err := accountingMgr.DetectFraud(ctx, fraudulentUsage)

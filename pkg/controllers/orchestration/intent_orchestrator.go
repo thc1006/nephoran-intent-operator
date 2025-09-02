@@ -31,7 +31,9 @@ limitations under the License.
 package orchestration
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"sync"
 	"time"
@@ -133,7 +135,7 @@ type PhaseConfig struct {
 
 	// Resource requirements.
 
-	ResourceLimits map[string]interface{} `json:"resourceLimits"`
+	ResourceLimits json.RawMessage `json:"resourceLimits"`
 }
 
 // NewIntentOrchestrator creates a new IntentOrchestrator.
@@ -500,7 +502,7 @@ func (o *IntentOrchestrator) scheduleParallelProcessing(ctx context.Context, int
 
 			Priority: o.getPhasePriority(phase),
 
-			Data: map[string]interface{}{"parallelExecution": true},
+			Data: json.RawMessage("{}"),
 
 			Context: processingCtx,
 

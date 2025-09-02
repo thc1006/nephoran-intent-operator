@@ -215,11 +215,7 @@ func NewTestFunctionConfig(name string) porch.FunctionConfig {
 	return porch.FunctionConfig{
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
 
-		ConfigMap: map[string]interface{}{
-			"name": name,
-
-			"description": "Test function for " + name,
-		},
+		ConfigMap: json.RawMessage("{}"),
 	}
 }
 

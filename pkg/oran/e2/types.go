@@ -1,7 +1,9 @@
 package e2
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -69,9 +71,9 @@ type E2ControlMessage struct {
 
 	CallProcessID string `json:"call_process_id,omitempty"`
 
-	ControlHeader map[string]interface{} `json:"control_header"`
+	ControlHeader json.RawMessage `json:"control_header"`
 
-	ControlMessage map[string]interface{} `json:"control_message"`
+	ControlMessage json.RawMessage `json:"control_message"`
 
 	ControlAckRequest bool `json:"control_ack_request"`
 
@@ -95,7 +97,7 @@ type E2Node struct {
 
 	LastSeen time.Time `json:"last_seen"`
 
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 // RanFunction represents a RAN function for registration.

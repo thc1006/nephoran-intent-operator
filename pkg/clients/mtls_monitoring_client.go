@@ -37,7 +37,7 @@ type MetricData struct {
 
 	Help string `json:"help,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AlertData represents alert information.
@@ -61,7 +61,7 @@ type AlertData struct {
 
 	GeneratorURL string `json:"generator_url,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // LogData represents log entry.
@@ -77,7 +77,7 @@ type LogData struct {
 
 	Labels map[string]string `json:"labels,omitempty"`
 
-	Fields map[string]interface{} `json:"fields,omitempty"`
+	Fields json.RawMessage `json:"fields,omitempty"`
 }
 
 // QueryRequest represents a monitoring query request.
@@ -123,13 +123,7 @@ func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*Metri
 
 	// Prepare metrics payload.
 
-	payload := map[string]interface{}{
-		"metrics": metrics,
-
-		"timestamp": time.Now(),
-
-		"source": "nephoran-intent-operator",
-	}
+	payload := json.RawMessage("{}")
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
@@ -157,8 +151,7 @@ func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, 
 
 	// Prepare alert payload.
 
-	payload := map[string]interface{}{
-		"alerts": []*AlertData{alert},
+	payload := json.RawMessage("{}"),
 
 		"source": "nephoran-intent-operator",
 	}
@@ -185,11 +178,7 @@ func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, en
 
 	// Prepare logs payload.
 
-	payload := map[string]interface{}{
-		"logs": logs,
-
-		"source": "nephoran-intent-operator",
-	}
+	payload := json.RawMessage("{}")
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }

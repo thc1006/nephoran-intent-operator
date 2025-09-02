@@ -1002,19 +1002,7 @@ func (p *EnhancedLDAPProvider) authenticateWithConnection(ctx context.Context, c
 
 		ProviderID: userDN,
 
-		Attributes: map[string]interface{}{
-			"ldap_dn": ldapUser.DN,
-
-			"title": ldapUser.Title,
-
-			"department": ldapUser.Department,
-
-			"phone": ldapUser.Phone,
-
-			"manager": ldapUser.Manager,
-
-			"active": ldapUser.Active,
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 
 	return userInfo, nil
@@ -1058,19 +1046,7 @@ func (p *EnhancedLDAPProvider) searchUserWithConnection(ctx context.Context, con
 
 		ProviderID: userDN,
 
-		Attributes: map[string]interface{}{
-			"ldap_dn": ldapUser.DN,
-
-			"title": ldapUser.Title,
-
-			"department": ldapUser.Department,
-
-			"phone": ldapUser.Phone,
-
-			"manager": ldapUser.Manager,
-
-			"active": ldapUser.Active,
-		},
+		Attributes: json.RawMessage("{}"),
 	}
 
 	return userInfo, nil

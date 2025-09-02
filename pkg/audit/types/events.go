@@ -605,13 +605,13 @@ type AuditEvent struct {
 
 	// Event-specific data.
 
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
 	// Security and compliance.
 
 	RiskLevel string `json:"risk_level,omitempty"`
 
-	ComplianceMetadata map[string]interface{} `json:"compliance_metadata,omitempty"`
+	ComplianceMetadata json.RawMessage `json:"compliance_metadata,omitempty"`
 
 	DataClassification string `json:"data_classification,omitempty"`
 
@@ -635,7 +635,7 @@ type AuditEvent struct {
 
 	RequestSize int64 `json:"request_size,omitempty"`
 
-	Metrics map[string]interface{} `json:"metrics,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
 
 	// Correlation and tracing.
 

@@ -876,15 +876,7 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 
 	// Add network slice specification.
 
-	resource.Spec["networkSlice"] = map[string]interface{}{
-		"sliceId": config.SliceID,
-
-		"sliceType": config.SliceType,
-
-		"sla": config.SLA,
-
-		"qos": config.QoS,
-	}
+	resource.Spec["networkSlice"] = json.RawMessage("{}")
 
 	// Add labels for slice identification.
 
@@ -1291,18 +1283,12 @@ func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceC
 
 		Kind: "ResourceQuota",
 
-		Metadata: map[string]interface{}{
-			"name": fmt.Sprintf("%s-quota", config.SliceID),
-
-			"namespace": "default", // Should be configurable
-
-			"labels": map[string]interface{}{
+		Metadata: json.RawMessage("{}"){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: map[string]interface{}{
-			"hard": map[string]interface{}{
+		Spec: json.RawMessage("{}"){
 				"requests.cpu": config.Resources.CPU,
 
 				"requests.memory": config.Resources.Memory,
@@ -1321,31 +1307,20 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 
 		Kind: "NetworkPolicy",
 
-		Metadata: map[string]interface{}{
-			"name": fmt.Sprintf("%s-netpol", config.SliceID),
-
-			"namespace": "default",
-
-			"labels": map[string]interface{}{
+		Metadata: json.RawMessage("{}"){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: map[string]interface{}{
-			"podSelector": map[string]interface{}{
-				"matchLabels": map[string]interface{}{
-					"nephoran.com/network-slice-id": config.SliceID,
-				},
+		Spec: json.RawMessage("{}"){
+				"matchLabels": json.RawMessage("{}"),
 			},
 
 			"policyTypes": []string{"Ingress", "Egress"},
 
-			"ingress": []map[string]interface{}{
-				{
-					"from": []map[string]interface{}{
+			"ingress": []json.RawMessage("{}"){
 						{
-							"podSelector": map[string]interface{}{
-								"matchLabels": map[string]interface{}{
+							"podSelector": json.RawMessage("{}"){
 									"nephoran.com/network-slice-id": config.SliceID,
 								},
 							},
@@ -1354,12 +1329,9 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 				},
 			},
 
-			"egress": []map[string]interface{}{
-				{
-					"to": []map[string]interface{}{
+			"egress": []json.RawMessage("{}"){
 						{
-							"podSelector": map[string]interface{}{
-								"matchLabels": map[string]interface{}{
+							"podSelector": json.RawMessage("{}"){
 									"nephoran.com/network-slice-id": config.SliceID,
 								},
 							},
@@ -1377,31 +1349,16 @@ func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSlice
 
 		Kind: "ServiceMonitor",
 
-		Metadata: map[string]interface{}{
-			"name": fmt.Sprintf("%s-monitor", config.SliceID),
-
-			"namespace": "default",
-
-			"labels": map[string]interface{}{
+		Metadata: json.RawMessage("{}"){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: map[string]interface{}{
-			"selector": map[string]interface{}{
-				"matchLabels": map[string]interface{}{
-					"nephoran.com/network-slice-id": config.SliceID,
-				},
+		Spec: json.RawMessage("{}"){
+				"matchLabels": json.RawMessage("{}"),
 			},
 
-			"endpoints": []map[string]interface{}{
-				{
-					"port": "metrics",
-
-					"interval": "30s",
-
-					"path": "/metrics",
-				},
+			"endpoints": []json.RawMessage("{}"),
 			},
 		},
 	}
@@ -1423,23 +1380,13 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 
 		Kind: "PodDisruptionBudget",
 
-		Metadata: map[string]interface{}{
-			"name": fmt.Sprintf("%s-pdb", config.SliceID),
-
-			"namespace": "default",
-
-			"labels": map[string]interface{}{
+		Metadata: json.RawMessage("{}"){
 				"nephoran.com/network-slice-id": config.SliceID,
 			},
 		},
 
-		Spec: map[string]interface{}{
-			"minAvailable": minAvailable,
-
-			"selector": map[string]interface{}{
-				"matchLabels": map[string]interface{}{
-					"nephoran.com/network-slice-id": config.SliceID,
-				},
+		Spec: json.RawMessage("{}"){
+				"matchLabels": json.RawMessage("{}"),
 			},
 		},
 	}

@@ -434,15 +434,7 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 
 	// Add security-relevant fields.
 
-	zapConfig.InitialFields = map[string]interface{}{
-		"service": "secure-porch-patch",
-
-		"version": Version,
-
-		"security_mode": true,
-
-		"compliance_mode": true,
-	}
+	zapConfig.InitialFields = json.RawMessage("{}")
 
 	zapLogger, err := zapConfig.Build()
 	if err != nil {

@@ -31,7 +31,9 @@ limitations under the License.
 package templates
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -1396,7 +1398,7 @@ type RenderResult struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ParameterValidationResult contains parameter validation results.
@@ -1979,9 +1981,7 @@ func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *K
 
 	if resourceTemplate.Metadata != nil {
 
-		metadata := map[string]interface{}{
-			"name": e.renderString(resourceTemplate.Metadata.Name, parameters),
-		}
+		metadata := json.RawMessage("{}")
 
 		if resourceTemplate.Metadata.Namespace != "" {
 			metadata["namespace"] = e.renderString(resourceTemplate.Metadata.Namespace, parameters)
@@ -2703,35 +2703,20 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 					},
 				},
 
-				Spec: map[string]interface{}{
-					"replicas": "{{ .replicas }}",
+				Spec: json.RawMessage("{}")}",
 
-					"selector": map[string]interface{}{
-						"matchLabels": map[string]string{
-							"app": "amf",
-						},
+					"selector": json.RawMessage("{}"),
 					},
 
-					"template": map[string]interface{}{
-						"metadata": map[string]interface{}{
+					"template": json.RawMessage("{}"){
 							"labels": map[string]string{
 								"app": "amf",
 							},
 						},
 
-						"spec": map[string]interface{}{
-							"containers": []interface{}{
-								map[string]interface{}{
-									"name": "amf",
-
-									"image": "nephoran/amf:latest",
-
-									"ports": []interface{}{
-										map[string]interface{}{
-											"containerPort": 8080,
-
-											"name": "sbi",
-										},
+						"spec": json.RawMessage("{}"){
+								json.RawMessage("{}"){
+										json.RawMessage("{}"),
 									},
 								},
 							},
@@ -2748,10 +2733,8 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 					Version: "rel-16",
 
-					Configuration: map[string]interface{}{
-						"servedGuamiList": []interface{}{
-							map[string]interface{}{
-								"plmnId": map[string]interface{}{
+					Configuration: json.RawMessage("{}"){
+							json.RawMessage("{}"){
 									"mcc": "001",
 
 									"mnc": "01",
@@ -2770,11 +2753,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 							Protocol: "HTTP/2",
 
-							Config: map[string]interface{}{
-								"port": 8080,
-
-								"tls": true,
-							},
+							Config: json.RawMessage("{}"),
 						},
 
 						{

@@ -565,13 +565,7 @@ func (e *AutomationEngine) mutateDeployment(req *admissionv1.AdmissionRequest) (
 	// Check if deployment pods should have certificates injected
 	if e.shouldInjectCertificateIntoDeployment(&deployment) {
 		// Add annotations to pod template
-		patches := []map[string]interface{}{
-			{
-				"op":   "add",
-				"path": "/spec/template/metadata/annotations",
-				"value": map[string]string{
-					fmt.Sprintf("%s/inject-certificate", e.config.KubernetesIntegration.AnnotationPrefix): "true",
-				},
+		patches := []json.RawMessage("{}"),
 			},
 		}
 		return json.Marshal(patches)
@@ -590,13 +584,7 @@ func (e *AutomationEngine) mutateService(req *admissionv1.AdmissionRequest) ([]b
 	// Check if service should have automatic certificate provisioning
 	if e.shouldProvisionCertificateForService(&service) {
 		// Add annotation to trigger certificate provisioning
-		patches := []map[string]interface{}{
-			{
-				"op":   "add",
-				"path": "/metadata/annotations",
-				"value": map[string]string{
-					fmt.Sprintf("%s/auto-certificate", e.config.KubernetesIntegration.AnnotationPrefix): "true",
-				},
+		patches := []json.RawMessage("{}"),
 			},
 		}
 		return json.Marshal(patches)
@@ -656,47 +644,28 @@ func (e *AutomationEngine) shouldProvisionCertificateForService(service *v1.Serv
 func (e *AutomationEngine) createCertificateVolumePatches(pod *v1.Pod) []map[string]interface{} {
 	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, pod.Name)
 
-	volume := map[string]interface{}{
-		"name": "certificate-volume",
-		"secret": map[string]interface{}{
+	volume := json.RawMessage("{}"){
 			"secretName": secretName,
 		},
 	}
 
-	return []map[string]interface{}{
-		{
-			"op":    "add",
-			"path":  "/spec/volumes/-",
-			"value": volume,
-		},
+	return []json.RawMessage("{}"),
 	}
 }
 
 func (e *AutomationEngine) createCertificateVolumeMountPatches(pod *v1.Pod) []map[string]interface{} {
-	volumeMount := map[string]interface{}{
-		"name":      "certificate-volume",
-		"mountPath": "/etc/ssl/certs/service",
-		"readOnly":  true,
-	}
+	volumeMount := json.RawMessage("{}")
 
 	var patches []map[string]interface{}
 	for i := range pod.Spec.Containers {
-		patches = append(patches, map[string]interface{}{
-			"op":    "add",
-			"path":  fmt.Sprintf("/spec/containers/%d/volumeMounts/-", i),
-			"value": volumeMount,
-		})
+		patches = append(patches, json.RawMessage("{}"))
 	}
 
 	return patches
 }
 
 func (e *AutomationEngine) createCertificateEnvPatches(pod *v1.Pod) []map[string]interface{} {
-	envVars := []map[string]interface{}{
-		{
-			"name":  "TLS_CERT_PATH",
-			"value": "/etc/ssl/certs/service/tls.crt",
-		},
+	envVars := []json.RawMessage("{}"),
 		{
 			"name":  "TLS_KEY_PATH",
 			"value": "/etc/ssl/certs/service/tls.key",
@@ -710,11 +679,7 @@ func (e *AutomationEngine) createCertificateEnvPatches(pod *v1.Pod) []map[string
 	var patches []map[string]interface{}
 	for i := range pod.Spec.Containers {
 		for _, envVar := range envVars {
-			patches = append(patches, map[string]interface{}{
-				"op":    "add",
-				"path":  fmt.Sprintf("/spec/containers/%d/env/-", i),
-				"value": envVar,
-			})
+			patches = append(patches, json.RawMessage("{}"))
 		}
 	}
 

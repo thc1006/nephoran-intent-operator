@@ -418,21 +418,7 @@ func (mc *MetricsCollector) GetAllCircuitBreakerMetrics() map[string]*CircuitMet
 // GetComprehensiveMetrics returns all metrics in a single structure.
 
 func (mc *MetricsCollector) GetComprehensiveMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"global": mc.GetGlobalMetrics(),
-
-		"client": mc.GetClientMetrics(),
-
-		"processing": mc.GetProcessingMetrics(),
-
-		"cache": mc.GetCacheMetrics(),
-
-		"worker_pool": mc.GetWorkerPoolMetrics(),
-
-		"circuit_breakers": mc.GetAllCircuitBreakerMetrics(),
-
-		"timestamp": time.Now().UTC(),
-	}
+	return json.RawMessage("{}")
 }
 
 // Reset resets all metrics.
@@ -576,23 +562,7 @@ func (mc *MetricsCollector) GetHealthStatus() map[string]interface{} {
 		status = "unhealthy"
 	}
 
-	return map[string]interface{}{
-		"status": status,
-
-		"healthy": healthy,
-
-		"issues": issues,
-
-		"error_rate": globalMetrics.ErrorRate,
-
-		"average_response_time": globalMetrics.AverageResponseTime,
-
-		"requests_per_second": globalMetrics.RequestsPerSecond,
-
-		"uptime_seconds": globalMetrics.UptimeSeconds,
-
-		"last_check": time.Now().UTC(),
-	}
+	return json.RawMessage("{}")
 }
 
 // ExportPrometheusMetrics exports metrics in Prometheus format (placeholder).

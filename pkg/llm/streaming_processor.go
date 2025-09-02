@@ -143,7 +143,7 @@ type StreamingSession struct {
 
 	Status StreamingStatus `json:"status"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	ErrorCount int `json:"error_count"`
 
@@ -184,7 +184,7 @@ type StreamingChunk struct {
 
 	Delta string `json:"delta,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 
@@ -491,13 +491,7 @@ func (sp *StreamingProcessorImpl) HandleStreamingRequest(w http.ResponseWriter, 
 
 		Timestamp: time.Now(),
 
-		Metadata: map[string]interface{}{
-			"total_chunks": session.ChunksStreamed,
-
-			"total_bytes": session.BytesStreamed,
-
-			"processing_time": time.Since(session.StartTime).String(),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	sp.sendChunk(session, completionChunk)
@@ -566,11 +560,7 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 
 			Timestamp: time.Now(),
 
-			Metadata: map[string]interface{}{
-				"context_length": len(ragContext),
-
-				"injection_time": sp.config.ContextInjectionOverhead.String(),
-			},
+			Metadata: json.RawMessage("{}"),
 		}
 
 		sp.sendChunk(session, contextChunk)

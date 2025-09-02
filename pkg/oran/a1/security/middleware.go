@@ -124,7 +124,7 @@ type RequestContext struct {
 
 	SecurityFlags map[string]bool `json:"security_flags,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // NewSecurityMiddleware creates a new security middleware.
@@ -920,8 +920,7 @@ func (sm *SecurityMiddleware) sendErrorResponse(w http.ResponseWriter, statusCod
 
 	w.WriteHeader(statusCode)
 
-	response := map[string]interface{}{
-		"error": map[string]interface{}{
+	response := json.RawMessage("{}"){
 			"code": statusCode,
 
 			"message": message,

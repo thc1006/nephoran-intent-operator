@@ -1,7 +1,9 @@
 package llm
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 )
 
 // ProcessingResult represents the result of LLM processing
@@ -11,7 +13,7 @@ type ProcessingResult struct {
 	ProcessingTime    time.Duration          `json:"processing_time"`
 	CacheHit          bool                   `json:"cache_hit"`
 	Batched           bool                   `json:"batched"`
-	Metadata          map[string]interface{} `json:"metadata"`
+	Metadata          json.RawMessage `json:"metadata"`
 	Error             error                  `json:"error,omitempty"`
 	ProcessingContext *ProcessingContext     `json:"processing_context,omitempty"` // Uses the existing ProcessingContext from processing_pipeline.go
 	Success           bool                   `json:"success"`                      // Added for processing_pipeline.go

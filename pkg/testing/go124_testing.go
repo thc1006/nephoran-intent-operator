@@ -738,7 +738,7 @@ type TestCase struct {
 
 	Teardown func(*testing.T) `json:"-"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // Helper methods for resource management.

@@ -224,10 +224,7 @@ import (
 	}
 
 	// Test legacy GenerateToken method
-	customClaims := map[string]interface{}{
-		"custom_field": "custom_value",
-		"admin":        true,
-	}
+	customClaims := json.RawMessage("{}")
 
 	tokenString, err := manager.GenerateToken(userInfo, customClaims)
 	require.NoError(t, err)

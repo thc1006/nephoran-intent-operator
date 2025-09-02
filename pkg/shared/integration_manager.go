@@ -789,25 +789,13 @@ func (im *IntegrationManager) collectMetrics(ctx context.Context) {
 	if im.eventBus != nil {
 		// Collect event bus metrics.
 
-		im.metricsCollector.metrics["event_bus"] = map[string]interface{}{
-			"events_published": 0, // This would be actual metrics
-
-			"events_processed": 0,
-
-			"failed_handlers": 0,
-		}
+		im.metricsCollector.metrics["event_bus"] = json.RawMessage("{}")
 	}
 
 	if im.performanceOptimizer != nil {
 		// Collect performance metrics.
 
-		im.metricsCollector.metrics["performance"] = map[string]interface{}{
-			"memory_usage": 0.0,
-
-			"cpu_usage": 0.0,
-
-			"io_operations": 0,
-		}
+		im.metricsCollector.metrics["performance"] = json.RawMessage("{}")
 	}
 
 	im.metricsCollector.lastCollection = now

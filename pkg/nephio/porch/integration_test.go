@@ -132,13 +132,8 @@ func (suite *IntegrationTestSuite) TestCompleteWorkflow() {
 		{
 			APIVersion: "v1",
 			Kind:       "ConfigMap",
-			Metadata: map[string]interface{}{
-				"name":      "test-config",
-				"namespace": "default",
-			},
-			Data: map[string]interface{}{
-				"config.yaml": "test: value",
-			},
+			Metadata: json.RawMessage("{}"),
+			Data: json.RawMessage("{}"),
 		},
 	}
 
@@ -284,12 +279,8 @@ func (suite *IntegrationTestSuite) TestFunctionOperations() {
 			{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
-				Metadata: map[string]interface{}{
-					"name": "test-configmap",
-				},
-				Data: map[string]interface{}{
-					"key": "value",
-				},
+				Metadata: json.RawMessage("{}"),
+				Data: json.RawMessage("{}"),
 			},
 		},
 	}
@@ -341,12 +332,8 @@ func (suite *IntegrationTestSuite) TestPackageOperations() {
 		{
 			APIVersion: "apps/v1",
 			Kind:       "Deployment",
-			Metadata: map[string]interface{}{
-				"name": "test-deployment",
-			},
-			Spec: map[string]interface{}{
-				"replicas": 1,
-			},
+			Metadata: json.RawMessage("{}"),
+			Spec: json.RawMessage("{}"),
 		},
 	}
 
@@ -539,13 +526,8 @@ func (suite *IntegrationTestSuite) TestORANCompliance() {
 				{
 					APIVersion: "o-ran.org/v1alpha1",
 					Kind:       "O1Interface",
-					Metadata: map[string]interface{}{
-						"name": "test-o1-interface",
-					},
-					Spec: map[string]interface{}{
-						"endpoint": "https://o1.example.com",
-						"version":  "v1.0",
-					},
+					Metadata: json.RawMessage("{}"),
+					Spec: json.RawMessage("{}"),
 				},
 			},
 			InterfaceTypes: []string{"O1", "A1"},
@@ -566,10 +548,7 @@ func (suite *IntegrationTestSuite) TestORANCompliance() {
 				Spec: NetworkIntentSpec{
 					NetworkFunction: NetworkFunctionSpec{
 						Type: "AMF",
-						Resources: map[string]interface{}{
-							"cpu":    "2",
-							"memory": "4Gi",
-						},
+						Resources: json.RawMessage("{}"),
 					},
 					Intent: "Deploy high-availability AMF with auto-scaling",
 					Requirements: NetworkRequirements{

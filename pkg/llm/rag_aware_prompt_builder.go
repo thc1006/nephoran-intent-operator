@@ -4,7 +4,9 @@
 package llm
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -188,7 +190,7 @@ type FewShotExample struct {
 
 	Relevance float32 `json:"relevance"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 }
 
 // PromptRequest represents a request for prompt building.
@@ -214,7 +216,7 @@ type PromptRequest struct {
 
 	CustomInstructions string `json:"custom_instructions,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // PromptResponse represents the response from prompt building.
@@ -238,7 +240,7 @@ type PromptResponse struct {
 
 	OptimizationsApplied []string `json:"optimizations_applied"`
 
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata json.RawMessage `json:"metadata"`
 
 	CacheUsed bool `json:"cache_used"`
 }
@@ -445,15 +447,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 
 		CacheUsed: false, // Cache implementation available but not used in this context
 
-		Metadata: map[string]interface{}{
-			"domain": domain,
-
-			"template_used": pb.getTemplateType(request),
-
-			"context_sources_count": len(request.RAGContext),
-
-			"few_shot_count": len(fewShotExamples),
-		},
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Update metrics.

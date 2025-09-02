@@ -219,7 +219,7 @@ type AuditEvent struct {
 
 	Duration time.Duration `json:"duration,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 
 	SecurityContext *SecurityContext `json:"security_context,omitempty"`
 
@@ -403,7 +403,7 @@ type Action struct {
 
 	Method string `json:"method"`
 
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters json.RawMessage `json:"parameters,omitempty"`
 }
 
 // Resource represents what resource was affected.

@@ -728,18 +728,7 @@ func (suite *DisasterRecoveryTestSuite) estimateRecoveryTime(scenario *DisasterS
 func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *DisasterScenario, metrics *RecoveryMetrics) error {
 	reportPath := filepath.Join(suite.backupDir, fmt.Sprintf("disaster-report-%s.json", scenario.Name))
 
-	report := map[string]interface{}{
-		"scenario_name":       scenario.Name,
-		"disaster_type":       scenario.DisasterType,
-		"recovery_strategy":   scenario.RecoveryStrategy,
-		"expected_rto":        scenario.ExpectedRTO.String(),
-		"actual_rto":          metrics.ActualRTO.String(),
-		"expected_rpo":        scenario.ExpectedRPO.String(),
-		"recovery_success":    metrics.RecoverySuccess,
-		"error_messages":      metrics.ErrorMessages,
-		"affected_components": scenario.AffectedComponents,
-		"timestamp":           time.Now().Format(time.RFC3339),
-	}
+	report := json.RawMessage("{}")
 
 	suite.T().Logf("Generated disaster recovery report: %s", reportPath)
 	_ = report // In real implementation, would write to file

@@ -721,10 +721,7 @@ func (n *RotationNotifier) SendRotationFailureNotification(name string, err erro
 	return n.SendNotification(RotationEvent{
 		Type:      "failure",
 		Timestamp: time.Now(),
-		Details: map[string]interface{}{
-			"name":  name,
-			"error": err.Error(),
-		},
+		Details: json.RawMessage("{}"),
 	})
 }
 
@@ -733,9 +730,7 @@ func (n *RotationNotifier) SendRotationSuccessNotification(name string) error {
 	return n.SendNotification(RotationEvent{
 		Type:      "success",
 		Timestamp: time.Now(),
-		Details: map[string]interface{}{
-			"name": name,
-		},
+		Details: json.RawMessage("{}"),
 	})
 }
 

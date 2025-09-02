@@ -35,10 +35,7 @@ func (suite *ORANComplianceTestSuite) SetupSuite() {
 		ServerAddress: "127.0.0.1",
 		ServerPort:    0,
 		TLSEnabled:    false, // TLS would be enabled in production
-		DatabaseConfig: map[string]interface{}{
-			"type":     "memory",
-			"database": "oran_compliance_test_db",
-		},
+		DatabaseConfig: json.RawMessage("{}"),
 		ComplianceMode:       true, // Enable strict O-RAN compliance
 		SpecificationVersion: "O-RAN.WG6.O2ims-Interface-v01.01",
 	}
@@ -152,10 +149,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 				},
 			},
 			// O-RAN extensions for additional metadata
-			Extensions: map[string]interface{}{
-				"oranVersion":          "1.0.1",
-				"hardwareAcceleration": true,
-				"networkFeatures":      []string{"SRIOV", "DPDK", "OVS"},
+			Extensions: json.RawMessage("{}"),
 				"complianceLevel":      "O-RAN-WG6-v1.0",
 			},
 		}
@@ -253,8 +247,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 					{Name: "debug", Port: 8080, Protocol: "TCP"},
 				},
 				// O-RAN specific capabilities
-				Capabilities: map[string]interface{}{
-					"hardwareAcceleration":  []string{"FPGA", "GPU", "TPU"},
+				Capabilities: json.RawMessage("{}"),
 					"networkAcceleration":   []string{"SRIOV", "DPDK"},
 					"storageTypes":          []string{"SSD", "NVMe", "HDD"},
 					"virtualizationSupport": true,
@@ -266,12 +259,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 			Compliance: &models.ComplianceInfo{
 				Standard:           "O-RAN-WG6-v1.0.1",
 				CertificationLevel: "CERTIFIED",
-				TestResults: map[string]interface{}{
-					"functionalTests":       "PASSED",
-					"performanceTests":      "PASSED",
-					"securityTests":         "PASSED",
-					"interoperabilityTests": "PASSED",
-				},
+				TestResults: json.RawMessage("{}"),
 			},
 		}
 
@@ -717,10 +705,7 @@ func (suite *ORANComplianceTestSuite) TestORANDataModelConsistency() {
 						Total: "1Ti", Available: "800Gi", Used: "200Gi", Unit: "bytes", Utilization: 20.0,
 					},
 				},
-				Extensions: map[string]interface{}{
-					"customField1": "value1",
-					"customField2": 42,
-				},
+				Extensions: json.RawMessage("{}"),
 			}
 
 			poolJSON, err := json.Marshal(pool)

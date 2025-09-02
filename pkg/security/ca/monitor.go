@@ -512,10 +512,7 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 
 	defer m.mu.RUnlock()
 
-	status := map[string]interface{}{
-		"healthy": true,
-
-		"checks": make(map[string]interface{}),
+	status := json.RawMessage("{}")),
 
 		"last_check": time.Now(),
 
@@ -528,11 +525,7 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 
 		err := check.Check(m.ctx)
 
-		checkStatus := map[string]interface{}{
-			"healthy": err == nil,
-
-			"critical": check.Critical(),
-		}
+		checkStatus := json.RawMessage("{}")
 
 		if err != nil {
 

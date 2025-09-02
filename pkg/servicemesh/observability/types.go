@@ -3,7 +3,9 @@
 package observability
 
 import (
-	"time"
+	
+	"encoding/json"
+"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
@@ -149,7 +151,7 @@ type SecurityEvent struct {
 
 	Message string `json:"message"`
 
-	Details map[string]interface{} `json:"details,omitempty"`
+	Details json.RawMessage `json:"details,omitempty"`
 }
 
 // PerformanceMetrics represents performance metrics for the mesh.
@@ -301,7 +303,7 @@ type DashboardPanel struct {
 
 	Position PanelPosition `json:"position"`
 
-	Options map[string]interface{} `json:"options,omitempty"`
+	Options json.RawMessage `json:"options,omitempty"`
 }
 
 // PanelPosition represents the position of a panel.

@@ -58,10 +58,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 10 * time.Minute,
 
-					Parameters: map[string]interface{}{
-						"rate": 30, // 30 requests per minute
-
-					},
+					Parameters: json.RawMessage("{}"),
 				},
 
 				{
@@ -71,13 +68,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 10 * time.Minute,
 
-					Parameters: map[string]interface{}{
-						"start_rate": 10,
-
-						"end_rate": 60,
-
-						"steps": 10,
-					},
+					Parameters: json.RawMessage("{}"),
 				},
 
 				{
@@ -87,15 +78,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 5 * time.Minute,
 
-					Parameters: map[string]interface{}{
-						"base_rate": 20,
-
-						"spike_rate": 100,
-
-						"spike_duration": "30s",
-
-						"spike_interval": "2m",
-					},
+					Parameters: json.RawMessage("{}"),
 				},
 
 				{
@@ -105,13 +88,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Duration: 8 * time.Minute,
 
-					Parameters: map[string]interface{}{
-						"burst_rate": 80,
-
-						"burst_duration": "1m",
-
-						"rest_duration": "2m",
-					},
+					Parameters: json.RawMessage("{}"),
 				},
 			},
 
@@ -127,11 +104,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "simple",
 
-					Parameters: map[string]interface{}{
-						"weight": 0.20,
-
-						"resource_requirements": "low",
-					},
+					Parameters: json.RawMessage("{}"),
 				},
 
 				// Moderate Scenarios (50% of tests).
@@ -145,12 +118,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "moderate",
 
-					Parameters: map[string]interface{}{
-						"weight": 0.50,
-
-						"resource_requirements": "medium",
-
-						"dependencies": []string{"networking", "storage"},
+					Parameters: json.RawMessage("{}"),
 					},
 				},
 
@@ -165,12 +133,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "complex",
 
-					Parameters: map[string]interface{}{
-						"weight": 0.30,
-
-						"resource_requirements": "high",
-
-						"dependencies": []string{"networking", "storage", "compute", "certificates"},
+					Parameters: json.RawMessage("{}"),
 
 						"coordination_required": true,
 					},
@@ -183,15 +146,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Development environment with minimal resources",
 
-					Config: map[string]interface{}{
-						"node_count": 1,
-
-						"cpu_limit": "2000m",
-
-						"memory_limit": "4Gi",
-
-						"storage_class": "standard",
-					},
+					Config: json.RawMessage("{}"),
 				},
 
 				{
@@ -199,15 +154,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Staging environment simulating production load",
 
-					Config: map[string]interface{}{
-						"node_count": 3,
-
-						"cpu_limit": "4000m",
-
-						"memory_limit": "8Gi",
-
-						"storage_class": "fast-ssd",
-					},
+					Config: json.RawMessage("{}"),
 				},
 
 				{
@@ -215,17 +162,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Production environment with full resources",
 
-					Config: map[string]interface{}{
-						"node_count": 5,
-
-						"cpu_limit": "8000m",
-
-						"memory_limit": "16Gi",
-
-						"storage_class": "premium-ssd",
-
-						"high_availability": true,
-					},
+					Config: json.RawMessage("{}"),
 				},
 			},
 		},

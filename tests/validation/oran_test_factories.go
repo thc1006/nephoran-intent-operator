@@ -153,68 +153,26 @@ func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 
 	case "traffic-steering":
 
-		policyData = map[string]interface{}{
-			"primaryPathWeight": 0.7,
-
-			"secondaryPathWeight": 0.3,
-
-			"targetThroughput": "1Gbps",
-
-			"latencyThreshold": "10ms",
-
-			"cellList": []string{"cell-001", "cell-002", "cell-003"},
+		policyData = json.RawMessage("{}"),
 		}
 
 	case "qos-optimization":
 
-		policyData = map[string]interface{}{
-			"serviceType": "eMBB",
-
-			"latencyTarget": 10, // milliseconds
-
-			"throughputTarget": 1000, // Mbps
-
-			"reliabilityTarget": 99.99, // percentage
-
-			"5qi": 1,
-
-			"arp": 1,
-		}
+		policyData = json.RawMessage("{}")
 
 	case "admission-control":
 
-		policyData = map[string]interface{}{
-			"maxConcurrentUEs": 1000,
-
-			"priorityThreshold": 8,
-
-			"resourceReserved": 0.1, // 10% reserved for emergency
-
-			"admissionStrategy": "priority-based",
-		}
+		policyData = json.RawMessage("{}")
 
 	case "energy-saving":
 
-		policyData = map[string]interface{}{
-			"powerReductionTarget": 0.2, // 20% reduction
-
-			"activationThreshold": 0.3, // Activate when utilization < 30%
-
-			"deactivationThreshold": 0.7, // Deactivate when utilization > 70%
-
-			"enabledHours": []int{22, 23, 0, 1, 2, 3, 4, 5}, // 10 PM to 5 AM
+		policyData = json.RawMessage("{}"), // 10 PM to 5 AM
 
 		}
 
 	default:
 
-		policyData = map[string]interface{}{
-			"action": "optimize",
-
-			"target": "throughput",
-
-			"threshold": 100,
-		}
+		policyData = json.RawMessage("{}")
 
 	}
 
@@ -242,52 +200,26 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 
 	case "qoe-optimizer":
 
-		configData = map[string]interface{}{
-			"optimizationTarget": "qoe",
-
-			"mlModel": "neural-network",
-
-			"updateInterval": "10s",
-
-			"performanceMetrics": []string{"throughput", "latency", "packetLoss"},
+		configData = json.RawMessage("{}"),
 
 			"adaptationThreshold": 0.1,
 		}
 
 	case "load-balancer":
 
-		configData = map[string]interface{}{
-			"balancingAlgorithm": "weighted-round-robin",
-
-			"healthCheckInterval": "5s",
-
-			"failoverThreshold": 3,
-
-			"loadThresholds": map[string]float64{
-				"cpu": 0.8,
-
-				"memory": 0.85,
-
-				"network": 0.9,
-			},
+		configData = json.RawMessage("{}"),
 		}
 
 	case "anomaly-detector":
 
-		configData = map[string]interface{}{
-			"detectionAlgorithm": "isolation-forest",
-
-			"sensitivityLevel": "medium",
-
-			"monitoredMetrics": []string{"cpuUsage", "memoryUsage", "networkLatency"},
+		configData = json.RawMessage("{}"),
 
 			"alertThreshold": 0.95,
 		}
 
 	case "slice-optimizer":
 
-		configData = map[string]interface{}{
-			"sliceTypes": []string{"eMBB", "URLLC", "mMTC"},
+		configData = json.RawMessage("{}"),
 
 			"optimizationGoal": "resource-efficiency",
 
@@ -302,13 +234,7 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 
 	default:
 
-		configData = map[string]interface{}{
-			"mode": "default",
-
-			"updateInterval": "30s",
-
-			"enabled": true,
-		}
+		configData = json.RawMessage("{}")
 
 	}
 
@@ -609,12 +535,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 	case "KPM":
 
-		eventTrigger = map[string]interface{}{
-			"reportingPeriod": 1000, // 1 second
-
-			"granularityPeriod": 100, // 100 ms
-
-		}
+		eventTrigger = json.RawMessage("{}")
 
 		actions = []E2Action{
 			{
@@ -622,16 +543,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 				ActionType: "REPORT",
 
-				Definition: map[string]interface{}{
-					"measurementType": "DRB.UEThpDl",
-
-					"cellID": "001",
-
-					"plmnID": map[string]string{
-						"mcc": "001",
-
-						"mnc": "01",
-					},
+				Definition: json.RawMessage("{}"),
 				},
 			},
 
@@ -640,20 +552,13 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 				ActionType: "REPORT",
 
-				Definition: map[string]interface{}{
-					"measurementType": "DRB.UEThpUl",
-
-					"cellID": "001",
-				},
+				Definition: json.RawMessage("{}"),
 			},
 		}
 
 	case "RC":
 
-		eventTrigger = map[string]interface{}{
-			"controlPeriod": 5000, // 5 seconds
-
-		}
+		eventTrigger = json.RawMessage("{}")
 
 		actions = []E2Action{
 			{
@@ -661,12 +566,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 				ActionType: "CONTROL",
 
-				Definition: map[string]interface{}{
-					"controlType": "QoS_CONTROL",
-
-					"targetUE": "ue-001",
-
-					"qosParams": map[string]interface{}{
+				Definition: json.RawMessage("{}"){
 						"5qi": 1,
 
 						"arp": 1,
@@ -677,10 +577,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 	case "NI":
 
-		eventTrigger = map[string]interface{}{
-			"reportingPeriod": 10000, // 10 seconds
-
-		}
+		eventTrigger = json.RawMessage("{}")
 
 		actions = []E2Action{
 			{
@@ -688,19 +585,13 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 				ActionType: "REPORT",
 
-				Definition: map[string]interface{}{
-					"informationType": "CELL_INFO",
-
-					"cellID": "001",
-				},
+				Definition: json.RawMessage("{}"),
 			},
 		}
 
 	default:
 
-		eventTrigger = map[string]interface{}{
-			"reportingPeriod": 5000,
-		}
+		eventTrigger = json.RawMessage("{}")
 
 		actions = []E2Action{
 			{
@@ -708,9 +599,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 
 				ActionType: "REPORT",
 
-				Definition: map[string]interface{}{
-					"basicInfo": true,
-				},
+				Definition: json.RawMessage("{}"),
 			},
 		}
 
@@ -746,10 +635,7 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 
 		supportedModels = []string{"KPM", "RC", "NI"}
 
-		capabilities = map[string]interface{}{
-			"maxUEs": 10000,
-
-			"supportedBands": []string{"n78", "n79", "n258"},
+		capabilities = json.RawMessage("{}"),
 
 			"mimo": "8x8",
 
@@ -760,10 +646,7 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 
 		supportedModels = []string{"KPM"}
 
-		capabilities = map[string]interface{}{
-			"maxUEs": 5000,
-
-			"supportedBands": []string{"B1", "B3", "B7", "B20"},
+		capabilities = json.RawMessage("{}"),
 
 			"mimo": "4x4",
 		}
@@ -772,10 +655,7 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 
 		supportedModels = []string{"KPM", "RC"}
 
-		capabilities = map[string]interface{}{
-			"maxUEs": 8000,
-
-			"supportedBands": []string{"B1", "B3", "B7", "B20", "n78"},
+		capabilities = json.RawMessage("{}"),
 
 			"mimo": "4x4",
 
@@ -786,11 +666,7 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 
 		supportedModels = []string{"KPM"}
 
-		capabilities = map[string]interface{}{
-			"maxUEs": 1000,
-
-			"basic": true,
-		}
+		capabilities = json.RawMessage("{}")
 
 	}
 
@@ -931,8 +807,7 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 
 	case "AMF":
 
-		configuration = map[string]interface{}{
-			"faultMonitoring": map[string]interface{}{
+		configuration = json.RawMessage("{}"){
 				"enabled": true,
 
 				"severity": []string{"CRITICAL", "MAJOR", "MINOR"},
@@ -940,25 +815,13 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 				"alertTargets": []string{"smo@example.com"},
 			},
 
-			"performanceMonitoring": map[string]interface{}{
-				"enabled": true,
-
-				"collectionInterval": "15m",
-
-				"kpis": []string{
-					"amf.registration.success",
-
-					"amf.registration.failure",
-
-					"amf.session.establishment",
-				},
+			"performanceMonitoring": json.RawMessage("{}"),
 			},
 		}
 
 	case "SMF":
 
-		configuration = map[string]interface{}{
-			"sessionManagement": map[string]interface{}{
+		configuration = json.RawMessage("{}"){
 				"maxSessions": 100000,
 
 				"sessionTimeout": "300s",
@@ -966,23 +829,13 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 				"retryAttempts": 3,
 			},
 
-			"performanceMonitoring": map[string]interface{}{
-				"enabled": true,
-
-				"kpis": []string{
-					"smf.session.establishment.success",
-
-					"smf.session.establishment.failure",
-
-					"smf.pdu.session.count",
-				},
+			"performanceMonitoring": json.RawMessage("{}"),
 			},
 		}
 
 	case "UPF":
 
-		configuration = map[string]interface{}{
-			"dataPlane": map[string]interface{}{
+		configuration = json.RawMessage("{}"){
 				"maxThroughput": "100Gbps",
 
 				"bufferSize": "1GB",
@@ -990,23 +843,13 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 				"qosSupport": true,
 			},
 
-			"performanceMonitoring": map[string]interface{}{
-				"enabled": true,
-
-				"kpis": []string{
-					"upf.throughput.downlink",
-
-					"upf.throughput.uplink",
-
-					"upf.packet.loss.rate",
-				},
+			"performanceMonitoring": json.RawMessage("{}"),
 			},
 		}
 
 	default:
 
-		configuration = map[string]interface{}{
-			"basicMonitoring": map[string]interface{}{
+		configuration = json.RawMessage("{}"){
 				"enabled": true,
 
 				"interval": "60s",
@@ -1037,8 +880,7 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 
 	case "FCAPS":
 
-		configData = map[string]interface{}{
-			"faultManagement": map[string]interface{}{
+		configData = json.RawMessage("{}"){
 				"alarmSeverityFilter": []string{"CRITICAL", "MAJOR"},
 
 				"autoAcknowledge": false,
@@ -1046,28 +888,14 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 				"notificationTargets": []string{"http://smo.example.com/alarms"},
 			},
 
-			"configurationManagement": map[string]interface{}{
-				"autoBackup": true,
+			"configurationManagement": json.RawMessage("{}"),
 
-				"backupInterval": "1h",
-
-				"configHistory": 30, // days
-
-			},
-
-			"performanceManagement": map[string]interface{}{
-				"collection_interval": "15m",
-
-				"aggregationLevel": "cell",
-
-				"retentionPeriod": "7d",
-			},
+			"performanceManagement": json.RawMessage("{}"),
 		}
 
 	case "SECURITY":
 
-		configData = map[string]interface{}{
-			"authentication": map[string]interface{}{
+		configData = json.RawMessage("{}"){
 				"enabled": true,
 
 				"method": "certificate",
@@ -1075,60 +903,27 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 				"keySize": 2048,
 			},
 
-			"authorization": map[string]interface{}{
-				"enabled": true,
-
-				"roles": []string{"admin", "operator", "viewer"},
+			"authorization": json.RawMessage("{}"),
 
 				"rbac": true,
 			},
 
-			"encryption": map[string]interface{}{
-				"transport": "TLS",
-
-				"version": "1.3",
-
-				"ciphers": []string{"ECDHE-RSA-AES256-GCM-SHA384"},
+			"encryption": json.RawMessage("{}"),
 			},
 		}
 
 	case "PERFORMANCE":
 
-		configData = map[string]interface{}{
-			"counters": []string{
-				"registration.success",
+		configData = json.RawMessage("{}"),
 
-				"registration.failure",
+			"thresholds": json.RawMessage("{}"),
 
-				"session.establishment",
-
-				"throughput.uplink",
-
-				"throughput.downlink",
-			},
-
-			"thresholds": map[string]interface{}{
-				"cpu_usage": 80.0,
-
-				"memory_usage": 85.0,
-
-				"latency": 100.0, // milliseconds
-
-			},
-
-			"reporting": map[string]interface{}{
-				"interval": "15m",
-
-				"format": "json",
-
-				"compress": true,
-			},
+			"reporting": json.RawMessage("{}"),
 		}
 
 	default:
 
-		configData = map[string]interface{}{
-			"basic": map[string]interface{}{
+		configData = json.RawMessage("{}"){
 				"enabled": true,
 
 				"interval": "60s",
@@ -1349,10 +1144,7 @@ func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: map[string]interface{}{
-				"measurementTypes": []string{
-					"DRB.UEThpDl", "DRB.UEThpUl", "RRU.PrbUsedDl", "RRU.PrbUsedUl",
-				},
+			Capabilities: json.RawMessage("{}"),
 
 				"granularityPeriods": []int{100, 1000, 10000},
 
@@ -1369,10 +1161,7 @@ func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 
 			Functions: []string{"CONTROL", "POLICY"},
 
-			Capabilities: map[string]interface{}{
-				"controlActions": []string{
-					"QoS_CONTROL", "MOBILITY_CONTROL", "INTERFERENCE_CONTROL",
-				},
+			Capabilities: json.RawMessage("{}"),
 
 				"policyTypes": []string{
 					"ADMISSION_CONTROL", "LOAD_BALANCING", "ENERGY_SAVING",
@@ -1391,10 +1180,7 @@ func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: map[string]interface{}{
-				"informationTypes": []string{
-					"CELL_INFO", "UE_INFO", "BEARER_INFO", "SLICE_INFO",
-				},
+			Capabilities: json.RawMessage("{}"),
 
 				"maxInformationReports": 500,
 			},
@@ -1409,10 +1195,7 @@ func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 
 			Functions: []string{"CONTROL", "REPORT"},
 
-			Capabilities: map[string]interface{}{
-				"cellConfigTypes": []string{
-					"POWER_CONTROL", "ANTENNA_CONFIG", "CARRIER_AGGREGATION",
-				},
+			Capabilities: json.RawMessage("{}"),
 
 				"maxConcurrentConfigs": 50,
 			},

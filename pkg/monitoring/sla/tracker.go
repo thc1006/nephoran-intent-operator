@@ -1,7 +1,9 @@
 package sla
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"math"
 	"sync"
@@ -336,7 +338,7 @@ type ProcessingStage struct {
 
 	Error string `json:"error,omitempty"`
 
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 // IntentError provides detailed error information with categorization.

@@ -421,13 +421,7 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 
 	}
 
-	result := map[string]interface{}{
-		"items": paginatedItems,
-
-		"meta": meta,
-
-		"links": links,
-	}
+	result := json.RawMessage("{}")
 
 	// Cache the result.
 
@@ -541,29 +535,7 @@ func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Requ
 
 	// Get cluster status - mock implementation.
 
-	status := map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"status": "Healthy",
-
-		"last_checked": time.Now(),
-
-		"health_score": 95.5,
-
-		"nodes_ready": 3,
-
-		"nodes_total": 3,
-
-		"pods_running": 42,
-
-		"pods_total": 45,
-
-		"version": "v1.28.0",
-
-		"provider": "aws",
-
-		"region": "us-west-2",
-	}
+	status := json.RawMessage("{}")
 
 	// Cache with very short TTL for real-time status.
 
@@ -716,8 +688,7 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 
 	// Mock network topology response.
 
-	topology := map[string]interface{}{
-		"clusters": []map[string]interface{}{
+	topology := json.RawMessage("{}"){
 			{
 				"id": "cluster-1",
 
@@ -747,27 +718,10 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 			},
 		},
 
-		"connections": []map[string]interface{}{
-			{
-				"from": "cluster-1",
-
-				"to": "cluster-2",
-
-				"latency_ms": 45.2,
-
-				"bandwidth": "10Gbps",
-
-				"status": "active",
-			},
+		"connections": []json.RawMessage("{}"),
 		},
 
-		"policies": []map[string]interface{}{
-			{
-				"source": "cluster-1",
-
-				"destination": "cluster-2",
-
-				"protocols": []string{"https", "grpc"},
+		"policies": []json.RawMessage("{}"),
 
 				"max_latency": 100,
 			},
@@ -1099,11 +1053,7 @@ func (s *NephoranAPIServer) updateCluster(w http.ResponseWriter, r *http.Request
 
 	s.logger.Info("Updating cluster", "cluster_id", clusterID)
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Cluster update operation initiated",
-
-		"cluster_id": clusterID,
-	})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // unregisterCluster handles DELETE /api/v1/clusters/{id}.
@@ -1115,11 +1065,7 @@ func (s *NephoranAPIServer) unregisterCluster(w http.ResponseWriter, r *http.Req
 
 	s.logger.Info("Unregistering cluster", "cluster_id", clusterID)
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message": "Cluster unregistration initiated",
-
-		"cluster_id": clusterID,
-	})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // getClusterHealth handles GET /api/v1/clusters/{id}/health.
@@ -1129,15 +1075,7 @@ func (s *NephoranAPIServer) getClusterHealth(w http.ResponseWriter, r *http.Requ
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"health": "healthy",
-
-		"status": "ready",
-
-		"timestamp": time.Now().UTC(),
-	})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"))
 }
 
 // getClusterResources handles GET /api/v1/clusters/{id}/resources.
@@ -1147,25 +1085,10 @@ func (s *NephoranAPIServer) getClusterResources(w http.ResponseWriter, r *http.R
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
+			"cpu": json.RawMessage("{}"),
 
-		"resources": map[string]interface{}{
-			"cpu": map[string]interface{}{
-				"total": "100",
-
-				"used": "45",
-
-				"available": "55",
-			},
-
-			"memory": map[string]interface{}{
-				"total": "128Gi",
-
-				"used": "64Gi",
-
-				"available": "64Gi",
-			},
+			"memory": json.RawMessage("{}"),
 		},
 	})
 }
@@ -1177,10 +1100,7 @@ func (s *NephoranAPIServer) getClusterNodes(w http.ResponseWriter, r *http.Reque
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"nodes": []map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			{
 				"name": "node-1",
 
@@ -1207,10 +1127,7 @@ func (s *NephoranAPIServer) getClusterNamespaces(w http.ResponseWriter, r *http.
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"namespaces": []map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			{"name": "default", "status": "Active"},
 
 			{"name": "kube-system", "status": "Active"},
@@ -1229,10 +1146,7 @@ func (s *NephoranAPIServer) getClusterDeployment(w http.ResponseWriter, r *http.
 
 	deploymentName := vars["deployment"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"deployment": map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			"name": deploymentName,
 
 			"namespace": "nephoran-system",
@@ -1255,13 +1169,7 @@ func (s *NephoranAPIServer) deleteClusterDeployment(w http.ResponseWriter, r *ht
 
 	s.logger.Info("Deleting deployment", "cluster_id", clusterID, "deployment", deploymentName)
 
-	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
-		"message": "Deployment deletion initiated",
-
-		"cluster_id": clusterID,
-
-		"deployment": deploymentName,
-	})
+	s.writeJSONResponse(w, http.StatusAccepted, json.RawMessage("{}"))
 }
 
 // getClusterNetwork handles GET /api/v1/clusters/{id}/network.
@@ -1271,10 +1179,7 @@ func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Req
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"network": map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			"cni": "calico",
 
 			"pod_cidr": "10.244.0.0/16",
@@ -1291,12 +1196,7 @@ func (s *NephoranAPIServer) testClusterConnectivity(w http.ResponseWriter, r *ht
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"connectivity": "healthy",
-
-		"tests": []map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			{"name": "api-server", "status": "pass", "latency": "15ms"},
 
 			{"name": "dns", "status": "pass", "latency": "5ms"},
@@ -1311,10 +1211,7 @@ func (s *NephoranAPIServer) getClusterLatency(w http.ResponseWriter, r *http.Req
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"latency": map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			"api_server": "15ms",
 
 			"average": "12ms",
@@ -1327,18 +1224,14 @@ func (s *NephoranAPIServer) getClusterLatency(w http.ResponseWriter, r *http.Req
 // bulkDeployToClusters handles POST /api/v1/clusters/bulk/deploy.
 
 func (s *NephoranAPIServer) bulkDeployToClusters(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
-		"message": "Bulk deployment initiated",
-
-		"clusters": []string{"cluster-1", "cluster-2"},
+	s.writeJSONResponse(w, http.StatusAccepted, json.RawMessage("{}"),
 	})
 }
 
 // getBulkClusterHealth handles GET /api/v1/clusters/bulk/health.
 
 func (s *NephoranAPIServer) getBulkClusterHealth(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"clusters": []map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			{"id": "cluster-1", "health": "healthy"},
 
 			{"id": "cluster-2", "health": "healthy"},
@@ -1349,8 +1242,7 @@ func (s *NephoranAPIServer) getBulkClusterHealth(w http.ResponseWriter, r *http.
 // getOptimalPlacement handles POST /api/v1/clusters/placement.
 
 func (s *NephoranAPIServer) getOptimalPlacement(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"placement": map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			"cluster_id": "cluster-1",
 
 			"score": 95,
@@ -1363,8 +1255,7 @@ func (s *NephoranAPIServer) getOptimalPlacement(w http.ResponseWriter, r *http.R
 // discoverClusters handles GET /api/v1/clusters/discover.
 
 func (s *NephoranAPIServer) discoverClusters(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"discovered": []map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			{"endpoint": "https://cluster.example.com", "status": "available"},
 		},
 	})
@@ -1373,11 +1264,7 @@ func (s *NephoranAPIServer) discoverClusters(w http.ResponseWriter, r *http.Requ
 // autoRegisterClusters handles POST /api/v1/clusters/auto-register.
 
 func (s *NephoranAPIServer) autoRegisterClusters(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
-		"message": "Auto-registration initiated",
-
-		"discovered": 2,
-	})
+	s.writeJSONResponse(w, http.StatusAccepted, json.RawMessage("{}"))
 }
 
 // getClusterDeployments handles GET /api/v1/clusters/{id}/deployments.
@@ -1387,10 +1274,7 @@ func (s *NephoranAPIServer) getClusterDeployments(w http.ResponseWriter, r *http
 
 	clusterID := vars["id"]
 
-	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"cluster_id": clusterID,
-
-		"deployments": []map[string]interface{}{
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage("{}"){
 			{
 				"name": "nephoran-controller",
 

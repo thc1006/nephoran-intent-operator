@@ -31,7 +31,9 @@ limitations under the License.
 package blueprints
 
 import (
-	"context"
+	
+	"encoding/json"
+"context"
 	"fmt"
 	"time"
 
@@ -309,7 +311,7 @@ type ProcessedTemplate struct {
 
 	ProcessedAt time.Time `json:"processedAt"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	GeneratedFiles map[string]string `json:"generatedFiles"`
 }
@@ -325,7 +327,7 @@ type BlueprintOperation struct {
 
 	Templates []*BlueprintTemplate `json:"templates"`
 
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters json.RawMessage `json:"parameters"`
 
 	Status OperationStatus `json:"status"`
 
