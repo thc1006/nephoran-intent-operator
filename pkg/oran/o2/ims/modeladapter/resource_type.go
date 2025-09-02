@@ -1,3 +1,12 @@
+package modeladapter
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+)
+
 func (c *CatalogService) CreateDefaultNetworkResourceType() *InternalResourceType {
 	return &InternalResourceType{
 		ResourceTypeID: "network-service",

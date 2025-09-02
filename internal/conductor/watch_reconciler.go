@@ -342,7 +342,7 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 
 	// Create intent JSON matching docs/contracts/intent.schema.json.
 
-	return json.RawMessage(`{}`), nil
+	return make(map[string]interface{}), nil
 }
 
 // writeIntentJSON writes the intent data to a JSON file.

@@ -737,10 +737,14 @@ func (qe *QueryEngine) executeQuery(ctx context.Context, backend backends.Backen
 
 	// In a real implementation, this would interface with specific backends.
 
+	// Create aggregations map and marshal to JSON
+	aggregationsMap := make(map[string]interface{})
+	aggregationsJSON, _ := json.Marshal(aggregationsMap)
+	
 	result := &QueryResult{
 		Events: []*types.AuditEvent{},
 
-		Aggregations: make(map[string]interface{}),
+		Aggregations: json.RawMessage(aggregationsJSON),
 
 		TotalCount: 0,
 

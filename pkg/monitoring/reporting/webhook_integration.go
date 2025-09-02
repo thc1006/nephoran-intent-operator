@@ -699,9 +699,9 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			for _, claim := range event.Report.PerformanceClaims {
 
-				status := "??
+				status := "‚úÖ"
 				if claim.Status == "FAIL" {
-					status = "??
+					status = "‚ùå"
 				}
 
 				claimsText += fmt.Sprintf("%s %s: %s (Target: %s)\n",
@@ -751,7 +751,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			IconEmoji: ":warning:",
 
-			Text: fmt.Sprintf("?ö® %s Alert: %s", strings.ToUpper(event.Alert.Severity), event.Alert.Name),
+			Text: fmt.Sprintf("üö® %s Alert: %s", strings.ToUpper(event.Alert.Severity), event.Alert.Name),
 
 			Attachments: []SlackAttachment{
 				{
@@ -817,7 +817,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 
 			IconEmoji: ":rotating_light:",
 
-			Text: "?ö® Performance Regression Detected",
+			Text: "?ÔøΩÔøΩ Performance Regression Detected",
 
 			Attachments: []SlackAttachment{
 				{
@@ -994,7 +994,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 
 			Sections: []TeamsSection{
 				{
-					ActivityTitle: fmt.Sprintf("?ö® %s Alert", strings.ToUpper(event.Alert.Severity)),
+					ActivityTitle: fmt.Sprintf("?ÔøΩÔøΩ %s Alert", strings.ToUpper(event.Alert.Severity)),
 
 					ActivitySubtitle: event.Alert.Name,
 
@@ -1048,7 +1048,7 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 
 			Sections: []TeamsSection{
 				{
-					ActivityTitle: "?ö® Performance Regression Detected",
+					ActivityTitle: "?ÔøΩÔøΩ Performance Regression Detected",
 
 					ActivitySubtitle: fmt.Sprintf("Severity: %s", event.Regression.RegressionSeverity),
 

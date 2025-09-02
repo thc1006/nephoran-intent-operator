@@ -1,5 +1,7 @@
 package porch
 
+import "encoding/json"
+
 // PorchError represents an error from the Porch API.
 
 type PorchError struct {

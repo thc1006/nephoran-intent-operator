@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -435,7 +434,7 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 
 	// Add security-relevant fields.
 
-	zapConfig.InitialFields = json.RawMessage(`{}`)
+	zapConfig.InitialFields = make(map[string]interface{})
 
 	zapLogger, err := zapConfig.Build()
 	if err != nil {

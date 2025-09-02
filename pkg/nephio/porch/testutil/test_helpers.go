@@ -32,6 +32,7 @@ package testutil
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -248,4 +249,3 @@ func AssertEqual(t *testing.T, expected, actual interface{}) {
 		t.Fatalf("Expected %v, got %v", expected, actual)
 	}
 }
-

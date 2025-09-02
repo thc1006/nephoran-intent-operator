@@ -1494,12 +1494,10 @@ func CreateKPMServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: json.RawMessage(`{}`),
-
+		Configuration: json.RawMessage(`{
 			"granularity_period": "1000ms",
-
-			"collection_start_time": "2025-07-29T10:00:00Z",
-		},
+			"collection_start_time": "2025-07-29T10:00:00Z"
+		}`),
 	}
 }
 
@@ -1523,16 +1521,9 @@ func CreateRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_FAILURE",
 		},
 
-		Configuration: json.RawMessage(`{}`),
-
-			"control_outcomes": []string{
-				"successful",
-
-				"rejected",
-
-				"failed",
-			},
-		},
+		Configuration: json.RawMessage(`{
+			"control_outcomes": ["successful", "rejected", "failed"]
+		}`),
 	}
 }
 

@@ -331,6 +331,8 @@ func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Contex
 	intentID := string(networkIntent.UID)
 
 	// Create coordination context.
+	metadataMap := make(map[string]interface{})
+	metadataJSON, _ := json.Marshal(metadataMap)
 
 	coordCtx := &CoordinationContext{
 		IntentID: intentID,
@@ -341,7 +343,7 @@ func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Contex
 
 		LastUpdateTime: time.Now(),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(metadataJSON),
 	}
 
 	// Store coordination context.
@@ -408,6 +410,10 @@ func (edc *EventDrivenCoordinator) transitionToPhase(ctx context.Context, coordC
 // publishCoordinationEvent publishes a coordination-specific event.
 
 func (edc *EventDrivenCoordinator) publishCoordinationEvent(ctx context.Context, eventType, intentID string, phase interfaces.ProcessingPhase, coordData CoordinationEventData) error {
+	// Marshal empty data map to JSON for json.RawMessage
+	dataMap := make(map[string]interface{})
+	dataJSON, _ := json.Marshal(dataMap)
+	
 	event := CoordinationEvent{
 		ProcessingEvent: ProcessingEvent{
 			Type: eventType,
@@ -420,7 +426,7 @@ func (edc *EventDrivenCoordinator) publishCoordinationEvent(ctx context.Context,
 
 			Success: true,
 
-			Data: make(map[string]interface{}),
+			Data: json.RawMessage(dataJSON),
 
 			Timestamp: time.Now(),
 

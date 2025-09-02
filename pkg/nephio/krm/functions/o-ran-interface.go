@@ -1993,12 +1993,13 @@ func (f *ORANInterfaceConfigFunction) generateA1Resources(iface *ORANInterface) 
 
 				Kind: "ConfigMap",
 
-				Metadata: json.RawMessage(`{}`){
+				Metadata: json.RawMessage(`{
+					"name": "` + iface.Name + `-a1-config",
+					"labels": {
 						"nephoran.com/oran-interface": "A1",
-
-						"nephoran.com/interface-name": iface.Name,
-					},
-				},
+						"nephoran.com/interface-name": "` + iface.Name + `"
+					}
+				}`),
 
 				Data: make(map[string]interface{}),
 			}

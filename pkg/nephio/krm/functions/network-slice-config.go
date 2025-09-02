@@ -1283,21 +1283,21 @@ func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceC
 
 		Kind: "ResourceQuota",
 
-		Metadata: json.RawMessage(`{}`){
-				"nephoran.com/network-slice-id": config.SliceID,
-			},
-		},
+		Metadata: json.RawMessage(`{
+			"name": "` + config.SliceID + `-quota",
+			"labels": {
+				"nephoran.com/network-slice-id": "` + config.SliceID + `"
+			}
+		}`),
 
-		Spec: json.RawMessage(`{}`){
-				"requests.cpu": config.Resources.CPU,
-
-				"requests.memory": config.Resources.Memory,
-
-				"limits.cpu": config.Resources.CPU,
-
-				"limits.memory": config.Resources.Memory,
-			},
-		},
+		Spec: json.RawMessage(`{
+			"hard": {
+				"requests.cpu": "` + config.Resources.CPU + `",
+				"requests.memory": "` + config.Resources.Memory + `",
+				"limits.cpu": "` + config.Resources.CPU + `",
+				"limits.memory": "` + config.Resources.Memory + `"
+			}
+		}`),
 	}
 }
 
@@ -1307,39 +1307,23 @@ func (f *NetworkSliceConfigFunction) generateNetworkPolicy(config *NetworkSliceC
 
 		Kind: "NetworkPolicy",
 
-		Metadata: json.RawMessage(`{}`){
-				"nephoran.com/network-slice-id": config.SliceID,
-			},
-		},
+		Metadata: json.RawMessage(`{
+			"name": "` + config.SliceID + `-netpol",
+			"labels": {
+				"nephoran.com/network-slice-id": "` + config.SliceID + `"
+			}
+		}`),
 
-		Spec: json.RawMessage(`{}`){
-				"matchLabels": json.RawMessage(`{}`),
+		Spec: json.RawMessage(`{
+			"podSelector": {
+				"matchLabels": {
+					"nephoran.com/network-slice-id": "` + config.SliceID + `"
+				}
 			},
-
-			"policyTypes": []string{"Ingress", "Egress"},
-
-			"ingress": []json.RawMessage(`{}`){
-						{
-							"podSelector": json.RawMessage(`{}`){
-									"nephoran.com/network-slice-id": config.SliceID,
-								},
-							},
-						},
-					},
-				},
-			},
-
-			"egress": []json.RawMessage(`{}`){
-						{
-							"podSelector": json.RawMessage(`{}`){
-									"nephoran.com/network-slice-id": config.SliceID,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+			"policyTypes": ["Ingress", "Egress"],
+			"ingress": [{}],
+			"egress": [{}]
+		}`),
 	}
 }
 
@@ -1349,18 +1333,23 @@ func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSlice
 
 		Kind: "ServiceMonitor",
 
-		Metadata: json.RawMessage(`{}`){
-				"nephoran.com/network-slice-id": config.SliceID,
-			},
-		},
+		Metadata: json.RawMessage(`{
+			"name": "` + config.SliceID + `-monitor",
+			"labels": {
+				"nephoran.com/network-slice-id": "` + config.SliceID + `"
+			}
+		}`),
 
-		Spec: json.RawMessage(`{}`){
-				"matchLabels": json.RawMessage(`{}`),
+		Spec: json.RawMessage(`{
+			"selector": {
+				"matchLabels": {
+					"nephoran.com/network-slice-id": "` + config.SliceID + `"
+				}
 			},
-
-			"endpoints": []json.RawMessage(`{}`),
-			},
-		},
+			"endpoints": [{
+				"port": "metrics"
+			}]
+		}`),
 	}
 }
 
@@ -1380,15 +1369,21 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 
 		Kind: "PodDisruptionBudget",
 
-		Metadata: json.RawMessage(`{}`){
-				"nephoran.com/network-slice-id": config.SliceID,
-			},
-		},
+		Metadata: json.RawMessage(`{
+			"name": "` + config.SliceID + `-pdb",
+			"labels": {
+				"nephoran.com/network-slice-id": "` + config.SliceID + `"
+			}
+		}`),
 
-		Spec: json.RawMessage(`{}`){
-				"matchLabels": json.RawMessage(`{}`),
+		Spec: json.RawMessage(`{
+			"selector": {
+				"matchLabels": {
+					"nephoran.com/network-slice-id": "` + config.SliceID + `"
+				}
 			},
-		},
+			"minAvailable": "` + minAvailable + `"
+		}`),
 	}
 }
 

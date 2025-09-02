@@ -760,7 +760,9 @@ func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.Admissi
 
 	// Example: Add security labels.
 
-	patches = append(patches, json.RawMessage(`{}`))
+	// Create empty patch map
+	emptyPatch := make(map[string]interface{})
+	patches = append(patches, emptyPatch)
 
 	return patches
 }

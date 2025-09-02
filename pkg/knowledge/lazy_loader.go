@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -1343,4 +1344,3 @@ func (l *LazyKnowledgeLoader) LoadFromFile(filename string) error {
 
 	return nil
 }
-

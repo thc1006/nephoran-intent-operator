@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -164,12 +165,15 @@ func (nfm *NetworkFunctionManagerImpl) GetNetworkFunctionConfiguration(ctx conte
 
 	_ = nf // Use the variable to avoid compiler error
 	// Return a placeholder configuration
+	configDataMap := make(map[string]interface{})
+	configDataJSON, _ := json.Marshal(configDataMap)
+	
 	return &NetworkFunctionConfig{
 		ConfigID:    nfID + "-config",
 		Version:     "1.0.0",
 		ConfigName:  "Default Configuration",
 		Description: "Default configuration for network function",
-		ConfigData:  make(map[string]interface{}),
+		ConfigData:  json.RawMessage(configDataJSON),
 	}, nil
 }
 

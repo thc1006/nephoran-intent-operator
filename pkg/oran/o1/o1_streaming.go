@@ -1306,7 +1306,7 @@ func (s *StreamingService) handleListSubscriptions(conn *StreamConnection) {
 	subscriptions := make([]map[string]interface{}, 0, len(conn.Subscriptions))
 
 	for _, sub := range conn.Subscriptions {
-		subscriptions = append(subscriptions, json.RawMessage(`{}`))
+		subscriptions = append(subscriptions, make(map[string]interface{}))
 	}
 
 	conn.mutex.RUnlock()

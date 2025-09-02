@@ -1,7 +1,6 @@
 package patch
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,7 +93,7 @@ func (g *Generator) generateKptfile(packageDir string) error {
 		"pipeline": map[string]interface{}{
 			"mutators": []map[string]interface{}{
 				{
-					"image": "gcr.io/kpt-fn/apply-setters:v0.2.0",
+					"image":     "gcr.io/kpt-fn/apply-setters:v0.2.0",
 					"configMap": map[string]interface{}{},
 				},
 			},

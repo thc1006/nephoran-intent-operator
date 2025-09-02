@@ -444,24 +444,16 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: json.RawMessage(`{}`),
-
+		Configuration: json.RawMessage(`{
 			"granularity_period": "1000ms",
-
 			"collection_start_time": "2025-07-29T10:00:00Z",
-
 			"collection_duration": "continuous",
-
 			"reporting_format": "CHOICE",
-
-			"supported_cell_types": []string{"NR", "LTE"},
-
-			"supported_aggregation_levels": []string{"cell", "ue", "slice"},
-
+			"supported_cell_types": ["NR", "LTE"],
+			"supported_aggregation_levels": ["cell", "ue", "slice"],
 			"max_concurrent_measurements": 100,
-
-			"measurement_filtering": json.RawMessage(`{}`),
-		},
+			"measurement_filtering": {}
+		}`),
 	}
 }
 
@@ -485,36 +477,17 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 			"RIC_CONTROL_FAILURE",
 		},
 
-		Configuration: json.RawMessage(`{}`),
-
-			"control_outcomes": []string{
-				"successful",
-
-				"rejected",
-
-				"failed",
-
-				"partial",
-
-				"timeout",
-			},
-
-			"control_granularity": []string{"cell", "ue", "slice", "beam"},
-
+		Configuration: json.RawMessage(`{
+			"control_outcomes": ["successful", "rejected", "failed", "partial", "timeout"],
+			"control_granularity": ["cell", "ue", "slice", "beam"],
 			"control_frequency": "on_demand",
-
-			"supported_ran_types": []string{"gNB", "ng-eNB", "en-gNB"},
-
+			"supported_ran_types": ["gNB", "ng-eNB", "en-gNB"],
 			"max_concurrent_controls": 50,
-
 			"control_timeout": "5s",
-
 			"acknowledgment_required": true,
-
 			"rollback_supported": true,
-
-			"batch_control_supported": false,
-		},
+			"batch_control_supported": false
+		}`),
 	}
 }
 
@@ -538,24 +511,16 @@ func CreateReportServiceModel() *E2ServiceModel {
 			"RIC_INDICATION",
 		},
 
-		Configuration: json.RawMessage(`{}`),
-
-			"data_formats": []string{"JSON", "XML", "BINARY", "ASN1_PER"},
-
-			"reporting_frequency": []string{"on_demand", "periodic", "event_driven"},
-
+		Configuration: json.RawMessage(`{
+			"data_formats": ["JSON", "XML", "BINARY", "ASN1_PER"],
+			"reporting_frequency": ["on_demand", "periodic", "event_driven"],
 			"aggregation_supported": true,
-
 			"filtering_supported": true,
-
 			"compression_supported": true,
-
 			"encryption_supported": false,
-
 			"max_report_size": "1MB",
-
-			"max_concurrent_reports": 200,
-		},
+			"max_concurrent_reports": 200
+		}`),
 	}
 }
 

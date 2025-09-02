@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -143,13 +142,13 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 				{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 
-					ConfigMap: json.RawMessage(`{}`),
+					ConfigMap: make(map[string]interface{}),
 				},
 
 				{
 					Image: "gcr.io/kpt-fn/set-annotations:v0.1.4",
 
-					ConfigMap: json.RawMessage(`{}`),
+					ConfigMap: make(map[string]interface{}),
 				},
 			},
 		},

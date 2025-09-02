@@ -305,6 +305,9 @@ func (e *EventBus) Publish(ctx context.Context, event ProcessingEvent) error {
 // PublishPhaseEvent publishes a phase-specific event.
 
 func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.ProcessingPhase, eventType, intentID string, success bool, data map[string]interface{}) error {
+	// Marshal data to JSON for json.RawMessage
+	dataJSON, _ := json.Marshal(data)
+	
 	event := ProcessingEvent{
 		Type: eventType,
 
@@ -316,7 +319,7 @@ func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.Proce
 
 		Success: success,
 
-		Data: data,
+		Data: json.RawMessage(dataJSON),
 
 		Timestamp: time.Now(),
 
@@ -700,6 +703,6 @@ func (m *EventBusMetrics) GetMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return make(map[string]interface{})
 }
 
