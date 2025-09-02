@@ -76,8 +76,7 @@ func (suite *RAGComponentsTestSuite) testLoadDocumentWithMetadata() {
 		MaxFileSize:      10 * 1024 * 1024,
 	})
 
-	metadata := json.RawMessage(`{}`),
-	}
+	metadata := []byte(`{}`)
 
 	doc, err := loader.LoadDocument(suite.ctx, &rag.DocumentSource{
 		ID:       "test-doc-meta",

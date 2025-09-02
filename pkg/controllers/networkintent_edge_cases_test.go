@@ -211,6 +211,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := map[string]interface{}{
+					"resources": map[string]interface{}{
 						"cpu":    "500m",
 						"memory": "512Mi",
 						"ports":  []int{8080, 8443},
@@ -230,7 +231,7 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 		},
 		{
 			name:             "unicode_characters_in_intent",
-			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�?",
+			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�?",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			mockSetup: func(deps *MockDependencies) {

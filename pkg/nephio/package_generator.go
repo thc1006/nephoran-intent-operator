@@ -721,18 +721,22 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 
 func extractDeploymentData(params map[string]interface{}) map[string]interface{} {
 	// Extract deployment-specific data from parameters.
-
 	// This would parse the structured output from the LLM.
-
-	data := json.RawMessage(`{}`)
-
+	data := map[string]interface{}{
+		"Name":      "default-deployment",
+		"Namespace": "default",
+		"Replicas":  1,
+	}
 	return data
 }
 
 func extractServiceData(params map[string]interface{}) map[string]interface{} {
 	// Extract service configuration from parameters.
-
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"Name":      "default-service",
+		"Namespace": "default",
+		"Type":      "ClusterIP",
+	}
 }
 
 func extractORANConfig(params map[string]interface{}) map[string]interface{} {
@@ -740,7 +744,7 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 
 	if o1Config, ok := params["o1_config"]; ok {
 		_ = o1Config // use the variable
-		return map[string]interface{}{}, nil
+		return map[string]interface{}{}
 	}
 
 	return nil
@@ -749,15 +753,14 @@ func extractORANConfig(params map[string]interface{}) map[string]interface{} {
 func generateSetters(params map[string]interface{}) string {
 	// Generate setters.yaml for Kpt functions.
 
-	setters := json.RawMessage(`{}`){
+	setters := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name": "setters",
-
 			"annotations": map[string]string{
 				"config.kubernetes.io/local-config": "true",
 			},
 		},
-
-		"data": json.RawMessage(`{}`),
+		"data": map[string]interface{}{},
 	}
 
 	yamlData, _ := yaml.Marshal(setters)
@@ -768,22 +771,27 @@ func generateSetters(params map[string]interface{}) string {
 func generateScalingPatch(params map[string]interface{}) string {
 	// Generate a structured patch for scaling operations with enhanced metadata.
 
-	patch := json.RawMessage(`{}`){
-			"name": params["target"],
-
-			"annotations": json.RawMessage(`{}`),
+	patch := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":        params["target"],
+			"annotations": map[string]interface{}{},
 		},
-
-		"spec": json.RawMessage(`{}`),
+		"spec": map[string]interface{}{
+			"replicas": params["replicas"],
+		},
 	}
 
 	// Add resource requests/limits if provided.
 
 	if resources, ok := params["resources"].(map[string]interface{}); ok {
-		if patch["spec"].(map[string]interface{})["template"] == nil {
-			patch["spec"].(map[string]interface{})["template"] = json.RawMessage(`{}`){
-					"containers": []json.RawMessage(`{}`),
-					},
+		spec := patch["spec"].(map[string]interface{})
+		if spec["template"] == nil {
+			spec["template"] = map[string]interface{}{
+				"spec": map[string]interface{}{
+					"containers": []map[string]interface{}{{
+						"name":      "main",
+						"resources": resources,
+					}},
 				},
 			}
 		}
@@ -803,15 +811,14 @@ func generateScalingPatch(params map[string]interface{}) string {
 }
 
 func generateScalingSetters(params map[string]interface{}) string {
-	setters := json.RawMessage(`{}`){
+	setters := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name": "scaling-setters",
-
 			"annotations": map[string]string{
 				"config.kubernetes.io/local-config": "true",
 			},
 		},
-
-		"data": json.RawMessage(`{}`),
+		"data": map[string]interface{}{},
 	}
 
 	yamlData, _ := yaml.Marshal(setters)
@@ -821,13 +828,11 @@ func generateScalingSetters(params map[string]interface{}) string {
 
 func generatePolicyResource(params map[string]interface{}) string {
 	// Generate network policy or other policy resources.
-
-	policy := json.RawMessage(`{}`){
-			"name": params["name"],
-
+	policy := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      params["name"],
 			"namespace": params["namespace"],
 		},
-
 		"spec": params["policy_spec"],
 	}
 
@@ -838,9 +843,10 @@ func generatePolicyResource(params map[string]interface{}) string {
 
 func extractA1Policy(params map[string]interface{}) map[string]interface{} {
 	if a1Policy, ok := params["a1_policy"]; ok {
-		return a1Policy.(map[string]interface{})
+		if policyMap, ok := a1Policy.(map[string]interface{}); ok {
+			return policyMap
+		}
 	}
-
 	return nil
 }
 
@@ -868,23 +874,15 @@ func extractORANDetails(params map[string]interface{}) string {
 
 func extractNetworkSliceDetails(params map[string]interface{}) string {
 	if slice, ok := params["network_slice"]; ok {
-
-		sliceMap := slice.(map[string]interface{})
-
-		return fmt.Sprintf(`- Slice ID: %s
-
+		if sliceMap, ok := slice.(map[string]interface{}); ok {
+			return fmt.Sprintf(`- Slice ID: %s
 - Slice Type: %s
-
 - SLA Parameters: %v`,
-
-			sliceMap["slice_id"],
-
-			sliceMap["slice_type"],
-
-			sliceMap["sla_parameters"])
-
+				sliceMap["slice_id"],
+				sliceMap["slice_type"],
+				sliceMap["sla_parameters"])
+		}
 	}
-
 	return "No network slice configuration in this package"
 }
 
@@ -937,14 +935,16 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 	}
 
 	// Create Kptfile for the package.
-
-	kptfile := json.RawMessage(`{}`){
+	kptfile := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name": fmt.Sprintf("%s-scaling-patch", intent.Name),
-
-			"annotations": json.RawMessage(`{}`),
+			"annotations": map[string]interface{}{
+				"config.kubernetes.io/local-config": "true",
+			},
 		},
-
-		"info": json.RawMessage(`{}`),
+		"info": map[string]interface{}{
+			"description": fmt.Sprintf("Scaling patch for %s", intent.Name),
+		},
 	}
 
 	kptfileYAML, _ := yaml.Marshal(kptfile)
@@ -1030,4 +1030,3 @@ func (pg *PackageGenerator) GenerateCNFPackage(cnf *v1.CNFDeployment, config map
 
 	return []byte(packageContent), nil
 }
-

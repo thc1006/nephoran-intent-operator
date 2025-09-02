@@ -698,9 +698,8 @@ func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource 
 	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata: json.RawMessage(`{}`),
-		},
-		Spec: json.RawMessage(`{}`),
+		Metadata:   json.RawMessage(`{}`),
+		Spec:       json.RawMessage(`{}`),
 	}
 }
 

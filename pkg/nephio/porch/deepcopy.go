@@ -693,13 +693,9 @@ func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
 	*out = *wa
 
 	if wa.Config != nil {
-
-		out.Config = make(map[string]interface{}, len(wa.Config))
-
-		for k, v := range wa.Config {
-			out.Config[k] = deepCopyInterface(v)
-		}
-
+		// json.RawMessage is a byte slice, so we need to make a proper copy
+		out.Config = make(json.RawMessage, len(wa.Config))
+		copy(out.Config, wa.Config)
 	}
 }
 

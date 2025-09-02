@@ -29,9 +29,8 @@ var _ = Describe("LLM Client Unit Tests", func() {
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Default successful response
 			response := map[string]interface{}{
-					"replicas": float64(1),
-					"image":    "test:latest",
-				},
+				"replicas": float64(1),
+				"image":    "test:latest",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -175,9 +174,8 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				}
 				// Third attempt succeeds
 				response := map[string]interface{}{
-						"replicas": float64(1),
-						"image":    "test:latest",
-					},
+					"replicas": float64(1),
+					"image":    "test:latest",
 				}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)

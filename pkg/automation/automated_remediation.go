@@ -439,7 +439,7 @@ func (ar *AutomatedRemediation) unmarshallParameters(rawParams json.RawMessage) 
 	if len(rawParams) == 0 {
 		return map[string]interface{}{}, nil
 	}
-	
+
 	var params map[string]interface{}
 	if err := json.Unmarshal(rawParams, &params); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
@@ -1067,4 +1067,3 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 }
 
 // Supporting types and components - implementations moved to specialized files.
-

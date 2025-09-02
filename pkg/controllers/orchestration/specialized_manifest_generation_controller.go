@@ -1060,7 +1060,10 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 // prepareTemplateVariables prepares variables for template processing.
 
 func (c *SpecializedManifestGenerationController) prepareTemplateVariables(nf *interfaces.PlannedNetworkFunction, resourcePlan *interfaces.ResourcePlan) map[string]interface{} {
-	return json.RawMessage(`{}`),
+	return map[string]interface{}{
+		"networkFunction": nf.Name,
+		"namespace":      nf.Namespace,
+		"resources":      resourcePlan,
 	}
 }
 

@@ -1222,14 +1222,11 @@ func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 
 		Parameters: json.RawMessage(`{}`),
 
-		Manifests: json.RawMessage(`{}`){
-				"apiVersion": "apps/v1",
-
-				"kind": "Deployment",
-
-				"metadata": json.RawMessage(`{}`),
-			},
-		},
+		Manifests: json.RawMessage(`{
+			"apiVersion": "apps/v1",
+			"kind": "Deployment", 
+			"metadata": {}
+		}`),
 
 		ProcessingTime: 1500,
 

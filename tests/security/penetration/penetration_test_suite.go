@@ -87,7 +87,7 @@ func NewPenetrationTestSuite(client client.Client, k8sClient kubernetes.Interfac
 			PenetrationResults: make([]PenetrationResult, 0),
 			CriticalIssues:     make([]SecurityIssue, 0),
 			RecommendedActions: make([]string, 0),
-			DetailedFindings:   make(map[string]interface{}),
+			DetailedFindings:   json.RawMessage(`{}`),
 		},
 	}
 }

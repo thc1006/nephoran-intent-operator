@@ -825,7 +825,8 @@ func (cm *MultiLevelCacheManager) performMaintenance(ctx context.Context) {
 		// Trigger cache optimization.
 
 		go func() {
-			if err := cm.OptimizeCache(ctx, json.RawMessage(`{}`)); err != nil {
+			params := make(map[string]interface{})
+			if err := cm.OptimizeCache(ctx, params); err != nil {
 				cm.logger.Error(err, "Failed to optimize cache")
 			}
 		}()

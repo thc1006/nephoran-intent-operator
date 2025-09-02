@@ -449,11 +449,12 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		It("Should handle complex JSON responses from LLM", func() {
 			By("Setting up service with complex response")
 			complexResponse := map[string]interface{}{
+				"resources": map[string]interface{}{
 					"cpu":    "2000m",
 					"memory": "4Gi",
 				},
-				"networking": json.RawMessage(`{}`),
-					"ingress": json.RawMessage(`{}`),
+				"networking": map[string]interface{}{
+					"ingress": map[string]interface{}{},
 				},
 			}
 			complexResponseBytes, _ := json.Marshal(complexResponse)

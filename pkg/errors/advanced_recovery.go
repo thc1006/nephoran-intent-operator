@@ -32,7 +32,6 @@ package errors
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -217,9 +216,9 @@ type AdvancedRecoveryResult struct {
 
 	// Result data.
 
-	Data json.RawMessage `json:"data,omitempty"`
+	Data map[string]interface{} `json:"data,omitempty"`
 
-	RecoveredState json.RawMessage `json:"recoveredState,omitempty"`
+	RecoveredState map[string]interface{} `json:"recoveredState,omitempty"`
 
 	// Performance metrics.
 
@@ -549,7 +548,7 @@ type DegradationLevel struct {
 
 	Features []string `json:"features"`
 
-	Limits json.RawMessage `json:"limits"`
+	Limits map[string]interface{} `json:"limits,omitempty"`
 }
 
 // FallbackManager manages fallback strategies.
@@ -579,7 +578,7 @@ type FallbackStrategy struct {
 
 	Conditions []string `json:"conditions"`
 
-	Metadata json.RawMessage `json:"metadata"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // FallbackHandler defines the interface for fallback execution.
@@ -653,7 +652,7 @@ func (arm *AdvancedRecoveryManager) Start(ctx context.Context) error {
 
 	// Start worker goroutines.
 
-	for i := range arm.config.MaxConcurrentRecoveries {
+	for i := 0; i < arm.config.MaxConcurrentRecoveries; i++ {
 		go arm.recoveryWorker(ctx, i)
 	}
 
@@ -802,9 +801,9 @@ func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.C
 			CustomMetrics: make(map[string]float64),
 		},
 
-		Data: json.RawMessage(`{}`),
+		Data: make(map[string]interface{}),
 
-		RecoveredState: json.RawMessage(`{}`),
+		RecoveredState: make(map[string]interface{}),
 
 		ComponentHealth: make(map[string]string),
 	}
@@ -1645,7 +1644,7 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "process_intent",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-			return json.RawMessage(`{}`), nil
+			return map[string]interface{}{"status": "fallback_success", "message": "Simple fallback executed"}, nil
 		},
 
 		Priority: 1,
@@ -1663,7 +1662,7 @@ func (fm *FallbackManager) registerDefaultFallbacks() {
 		Operation: "query",
 
 		Handler: func(ctx context.Context, originalError error, originalData map[string]interface{}) (interface{}, error) {
-			return json.RawMessage(`{}`), nil
+			return map[string]interface{}{"status": "fallback_success", "message": "Simple fallback executed"}, nil
 		},
 
 		Priority: 1,

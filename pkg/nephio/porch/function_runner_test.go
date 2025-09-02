@@ -1,5 +1,7 @@
 package porch
 
+import "encoding/json"
+
 // Imports are left minimal since this is just a placeholder test file
 
 // createTestFunctionRequest returns a test function request

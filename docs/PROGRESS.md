@@ -22,3 +22,7 @@
 | 2025-08-31T00:48:32Z | feat/e2e | pre-commit-hooks | DevOps pre-commit setup prevents invalid golangci-lint configs |
 | 2025-08-31T11:44:55.8784446+08:00 | feat/e2e | deployment-engineer | Fixed controller-gen installation and CI pipeline issues for CRD generation |
 | 2025-09-02T03:32:24+08:00 | feat/e2e | build-fixes | Fixed Go build errors by removing duplicate type definitions |
+| 2025-09-03T01:03:23+08:00 | feat/e2e | pkg/rag | Fixed RAG pkg with 2025 patterns: pipeline, vector DB, chunking
+|  | feat/e2e | pkg/controllers/resilience | Fixed undefined types and unused vars in resilience controllers |
+| 2025-09-03T01:06:17+08:00 | feat/e2e | pkg/controllers/resilience | Fixed undefined types and unused vars in resilience controllers |
+| 2025-09-03T01:07:32+08:00 | feat/e2e | pkg/automation | Fixed ALL import formatting, JSON handling, type errors + added 2025 AI features |

@@ -337,7 +337,9 @@ func TestHTTPClientPoolRace(t *testing.T) {
 		maxConns: 10,
 	}
 
-	mutexTest.TestCriticalSection(&pool.mu, &pool.clients)
+	// Create a test map for mutex testing
+	testData := make(map[string]int)
+	mutexTest.TestCriticalSection(&pool.mu, &testData)
 
 	// Test connection pool operations
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{

@@ -568,8 +568,8 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 
 	// Create malicious state file with correct structure
 	maliciousState := map[string]interface{}{
-			"../../../etc/passwd": json.RawMessage(`{}`),
-			"$(whoami)": json.RawMessage(`{}`),
+			"../../../etc/passwd": map[string]interface{}{},
+			"$(whoami)": map[string]interface{}{},
 		},
 	}
 

@@ -292,6 +292,7 @@ func TestReconcile(t *testing.T) {
 			networkIntent: createTestNetworkIntent("test-intent", "default", "Deploy AMF network function"),
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := map[string]interface{}{
+					"resources": map[string]interface{}{
 						"cpu":    "500m",
 						"memory": "512Mi",
 					},
@@ -554,13 +555,11 @@ func TestProcessingContext(t *testing.T) {
 		expectedValid     bool
 	}{
 		{
-			name:       "valid 5gc context",
-			intentType: "5gc",
+			name:              "valid 5gc context",
+			intentType:        "5gc",
 			extractedEntities: json.RawMessage(`{}`),
-			telecomContext: json.RawMessage(`{}`),
-				"deployment_type":   "production",
-			},
-			expectedValid: true,
+			telecomContext:    json.RawMessage(`{"deployment_type": "production"}`),
+			expectedValid:     true,
 		},
 		{
 			name:              "empty context",

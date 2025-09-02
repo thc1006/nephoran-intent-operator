@@ -24,9 +24,8 @@ func TestProcessIntentWithTimeout(t *testing.T) {
 		time.Sleep(3 * time.Second)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-				"replicas": 1,
-				"image":    "test:latest",
-			},
+			"replicas": 1,
+			"image":    "test:latest",
 		})
 	}))
 	defer server.Close()
@@ -73,9 +72,8 @@ func TestProcessIntentWithRetryRobustness(t *testing.T) {
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
-					"replicas": 1,
-					"image":    "test:latest",
-				},
+				"replicas": 1,
+				"image":    "test:latest",
 			})
 		}
 	}))
@@ -181,17 +179,24 @@ func TestValidatorStructuredErrors(t *testing.T) {
 	}{
 		{
 			name:           "All fields missing",
-			response:       json.RawMessage(`{}`),
+			response:       map[string]interface{}{},
 			expectedFields: []string{"type", "name", "namespace", "spec"},
 		},
 		{
 			name: "Some fields missing",
-			response: json.RawMessage(`{}`),
+			response: map[string]interface{}{
+				"type": "NetworkFunctionDeployment",
+				"name": "test",
+			},
 			expectedFields: []string{"namespace", "spec"},
 		},
 		{
 			name: "Only spec missing",
-			response: json.RawMessage(`{}`),
+			response: map[string]interface{}{
+				"type":      "NetworkFunctionDeployment",
+				"name":      "test",
+				"namespace": "default",
+			},
 			expectedFields: []string{"spec"},
 		},
 	}
@@ -300,9 +305,8 @@ func TestFallbackURLs(t *testing.T) {
 		fallbackCalled = true
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-				"replicas": 1,
-				"image":    "test:latest",
-			},
+			"replicas": 1,
+			"image":    "test:latest",
 		})
 	}))
 	defer fallbackServer.Close()
@@ -342,10 +346,9 @@ func TestLoggingLevels(t *testing.T) {
 		}
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
-				"replicas":    1,
-				"image":       "test:latest",
-				"description": longText,
-			},
+			"replicas":    1,
+			"image":       "test:latest",
+			"description": longText,
 		})
 	}))
 	defer server.Close()

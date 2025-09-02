@@ -42,12 +42,15 @@ type SharedMockRAGService struct {
 func NewSharedMockRAGService() *SharedMockRAGService {
 	return &SharedMockRAGService{
 		responses: make(map[string]*rag.RetrievalResponse),
-		documents: []json.RawMessage(`{}`){"source": "3GPP TS 23.501", "section": "6.2.2"},
+		documents: []map[string]interface{}{
+			{
+				"content":    "AMF (Access and Mobility Management Function) manages access and mobility for UE",
+				"metadata":   map[string]interface{}{"source": "3GPP TS 23.501", "section": "6.2.2"},
 				"similarity": 0.9,
 			},
 			{
 				"content":    "SMF (Session Management Function) handles PDU sessions in 5G networks",
-				"metadata":   json.RawMessage(`{}`),
+				"metadata":   map[string]interface{}{},
 				"similarity": 0.85,
 			},
 		},
@@ -220,8 +223,7 @@ func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, 
 	}
 
 	// Return mock calculation result
-	result := json.RawMessage(`{}`),
-	}
+	result := json.RawMessage(`{}`)
 
 	if args.Error(1) != nil {
 		return nil, args.Error(1)

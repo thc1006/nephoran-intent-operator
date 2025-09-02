@@ -1,13 +1,14 @@
 # golangci-lint configuration optimized for fast CI execution
-# Compatible with golangci-lint v1.64.3+ and Go 1.24+
+# Compatible with golangci-lint v1.64.3+ and Go 1.24.6+
 # Optimized for Kubernetes operators with O-RAN/Nephio telecom domain
 # Balances speed with essential code quality checks
+# Updated for 2025 with latest linter recommendations
 
 run:
-  timeout: 10m
+  timeout: 12m  # Increased for Go 1.24 performance
   issues-exit-code: 1
   tests: true  # Include test files
-  go: "1.24"
+  go: '1.24'   # Use unquoted version format
   
   # Fast concurrency for CI
   concurrency: 6  
@@ -66,9 +67,17 @@ linters:
     - noctx            # HTTP requests without context
     - nolintlint       # Nolint directive usage
     
-    # Modern Go features
+    # Modern Go features (Go 1.24+)
     - copyloopvar      # Loop variable copying (Go 1.22+)
     - intrange         # Integer range loops (Go 1.22+)
+    - protogetter      # Proto getter generation (Go 1.24+)
+    - sloglint         # Structured logging validation
+    - testifylint      # Testify assertions
+    
+    # 2025 recommended additions
+    - fatcontext       # Context.Value key types
+    - tenv             # Testing environment isolation
+    - testableexamples # Example tests validation
 
 # Optimized linter settings for fast execution
 linters-settings:
@@ -100,7 +109,8 @@ linters-settings:
       - unusedresult
         
   staticcheck:
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021"]
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+    # Updated for staticcheck 2025.1.1 compatibility
     
   # Security configuration (fast mode)
   gosec:
@@ -157,9 +167,16 @@ linters-settings:
       - name: unreachable-code
         
   stylecheck:
-    checks: ["all", "-ST1000", "-ST1003"]
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+    # Updated for 2025 compatibility
+    initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", 
+                  "HTTP", "HTTPS", "ID", "IP", "JSON", "JWT", "LHS", "QPS", "RAM", 
+                  "RHS", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", 
+                  "UDP", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", 
+                  "XMPP", "XSRF", "XSS", "CNF", "VNF", "AMF", "SMF", "UPF", "RIC",
+                  "O1", "O2", "E2", "A1", "ORAN", "KPM", "FCAPS", "VES", "LLM", "RAG"]
     
-  # Import organization
+  # Import organization (updated for gci v0.13+)
   gci:
     sections:
       - standard
@@ -169,6 +186,9 @@ linters-settings:
       - prefix(k8s.io)
     skip-generated: true
     custom-order: true
+    # 2025 gci improvements
+    section-separators:
+      - newLine
     
   # Formatting
   gofumpt:
@@ -189,16 +209,48 @@ linters-settings:
       - kubernetes
       - k8s
       
-  # Performance optimization
+  # Performance optimization (updated settings)
   prealloc:
     simple: true    # Only simple cases for speed
     range-loops: false  # Skip complex analysis
     for-loops: false    # Skip complex analysis
+    
+  # New 2025 linter settings
+  sloglint:
+    no-mixed-args: true
+    kv-only: false
+    attr-only: false
+    context-only: false
+    
+  testifylint:
+    disable-all: false
+    enable:
+      - bool-compare
+      - compares
+      - empty
+      - error-is-as
+      - len
+      - suite-dont-use-pkg
+      - suite-extra-assert-call
+    
+  fatcontext:
+    ignore-tests: true  # Relax in test files
+    
+  tenv:
+    all: false  # Only check specific patterns
+    
+  protogetter:
+    replace-first-arg-in-append: true
+    skip-generated-files: true
+    
+  testableexamples:
+    # No specific settings needed
 
 # Issue handling optimized for CI speed
 issues:
   max-issues-per-linter: 50  # Limit for CI speed
   max-same-issues: 10        # Prevent noise
+  new-from-patch: false      # Check entire codebase
   
   # Don't auto-fix in CI for stability
   fix: false
@@ -255,6 +307,10 @@ issues:
         - errcheck  # Tests often ignore errors intentionally
         - revive    # Relaxed naming in tests
         - stylecheck # Relaxed style in tests
+        - fatcontext # Context rules relaxed in tests
+        - tenv      # Environment isolation relaxed
+        - testifylint # Already handles testify patterns
+        - testableexamples # Not relevant for tests
         
     # Main files exclusions  
     - path: 'cmd/.*/main\.go'

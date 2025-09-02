@@ -1,4 +1,6 @@
-// Package monitoring - Metrics recording and storage implementation
+// Copyright 2024 Nephio
+// SPDX-License-Identifier: Apache-2.0
+
 package monitoring
 
 import (
@@ -10,589 +12,942 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// MetricsRecorder records and stores metrics data with time-series capabilities
-type MetricsRecorder struct {
-	mu            sync.RWMutex
-	storage       MetricsStorage
-	buffer        []MetricsRecord
-	bufferSize    int
-	flushInterval time.Duration
-	registry      prometheus.Registerer
-	stopCh        chan struct{}
-
-	// Metrics
-	recordsWritten   prometheus.Counter
-	writeErrors      prometheus.Counter
-	writeDuration    prometheus.Histogram
-	bufferSize_gauge prometheus.Gauge
+// MetricsRecorder defines the interface for recording metrics
+type MetricsRecorder interface {
+	RecordEvent(event MetricEvent) error
+	RecordBatch(events []MetricEvent) error
+	GetMetrics(filter MetricFilter) ([]MetricEvent, error)
+	Reset() error
 }
 
-// MetricsStorage defines interface for metrics storage backends
-type MetricsStorage interface {
-	// WriteMetrics writes metrics to storage
-	WriteMetrics(ctx context.Context, records []MetricsRecord) error
-
-	// ReadMetrics reads metrics from storage
-	ReadMetrics(ctx context.Context, query MetricsQuery) ([]MetricsRecord, error)
-
-	// DeleteMetrics deletes metrics from storage
-	DeleteMetrics(ctx context.Context, filter MetricsFilter) error
-
-	// GetMetricNames returns all available metric names
-	GetMetricNames(ctx context.Context) ([]string, error)
-
-	// Close closes the storage connection
-	Close() error
+// MetricEvent represents a single metric event
+type MetricEvent struct {
+	Name        string                 `json:"name"`
+	Type        MetricType             `json:"type"`
+	Value       float64                `json:"value"`
+	Labels      map[string]string      `json:"labels"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// MetricsRecord represents a single metrics record with metadata
-type MetricsRecord struct {
-	ID        string                 `json:"id"`
-	Timestamp time.Time              `json:"timestamp"`
-	Source    string                 `json:"source"`
-	Namespace string                 `json:"namespace"`
-	Metric    string                 `json:"metric"`
-	Value     float64                `json:"value"`
-	Labels    map[string]string      `json:"labels"`
-	Tags      []string               `json:"tags,omitempty"`
-	Metadata  json.RawMessage `json:"metadata,omitempty"`
-}
+// MetricType represents the type of metric
+type MetricType string
 
-// MetricsQuery represents a query for retrieving metrics
-type MetricsQuery struct {
-	Sources   []string          `json:"sources,omitempty"`
-	Metrics   []string          `json:"metrics,omitempty"`
-	StartTime time.Time         `json:"startTime"`
-	EndTime   time.Time         `json:"endTime"`
+const (
+	MetricTypeCounter   MetricType = "counter"
+	MetricTypeGauge     MetricType = "gauge"
+	MetricTypeHistogram MetricType = "histogram"
+	MetricTypeSummary   MetricType = "summary"
+)
+
+// MetricFilter defines filters for querying metrics
+type MetricFilter struct {
+	Names     []string          `json:"names,omitempty"`
 	Labels    map[string]string `json:"labels,omitempty"`
+	StartTime *time.Time        `json:"start_time,omitempty"`
+	EndTime   *time.Time        `json:"end_time,omitempty"`
 	Limit     int               `json:"limit,omitempty"`
-	Offset    int               `json:"offset,omitempty"`
-	OrderBy   string            `json:"orderBy,omitempty"` // timestamp, value, source
-	Ascending bool              `json:"ascending"`
 }
 
-// MetricsFilter represents a filter for deleting metrics
-type MetricsFilter struct {
-	Sources   []string          `json:"sources,omitempty"`
-	Metrics   []string          `json:"metrics,omitempty"`
-	OlderThan time.Time         `json:"olderThan,omitempty"`
-	Labels    map[string]string `json:"labels,omitempty"`
+// InMemoryMetricsRecorder implements MetricsRecorder using in-memory storage
+type InMemoryMetricsRecorder struct {
+	events []MetricEvent
+	mu     sync.RWMutex
 }
 
-// NewMetricsRecorder creates a new metrics recorder
-func NewMetricsRecorder(storage MetricsStorage, bufferSize int, flushInterval time.Duration, registry prometheus.Registerer) *MetricsRecorder {
-	mr := &MetricsRecorder{
-		storage:       storage,
-		buffer:        make([]MetricsRecord, 0, bufferSize),
-		bufferSize:    bufferSize,
-		flushInterval: flushInterval,
-		registry:      registry,
-		stopCh:        make(chan struct{}),
-	}
-
-	mr.initMetrics()
-	return mr
-}
-
-// initMetrics initializes Prometheus metrics for the recorder
-func (mr *MetricsRecorder) initMetrics() {
-	mr.recordsWritten = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "oran_metrics_records_written_total",
-		Help: "Total number of metrics records written to storage",
-	})
-
-	mr.writeErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "oran_metrics_write_errors_total",
-		Help: "Total number of metrics write errors",
-	})
-
-	mr.writeDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:    "oran_metrics_write_duration_seconds",
-		Help:    "Duration of metrics write operations in seconds",
-		Buckets: prometheus.DefBuckets,
-	})
-
-	mr.bufferSize_gauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "oran_metrics_buffer_size",
-		Help: "Current size of metrics buffer",
-	})
-
-	if mr.registry != nil {
-		mr.registry.MustRegister(mr.recordsWritten)
-		mr.registry.MustRegister(mr.writeErrors)
-		mr.registry.MustRegister(mr.writeDuration)
-		mr.registry.MustRegister(mr.bufferSize_gauge)
+// NewInMemoryMetricsRecorder creates a new in-memory metrics recorder
+func NewInMemoryMetricsRecorder() *InMemoryMetricsRecorder {
+	return &InMemoryMetricsRecorder{
+		events: make([]MetricEvent, 0),
 	}
 }
 
-// Start begins metrics recording with periodic flushing
-func (mr *MetricsRecorder) Start(ctx context.Context) error {
-	logger := log.FromContext(ctx)
-	logger.Info("Starting metrics recorder", "bufferSize", mr.bufferSize, "flushInterval", mr.flushInterval)
+// RecordEvent records a single metric event
+func (r *InMemoryMetricsRecorder) RecordEvent(event MetricEvent) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	// Start flush loop
-	go mr.flushLoop(ctx)
-
-	return nil
-}
-
-// Stop gracefully stops metrics recording
-func (mr *MetricsRecorder) Stop(ctx context.Context) error {
-	logger := log.FromContext(ctx)
-	logger.Info("Stopping metrics recorder")
-
-	// Signal stop
-	close(mr.stopCh)
-
-	// Flush remaining buffer
-	if err := mr.flushBuffer(ctx); err != nil {
-		logger.Error(err, "Failed to flush final buffer")
-		return err
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
 	}
 
-	// Close storage
-	if err := mr.storage.Close(); err != nil {
-		logger.Error(err, "Failed to close storage")
-		return err
+	r.events = append(r.events, event)
+
+	// Keep only last 10000 events to prevent memory bloat
+	if len(r.events) > 10000 {
+		r.events = r.events[len(r.events)-10000:]
 	}
 
 	return nil
 }
 
-// RecordMetrics records metrics data
-func (mr *MetricsRecorder) RecordMetrics(ctx context.Context, data *MetricsData) error {
-	if data == nil {
-		return fmt.Errorf("metrics data cannot be nil")
-	}
+// RecordBatch records multiple metric events
+func (r *InMemoryMetricsRecorder) RecordBatch(events []MetricEvent) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	logger := log.FromContext(ctx)
-	logger.V(2).Info("Recording metrics", "source", data.Source, "metricsCount", len(data.Metrics))
-
-	mr.mu.Lock()
-	defer mr.mu.Unlock()
-
-	// Convert MetricsData to MetricsRecords
-	records := mr.convertMetricsData(data)
-
-	// Add to buffer
-	for _, record := range records {
-		mr.buffer = append(mr.buffer, record)
-		mr.bufferSize_gauge.Set(float64(len(mr.buffer)))
-
-		// Check if buffer is full
-		if len(mr.buffer) >= mr.bufferSize {
-			// Flush buffer asynchronously
-			go func(bufferedRecords []MetricsRecord) {
-				if err := mr.writeToStorage(ctx, bufferedRecords); err != nil {
-					logger.Error(err, "Failed to flush full buffer")
-				}
-			}(append([]MetricsRecord(nil), mr.buffer...)) // Copy buffer
-
-			// Clear buffer
-			mr.buffer = mr.buffer[:0]
-			mr.bufferSize_gauge.Set(0)
+	now := time.Now()
+	for i := range events {
+		if events[i].Timestamp.IsZero() {
+			events[i].Timestamp = now
 		}
 	}
 
+	r.events = append(r.events, events...)
+
+	// Keep only last 10000 events
+	if len(r.events) > 10000 {
+		r.events = r.events[len(r.events)-10000:]
+	}
+
 	return nil
 }
 
-// QueryMetrics queries metrics from storage
-func (mr *MetricsRecorder) QueryMetrics(ctx context.Context, query MetricsQuery) ([]MetricsRecord, error) {
-	logger := log.FromContext(ctx)
-	logger.V(1).Info("Querying metrics", "query", fmt.Sprintf("%+v", query))
+// GetMetrics retrieves metrics based on filter
+func (r *InMemoryMetricsRecorder) GetMetrics(filter MetricFilter) ([]MetricEvent, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-	return mr.storage.ReadMetrics(ctx, query)
-}
+	var result []MetricEvent
 
-// GetMetricNames returns all available metric names
-func (mr *MetricsRecorder) GetMetricNames(ctx context.Context) ([]string, error) {
-	return mr.storage.GetMetricNames(ctx)
-}
-
-// DeleteOldMetrics deletes metrics older than the specified time
-func (mr *MetricsRecorder) DeleteOldMetrics(ctx context.Context, olderThan time.Time) error {
-	logger := log.FromContext(ctx)
-	logger.Info("Deleting old metrics", "olderThan", olderThan)
-
-	filter := MetricsFilter{
-		OlderThan: olderThan,
+	for _, event := range r.events {
+		if r.matchesFilter(event, filter) {
+			result = append(result, event)
+		}
 	}
 
-	return mr.storage.DeleteMetrics(ctx, filter)
+	// Apply limit if specified
+	if filter.Limit > 0 && len(result) > filter.Limit {
+		result = result[len(result)-filter.Limit:]
+	}
+
+	return result, nil
 }
 
-// GetBufferStatus returns current buffer status
-func (mr *MetricsRecorder) GetBufferStatus() (int, int) {
-	mr.mu.RLock()
-	defer mr.mu.RUnlock()
-	return len(mr.buffer), mr.bufferSize
-}
-
-// FlushBuffer manually flushes the buffer
-func (mr *MetricsRecorder) FlushBuffer(ctx context.Context) error {
-	return mr.flushBuffer(ctx)
-}
-
-// flushLoop runs the periodic buffer flush
-func (mr *MetricsRecorder) flushLoop(ctx context.Context) {
-	logger := log.FromContext(ctx)
-	logger.Info("Starting metrics flush loop", "interval", mr.flushInterval)
-
-	ticker := time.NewTicker(mr.flushInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("Flush loop stopping due to context cancellation")
-			return
-		case <-mr.stopCh:
-			logger.Info("Flush loop stopping")
-			return
-		case <-ticker.C:
-			if err := mr.flushBuffer(ctx); err != nil {
-				logger.Error(err, "Failed to flush buffer periodically")
+// matchesFilter checks if an event matches the given filter
+func (r *InMemoryMetricsRecorder) matchesFilter(event MetricEvent, filter MetricFilter) bool {
+	// Check name filter
+	if len(filter.Names) > 0 {
+		found := false
+		for _, name := range filter.Names {
+			if event.Name == name {
+				found = true
+				break
 			}
 		}
+		if !found {
+			return false
+		}
+	}
+
+	// Check label filters
+	for key, value := range filter.Labels {
+		if eventValue, exists := event.Labels[key]; !exists || eventValue != value {
+			return false
+		}
+	}
+
+	// Check time range
+	if filter.StartTime != nil && event.Timestamp.Before(*filter.StartTime) {
+		return false
+	}
+	if filter.EndTime != nil && event.Timestamp.After(*filter.EndTime) {
+		return false
+	}
+
+	return true
+}
+
+// Reset clears all recorded events
+func (r *InMemoryMetricsRecorder) Reset() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.events = make([]MetricEvent, 0)
+	return nil
+}
+
+// PrometheusMetricsRecorder implements MetricsRecorder using Prometheus
+type PrometheusMetricsRecorder struct {
+	counters   map[string]*prometheus.CounterVec
+	gauges     map[string]*prometheus.GaugeVec
+	histograms map[string]*prometheus.HistogramVec
+	summaries  map[string]*prometheus.SummaryVec
+	registry   prometheus.Registerer
+	mu         sync.RWMutex
+}
+
+// NewPrometheusMetricsRecorder creates a new Prometheus metrics recorder
+func NewPrometheusMetricsRecorder(registry prometheus.Registerer) *PrometheusMetricsRecorder {
+	if registry == nil {
+		registry = prometheus.DefaultRegisterer
+	}
+
+	return &PrometheusMetricsRecorder{
+		counters:   make(map[string]*prometheus.CounterVec),
+		gauges:     make(map[string]*prometheus.GaugeVec),
+		histograms: make(map[string]*prometheus.HistogramVec),
+		summaries:  make(map[string]*prometheus.SummaryVec),
+		registry:   registry,
 	}
 }
 
-// flushBuffer flushes the current buffer to storage
-func (mr *MetricsRecorder) flushBuffer(ctx context.Context) error {
-	mr.mu.Lock()
+// RecordEvent records a single metric event
+func (r *PrometheusMetricsRecorder) RecordEvent(event MetricEvent) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	if len(mr.buffer) == 0 {
-		mr.mu.Unlock()
+	switch event.Type {
+	case MetricTypeCounter:
+		return r.recordCounter(event)
+	case MetricTypeGauge:
+		return r.recordGauge(event)
+	case MetricTypeHistogram:
+		return r.recordHistogram(event)
+	case MetricTypeSummary:
+		return r.recordSummary(event)
+	default:
+		return fmt.Errorf("unsupported metric type: %s", event.Type)
+	}
+}
+
+// recordCounter records a counter metric
+func (r *PrometheusMetricsRecorder) recordCounter(event MetricEvent) error {
+	counter, exists := r.counters[event.Name]
+	if !exists {
+		labelNames := make([]string, 0, len(event.Labels))
+		for key := range event.Labels {
+			labelNames = append(labelNames, key)
+		}
+
+		counter = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: event.Name,
+				Help: fmt.Sprintf("Counter metric for %s", event.Name),
+			},
+			labelNames,
+		)
+
+		if err := r.registry.Register(counter); err != nil {
+			return fmt.Errorf("failed to register counter %s: %w", event.Name, err)
+		}
+
+		r.counters[event.Name] = counter
+	}
+
+	// Convert map[string]string to prometheus.Labels
+	promLabels := prometheus.Labels(event.Labels)
+	counter.With(promLabels).Add(event.Value)
+	return nil
+}
+
+// recordGauge records a gauge metric
+func (r *PrometheusMetricsRecorder) recordGauge(event MetricEvent) error {
+	gauge, exists := r.gauges[event.Name]
+	if !exists {
+		labelNames := make([]string, 0, len(event.Labels))
+		for key := range event.Labels {
+			labelNames = append(labelNames, key)
+		}
+
+		gauge = prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: event.Name,
+				Help: fmt.Sprintf("Gauge metric for %s", event.Name),
+			},
+			labelNames,
+		)
+
+		if err := r.registry.Register(gauge); err != nil {
+			return fmt.Errorf("failed to register gauge %s: %w", event.Name, err)
+		}
+
+		r.gauges[event.Name] = gauge
+	}
+
+	// Convert map[string]string to prometheus.Labels
+	promLabels := prometheus.Labels(event.Labels)
+	gauge.With(promLabels).Set(event.Value)
+	return nil
+}
+
+// recordHistogram records a histogram metric
+func (r *PrometheusMetricsRecorder) recordHistogram(event MetricEvent) error {
+	histogram, exists := r.histograms[event.Name]
+	if !exists {
+		labelNames := make([]string, 0, len(event.Labels))
+		for key := range event.Labels {
+			labelNames = append(labelNames, key)
+		}
+
+		histogram = prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    event.Name,
+				Help:    fmt.Sprintf("Histogram metric for %s", event.Name),
+				Buckets: prometheus.DefBuckets,
+			},
+			labelNames,
+		)
+
+		if err := r.registry.Register(histogram); err != nil {
+			return fmt.Errorf("failed to register histogram %s: %w", event.Name, err)
+		}
+
+		r.histograms[event.Name] = histogram
+	}
+
+	// Convert map[string]string to prometheus.Labels
+	promLabels := prometheus.Labels(event.Labels)
+	histogram.With(promLabels).Observe(event.Value)
+	return nil
+}
+
+// recordSummary records a summary metric
+func (r *PrometheusMetricsRecorder) recordSummary(event MetricEvent) error {
+	summary, exists := r.summaries[event.Name]
+	if !exists {
+		labelNames := make([]string, 0, len(event.Labels))
+		for key := range event.Labels {
+			labelNames = append(labelNames, key)
+		}
+
+		summary = prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Name: event.Name,
+				Help: fmt.Sprintf("Summary metric for %s", event.Name),
+			},
+			labelNames,
+		)
+
+		if err := r.registry.Register(summary); err != nil {
+			return fmt.Errorf("failed to register summary %s: %w", event.Name, err)
+		}
+
+		r.summaries[event.Name] = summary
+	}
+
+	// Convert map[string]string to prometheus.Labels
+	promLabels := prometheus.Labels(event.Labels)
+	summary.With(promLabels).Observe(event.Value)
+	return nil
+}
+
+// RecordBatch records multiple metric events
+func (r *PrometheusMetricsRecorder) RecordBatch(events []MetricEvent) error {
+	for _, event := range events {
+		if err := r.RecordEvent(event); err != nil {
+			return fmt.Errorf("failed to record event %s: %w", event.Name, err)
+		}
+	}
+	return nil
+}
+
+// GetMetrics retrieves metrics (not implemented for Prometheus)
+func (r *PrometheusMetricsRecorder) GetMetrics(filter MetricFilter) ([]MetricEvent, error) {
+	return nil, fmt.Errorf("GetMetrics not supported for Prometheus recorder")
+}
+
+// Reset clears all registered metrics
+func (r *PrometheusMetricsRecorder) Reset() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.counters = make(map[string]*prometheus.CounterVec)
+	r.gauges = make(map[string]*prometheus.GaugeVec)
+	r.histograms = make(map[string]*prometheus.HistogramVec)
+	r.summaries = make(map[string]*prometheus.SummaryVec)
+
+	return nil
+}
+
+// OpenTelemetryMetricsRecorder implements MetricsRecorder using OpenTelemetry
+type OpenTelemetryMetricsRecorder struct {
+	meter      metric.Meter
+	counters   map[string]metric.Int64Counter
+	gauges     map[string]metric.Float64Gauge
+	histograms map[string]metric.Float64Histogram
+	mu         sync.RWMutex
+}
+
+// NewOpenTelemetryMetricsRecorder creates a new OpenTelemetry metrics recorder
+func NewOpenTelemetryMetricsRecorder(meter metric.Meter) *OpenTelemetryMetricsRecorder {
+	return &OpenTelemetryMetricsRecorder{
+		meter:      meter,
+		counters:   make(map[string]metric.Int64Counter),
+		gauges:     make(map[string]metric.Float64Gauge),
+		histograms: make(map[string]metric.Float64Histogram),
+	}
+}
+
+// RecordEvent records a single metric event
+func (r *OpenTelemetryMetricsRecorder) RecordEvent(event MetricEvent) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	ctx := context.Background()
+	attrs := make([]attribute.KeyValue, 0, len(event.Labels))
+	for key, value := range event.Labels {
+		attrs = append(attrs, attribute.String(key, value))
+	}
+
+	switch event.Type {
+	case MetricTypeCounter:
+		return r.recordOTelCounter(ctx, event, attrs)
+	case MetricTypeGauge:
+		return r.recordOTelGauge(ctx, event, attrs)
+	case MetricTypeHistogram:
+		return r.recordOTelHistogram(ctx, event, attrs)
+	default:
+		return fmt.Errorf("unsupported metric type for OpenTelemetry: %s", event.Type)
+	}
+}
+
+// recordOTelCounter records an OpenTelemetry counter metric
+func (r *OpenTelemetryMetricsRecorder) recordOTelCounter(ctx context.Context, event MetricEvent, attrs []attribute.KeyValue) error {
+	counter, exists := r.counters[event.Name]
+	if !exists {
+		var err error
+		counter, err = r.meter.Int64Counter(event.Name)
+		if err != nil {
+			return fmt.Errorf("failed to create counter %s: %w", event.Name, err)
+		}
+		r.counters[event.Name] = counter
+	}
+
+	counter.Add(ctx, int64(event.Value), metric.WithAttributes(attrs...))
+	return nil
+}
+
+// recordOTelGauge records an OpenTelemetry gauge metric
+func (r *OpenTelemetryMetricsRecorder) recordOTelGauge(ctx context.Context, event MetricEvent, attrs []attribute.KeyValue) error {
+	gauge, exists := r.gauges[event.Name]
+	if !exists {
+		var err error
+		gauge, err = r.meter.Float64Gauge(event.Name)
+		if err != nil {
+			return fmt.Errorf("failed to create gauge %s: %w", event.Name, err)
+		}
+		r.gauges[event.Name] = gauge
+	}
+
+	gauge.Record(ctx, event.Value, metric.WithAttributes(attrs...))
+	return nil
+}
+
+// recordOTelHistogram records an OpenTelemetry histogram metric
+func (r *OpenTelemetryMetricsRecorder) recordOTelHistogram(ctx context.Context, event MetricEvent, attrs []attribute.KeyValue) error {
+	histogram, exists := r.histograms[event.Name]
+	if !exists {
+		var err error
+		histogram, err = r.meter.Float64Histogram(event.Name)
+		if err != nil {
+			return fmt.Errorf("failed to create histogram %s: %w", event.Name, err)
+		}
+		r.histograms[event.Name] = histogram
+	}
+
+	histogram.Record(ctx, event.Value, metric.WithAttributes(attrs...))
+	return nil
+}
+
+// RecordBatch records multiple metric events
+func (r *OpenTelemetryMetricsRecorder) RecordBatch(events []MetricEvent) error {
+	for _, event := range events {
+		if err := r.RecordEvent(event); err != nil {
+			return fmt.Errorf("failed to record event %s: %w", event.Name, err)
+		}
+	}
+	return nil
+}
+
+// GetMetrics retrieves metrics (not implemented for OpenTelemetry)
+func (r *OpenTelemetryMetricsRecorder) GetMetrics(filter MetricFilter) ([]MetricEvent, error) {
+	return nil, fmt.Errorf("GetMetrics not supported for OpenTelemetry recorder")
+}
+
+// Reset clears all registered metrics
+func (r *OpenTelemetryMetricsRecorder) Reset() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.counters = make(map[string]metric.Int64Counter)
+	r.gauges = make(map[string]metric.Float64Gauge)
+	r.histograms = make(map[string]metric.Float64Histogram)
+
+	return nil
+}
+
+// CompositeMetricsRecorder combines multiple recorders
+type CompositeMetricsRecorder struct {
+	recorders []MetricsRecorder
+	mu        sync.RWMutex
+}
+
+// NewCompositeMetricsRecorder creates a new composite metrics recorder
+func NewCompositeMetricsRecorder(recorders ...MetricsRecorder) *CompositeMetricsRecorder {
+	return &CompositeMetricsRecorder{
+		recorders: recorders,
+	}
+}
+
+// AddRecorder adds a metrics recorder
+func (r *CompositeMetricsRecorder) AddRecorder(recorder MetricsRecorder) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.recorders = append(r.recorders, recorder)
+}
+
+// RecordEvent records a single metric event to all recorders
+func (r *CompositeMetricsRecorder) RecordEvent(event MetricEvent) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var lastError error
+	for _, recorder := range r.recorders {
+		if err := recorder.RecordEvent(event); err != nil {
+			log.Log.Error(err, "failed to record event in recorder", "event", event.Name)
+			lastError = err
+		}
+	}
+
+	return lastError
+}
+
+// RecordBatch records multiple metric events to all recorders
+func (r *CompositeMetricsRecorder) RecordBatch(events []MetricEvent) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var lastError error
+	for _, recorder := range r.recorders {
+		if err := recorder.RecordBatch(events); err != nil {
+			log.Log.Error(err, "failed to record batch in recorder")
+			lastError = err
+		}
+	}
+
+	return lastError
+}
+
+// GetMetrics retrieves metrics from the first recorder that supports it
+func (r *CompositeMetricsRecorder) GetMetrics(filter MetricFilter) ([]MetricEvent, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, recorder := range r.recorders {
+		if metrics, err := recorder.GetMetrics(filter); err == nil {
+			return metrics, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no recorder supports GetMetrics")
+}
+
+// Reset resets all recorders
+func (r *CompositeMetricsRecorder) Reset() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var lastError error
+	for _, recorder := range r.recorders {
+		if err := recorder.Reset(); err != nil {
+			log.Log.Error(err, "failed to reset recorder")
+			lastError = err
+		}
+	}
+
+	return lastError
+}
+
+// MetricsAggregator aggregates metrics over time windows
+type MetricsAggregator struct {
+	recorder      MetricsRecorder
+	windowSize    time.Duration
+	aggregateFunc func([]MetricEvent) MetricEvent
+	mu            sync.RWMutex
+}
+
+// NewMetricsAggregator creates a new metrics aggregator
+func NewMetricsAggregator(recorder MetricsRecorder, windowSize time.Duration) *MetricsAggregator {
+	return &MetricsAggregator{
+		recorder:   recorder,
+		windowSize: windowSize,
+		aggregateFunc: func(events []MetricEvent) MetricEvent {
+			if len(events) == 0 {
+				return MetricEvent{}
+			}
+
+			// Default aggregation: sum for counters, average for others
+			sum := 0.0
+			for _, event := range events {
+				sum += event.Value
+			}
+
+			result := events[0] // Copy first event as template
+			if result.Type == MetricTypeCounter {
+				result.Value = sum
+			} else {
+				result.Value = sum / float64(len(events))
+			}
+			result.Timestamp = time.Now()
+
+			return result
+		},
+	}
+}
+
+// SetAggregateFunction sets a custom aggregation function
+func (a *MetricsAggregator) SetAggregateFunction(fn func([]MetricEvent) MetricEvent) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.aggregateFunc = fn
+}
+
+// AggregateAndRecord aggregates metrics within the time window and records the result
+func (a *MetricsAggregator) AggregateAndRecord(name string, labels map[string]string) error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	now := time.Now()
+	startTime := now.Add(-a.windowSize)
+
+	filter := MetricFilter{
+		Names:     []string{name},
+		Labels:    labels,
+		StartTime: &startTime,
+		EndTime:   &now,
+	}
+
+	events, err := a.recorder.GetMetrics(filter)
+	if err != nil {
+		return fmt.Errorf("failed to get metrics for aggregation: %w", err)
+	}
+
+	if len(events) == 0 {
+		return nil // No events to aggregate
+	}
+
+	aggregated := a.aggregateFunc(events)
+	return a.recorder.RecordEvent(aggregated)
+}
+
+// MetricsBuffer buffers metrics before recording
+type MetricsBuffer struct {
+	recorder   MetricsRecorder
+	buffer     []MetricEvent
+	bufferSize int
+	flushTimer *time.Timer
+	flushAfter time.Duration
+	mu         sync.Mutex
+}
+
+// NewMetricsBuffer creates a new metrics buffer
+func NewMetricsBuffer(recorder MetricsRecorder, bufferSize int, flushAfter time.Duration) *MetricsBuffer {
+	mb := &MetricsBuffer{
+		recorder:   recorder,
+		buffer:     make([]MetricEvent, 0, bufferSize),
+		bufferSize: bufferSize,
+		flushAfter: flushAfter,
+	}
+
+	if flushAfter > 0 {
+		mb.resetFlushTimer()
+	}
+
+	return mb
+}
+
+// Record adds a metric event to the buffer
+func (b *MetricsBuffer) Record(event MetricEvent) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.buffer = append(b.buffer, event)
+
+	if len(b.buffer) >= b.bufferSize {
+		return b.flush()
+	}
+
+	return nil
+}
+
+// Flush writes all buffered events to the recorder
+func (b *MetricsBuffer) Flush() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.flush()
+}
+
+// flush internal method (assumes lock is held)
+func (b *MetricsBuffer) flush() error {
+	if len(b.buffer) == 0 {
 		return nil
 	}
 
-	// Copy buffer for writing
-	records := make([]MetricsRecord, len(mr.buffer))
-	copy(records, mr.buffer)
-
-	// Clear buffer
-	mr.buffer = mr.buffer[:0]
-	mr.bufferSize_gauge.Set(0)
-	mr.mu.Unlock()
-
-	// Write to storage
-	return mr.writeToStorage(ctx, records)
-}
-
-// writeToStorage writes records to storage
-func (mr *MetricsRecorder) writeToStorage(ctx context.Context, records []MetricsRecord) error {
-	startTime := time.Now()
-	defer func() {
-		mr.writeDuration.Observe(time.Since(startTime).Seconds())
-	}()
-
-	logger := log.FromContext(ctx)
-	logger.V(1).Info("Writing metrics to storage", "recordCount", len(records))
-
-	err := mr.storage.WriteMetrics(ctx, records)
-	if err != nil {
-		mr.writeErrors.Inc()
-		return fmt.Errorf("failed to write metrics to storage: %w", err)
+	if err := b.recorder.RecordBatch(b.buffer); err != nil {
+		return fmt.Errorf("failed to flush buffer: %w", err)
 	}
 
-	mr.recordsWritten.Add(float64(len(records)))
-	return nil
-}
-
-// convertMetricsData converts MetricsData to MetricsRecords
-func (mr *MetricsRecorder) convertMetricsData(data *MetricsData) []MetricsRecord {
-	records := make([]MetricsRecord, 0, len(data.Metrics))
-
-	for metricName, value := range data.Metrics {
-		// Convert string value to float64
-		floatValue := 0.0
-		if parsedValue, err := strconv.ParseFloat(value, 64); err == nil {
-			floatValue = parsedValue
-		}
-
-		record := MetricsRecord{
-			ID:        fmt.Sprintf("%s-%s-%d", data.Source, metricName, data.Timestamp.UnixNano()),
-			Timestamp: data.Timestamp,
-			Source:    data.Source,
-			Namespace: data.Namespace,
-			Metric:    metricName,
-			Value:     floatValue,
-			Labels:    make(map[string]string),
-			Metadata:  data.Metadata, // Use existing RawMessage
-		}
-
-		// Copy labels
-		for k, v := range data.Labels {
-			record.Labels[k] = v
-		}
-
-		// Add pod and container info if available
-		if data.Pod != "" {
-			record.Labels["pod"] = data.Pod
-		}
-		if data.Container != "" {
-			record.Labels["container"] = data.Container
-		}
-
-		records = append(records, record)
-	}
-
-	return records
-}
-
-// InMemoryMetricsStorage implements MetricsStorage using in-memory storage
-type InMemoryMetricsStorage struct {
-	mu      sync.RWMutex
-	records []MetricsRecord
-	indices map[string][]int // Metric name to record indices
-}
-
-// NewInMemoryMetricsStorage creates a new in-memory metrics storage
-func NewInMemoryMetricsStorage() *InMemoryMetricsStorage {
-	return &InMemoryMetricsStorage{
-		records: make([]MetricsRecord, 0),
-		indices: make(map[string][]int),
-	}
-}
-
-// WriteMetrics writes metrics to in-memory storage
-func (ims *InMemoryMetricsStorage) WriteMetrics(ctx context.Context, records []MetricsRecord) error {
-	ims.mu.Lock()
-	defer ims.mu.Unlock()
-
-	for _, record := range records {
-		// Add record
-		index := len(ims.records)
-		ims.records = append(ims.records, record)
-
-		// Update indices
-		if indices, exists := ims.indices[record.Metric]; exists {
-			ims.indices[record.Metric] = append(indices, index)
-		} else {
-			ims.indices[record.Metric] = []int{index}
-		}
-	}
+	b.buffer = b.buffer[:0] // Reset buffer
+	b.resetFlushTimer()
 
 	return nil
 }
 
-// ReadMetrics reads metrics from in-memory storage
-func (ims *InMemoryMetricsStorage) ReadMetrics(ctx context.Context, query MetricsQuery) ([]MetricsRecord, error) {
-	ims.mu.RLock()
-	defer ims.mu.RUnlock()
+// resetFlushTimer resets the flush timer
+func (b *MetricsBuffer) resetFlushTimer() {
+	if b.flushTimer != nil {
+		b.flushTimer.Stop()
+	}
 
-	var results []MetricsRecord
+	if b.flushAfter > 0 {
+		b.flushTimer = time.AfterFunc(b.flushAfter, func() {
+			if err := b.Flush(); err != nil {
+				log.Log.Error(err, "failed to flush metrics buffer on timer")
+			}
+		})
+	}
+}
 
-	// If specific metrics are requested, use indices
-	if len(query.Metrics) > 0 {
-		for _, metricName := range query.Metrics {
-			if indices, exists := ims.indices[metricName]; exists {
-				for _, index := range indices {
-					if index < len(ims.records) {
-						record := ims.records[index]
-						if ims.matchesQuery(record, query) {
-							results = append(results, record)
-						}
+// Close flushes any remaining events and stops the timer
+func (b *MetricsBuffer) Close() error {
+	if b.flushTimer != nil {
+		b.flushTimer.Stop()
+	}
+
+	return b.Flush()
+}
+
+// MetricsSerializer handles serialization of metrics
+type MetricsSerializer struct {
+	format string
+}
+
+// NewMetricsSerializer creates a new metrics serializer
+func NewMetricsSerializer(format string) *MetricsSerializer {
+	return &MetricsSerializer{
+		format: format,
+	}
+}
+
+// Serialize converts metrics to the specified format
+func (s *MetricsSerializer) Serialize(events []MetricEvent) ([]byte, error) {
+	switch s.format {
+	case "json":
+		return json.Marshal(events)
+	default:
+		return nil, fmt.Errorf("unsupported format: %s", s.format)
+	}
+}
+
+// Deserialize converts data from the specified format to metrics
+func (s *MetricsSerializer) Deserialize(data []byte) ([]MetricEvent, error) {
+	switch s.format {
+	case "json":
+		var events []MetricEvent
+		if err := json.Unmarshal(data, &events); err != nil {
+			return nil, fmt.Errorf("failed to deserialize JSON: %w", err)
+		}
+		return events, nil
+	default:
+		return nil, fmt.Errorf("unsupported format: %s", s.format)
+	}
+}
+
+// MetricsValidator validates metric events
+type MetricsValidator struct {
+	rules []ValidationRule
+}
+
+// ValidationRule defines a validation rule for metrics
+type ValidationRule struct {
+	Name        string
+	Description string
+	Validator   func(MetricEvent) error
+}
+
+// NewMetricsValidator creates a new metrics validator
+func NewMetricsValidator() *MetricsValidator {
+	return &MetricsValidator{
+		rules: []ValidationRule{
+			{
+				Name:        "required_fields",
+				Description: "Validates that required fields are present",
+				Validator: func(event MetricEvent) error {
+					if event.Name == "" {
+						return fmt.Errorf("metric name is required")
 					}
-				}
-			}
-		}
-	} else {
-		// Scan all records
-		for _, record := range ims.records {
-			if ims.matchesQuery(record, query) {
-				results = append(results, record)
-			}
-		}
+					if event.Type == "" {
+						return fmt.Errorf("metric type is required")
+					}
+					return nil
+				},
+			},
+			{
+				Name:        "valid_type",
+				Description: "Validates that metric type is supported",
+				Validator: func(event MetricEvent) error {
+					switch event.Type {
+					case MetricTypeCounter, MetricTypeGauge, MetricTypeHistogram, MetricTypeSummary:
+						return nil
+					default:
+						return fmt.Errorf("unsupported metric type: %s", event.Type)
+					}
+				},
+			},
+			{
+				Name:        "positive_values",
+				Description: "Validates that counter values are non-negative",
+				Validator: func(event MetricEvent) error {
+					if event.Type == MetricTypeCounter && event.Value < 0 {
+						return fmt.Errorf("counter values must be non-negative, got: %f", event.Value)
+					}
+					return nil
+				},
+			},
+		},
 	}
-
-	// Apply limit and offset
-	if query.Limit > 0 {
-		start := query.Offset
-		end := start + query.Limit
-
-		if start < len(results) {
-			if end > len(results) {
-				end = len(results)
-			}
-			results = results[start:end]
-		} else {
-			results = nil
-		}
-	}
-
-	return results, nil
 }
 
-// DeleteMetrics deletes metrics from in-memory storage
-func (ims *InMemoryMetricsStorage) DeleteMetrics(ctx context.Context, filter MetricsFilter) error {
-	ims.mu.Lock()
-	defer ims.mu.Unlock()
+// AddRule adds a custom validation rule
+func (v *MetricsValidator) AddRule(rule ValidationRule) {
+	v.rules = append(v.rules, rule)
+}
 
-	// Create new slice without matching records
-	var newRecords []MetricsRecord
-	newIndices := make(map[string][]int)
-
-	for i, record := range ims.records {
-		if !ims.matchesFilter(record, filter) {
-			// Keep this record
-			newIndex := len(newRecords)
-			newRecords = append(newRecords, record)
-
-			// Update indices
-			if indices, exists := newIndices[record.Metric]; exists {
-				newIndices[record.Metric] = append(indices, newIndex)
-			} else {
-				newIndices[record.Metric] = []int{newIndex}
-			}
-		} else {
-			// Delete this record (don't add to new slice)
-			_ = i // Record being deleted
+// Validate validates a metric event against all rules
+func (v *MetricsValidator) Validate(event MetricEvent) error {
+	for _, rule := range v.rules {
+		if err := rule.Validator(event); err != nil {
+			return fmt.Errorf("validation rule '%s' failed: %w", rule.Name, err)
 		}
 	}
-
-	ims.records = newRecords
-	ims.indices = newIndices
-
 	return nil
 }
 
-// GetMetricNames returns all available metric names
-func (ims *InMemoryMetricsStorage) GetMetricNames(ctx context.Context) ([]string, error) {
-	ims.mu.RLock()
-	defer ims.mu.RUnlock()
-
-	names := make([]string, 0, len(ims.indices))
-	for name := range ims.indices {
-		names = append(names, name)
+// ValidateBatch validates a batch of metric events
+func (v *MetricsValidator) ValidateBatch(events []MetricEvent) error {
+	for i, event := range events {
+		if err := v.Validate(event); err != nil {
+			return fmt.Errorf("validation failed for event %d: %w", i, err)
+		}
 	}
-
-	return names, nil
-}
-
-// Close closes the in-memory storage (no-op)
-func (ims *InMemoryMetricsStorage) Close() error {
 	return nil
 }
 
-// matchesQuery checks if a record matches the query criteria
-func (ims *InMemoryMetricsStorage) matchesQuery(record MetricsRecord, query MetricsQuery) bool {
-	// Check time range
-	if !query.StartTime.IsZero() && record.Timestamp.Before(query.StartTime) {
-		return false
-	}
-	if !query.EndTime.IsZero() && record.Timestamp.After(query.EndTime) {
-		return false
-	}
+// MetricsTransformer transforms metric events
+type MetricsTransformer struct {
+	transformers []TransformFunc
+}
 
-	// Check sources
-	if len(query.Sources) > 0 {
-		found := false
-		for _, source := range query.Sources {
-			if record.Source == source {
-				found = true
-				break
+// TransformFunc defines a function that transforms a metric event
+type TransformFunc func(MetricEvent) MetricEvent
+
+// NewMetricsTransformer creates a new metrics transformer
+func NewMetricsTransformer() *MetricsTransformer {
+	return &MetricsTransformer{
+		transformers: make([]TransformFunc, 0),
+	}
+}
+
+// AddTransformer adds a transform function
+func (t *MetricsTransformer) AddTransformer(transformer TransformFunc) {
+	t.transformers = append(t.transformers, transformer)
+}
+
+// Transform applies all transformers to a metric event
+func (t *MetricsTransformer) Transform(event MetricEvent) MetricEvent {
+	result := event
+	for _, transformer := range t.transformers {
+		result = transformer(result)
+	}
+	return result
+}
+
+// TransformBatch applies transformations to a batch of events
+func (t *MetricsTransformer) TransformBatch(events []MetricEvent) []MetricEvent {
+	result := make([]MetricEvent, len(events))
+	for i, event := range events {
+		result[i] = t.Transform(event)
+	}
+	return result
+}
+
+// Common transformer functions
+
+// AddLabelTransformer adds a label to all events
+func AddLabelTransformer(key, value string) TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		if event.Labels == nil {
+			event.Labels = make(map[string]string)
+		}
+		event.Labels[key] = value
+		return event
+	}
+}
+
+// RenameMetricTransformer renames a metric
+func RenameMetricTransformer(oldName, newName string) TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		if event.Name == oldName {
+			event.Name = newName
+		}
+		return event
+	}
+}
+
+// ScaleValueTransformer scales metric values by a factor
+func ScaleValueTransformer(factor float64) TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		event.Value *= factor
+		return event
+	}
+}
+
+// UnitConversionTransformer converts units with a conversion factor
+func UnitConversionTransformer(fromUnit, toUnit string, factor float64) TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		if unit, exists := event.Labels["unit"]; exists && unit == fromUnit {
+			event.Value *= factor
+			event.Labels["unit"] = toUnit
+		}
+		return event
+	}
+}
+
+// TimestampTransformer sets the timestamp to current time
+func TimestampTransformer() TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		event.Timestamp = time.Now()
+		return event
+	}
+}
+
+// ConditionalTransformer applies a transformer only if a condition is met
+func ConditionalTransformer(condition func(MetricEvent) bool, transformer TransformFunc) TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		if condition(event) {
+			return transformer(event)
+		}
+		return event
+	}
+}
+
+// LabelFilterTransformer filters events based on label values
+func LabelFilterTransformer(key, value string, include bool) TransformFunc {
+	return func(event MetricEvent) MetricEvent {
+		if eventValue, exists := event.Labels[key]; exists {
+			matches := eventValue == value
+			if (include && matches) || (!include && !matches) {
+				return event
 			}
 		}
-		if !found {
-			return false
-		}
+		// Return empty event to indicate filtering
+		return MetricEvent{}
 	}
-
-	// Check labels
-	for key, value := range query.Labels {
-		if recordValue, exists := record.Labels[key]; !exists || recordValue != value {
-			return false
-		}
-	}
-
-	return true
 }
-
-// matchesFilter checks if a record matches the filter criteria for deletion
-func (ims *InMemoryMetricsStorage) matchesFilter(record MetricsRecord, filter MetricsFilter) bool {
-	// Check older than
-	if !filter.OlderThan.IsZero() && record.Timestamp.After(filter.OlderThan) {
-		return false
-	}
-
-	// Check sources
-	if len(filter.Sources) > 0 {
-		found := false
-		for _, source := range filter.Sources {
-			if record.Source == source {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Check metrics
-	if len(filter.Metrics) > 0 {
-		found := false
-		for _, metric := range filter.Metrics {
-			if record.Metric == metric {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	// Check labels
-	for key, value := range filter.Labels {
-		if recordValue, exists := record.Labels[key]; !exists || recordValue != value {
-			return false
-		}
-	}
-
-	return true
-}
-
-// GetRecordCount returns the total number of records in storage
-func (ims *InMemoryMetricsStorage) GetRecordCount() int {
-	ims.mu.RLock()
-	defer ims.mu.RUnlock()
-	return len(ims.records)
-}
-
-// GetStorageStats returns storage statistics
-func (ims *InMemoryMetricsStorage) GetStorageStats() map[string]interface{} {
-	ims.mu.RLock()
-	defer ims.mu.RUnlock()
-
-	stats := make(map[string]interface{})
-
-	// Calculate memory usage estimation
-	var memoryUsage int
-	for _, record := range ims.records {
-		// Rough estimation of memory usage per record
-		memoryUsage += len(record.ID) + len(record.Source) + len(record.Namespace) + len(record.Metric)
-		for k, v := range record.Labels {
-			memoryUsage += len(k) + len(v)
-		}
-
-		// Add metadata size (rough estimation)
-		if data, err := json.Marshal(record.Metadata); err == nil {
-			memoryUsage += len(data)
-		}
-
-		memoryUsage += 64 // Estimated overhead per record
-	}
-
-	stats["estimated_memory_bytes"] = memoryUsage
-	stats["record_count"] = len(ims.records)
-	stats["metric_count"] = len(ims.indices)
-
-	return stats
-}
-

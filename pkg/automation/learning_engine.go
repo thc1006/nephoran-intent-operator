@@ -1,16 +1,15 @@
 package automation
 
 import (
-	
 	"encoding/json"
-"fmt"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 )
 
 // LearningEngine learns from remediation outcomes and improves strategies.
-
+// Enhanced with 2025 AI/ML capabilities for intelligent automation.
 type LearningEngine struct {
 	mu sync.RWMutex
 
@@ -23,6 +22,19 @@ type LearningEngine struct {
 	accuracyMetrics map[string]*AccuracyMetric
 
 	modelUpdates chan *ModelUpdate
+
+	// 2025 AI enhancements
+	aiFeatures map[string]bool
+	predictionCache map[string]*CachedPrediction
+	cacheTTL time.Duration
+}
+
+// CachedPrediction represents a cached ML prediction
+type CachedPrediction struct {
+	Prediction float64 `json:"prediction"`
+	Timestamp  time.Time `json:"timestamp"`
+	Features   map[string]float64 `json:"features"`
+	Confidence float64 `json:"confidence"`
 }
 
 // RemediationOutcome represents the outcome of a remediation action.
@@ -142,6 +154,16 @@ func NewLearningEngine(logger *slog.Logger) *LearningEngine {
 		accuracyMetrics: make(map[string]*AccuracyMetric),
 
 		modelUpdates: make(chan *ModelUpdate, 100),
+
+		// 2025 AI enhancements
+		aiFeatures: map[string]bool{
+			FeatureAIPoweredRemediation: true,
+			FeatureAnomalyDetection:     true,
+			FeaturePredictiveScaling:    true,
+			FeatureSmartAlerts:          true,
+		},
+		predictionCache: make(map[string]*CachedPrediction),
+		cacheTTL:        5 * time.Minute,
 	}
 }
 
@@ -445,3 +467,149 @@ func (rm *RollbackManager) executeRollbackStep(step *RollbackStep) {
 	step.EndTime = &endTime
 }
 
+// 2025 Modern Automation Methods
+
+// EnableAIFeature enables a specific AI feature
+func (le *LearningEngine) EnableAIFeature(feature string) {
+	le.mu.Lock()
+	defer le.mu.Unlock()
+	le.aiFeatures[feature] = true
+	le.logger.Info("AI feature enabled", "feature", feature)
+}
+
+// DisableAIFeature disables a specific AI feature
+func (le *LearningEngine) DisableAIFeature(feature string) {
+	le.mu.Lock()
+	defer le.mu.Unlock()
+	le.aiFeatures[feature] = false
+	le.logger.Info("AI feature disabled", "feature", feature)
+}
+
+// IsAIFeatureEnabled checks if an AI feature is enabled
+func (le *LearningEngine) IsAIFeatureEnabled(feature string) bool {
+	le.mu.RLock()
+	defer le.mu.RUnlock()
+	return le.aiFeatures[feature]
+}
+
+// GetCachedPrediction retrieves a cached prediction if valid
+func (le *LearningEngine) GetCachedPrediction(key string) (*CachedPrediction, bool) {
+	le.mu.RLock()
+	defer le.mu.RUnlock()
+	
+	if cached, exists := le.predictionCache[key]; exists {
+		if time.Since(cached.Timestamp) < le.cacheTTL {
+			return cached, true
+		}
+		// Cache expired, remove it
+		delete(le.predictionCache, key)
+	}
+	return nil, false
+}
+
+// SetCachedPrediction stores a prediction in cache
+func (le *LearningEngine) SetCachedPrediction(key string, prediction float64, confidence float64, features map[string]float64) {
+	le.mu.Lock()
+	defer le.mu.Unlock()
+	
+	le.predictionCache[key] = &CachedPrediction{
+		Prediction: prediction,
+		Timestamp:  time.Now(),
+		Features:   features,
+		Confidence: confidence,
+	}
+}
+
+// PredictRemediationSuccess uses AI to predict remediation success probability
+func (le *LearningEngine) PredictRemediationSuccess(component, strategy string, currentMetrics map[string]float64) float64 {
+	if !le.IsAIFeatureEnabled(FeatureAIPoweredRemediation) {
+		// Fallback to simple historical success rate
+		return le.GetStrategySuccessRate(strategy)
+	}
+	
+	cacheKey := fmt.Sprintf("%s:%s", component, strategy)
+	if cached, found := le.GetCachedPrediction(cacheKey); found {
+		if le.metricsMatch(cached.Features, currentMetrics, 0.1) {
+			return cached.Prediction
+		}
+	}
+	
+	// Simple ML prediction based on historical data
+	prediction := le.calculateAIPrediction(component, strategy, currentMetrics)
+	confidence := le.calculatePredictionConfidence(component, strategy)
+	
+	le.SetCachedPrediction(cacheKey, prediction, confidence, currentMetrics)
+	return prediction
+}
+
+// metricsMatch checks if two metric sets are similar within tolerance
+func (le *LearningEngine) metricsMatch(cached, current map[string]float64, tolerance float64) bool {
+	for key, cachedVal := range cached {
+		if currentVal, exists := current[key]; exists {
+			if abs(cachedVal-currentVal) > tolerance {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// calculateAIPrediction performs AI-based prediction (simplified implementation)
+func (le *LearningEngine) calculateAIPrediction(component, strategy string, metrics map[string]float64) float64 {
+	le.mu.RLock()
+	defer le.mu.RUnlock()
+	
+	// Get historical success rate as base
+	baseRate := le.GetStrategySuccessRate(strategy)
+	
+	// Adjust based on current metrics (simplified ML logic)
+	adjustment := 0.0
+	if cpuUsage, exists := metrics["cpu_usage"]; exists {
+		if cpuUsage > 0.8 {
+			adjustment -= 0.2 // High CPU usage reduces success probability
+		} else if cpuUsage < 0.3 {
+			adjustment += 0.1 // Low CPU usage increases success probability
+		}
+	}
+	
+	if errorRate, exists := metrics["error_rate"]; exists {
+		if errorRate > 0.05 {
+			adjustment -= 0.3 // High error rate reduces success probability
+		}
+	}
+	
+	result := baseRate + adjustment
+	if result < 0 {
+		result = 0
+	} else if result > 1 {
+		result = 1
+	}
+	
+	return result
+}
+
+// calculatePredictionConfidence calculates confidence level for predictions
+func (le *LearningEngine) calculatePredictionConfidence(component, strategy string) float64 {
+	le.mu.RLock()
+	defer le.mu.RUnlock()
+	
+	// Confidence based on number of historical samples
+	if strat, exists := le.strategies[strategy]; exists {
+		if strat.Total < 10 {
+			return 0.3 // Low confidence with few samples
+		} else if strat.Total < 50 {
+			return 0.7 // Medium confidence
+		} else {
+			return 0.9 // High confidence with many samples
+		}
+	}
+	return 0.1 // Very low confidence for unknown strategies
+}
+
+// abs returns absolute value of float64
+func abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}

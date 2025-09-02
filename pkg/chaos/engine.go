@@ -5,9 +5,7 @@
 package chaos
 
 import (
-	
-	"encoding/json"
-"context"
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -254,7 +252,7 @@ type ExperimentResult struct {
 
 	RollbackSuccess bool `json:"rollbackSuccess"`
 
-	Artifacts json.RawMessage `json:"artifacts"`
+	Artifacts map[string]interface{} `json:"artifacts"`
 }
 
 // SLAImpactMetrics tracks SLA impact during experiments.

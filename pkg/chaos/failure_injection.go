@@ -646,7 +646,7 @@ func (f *FailureInjector) killFixedPods(ctx context.Context, target *InjectionTa
 		target.Pods[i], target.Pods[j] = target.Pods[j], target.Pods[i]
 	})
 
-	for i := range count {
+	for i := 0; i < count; i++ {
 
 		pod := target.Pods[i]
 

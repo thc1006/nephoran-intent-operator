@@ -167,10 +167,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Stub implementation - return a generic response.
 
 	return &RAGResponse{
-		Context: json.RawMessage(`{}`),
-
-			"context_summary": "Mock context for intent: " + request.Query,
-		},
+		Context: json.RawMessage(`{"context_summary": "Mock context for intent: ` + request.Query + `"}`),
 
 		Metrics: &nephoranv1.RAGMetrics{},
 

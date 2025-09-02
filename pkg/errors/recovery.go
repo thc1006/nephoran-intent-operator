@@ -459,7 +459,7 @@ func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 
 		RetryAfter: cb.config.ResetTimeout,
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: make(map[string]interface{}),
 	}
 }
 
@@ -487,12 +487,26 @@ func (cb *CircuitBreaker) GetState() CircuitBreakerState {
 
 func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
 	cb.windowMutex.RLock()
-
-	windowFailures := len(cb.failureWindow)
+	
+	failureCount := len(cb.failureWindow)
 
 	cb.windowMutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	totalRequests := atomic.LoadInt64(&cb.requests)
+	totalFailures := atomic.LoadInt64(&cb.failures)
+	
+	return map[string]interface{}{
+		"state": cb.GetState().String(),
+		"failure_count": failureCount,
+		"total_requests": totalRequests,
+		"total_failures": totalFailures,
+		"failure_rate": func() float64 {
+			if totalRequests == 0 {
+				return 0
+			}
+			return float64(totalFailures) / float64(totalRequests)
+		}(),
+	}
 }
 
 // Reset resets the circuit breaker to its initial state.
@@ -908,14 +922,20 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 
 		Timestamp: time.Now(),
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: make(map[string]interface{}),
 	}
 }
 
 // GetMetrics returns current bulkhead metrics.
 
 func (b *Bulkhead) GetMetrics() map[string]interface{} {
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"name": b.config.Name,
+		"max_concurrent": b.config.MaxConcurrent,
+		"queue_size": b.config.QueueSize,
+		"active": len(b.semaphore),
+		"queued": len(b.queue),
+	}
 }
 
 // Close shuts down the bulkhead.
@@ -1021,7 +1041,7 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 
 				Timestamp: time.Now(),
 
-				Metadata: json.RawMessage(`{}`),
+				Metadata: make(map[string]interface{}),
 			}
 		}
 

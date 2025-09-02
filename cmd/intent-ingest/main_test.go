@@ -718,7 +718,7 @@ func TestServer_Intent_FileCreation(t *testing.T) {
 		t.Fatalf("Expected parameters to be a map, got %T", savedIntent["parameters"])
 	}
 
-	expectedParams := json.RawMessage(`{}`)
+	expectedParams := map[string]interface{}{}
 
 	for key, expected := range expectedParams {
 		if params[key] != expected {

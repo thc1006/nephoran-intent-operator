@@ -67,6 +67,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
+				"resources": map[string]interface{}{
 					"cpu":    "500m",
 					"memory": "1Gi",
 				},
@@ -88,6 +89,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
+				"config": map[string]interface{}{
 					"upf_integration":  true,
 					"session_policies": []string{"policy1", "policy2"},
 				},
@@ -107,8 +109,10 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			intentText:       "Deploy O-RAN components including O-CU and O-DU for edge deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
-			llmResponse: mustMarshal(json.RawMessage(`{}`),
-				"deployment_type": "edge",
+			llmResponse: mustMarshal(map[string]interface{}{
+				"deployment": map[string]interface{}{
+					"deployment_type": "edge",
+				},
 			}),
 			expectedPhase:   "Processing",
 			expectedRequeue: false,
@@ -126,6 +130,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
+				"qos": map[string]interface{}{
 					"throughput": "10Gbps",
 					"latency":    "10ms",
 				},
@@ -294,7 +299,7 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 		{
 			name:             "unicode_intent_success",
 			category:         "edge_cases",
-			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�? deployment",
+			intentText:       "Deploy AMF with 高性能 configuration for 5G 网�? deployment",
 			enabledLLMIntent: "true",
 			initialPhase:     "Pending",
 			llmResponse: mustMarshal(json.RawMessage(`{}`)),

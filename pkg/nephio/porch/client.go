@@ -3430,13 +3430,75 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 // convertFromKRMResource converts KRMResource to interface{} for storage in multicluster types.
 
 func convertFromKRMResource(resource KRMResource) interface{} {
-	return json.RawMessage(`{}`)
+	// Create a proper map structure from the KRMResource
+	resourceMap := map[string]interface{}{
+		"apiVersion": resource.APIVersion,
+		"kind":       resource.Kind,
+	}
+
+	// Add metadata if present
+	if len(resource.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
+			resourceMap["metadata"] = metadata
+		}
+	}
+
+	// Add spec if present
+	if len(resource.Spec) > 0 {
+		var spec map[string]interface{}
+		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
+			resourceMap["spec"] = spec
+		}
+	}
+
+	// Add status if present
+	if len(resource.Status) > 0 {
+		var status map[string]interface{}
+		if err := json.Unmarshal(resource.Status, &status); err == nil {
+			resourceMap["status"] = status
+		}
+	}
+
+	// Add data if present
+	if len(resource.Data) > 0 {
+		var data map[string]interface{}
+		if err := json.Unmarshal(resource.Data, &data); err == nil {
+			resourceMap["data"] = data
+		}
+	}
+
+	return resourceMap
 }
 
 // convertFromFunctionConfig converts FunctionConfig to interface{} for storage in multicluster types.
 
 func convertFromFunctionConfig(function FunctionConfig) interface{} {
-	return json.RawMessage(`{}`)
+	// Create a proper map structure from the FunctionConfig
+	functionMap := map[string]interface{}{
+		"image":      function.Image,
+		"configPath": function.ConfigPath,
+	}
+
+	// Add config data if present
+	if len(function.ConfigMap) > 0 {
+		var configMap map[string]interface{}
+		if err := json.Unmarshal(function.ConfigMap, &configMap); err == nil {
+			functionMap["configMap"] = configMap
+		}
+	}
+
+	// Add selectors if present
+	if len(function.Selectors) > 0 {
+		functionMap["selectors"] = function.Selectors
+	}
+
+	// Add exec config if present
+	if function.Exec != nil {
+		functionMap["exec"] = function.Exec
+	}
+
+	return functionMap
 }
 
 // Helper functions for package content operations.
@@ -3444,31 +3506,51 @@ func convertFromFunctionConfig(function FunctionConfig) interface{} {
 // convertKRMResourceToYAML converts a KRMResource to YAML bytes.
 
 func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
-	// Create a map with the resource data.
-
-	resourceMap := json.RawMessage(`{}`)
-
-	if resource.Spec != nil {
-		resourceMap["spec"] = resource.Spec
+	// Create a proper map with the resource data.
+	resourceMap := map[string]interface{}{
+		"apiVersion": resource.APIVersion,
+		"kind":       resource.Kind,
 	}
 
-	if resource.Status != nil {
-		resourceMap["status"] = resource.Status
+	// Add metadata if present
+	if len(resource.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
+			resourceMap["metadata"] = metadata
+		}
 	}
 
-	if resource.Data != nil {
-		resourceMap["data"] = resource.Data
+	// Add spec if present
+	if len(resource.Spec) > 0 {
+		var spec map[string]interface{}
+		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
+			resourceMap["spec"] = spec
+		}
+	}
+
+	// Add status if present
+	if len(resource.Status) > 0 {
+		var status map[string]interface{}
+		if err := json.Unmarshal(resource.Status, &status); err == nil {
+			resourceMap["status"] = status
+		}
+	}
+
+	// Add data if present
+	if len(resource.Data) > 0 {
+		var data map[string]interface{}
+		if err := json.Unmarshal(resource.Data, &data); err == nil {
+			resourceMap["data"] = data
+		}
 	}
 
 	// Convert to YAML using JSON marshaling then conversion.
-
 	jsonBytes, err := json.Marshal(resourceMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal resource to JSON: %w", err)
 	}
 
 	// Simple YAML conversion (in production, use proper YAML library).
-
 	// For now, return as formatted JSON which is valid YAML.
 
 	return jsonBytes, nil
@@ -3654,23 +3736,45 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 	result := make([]interface{}, len(resources))
 
 	for i, resource := range resources {
-
-		resourceMap := json.RawMessage(`{}`)
-
-		if resource.Spec != nil {
-			resourceMap["spec"] = resource.Spec
+		// Create a proper map structure from the KRMResource
+		resourceMap := map[string]interface{}{
+			"apiVersion": resource.APIVersion,
+			"kind":       resource.Kind,
 		}
 
-		if resource.Status != nil {
-			resourceMap["status"] = resource.Status
+		// Add metadata if present
+		if len(resource.Metadata) > 0 {
+			var metadata map[string]interface{}
+			if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
+				resourceMap["metadata"] = metadata
+			}
 		}
 
-		if resource.Data != nil {
-			resourceMap["data"] = resource.Data
+		// Add spec if present
+		if len(resource.Spec) > 0 {
+			var spec map[string]interface{}
+			if err := json.Unmarshal(resource.Spec, &spec); err == nil {
+				resourceMap["spec"] = spec
+			}
+		}
+
+		// Add status if present
+		if len(resource.Status) > 0 {
+			var status map[string]interface{}
+			if err := json.Unmarshal(resource.Status, &status); err == nil {
+				resourceMap["status"] = status
+			}
+		}
+
+		// Add data if present
+		if len(resource.Data) > 0 {
+			var data map[string]interface{}
+			if err := json.Unmarshal(resource.Data, &data); err == nil {
+				resourceMap["data"] = data
+			}
 		}
 
 		result[i] = resourceMap
-
 	}
 
 	return result

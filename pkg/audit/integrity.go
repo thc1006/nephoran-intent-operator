@@ -541,14 +541,14 @@ func (ic *IntegrityChain) VerifyChain() (*IntegrityReport, error) {
 
 func (ic *IntegrityChain) GetChainInfo() map[string]interface{} {
 	if !ic.enabled {
-		return json.RawMessage(`{}`)
+		return make(map[string]interface{})
 	}
 
 	ic.mutex.RLock()
 
 	defer ic.mutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return make(map[string]interface{})
 }
 
 // ExportChain exports the integrity chain for backup or transfer.
@@ -642,7 +642,7 @@ func (ic *IntegrityChain) calculateEventHash(event *types.AuditEvent) (string, e
 
 		Result types.EventResult `json:"result"`
 
-		Data json.RawMessage `json:"data"`
+		Data map[string]interface{} `json:"data"`
 	}{
 		ID: event.ID,
 
@@ -899,6 +899,20 @@ func DefaultIntegrityConfig() *IntegrityConfig {
 
 		MaxChainLength: MaxChainLength,
 	}
+}
+
+// convertRawMessageToMap converts json.RawMessage to map[string]interface{}.
+func convertRawMessageToMap(rawData json.RawMessage) map[string]interface{} {
+	if len(rawData) == 0 {
+		return make(map[string]interface{})
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(rawData, &data); err != nil {
+		// Return empty map on error
+		return make(map[string]interface{})
+	}
+	return data
 }
 
 // EventSigner provides cryptographic signing for audit events

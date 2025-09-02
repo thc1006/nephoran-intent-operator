@@ -1,9 +1,8 @@
 package automation
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"log/slog"
 	"time"

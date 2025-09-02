@@ -895,7 +895,13 @@ func (pm *PerformanceManager) handleCacheOptimizationRecommendation(ctx context.
 
 	pm.logger.Info("Handling cache optimization recommendation", "parameters", recommendation.Parameters)
 
-	return pm.cacheManager.OptimizeCache(ctx, recommendation.Parameters)
+	// Convert json.RawMessage to map[string]interface{}
+	var params map[string]interface{}
+	if err := json.Unmarshal(recommendation.Parameters, &params); err != nil {
+		return fmt.Errorf("failed to unmarshal recommendation parameters: %w", err)
+	}
+
+	return pm.cacheManager.OptimizeCache(ctx, params)
 }
 
 func (pm *PerformanceManager) handlePerformanceOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {

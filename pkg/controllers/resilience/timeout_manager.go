@@ -39,6 +39,9 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// Note: TimeoutManager and TimeoutOperation types are defined in manager.go
+// This file contains the implementation methods
+
 // NewTimeoutManager creates a new timeout manager.
 
 func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *TimeoutManager {
@@ -754,9 +757,11 @@ func (tm *TimeoutManager) IsHealthy() bool {
 
 func (tm *TimeoutManager) GetHealthReport() map[string]interface{} {
 	activeOps := tm.GetActiveOperations()
-
 	metrics := tm.GetMetrics()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"activeOperations": activeOps,
+		"metrics":         metrics,
+	}
 }
 

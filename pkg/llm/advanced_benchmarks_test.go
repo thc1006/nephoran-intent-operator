@@ -4,6 +4,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"runtime/debug"
@@ -58,7 +59,7 @@ func BenchmarkLLMProcessorSuite(b *testing.B) {
 // benchmarkSingleRequest tests single request processing using Go 1.24+ testing features
 func benchmarkSingleRequest(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	intent := "Deploy AMF with 3 replicas for production environment"
-	params := json.RawMessage(`{}`)
+	params := map[string]interface{}{}
 
 	b.ResetTimer()
 	b.ReportAllocs() // Go 1.24+ enhanced allocation reporting
@@ -97,7 +98,7 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrency-%d", concurrency), func(b *testing.B) {
 			intent := "Deploy SMF with auto-scaling enabled"
-			params := json.RawMessage(`{}`)
+			params := map[string]interface{}{}
 
 			// Enhanced memory stats collection
 			var startMemStats, endMemStats runtime.MemStats
@@ -153,7 +154,7 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 // benchmarkMemoryEfficiency tests memory usage and GC behavior using Go 1.24+ runtime features
 func benchmarkMemoryEfficiency(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	intent := "Deploy UPF with high-performance configuration"
-	params := json.RawMessage(`{}`)
+	params := map[string]interface{}{}
 
 	// Collect detailed GC stats using Go 1.24+ debug enhancements
 	var startGCStats, endGCStats debug.GCStats
@@ -213,7 +214,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 	// No Configure method available on actual CircuitBreaker implementation
 
 	intent := "Deploy NSSF for network slicing"
-	params := json.RawMessage(`{}`)
+	params := map[string]interface{}{}
 
 	// Test scenarios
 	scenarios := []struct {
@@ -277,7 +278,7 @@ func benchmarkCachePerformance(b *testing.B, ctx context.Context, processor *Enh
 
 	// Pre-populate cache with some entries
 	baseIntent := "Deploy AMF with configuration"
-	params := json.RawMessage(`{}`)
+	params := map[string]interface{}{}
 
 	cacheScenarios := []struct {
 		name          string
@@ -352,7 +353,7 @@ func benchmarkWorkerPoolEfficiency(b *testing.B, ctx context.Context, processor 
 	}
 
 	intent := "Deploy 5G Core components"
-	params := json.RawMessage(`{}`)
+	params := map[string]interface{}{}
 
 	for _, config := range poolConfigs {
 		b.Run(config.name, func(b *testing.B) {
@@ -500,18 +501,30 @@ func (m *BenchmarkMockLLMClient) ProcessRequest(ctx context.Context, request *LL
 	}
 
 	model := "default"
-	if request.Metadata != nil && request.Metadata["model"] != nil {
-		if modelStr, ok := request.Metadata["model"].(string); ok {
-			model = modelStr
+	if request.Metadata != nil && len(request.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(request.Metadata, &metadata); err == nil {
+			if modelValue, ok := metadata["model"]; ok {
+				if modelStr, ok := modelValue.(string); ok {
+					model = modelStr
+				}
+			}
 		}
 	}
 
+	// Create metadata with calculated values
+	metadataMap := map[string]interface{}{
+		"model":       model,
+		"tokens_used": tokenCount,
+	}
+	metadataBytes, _ := json.Marshal(metadataMap)
+	
 	return &LLMResponse{
 		Content:    response,
 		StatusCode: 200,
 		Size:       len(response),
 		FromCache:  false,
-		Metadata: json.RawMessage(`{}`),
+		Metadata:   metadataBytes,
 	}, nil
 }
 
@@ -599,20 +612,30 @@ func (p *EnhancedLLMProcessor) processWithTokenLimit(ctx context.Context, intent
 	}
 
 	// Track token usage from response metadata
-	if response.Metadata != nil {
-		if tokensUsed, ok := response.Metadata["tokens_used"].(int); ok {
-			_ = tokensUsed // Token usage tracked
+	if response.Metadata != nil && len(response.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(response.Metadata, &metadata); err == nil {
+			if tokensUsed, ok := metadata["tokens_used"]; ok {
+				_ = tokensUsed // Token usage tracked
+			}
 		}
 	}
 
 	tokensUsed := 50 // Default
 	model := "default"
-	if response.Metadata != nil {
-		if tokens, ok := response.Metadata["tokens_used"].(int); ok {
-			tokensUsed = tokens
-		}
-		if m, ok := response.Metadata["model"].(string); ok {
-			model = m
+	if response.Metadata != nil && len(response.Metadata) > 0 {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(response.Metadata, &metadata); err == nil {
+			if tokens, ok := metadata["tokens_used"]; ok {
+				if tokensInt, ok := tokens.(float64); ok {
+					tokensUsed = int(tokensInt)
+				}
+			}
+			if m, ok := metadata["model"]; ok {
+				if modelStr, ok := m.(string); ok {
+					model = modelStr
+				}
+			}
 		}
 	}
 

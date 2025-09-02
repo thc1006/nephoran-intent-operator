@@ -4,7 +4,6 @@ package errors
 
 import (
 	
-	"encoding/json"
 "context"
 	"errors"
 	"fmt"
@@ -231,7 +230,7 @@ type ServiceError struct {
 
 	StackTrace []StackFrame `json:"stack_trace,omitempty"`
 
-	Metadata json.RawMessage `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
 	Tags []string `json:"tags,omitempty"`
 
@@ -269,7 +268,7 @@ type ServiceError struct {
 
 	GoroutineID string `json:"goroutine_id,omitempty"`
 
-	DebugInfo json.RawMessage `json:"debug_info,omitempty"`
+	DebugInfo map[string]interface{} `json:"debug_info,omitempty"`
 }
 
 // Error implements the error interface.
@@ -812,4 +811,35 @@ func WithContext(err error, message string) error {
 		return nil
 	}
 	return fmt.Errorf("%s: %w", message, err)
+}
+
+// getSafeFunctionName safely gets function name from runtime.Func
+func getSafeFunctionName(fn *runtime.Func) string {
+	if fn == nil {
+		return "<unknown>"
+	}
+	return fn.Name()
+}
+
+// extractPackageName extracts package name from full function name
+func extractPackageName(funcName string) string {
+	if funcName == "" {
+		return "<unknown>"
+	}
+	
+	// Function names are in format: "package.function" or "package/subpackage.function"
+	// We want to extract just the package part
+	for i := len(funcName) - 1; i >= 0; i-- {
+		if funcName[i] == '.' {
+			packagePart := funcName[:i]
+			// Find the last slash to get the actual package name
+			for j := len(packagePart) - 1; j >= 0; j-- {
+				if packagePart[j] == '/' {
+					return packagePart[j+1:]
+				}
+			}
+			return packagePart
+		}
+	}
+	return funcName
 }
