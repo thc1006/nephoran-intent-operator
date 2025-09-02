@@ -123,7 +123,7 @@ type A1Policy struct {
 
 	Status string `json:"status"` // ACTIVE, INACTIVE, ENFORCING
 
-	Data json.RawMessage `json:"data"`
+	Data map[string]interface{} `json:"data"`
 
 	TargetRICs []string `json:"target_rics"`
 
@@ -183,7 +183,7 @@ type PolicyEvent struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Data json.RawMessage `json:"data"`
+	Data map[string]interface{} `json:"data"`
 
 	Severity string `json:"severity"`
 }
@@ -349,7 +349,7 @@ type LifecycleHook struct {
 
 	Action string `json:"action"`
 
-	Params json.RawMessage `json:"params"`
+	Params map[string]interface{} `json:"params"`
 
 	Timeout time.Duration `json:"timeout"`
 }

@@ -783,9 +783,13 @@ func (p *AzureADProvider) ValidateUserAccess(ctx context.Context, accessToken st
 	}
 
 	// Check if account is enabled.
-
-	if accountEnabled, ok := userInfo.Attributes["account_enabled"].(bool); ok && !accountEnabled {
-		return fmt.Errorf("user account is disabled")
+	var attributes map[string]interface{}
+	if len(userInfo.Attributes) > 0 {
+		if err := json.Unmarshal(userInfo.Attributes, &attributes); err == nil {
+			if accountEnabled, ok := attributes["account_enabled"].(bool); ok && !accountEnabled {
+				return fmt.Errorf("user account is disabled")
+			}
+		}
 	}
 
 	// For admin levels, check if user has any admin roles.

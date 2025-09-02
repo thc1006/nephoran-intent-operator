@@ -527,7 +527,7 @@ func (eos *EnhancedOnceState) IncrementFailed() {
 // GetStats returns current state statistics.
 
 func (eos *EnhancedOnceState) GetStats() map[string]interface{} {
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 // IsComplete returns true if processing is complete.

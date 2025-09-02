@@ -255,10 +255,10 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 
 		// Create index action.
 
-		indexAction := json.RawMessage("{}"){
+		indexAction := map[string]interface{}{
+			"index": map[string]interface{}{
 				"_index": eb.getIndexName(filteredEvent.Timestamp),
-
-				"_id": filteredEvent.ID,
+				"_id":    filteredEvent.ID,
 			},
 		}
 
@@ -484,16 +484,14 @@ func (eb *ElasticsearchBackend) getIndexName(timestamp time.Time) string {
 }
 
 func (eb *ElasticsearchBackend) createIndexTemplate() error {
-	template := json.RawMessage("{}"),
-
-		"template": json.RawMessage("{}"){
-				"number_of_shards": 1,
-
+	template := map[string]interface{}{
+		"index_patterns": []string{fmt.Sprintf("%s-*", eb.indexPrefix)},
+		"template": map[string]interface{}{
+			"settings": map[string]interface{}{
+				"number_of_shards":   1,
 				"number_of_replicas": 0,
-
-				"refresh_interval": "5s",
+				"refresh_interval":   "5s",
 			},
-
 			"mappings": eb.getIndexMapping(),
 		},
 	}
@@ -589,9 +587,13 @@ func (eb *ElasticsearchBackend) createIndex() error {
 }
 
 func (eb *ElasticsearchBackend) createAlias() error {
-	aliasAction := json.RawMessage("{}"){
+	aliasAction := map[string]interface{}{
+		"actions": []map[string]interface{}{
 			{
-				"add": json.RawMessage("{}"),
+				"add": map[string]interface{}{
+					"index": fmt.Sprintf("%s-*", eb.indexPrefix),
+					"alias": eb.indexPrefix,
+				},
 			},
 		},
 	}
@@ -631,49 +633,71 @@ func (eb *ElasticsearchBackend) createAlias() error {
 }
 
 func (eb *ElasticsearchBackend) getIndexMapping() map[string]interface{} {
-	return json.RawMessage("{}"){
-			"timestamp": json.RawMessage("{}"),
-
-			"event_type": json.RawMessage("{}"),
-
-			"severity": json.RawMessage("{}"),
-
-			"component": json.RawMessage("{}"),
-
-			"action": json.RawMessage("{}"),
-
-			"result": json.RawMessage("{}"),
-
-			"user_context": json.RawMessage("{}"){
-					"user_id": json.RawMessage("{}"),
-
-					"username": json.RawMessage("{}"),
-
-					"role": json.RawMessage("{}"),
+	return map[string]interface{}{
+		"properties": map[string]interface{}{
+			"timestamp": map[string]interface{}{
+				"type": "date",
+			},
+			"event_type": map[string]interface{}{
+				"type": "keyword",
+			},
+			"severity": map[string]interface{}{
+				"type": "keyword",
+			},
+			"component": map[string]interface{}{
+				"type": "keyword",
+			},
+			"action": map[string]interface{}{
+				"type": "keyword",
+			},
+			"result": map[string]interface{}{
+				"type": "keyword",
+			},
+			"user_context": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"user_id": map[string]interface{}{
+						"type": "keyword",
+					},
+					"username": map[string]interface{}{
+						"type": "keyword",
+					},
+					"role": map[string]interface{}{
+						"type": "keyword",
+					},
+				},
+			},
+			"network_context": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"source_ip": map[string]interface{}{
+						"type": "ip",
+					},
+					"destination_ip": map[string]interface{}{
+						"type": "ip",
+					},
 				},
 			},
 
-			"network_context": json.RawMessage("{}"){
-					"source_ip": json.RawMessage("{}"),
-
-					"destination_ip": json.RawMessage("{}"),
-				},
+			"description": map[string]interface{}{
+				"type": "text",
 			},
-
-			"description": json.RawMessage("{}"),
-
-			"message": json.RawMessage("{}"),
+			"message": map[string]interface{}{
+				"type": "text",
+			},
 		},
 	}
 }
 
 func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string]interface{} {
-	esQuery := json.RawMessage("{}"){
-			"bool": json.RawMessage("{}"){},
-
+	esQuery := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
 				"filter": []interface{}{
-					json.RawMessage("{}"){
-							"timestamp": json.RawMessage("{}"),
+					map[string]interface{}{
+						"range": map[string]interface{}{
+							"timestamp": map[string]interface{}{
+								"gte": query.StartTime,
+								"lte": query.EndTime,
+							},
 						},
 					},
 				},
@@ -682,35 +706,33 @@ func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string
 	}
 
 	// Add query string if provided.
-
 	if query.Query != "" {
-
-		must := esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]interface{})
-
-		must = append(must, json.RawMessage("{}"){
-				"query": query.Query,
+		boolQuery := esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})
+		boolQuery["must"] = []interface{}{
+			map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": query.Query,
+				},
 			},
-		})
-
-		esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = must
-
+		}
 	}
 
 	// Add filters.
-
 	if len(query.Filters) > 0 {
+		var filters map[string]interface{}
+		if err := json.Unmarshal(query.Filters, &filters); err == nil {
+			filter := esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["filter"].([]interface{})
 
-		filter := esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["filter"].([]interface{})
+			for field, value := range filters {
+				filter = append(filter, map[string]interface{}{
+					"term": map[string]interface{}{
+						field: value,
+					},
+				})
+			}
 
-		for field, value := range query.Filters {
-			filter = append(filter, json.RawMessage("{}"){
-					field: value,
-				},
-			})
+			esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["filter"] = filter
 		}
-
-		esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["filter"] = filter
-
 	}
 
 	// Add sorting.
@@ -723,7 +745,11 @@ func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string
 			order = "asc"
 		}
 
-		esQuery["sort"] = []json.RawMessage("{}"),
+		esQuery["sort"] = []map[string]interface{}{
+			{
+				query.SortBy: map[string]interface{}{
+					"order": order,
+				},
 			},
 		}
 

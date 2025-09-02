@@ -795,23 +795,26 @@ func (p *GoogleProvider) GetUserInfoFromIDToken(idToken string) (*UserInfo, erro
 	}
 
 	// Add domain-based groups if hosted domain is present.
+	var extra map[string]interface{}
+	if len(claims.Extra) > 0 {
+		if err := json.Unmarshal(claims.Extra, &extra); err == nil {
+			if hostedDomain, ok := extra["hosted_domain"].(string); ok && hostedDomain != "" {
 
-	if hostedDomain, ok := claims.Extra["hosted_domain"].(string); ok && hostedDomain != "" {
+				userInfo.Groups = []string{fmt.Sprintf("domain:%s", hostedDomain)}
 
-		userInfo.Groups = []string{fmt.Sprintf("domain:%s", hostedDomain)}
+				userInfo.Organizations = []Organization{
+					{
+						ID: hostedDomain,
 
-		userInfo.Organizations = []Organization{
-			{
-				ID: hostedDomain,
+						Name: hostedDomain,
 
-				Name: hostedDomain,
+						DisplayName: hostedDomain,
 
-				DisplayName: hostedDomain,
-
-				Role: "member",
-			},
+						Role: "member",
+					},
+				}
+			}
 		}
-
 	}
 
 	return userInfo, nil
@@ -902,7 +905,16 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 	// Check hosted domain if required.
 
 	if p.hostedDomain != "" {
-		if hostedDomain, ok := userInfo.Attributes["hosted_domain"].(string); !ok || hostedDomain != p.hostedDomain {
+		var attributes map[string]interface{}
+		if len(userInfo.Attributes) > 0 {
+			if err := json.Unmarshal(userInfo.Attributes, &attributes); err == nil {
+				if hostedDomain, ok := attributes["hosted_domain"].(string); !ok || hostedDomain != p.hostedDomain {
+					return fmt.Errorf("user is not from required hosted domain")
+				}
+			} else {
+				return fmt.Errorf("user is not from required hosted domain")
+			}
+		} else {
 			return fmt.Errorf("user is not from required hosted domain")
 		}
 	}

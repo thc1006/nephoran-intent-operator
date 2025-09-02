@@ -4,6 +4,7 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -285,6 +286,9 @@ func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
 
+	// Log the intentID for audit purposes
+	log.Printf("Deleting intent: %s", intentID)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(json.RawMessage("{}"))
 }
@@ -292,6 +296,9 @@ func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
+
+	// Log the intentID for audit purposes
+	log.Printf("Scaling intent: %s", intentID)
 
 	var scaleRequest map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&scaleRequest); err != nil {

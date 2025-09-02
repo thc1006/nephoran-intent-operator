@@ -18,7 +18,7 @@ import (
 )
 
 // TestConfig_Validate tests the comprehensive configuration validation
-// DISABLED: func TestConfig_Validate(t *testing.T) {
+func TestConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
 		config  Config
@@ -486,7 +486,7 @@ import (
 }
 
 // TestNewWatcher_SecurityDefaults tests that NewWatcher applies secure defaults
-// DISABLED: func TestNewWatcher_SecurityDefaults(t *testing.T) {
+func TestNewWatcher_SecurityDefaults(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -593,7 +593,7 @@ import (
 }
 
 // TestMetricsServer_Security tests the security features of the metrics server
-// DISABLED: func TestMetricsServer_Security(t *testing.T) {
+func TestMetricsServer_Security(t *testing.T) {
 	tempDir := t.TempDir()
 
 	tests := []struct {
@@ -749,7 +749,7 @@ import (
 }
 
 // TestMetricsServer_LocalhostBinding tests that metrics server binds to localhost only by default
-// DISABLED: func TestMetricsServer_LocalhostBinding(t *testing.T) {
+func TestMetricsServer_LocalhostBinding(t *testing.T) {
 	tempDir := t.TempDir()
 	port := getFreePort(t)
 
@@ -814,7 +814,7 @@ import (
 }
 
 // TestMetricsServer_DisabledPort tests that metrics server doesn't start when port is 0
-// DISABLED: func TestMetricsServer_DisabledPort(t *testing.T) {
+func TestMetricsServer_DisabledPort(t *testing.T) {
 	tempDir := t.TempDir()
 
 	config := Config{
@@ -834,7 +834,7 @@ import (
 }
 
 // TestConfig_EdgeCases tests edge cases in configuration validation
-// DISABLED: func TestConfig_EdgeCases(t *testing.T) {
+func TestConfig_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name    string
 		config  Config

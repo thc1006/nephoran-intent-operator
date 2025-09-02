@@ -896,5 +896,5 @@ func (rl *RedactLogger) UpdateConfig(config *RedactLoggerConfig) error {
 // GetStats returns statistics about the logger (can be extended).
 
 func (rl *RedactLogger) GetStats() map[string]interface{} {
-	return json.RawMessage("{}")
+	return map[string]interface{}{}
 }

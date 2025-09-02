@@ -1,6 +1,7 @@
 package patch
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -82,21 +83,19 @@ func (g *Generator) Generate() error {
 }
 
 func (g *Generator) generateKptfile(packageDir string) error {
-	kptfile := json.RawMessage("{}"){
+	kptfile := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name": filepath.Base(packageDir),
-
 			"annotations": map[string]string{
 				"config.kubernetes.io/local-config": "true",
 			},
 		},
-
-		"info": json.RawMessage("{}"),
-
-		"pipeline": json.RawMessage("{}"){
+		"info": map[string]interface{}{},
+		"pipeline": map[string]interface{}{
+			"mutators": []map[string]interface{}{
 				{
 					"image": "gcr.io/kpt-fn/apply-setters:v0.2.0",
-
-					"configMap": json.RawMessage("{}"),
+					"configMap": map[string]interface{}{},
 				},
 			},
 		},
@@ -113,15 +112,12 @@ func (g *Generator) generateKptfile(packageDir string) error {
 }
 
 func (g *Generator) generatePatch(packageDir string) error {
-	patch := json.RawMessage("{}"){
-			"name": g.Intent.Target,
-
+	patch := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      g.Intent.Target,
 			"namespace": g.Intent.Namespace,
 		},
-
-		"spec": json.RawMessage("{}")
-
-		},
+		"spec": map[string]interface{}{},
 	}
 
 	data, err := yaml.Marshal(patch)
@@ -141,17 +137,14 @@ func (g *Generator) generatePatch(packageDir string) error {
 }
 
 func (g *Generator) generateSetters(packageDir string) error {
-	setters := json.RawMessage("{}"){
-			"name": "setters",
-
+	setters := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "setters",
 			"namespace": g.Intent.Namespace,
 		},
-
 		"data": map[string]string{
-			"replicas": fmt.Sprintf("%d", g.Intent.Replicas),
-
-			"target": g.Intent.Target,
-
+			"replicas":  fmt.Sprintf("%d", g.Intent.Replicas),
+			"target":    g.Intent.Target,
 			"namespace": g.Intent.Namespace,
 		},
 	}

@@ -229,13 +229,15 @@ func (m *IstioMesh) configureDefaultPolicies(ctx context.Context, defaults *abst
 	if defaults.MTLSMode != "" {
 
 		peerAuth := &unstructured.Unstructured{
-			Object: json.RawMessage("{}"){
-					"name": "default",
-
+			Object: map[string]interface{}{
+				"apiVersion": "security.istio.io/v1beta1",
+				"kind":       "PeerAuthentication",
+				"metadata": map[string]interface{}{
+					"name":      "default",
 					"namespace": m.meshConfig.Namespace,
 				},
-
-				"spec": json.RawMessage("{}"){
+				"spec": map[string]interface{}{
+					"mtls": map[string]interface{}{
 						"mode": defaults.MTLSMode,
 					},
 				},
@@ -371,13 +373,15 @@ func (m *IstioMesh) ApplyMTLSPolicy(ctx context.Context, policy *abstraction.MTL
 	// Convert to Istio PeerAuthentication.
 
 	peerAuth := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
-				"name": policy.Name,
-
+		Object: map[string]interface{}{
+			"apiVersion": "security.istio.io/v1beta1",
+			"kind":       "PeerAuthentication",
+			"metadata": map[string]interface{}{
+				"name":      policy.Name,
 				"namespace": policy.Namespace,
 			},
-
-			"spec": json.RawMessage("{}"){
+			"spec": map[string]interface{}{
+				"mtls": map[string]interface{}{
 					"mode": policy.Spec.Mode,
 				},
 			},
@@ -425,13 +429,16 @@ func (m *IstioMesh) ApplyAuthorizationPolicy(ctx context.Context, policy *abstra
 	// Convert to Istio AuthorizationPolicy.
 
 	authPolicy := &unstructured.Unstructured{
-		Object: json.RawMessage("{}"){
-				"name": policy.Name,
-
+		Object: map[string]interface{}{
+			"apiVersion": "security.istio.io/v1beta1",
+			"kind":       "AuthorizationPolicy",
+			"metadata": map[string]interface{}{
+				"name":      policy.Name,
 				"namespace": policy.Namespace,
 			},
-
-			"spec": json.RawMessage("{}"),
+			"spec": map[string]interface{}{
+				"rules": policy.Spec.Rules,
+			},
 		},
 	}
 

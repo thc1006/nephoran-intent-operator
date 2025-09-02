@@ -235,7 +235,8 @@ func generateBenchmarkFiles(b *testing.B, dir string, count, size int) []string 
 
 // generateIntentContent creates realistic O-RAN intent JSON content
 func generateIntentContent(targetSize int) []byte {
-	baseIntent := json.RawMessage("{}"){
+	baseIntent := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name":      fmt.Sprintf("intent-%d", time.Now().UnixNano()),
 			"namespace": "o-ran",
 			"labels": map[string]string{
@@ -244,34 +245,32 @@ func generateIntentContent(targetSize int) []byte {
 				"o-ran-release": "l-release",
 			},
 		},
-		"spec": json.RawMessage("{}"){
-				"type": "du",
-				"name": "o-du-benchmark",
-			},
-			"parameters": json.RawMessage("{}"){
-					{
-						"name": "o-du-high",
-						"type": "distributed-unit",
-						"resources": map[string]string{
-							"cpu":    "4",
-							"memory": "8Gi",
-							"gpu":    "1",
-						},
+		"spec": map[string]interface{}{
+			"type": "du",
+			"name": "o-du-benchmark",
+			"parameters": []map[string]interface{}{
+				{
+					"name": "o-du-high",
+					"type": "distributed-unit",
+					"resources": map[string]string{
+						"cpu":    "4",
+						"memory": "8Gi",
+						"gpu":    "1",
 					},
 				},
-				"connectivity": json.RawMessage("{}"),
-					"midhaul": map[string]string{
-						"interface": "eth1",
-						"bandwidth": "10Gbps",
-					},
-				},
-				"sla": map[string]string{
-					"latency":      "1ms",
-					"throughput":   "1Gbps",
-					"availability": "99.999%",
+			},
+			"connectivity": map[string]interface{}{
+				"midhaul": map[string]string{
+					"interface": "eth1",
+					"bandwidth": "10Gbps",
 				},
 			},
-			"constraints": json.RawMessage("{}"),
+			"sla": map[string]string{
+				"latency":      "1ms",
+				"throughput":   "1Gbps",
+				"availability": "99.999%",
+			},
+			"constraints": map[string]interface{}{
 				"security": map[string]string{
 					"isolation":  "strict",
 					"encryption": "enabled",

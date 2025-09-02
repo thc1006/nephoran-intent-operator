@@ -506,7 +506,7 @@ func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentTyp
 
 		Stages: make(map[string]*StageLatency),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Extract trace context if available.

@@ -1032,8 +1032,7 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 // handleHealth handles health check endpoint.
 
 func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request) {
-	health := json.RawMessage("{}"),
-	}
+	health := json.RawMessage("{}")
 
 	writer.Header().Set("Content-Type", "application/json")
 
@@ -2045,7 +2044,7 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 	} else {
 		// Convert struct back to map for validation.
 
-		intentMap := json.RawMessage("{}")
+		intentMap := make(map[string]interface{})
 
 		// Validate the structured intent fields.
 

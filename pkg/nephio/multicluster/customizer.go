@@ -145,12 +145,9 @@ func (c *Customizer) extractCustomizationOptions(
 
 		Resources: ResourceCustomization{
 			Replicas: 3,
-
-			Resources: json.RawMessage("{}"),
-
-				"limits": map[string]string{
-					"cpu": "2",
-
+			Resources: map[string]interface{}{
+				"limits": map[string]interface{}{
+					"cpu":    "2",
 					"memory": "2Gi",
 				},
 			},

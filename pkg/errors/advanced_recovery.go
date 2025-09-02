@@ -31,9 +31,8 @@ limitations under the License.
 package errors
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -803,9 +802,9 @@ func (arm *AdvancedRecoveryManager) processAdvancedRecoveryRequest(ctx context.C
 			CustomMetrics: make(map[string]float64),
 		},
 
-		Data: make(map[string]interface{}),
+		Data: json.RawMessage(`{}`),
 
-		RecoveredState: make(map[string]interface{}),
+		RecoveredState: json.RawMessage(`{}`),
 
 		ComponentHealth: make(map[string]string),
 	}

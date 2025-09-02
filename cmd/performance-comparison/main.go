@@ -223,15 +223,13 @@ func benchmarkHTTPPerformance() int64 {
 func benchmarkJSONProcessing() int64 {
 	// Test data.
 
-	testData := json.RawMessage("{}"){
+	testData := map[string]interface{}{
+		"specs": map[string]interface{}{
 			"networkFunction": "AMF",
-
 			"parameters": []string{"param1", "param2", "param3"},
 		},
-
 		"metadata": map[string]string{
 			"namespace": "default",
-
 			"correlationId": "test-123",
 		},
 	}
@@ -622,12 +620,12 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	for _, result := range comparison.Results {
 
-		status := "??
+		status := "âœ…"
 
 		if result.Status == "Degraded" {
-			status = "??
+			status = "âŒ"
 		} else if result.Status == "Unchanged" {
-			status = "??"
+			status = "âš¡"
 		}
 
 		if _, err := fmt.Fprintf(file, "| %s | %.2f | %.2f | %.2f%% | %s %s |\n",
@@ -739,5 +737,5 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 
 	}
 
-	fmt.Println("?’¾ Current metrics saved as new baseline")
+	fmt.Println("?ï¿½ï¿½ Current metrics saved as new baseline")
 }

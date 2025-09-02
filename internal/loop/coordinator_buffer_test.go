@@ -14,7 +14,7 @@ import (
 
 // TestCoordinatorChannelBackpressure verifies that the coordinator channel
 // is properly sized to handle burst load without send timeouts
-// DISABLED: func TestCoordinatorChannelBackpressure(t *testing.T) {
+func TestCoordinatorChannelBackpressure(t *testing.T) {
 	handoffDir := t.TempDir()
 
 	mockValidator := &MockValidator{}

@@ -601,7 +601,7 @@ func (iv *InputValidator) AddCustomValidator(validator ValidatorFunc) {
 
 // GetMetrics returns validation metrics for monitoring
 func (iv *InputValidator) GetMetrics() map[string]interface{} {
-	return json.RawMessage("{}")
+	return map[string]interface{}{}
 }
 
 // ValidateContext adds the validator to the request context

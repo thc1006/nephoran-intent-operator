@@ -2,6 +2,7 @@ package context
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -662,7 +663,7 @@ func (c *EnhancedContext) ToMap() map[string]interface{} {
 
 	defer c.mu.RUnlock()
 
-	result := json.RawMessage("{}")
+	result := make(map[string]interface{})
 
 	// Add metadata.
 

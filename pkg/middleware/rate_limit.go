@@ -361,7 +361,7 @@ func (rl *RateLimiter) GetStats() map[string]interface{} {
 		return true
 	})
 
-	return json.RawMessage("{}")
+	return map[string]interface{}{}
 }
 
 // getClientIP extracts the real client IP address from various headers.

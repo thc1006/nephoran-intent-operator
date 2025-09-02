@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // RuntimeMetadata represents runtime metadata for managed resources
 type RuntimeMetadata struct {

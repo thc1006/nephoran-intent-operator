@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -428,7 +429,7 @@ func (p *LDAPClient) Authenticate(ctx context.Context, username, password string
 
 		ProviderID: userDN,
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	p.logger.Info("User authenticated successfully",
@@ -490,7 +491,7 @@ func (p *LDAPClient) SearchUser(ctx context.Context, username string) (*UserInfo
 
 		ProviderID: userDN,
 
-		Attributes: json.RawMessage("{}"),
+		Attributes: json.RawMessage(`{}`),
 	}
 
 	return userInfo, nil
@@ -618,8 +619,15 @@ func (p *LDAPClient) ValidateUserAttributes(ctx context.Context, username string
 		return err
 	}
 
+	var attributes map[string]interface{}
+	if len(userInfo.Attributes) > 0 {
+		if err := json.Unmarshal(userInfo.Attributes, &attributes); err != nil {
+			return fmt.Errorf("failed to parse user attributes: %w", err)
+		}
+	}
+
 	for attrName, expectedValue := range requiredAttrs {
-		if actualValue, exists := userInfo.Attributes[attrName]; !exists {
+		if actualValue, exists := attributes[attrName]; !exists {
 			return fmt.Errorf("required attribute %s not found", attrName)
 		} else if actualValue != expectedValue {
 			return fmt.Errorf("attribute %s has value %v, expected %s", attrName, actualValue, expectedValue)

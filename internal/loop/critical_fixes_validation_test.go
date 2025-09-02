@@ -14,7 +14,7 @@ import (
 )
 
 // TestCriticalFixes_NilPointerSafety validates that the nil pointer fix prevents panics
-// DISABLED: func TestCriticalFixes_NilPointerSafety(t *testing.T) {
+func TestCriticalFixes_NilPointerSafety(t *testing.T) {
 	t.Run("nil_watcher_close_safety", func(t *testing.T) {
 		// Test direct nil watcher close - should not panic
 		var w *Watcher
@@ -42,7 +42,7 @@ import (
 }
 
 // TestCriticalFixes_CrossPlatformMocks validates cross-platform mock script creation
-// DISABLED: func TestCriticalFixes_CrossPlatformMocks(t *testing.T) {
+func TestCriticalFixes_CrossPlatformMocks(t *testing.T) {
 	tempDir := t.TempDir()
 
 	t.Run("basic_cross_platform_mock", func(t *testing.T) {
@@ -110,7 +110,7 @@ import (
 }
 
 // TestCriticalFixes_ConcurrencyDataRace validates thread-safe access patterns
-// DISABLED: func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
+func TestCriticalFixes_ConcurrencyDataRace(t *testing.T) {
 	t.Run("concurrent_slice_access_safety", func(t *testing.T) {
 		// Simulate the fixed pattern from processor_test.go
 		var testData []string
@@ -219,7 +219,7 @@ import (
 }
 
 // TestCriticalFixes_Integration performs integration validation of all fixes
-// DISABLED: func TestCriticalFixes_Integration(t *testing.T) {
+func TestCriticalFixes_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}

@@ -222,7 +222,7 @@ func (st *SOC2Tracker) GetStatus() map[string]interface{} {
 
 	defer st.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 func (st *SOC2Tracker) initializeSOC2Controls() {
@@ -361,7 +361,7 @@ func (it *ISO27001Tracker) GetStatus() map[string]interface{} {
 
 	defer it.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 func (it *ISO27001Tracker) initializeISO27001Controls() {
@@ -496,7 +496,7 @@ func (pt *PCIDSSTracker) GetStatus() map[string]interface{} {
 
 	defer pt.mutex.RUnlock()
 
-	return json.RawMessage("{}")
+	return make(map[string]interface{})
 }
 
 func (pt *PCIDSSTracker) initializePCIDSSRequirements() {

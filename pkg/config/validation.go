@@ -817,19 +817,19 @@ func ValidateIPAddress(value interface{}) error {
 func ValidateCompleteConfiguration(constants *Constants) error {
 	// Convert constants to map for validation.
 
-	config := json.RawMessage("{}")
+	configMap := make(map[string]interface{})
 
 	// Validate each section.
 
-	if err := ValidateNetworkConfiguration(config); err != nil {
+	if err := ValidateNetworkConfiguration(configMap); err != nil {
 		return fmt.Errorf("network configuration validation failed: %w", err)
 	}
 
-	if err := ValidateSecurityConfiguration(config); err != nil {
+	if err := ValidateSecurityConfiguration(configMap); err != nil {
 		return fmt.Errorf("security configuration validation failed: %w", err)
 	}
 
-	if err := ValidateResilienceConfiguration(config); err != nil {
+	if err := ValidateResilienceConfiguration(configMap); err != nil {
 		return fmt.Errorf("resilience configuration validation failed: %w", err)
 	}
 
