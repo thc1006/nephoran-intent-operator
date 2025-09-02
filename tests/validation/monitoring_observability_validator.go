@@ -6,6 +6,7 @@ package test_validation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -231,7 +232,7 @@ func (mov *MonitoringObservabilityValidator) validateMetricsCollection(ctx conte
 
 		score = 1
 
-		ginkgo.By("??Prometheus metrics collection validated")
+		ginkgo.By("[OK] Prometheus metrics collection validated")
 
 		mov.mu.Lock()
 
@@ -240,7 +241,7 @@ func (mov *MonitoringObservabilityValidator) validateMetricsCollection(ctx conte
 		mov.mu.Unlock()
 
 	} else {
-		ginkgo.By("??Prometheus metrics collection not properly configured")
+		ginkgo.By("[FAIL] Prometheus metrics collection not properly configured")
 	}
 
 	// Additional metrics validation.
@@ -485,7 +486,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 		}
 	}
 
-	health.Metrics = json.RawMessage(`{}`)
+	health.Metrics = make(map[string]interface{})
 }
 
 // validateServiceMonitors checks for ServiceMonitor configurations.
@@ -518,9 +519,9 @@ func (mov *MonitoringObservabilityValidator) validateServiceMonitors(ctx context
 	mov.mu.Unlock()
 
 	if serviceMonitorCount > 0 {
-		ginkgo.By(fmt.Sprintf("??Found %d ServiceMonitor resources", serviceMonitorCount))
+		ginkgo.By(fmt.Sprintf("[OK] Found %d ServiceMonitor resources", serviceMonitorCount))
 	} else {
-		ginkgo.By("??No ServiceMonitor resources found")
+		ginkgo.By("[FAIL] No ServiceMonitor resources found")
 	}
 }
 
@@ -550,7 +551,7 @@ func (mov *MonitoringObservabilityValidator) validateMetricsEndpoints(ctx contex
 	mov.mu.Unlock()
 
 	if metricsEndpoints > 0 {
-		ginkgo.By(fmt.Sprintf("??Found %d metrics endpoints", metricsEndpoints))
+		ginkgo.By(fmt.Sprintf("[OK] Found %d metrics endpoints", metricsEndpoints))
 	}
 }
 
@@ -588,7 +589,7 @@ func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.C
 	mov.mu.Unlock()
 
 	if customMetricsFound {
-		ginkgo.By("??Custom metrics configuration found")
+		ginkgo.By("[OK] Custom metrics configuration found")
 	}
 }
 
@@ -622,7 +623,7 @@ func (mov *MonitoringObservabilityValidator) validateAlertRules(ctx context.Cont
 	mov.mu.Unlock()
 
 	if alertRulesCount > 0 {
-		ginkgo.By(fmt.Sprintf("??Found %d Prometheus alert rules", alertRulesCount))
+		ginkgo.By(fmt.Sprintf("[OK] Found %d Prometheus alert rules", alertRulesCount))
 	}
 }
 
@@ -649,16 +650,16 @@ func (mov *MonitoringObservabilityValidator) validateLoggingTracing(ctx context.
 
 		score = 1
 
-		ginkgo.By("??Logging and tracing infrastructure validated")
+		ginkgo.By("[OK] Logging and tracing infrastructure validated")
 
 	} else if loggingValid || tracingValid {
 
 		score = 1
 
-		ginkgo.By("??Either logging or tracing infrastructure validated")
+		ginkgo.By("[WARN] Either logging or tracing infrastructure validated")
 
 	} else {
-		ginkgo.By("??Neither logging nor tracing infrastructure properly configured")
+		ginkgo.By("[FAIL] Neither logging nor tracing infrastructure properly configured")
 	}
 
 	return score, nil
@@ -764,7 +765,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingInfrastructure(ctx c
 	mov.mu.Unlock()
 
 	if isValid {
-		ginkgo.By(fmt.Sprintf("??Logging infrastructure validated (%d components, %d DaemonSets)",
+		ginkgo.By(fmt.Sprintf("[OK] Logging infrastructure validated (%d components, %d DaemonSets)",
 
 			validComponents, loggingDaemonSets))
 	}
@@ -900,7 +901,7 @@ func (mov *MonitoringObservabilityValidator) validateTracingInfrastructure(ctx c
 	mov.mu.Unlock()
 
 	if isValid {
-		ginkgo.By(fmt.Sprintf("??Tracing infrastructure validated (%d components)", validComponents))
+		ginkgo.By(fmt.Sprintf("[OK] Tracing infrastructure validated (%d components)", validComponents))
 	}
 
 	return isValid
@@ -971,7 +972,7 @@ func (mov *MonitoringObservabilityValidator) validateGrafanaDashboards(ctx conte
 	mov.mu.Unlock()
 
 	if grafanaValid {
-		ginkgo.By(fmt.Sprintf("??Grafana validated with %d dashboard ConfigMaps", dashboardConfigMaps))
+		ginkgo.By(fmt.Sprintf("[OK] Grafana validated with %d dashboard ConfigMaps", dashboardConfigMaps))
 	}
 }
 
@@ -1003,7 +1004,7 @@ func (mov *MonitoringObservabilityValidator) validateAlertManager(ctx context.Co
 	mov.mu.Unlock()
 
 	if alertManagerValid {
-		ginkgo.By("??AlertManager validated")
+		ginkgo.By("[OK] AlertManager validated")
 	}
 }
 
@@ -1051,7 +1052,7 @@ func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx co
 	mov.mu.Unlock()
 
 	if configFound {
-		ginkgo.By("??Notification channels configuration found")
+		ginkgo.By("[OK] Notification channels configuration found")
 	}
 }
 
@@ -1085,7 +1086,7 @@ func (mov *MonitoringObservabilityValidator) validateDataRetention(ctx context.C
 	mov.mu.Unlock()
 
 	if retentionConfigured {
-		ginkgo.By("??Data retention storage configured")
+		ginkgo.By("[OK] Data retention storage configured")
 	}
 }
 
@@ -1121,7 +1122,7 @@ func (mov *MonitoringObservabilityValidator) validatePerformance(ctx context.Con
 	mov.mu.Unlock()
 
 	if performanceOptimal {
-		ginkgo.By("??Observability components have resource constraints configured")
+		ginkgo.By("[OK] Observability components have resource constraints configured")
 	}
 }
 
@@ -1154,39 +1155,39 @@ MONITORING AND OBSERVABILITY VALIDATION REPORT
 
 METRICS COLLECTION:
 
-?œâ??€ Prometheus Deployed:        %t
+[OK] Prometheus Deployed:        %t
 
-?œâ??€ Service Monitors Configured: %t
+[OK] Service Monitors Configured: %t
 
-?œâ??€ Metrics Endpoints Active:   %t
+[OK] Metrics Endpoints Active:   %t
 
-?œâ??€ Custom Metrics Available:   %t
+[OK] Custom Metrics Available:   %t
 
-?”â??€ Alert Rules Configured:     %t
+[OK] Alert Rules Configured:     %t
 
 
 
 LOGGING & TRACING:
 
-?œâ??€ Log Aggregation Active:     %t
+[OK] Log Aggregation Active:     %t
 
-?œâ??€ Distributed Tracing Active: %t
+[OK] Distributed Tracing Active: %t
 
-?œâ??€ Log Retention Configured:   %t
+[OK] Log Retention Configured:   %t
 
-?”â??€ Tracing Instrumentation:    %t
+[OK] Tracing Instrumentation:    %t
 
 
 
 DASHBOARDS & ALERTING:
 
-?œâ??€ Grafana Dashboards:         %t
+[OK] Grafana Dashboards:         %t
 
-?œâ??€ Alert Manager Configured:   %t
+[OK] Alert Manager Configured:   %t
 
-?œâ??€ Notification Channels:      %t
+[OK] Notification Channels:      %t
 
-?”â??€ SLO Monitoring Enabled:     %t
+[OK] SLO Monitoring Enabled:     %t
 
 
 
@@ -1225,15 +1226,15 @@ COMPONENT HEALTH STATUS:
 
 	for name, health := range mov.metrics.ComponentStatus {
 
-		status := "??
+		status := "[FAIL]"
 
 		if health.Healthy {
-			status = "??
+			status = "[OK]"
 		} else if health.Deployed {
-			status = "? ï?"
+			status = "[WARN]"
 		}
 
-		report += fmt.Sprintf("?œâ??€ %-20s %s (Deployed: %t, Healthy: %t)\n",
+		report += fmt.Sprintf("[INFO] %-20s %s (Deployed: %t, Healthy: %t)\n",
 
 			name, status, health.Deployed, health.Healthy)
 
@@ -1243,11 +1244,11 @@ COMPONENT HEALTH STATUS:
 
 PERFORMANCE & RETENTION:
 
-?œâ??€ All Components Healthy:     ` + fmt.Sprintf("%t", mov.metrics.AllComponentsHealthy) + `
+[OK] All Components Healthy:     ` + fmt.Sprintf("%t", mov.metrics.AllComponentsHealthy) + `
 
-?œâ??€ Data Retention Compliant:   ` + fmt.Sprintf("%t", mov.metrics.DataRetentionCompliant) + `
+[OK] Data Retention Compliant:   ` + fmt.Sprintf("%t", mov.metrics.DataRetentionCompliant) + `
 
-?”â??€ Query Performance Optimal:  ` + fmt.Sprintf("%t", mov.metrics.QueryPerformanceOptimal) + `
+[OK] Query Performance Optimal:  ` + fmt.Sprintf("%t", mov.metrics.QueryPerformanceOptimal) + `
 
 
 
@@ -1257,4 +1258,3 @@ PERFORMANCE & RETENTION:
 
 	return report
 }
-

@@ -151,9 +151,9 @@ func main() {
 
 	if config.InsecureTLS {
 
-		log.Println("?ая?  WARNING: TLS certificate verification is disabled. This is insecure and should only be used in development.")
+		log.Println("WARNING: TLS certificate verification is disabled. This is insecure and should only be used in development.")
 
-		log.Println("?ая?  WARNING: Your connection is vulnerable to man-in-the-middle attacks.")
+		log.Println("WARNING: Your connection is vulnerable to man-in-the-middle attacks.")
 
 	}
 
@@ -377,7 +377,7 @@ func validateCredentialStrength(username, password string) {
 
 		if strings.EqualFold(password, weak) {
 
-			log.Println("?ая?  WARNING: Weak password detected. Please use a strong password in production.")
+			log.Println("WARNING: Weak password detected. Please use a strong password in production.")
 
 			break
 
@@ -387,13 +387,13 @@ func validateCredentialStrength(username, password string) {
 
 	if username == password {
 
-		log.Println("?ая?  WARNING: Username and password are identical. This is extremely insecure.")
+		log.Println("WARNING: Username and password are identical. This is extremely insecure.")
 
 	}
 
 	if len(password) < 8 {
 
-		log.Println("?ая?  WARNING: Password is shorter than 8 characters. Consider using a longer password.")
+		log.Println("WARNING: Password is shorter than 8 characters. Consider using a longer password.")
 
 	}
 

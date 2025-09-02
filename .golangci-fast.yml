@@ -241,7 +241,6 @@ linters-settings:
     
   protogetter:
     replace-first-arg-in-append: true
-    skip-generated-files: true
     
   testableexamples:
     # No specific settings needed
