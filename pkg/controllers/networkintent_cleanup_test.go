@@ -298,7 +298,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer was removed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				if err != nil {
 					return false
 				}
@@ -329,7 +329,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is still present on error")
 			updated := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
 			Expect(containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
@@ -381,7 +381,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer was still removed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				if err != nil {
 					return false
 				}
@@ -625,7 +625,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is retained")
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
 
 			By("Verifying Ready condition is set to false with CleanupRetrying reason")
@@ -663,7 +663,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is removed")
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
 
 			By("Verifying Ready condition is set to false with CleanupCompleted reason")
@@ -706,7 +706,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 				// Get updated intent to check retry count
 				updatedIntent := &nephoranv1.NetworkIntent{}
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 				Expect(getRetryCount(updatedIntent, "cleanup")).To(Equal(i + 1))
 
 				// Update networkIntent for next iteration
@@ -740,7 +740,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			Expect(result.Requeue).To(BeFalse())
 
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
 
 			By("Verifying Ready condition indicates max retry failure")
@@ -774,7 +774,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Verifying finalizer is removed")
 			updatedIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())
 
 			fakeGitClient.AssertExpectations(GinkgoT())

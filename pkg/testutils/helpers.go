@@ -310,7 +310,7 @@ func CleanupTestResources(ctx context.Context, k8sClient client.Client, namespac
 
 func WaitForResourceDeletion(ctx context.Context, k8sClient client.Client, obj client.Object) {
 	gomega.Eventually(func() bool {
-		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+		err := k8sClient.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj)
 
 		return err != nil
 	}, TestTimeout, TestInterval).Should(gomega.BeTrue())
@@ -531,7 +531,7 @@ func GetE2NodeSetConfigMaps(ctx context.Context, k8sClient client.Client, e2node
 func VerifyOwnerReferences(ctx context.Context, k8sClient client.Client, owner client.Object, childObjects []client.Object) error {
 	for _, child := range childObjects {
 
-		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(child), child); err != nil {
+		if err := k8sClient.Get(ctx, types.NamespacedName{Name: child.GetName(), Namespace: child.GetNamespace()}, child); err != nil {
 			return fmt.Errorf("failed to get child object %s: %w", child.GetName(), err)
 		}
 

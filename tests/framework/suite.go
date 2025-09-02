@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -419,7 +420,15 @@ func (ts *TestSuite) ValidateTestEnvironment() error {
 }
 
 // GetTestNamespace returns a unique namespace for testing.
-
 func (ts *TestSuite) GetTestNamespace() string {
 	return fmt.Sprintf("nephran-test-%d", time.Now().Unix())
+}
+
+// ObjectKeyFromObject returns a client.ObjectKey for the given object.
+// This is a compatibility helper for the deprecated client.ObjectKeyFromObject function.
+func ObjectKeyFromObject(obj client.Object) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
+	}
 }

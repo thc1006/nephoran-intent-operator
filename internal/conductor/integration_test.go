@@ -398,7 +398,7 @@ var _ = Describe("Conductor Watch Controller Integration", func() {
 			Expect(mockExecutor.GetCallCount()).To(Equal(1))
 
 			By("updating the NetworkIntent spec")
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), intent)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, intent)).To(Succeed())
 			intent.Spec.Intent = "scale deployment web-app to 5 replicas"
 			Expect(k8sClient.Update(ctx, intent)).To(Succeed())
 

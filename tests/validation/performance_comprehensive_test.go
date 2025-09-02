@@ -767,7 +767,7 @@ func (cpt *ComprehensivePerformanceTester) waitForDeployment(ctx context.Context
 			}
 
 			var current nephranv1.NetworkIntent
-			if err := cpt.k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), &current); err != nil {
+			if err := cpt.k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &current); err != nil {
 				continue
 			}
 
@@ -797,7 +797,7 @@ func (cpt *ComprehensivePerformanceTester) waitForProcessing(ctx context.Context
 			}
 
 			var current nephranv1.NetworkIntent
-			if err := cpt.k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), &current); err != nil {
+			if err := cpt.k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &current); err != nil {
 				continue
 			}
 

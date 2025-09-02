@@ -287,7 +287,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_CreateNetworkIntent() {
 
 	// Verify it was created
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Equal(intent.Spec.Intent, retrieved.Spec.Intent)
 	suite.NotEmpty(retrieved.UID)
@@ -351,7 +351,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_UpdateNetworkIntent() {
 
 	// Verify update
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Equal("updated scaling intent", retrieved.Spec.Intent)
 	suite.True(retrieved.Generation > 1)
@@ -371,7 +371,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_DeleteNetworkIntent() {
 
 	// Verify deletion
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.True(errors.IsNotFound(err))
 }
 
@@ -470,7 +470,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_StatusUpdate() {
 
 	// Verify status update
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Equal("Processing", retrieved.Status.Phase)
 	suite.Equal("Intent is being processed", retrieved.Status.Message)
@@ -490,7 +490,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_Finalizers() {
 
 	// Verify object still exists but has deletion timestamp
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.NotNil(retrieved.DeletionTimestamp)
 	suite.Contains(retrieved.Finalizers, "nephoran.io/finalizer")
@@ -502,7 +502,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_Finalizers() {
 
 	// Wait for deletion to complete
 	suite.Eventually(func() bool {
-		err := suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), &nephoranv1.NetworkIntent{})
+		err := suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &nephoranv1.NetworkIntent{})
 		return errors.IsNotFound(err)
 	}, 30*time.Second, 1*time.Second, "NetworkIntent should be deleted after removing finalizer")
 }
@@ -517,7 +517,7 @@ func (suite *CRDIntegrationTestSuite) TestCRD_LabelsAndAnnotations() {
 
 	// Verify labels and annotations
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 
 	// Check labels

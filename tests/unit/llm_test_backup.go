@@ -28,7 +28,7 @@ type LLMTestSuite struct {
 // TestLLMComponents runs the LLM test suite
 func TestLLMComponents(t *testing.T) {
 	suite.Run(t, &LLMTestSuite{
-		TestSuite: framework.NewTestSuite(nil),
+		TestSuite: framework.NewTestSuite(),
 	})
 }
 
@@ -574,7 +574,7 @@ func (suite *LLMTestSuite) TestLLMIntegration() {
 
 		ginkgo.Context("Load Testing", func() {
 			ginkgo.It("should handle concurrent requests", func() {
-				if !suite.GetTestConfig().LoadTestEnabled {
+				if !suite.GetConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -590,7 +590,7 @@ func (suite *LLMTestSuite) TestLLMIntegration() {
 
 		ginkgo.Context("Chaos Testing", func() {
 			ginkgo.It("should handle service failures gracefully", func() {
-				if !suite.GetTestConfig().ChaosTestEnabled {
+				if !suite.GetConfig().ChaosTestEnabled {
 					ginkgo.Skip("Chaos testing disabled")
 				}
 
@@ -612,7 +612,7 @@ var _ = ginkgo.Describe("LLM Components", func() {
 
 	ginkgo.BeforeEach(func() {
 		testSuite = &LLMTestSuite{
-			TestSuite: framework.NewTestSuite(nil),
+			TestSuite: framework.NewTestSuite(),
 		}
 		testSuite.SetupSuite()
 	})

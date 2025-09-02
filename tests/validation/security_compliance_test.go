@@ -115,7 +115,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 				// Verify secret creation
 				createdSecret := &corev1.Secret{}
-				err = k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), createdSecret)
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: secret.GetName(), Namespace: secret.GetNamespace()}, createdSecret)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(createdSecret.Data).To(gomega.HaveLen(4))
 			}
@@ -244,7 +244,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 			// Verify MFA configuration
 			retrievedConfig := &corev1.ConfigMap{}
-			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(mfaConfig), retrievedConfig)
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: mfaConfig.GetName(), Namespace: mfaConfig.GetNamespace()}, retrievedConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(retrievedConfig.Data["mfa_enabled"]).To(gomega.Equal("true"))
 		})

@@ -99,7 +99,7 @@ func WaitForCondition(ctx context.Context, k8sClient client.Client, obj client.O
 
 		case <-ticker.C:
 
-			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj); err != nil {
 				continue
 			}
 
@@ -114,7 +114,7 @@ func WaitForCondition(ctx context.Context, k8sClient client.Client, obj client.O
 // EnsureResourceExists checks if a resource exists and creates it if it doesn't.
 
 func EnsureResourceExists(ctx context.Context, k8sClient client.Client, obj client.Object) error {
-	if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj); err != nil {
 		// Resource doesn't exist, create it.
 
 		return k8sClient.Create(ctx, obj)

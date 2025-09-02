@@ -678,7 +678,13 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			accessToken, refreshToken, err := manager.GenerateTokenPair(tt.userInfo, tt.customClaims)
+			// Type assert userInfo to *providers.UserInfo
+			userInfo, ok := tt.userInfo.(*providers.UserInfo)
+			if !ok && tt.userInfo != nil {
+				t.Fatalf("userInfo must be *providers.UserInfo, got %T", tt.userInfo)
+			}
+			
+			accessToken, refreshToken, err := manager.GenerateTokenPair(userInfo, tt.customClaims)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -889,14 +895,14 @@ func BenchmarkJWTManager_RefreshToken(b *testing.B) {
 	}
 }
 
-// Helper functions for testing
-func createJWTManagerForTest(t *testing.T) (*auth.JWTManager, *authtestutil.TestContext) {
+// Helper functions for testing  
+func createJWTManagerForTest(t *testing.T) (*authtestutil.JWTManagerMock, *authtestutil.TestContext) {
 	tc := authtestutil.NewTestContext(t)
 	manager := tc.SetupJWTManager()
 	return manager, tc
 }
 
-func generateTestTokenWithClaims(t *testing.T, manager *auth.JWTManager, claims map[string]interface{}) string {
+func generateTestTokenWithClaims(t *testing.T, manager *authtestutil.JWTManagerMock, claims map[string]interface{}) string {
 	uf := authtestutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 

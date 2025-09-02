@@ -47,8 +47,8 @@ type SecurityConfig struct {
 	AuditLogRetentionDays int  `json:"audit_log_retention_days" yaml:"audit_log_retention_days"`
 }
 
-// DefaultSecurityConfig returns a secure default configuration
-func DefaultSecurityConfig() *SecurityConfig {
+// DefaultLegacySecurityConfig returns a secure default configuration
+func DefaultLegacySecurityConfig() *SecurityConfig {
 	return &SecurityConfig{
 		// TLS Configuration - strict settings
 		TLSMinVersion: "1.3",
@@ -363,7 +363,7 @@ type SecurityAuditor struct {
 // NewSecurityAuditor creates a new security auditor
 func NewSecurityAuditor(config *SecurityConfig) *SecurityAuditor {
 	if config == nil {
-		config = DefaultSecurityConfig()
+		config = DefaultLegacySecurityConfig()
 	}
 	return &SecurityAuditor{
 		config: config,

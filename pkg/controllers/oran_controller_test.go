@@ -1072,7 +1072,7 @@ var _ = Describe("OranAdaptorReconciler Integration", func() {
 		// Simulate deployment becoming ready
 		Eventually(func() error {
 			current := &appsv1.Deployment{}
-			if err := testEnv.K8sClient.Get(ctx, client.ObjectKeyFromObject(deployment), current); err != nil {
+			if err := testEnv.K8sClient.Get(ctx, types.NamespacedName{Name: deployment.GetName(), Namespace: deployment.GetNamespace()}, current); err != nil {
 				return err
 			}
 			current.Status.Replicas = replicas
@@ -1101,7 +1101,7 @@ var _ = Describe("OranAdaptorReconciler Integration", func() {
 		// Wait for reconciliation to complete
 		Eventually(func() bool {
 			current := &nephoranv1.ManagedElement{}
-			if err := testEnv.K8sClient.Get(ctx, client.ObjectKeyFromObject(managedElement), current); err != nil {
+			if err := testEnv.K8sClient.Get(ctx, types.NamespacedName{Name: managedElement.GetName(), Namespace: managedElement.GetNamespace()}, current); err != nil {
 				return false
 			}
 
@@ -1111,7 +1111,7 @@ var _ = Describe("OranAdaptorReconciler Integration", func() {
 
 		// Verify final state
 		updated := &nephoranv1.ManagedElement{}
-		Expect(testEnv.K8sClient.Get(ctx, client.ObjectKeyFromObject(managedElement), updated)).To(Succeed())
+		Expect(testEnv.K8sClient.Get(ctx, types.NamespacedName{Name: managedElement.GetName(), Namespace: managedElement.GetNamespace()}, updated)).To(Succeed())
 
 		// Should have at least the Ready condition
 		readyCondition := meta.FindStatusCondition(updated.Status.Conditions, "Ready")

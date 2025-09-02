@@ -503,7 +503,12 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 
 	var rerankingTime time.Duration
 
-	results := ers.convertToEnhancedResults(searchResponse.Results)
+	// Convert []shared.SearchResult to []*SearchResult
+	convertedResults := make([]*SearchResult, len(searchResponse.Results))
+	for i, result := range searchResponse.Results {
+		convertedResults[i] = (*SearchResult)(&result)
+	}
+	results := ers.convertToEnhancedResults(convertedResults)
 
 	if request.EnableReranking && ers.config.EnableSemanticReranking && len(results) > 1 {
 

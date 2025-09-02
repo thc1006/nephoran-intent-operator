@@ -128,6 +128,7 @@ type StatisticalAnalyzer struct {
 type StatisticalAnalysis struct {
 	SampleSize         int                 `json:"sample_size"`
 	ConfidenceLevel    float64             `json:"confidence_level"`
+	Mean               float64             `json:"mean"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
 	HypothesisTest     *HypothesisTest     `json:"hypothesis_test"`
 	TrendAnalysis      *SLATrendAnalysis   `json:"trend_analysis"`
@@ -239,7 +240,7 @@ type ClaimVerification struct {
 	MeasuredValue    interface{}          `json:"measured_value"`
 	Verified         bool                 `json:"verified"`
 	ConfidenceLevel  float64              `json:"confidence_level"`
-	Evidence         []ValidationEvidence `json:"evidence"`
+	Evidence         []interface{} `json:"evidence"`
 	Discrepancy      float64              `json:"discrepancy"`
 	VerificationTime time.Time            `json:"verification_time"`
 }

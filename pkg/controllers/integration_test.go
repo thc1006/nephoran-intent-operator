@@ -99,7 +99,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying NetworkIntent status progression")
 			Eventually(func() string {
 				updated := &nephoranv1.NetworkIntent{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated); err != nil {
 					return ""
 				}
 				return updated.Status.Phase
@@ -107,7 +107,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			By("Verifying final NetworkIntent state")
 			final := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), final)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, final)).To(Succeed())
 
 			// Verify processing occurred
 			Expect(isConditionTrue(final.Status.Conditions, "Processed")).To(BeTrue())
@@ -166,7 +166,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			By("Verifying retry state")
 			updated := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
 			Expect(updated.Status.Phase).To(Equal("Processing"))
 			retryCount := getRetryCount(updated, "llm-processing")
 			Expect(retryCount).To(Equal(1))
@@ -194,7 +194,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			By("Verifying successful recovery")
 			Eventually(func() string {
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
 				return updated.Status.Phase
 			}, timeout, interval).Should(Equal("Completed"))
 
@@ -255,14 +255,14 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying E2NodeSet status reflects ready replicas")
 			Eventually(func() int32 {
 				updated := &nephoranv1.E2NodeSet{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, updated); err != nil {
 					return 0
 				}
 				return updated.Status.ReadyReplicas
 			}, timeout, interval).Should(Equal(int32(3)))
 
 			By("Scaling E2NodeSet up to 5 replicas")
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), e2nodeSet)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, e2nodeSet)).To(Succeed())
 			e2nodeSet.Spec.Replicas = 5
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
@@ -288,14 +288,14 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			Eventually(func() int32 {
 				updated := &nephoranv1.E2NodeSet{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, updated); err != nil {
 					return 0
 				}
 				return updated.Status.ReadyReplicas
 			}, timeout, interval).Should(Equal(int32(5)))
 
 			By("Scaling E2NodeSet down to 2 replicas")
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), e2nodeSet)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, e2nodeSet)).To(Succeed())
 			e2nodeSet.Spec.Replicas = 2
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
@@ -321,7 +321,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			Eventually(func() int32 {
 				updated := &nephoranv1.E2NodeSet{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, updated); err != nil {
 					return 0
 				}
 				return updated.Status.ReadyReplicas
@@ -370,7 +370,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying E2NodeSet is deleted")
 			Eventually(func() bool {
 				deleted := &nephoranv1.E2NodeSet{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), deleted)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, deleted)
 				return client.IgnoreNotFound(err) == nil
 			}, timeout, interval).Should(BeTrue())
 
@@ -422,7 +422,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying initial E2NodeSet state")
 			Eventually(func() int32 {
 				updated := &nephoranv1.E2NodeSet{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, updated); err != nil {
 					return 0
 				}
 				return updated.Status.ReadyReplicas
@@ -477,7 +477,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying NetworkIntent processing completed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated); err != nil {
 					return false
 				}
 				return isConditionTrue(updated.Status.Conditions, "Processed") &&
@@ -487,7 +487,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Simulating manual E2NodeSet scaling based on NetworkIntent")
 			// In a real implementation, this would be done by a GitOps system
 			// For integration testing, we manually apply the scaling
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), e2nodeSet)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, e2nodeSet)).To(Succeed())
 			e2nodeSet.Spec.Replicas = 4
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
@@ -498,7 +498,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying E2NodeSet scaled according to NetworkIntent")
 			Eventually(func() int32 {
 				updated := &nephoranv1.E2NodeSet{}
-				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), updated); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, updated); err != nil {
 					return 0
 				}
 				return updated.Status.ReadyReplicas
@@ -595,23 +595,23 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			By("Verifying all resources were created successfully")
 			for _, me := range managedElements {
 				created := &nephoranv1.ManagedElement{}
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(me), created)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: me.GetName(), Namespace: me.GetNamespace()}, created)).To(Succeed())
 			}
 
 			for _, e2ns := range e2nodeSets {
 				created := &nephoranv1.E2NodeSet{}
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(e2ns), created)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: e2ns.GetName(), Namespace: e2ns.GetNamespace()}, created)).To(Succeed())
 			}
 
 			for _, ni := range networkIntents {
 				created := &nephoranv1.NetworkIntent{}
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(ni), created)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: ni.GetName(), Namespace: ni.GetNamespace()}, created)).To(Succeed())
 			}
 
 			By("Verifying resource relationships are maintained")
 			for i, e2ns := range e2nodeSets {
 				created := &nephoranv1.E2NodeSet{}
-				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(e2ns), created)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: e2ns.GetName(), Namespace: e2ns.GetNamespace()}, created)).To(Succeed())
 				Expect(created.Labels["managed-element"]).To(Equal(managedElements[i].Name))
 			}
 

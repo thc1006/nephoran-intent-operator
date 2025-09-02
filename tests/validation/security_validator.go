@@ -722,7 +722,7 @@ func (sv *SecurityValidator) validateEncryptionAtRest(ctx context.Context) bool 
 
 	retrievedSecret := &corev1.Secret{}
 
-	err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testSecret), retrievedSecret)
+	err = sv.k8sClient.Get(ctx, types.NamespacedName{Name: testSecret.GetName(), Namespace: testSecret.GetNamespace()}, retrievedSecret)
 	if err != nil {
 
 		ginkgo.By(fmt.Sprintf("Failed to retrieve test secret: %v", err))

@@ -625,7 +625,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestNetworkIntentIntegration() {
 
 			// Verify processing results
 			var updatedIntent nephoran.NetworkIntent
-			err = suite.k8sClient.Get(suite.ctx, client.ObjectKeyFromObject(intent), &updatedIntent)
+			err = suite.k8sClient.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &updatedIntent)
 			suite.NoError(err)
 
 			// Check status

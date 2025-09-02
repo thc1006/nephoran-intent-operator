@@ -187,7 +187,7 @@ func NewManager(ctx context.Context, config *Config, logger *slog.Logger) (*Mana
 		SkipAuth: []string{"/health", "/auth/login", "/auth/callback"},
 	}
 
-	am.middleware = NewAuthMiddleware(am.sessionManager, am.jwtManager, am.rbacManager, middlewareConfig)
+	am.middleware = NewAuthMiddlewareWithComponents(am.sessionManager, am.jwtManager, am.rbacManager, middlewareConfig)
 
 	// Initialize LDAP middleware if LDAP providers are configured.
 

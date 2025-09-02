@@ -220,13 +220,6 @@ func CreateTestNetworkIntent(name, namespace, intent string) *nephoranv1.Network
 	return testutils.CreateTestNetworkIntent(name, namespace, intent)
 }
 
-func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
-	return testutils.IsConditionTrue(conditions, conditionType)
-}
-
-func WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) {
-	testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, expectedReplicas)
-}
 
 var _ = Describe("Error Handling and Recovery Tests", func() {
 	const (
@@ -422,7 +415,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				if err := k8sClient.Get(ctx, namespacedName, updated); err != nil {
 					return false
 				}
-				return isConditionTrue(updated.Status.Conditions, "Deployed")
+				return testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
 			}, timeout, interval).Should(BeTrue())
 
 			By("Verifying final state")
@@ -581,8 +574,8 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					if err := k8sClient.Get(ctx, namespacedName, updated); err != nil {
 						return false
 					}
-					return isConditionTrue(updated.Status.Conditions, "Processed") &&
-						isConditionTrue(updated.Status.Conditions, "Deployed")
+					return testutils.IsConditionTrue(updated.Status.Conditions, "Processed") &&
+						testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
 				}, timeout, interval).Should(BeTrue())
 			}
 		})
@@ -664,7 +657,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				"e2nodeset": e2nodeSet.Name,
 			}, 3)
 
-			WaitForE2NodeSetReady(namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 3)
 		})
 
 		It("Should handle partial ConfigMap deletions during scale-down", func() {
@@ -768,7 +761,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				"e2nodeset": e2nodeSet.Name,
 			}, 2)
 
-			WaitForE2NodeSetReady(namespacedName, 2)
+			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 2)
 		})
 
 		It("Should handle rapid scaling operations", func() {
@@ -800,7 +793,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			WaitForE2NodeSetReady(namespacedName, 1)
+			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 1)
 
 			By("Performing rapid scaling operations")
 			scaleSequence := []int32{5, 2, 8, 3, 1, 6}
@@ -825,7 +818,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify scaling completed
-				WaitForE2NodeSetReady(namespacedName, targetReplicas)
+				testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, targetReplicas)
 				testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
 					"app":       "e2node",
 					"e2nodeset": e2nodeSet.Name,
@@ -871,7 +864,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Waiting for normal operation")
-			WaitForE2NodeSetReady(namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 3)
 
 			By("Simulating ConfigMap corruption by modifying labels")
 			configMapList := &corev1.ConfigMapList{}
@@ -906,7 +899,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				return len(correctConfigMaps.Items)
 			}, timeout, interval).Should(Equal(3))
 
-			WaitForE2NodeSetReady(namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 3)
 
 			By("Verifying all ConfigMaps have correct labels and data")
 			finalConfigMaps := &corev1.ConfigMapList{}
@@ -969,8 +962,8 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				if err := k8sClient.Get(ctx, niNamespacedName, updated); err != nil {
 					return false
 				}
-				return isConditionTrue(updated.Status.Conditions, "Processed") &&
-					isConditionTrue(updated.Status.Conditions, "Deployed")
+				return testutils.IsConditionTrue(updated.Status.Conditions, "Processed") &&
+					testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
 			}, timeout, interval).Should(BeTrue())
 
 			By("Creating E2NodeSet as would be done by GitOps system")
@@ -1032,7 +1025,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying both controllers eventually reach consistent state")
-			WaitForE2NodeSetReady(e2nsNamespacedName, 3)
+			testutils.WaitForE2NodeSetReady(ctx, k8sClient, e2nsNamespacedName, 3)
 			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,

@@ -144,7 +144,7 @@ func (suite *NetworkIntentControllerTestSuite) TestReconcile_NewNetworkIntent() 
 
 	// Verify the NetworkIntent was updated
 	updated := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), updated)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, updated)
 	suite.NoError(err)
 	suite.NotNil(updated)
 }
@@ -336,7 +336,7 @@ func TestNetworkIntentReconciler_Reconcile_BasicFlow(t *testing.T) {
 
 	// Verify object still exists
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = client.Get(ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = client.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	assert.NoError(t, err)
 	assert.Equal(t, intent.Spec.Intent, retrieved.Spec.Intent)
 }

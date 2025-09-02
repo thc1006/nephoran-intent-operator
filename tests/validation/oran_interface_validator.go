@@ -472,7 +472,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 	success := false
 
 	gomega.Eventually(func() bool {
-		err := oiv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := oiv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 		if err != nil {
 			return false
 		}
@@ -789,7 +789,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 	nodeRegistrationSuccess := false
 
 	gomega.Eventually(func() bool {
-		err := oiv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testE2NodeSet), testE2NodeSet)
+		err := oiv.k8sClient.Get(ctx, types.NamespacedName{Name: testE2NodeSet.GetName(), Namespace: testE2NodeSet.GetNamespace()}, testE2NodeSet)
 		if err != nil {
 			return false
 		}

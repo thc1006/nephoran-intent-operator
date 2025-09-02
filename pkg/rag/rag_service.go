@@ -146,7 +146,6 @@ type ServiceRAGMetrics struct {
 }
 
 // RAGRequest represents a request for RAG processing.
-
 type RAGRequest struct {
 	Query string `json:"query"`
 
@@ -174,7 +173,6 @@ type RAGRequest struct {
 }
 
 // RAGResponse represents the response from RAG processing.
-
 type RAGResponse struct {
 	Answer string `json:"answer"`
 

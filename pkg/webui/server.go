@@ -554,7 +554,7 @@ func (s *NephoranAPIServer) initializeAuth() error {
 		AllowCredentials: s.config.AllowCredentials,
 	}
 
-	s.authMiddleware = auth.NewAuthMiddleware(s.sessionManager, jwtManager, s.rbacManager, middlewareConfig)
+	s.authMiddleware = auth.NewAuthMiddlewareWithComponents(s.sessionManager, jwtManager, s.rbacManager, middlewareConfig)
 
 	s.logger.Info("Authentication initialized successfully")
 

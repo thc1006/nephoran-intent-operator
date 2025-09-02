@@ -237,7 +237,7 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 
 		case <-ticker.C:
 
-			err := pb.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+			err := pb.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 			if err != nil {
 				continue
 			}
@@ -457,7 +457,7 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 
 		case <-ticker.C:
 
-			err := pb.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+			err := pb.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 			if err != nil {
 				continue
 			}
@@ -602,7 +602,7 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 
 				case <-ticker.C:
 
-					err := pb.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+					err := pb.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 					if err != nil {
 						continue
 					}

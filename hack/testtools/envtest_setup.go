@@ -1706,7 +1706,7 @@ func (te *TestEnvironment) WaitForResourceReady(obj client.Object, timeout time.
 
 	defer cancel()
 
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 
 	Eventually(func() bool {
 

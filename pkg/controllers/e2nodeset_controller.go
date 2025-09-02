@@ -1713,26 +1713,3 @@ func (r *E2NodeSetReconciler) getNearRTRICEndpoint(e2nodeSet *nephoranv1.E2NodeS
 	return r.getRICEndpoint(e2nodeSet)
 }
 
-// calculateExponentialBackoffForOperation is a wrapper that provides operation-specific defaults.
-func calculateExponentialBackoffForOperation(retryCount int, operation string) time.Duration {
-	// Operation-specific base delays for different operations.
-	var baseDelay time.Duration
-	var maxDelay time.Duration
-
-	switch operation {
-	case "e2-provisioning":
-		baseDelay = BaseBackoffDelay * 2 // Longer base delay for provisioning
-		maxDelay = MaxBackoffDelay
-	case "configmap-operations":
-		baseDelay = BaseBackoffDelay
-		maxDelay = MaxBackoffDelay / 2 // Shorter max delay for ConfigMap ops
-	case "cleanup":
-		baseDelay = BaseBackoffDelay
-		maxDelay = MaxBackoffDelay
-	default:
-		baseDelay = BaseBackoffDelay
-		maxDelay = MaxBackoffDelay
-	}
-
-	return calculateExponentialBackoff(retryCount, baseDelay, maxDelay)
-}

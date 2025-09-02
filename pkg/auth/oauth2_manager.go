@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -163,7 +162,7 @@ func NewOAuth2Manager(ctx context.Context, config *OAuth2ManagerConfig, logger *
 		EnableSecurityHeaders: true,
 	}
 
-	authMiddleware := NewAuthMiddleware(sessionManager, jwtManager, rbacManager, middlewareConfig)
+	authMiddleware := NewAuthMiddlewareWithComponents(sessionManager, jwtManager, rbacManager, middlewareConfig)
 
 	// Initialize auth handlers.
 
@@ -419,167 +418,3 @@ func (e *AuthError) Error() string {
 // ErrMissingJWTSecret holds errmissingjwtsecret value.
 
 var ErrMissingJWTSecret = &AuthError{Code: "missing_jwt_secret", Message: "JWT secret key is required when OAuth2 is enabled"}
-
-// Simple in-memory implementations for basic functionality.
-
-// MemoryTokenStore provides a simple in-memory token store.
-
-type MemoryTokenStore struct {
-	tokens map[string]*TokenInfo
-
-	mu sync.RWMutex
-}
-
-// NewMemoryTokenStore performs newmemorytokenstore operation.
-
-func NewMemoryTokenStore() *MemoryTokenStore {
-	return &MemoryTokenStore{
-		tokens: make(map[string]*TokenInfo),
-	}
-}
-
-// StoreToken performs storetoken operation.
-
-func (m *MemoryTokenStore) StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	m.tokens[tokenID] = token
-
-	return nil
-}
-
-// GetToken performs gettoken operation.
-
-func (m *MemoryTokenStore) GetToken(ctx context.Context, tokenID string) (*TokenInfo, error) {
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	token, exists := m.tokens[tokenID]
-
-	if !exists {
-		return nil, fmt.Errorf("token not found")
-	}
-
-	return token, nil
-}
-
-// UpdateToken performs updatetoken operation.
-
-func (m *MemoryTokenStore) UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	m.tokens[tokenID] = token
-
-	return nil
-}
-
-// DeleteToken performs deletetoken operation.
-
-func (m *MemoryTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	delete(m.tokens, tokenID)
-
-	return nil
-}
-
-// ListUserTokens performs listusertokens operation.
-
-func (m *MemoryTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	var tokens []*TokenInfo
-
-	for _, token := range m.tokens {
-		if token.UserID == userID {
-			tokens = append(tokens, token)
-		}
-	}
-
-	return tokens, nil
-}
-
-// CleanupExpired performs cleanupexpired operation.
-
-func (m *MemoryTokenStore) CleanupExpired(ctx context.Context) error {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	now := time.Now()
-
-	for tokenID, token := range m.tokens {
-		if token.ExpiresAt.Before(now) {
-			delete(m.tokens, tokenID)
-		}
-	}
-
-	return nil
-}
-
-// MemoryTokenBlacklist provides a simple in-memory token blacklist.
-
-type MemoryTokenBlacklist struct {
-	blacklisted map[string]time.Time
-
-	mu sync.RWMutex
-}
-
-// NewMemoryTokenBlacklist performs newmemorytokenblacklist operation.
-
-func NewMemoryTokenBlacklist() *MemoryTokenBlacklist {
-	return &MemoryTokenBlacklist{
-		blacklisted: make(map[string]time.Time),
-	}
-}
-
-// BlacklistToken performs blacklisttoken operation.
-
-func (m *MemoryTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	m.blacklisted[tokenID] = expiresAt
-
-	return nil
-}
-
-// IsTokenBlacklisted performs istokenblacklisted operation.
-
-func (m *MemoryTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	_, exists := m.blacklisted[tokenID]
-
-	return exists, nil
-}
-
-// CleanupExpired performs cleanupexpired operation.
-
-func (m *MemoryTokenBlacklist) CleanupExpired(ctx context.Context) error {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	now := time.Now()
-
-	for tokenID, expiresAt := range m.blacklisted {
-		if expiresAt.Before(now) {
-			delete(m.blacklisted, tokenID)
-		}
-	}
-
-	return nil
-}

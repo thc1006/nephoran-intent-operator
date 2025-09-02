@@ -2,8 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"log/slog"
 	"testing"
 	"time"
@@ -189,7 +187,7 @@ func TestJWTManagerTimeFieldHandling(t *testing.T) {
 		require.NoError(t, err)
 
 		// Validate works before blacklisting
-		claims, err := manager.ValidateToken(ctx, tokenString)
+		_, err = manager.ValidateToken(ctx, tokenString)
 		require.NoError(t, err)
 
 		// Revoke token (adds to blacklist with expiration)

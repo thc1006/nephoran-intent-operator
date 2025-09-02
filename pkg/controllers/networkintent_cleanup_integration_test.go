@@ -137,7 +137,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			By("Verifying finalizer was removed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				return client.IgnoreNotFound(err) == nil && !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)
 			}, timeout, interval).Should(BeTrue())
 
@@ -181,7 +181,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 			By("Verifying finalizer is still present")
 			updated := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)).To(Succeed())
 			Expect(containsFinalizer(updated.Finalizers, NetworkIntentFinalizer)).To(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
@@ -258,7 +258,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			// By("Verifying resources are deleted")
 			// for _, resource := range resources {
 			//     Eventually(func() bool {
-			//         return k8sClient.Get(ctx, client.ObjectKeyFromObject(resource), resource) != nil
+			//         return k8sClient.Get(ctx, types.NamespacedName{Name: resource.GetName(), Namespace: resource.GetNamespace()}, resource) != nil
 			//     }, timeout, interval).Should(BeTrue())
 			// }
 		})

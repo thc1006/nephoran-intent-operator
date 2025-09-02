@@ -122,7 +122,7 @@ func (am *AuthManager) GetLDAPMiddleware() *LDAPAuthMiddleware {
 
 // GetMiddleware returns the auth middleware
 func (am *AuthManager) GetMiddleware() *AuthMiddleware {
-	return NewAuthMiddleware(am.SessionManager, am.JWTManager, am.RBACManager, nil)
+	return NewAuthMiddlewareWithComponents(am.SessionManager, am.JWTManager, am.RBACManager, nil)
 }
 
 // GetOAuth2Manager returns OAuth2 manager

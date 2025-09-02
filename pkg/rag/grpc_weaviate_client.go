@@ -725,13 +725,18 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 
 	}
 
+	// Convert []*SearchResult to []SearchResult
+	searchResults := make([]SearchResult, len(results))
+	for i, result := range results {
+		if result != nil {
+			searchResults[i] = *result
+		}
+	}
+
 	return &SearchResponse{
-		Results: results,
-
+		Results: searchResults,
 		Query: query,
-
 		ProcessedAt: time.Now(),
-
 		Metadata: map[string]interface{}{
 			"grpc_metadata": grpcResp.Metadata,
 		},

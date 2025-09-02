@@ -234,7 +234,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentLifecycle() {
 	// Wait for NetworkIntent to be processed (in real scenario, this would check status)
 	suite.Eventually(func() bool {
 		retrieved := &nephoranv1.NetworkIntent{}
-		err := suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+		err := suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 		if err != nil {
 			return false
 		}
@@ -249,7 +249,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentLifecycle() {
 
 	// Verify update was processed
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Equal("updated scaling intent for e2e testing", retrieved.Spec.Intent)
 
@@ -259,7 +259,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentLifecycle() {
 
 	// Verify deletion
 	suite.Eventually(func() bool {
-		err := suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), &nephoranv1.NetworkIntent{})
+		err := suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &nephoranv1.NetworkIntent{})
 		return errors.IsNotFound(err)
 	}, 30*time.Second, 1*time.Second, "NetworkIntent should be deleted")
 }
@@ -316,7 +316,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentWithFinalizers() {
 
 	// Verify finalizer is present
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Contains(retrieved.Finalizers, "nephoran.io/finalizer")
 
@@ -326,7 +326,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentWithFinalizers() {
 
 	// Verify object still exists but has deletion timestamp
 	suite.Eventually(func() bool {
-		err := suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+		err := suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 		if err != nil {
 			return false
 		}
@@ -340,7 +340,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentWithFinalizers() {
 
 	// Verify object is finally deleted
 	suite.Eventually(func() bool {
-		err := suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), &nephoranv1.NetworkIntent{})
+		err := suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, &nephoranv1.NetworkIntent{})
 		return errors.IsNotFound(err)
 	}, 30*time.Second, 1*time.Second, "NetworkIntent should be deleted after removing finalizer")
 }
@@ -374,7 +374,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentStatusUpdates() {
 
 	// Verify status was updated
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Equal("Processing", retrieved.Status.Phase)
 	suite.Equal("Intent is being processed by the operator", retrieved.Status.Message)
@@ -393,7 +393,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_NetworkIntentStatusUpdates() {
 
 	// Verify final status
 	final := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), final)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, final)
 	suite.NoError(err)
 	suite.Equal("Completed", final.Status.Phase)
 	suite.Equal("Intent has been successfully processed", final.Status.Message)
@@ -447,7 +447,7 @@ func (suite *E2EOperatorTestSuite) TestE2E_OperatorResilience() {
 
 	// Verify NetworkIntent still exists and is processed
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err)
 	suite.Equal(intent.Spec.Intent, retrieved.Spec.Intent)
 }
@@ -586,7 +586,7 @@ var _ = ginkgo.Describe("NetworkIntent E2E Tests", func() {
 
 			ginkgo.By("Verifying NetworkIntent was created")
 			retrieved := &nephoranv1.NetworkIntent{}
-			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), retrieved)
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(retrieved.Spec.Intent).To(gomega.Equal(intent.Spec.Intent))
 		})
@@ -609,7 +609,7 @@ var _ = ginkgo.Describe("NetworkIntent E2E Tests", func() {
 
 			ginkgo.By("Verifying the update")
 			retrieved := &nephoranv1.NetworkIntent{}
-			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), retrieved)
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(retrieved.Spec.Intent).To(gomega.Equal("updated scaling intent via ginkgo"))
 		})

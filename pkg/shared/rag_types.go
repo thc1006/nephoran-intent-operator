@@ -45,13 +45,16 @@ type SearchQuery struct {
 
 // RAGResponse represents the response from RAG system
 type RAGResponse struct {
-	Query      string            `json:"query"`
-	Results    []SearchResult    `json:"results"`
-	Context    string            `json:"context"`
-	Documents  []TelecomDocument `json:"documents"`
-	TotalTime  time.Duration     `json:"total_time"`
-	Confidence float64           `json:"confidence"`
-	Error      *RAGError         `json:"error,omitempty"`
+	Query       string                 `json:"query"`
+	Results     []SearchResult         `json:"results"`
+	Context     string                 `json:"context"`
+	Documents   []TelecomDocument      `json:"documents"`
+	TotalTime   time.Duration          `json:"total_time"`
+	Took        time.Duration          `json:"took"` // Time taken for the search
+	Confidence  float64                `json:"confidence"`
+	Error       *RAGError              `json:"error,omitempty"`
+	ProcessedAt time.Time              `json:"processed_at,omitempty"` // When the response was processed
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`     // Additional metadata
 }
 
 // TelecomDocument represents a telecom-specific document

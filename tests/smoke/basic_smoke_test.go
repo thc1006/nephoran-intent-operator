@@ -72,7 +72,7 @@ func (suite *SmokeTestSuite) TestSmoke_NetworkIntentCRUD() {
 
 	// Test Read
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	suite.NoError(err, "Should retrieve NetworkIntent successfully")
 	suite.Equal(intent.Spec.Intent, retrieved.Spec.Intent, "Retrieved intent should match created intent")
 
@@ -83,7 +83,7 @@ func (suite *SmokeTestSuite) TestSmoke_NetworkIntentCRUD() {
 
 	// Verify Update
 	updated := &nephoranv1.NetworkIntent{}
-	err = suite.client.Get(suite.ctx, client.ObjectKeyFromObject(intent), updated)
+	err = suite.client.Get(suite.ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, updated)
 	suite.NoError(err, "Should retrieve updated NetworkIntent")
 	suite.Equal("updated smoke test intent", updated.Spec.Intent, "Updated intent should be persisted")
 
@@ -112,7 +112,7 @@ func (suite *SmokeTestSuite) TestSmoke_ControllerBasicReconcile() {
 
 	// Test reconcile
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKeyFromObject(intent),
+		NamespacedName: types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()},
 	}
 
 	result, err := reconciler.Reconcile(suite.ctx, request)
@@ -256,7 +256,7 @@ func TestSmoke_BasicNetworkIntentCreation(t *testing.T) {
 	assert.NoError(t, err, "Smoke test: Should create NetworkIntent without error")
 
 	retrieved := &nephoranv1.NetworkIntent{}
-	err = client.Get(ctx, client.ObjectKeyFromObject(intent), retrieved)
+	err = client.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, retrieved)
 	assert.NoError(t, err, "Smoke test: Should retrieve NetworkIntent without error")
 	assert.Equal(t, intent.Spec.Intent, retrieved.Spec.Intent, "Smoke test: Intent should match")
 }

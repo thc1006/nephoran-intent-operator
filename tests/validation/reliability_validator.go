@@ -664,7 +664,7 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 
 		case <-ticker.C:
 
-			err := rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+			err := rv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 			if err != nil {
 				continue
 			}
@@ -756,7 +756,7 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 
 		case <-ticker.C:
 
-			err := rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+			err := rv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 			if err != nil {
 				continue
 			}
@@ -814,7 +814,7 @@ func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) b
 
 	time.Sleep(10 * time.Second)
 
-	err = rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+	err = rv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 	if err != nil {
 		return false
 	}
@@ -890,7 +890,7 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 
 	for _, intent := range testIntents {
 
-		err := rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), intent)
+		err := rv.k8sClient.Get(ctx, types.NamespacedName{Name: intent.GetName(), Namespace: intent.GetNamespace()}, intent)
 
 		if err == nil && intent.Status.Phase != "" && intent.Status.Phase != "Failed" {
 			processedCount++
@@ -945,7 +945,7 @@ func (rv *ReliabilityValidator) testDependencyFailureTolerance(ctx context.Conte
 
 	time.Sleep(10 * time.Second)
 
-	err = rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+	err = rv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 	if err != nil {
 		return false
 	}

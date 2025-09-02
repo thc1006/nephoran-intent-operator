@@ -82,6 +82,7 @@ type AuthContext struct {
 	Attributes map[string]interface{} `json:"attributes"`
 }
 
+
 // contextKey is used for context keys to avoid collisions.
 
 type contextKey string
@@ -916,7 +917,14 @@ func (m *RBACMiddleware) Middleware(next http.Handler) http.Handler {
 
 		// Check authorization
 		ctx := r.Context()
-		authorized, err := m.config.RBACManager.CheckAccess(ctx, userID, resource, action)
+		accessRequest := &AccessRequest{
+			UserID:   userID,
+			Resource: resource,
+			Action:   action,
+		}
+		decision := m.config.RBACManager.CheckAccess(ctx, accessRequest)
+		authorized := decision.Allowed
+		err := (error)(nil)
 		if err != nil || !authorized {
 			if m.config.OnAccessDenied != nil {
 				m.config.OnAccessDenied(w, r)
@@ -1164,3 +1172,8 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+// Additional middleware types and configurations needed for testing
+
+// These types are additional types specific to the test requirements
+// The main middleware implementations are elsewhere in this file

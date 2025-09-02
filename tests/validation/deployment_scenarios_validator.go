@@ -612,7 +612,7 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 
 	updatedDeployment := &appsv1.Deployment{}
 
-	if err := dsv.client.Get(ctx, client.ObjectKeyFromObject(deployment), updatedDeployment); err == nil {
+	if err := dsv.client.Get(ctx, types.NamespacedName{Name: deployment.GetName(), Namespace: deployment.GetNamespace()}, updatedDeployment); err == nil {
 		if updatedDeployment.Status.ReadyReplicas != originalReplicas {
 
 			result.Success = false
@@ -765,7 +765,7 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 
 			currentDeployment := &appsv1.Deployment{}
 
-			if err := dsv.client.Get(ctx, client.ObjectKeyFromObject(deployment), currentDeployment); err != nil {
+			if err := dsv.client.Get(ctx, types.NamespacedName{Name: deployment.GetName(), Namespace: deployment.GetNamespace()}, currentDeployment); err != nil {
 				continue
 			}
 

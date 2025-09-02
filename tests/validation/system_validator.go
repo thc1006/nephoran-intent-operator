@@ -78,7 +78,7 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 	ginkgo.By("Waiting for intent processing to begin")
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		return err == nil && testIntent.Status.Phase != ""
 	}, 30*time.Second, 1*time.Second).Should(gomega.BeTrue())
@@ -102,7 +102,7 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 	ginkgo.By("Monitoring phase transitions")
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 		if err != nil {
 			return false
 		}
@@ -129,7 +129,7 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 
 	// Verify final state is not failed.
 
-	finalErr := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+	finalErr := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 	if finalErr != nil || string(testIntent.Status.Phase) == "Failed" {
 
@@ -205,7 +205,7 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 		// Wait for processing to complete or provide results.
 
 		gomega.Eventually(func() bool {
-			err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+			err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 			return err == nil &&
 
@@ -218,7 +218,7 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 
 		// Verify the LLM correctly identified the network function type.
 
-		err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err = sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		if err == nil && testIntent.Status.ProcessingResults != nil {
 
@@ -296,7 +296,7 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 	ginkgo.By("Waiting for package generation")
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		return err == nil &&
 
@@ -307,7 +307,7 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 
 	// Verify package-related status information.
 
-	err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+	err = sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 	if err != nil {
 
 		ginkgo.By(fmt.Sprintf("Failed to get intent status: %v", err))
@@ -386,14 +386,14 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 	ginkgo.By("Waiting for multi-cluster deployment")
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		return err == nil && string(testIntent.Status.Phase) == "Deployed"
 	}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue())
 
 	// Verify deployment succeeded.
 
-	err = sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+	err = sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 	if err != nil {
 		return false
 	}
@@ -506,7 +506,7 @@ func (sv *SystemValidator) validateE2Interface(ctx context.Context) bool {
 	// Wait for E2NodeSet to become ready.
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testE2NodeSet), testE2NodeSet)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testE2NodeSet.GetName(), Namespace: testE2NodeSet.GetNamespace()}, testE2NodeSet)
 
 		return err == nil && testE2NodeSet.Status.ReadyReplicas > 0
 	}, 2*time.Minute, 5*time.Second).Should(gomega.BeTrue())
@@ -549,7 +549,7 @@ func (sv *SystemValidator) validateA1Interface(ctx context.Context) bool {
 	// Wait for processing.
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		return err == nil && testIntent.Status.Phase != "Pending"
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())
@@ -590,7 +590,7 @@ func (sv *SystemValidator) validateO1Interface(ctx context.Context) bool {
 	}()
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		return err == nil && testIntent.Status.Phase != "Pending"
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())
@@ -629,7 +629,7 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 	}()
 
 	gomega.Eventually(func() bool {
-		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
+		err := sv.k8sClient.Get(ctx, types.NamespacedName{Name: testIntent.GetName(), Namespace: testIntent.GetNamespace()}, testIntent)
 
 		return err == nil && testIntent.Status.Phase != "Pending"
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())

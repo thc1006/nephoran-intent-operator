@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +30,7 @@ type ControllerTestSuite struct {
 // TestControllers runs the controller test suite
 func TestControllers(t *testing.T) {
 	suite.Run(t, &ControllerTestSuite{
-		TestSuite: framework.NewTestSuite(nil),
+		TestSuite: framework.NewTestSuite(),
 	})
 }
 
@@ -260,16 +259,9 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 							},
 						},
 						Spec: nephranv1.E2NodeSpec{
-							NodeID:              "test-node",
-							E2InterfaceVersion:  "v20",
-							SupportedRANFunctions: []nephranv1.RANFunction{
-								{
-									FunctionID:  1,
-									Revision:    1,
-									Description: "Test RAN Function",
-									OID:         "1.3.6.1.4.1.1.1",
-								},
-							},
+							NodeID:      "test-node",
+							CellInfo:    "test-cell",
+							RICEndpoint: "http://ric.example.com",
 						},
 					},
 				},
@@ -397,7 +389,7 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				gomega.Expect(updatedNodeSet.Status.ReadyReplicas).To(gomega.Equal(nodeSet.Spec.Replicas))
-				gomega.Expect(updatedNodeSet.Status.CurrentReplicas).To(gomega.Equal(nodeSet.Spec.Replicas))
+				gomega.Expect(updatedNodeSet.Status.Replicas).To(gomega.Equal(nodeSet.Spec.Replicas))
 			})
 		})
 	})
@@ -407,7 +399,7 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 func (suite *ControllerTestSuite) TestLoadTesting() {
 	ginkgo.Describe("Controller Load Testing", func() {
 		ginkgo.It("should handle concurrent intent processing", func() {
-			if !suite.GetTestConfig().LoadTestEnabled {
+			if !suite.GetConfig().LoadTestEnabled {
 				ginkgo.Skip("Load testing disabled")
 			}
 
@@ -455,7 +447,7 @@ func (suite *ControllerTestSuite) TestLoadTesting() {
 func (suite *ControllerTestSuite) TestChaosEngineering() {
 	ginkgo.Describe("Controller Chaos Testing", func() {
 		ginkgo.It("should handle external service failures", func() {
-			if !suite.GetTestConfig().ChaosTestEnabled {
+			if !suite.GetConfig().ChaosTestEnabled {
 				ginkgo.Skip("Chaos testing disabled")
 			}
 
@@ -511,7 +503,7 @@ var _ = ginkgo.Describe("Controller Integration", func() {
 
 	ginkgo.BeforeEach(func() {
 		testSuite = &ControllerTestSuite{
-			TestSuite: framework.NewTestSuite(nil),
+			TestSuite: framework.NewTestSuite(),
 		}
 		testSuite.SetupSuite()
 	})

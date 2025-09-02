@@ -762,7 +762,7 @@ func TestSetReadyCondition(t *testing.T) {
 
 			// Verify condition was set correctly
 			var updatedE2NodeSet nephoranv1.E2NodeSet
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(e2nodeSet), &updatedE2NodeSet)
+			err = fakeClient.Get(ctx, types.NamespacedName{Name: e2nodeSet.GetName(), Namespace: e2nodeSet.GetNamespace()}, &updatedE2NodeSet)
 			require.NoError(t, err)
 
 			found := false

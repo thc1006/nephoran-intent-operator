@@ -337,7 +337,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			// Verify the NetworkIntent still exists with other finalizers
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: networkIntent.GetName(), Namespace: networkIntent.GetNamespace()}, updated)
 				if err != nil {
 					return false
 				}

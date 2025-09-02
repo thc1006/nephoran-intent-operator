@@ -362,7 +362,7 @@ func (l *IntentLockManager) AcquireIntentLock(ctx context.Context, intentID stri
 
 	existingLease := &coordinationv1.Lease{}
 
-	err := l.client.Get(ctx, client.ObjectKeyFromObject(lease), existingLease)
+	err := l.client.Get(ctx, types.NamespacedName{Name: lease.GetName(), Namespace: lease.GetNamespace()}, existingLease)
 
 	if err == nil {
 

@@ -163,7 +163,7 @@ func WaitForResourceReady(testCtx context.Context, obj client.Object, timeout ti
 	}
 
 	// Fallback to basic ready check
-	key := client.ObjectKeyFromObject(obj)
+	key := types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}
 	Eventually(func(g Gomega) {
 		err := k8sClient.Get(testCtx, key, obj)
 		g.Expect(err).NotTo(HaveOccurred())

@@ -79,7 +79,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Waiting for intent processing to begin")
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(policyIntent), policyIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: policyIntent.GetName(), Namespace: policyIntent.GetNamespace()}, policyIntent)
 					if err != nil {
 						return ""
 					}
@@ -244,7 +244,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Waiting for E2 nodes to become ready")
 				Eventually(func() int32 {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(e2NodeSet), e2NodeSet)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: e2NodeSet.GetName(), Namespace: e2NodeSet.GetNamespace()}, e2NodeSet)
 					if err != nil {
 						return -1
 					}
@@ -679,7 +679,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("Verifying all deployment types are supported")
 				// Edge deployment
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(edgeIntent), edgeIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: edgeIntent.GetName(), Namespace: edgeIntent.GetNamespace()}, edgeIntent)
 					if err != nil {
 						return ""
 					}
@@ -688,7 +688,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				// Hybrid deployment
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(hybridIntent), hybridIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: hybridIntent.GetName(), Namespace: hybridIntent.GetNamespace()}, hybridIntent)
 					if err != nil {
 						return ""
 					}
@@ -697,7 +697,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				// Container deployment
 				Eventually(func() string {
-					err := k8sClient.Get(ctx, client.ObjectKeyFromObject(containerIntent), containerIntent)
+					err := k8sClient.Get(ctx, types.NamespacedName{Name: containerIntent.GetName(), Namespace: containerIntent.GetNamespace()}, containerIntent)
 					if err != nil {
 						return ""
 					}
