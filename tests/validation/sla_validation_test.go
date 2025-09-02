@@ -701,32 +701,6 @@ func (s *SLAValidationTestSuite) TestCompositeSLAAccuracy() {
 
 // Helper methods for different measurement approaches
 
-// measureAvailabilityDirect measures availability through direct uptime monitoring
-func (s *SLAValidationTestSuite) measureAvailabilityDirect(ctx context.Context) *MeasurementSet {
-	measurements := &MeasurementSet{
-		Name:       "availability_direct",
-		Type:       MeasurementTypeAvailability,
-		Values:     make([]float64, 0),
-		Timestamps: make([]time.Time, 0),
-		Metadata:   map[string]interface{}{"method": "direct_uptime"},
-	}
-
-	ticker := time.NewTicker(s.config.SamplingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			s.calculateMeasurementStatistics(measurements)
-			return measurements
-		case <-ticker.C:
-			availability := s.sampleDirectAvailability()
-			measurements.Values = append(measurements.Values, availability)
-			measurements.Timestamps = append(measurements.Timestamps, time.Now())
-		}
-	}
-}
-
 // sampleDirectAvailability samples availability directly
 func (s *SLAValidationTestSuite) sampleDirectAvailability() float64 {
 	// Query Prometheus for service uptime
@@ -780,66 +754,7 @@ func NewClaimVerifier() *ClaimVerifier {
 	}
 }
 
-// configureClaimsForVerification sets up the claims to be verified
-func (s *SLAValidationTestSuite) configureClaimsForVerification() {
-	claims := []*SLAClaim{
-		{
-			Name:             "availability_99_95",
-			Type:             ClaimTypeAvailability,
-			ClaimedValue:     s.config.AvailabilityClaim,
-			Tolerance:        s.config.AvailabilityAccuracy,
-			CriticalityLevel: CriticalityCritical,
-		},
-		{
-			Name:             "latency_p95_sub_2s",
-			Type:             ClaimTypeLatency,
-			ClaimedValue:     s.config.LatencyP95Claim,
-			Tolerance:        s.config.LatencyAccuracy.Seconds(),
-			CriticalityLevel: CriticalityCritical,
-		},
-		{
-			Name:             "throughput_45_per_minute",
-			Type:             ClaimTypeThroughput,
-			ClaimedValue:     s.config.ThroughputClaim,
-			Tolerance:        s.config.ThroughputAccuracy,
-			CriticalityLevel: CriticalityHigh,
-		},
-	}
 
-	for _, claim := range claims {
-		s.claimVerifier.AddClaim(claim)
-	}
-}
-
-// calibrateMeasurementSystems calibrates measurement systems for precision
-func (s *SLAValidationTestSuite) calibrateMeasurementSystems() error {
-	s.T().Log("Calibrating measurement systems for precision")
-
-	// Calibrate system clock
-	clockOffset := s.calibrateSystemClock()
-
-	// Measure network latency to Prometheus
-	networkLatency := s.measureNetworkLatency()
-
-	// Calculate processing overhead
-	processingOverhead := s.measureProcessingOverhead()
-
-	calibrationData := &CalibrationData{
-		SystemClockOffset:  clockOffset,
-		NetworkLatency:     networkLatency,
-		ProcessingOverhead: processingOverhead,
-		Corrections:        make(map[string]float64),
-	}
-
-	s.metricCollector.calibrationData = calibrationData
-
-	s.T().Logf("Calibration completed:")
-	s.T().Logf("  Clock offset: %v", clockOffset)
-	s.T().Logf("  Network latency: %v", networkLatency)
-	s.T().Logf("  Processing overhead: %v", processingOverhead)
-
-	return nil
-}
 
 // Additional helper methods for calibration and validation...
 

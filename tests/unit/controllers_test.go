@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -254,7 +254,7 @@ func (suite *ControllerTestSuite) TestE2NodeSetController() {
 				Spec: nephranv1.E2NodeSetSpec{
 					Replicas: 3,
 					Template: nephranv1.E2NodeTemplate{
-						Metadata: metav1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
 								"app": "e2-node",
 							},
@@ -502,8 +502,8 @@ func (suite *ControllerTestSuite) TestChaosEngineering() {
 // Mock GraphQL client for testing
 type graphQLMock struct{}
 
-func (g *graphQLMock) Get() *graphql.Get {
-	return &graphql.Get{}
+func (g *graphQLMock) Get() *weaviate.GraphQLResponse {
+	return &weaviate.GraphQLResponse{}
 }
 
 var _ = ginkgo.Describe("Controller Integration", func() {

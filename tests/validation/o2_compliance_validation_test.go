@@ -41,7 +41,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 	BeforeEach(func() {
 		namespace = CreateTestNamespace()
 		var cancel context.CancelFunc
-		testCtx, cancel = context.WithTimeout(ctx, 15*time.Minute)
+		testCtx, cancel = context.WithTimeout(context.Background(), 15*time.Minute)
 		DeferCleanup(cancel)
 
 		testLogger = logging.NewLogger("o2-compliance-test", "info")

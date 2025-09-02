@@ -61,17 +61,7 @@ type CachedResponse struct {
 	LastAccess time.Time
 }
 
-// CacheConfig holds cache configuration.
-
-type CacheConfig struct {
-	EnableCache bool `json:"enable_cache"`
-
-	TTL time.Duration `json:"ttl"`
-
-	MaxSize int `json:"max_size"`
-
-	CleanupInterval time.Duration `json:"cleanup_interval"`
-}
+// CacheConfig is defined in base_types.go
 
 // CacheMetrics is defined in embedding_support.go.
 
