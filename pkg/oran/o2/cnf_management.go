@@ -552,7 +552,7 @@ type HelmChartSpec struct {
 
 	Version string `json:"version"`
 
-	Values json.RawMessage `json:"values,omitempty"`
+	Values map[string]interface{} `json:"values,omitempty"`
 
 	ValuesFiles []string `json:"valuesFiles,omitempty"`
 }

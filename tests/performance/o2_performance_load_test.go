@@ -579,7 +579,6 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								"createdAt": time.Now().Format(time.RFC3339),
 								"testType":  "memory-stress",
 							},
-						},
 					}
 
 					poolJSON, err := json.Marshal(pool)
@@ -749,8 +748,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								"intentID":           intentID,
 								"processingComplete": time.Now().Format(time.RFC3339),
 								"status":             "processed",
-							},
-						}
+							}
 
 						updateJSON, err := json.Marshal(updateData)
 						if err == nil {

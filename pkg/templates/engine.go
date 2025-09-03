@@ -1696,7 +1696,7 @@ func (e *templateEngine) RenderTemplateWithValidation(ctx context.Context, templ
 
 		Functions: []*FunctionExecution{},
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Get template.
@@ -1944,104 +1944,103 @@ func (e *templateEngine) matchesFilter(template *BlueprintTemplate, filter *Temp
 func (e *templateEngine) renderResources(ctx context.Context, template *BlueprintTemplate, parameters map[string]interface{}) ([]*porch.KRMResource, error) {
 	var resources []*porch.KRMResource
 
+	// Iterate through all resource templates in the blueprint template
 	for _, resourceTemplate := range template.Resources {
-
-		// Check conditions.
-
+		// Check render conditions
 		if !e.evaluateConditions(resourceTemplate.Conditions, parameters) {
 			continue
 		}
 
-		// Render the resource.
+		// Create temporary maps for collecting metadata and spec
+		metadataMap := make(map[string]interface{})
+		
+		resource := &porch.KRMResource{
+			APIVersion: resourceTemplate.APIVersion,
+			Kind:       resourceTemplate.Kind,
+		}
 
-		resource, err := e.renderResource(ctx, resourceTemplate, parameters)
+		// Set name from metadata if available, otherwise generate
+		if resourceTemplate.Metadata != nil && resourceTemplate.Metadata.Name != "" {
+			metadataMap["name"] = e.renderString(resourceTemplate.Metadata.Name, parameters)
+		} else {
+			// Generate name from template ID and resource type
+			metadataMap["name"] = fmt.Sprintf("%s-%s", strings.ToLower(resourceTemplate.Kind), template.ID)
+		}
+
+		// Render metadata
+		if resourceTemplate.Metadata != nil {
+			if resourceTemplate.Metadata.Namespace != "" {
+				metadataMap["namespace"] = e.renderString(resourceTemplate.Metadata.Namespace, parameters)
+			}
+
+			if resourceTemplate.Metadata.Labels != nil {
+				labels := make(map[string]string)
+				for k, v := range resourceTemplate.Metadata.Labels {
+					labels[k] = e.renderString(v, parameters)
+				}
+				metadataMap["labels"] = labels
+			}
+
+			if resourceTemplate.Metadata.Annotations != nil {
+				annotations := make(map[string]string)
+				for k, v := range resourceTemplate.Metadata.Annotations {
+					annotations[k] = e.renderString(v, parameters)
+				}
+				metadataMap["annotations"] = annotations
+			}
+		}
+
+		// Marshal metadata to json.RawMessage
+		metadataBytes, err := json.Marshal(metadataMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render resource %s: %w", resourceTemplate.Metadata.Name, err)
+			return nil, fmt.Errorf("failed to marshal metadata for resource %s: %w", resourceTemplate.Kind, err)
+		}
+		resource.Metadata = json.RawMessage(metadataBytes)
+
+		// Render spec using template string if available, otherwise render map directly
+		if resourceTemplate.Template != "" {
+			// Use Go template rendering for complex templating
+			renderedSpec, err := e.renderTemplateString(resourceTemplate.Template, parameters)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render template string for resource %s: %w", resourceTemplate.Kind, err)
+			}
+			resource.Spec = json.RawMessage(renderedSpec)
+		} else if resourceTemplate.Spec != nil {
+			// Render spec map directly
+			renderedSpec, err := e.renderMapInterface(resourceTemplate.Spec, parameters)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render spec for resource %s: %w", resourceTemplate.Kind, err)
+			}
+			
+			// Marshal spec to json.RawMessage
+			specBytes, err := json.Marshal(renderedSpec)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal spec for resource %s: %w", resourceTemplate.Kind, err)
+			}
+			resource.Spec = json.RawMessage(specBytes)
+		} else {
+			resource.Spec = json.RawMessage(`{}`)
+		}
+
+		// Render data
+		if resourceTemplate.Data != nil {
+			renderedData, err := e.renderMapInterface(resourceTemplate.Data, parameters)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render data for resource %s: %w", resourceTemplate.Kind, err)
+			}
+			
+			// Marshal data to json.RawMessage
+			dataBytes, err := json.Marshal(renderedData)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal data for resource %s: %w", resourceTemplate.Kind, err)
+			}
+			resource.Data = json.RawMessage(dataBytes)
 		}
 
 		resources = append(resources, resource)
-
 	}
 
 	return resources, nil
-}
-
-func (e *templateEngine) renderResource(ctx context.Context, resourceTemplate *KRMTemplate, parameters map[string]interface{}) (*porch.KRMResource, error) {
-	resource := &porch.KRMResource{
-		APIVersion: resourceTemplate.APIVersion,
-
-		Kind: resourceTemplate.Kind,
-
-		Metadata: make(map[string]interface{}),
-
-		Spec: make(map[string]interface{}),
-	}
-
-	// Render metadata.
-
-	if resourceTemplate.Metadata != nil {
-
-		metadata := json.RawMessage(`{}`)
-
-		if resourceTemplate.Metadata.Namespace != "" {
-			metadata["namespace"] = e.renderString(resourceTemplate.Metadata.Namespace, parameters)
-		}
-
-		if resourceTemplate.Metadata.Labels != nil {
-
-			labels := make(map[string]string)
-
-			for k, v := range resourceTemplate.Metadata.Labels {
-				labels[k] = e.renderString(v, parameters)
-			}
-
-			metadata["labels"] = labels
-
-		}
-
-		if resourceTemplate.Metadata.Annotations != nil {
-
-			annotations := make(map[string]string)
-
-			for k, v := range resourceTemplate.Metadata.Annotations {
-				annotations[k] = e.renderString(v, parameters)
-			}
-
-			metadata["annotations"] = annotations
-
-		}
-
-		resource.Metadata = metadata
-
-	}
-
-	// Render spec.
-
-	if resourceTemplate.Spec != nil {
-
-		renderedSpec, err := e.renderMapInterface(resourceTemplate.Spec, parameters)
-		if err != nil {
-			return nil, fmt.Errorf("failed to render spec: %w", err)
-		}
-
-		resource.Spec = renderedSpec
-
-	}
-
-	// Render data.
-
-	if resourceTemplate.Data != nil {
-
-		renderedData, err := e.renderMapInterface(resourceTemplate.Data, parameters)
-		if err != nil {
-			return nil, fmt.Errorf("failed to render data: %w", err)
-		}
-
-		resource.Data = renderedData
-
-	}
-
-	return resource, nil
 }
 
 func (e *templateEngine) renderString(templateStr string, parameters map[string]interface{}) string {
@@ -2051,24 +2050,35 @@ func (e *templateEngine) renderString(templateStr string, parameters map[string]
 
 	tmpl, err := template.New("render").Parse(templateStr)
 	if err != nil {
-
 		e.logger.Error(err, "Failed to parse template string", "template", templateStr)
-
 		return templateStr
-
 	}
 
 	var result strings.Builder
-
 	if err := tmpl.Execute(&result, parameters); err != nil {
-
 		e.logger.Error(err, "Failed to execute template", "template", templateStr)
-
 		return templateStr
-
 	}
 
 	return result.String()
+}
+
+func (e *templateEngine) renderTemplateString(templateStr string, parameters map[string]interface{}) (string, error) {
+	if !strings.Contains(templateStr, "{{") {
+		return templateStr, nil
+	}
+
+	tmpl, err := template.New("render").Parse(templateStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template string: %w", err)
+	}
+
+	var result strings.Builder
+	if err := tmpl.Execute(&result, parameters); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return result.String(), nil
 }
 
 func (e *templateEngine) renderMapInterface(data map[string]interface{}, parameters map[string]interface{}) (map[string]interface{}, error) {
@@ -2703,20 +2713,27 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 					},
 				},
 
-				Spec: json.RawMessage(`{}`)}",
-
-					"selector": json.RawMessage(`{}`),
+				Spec: map[string]interface{}{
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							"app": "amf",
+						},
 					},
-
-					"template": json.RawMessage(`{}`){
-							"labels": map[string]string{
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]interface{}{
 								"app": "amf",
 							},
 						},
-
-						"spec": json.RawMessage(`{}`){
-								json.RawMessage(`{}`){
-										json.RawMessage(`{}`),
+						"spec": map[string]interface{}{
+							"containers": []interface{}{
+								map[string]interface{}{
+									"name":  "amf",
+									"image": "5g-core/amf:latest",
+									"ports": []interface{}{
+										map[string]interface{}{
+											"containerPort": 8080,
+										},
 									},
 								},
 							},
@@ -2733,16 +2750,14 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 					Version: "rel-16",
 
-					Configuration: json.RawMessage(`{}`){
-							json.RawMessage(`{}`){
-									"mcc": "001",
-
-									"mnc": "01",
-								},
-
-								"amfId": "cafe00",
+					Configuration: map[string]interface{}{
+						"plmnList": []interface{}{
+							map[string]interface{}{
+								"mcc": "001",
+								"mnc": "01",
 							},
 						},
+						"amfId": "cafe00",
 					},
 
 					Interfaces: []*NFInterface{
@@ -2753,7 +2768,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 
 							Protocol: "HTTP/2",
 
-							Config: json.RawMessage(`{}`),
+							Config: map[string]interface{}{},
 						},
 
 						{

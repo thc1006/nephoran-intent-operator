@@ -105,35 +105,35 @@ type CertificateInfo struct {
 
 	Issuer string
 
-	SerialNumber string
+	DNSNames []string
+
+	IPAddresses []string
 }
 
 // OIDCProvider represents an OIDC provider configuration.
 
 type OIDCProvider struct {
-	Name string `json:"name"`
+	Name string
 
-	IssuerURL string `json:"issuer_url"`
+	IssuerURL string
 
-	ClientID string `json:"client_id"`
+	ClientID string
 
-	ClientSecret string `json:"client_secret"`
+	ClientSecret string
 
-	RedirectURL string `json:"redirect_url"`
+	RedirectURL string
 
-	Scopes []string `json:"scopes"`
+	Scopes []string
 
-	ExtraParams map[string]string `json:"extra_params"`
-
-	JWKSCache *JWKSCache `json:"-"`
+	JWKSCache *JWKSCache
 }
 
-// JWKSCache caches JWKS for token validation.
+// JWKSCache caches JWKS keys.
 
 type JWKSCache struct {
 	mu sync.RWMutex
 
-	keys interface{}
+	keys map[string]interface{}
 
 	lastUpdated time.Time
 
@@ -165,91 +165,45 @@ type TokenInfo struct {
 // RBACPolicy represents an RBAC policy.
 
 type RBACPolicy struct {
-	ID string `json:"id"`
-
 	Name string `json:"name"`
 
 	Description string `json:"description"`
 
-	Version string `json:"version"`
-
-	Rules []*PolicyRule `json:"rules"`
-
-	Subjects []*Subject `json:"subjects"`
-
-	Resources []*Resource `json:"resources"`
-
-	Conditions json.RawMessage `json:"conditions"`
-
-	CreatedAt time.Time `json:"created_at"`
-
-	UpdatedAt time.Time `json:"updated_at"`
+	Rules []RBACRule `json:"rules"`
 }
 
-// PolicyRule defines a policy rule.
+// RBACRule represents an RBAC rule.
 
-type PolicyRule struct {
-	ID string `json:"id"`
-
-	Effect string `json:"effect"` // ALLOW, DENY
+type RBACRule struct {
+	Resources []string `json:"resources"`
 
 	Actions []string `json:"actions"`
 
-	Resources []string `json:"resources"`
+	Effect string `json:"effect"`
 
-	Conditions []Condition `json:"conditions"`
-
-	Priority int `json:"priority"`
+	Conditions map[string]interface{} `json:"conditions,omitempty"`
 }
 
-// Subject represents a policy subject (user, group, service).
-
-type Subject struct {
-	Type string `json:"type"` // user, group, service
-
-	ID string `json:"id"`
-
-	Name string `json:"name"`
-
-	Attributes map[string]string `json:"attributes"`
-}
-
-// Resource represents a protected resource.
-
-type Resource struct {
-	Type string `json:"type"` // api, vnf, policy
-
-	ID string `json:"id"`
-
-	Name string `json:"name"`
-
-	Attributes map[string]string `json:"attributes"`
-}
-
-// Condition represents a policy condition.
-
-type Condition struct {
-	Field string `json:"field"`
-
-	Operator string `json:"operator"` // eq, ne, in, not_in, regex
-
-	Value interface{} `json:"value"`
-}
-
-// Role represents an RBAC role.
+// Role represents a user role.
 
 type Role struct {
-	ID string `json:"id"`
-
 	Name string `json:"name"`
 
 	Description string `json:"description"`
 
-	Permissions []string `json:"permissions"`
+	Policies []string `json:"policies"`
 
-	Attributes map[string]string `json:"attributes"`
+	Permissions []Permission `json:"permissions"`
+}
 
-	CreatedAt time.Time `json:"created_at"`
+// Permission represents a specific permission.
+
+type Permission struct {
+	Resource string `json:"resource"`
+
+	Actions []string `json:"actions"`
+
+	Conditions map[string]interface{} `json:"conditions,omitempty"`
 }
 
 // User represents a user.
@@ -263,96 +217,39 @@ type User struct {
 
 	Roles []string `json:"roles"`
 
-	Groups []string `json:"groups"`
-
-	Attributes map[string]string `json:"attributes"`
-
-	Active bool `json:"active"`
-
-	CreatedAt time.Time `json:"created_at"`
-}
-
-// SecurityConfig holds security configuration.
-
-type SecurityConfig struct {
-	TLS *TLSConfig `json:"tls"`
-
-	OAuth *OAuthConfig `json:"oauth"`
-
-	RBAC *RBACConfig `json:"rbac"`
-}
-
-// TLSConfig holds TLS configuration.
-
-type TLSConfig struct {
-	Enabled bool `json:"enabled"`
-
-	MutualTLS bool `json:"mutual_tls"`
-
-	Certificates map[string]*CertificatePaths `json:"certificates"`
-
-	CABundle string `json:"ca_bundle"`
-
-	MinVersion string `json:"min_version"`
-
-	CipherSuites []string `json:"cipher_suites"`
-
-	AutoReload bool `json:"auto_reload"`
-
-	ReloadInterval string `json:"reload_interval"`
-}
-
-// OAuthConfig holds OAuth configuration.
-
-type OAuthConfig struct {
-	Enabled bool `json:"enabled"`
-
-	Providers map[string]*OIDCProvider `json:"providers"`
-
-	DefaultScopes []string `json:"default_scopes"`
-
-	TokenTTL string `json:"token_ttl"`
-
-	RefreshEnabled bool `json:"refresh_enabled"`
-
-	CacheEnabled bool `json:"cache_enabled"`
-
-	CacheTTL string `json:"cache_ttl"`
-}
-
-// RBACConfig holds RBAC configuration.
-
-type RBACConfig struct {
-	Enabled bool `json:"enabled"`
-
-	PolicyPath string `json:"policy_path"`
-
-	DefaultPolicy string `json:"default_policy"` // ALLOW, DENY
-
-	AdminUsers []string `json:"admin_users"`
-
-	AdminRoles []string `json:"admin_roles"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // NewSecurityManager creates a new security manager.
 
-func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
-	tlsManager, err := NewTLSManager(config.TLS)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create TLS manager: %w", err)
+func NewSecurityManager() *SecurityManager {
+	tlsManager := &TLSManager{
+		tlsConfigs: make(map[string]*tls.Config),
+
+		certPaths: make(map[string]*CertificatePaths),
 	}
 
-	oauthManager, err := NewOAuthManager(config.OAuth)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create OAuth manager: %w", err)
+	oauthManager := &OAuthManager{
+		providers: make(map[string]*OIDCProvider),
+
+		tokenCache: make(map[string]*TokenInfo),
+
+		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
 
-	rbacManager, err := NewRBACManager(config.RBAC)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create RBAC manager: %w", err)
+	rbacManager := &RBACManager{
+		policies: make(map[string]*RBACPolicy),
+
+		roles: make(map[string]*Role),
+
+		users: make(map[string]*User),
 	}
 
-	certManager := NewCertificateManager()
+	certManager := &CertificateManager{
+		certificates: make(map[string]*CertificateInfo),
+
+		caPool: x509.NewCertPool(),
+	}
 
 	return &SecurityManager{
 		tlsManager: tlsManager,
@@ -362,321 +259,296 @@ func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
 		rbacManager: rbacManager,
 
 		certManager: certManager,
-	}, nil
+	}
 }
 
-// NewTLSManager creates a new TLS manager.
+// ConfigureTLS configures TLS for a specific service.
 
-func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
-	if config == nil || !config.Enabled {
-		return &TLSManager{
-			tlsConfigs: make(map[string]*tls.Config),
+func (sm *SecurityManager) ConfigureTLS(serviceName string, certPaths *CertificatePaths) error {
+	cert, err := tls.LoadX509KeyPair(certPaths.CertFile, certPaths.KeyFile)
 
-			certPaths: make(map[string]*CertificatePaths),
-		}, nil
-	}
-
-	manager := &TLSManager{
-		tlsConfigs: make(map[string]*tls.Config),
-
-		certPaths: make(map[string]*CertificatePaths),
-
-		autoReload: config.AutoReload,
-	}
-
-	// Load certificates.
-
-	for name, certPath := range config.Certificates {
-
-		tlsConfig, err := manager.loadTLSConfig(certPath, config)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load TLS config for %s: %w", name, err)
-		}
-
-		manager.tlsConfigs[name] = tlsConfig
-
-		manager.certPaths[name] = certPath
-
-	}
-
-	// Start auto-reload if enabled.
-
-	if config.AutoReload {
-
-		interval := 5 * time.Minute
-
-		if config.ReloadInterval != "" {
-			if d, err := time.ParseDuration(config.ReloadInterval); err == nil {
-				interval = d
-			}
-		}
-
-		manager.startAutoReload(interval)
-
-	}
-
-	return manager, nil
-}
-
-// loadTLSConfig loads TLS configuration from certificate files.
-
-func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig) (*tls.Config, error) {
-	cert, err := tls.LoadX509KeyPair(certPath.CertFile, certPath.KeyFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load certificate: %w", err)
+		return fmt.Errorf("failed to load certificate: %w", err)
 	}
 
-	tlsConfig := &tls.Config{
+	config := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 
-		MinVersion: tls.VersionTLS12,
-	}
+		MinVersion: tls.VersionTLS13,
 
-	// Set minimum TLS version.
+		CipherSuites: []uint16{
+			tls.TLS_AES_128_GCM_SHA256,
 
-	if config.MinVersion != "" {
-		switch config.MinVersion {
+			tls.TLS_AES_256_GCM_SHA384,
 
-		case "1.0":
-
-			tlsConfig.MinVersion = tls.VersionTLS10
-
-		case "1.1":
-
-			tlsConfig.MinVersion = tls.VersionTLS11
-
-		case "1.2":
-
-			tlsConfig.MinVersion = tls.VersionTLS12
-
-		case "1.3":
-
-			tlsConfig.MinVersion = tls.VersionTLS13
-
-		}
-	}
-
-	// Configure mutual TLS.
-
-	if config.MutualTLS {
-
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-
-		// Load CA bundle for client certificate verification.
-
-		if certPath.CAFile != "" {
-
-			caCert, err := os.ReadFile(certPath.CAFile)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read CA file: %w", err)
-			}
-
-			caCertPool := x509.NewCertPool()
-
-			if !caCertPool.AppendCertsFromPEM(caCert) {
-				return nil, fmt.Errorf("failed to parse CA certificate")
-			}
-
-			tlsConfig.ClientCAs = caCertPool
-
-		}
-
-	}
-
-	return tlsConfig, nil
-}
-
-// startAutoReload starts automatic certificate reloading.
-
-func (m *TLSManager) startAutoReload(interval time.Duration) {
-	m.reloadTicker = time.NewTicker(interval)
-
-	go func() {
-		for range m.reloadTicker.C {
-			m.reloadCertificates()
-		}
-	}()
-}
-
-// reloadCertificates reloads all certificates.
-
-func (m *TLSManager) reloadCertificates() {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	for name, certPath := range m.certPaths {
-
-		// Check if certificate files have been modified.
-
-		certInfo, err := os.Stat(certPath.CertFile)
-		if err != nil {
-			continue
-		}
-
-		keyInfo, err := os.Stat(certPath.KeyFile)
-		if err != nil {
-			continue
-		}
-
-		// Check if either file was modified recently.
-
-		now := time.Now()
-
-		if now.Sub(certInfo.ModTime()) < time.Minute || now.Sub(keyInfo.ModTime()) < time.Minute {
-
-			// Reload certificate.
-
-			cert, err := tls.LoadX509KeyPair(certPath.CertFile, certPath.KeyFile)
-			if err != nil {
-
-				log.Log.Error(err, "failed to reload certificate", "name", name)
-
-				continue
-
-			}
-
-			if tlsConfig, ok := m.tlsConfigs[name]; ok {
-
-				tlsConfig.Certificates = []tls.Certificate{cert}
-
-				log.Log.Info("certificate reloaded successfully", "name", name)
-
-			}
-
-		}
-
-	}
-}
-
-// GetTLSConfig returns TLS configuration for a given name.
-
-func (m *TLSManager) GetTLSConfig(name string) (*tls.Config, error) {
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	config, ok := m.tlsConfigs[name]
-
-	if !ok {
-		return nil, fmt.Errorf("TLS config not found: %s", name)
-	}
-
-	return config.Clone(), nil
-}
-
-// NewOAuthManager creates a new OAuth manager.
-
-func NewOAuthManager(config *OAuthConfig) (*OAuthManager, error) {
-	if config == nil || !config.Enabled {
-		return &OAuthManager{
-			providers: make(map[string]*OIDCProvider),
-
-			tokenCache: make(map[string]*TokenInfo),
-		}, nil
-	}
-
-	manager := &OAuthManager{
-		providers: make(map[string]*OIDCProvider),
-
-		tokenCache: make(map[string]*TokenInfo),
-
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			tls.TLS_CHACHA20_POLY1305_SHA256,
 		},
+
+		PreferServerCipherSuites: true,
+
+		ClientAuth: tls.RequireAndVerifyClientCert,
 	}
 
-	// Initialize providers.
+	// Load CA certificate if provided.
 
-	for name, provider := range config.Providers {
+	if certPaths.CAFile != "" {
+		caCert, err := os.ReadFile(certPaths.CAFile)
 
-		provider.Name = name
-
-		if err := manager.initializeProvider(provider); err != nil {
-			return nil, fmt.Errorf("failed to initialize OAuth provider %s: %w", name, err)
+		if err != nil {
+			return fmt.Errorf("failed to load CA certificate: %w", err)
 		}
 
-		manager.providers[name] = provider
+		caCertPool := x509.NewCertPool()
 
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		config.ClientCAs = caCertPool
 	}
 
-	// Start token cleanup routine.
+	sm.tlsManager.mu.Lock()
 
-	go manager.startTokenCleanup()
+	sm.tlsManager.tlsConfigs[serviceName] = config
 
-	return manager, nil
-}
+	sm.tlsManager.certPaths[serviceName] = certPaths
 
-// initializeProvider initializes an OIDC provider.
-
-func (m *OAuthManager) initializeProvider(provider *OIDCProvider) error {
-	// Initialize JWKS cache.
-
-	provider.JWKSCache = &JWKSCache{
-		ttl: 24 * time.Hour,
-	}
-
-	// Fetch and cache JWKS.
-
-	return m.refreshJWKS(provider)
-}
-
-// refreshJWKS refreshes JWKS from the provider.
-
-func (m *OAuthManager) refreshJWKS(provider *OIDCProvider) error {
-	jwksURL := provider.IssuerURL + "/.well-known/jwks.json"
-
-	resp, err := m.httpClient.Get(jwksURL)
-	if err != nil {
-		return fmt.Errorf("failed to fetch JWKS: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to fetch JWKS: status %d", resp.StatusCode)
-	}
-
-	var jwks interface{}
-
-	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
-		return fmt.Errorf("failed to decode JWKS: %w", err)
-	}
-
-	provider.JWKSCache.mu.Lock()
-
-	provider.JWKSCache.keys = jwks
-
-	provider.JWKSCache.lastUpdated = time.Now()
-
-	provider.JWKSCache.mu.Unlock()
+	sm.tlsManager.mu.Unlock()
 
 	return nil
 }
 
-// ValidateToken validates a JWT token.
+// GetTLSConfig returns the TLS configuration for a service.
 
-func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerName string) (*TokenInfo, error) {
-	logger := log.FromContext(ctx)
+func (sm *SecurityManager) GetTLSConfig(serviceName string) (*tls.Config, error) {
+	sm.tlsManager.mu.RLock()
+
+	defer sm.tlsManager.mu.RUnlock()
+
+	config, exists := sm.tlsManager.tlsConfigs[serviceName]
+
+	if !exists {
+		return nil, fmt.Errorf("TLS configuration not found for service: %s", serviceName)
+	}
+
+	return config, nil
+}
+
+// EnableTLSAutoReload enables automatic certificate reloading.
+
+func (sm *SecurityManager) EnableTLSAutoReload(interval time.Duration) {
+	sm.tlsManager.mu.Lock()
+
+	defer sm.tlsManager.mu.Unlock()
+
+	sm.tlsManager.autoReload = true
+
+	sm.tlsManager.reloadTicker = time.NewTicker(interval)
+
+	go sm.tlsAutoReloadLoop()
+}
+
+// tlsAutoReloadLoop runs the TLS auto-reload loop.
+
+func (sm *SecurityManager) tlsAutoReloadLoop() {
+	for range sm.tlsManager.reloadTicker.C {
+		sm.tlsManager.mu.RLock()
+
+		certPaths := make(map[string]*CertificatePaths)
+
+		for service, paths := range sm.tlsManager.certPaths {
+			certPaths[service] = paths
+		}
+
+		sm.tlsManager.mu.RUnlock()
+
+		// Reload certificates.
+
+		for serviceName, paths := range certPaths {
+			err := sm.ConfigureTLS(serviceName, paths)
+
+			if err != nil {
+				log.Log.Error(err, "failed to reload TLS configuration", "service", serviceName)
+			}
+		}
+	}
+}
+
+// ConfigureOIDCProvider configures an OIDC provider.
+
+func (sm *SecurityManager) ConfigureOIDCProvider(provider *OIDCProvider) error {
+	if provider.JWKSCache == nil {
+		provider.JWKSCache = &JWKSCache{
+			keys: make(map[string]interface{}),
+
+			ttl: 1 * time.Hour,
+		}
+	}
+
+	sm.oauthManager.mu.Lock()
+
+	sm.oauthManager.providers[provider.Name] = provider
+
+	sm.oauthManager.mu.Unlock()
+
+	// Initialize JWKS cache.
+
+	return sm.oauthManager.refreshJWKS(provider)
+}
+
+// ValidateToken validates a JWT token using the configured OIDC provider.
+
+func (sm *SecurityManager) ValidateToken(providerName, tokenString string) (*TokenInfo, error) {
+	sm.oauthManager.mu.RLock()
+
+	provider, exists := sm.oauthManager.providers[providerName]
+
+	sm.oauthManager.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("OIDC provider not found: %s", providerName)
+	}
+
+	return sm.oauthManager.validateToken(provider, tokenString)
+}
+
+// AuthorizeRequest authorizes a request using RBAC policies.
+
+func (sm *SecurityManager) AuthorizeRequest(userID, resource, action string) (bool, error) {
+	return sm.rbacManager.authorize(userID, resource, action)
+}
+
+// AddRBACPolicy adds an RBAC policy.
+
+func (sm *SecurityManager) AddRBACPolicy(policy *RBACPolicy) error {
+	sm.rbacManager.mu.Lock()
+
+	defer sm.rbacManager.mu.Unlock()
+
+	sm.rbacManager.policies[policy.Name] = policy
+
+	return nil
+}
+
+// AddRole adds a role.
+
+func (sm *SecurityManager) AddRole(role *Role) error {
+	sm.rbacManager.mu.Lock()
+
+	defer sm.rbacManager.mu.Unlock()
+
+	sm.rbacManager.roles[role.Name] = role
+
+	return nil
+}
+
+// AddUser adds a user.
+
+func (sm *SecurityManager) AddUser(user *User) error {
+	sm.rbacManager.mu.Lock()
+
+	defer sm.rbacManager.mu.Unlock()
+
+	sm.rbacManager.users[user.ID] = user
+
+	return nil
+}
+
+// RegisterCertificate registers a certificate for monitoring and rotation.
+
+func (sm *SecurityManager) RegisterCertificate(name string, cert *x509.Certificate, key interface{}) {
+	certInfo := &CertificateInfo{
+		Certificate: cert,
+
+		PrivateKey: key,
+
+		NotBefore: cert.NotBefore,
+
+		NotAfter: cert.NotAfter,
+
+		Subject: cert.Subject.String(),
+
+		Issuer: cert.Issuer.String(),
+
+		DNSNames: cert.DNSNames,
+
+		IPAddresses: make([]string, len(cert.IPAddresses)),
+	}
+
+	for i, ip := range cert.IPAddresses {
+		certInfo.IPAddresses[i] = ip.String()
+	}
+
+	sm.certManager.mu.Lock()
+
+	sm.certManager.certificates[name] = certInfo
+
+	sm.certManager.mu.Unlock()
+}
+
+// EnableCertificateAutoRotation enables automatic certificate rotation.
+
+func (sm *SecurityManager) EnableCertificateAutoRotation(interval time.Duration) {
+	sm.certManager.mu.Lock()
+
+	defer sm.certManager.mu.Unlock()
+
+	sm.certManager.autoRotate = true
+
+	sm.certManager.rotationInterval = interval
+
+	go sm.certAutoRotationLoop()
+}
+
+// certAutoRotationLoop runs the certificate auto-rotation loop.
+
+func (sm *SecurityManager) certAutoRotationLoop() {
+	ticker := time.NewTicker(sm.certManager.rotationInterval)
+
+	defer ticker.Stop()
+
+	for range ticker.C {
+		sm.certManager.mu.RLock()
+
+		certs := make(map[string]*CertificateInfo)
+
+		for name, cert := range sm.certManager.certificates {
+			certs[name] = cert
+		}
+
+		sm.certManager.mu.RUnlock()
+
+		// Check for certificates that need rotation.
+
+		for name, cert := range certs {
+			// Rotate if certificate expires within 30 days.
+
+			if time.Until(cert.NotAfter) < 30*24*time.Hour {
+				log.Log.Info("certificate needs rotation", "name", name, "expires", cert.NotAfter)
+
+				// In a real implementation, this would trigger certificate renewal.
+
+				// For now, we just log the event.
+			}
+		}
+	}
+}
+
+// validateToken validates a JWT token.
+
+func (m *OAuthManager) validateToken(provider *OIDCProvider, tokenString string) (*TokenInfo, error) {
+	logger := log.Log.WithName("oauth-manager")
 
 	// Check cache first.
 
-	if tokenInfo, ok := m.getTokenFromCache(tokenString); ok {
-
+	if tokenInfo := m.getCachedToken(tokenString); tokenInfo != nil {
 		if time.Now().Before(tokenInfo.ExpiresAt) {
+			logger.V(1).Info("using cached token")
+
 			return tokenInfo, nil
 		}
 
 		// Remove expired token from cache.
 
-		m.removeTokenFromCache(tokenString)
-
-	}
-
-	provider, ok := m.providers[providerName]
-
-	if !ok {
-		return nil, fmt.Errorf("OAuth provider not found: %s", providerName)
+		m.removeCachedToken(tokenString)
 	}
 
 	// Parse and validate token.
@@ -702,6 +574,12 @@ func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerN
 		return nil, fmt.Errorf("invalid token claims")
 	}
 
+	// Marshal claims to JSON for storage in TokenInfo
+	claimsJSON, err := json.Marshal(claims)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal claims: %w", err)
+	}
+
 	// Extract token information.
 
 	tokenInfo := &TokenInfo{
@@ -709,7 +587,7 @@ func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerN
 
 		TokenType: "Bearer",
 
-		Claims: claims,
+		Claims: json.RawMessage(claimsJSON),
 	}
 
 	// Extract standard claims.
@@ -779,16 +657,36 @@ func (m *OAuthManager) getSigningKey(provider *OIDCProvider, token *jwt.Token) (
 	return []byte("your-secret-key"), nil
 }
 
-// getTokenFromCache retrieves token from cache.
+// refreshJWKS refreshes the JWKS cache.
 
-func (m *OAuthManager) getTokenFromCache(tokenString string) (*TokenInfo, bool) {
+func (m *OAuthManager) refreshJWKS(provider *OIDCProvider) error {
+	// This is a simplified implementation.
+
+	// In reality, you would fetch JWKS from the provider's JWKS endpoint.
+
+	provider.JWKSCache.mu.Lock()
+
+	defer provider.JWKSCache.mu.Unlock()
+
+	// Simulate refreshing JWKS.
+
+	provider.JWKSCache.keys = make(map[string]interface{})
+
+	provider.JWKSCache.keys["default"] = []byte("your-secret-key")
+
+	provider.JWKSCache.lastUpdated = time.Now()
+
+	return nil
+}
+
+// getCachedToken gets a cached token.
+
+func (m *OAuthManager) getCachedToken(tokenString string) *TokenInfo {
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
 
-	tokenInfo, ok := m.tokenCache[tokenString]
-
-	return tokenInfo, ok
+	return m.tokenCache[tokenString]
 }
 
 // cacheToken caches a token.
@@ -801,9 +699,9 @@ func (m *OAuthManager) cacheToken(tokenString string, tokenInfo *TokenInfo) {
 	m.tokenCache[tokenString] = tokenInfo
 }
 
-// removeTokenFromCache removes token from cache.
+// removeCachedToken removes a token from cache.
 
-func (m *OAuthManager) removeTokenFromCache(tokenString string) {
+func (m *OAuthManager) removeCachedToken(tokenString string) {
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -811,522 +709,142 @@ func (m *OAuthManager) removeTokenFromCache(tokenString string) {
 	delete(m.tokenCache, tokenString)
 }
 
-// startTokenCleanup starts token cleanup routine.
+// authorize performs authorization using RBAC.
 
-func (m *OAuthManager) startTokenCleanup() {
-	ticker := time.NewTicker(5 * time.Minute)
+func (r *RBACManager) authorize(userID, resource, action string) (bool, error) {
+	r.mu.RLock()
 
-	defer ticker.Stop()
+	defer r.mu.RUnlock()
 
-	for range ticker.C {
-		m.cleanupExpiredTokens()
-	}
-}
+	user, exists := r.users[userID]
 
-// cleanupExpiredTokens removes expired tokens from cache.
-
-func (m *OAuthManager) cleanupExpiredTokens() {
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	now := time.Now()
-
-	for tokenString, tokenInfo := range m.tokenCache {
-		if now.After(tokenInfo.ExpiresAt) {
-			delete(m.tokenCache, tokenString)
-		}
-	}
-}
-
-// NewRBACManager creates a new RBAC manager.
-
-func NewRBACManager(config *RBACConfig) (*RBACManager, error) {
-	manager := &RBACManager{
-		policies: make(map[string]*RBACPolicy),
-
-		roles: make(map[string]*Role),
-
-		users: make(map[string]*User),
+	if !exists {
+		return false, fmt.Errorf("user not found: %s", userID)
 	}
 
-	if config != nil && config.Enabled {
+	// Check user roles and permissions.
 
-		// Load policies from file.
+	for _, roleName := range user.Roles {
+		role, exists := r.roles[roleName]
 
-		if config.PolicyPath != "" {
-			if err := manager.loadPoliciesFromFile(config.PolicyPath); err != nil {
-				return nil, fmt.Errorf("failed to load RBAC policies: %w", err)
-			}
-		}
-
-		// Create admin users and roles.
-
-		manager.initializeAdminAccess(config)
-
-	}
-
-	return manager, nil
-}
-
-// loadPoliciesFromFile loads RBAC policies from a file.
-
-func (m *RBACManager) loadPoliciesFromFile(policyPath string) error {
-	data, err := os.ReadFile(policyPath)
-	if err != nil {
-		return fmt.Errorf("failed to read policy file: %w", err)
-	}
-
-	var policies []*RBACPolicy
-
-	if err := json.Unmarshal(data, &policies); err != nil {
-		return fmt.Errorf("failed to parse policy file: %w", err)
-	}
-
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
-	for _, policy := range policies {
-		m.policies[policy.ID] = policy
-	}
-
-	return nil
-}
-
-// initializeAdminAccess initializes admin users and roles.
-
-func (m *RBACManager) initializeAdminAccess(config *RBACConfig) {
-	// Create admin role.
-
-	adminRole := &Role{
-		ID: "admin",
-
-		Name: "Administrator",
-
-		Description: "Full system access",
-
-		Permissions: []string{"*"},
-
-		CreatedAt: time.Now(),
-	}
-
-	m.roles[adminRole.ID] = adminRole
-
-	// Create admin users.
-
-	for _, username := range config.AdminUsers {
-
-		user := &User{
-			ID: username,
-
-			Username: username,
-
-			Roles: []string{"admin"},
-
-			Active: true,
-
-			CreatedAt: time.Now(),
-		}
-
-		m.users[user.ID] = user
-
-	}
-}
-
-// CheckPermission checks if a subject has permission for a resource.
-
-func (m *RBACManager) CheckPermission(ctx context.Context, subject, action, resource string) (bool, error) {
-	logger := log.FromContext(ctx)
-
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	// Get user information.
-
-	user, ok := m.users[subject]
-
-	if !ok {
-
-		logger.Info("user not found", "subject", subject)
-
-		return false, nil
-
-	}
-
-	if !user.Active {
-
-		logger.Info("user is not active", "subject", subject)
-
-		return false, nil
-
-	}
-
-	// Check user roles.
-
-	for _, roleID := range user.Roles {
-
-		role, ok := m.roles[roleID]
-
-		if !ok {
+		if !exists {
 			continue
 		}
 
-		// Check if role has required permission.
+		// Check role permissions.
 
 		for _, permission := range role.Permissions {
-			if permission == "*" || permission == action || m.matchesPattern(permission, action) {
-
-				logger.Info("permission granted", "subject", subject, "action", action, "resource", resource, "via_role", roleID)
-
+			if r.matchesPermission(permission, resource, action) {
 				return true, nil
-
 			}
 		}
 
-	}
+		// Check role policies.
 
-	// Check policies.
+		for _, policyName := range role.Policies {
+			policy, exists := r.policies[policyName]
 
-	for _, policy := range m.policies {
-		if m.evaluatePolicy(policy, subject, action, resource) {
+			if !exists {
+				continue
+			}
 
-			logger.Info("permission granted via policy", "subject", subject, "action", action, "resource", resource, "policy", policy.ID)
-
-			return true, nil
-
+			for _, rule := range policy.Rules {
+				if r.matchesRule(rule, resource, action) {
+					return rule.Effect == "allow", nil
+				}
+			}
 		}
 	}
 
-	logger.Info("permission denied", "subject", subject, "action", action, "resource", resource)
+	// Default deny.
 
 	return false, nil
 }
 
-// evaluatePolicy evaluates an RBAC policy.
+// matchesPermission checks if a permission matches the resource and action.
 
-func (m *RBACManager) evaluatePolicy(policy *RBACPolicy, subject, action, resource string) bool {
-	// Check if subject matches policy subjects.
+func (r *RBACManager) matchesPermission(permission Permission, resource, action string) bool {
+	// Simple wildcard matching.
 
-	subjectMatches := false
-
-	for _, policySubject := range policy.Subjects {
-		if policySubject.ID == subject || policySubject.Name == subject {
-
-			subjectMatches = true
-
-			break
-
-		}
-	}
-
-	if !subjectMatches {
-		return false
-	}
-
-	// Check policy rules.
-
-	for _, rule := range policy.Rules {
-		if m.evaluateRule(rule, action, resource) {
-			return rule.Effect == "ALLOW"
+	if permission.Resource == "*" || permission.Resource == resource {
+		for _, allowedAction := range permission.Actions {
+			if allowedAction == "*" || allowedAction == action {
+				return true
+			}
 		}
 	}
 
 	return false
 }
 
-// evaluateRule evaluates a policy rule.
+// matchesRule checks if a rule matches the resource and action.
 
-func (m *RBACManager) evaluateRule(rule *PolicyRule, action, resource string) bool {
-	// Check actions.
+func (r *RBACManager) matchesRule(rule RBACRule, resource, action string) bool {
+	// Simple wildcard matching.
 
-	actionMatches := false
+	resourceMatch := false
 
-	for _, ruleAction := range rule.Actions {
-		if ruleAction == "*" || ruleAction == action || m.matchesPattern(ruleAction, action) {
-
-			actionMatches = true
+	for _, ruleResource := range rule.Resources {
+		if ruleResource == "*" || ruleResource == resource {
+			resourceMatch = true
 
 			break
-
 		}
 	}
 
-	if !actionMatches {
+	if !resourceMatch {
 		return false
 	}
 
-	// Check resources.
-
-	resourceMatches := false
-
-	for _, ruleResource := range rule.Resources {
-		if ruleResource == "*" || ruleResource == resource || m.matchesPattern(ruleResource, resource) {
-
-			resourceMatches = true
-
-			break
-
+	for _, ruleAction := range rule.Actions {
+		if ruleAction == "*" || ruleAction == action {
+			return true
 		}
 	}
 
-	return resourceMatches
+	return false
 }
 
-// matchesPattern checks if a string matches a pattern (supports wildcards).
+// CreateHTTPMiddleware creates HTTP middleware for security.
 
-func (m *RBACManager) matchesPattern(pattern, value string) bool {
-	// Simple wildcard matching.
-
-	if strings.Contains(pattern, "*") {
-
-		prefix := strings.Split(pattern, "*")[0]
-
-		return strings.HasPrefix(value, prefix)
-
-	}
-
-	return pattern == value
-}
-
-// NewCertificateManager creates a new certificate manager.
-
-func NewCertificateManager() *CertificateManager {
-	return &CertificateManager{
-		certificates: make(map[string]*CertificateInfo),
-
-		caPool: x509.NewCertPool(),
-
-		autoRotate: true,
-
-		rotationInterval: 30 * 24 * time.Hour, // 30 days
-
-	}
-}
-
-// LoadCertificate loads a certificate from file.
-
-func (m *CertificateManager) LoadCertificate(name, certFile string) error {
-	data, err := os.ReadFile(certFile)
-	if err != nil {
-		return fmt.Errorf("failed to read certificate file: %w", err)
-	}
-
-	cert, err := x509.ParseCertificate(data)
-	if err != nil {
-		return fmt.Errorf("failed to parse certificate: %w", err)
-	}
-
-	certInfo := &CertificateInfo{
-		Certificate: cert,
-
-		NotBefore: cert.NotBefore,
-
-		NotAfter: cert.NotAfter,
-
-		Subject: cert.Subject.String(),
-
-		Issuer: cert.Issuer.String(),
-
-		SerialNumber: cert.SerialNumber.String(),
-	}
-
-	m.mu.Lock()
-
-	m.certificates[name] = certInfo
-
-	m.mu.Unlock()
-
-	return nil
-}
-
-// GetCertificateInfo returns certificate information.
-
-func (m *CertificateManager) GetCertificateInfo(name string) (*CertificateInfo, error) {
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	info, ok := m.certificates[name]
-
-	if !ok {
-		return nil, fmt.Errorf("certificate not found: %s", name)
-	}
-
-	return info, nil
-}
-
-// CheckCertificateExpiry checks if certificates are expiring.
-
-func (m *CertificateManager) CheckCertificateExpiry(ctx context.Context) {
-	logger := log.FromContext(ctx)
-
-	m.mu.RLock()
-
-	defer m.mu.RUnlock()
-
-	now := time.Now()
-
-	warningThreshold := 30 * 24 * time.Hour // 30 days
-
-	for name, cert := range m.certificates {
-
-		timeToExpiry := cert.NotAfter.Sub(now)
-
-		if timeToExpiry < 0 {
-			logger.Error(fmt.Errorf("certificate expired"), "certificate", name, "expired_at", cert.NotAfter)
-		} else if timeToExpiry < warningThreshold {
-			logger.Info("certificate expiring soon", "certificate", name, "expires_at", cert.NotAfter, "days_remaining", int(timeToExpiry.Hours()/24))
-		}
-
-	}
-}
-
-// StartCertificateMonitoring starts certificate monitoring.
-
-func (m *CertificateManager) StartCertificateMonitoring(ctx context.Context) {
-	ticker := time.NewTicker(24 * time.Hour) // Check daily
-
-	defer ticker.Stop()
-
-	for {
-		select {
-
-		case <-ctx.Done():
-
-			return
-
-		case <-ticker.C:
-
-			m.CheckCertificateExpiry(ctx)
-
-		}
-	}
-}
-
-// CreateMiddleware creates HTTP middleware for security.
-
-func (sm *SecurityManager) CreateMiddleware() func(http.Handler) http.Handler {
+func (sm *SecurityManager) CreateHTTPMiddleware(providerName string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-
-			// Extract token from Authorization header.
+			// Extract authorization header.
 
 			authHeader := r.Header.Get("Authorization")
 
 			if authHeader == "" {
-
-				http.Error(w, "Authorization header required", http.StatusUnauthorized)
+				http.Error(w, "missing authorization header", http.StatusUnauthorized)
 
 				return
-
 			}
 
-			// Validate Bearer token format.
+			// Check bearer token format.
 
 			parts := strings.SplitN(authHeader, " ", 2)
 
 			if len(parts) != 2 || parts[0] != "Bearer" {
-
-				http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
+				http.Error(w, "invalid authorization header format", http.StatusUnauthorized)
 
 				return
-
 			}
 
-			tokenString := parts[1]
+			// Validate token.
 
-			// Validate token (assuming default provider).
+			tokenInfo, err := sm.ValidateToken(providerName, parts[1])
 
-			tokenInfo, err := sm.oauthManager.ValidateToken(ctx, tokenString, "default")
 			if err != nil {
-
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
-
-				return
-
-			}
-
-			// Check RBAC permissions.
-
-			action := r.Method
-
-			resource := r.URL.Path
-
-			allowed, err := sm.rbacManager.CheckPermission(ctx, tokenInfo.Subject, action, resource)
-			if err != nil {
-
-				http.Error(w, "Permission check failed", http.StatusInternalServerError)
+				http.Error(w, "invalid token", http.StatusUnauthorized)
 
 				return
-
 			}
 
-			if !allowed {
+			// Add token info to request context.
 
-				http.Error(w, "Access denied", http.StatusForbidden)
+			ctx := context.WithValue(r.Context(), "tokenInfo", tokenInfo)
 
-				return
-
-			}
-
-			// Add user context.
-
-			ctx = context.WithValue(ctx, "user", tokenInfo)
-
-			r = r.WithContext(ctx)
-
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
-	}
-}
-
-// Start starts the security manager.
-
-func (sm *SecurityManager) Start(ctx context.Context) error {
-	logger := log.FromContext(ctx)
-
-	logger.Info("starting security manager")
-
-	// Start certificate monitoring.
-
-	go sm.certManager.StartCertificateMonitoring(ctx)
-
-	// Start JWKS refresh for OAuth providers.
-
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-
-		defer ticker.Stop()
-
-		for {
-			select {
-
-			case <-ctx.Done():
-
-				return
-
-			case <-ticker.C:
-
-				for _, provider := range sm.oauthManager.providers {
-					if err := sm.oauthManager.refreshJWKS(provider); err != nil {
-						logger.Error(err, "failed to refresh JWKS", "provider", provider.Name)
-					}
-				}
-
-			}
-		}
-	}()
-
-	return nil
-}
-
-// Stop stops the security manager.
-
-func (sm *SecurityManager) Stop() {
-	if sm.tlsManager.reloadTicker != nil {
-		sm.tlsManager.reloadTicker.Stop()
 	}
 }

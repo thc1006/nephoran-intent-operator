@@ -302,7 +302,7 @@ func (c *MTLSLLMClient) GetModelCapabilities() shared.ModelCapabilities {
 		CostPerToken:         0.001,
 		SupportedMimeTypes:   []string{"text/plain", "application/json"},
 		ModelVersion:         "1.0.0",
-		Features:             make(map[string]interface{}),
+		Features:             json.RawMessage("{}"),
 	}
 }
 

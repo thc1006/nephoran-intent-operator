@@ -978,7 +978,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 
 			Status: "active",
 
-			Metadata: details,
+			Metadata: func() json.RawMessage { if data, err := json.Marshal(details); err == nil { return data } else { return json.RawMessage("{}") } }(),
 		}
 
 		monitor.Alerts = append(monitor.Alerts, alert)
@@ -1307,7 +1307,7 @@ type stubMetricsCollector struct {
 // CollectMetrics performs collectmetrics operation.
 
 func (c *stubMetricsCollector) CollectMetrics(ctx context.Context) (map[string]interface{}, error) {
-	return json.RawMessage(`{}`), nil
+	return make(map[string]interface{}), nil
 }
 
 // GetName performs getname operation.

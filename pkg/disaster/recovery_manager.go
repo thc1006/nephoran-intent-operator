@@ -562,7 +562,7 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 
 			Dependencies: drm.getComponentDependencies(name),
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		}
 	}
 

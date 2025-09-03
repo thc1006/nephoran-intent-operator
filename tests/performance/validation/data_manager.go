@@ -425,7 +425,13 @@ func (dm *DataManager) ArchiveValidationResults(results *ValidationResults) (*Ar
 
 		Claims: dm.summarizeClaims(results.ClaimResults),
 
-		Metadata: dm.extractMetadata(results),
+		Metadata: func() json.RawMessage {
+			metadata := dm.extractMetadata(results)
+			if metadataBytes, err := json.Marshal(metadata); err == nil {
+				return metadataBytes
+			}
+			return json.RawMessage(`{}`)
+		}(),
 
 		DataPaths: []string{dataPath},
 	}

@@ -98,19 +98,21 @@ func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.Proces
 	}
 
 	return &llm.ProcessIntentResponse{
-		Response: responseText,
+		StructuredIntent: json.RawMessage(fmt.Sprintf(`{"response": "%s"}`, responseText)),
 
-		Confidence: float32(0.8 + rand.Float64()*0.2), // 0.8-1.0 (cast to float32)
+		Confidence: 0.8 + rand.Float64()*0.2, // 0.8-1.0
 
-		TokensUsed: 50 + rand.Intn(200), // 50-250 tokens
+		Reasoning: "Mock response generated based on intent pattern matching",
 
-		ProcessingTime: m.latencySimulation,
+		Metadata: llm.ResponseMetadata{
+			RequestID:      fmt.Sprintf("mock-req-%d", time.Now().UnixNano()),
+			ProcessingTime: float64(m.latencySimulation.Milliseconds()),
+			ModelUsed:      "mock-llm-model",
+			TokensUsed:     50 + rand.Intn(200),
+			Cost:           0.001,
+		},
 
-		ModelUsed: "mock-llm-model",
-
-		CacheHit: false,
-
-		Metadata: json.RawMessage(`{}`),
+		Timestamp: time.Now(),
 	}, nil
 }
 
@@ -226,8 +228,10 @@ func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc interface{}
 	}
 
 	// Store document.
-
-	m.documents[doc.ID] = doc
+	// Generate a unique ID for the document
+	docID := fmt.Sprintf("doc-%d", time.Now().UnixNano())
+	
+	m.documents[docID] = doc
 
 	// Generate mock vector.
 
@@ -237,7 +241,7 @@ func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc interface{}
 		vector[i] = rand.Float32()*2 - 1 // Random values between -1 and 1
 	}
 
-	m.vectors[doc.ID] = vector
+	m.vectors[docID] = vector
 
 	return nil
 }
@@ -307,28 +311,31 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 
 	count := 0
 
-	for _, doc := range m.documents {
+	for docID, docData := range m.documents {
 
 		if count >= limit {
 			break
 		}
 
+		// Convert document data to string for similarity comparison
+		docContent := fmt.Sprintf("%v", docData)
+
 		// Simple keyword matching for more realistic results.
 
-		score := m.calculateSimilarityScore(query, doc.Content)
+		score := m.calculateSimilarityScore(query, docContent)
 
 		if score > 0.3 { // Minimum relevance threshold
 
 			results = append(results, RetrievedDocument{
-				ID: doc.ID,
+				ID: docID,
 
-				Content: doc.Content,
+				Content: docContent,
 
 				Score: float32(score),
 
-				Source: doc.Source,
+				Source: "mock-source",
 
-				Metadata: doc.Metadata,
+				Metadata: map[string]interface{}{"mock": true},
 			})
 
 			count++

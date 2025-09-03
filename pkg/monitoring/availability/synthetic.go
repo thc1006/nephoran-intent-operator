@@ -978,7 +978,7 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since, until 
 
 	// Determine health status.
 
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	if errorRate == 0 && avgResponseTime < time.Duration(check.AlertThresholds.ResponseTime*float64(time.Millisecond)) {
 		status = HealthHealthy

@@ -651,7 +651,7 @@ func (s *SLATestSuite) generateSLAReport(t *testing.T) {
 			t.Logf("  [%s] %s: %s", violation.Severity, violation.Metric, violation.Violation)
 		}
 	} else {
-		t.Logf("\nAll SLAs within acceptable limits ??)
+		t.Logf("\nAll SLAs within acceptable limits ✓")
 	}
 
 	// Calculate overall compliance rate

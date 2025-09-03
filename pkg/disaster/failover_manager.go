@@ -765,7 +765,7 @@ func (fm *FailoverManager) executeFailover(ctx context.Context, record *Failover
 
 			StartTime: stepStart,
 
-			Metadata: make(map[string]interface{}),
+			Metadata: json.RawMessage(`{}`),
 		}
 
 		fm.logger.Info("Executing failover step", "step", step.Name)
@@ -857,9 +857,14 @@ func (fm *FailoverManager) validateTargetRegionHealth(ctx context.Context, targe
 		return fmt.Errorf("target region %s is not healthy", targetRegion)
 	}
 
-	step.Metadata["health_status"] = status
-
-	step.Metadata["response_time"] = status.ResponseTime.String()
+	// Marshal metadata to json.RawMessage
+	stepMetadata := map[string]interface{}{
+		"health_status": status,
+		"response_time": status.ResponseTime.String(),
+	}
+	if metadataBytes, err := json.Marshal(stepMetadata); err == nil {
+		step.Metadata = metadataBytes
+	}
 
 	regionHealth.WithLabelValues(targetRegion).Set(1)
 
@@ -923,9 +928,14 @@ func (fm *FailoverManager) synchronizeState(ctx context.Context, sourceRegion, t
 
 	syncDuration := time.Since(syncStart)
 
-	step.Metadata["sync_duration"] = syncDuration.String()
-
-	step.Metadata["data_sources"] = fm.config.StateSyncConfig.DataSources
+	// Marshal metadata to json.RawMessage
+	syncMetadata := map[string]interface{}{
+		"sync_duration": syncDuration.String(),
+		"data_sources":  fm.config.StateSyncConfig.DataSources,
+	}
+	if metadataBytes, err := json.Marshal(syncMetadata); err == nil {
+		step.Metadata = metadataBytes
+	}
 
 	fm.logger.Info("State synchronization completed", "duration", syncDuration)
 
@@ -1022,9 +1032,14 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 	}
 
-	step.Metadata["updated_records"] = updatedRecords
-
-	step.Metadata["target_endpoint"] = endpoint.IngressEndpoint
+	// Marshal metadata to json.RawMessage
+	dnsMetadata := map[string]interface{}{
+		"updated_records": updatedRecords,
+		"target_endpoint": endpoint.IngressEndpoint,
+	}
+	if metadataBytes, err := json.Marshal(dnsMetadata); err == nil {
+		step.Metadata = metadataBytes
+	}
 
 	fm.logger.Info("DNS records updated", "count", len(updatedRecords))
 
@@ -1136,9 +1151,14 @@ func (fm *FailoverManager) redirectTraffic(ctx context.Context, targetRegion str
 
 	}
 
-	step.Metadata["updated_services"] = updatedServices
-
-	step.Metadata["target_region"] = targetRegion
+	// Marshal metadata to json.RawMessage
+	trafficMetadata := map[string]interface{}{
+		"updated_services": updatedServices,
+		"target_region":    targetRegion,
+	}
+	if metadataBytes, err := json.Marshal(trafficMetadata); err == nil {
+		step.Metadata = metadataBytes
+	}
 
 	fm.logger.Info("Traffic redirection completed", "updated_services", len(updatedServices))
 
@@ -1214,9 +1234,14 @@ func (fm *FailoverManager) validateServices(ctx context.Context, targetRegion st
 		}
 	}
 
-	step.Metadata["validation_results"] = validationResults
-
-	step.Metadata["all_healthy"] = allHealthy
+	// Marshal metadata to json.RawMessage
+	validationMetadata := map[string]interface{}{
+		"validation_results": validationResults,
+		"all_healthy":        allHealthy,
+	}
+	if metadataBytes, err := json.Marshal(validationMetadata); err == nil {
+		step.Metadata = metadataBytes
+	}
 
 	if !allHealthy {
 		return fmt.Errorf("some services failed validation in region %s", targetRegion)
@@ -1244,7 +1269,8 @@ func (fm *FailoverManager) setupMonitoring(ctx context.Context, targetRegion str
 
 	// For simulation, we'll update some configuration.
 
-	step.Metadata["monitoring_setup"] = json.RawMessage(`{}`)
+	// Set monitoring metadata
+	step.Metadata = json.RawMessage(`{"monitoring_setup": {}}`)
 
 	fm.logger.Info("Monitoring setup completed for new active region", "region", targetRegion)
 
@@ -1361,7 +1387,7 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 		HealthCheckResults: make(map[string]bool),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	client := &http.Client{
@@ -1426,9 +1452,14 @@ func (h *HTTPRegionHealthChecker) CheckHealth(ctx context.Context, region string
 
 	status.Healthy = healthyCount == totalChecks
 
-	status.Metadata["healthy_checks"] = healthyCount
-
-	status.Metadata["total_checks"] = totalChecks
+	// Marshal metadata to json.RawMessage
+	checkerMetadata := map[string]interface{}{
+		"healthy_checks": healthyCount,
+		"total_checks":   totalChecks,
+	}
+	if metadataBytes, err := json.Marshal(checkerMetadata); err == nil {
+		status.Metadata = metadataBytes
+	}
 
 	return status, nil
 }

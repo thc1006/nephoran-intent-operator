@@ -789,15 +789,14 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 		}
 
-		// Deep copy map to avoid shared references.
+		// Deep copy json.RawMessage to avoid shared references.
 
 		if coordCtx.Metadata != nil {
 
-			contextCopy.Metadata = make(map[string]interface{})
-
-			for k, v := range coordCtx.Metadata {
-				contextCopy.Metadata[k] = v
-			}
+			// Copy the raw JSON bytes
+			metadataCopy := make(json.RawMessage, len(coordCtx.Metadata))
+			copy(metadataCopy, coordCtx.Metadata)
+			contextCopy.Metadata = metadataCopy
 
 		}
 

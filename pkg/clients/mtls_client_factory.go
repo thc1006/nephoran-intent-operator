@@ -430,7 +430,7 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 
 	// Check if identity already exists.
 
-	_, err := f.identityManager.GetServiceIdentity(serviceCfg.ServiceName, role, f.config.MTLSConfig.TenantID)
+	_, err := f.identityManager.GetServiceIdentity(serviceCfg.ServiceName, f.config.MTLSConfig.TenantID, role)
 
 	if err == nil {
 		return nil // Identity already exists
@@ -438,7 +438,7 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 
 	// Create service identity.
 
-	_, err = f.identityManager.CreateServiceIdentity(serviceCfg.ServiceName, role, f.config.MTLSConfig.TenantID)
+	_, err = f.identityManager.CreateServiceIdentity(serviceCfg.ServiceName, f.config.MTLSConfig.TenantID, role)
 	if err != nil {
 		return fmt.Errorf("failed to create service identity: %w", err)
 	}

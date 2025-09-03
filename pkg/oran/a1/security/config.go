@@ -25,12 +25,15 @@ type SecurityConfig struct {
 	// Security headers configuration (uses HeadersConfig from middleware.go)
 	SecurityHeaders *HeadersConfig `json:"security_headers,omitempty"`
 
-	// CORS configuration (uses CORSConfig from middleware.go)
-	CORS *CORSConfig `json:"cors,omitempty"`
+	// CORS configuration (uses CORSConfigLocal from middleware.go to avoid conflicts)
+	CORS *CORSConfigLocal `json:"cors,omitempty"`
 
 	// CSRF configuration (uses CSRFConfig from middleware.go)
 	CSRF *CSRFConfig `json:"csrf,omitempty"`
 }
+
+// CORSConfig is an alias to CORSConfigLocal to maintain compatibility
+type CORSConfig = CORSConfigLocal
 
 // AuthenticationConfig is now replaced by AuthConfig from auth.go
 

@@ -2,6 +2,7 @@ package chaos
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"

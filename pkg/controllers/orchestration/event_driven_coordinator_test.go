@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -139,7 +140,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID: intentID,
 				Phase:    interfaces.PhaseResourcePlanning,
 				Success:  true,
-				Data:     make(map[string]interface{}),
+				Data:     json.RawMessage(`{}`),
 			}
 
 			// Handle the event
@@ -314,7 +315,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				IntentID:      intentID,
 				Phase:         interfaces.PhaseIntentReceived,
 				Success:       true,
-				Data:          make(map[string]interface{}),
+				Data:          json.RawMessage(`{}`),
 				Timestamp:     time.Now(),
 				CorrelationID: "test-correlation-123",
 			}
@@ -484,7 +485,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				CurrentPhase:   interfaces.PhaseLLMProcessing,
 				StartTime:      oldTime,
 				LastUpdateTime: oldTime,
-				Metadata:       make(map[string]interface{}),
+				Metadata:       json.RawMessage(`{}`),
 			}
 
 			coordinator.mutex.Lock()

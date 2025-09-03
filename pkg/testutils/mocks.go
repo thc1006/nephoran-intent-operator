@@ -205,15 +205,27 @@ func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
 
 	}
 
-	response := json.RawMessage(`{}`){
+	response := map[string]interface{}{
+		"spec": map[string]interface{}{
 			"replicas": 1,
 
-			"image": fmt.Sprintf("registry.local/%s:latest", nfType),
-
-			"resources": json.RawMessage(`{}`),
-
-				"limits": map[string]string{"cpu": "1000m", "memory": "2Gi"},
+			"template": map[string]interface{}{
+				"spec": map[string]interface{}{
+					"containers": []map[string]interface{}{
+						{
+							"name":  nfType,
+							"image": fmt.Sprintf("registry.local/%s:latest", nfType),
+							"resources": map[string]interface{}{
+								"limits": map[string]string{"cpu": "1000m", "memory": "2Gi"},
+							},
+						},
+					},
+				},
 			},
+		},
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-deployment", nfType),
+			"namespace": namespace,
 		},
 	}
 
@@ -248,11 +260,17 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 
 	}
 
-	response := json.RawMessage(`{}`){
-			"scaling": json.RawMessage(`{}`){
-					"replicas": 3,
-				},
-			},
+	response := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"replicas": 3,
+		},
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-deployment", nfType),
+			"namespace": namespace,
+		},
+		"scaling": map[string]interface{}{
+			"action":   "scale",
+			"replicas": 3,
 		},
 	}
 
@@ -279,7 +297,7 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 
 		IsLast: true,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 
 		Timestamp: time.Now(),
 	}
@@ -454,7 +472,7 @@ func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
 		CostPerToken:         0.001,
 		SupportedMimeTypes:   []string{"text/plain", "application/json"},
 		ModelVersion:         "mock-v1.0",
-		Features:             make(map[string]interface{}),
+		Features:             json.RawMessage(`{}`),
 	}
 }
 

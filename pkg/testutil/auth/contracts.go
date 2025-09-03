@@ -1,6 +1,9 @@
-package authtestutil
+package auth
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Forward declarations and aliases to break circular dependencies.
 

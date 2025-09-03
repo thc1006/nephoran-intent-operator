@@ -105,7 +105,7 @@ func TestComputeStatusFileName(t *testing.T) {
 		},
 		{
 			name:             "UnicodeCharacters",
-			srcPath:          "intent-测�?-?айл.json",
+			srcPath:          "intent-测试-файл.json",
 			expectedFilename: "intent-" + expectedTimestamp + ".status",
 			description:      "Should sanitize Unicode characters for ASCII-only cross-platform compatibility",
 		},

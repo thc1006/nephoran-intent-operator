@@ -1120,8 +1120,12 @@ func (ac *AvailabilityCalculator) entityMatchesFilter(
 		default:
 
 			// Check in metadata.
-
-			if metaValue, exists := calculation.Metadata[key]; exists {
+			var metadata map[string]interface{}
+			if err := json.Unmarshal(calculation.Metadata, &metadata); err != nil {
+				return false
+			}
+			
+			if metaValue, exists := metadata[key]; exists {
 				if fmt.Sprintf("%v", metaValue) != value {
 					return false
 				}

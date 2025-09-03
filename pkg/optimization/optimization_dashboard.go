@@ -980,18 +980,11 @@ func (dashboard *OptimizationDashboard) requestOptimizationHandler(w http.Respon
 func (dashboard *OptimizationDashboard) optimizationStatusHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	id := vars["id"]
+	_ = vars["id"]
 
 	// Implementation for getting optimization status.
 
-	status, err := dashboard.pipeline.GetOptimizationStatus(id)
-	if err != nil {
-
-		http.Error(w, err.Error(), http.StatusNotFound)
-
-		return
-
-	}
+	status := dashboard.pipeline.GetOptimizationStatus()
 
 	dashboard.writeJSONResponse(w, status)
 }

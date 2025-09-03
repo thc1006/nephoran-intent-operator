@@ -870,29 +870,55 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
 	// Add network slice configuration to NetworkIntent.
 
-	if resource.Spec == nil {
-		resource.Spec = make(map[string]interface{})
+	var spec map[string]interface{}
+	if resource.Spec != nil {
+		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
+			spec = make(map[string]interface{})
+		}
+	} else {
+		spec = make(map[string]interface{})
 	}
 
 	// Add network slice specification.
+	spec["networkSlice"] = map[string]interface{}{}
 
-	resource.Spec["networkSlice"] = json.RawMessage(`{}`)
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(spec)
+	if err != nil {
+		return resource, &porch.FunctionResult{
+			Severity: string(porch.ValidationSeverityError),
+			Message:  fmt.Sprintf("Failed to marshal spec: %v", err),
+		}
+	}
+	resource.Spec = json.RawMessage(marshaled)
 
 	// Add labels for slice identification.
-
-	if resource.Metadata == nil {
-		resource.Metadata = make(map[string]interface{})
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	if resource.Metadata["labels"] == nil {
-		resource.Metadata["labels"] = make(map[string]interface{})
+	if metadata["labels"] == nil {
+		metadata["labels"] = make(map[string]interface{})
 	}
 
-	labels := resource.Metadata["labels"].(map[string]interface{})
-
+	labels := metadata["labels"].(map[string]interface{})
 	labels["nephoran.com/network-slice-id"] = config.SliceID
-
 	labels["nephoran.com/network-slice-type"] = config.SliceType
+
+	// Marshal back to JSON
+	metadataMarshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return resource, &porch.FunctionResult{
+			Severity: string(porch.ValidationSeverityError),
+			Message:  fmt.Sprintf("Failed to marshal metadata: %v", err),
+		}
+	}
+	resource.Metadata = json.RawMessage(metadataMarshaled)
 
 	return resource, &porch.FunctionResult{
 		Message: fmt.Sprintf("Configured NetworkIntent for slice %s", config.SliceID),
@@ -951,55 +977,54 @@ func (f *NetworkSliceConfigFunction) processService(resource porch.KRMResource, 
 
 func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
 	// Add slice configuration to ConfigMap data.
-
-	if resource.Data == nil {
-		resource.Data = make(map[string]interface{})
+	var data map[string]interface{}
+	if resource.Data != nil {
+		if err := json.Unmarshal(resource.Data, &data); err != nil {
+			data = make(map[string]interface{})
+		}
+	} else {
+		data = make(map[string]interface{})
 	}
 
 	// Add slice configuration.
-
 	sliceConfigData, _ := json.Marshal(config)
-
-	resource.Data["slice-config.json"] = string(sliceConfigData)
+	data["slice-config.json"] = string(sliceConfigData)
 
 	// Add specific configuration based on slice type.
-
 	switch config.SliceType {
-
 	case "eMBB":
-
-		resource.Data["slice-type"] = "enhanced-mobile-broadband"
-
-		resource.Data["bandwidth-priority"] = "high"
+		data["slice-type"] = "enhanced-mobile-broadband"
+		data["bandwidth-priority"] = "high"
 
 	case "URLLC":
-
-		resource.Data["slice-type"] = "ultra-reliable-low-latency"
-
-		resource.Data["latency-priority"] = "ultra-low"
+		data["slice-type"] = "ultra-reliable-low-latency"
+		data["latency-priority"] = "ultra-low"
 
 	case "mMTC":
-
-		resource.Data["slice-type"] = "massive-machine-type-communications"
-
-		resource.Data["density-optimization"] = "high"
+		data["slice-type"] = "massive-machine-type-communications"
+		data["density-optimization"] = "high"
 
 	}
 
 	// Add SLA configuration if present.
-
 	if config.SLA != nil {
-
 		slaData, _ := json.Marshal(config.SLA)
-
-		resource.Data["sla-config.json"] = string(slaData)
-
+		data["sla-config.json"] = string(slaData)
 	}
 
-	return resource, &porch.FunctionResult{
-		Message: fmt.Sprintf("Configured ConfigMap for slice %s", config.SliceID),
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(data)
+	if err != nil {
+		return resource, &porch.FunctionResult{
+			Severity: string(porch.ValidationSeverityError),
+			Message:  fmt.Sprintf("Failed to marshal data: %v", err),
+		}
+	}
+	resource.Data = json.RawMessage(marshaled)
 
-		Severity: "info",
+	return resource, &porch.FunctionResult{
+		Message:  fmt.Sprintf("Configured ConfigMap for slice %s", config.SliceID),
+		Severity: string(porch.ValidationSeverityInfo),
 	}
 }
 
@@ -1080,13 +1105,17 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 // Helper methods for resource configuration.
 
 func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.KRMResource, resourceConfig *SliceResourceAllocation) {
-	if resource.Spec == nil {
-		resource.Spec = make(map[string]interface{})
+	var spec map[string]interface{}
+	if resource.Spec != nil {
+		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
+			spec = make(map[string]interface{})
+		}
+	} else {
+		spec = make(map[string]interface{})
 	}
 
 	// Apply to container resources in deployment.
-
-	if template, ok := resource.Spec["template"].(map[string]interface{}); ok {
+	if template, ok := spec["template"].(map[string]interface{}); ok {
 		if spec, ok := template["spec"].(map[string]interface{}); ok {
 			if containers, ok := spec["containers"].([]interface{}); ok {
 				for _, container := range containers {
@@ -1173,20 +1202,31 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 			}
 		}
 	}
+
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(spec)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Spec = json.RawMessage(marshaled)
 }
 
 func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porch.KRMResource, config *NetworkSliceConfig) {
 	// Add labels.
-
-	if resource.Metadata == nil {
-		resource.Metadata = make(map[string]interface{})
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	if resource.Metadata["labels"] == nil {
-		resource.Metadata["labels"] = make(map[string]interface{})
+	if metadata["labels"] == nil {
+		metadata["labels"] = make(map[string]interface{})
 	}
 
-	labels := resource.Metadata["labels"].(map[string]interface{})
+	labels := metadata["labels"].(map[string]interface{})
 
 	labels["nephoran.com/network-slice-id"] = config.SliceID
 
@@ -1196,11 +1236,11 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 
 	// Add annotations.
 
-	if resource.Metadata["annotations"] == nil {
-		resource.Metadata["annotations"] = make(map[string]interface{})
+	if metadata["annotations"] == nil {
+		metadata["annotations"] = make(map[string]interface{})
 	}
 
-	annotations := resource.Metadata["annotations"].(map[string]interface{})
+	annotations := metadata["annotations"].(map[string]interface{})
 
 	annotations["nephoran.com/slice-config-timestamp"] = time.Now().UTC().Format(time.RFC3339)
 
@@ -1209,9 +1249,7 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 	}
 
 	// Add SLA annotations.
-
 	if config.SLA != nil {
-
 		if config.SLA.Latency != nil {
 			annotations["nephoran.com/max-latency"] = config.SLA.Latency.MaxLatency
 		}
@@ -1219,20 +1257,31 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 		if config.SLA.Availability != nil {
 			annotations["nephoran.com/availability-target"] = fmt.Sprintf("%.4f", config.SLA.Availability.Target)
 		}
-
 	}
+
+	// Marshal back to JSON
+	metadataMarshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(metadataMarshaled)
 }
 
 func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResource, qos *QoSConfiguration) {
-	if resource.Metadata == nil {
-		resource.Metadata = make(map[string]interface{})
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	if resource.Metadata["annotations"] == nil {
-		resource.Metadata["annotations"] = make(map[string]interface{})
+	if metadata["annotations"] == nil {
+		metadata["annotations"] = make(map[string]interface{})
 	}
 
-	annotations := resource.Metadata["annotations"].(map[string]interface{})
+	annotations := metadata["annotations"].(map[string]interface{})
 
 	if qos.FiveQI != 0 {
 		annotations["nephoran.com/5qi"] = strconv.Itoa(int(qos.FiveQI))
@@ -1249,22 +1298,33 @@ func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResour
 	if qos.QoSClass != "" {
 		annotations["nephoran.com/qos-class"] = qos.QoSClass
 	}
+
+	// Marshal back to JSON
+	metadataMarshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(metadataMarshaled)
 }
 
 func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.KRMResource, nfConfigs []*NetworkFunctionConfig) {
 	// This would configure specific network functions based on the slice requirements.
 
 	// For now, add metadata to indicate which NFs should be deployed.
-
-	if resource.Metadata == nil {
-		resource.Metadata = make(map[string]interface{})
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	if resource.Metadata["annotations"] == nil {
-		resource.Metadata["annotations"] = make(map[string]interface{})
+	if metadata["annotations"] == nil {
+		metadata["annotations"] = make(map[string]interface{})
 	}
 
-	annotations := resource.Metadata["annotations"].(map[string]interface{})
+	annotations := metadata["annotations"].(map[string]interface{})
 
 	var nfTypes []string
 
@@ -1273,6 +1333,13 @@ func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.K
 	}
 
 	annotations["nephoran.com/required-network-functions"] = strings.Join(nfTypes, ",")
+
+	// Marshal back to JSON
+	metadataMarshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(metadataMarshaled)
 }
 
 // Resource generation methods.

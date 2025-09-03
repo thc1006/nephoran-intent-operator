@@ -42,5 +42,5 @@ type HealthStatus struct {
 	Status    string                 `json:"status"`
 	Message   string                 `json:"message,omitempty"`
 	LastCheck time.Time              `json:"last_check"`
-	Details   json.RawMessage `json:"details,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
 }

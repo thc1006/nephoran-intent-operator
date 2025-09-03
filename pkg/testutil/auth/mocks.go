@@ -1,985 +1,793 @@
-package authtestutil
+// Package auth provides authentication mocks and test utilities for the Nephoran Intent Operator.
+
+// This package contains mock implementations for various authentication providers and services.
+
+package auth
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/mock"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// MockOAuthProvider provides a mock implementation of the OAuthProvider interface.
+// MockAuthenticator provides a mock implementation of authentication services.
 
-type MockOAuthProvider struct {
+type MockAuthenticator struct {
 	mock.Mock
 
-	Name string
+	fixtures *AuthFixtures
+
+	sessions map[string]*UserSession
+
+	mu sync.RWMutex
 }
 
-// NewMockOAuthProvider performs newmockoauthprovider operation.
+// UserSession represents an active user session.
 
-func NewMockOAuthProvider(name string) *MockOAuthProvider {
-	return &MockOAuthProvider{Name: name}
+type UserSession struct {
+	SessionID string    `json:"session_id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Active    bool      `json:"active"`
 }
 
-// GetProviderName performs getprovidername operation.
+// NewMockAuthenticator creates a new mock authenticator.
 
-func (m *MockOAuthProvider) GetProviderName() string {
-	args := m.Called()
-
-	if m.Name != "" {
-		return m.Name
-	}
-
-	return args.String(0)
-}
-
-// GetAuthorizationURL performs getauthorizationurl operation.
-
-func (m *MockOAuthProvider) GetAuthorizationURL(state, redirectURI string, options ...providers.AuthOption) (string, *providers.PKCEChallenge, error) {
-	args := m.Called(state, redirectURI, options)
-
-	return args.String(0), args.Get(1).(*providers.PKCEChallenge), args.Error(2)
-}
-
-// ExchangeCodeForToken performs exchangecodefortoken operation.
-
-func (m *MockOAuthProvider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string, challenge *providers.PKCEChallenge) (*providers.TokenResponse, error) {
-	args := m.Called(ctx, code, redirectURI, challenge)
-
-	return args.Get(0).(*providers.TokenResponse), args.Error(1)
-}
-
-// RefreshToken performs refreshtoken operation.
-
-func (m *MockOAuthProvider) RefreshToken(ctx context.Context, refreshToken string) (*providers.TokenResponse, error) {
-	args := m.Called(ctx, refreshToken)
-
-	return args.Get(0).(*providers.TokenResponse), args.Error(1)
-}
-
-// GetUserInfo performs getuserinfo operation.
-
-func (m *MockOAuthProvider) GetUserInfo(ctx context.Context, accessToken string) (*providers.UserInfo, error) {
-	args := m.Called(ctx, accessToken)
-
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
-}
-
-// ValidateToken performs validatetoken operation.
-
-func (m *MockOAuthProvider) ValidateToken(ctx context.Context, accessToken string) (*providers.TokenValidation, error) {
-	args := m.Called(ctx, accessToken)
-
-	return args.Get(0).(*providers.TokenValidation), args.Error(1)
-}
-
-// RevokeToken performs revoketoken operation.
-
-func (m *MockOAuthProvider) RevokeToken(ctx context.Context, token string) error {
-	args := m.Called(ctx, token)
-
-	return args.Error(0)
-}
-
-// SupportsFeature performs supportsfeature operation.
-
-func (m *MockOAuthProvider) SupportsFeature(feature providers.ProviderFeature) bool {
-	args := m.Called(feature)
-
-	return args.Bool(0)
-}
-
-// GetConfiguration performs getconfiguration operation.
-
-func (m *MockOAuthProvider) GetConfiguration() *providers.ProviderConfig {
-	args := m.Called()
-
-	return args.Get(0).(*providers.ProviderConfig)
-}
-
-// MockOIDCProvider extends MockOAuthProvider with OIDC functionality.
-
-type MockOIDCProvider struct {
-	*MockOAuthProvider
-}
-
-// NewMockOIDCProvider performs newmockoidcprovider operation.
-
-func NewMockOIDCProvider(name string) *MockOIDCProvider {
-	return &MockOIDCProvider{
-		MockOAuthProvider: NewMockOAuthProvider(name),
+func NewMockAuthenticator() *MockAuthenticator {
+	return &MockAuthenticator{
+		fixtures: DefaultAuthFixtures(),
+		sessions: make(map[string]*UserSession),
 	}
 }
 
-// DiscoverConfiguration performs discoverconfiguration operation.
+// WithFixtures sets custom fixtures for the mock authenticator.
 
-func (m *MockOIDCProvider) DiscoverConfiguration(ctx context.Context) (*providers.OIDCConfiguration, error) {
-	args := m.Called(ctx)
-
-	return args.Get(0).(*providers.OIDCConfiguration), args.Error(1)
+func (m *MockAuthenticator) WithFixtures(fixtures *AuthFixtures) *MockAuthenticator {
+	m.fixtures = fixtures
+	return m
 }
 
-// ValidateIDToken performs validateidtoken operation.
+// Authenticate performs authentication using username and password.
 
-func (m *MockOIDCProvider) ValidateIDToken(ctx context.Context, idToken string) (*providers.IDTokenClaims, error) {
-	args := m.Called(ctx, idToken)
+func (m *MockAuthenticator) Authenticate(ctx context.Context, username, password string) (*UserSession, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	return args.Get(0).(*providers.IDTokenClaims), args.Error(1)
-}
-
-// GetJWKS performs getjwks operation.
-
-func (m *MockOIDCProvider) GetJWKS(ctx context.Context) (*providers.JWKS, error) {
-	args := m.Called(ctx)
-
-	return args.Get(0).(*providers.JWKS), args.Error(1)
-}
-
-// GetUserInfoFromIDToken performs getuserinfofromidtoken operation.
-
-func (m *MockOIDCProvider) GetUserInfoFromIDToken(idToken string) (*providers.UserInfo, error) {
-	args := m.Called(idToken)
-
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
-}
-
-// MockEnterpriseProvider extends MockOAuthProvider with enterprise features.
-
-type MockEnterpriseProvider struct {
-	*MockOAuthProvider
-}
-
-// NewMockEnterpriseProvider performs newmockenterpriseprovider operation.
-
-func NewMockEnterpriseProvider(name string) *MockEnterpriseProvider {
-	return &MockEnterpriseProvider{
-		MockOAuthProvider: NewMockOAuthProvider(name),
-	}
-}
-
-// GetGroups performs getgroups operation.
-
-func (m *MockEnterpriseProvider) GetGroups(ctx context.Context, accessToken string) ([]string, error) {
-	args := m.Called(ctx, accessToken)
-
-	return args.Get(0).([]string), args.Error(1)
-}
-
-// GetRoles performs getroles operation.
-
-func (m *MockEnterpriseProvider) GetRoles(ctx context.Context, accessToken string) ([]string, error) {
-	args := m.Called(ctx, accessToken)
-
-	return args.Get(0).([]string), args.Error(1)
-}
-
-// CheckGroupMembership performs checkgroupmembership operation.
-
-func (m *MockEnterpriseProvider) CheckGroupMembership(ctx context.Context, accessToken string, groups []string) ([]string, error) {
-	args := m.Called(ctx, accessToken, groups)
-
-	return args.Get(0).([]string), args.Error(1)
-}
-
-// GetOrganizations performs getorganizations operation.
-
-func (m *MockEnterpriseProvider) GetOrganizations(ctx context.Context, accessToken string) ([]providers.Organization, error) {
-	args := m.Called(ctx, accessToken)
-
-	return args.Get(0).([]providers.Organization), args.Error(1)
-}
-
-// ValidateUserAccess performs validateuseraccess operation.
-
-func (m *MockEnterpriseProvider) ValidateUserAccess(ctx context.Context, accessToken string, requiredLevel providers.AccessLevel) error {
-	args := m.Called(ctx, accessToken, requiredLevel)
-
-	return args.Error(0)
-}
-
-// MockLDAPProvider provides a mock implementation of the LDAPProvider interface.
-
-type MockLDAPProvider struct {
-	mock.Mock
-}
-
-// NewMockLDAPProvider performs newmockldapprovider operation.
-
-func NewMockLDAPProvider() *MockLDAPProvider {
-	return &MockLDAPProvider{}
-}
-
-// Connect performs connect operation.
-
-func (m *MockLDAPProvider) Connect(ctx context.Context) error {
-	args := m.Called(ctx)
-
-	return args.Error(0)
-}
-
-// Authenticate performs authenticate operation.
-
-func (m *MockLDAPProvider) Authenticate(ctx context.Context, username, password string) (*providers.UserInfo, error) {
 	args := m.Called(ctx, username, password)
 
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
-}
-
-// SearchUser performs searchuser operation.
-
-func (m *MockLDAPProvider) SearchUser(ctx context.Context, username string) (*providers.UserInfo, error) {
-	args := m.Called(ctx, username)
-
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
-}
-
-// GetUserGroups performs getusergroups operation.
-
-func (m *MockLDAPProvider) GetUserGroups(ctx context.Context, username string) ([]string, error) {
-	args := m.Called(ctx, username)
-
-	return args.Get(0).([]string), args.Error(1)
-}
-
-// GetUserRoles performs getuserroles operation.
-
-func (m *MockLDAPProvider) GetUserRoles(ctx context.Context, username string) ([]string, error) {
-	args := m.Called(ctx, username)
-
-	return args.Get(0).([]string), args.Error(1)
-}
-
-// ValidateUserAttributes performs validateuserattributes operation.
-
-func (m *MockLDAPProvider) ValidateUserAttributes(ctx context.Context, username string, requiredAttrs map[string]string) error {
-	args := m.Called(ctx, username, requiredAttrs)
-
-	return args.Error(0)
-}
-
-// Close performs close operation.
-
-func (m *MockLDAPProvider) Close() error {
-	args := m.Called()
-
-	return args.Error(0)
-}
-
-// MockLDAPServer provides an in-memory LDAP server for testing.
-
-type MockLDAPServer struct {
-	users map[string]*LDAPUser
-
-	groups map[string]*LDAPGroup
-
-	binds map[string]string // username -> password
-
-	mutex sync.RWMutex
-
-	closed bool
-}
-
-// LDAPUser represents a ldapuser.
-
-type LDAPUser struct {
-	DN string `json:"dn"`
-
-	Username string `json:"username"`
-
-	Email string `json:"email"`
-
-	Name string `json:"name"`
-
-	GivenName string `json:"given_name"`
-
-	Surname string `json:"surname"`
-
-	Groups []string `json:"groups"`
-
-	Attributes map[string]string `json:"attributes"`
-}
-
-// LDAPGroup represents a ldapgroup.
-
-type LDAPGroup struct {
-	DN string `json:"dn"`
-
-	Name string `json:"name"`
-
-	Description string `json:"description"`
-
-	Members []string `json:"members"`
-}
-
-// NewMockLDAPServer performs newmockldapserver operation.
-
-func NewMockLDAPServer() *MockLDAPServer {
-	server := &MockLDAPServer{
-		users: make(map[string]*LDAPUser),
-
-		groups: make(map[string]*LDAPGroup),
-
-		binds: make(map[string]string),
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*UserSession), args.Error(1)
 	}
 
-	// Add default test users.
+	// Default behavior using fixtures
+	if !m.fixtures.ValidateUserCredentials(username, password) {
+		return nil, fmt.Errorf("invalid credentials")
+	}
 
-	server.AddUser(&LDAPUser{
-		DN: "cn=testuser,ou=users,dc=example,dc=com",
+	sessionID := fmt.Sprintf("session-%s-%d", username, time.Now().UnixNano())
+	session := &UserSession{
+		SessionID: sessionID,
+		Username:  username,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		Active:    true,
+	}
 
-		Username: "testuser",
-
-		Email: "testuser@example.com",
-
-		Name: "Test User",
-
-		GivenName: "Test",
-
-		Surname: "User",
-
-		Groups: []string{"users", "developers"},
-
-		Attributes: map[string]string{
-			"department": "engineering",
-
-			"title": "software engineer",
-		},
-	})
-
-	server.SetPassword("testuser", "password123")
-
-	server.AddUser(&LDAPUser{
-		DN: "cn=admin,ou=users,dc=example,dc=com",
-
-		Username: "admin",
-
-		Email: "admin@example.com",
-
-		Name: "Admin User",
-
-		GivenName: "Admin",
-
-		Surname: "User",
-
-		Groups: []string{"users", "admins"},
-
-		Attributes: map[string]string{
-			"department": "operations",
-
-			"title": "system administrator",
-		},
-	})
-
-	server.SetPassword("admin", "admin123")
-
-	// Add default test groups.
-
-	server.AddGroup(&LDAPGroup{
-		DN: "cn=users,ou=groups,dc=example,dc=com",
-
-		Name: "users",
-
-		Description: "All users",
-
-		Members: []string{"testuser", "admin"},
-	})
-
-	server.AddGroup(&LDAPGroup{
-		DN: "cn=developers,ou=groups,dc=example,dc=com",
-
-		Name: "developers",
-
-		Description: "Software developers",
-
-		Members: []string{"testuser"},
-	})
-
-	server.AddGroup(&LDAPGroup{
-		DN: "cn=admins,ou=groups,dc=example,dc=com",
-
-		Name: "admins",
-
-		Description: "System administrators",
-
-		Members: []string{"admin"},
-	})
-
-	return server
+	m.sessions[sessionID] = session
+	return session, nil
 }
 
-// AddUser performs adduser operation.
+// ValidateToken validates a JWT token.
 
-func (s *MockLDAPServer) AddUser(user *LDAPUser) {
-	s.mutex.Lock()
+func (m *MockAuthenticator) ValidateToken(ctx context.Context, tokenString string) (*jwt.Token, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	defer s.mutex.Unlock()
+	args := m.Called(ctx, tokenString)
 
-	s.users[user.Username] = user
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*jwt.Token), args.Error(1)
+	}
+
+	// Default behavior using fixtures
+	return m.fixtures.ValidateJWTToken(tokenString)
 }
 
-// AddGroup performs addgroup operation.
+// GenerateToken generates a JWT token for a user.
 
-func (s *MockLDAPServer) AddGroup(group *LDAPGroup) {
-	s.mutex.Lock()
+func (m *MockAuthenticator) GenerateToken(ctx context.Context, username string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	defer s.mutex.Unlock()
+	args := m.Called(ctx, username)
 
-	s.groups[group.Name] = group
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.String(0), args.Error(1)
+	}
+
+	// Default behavior using fixtures
+	return m.fixtures.GenerateJWTToken(username)
 }
 
-// SetPassword performs setpassword operation.
+// GetSession retrieves a user session by session ID.
 
-func (s *MockLDAPServer) SetPassword(username, password string) {
-	s.mutex.Lock()
+func (m *MockAuthenticator) GetSession(ctx context.Context, sessionID string) (*UserSession, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	defer s.mutex.Unlock()
+	args := m.Called(ctx, sessionID)
 
-	s.binds[username] = password
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*UserSession), args.Error(1)
+	}
+
+	// Default behavior
+	session, exists := m.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	if !session.Active || time.Now().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	return session, nil
 }
 
-// GetUser performs getuser operation.
+// HasPermission checks if a user has a specific permission.
 
-func (s *MockLDAPServer) GetUser(username string) *LDAPUser {
-	s.mutex.RLock()
+func (m *MockAuthenticator) HasPermission(ctx context.Context, username, permission string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	defer s.mutex.RUnlock()
+	args := m.Called(ctx, username, permission)
 
-	return s.users[username]
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Bool(0), args.Error(1)
+	}
+
+	// Default behavior using fixtures
+	return m.fixtures.HasPermission(username, permission), nil
 }
 
-// GetGroup performs getgroup operation.
+// Logout invalidates a user session.
 
-func (s *MockLDAPServer) GetGroup(name string) *LDAPGroup {
-	s.mutex.RLock()
+func (m *MockAuthenticator) Logout(ctx context.Context, sessionID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	defer s.mutex.RUnlock()
+	args := m.Called(ctx, sessionID)
 
-	return s.groups[name]
-}
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Error(0)
+	}
 
-// Authenticate performs authenticate operation.
-
-func (s *MockLDAPServer) Authenticate(username, password string) bool {
-	s.mutex.RLock()
-
-	defer s.mutex.RUnlock()
-
-	expectedPassword, exists := s.binds[username]
-
-	return exists && expectedPassword == password
-}
-
-// Close performs close operation.
-
-func (s *MockLDAPServer) Close() error {
-	s.mutex.Lock()
-
-	defer s.mutex.Unlock()
-
-	s.closed = true
+	// Default behavior
+	if session, exists := m.sessions[sessionID]; exists {
+		session.Active = false
+		session.ExpiresAt = time.Now()
+	}
 
 	return nil
 }
 
-// IsClosed performs isclosed operation.
+// MockOAuth2Provider provides a mock OAuth2 provider implementation.
 
-func (s *MockLDAPServer) IsClosed() bool {
-	s.mutex.RLock()
+type MockOAuth2Provider struct {
+	mock.Mock
 
-	defer s.mutex.RUnlock()
+	fixtures *OAuth2Fixtures
 
-	return s.closed
+	mu sync.RWMutex
 }
 
-// OAuth2 Mock Server for different providers.
+// NewMockOAuth2Provider creates a new mock OAuth2 provider.
 
-type OAuth2MockServer struct {
-	Server *httptest.Server
-
-	Provider string
-
-	Users map[string]*providers.UserInfo
-
-	Tokens map[string]*providers.TokenResponse
-
-	InvalidTokens map[string]bool
-
-	mutex sync.RWMutex
-}
-
-// NewOAuth2MockServer performs newoauth2mockserver operation.
-
-func NewOAuth2MockServer(provider string) *OAuth2MockServer {
-	ms := &OAuth2MockServer{
-		Provider: provider,
-
-		Users: make(map[string]*providers.UserInfo),
-
-		Tokens: make(map[string]*providers.TokenResponse),
-
-		InvalidTokens: make(map[string]bool),
-	}
-
-	// Setup default test data.
-
-	ms.setupDefaultData()
-
-	// Create HTTP server.
-
-	mux := http.NewServeMux()
-
-	ms.setupEndpoints(mux)
-
-	ms.Server = httptest.NewServer(mux)
-
-	return ms
-}
-
-func (ms *OAuth2MockServer) setupDefaultData() {
-	// Add test users.
-
-	testUser := &providers.UserInfo{
-		Subject: "test-user-123",
-
-		Email: "testuser@example.com",
-
-		EmailVerified: true,
-
-		Name: "Test User",
-
-		GivenName: "Test",
-
-		FamilyName: "User",
-
-		Username: "testuser",
-
-		Provider: ms.Provider,
-
-		ProviderID: fmt.Sprintf("%s-test-user-123", ms.Provider),
-
-		Groups: []string{"users", "testers"},
-
-		Roles: []string{"viewer"},
-	}
-
-	adminUser := &providers.UserInfo{
-		Subject: "admin-user-456",
-
-		Email: "admin@example.com",
-
-		EmailVerified: true,
-
-		Name: "Admin User",
-
-		GivenName: "Admin",
-
-		FamilyName: "User",
-
-		Username: "admin",
-
-		Provider: ms.Provider,
-
-		ProviderID: fmt.Sprintf("%s-admin-user-456", ms.Provider),
-
-		Groups: []string{"users", "admins"},
-
-		Roles: []string{"admin"},
-	}
-
-	ms.Users["test-access-token"] = testUser
-
-	ms.Users["admin-access-token"] = adminUser
-
-	// Add token responses.
-
-	ms.Tokens["test-auth-code"] = &providers.TokenResponse{
-		AccessToken: "test-access-token",
-
-		RefreshToken: "test-refresh-token",
-
-		TokenType: "Bearer",
-
-		ExpiresIn: 3600,
-
-		Scope: "openid email profile",
-
-		IssuedAt: time.Now(),
-	}
-
-	ms.Tokens["admin-auth-code"] = &providers.TokenResponse{
-		AccessToken: "admin-access-token",
-
-		RefreshToken: "admin-refresh-token",
-
-		TokenType: "Bearer",
-
-		ExpiresIn: 3600,
-
-		Scope: "openid email profile",
-
-		IssuedAt: time.Now(),
+func NewMockOAuth2Provider() *MockOAuth2Provider {
+	return &MockOAuth2Provider{
+		fixtures: CreateOAuth2Fixtures(),
 	}
 }
 
-func (ms *OAuth2MockServer) setupEndpoints(mux *http.ServeMux) {
-	// Authorization endpoint.
+// WithOAuth2Fixtures sets custom OAuth2 fixtures.
 
-	mux.HandleFunc("/oauth/authorize", ms.handleAuthorize)
-
-	mux.HandleFunc("/auth", ms.handleAuthorize) // Alternative path
-
-	// Token endpoint.
-
-	mux.HandleFunc("/oauth/token", ms.handleToken)
-
-	mux.HandleFunc("/token", ms.handleToken) // Alternative path
-
-	// User info endpoint.
-
-	mux.HandleFunc("/user", ms.handleUserInfo)
-
-	mux.HandleFunc("/userinfo", ms.handleUserInfo) // OIDC standard
-
-	// OIDC endpoints.
-
-	mux.HandleFunc("/.well-known/openid_configuration", ms.handleOIDCDiscovery)
-
-	mux.HandleFunc("/.well-known/jwks.json", ms.handleJWKS)
-
-	// Token revocation.
-
-	mux.HandleFunc("/oauth/revoke", ms.handleRevoke)
+func (m *MockOAuth2Provider) WithOAuth2Fixtures(fixtures *OAuth2Fixtures) *MockOAuth2Provider {
+	m.fixtures = fixtures
+	return m
 }
 
-func (ms *OAuth2MockServer) handleAuthorize(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+// ValidateClientCredentials validates OAuth2 client credentials.
 
-	redirectURI := query.Get("redirect_uri")
+func (m *MockOAuth2Provider) ValidateClientCredentials(ctx context.Context, clientID, clientSecret string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	state := query.Get("state")
+	args := m.Called(ctx, clientID, clientSecret)
 
-	if redirectURI == "" {
-
-		http.Error(w, "Missing redirect_uri", http.StatusBadRequest)
-
-		return
-
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Bool(0), args.Error(1)
 	}
 
-	// Generate mock authorization code.
-
-	code := "test-auth-code"
-
-	if query.Get("error") == "access_denied" {
-		code = "denied-auth-code"
-	}
-
-	// Redirect with code.
-
-	redirectURL, err := url.Parse(redirectURI)
-	if err != nil {
-		http.Error(w, "Invalid redirect URI", http.StatusBadRequest)
-		return
-	}
-
-	q := redirectURL.Query()
-
-	q.Set("code", code)
-
-	if state != "" {
-		q.Set("state", state)
-	}
-
-	redirectURL.RawQuery = q.Encode()
-
-	http.Redirect(w, r, redirectURL.String(), http.StatusFound)
+	// Default behavior using fixtures
+	return m.fixtures.ValidateClientCredentials(clientID, clientSecret), nil
 }
 
-func (ms *OAuth2MockServer) handleToken(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+// GenerateAuthorizationCode generates an OAuth2 authorization code.
 
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func (m *MockOAuth2Provider) GenerateAuthorizationCode(ctx context.Context, clientID, userID, redirectURI string, scopes []string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-		return
+	args := m.Called(ctx, clientID, userID, redirectURI, scopes)
 
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.String(0), args.Error(1)
 	}
 
-	if err := r.ParseForm(); err != nil {
-
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-
-		return
-
+	// Default behavior
+	if !m.fixtures.ValidateRedirectURI(clientID, redirectURI) {
+		return "", fmt.Errorf("invalid redirect URI")
 	}
 
-	grantType := r.FormValue("grant_type")
+	code := fmt.Sprintf("auth-code-%d", time.Now().UnixNano())
+	authCode := OAuth2AuthCode{
+		Code:        code,
+		ClientID:    clientID,
+		UserID:      userID,
+		RedirectURI: redirectURI,
+		Scopes:      scopes,
+		ExpiresAt:   time.Now().Add(10 * time.Minute),
+	}
 
-	switch grantType {
+	m.fixtures.AuthorizationCodes[code] = authCode
+	return code, nil
+}
 
-	case "authorization_code":
+// ExchangeCodeForTokens exchanges an authorization code for access tokens.
 
-		ms.handleAuthorizationCodeGrant(w, r)
+func (m *MockOAuth2Provider) ExchangeCodeForTokens(ctx context.Context, code, clientID, clientSecret string) (*OAuth2TokenResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	case "refresh_token":
+	args := m.Called(ctx, code, clientID, clientSecret)
 
-		ms.handleRefreshTokenGrant(w, r)
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*OAuth2TokenResponse), args.Error(1)
+	}
 
-	default:
+	// Default behavior
+	if !m.fixtures.ValidateClientCredentials(clientID, clientSecret) {
+		return nil, fmt.Errorf("invalid client credentials")
+	}
 
-		http.Error(w, "Unsupported grant type", http.StatusBadRequest)
+	authCode, exists := m.fixtures.AuthorizationCodes[code]
+	if !exists || time.Now().After(authCode.ExpiresAt) {
+		return nil, fmt.Errorf("invalid or expired authorization code")
+	}
 
+	// Generate access token
+	accessToken := fmt.Sprintf("access-token-%d", time.Now().UnixNano())
+	refreshToken := fmt.Sprintf("refresh-token-%d", time.Now().UnixNano())
+
+	// Store tokens
+	m.fixtures.AccessTokens[accessToken] = OAuth2AccessToken{
+		Token:     accessToken,
+		ClientID:  clientID,
+		UserID:    authCode.UserID,
+		Scopes:    authCode.Scopes,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+
+	m.fixtures.RefreshTokens[refreshToken] = OAuth2RefreshToken{
+		Token:     refreshToken,
+		ClientID:  clientID,
+		UserID:    authCode.UserID,
+		ExpiresAt: time.Now().Add(30 * 24 * time.Hour),
+	}
+
+	// Remove used authorization code
+	delete(m.fixtures.AuthorizationCodes, code)
+
+	return &OAuth2TokenResponse{
+		AccessToken:  accessToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    3600,
+		RefreshToken: refreshToken,
+		Scopes:       authCode.Scopes,
+	}, nil
+}
+
+// ValidateAccessToken validates an OAuth2 access token.
+
+func (m *MockOAuth2Provider) ValidateAccessToken(ctx context.Context, token string) (*OAuth2AccessToken, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	args := m.Called(ctx, token)
+
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*OAuth2AccessToken), args.Error(1)
+	}
+
+	// Default behavior
+	accessToken, exists := m.fixtures.AccessTokens[token]
+	if !exists || time.Now().After(accessToken.ExpiresAt) {
+		return nil, fmt.Errorf("invalid or expired access token")
+	}
+
+	return &accessToken, nil
+}
+
+// OAuth2TokenResponse represents an OAuth2 token response.
+
+type OAuth2TokenResponse struct {
+	AccessToken  string   `json:"access_token"`
+	TokenType    string   `json:"token_type"`
+	ExpiresIn    int      `json:"expires_in"`
+	RefreshToken string   `json:"refresh_token,omitempty"`
+	Scopes       []string `json:"scopes,omitempty"`
+}
+
+// MockSAMLProvider provides a mock SAML provider implementation.
+
+type MockSAMLProvider struct {
+	mock.Mock
+
+	fixtures *SAMLFixtures
+
+	mu sync.RWMutex
+}
+
+// NewMockSAMLProvider creates a new mock SAML provider.
+
+func NewMockSAMLProvider() *MockSAMLProvider {
+	return &MockSAMLProvider{
+		fixtures: CreateSAMLFixtures(),
 	}
 }
 
-func (ms *OAuth2MockServer) handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
+// WithSAMLFixtures sets custom SAML fixtures.
 
-	ms.mutex.RLock()
+func (m *MockSAMLProvider) WithSAMLFixtures(fixtures *SAMLFixtures) *MockSAMLProvider {
+	m.fixtures = fixtures
+	return m
+}
 
-	tokenResponse, exists := ms.Tokens[code]
+// ValidateSAMLResponse validates a SAML response.
 
-	ms.mutex.RUnlock()
+func (m *MockSAMLProvider) ValidateSAMLResponse(ctx context.Context, samlResponse string) (*SAMLAssertion, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	if !exists {
+	args := m.Called(ctx, samlResponse)
 
-		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
-
-		return
-
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*SAMLAssertion), args.Error(1)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	// Default behavior - simplified SAML validation
+	// In a real implementation, this would parse and validate the XML
+	return &SAMLAssertion{
+		Subject:    "admin@nephoran.local",
+		Issuer:     "https://sso.nephoran.local/saml/idp",
+		Audience:   "https://api.nephoran.local/saml/sp",
+		NotBefore:  time.Now().Add(-5 * time.Minute),
+		NotOnOrAfter: time.Now().Add(1 * time.Hour),
+		Attributes: map[string][]string{
+			"email":      {"admin@nephoran.local"},
+			"displayName": {"Administrator"},
+			"roles":      {"cluster-admin", "network-admin"},
+		},
+	}, nil
+}
 
-	if err := json.NewEncoder(w).Encode(tokenResponse); err != nil {
-		http.Error(w, "Failed to encode token response", http.StatusInternalServerError)
-		return
+// GenerateSAMLRequest generates a SAML authentication request.
+
+func (m *MockSAMLProvider) GenerateSAMLRequest(ctx context.Context, entityID string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	args := m.Called(ctx, entityID)
+
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.String(0), args.Error(1)
+	}
+
+	// Default behavior - return a mock SAML request
+	return fmt.Sprintf(`<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="request-%d" Version="2.0" IssueInstant="%s" Destination="https://sso.nephoran.local/saml/sso">
+		<saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">%s</saml:Issuer>
+		<samlp:NameIDPolicy Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" AllowCreate="true"/>
+	</samlp:AuthnRequest>`, time.Now().UnixNano(), time.Now().Format(time.RFC3339), entityID), nil
+}
+
+// SAMLAssertion represents a SAML assertion.
+
+type SAMLAssertion struct {
+	Subject      string              `json:"subject"`
+	Issuer       string              `json:"issuer"`
+	Audience     string              `json:"audience"`
+	NotBefore    time.Time           `json:"not_before"`
+	NotOnOrAfter time.Time           `json:"not_on_or_after"`
+	Attributes   map[string][]string `json:"attributes"`
+}
+
+// MockLDAPProvider provides a mock LDAP provider implementation.
+
+type MockLDAPProvider struct {
+	mock.Mock
+
+	fixtures *LDAPFixtures
+
+	mu sync.RWMutex
+}
+
+// NewMockLDAPProvider creates a new mock LDAP provider.
+
+func NewMockLDAPProvider() *MockLDAPProvider {
+	return &MockLDAPProvider{
+		fixtures: CreateLDAPFixtures(),
 	}
 }
 
-func (ms *OAuth2MockServer) handleRefreshTokenGrant(w http.ResponseWriter, r *http.Request) {
-	refreshToken := r.FormValue("refresh_token")
+// WithLDAPFixtures sets custom LDAP fixtures.
 
-	// Find token by refresh token.
+func (m *MockLDAPProvider) WithLDAPFixtures(fixtures *LDAPFixtures) *MockLDAPProvider {
+	m.fixtures = fixtures
+	return m
+}
 
-	ms.mutex.RLock()
+// Bind performs LDAP bind authentication.
 
-	var tokenResponse *providers.TokenResponse
+func (m *MockLDAPProvider) Bind(ctx context.Context, bindDN, password string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	for _, token := range ms.Tokens {
-		if token.RefreshToken == refreshToken {
+	args := m.Called(ctx, bindDN, password)
 
-			tokenResponse = &providers.TokenResponse{
-				AccessToken: token.AccessToken + "-refreshed",
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Error(0)
+	}
 
-				RefreshToken: token.RefreshToken,
-
-				TokenType: token.TokenType,
-
-				ExpiresIn: 3600,
-
-				Scope: token.Scope,
-
-				IssuedAt: time.Now(),
-			}
-
-			break
-
+	// Default behavior - validate against fixtures
+	for _, user := range m.fixtures.Users {
+		if user.DN == bindDN && user.UserPassword == password {
+			return nil
 		}
 	}
 
-	ms.mutex.RUnlock()
+	return fmt.Errorf("invalid credentials")
+}
 
-	if tokenResponse == nil {
+// Search performs LDAP search.
 
-		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
+func (m *MockLDAPProvider) Search(ctx context.Context, baseDN, filter string, attributes []string) ([]LDAPSearchResult, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-		return
+	args := m.Called(ctx, baseDN, filter, attributes)
 
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).([]LDAPSearchResult), args.Error(1)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	// Default behavior - simplified search
+	results := make([]LDAPSearchResult, 0)
 
-	if err := json.NewEncoder(w).Encode(tokenResponse); err != nil {
-		http.Error(w, "Failed to encode refresh token response", http.StatusInternalServerError)
-		return
+	// Search users
+	for _, user := range m.fixtures.Users {
+		if m.matchesFilter(user.DN, filter) {
+			result := LDAPSearchResult{
+				DN: user.DN,
+				Attributes: map[string][]string{
+					"cn":          {user.CN},
+					"uid":         {user.UID},
+					"mail":        {user.Email},
+					"displayName": {user.DisplayName},
+					"memberOf":    user.MemberOf,
+				},
+			}
+			results = append(results, result)
+		}
+	}
+
+	// Search groups
+	for _, group := range m.fixtures.Groups {
+		if m.matchesFilter(group.DN, filter) {
+			result := LDAPSearchResult{
+				DN: group.DN,
+				Attributes: map[string][]string{
+					"cn":          {group.CN},
+					"description": {group.Description},
+					"member":      group.Members,
+				},
+			}
+			results = append(results, result)
+		}
+	}
+
+	return results, nil
+}
+
+// matchesFilter performs simple LDAP filter matching.
+
+func (m *MockLDAPProvider) matchesFilter(dn, filter string) bool {
+	// Simplified filter matching for testing
+	// In a real implementation, this would parse LDAP filter syntax
+	return true // For mock purposes, return all results
+}
+
+// LDAPSearchResult represents an LDAP search result.
+
+type LDAPSearchResult struct {
+	DN         string              `json:"dn"`
+	Attributes map[string][]string `json:"attributes"`
+}
+
+// MockCertificateProvider provides mock certificate validation.
+
+type MockCertificateProvider struct {
+	mock.Mock
+
+	fixtures *AuthFixtures
+
+	mu sync.RWMutex
+}
+
+// NewMockCertificateProvider creates a new mock certificate provider.
+
+func NewMockCertificateProvider() *MockCertificateProvider {
+	return &MockCertificateProvider{
+		fixtures: DefaultAuthFixtures(),
 	}
 }
 
-func (ms *OAuth2MockServer) handleUserInfo(w http.ResponseWriter, r *http.Request) {
-	authHeader := r.Header.Get("Authorization")
+// WithCertificateFixtures sets certificate fixtures.
 
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+func (m *MockCertificateProvider) WithCertificateFixtures(fixtures *AuthFixtures) *MockCertificateProvider {
+	m.fixtures = fixtures
+	return m
+}
 
-		http.Error(w, "Missing or invalid authorization header", http.StatusUnauthorized)
+// ValidateCertificate validates a client certificate.
 
-		return
+func (m *MockCertificateProvider) ValidateCertificate(ctx context.Context, certPEM []byte) (*CertificateInfo, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
+	args := m.Called(ctx, certPEM)
+
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).(*CertificateInfo), args.Error(1)
 	}
 
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-
-	ms.mutex.RLock()
-
-	user, exists := ms.Users[token]
-
-	isInvalid := ms.InvalidTokens[token]
-
-	ms.mutex.RUnlock()
-
-	if isInvalid {
-
-		http.Error(w, "Token has been revoked", http.StatusUnauthorized)
-
-		return
-
+	// Default behavior - find matching certificate in fixtures
+	for _, cert := range m.fixtures.Certificates {
+		if string(cert.Certificate) == string(certPEM) {
+			return &CertificateInfo{
+				CommonName: cert.CommonName,
+				Subject:    cert.CommonName,
+				Issuer:     "Nephoran Test CA",
+				NotBefore:  time.Now().Add(-24 * time.Hour),
+				NotAfter:   cert.ExpiresAt,
+				Valid:      true,
+			}, nil
+		}
 	}
 
+	return nil, fmt.Errorf("certificate not found or invalid")
+}
+
+// CertificateInfo contains certificate validation information.
+
+type CertificateInfo struct {
+	CommonName string    `json:"common_name"`
+	Subject    string    `json:"subject"`
+	Issuer     string    `json:"issuer"`
+	NotBefore  time.Time `json:"not_before"`
+	NotAfter   time.Time `json:"not_after"`
+	Valid      bool      `json:"valid"`
+}
+
+// MockMultiFactorProvider provides mock MFA implementation.
+
+type MockMultiFactorProvider struct {
+	mock.Mock
+
+	codes map[string]MFACode
+
+	mu sync.RWMutex
+}
+
+// MFACode represents a multi-factor authentication code.
+
+type MFACode struct {
+	Code      string    `json:"code"`
+	UserID    string    `json:"user_id"`
+	Type      string    `json:"type"` // totp, sms, email
+	ExpiresAt time.Time `json:"expires_at"`
+	Used      bool      `json:"used"`
+}
+
+// NewMockMultiFactorProvider creates a new mock MFA provider.
+
+func NewMockMultiFactorProvider() *MockMultiFactorProvider {
+	return &MockMultiFactorProvider{
+		codes: make(map[string]MFACode),
+	}
+}
+
+// GenerateMFACode generates a multi-factor authentication code.
+
+func (m *MockMultiFactorProvider) GenerateMFACode(ctx context.Context, userID, codeType string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	args := m.Called(ctx, userID, codeType)
+
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.String(0), args.Error(1)
+	}
+
+	// Default behavior
+	code := fmt.Sprintf("mfa-%d", time.Now().UnixNano()%1000000)
+	mfaCode := MFACode{
+		Code:      code,
+		UserID:    userID,
+		Type:      codeType,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+		Used:      false,
+	}
+
+	m.codes[code] = mfaCode
+	return code, nil
+}
+
+// ValidateMFACode validates a multi-factor authentication code.
+
+func (m *MockMultiFactorProvider) ValidateMFACode(ctx context.Context, userID, code string) (bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	args := m.Called(ctx, userID, code)
+
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Bool(0), args.Error(1)
+	}
+
+	// Default behavior
+	mfaCode, exists := m.codes[code]
 	if !exists {
-
-		http.Error(w, "Invalid access token", http.StatusUnauthorized)
-
-		return
-
+		return false, fmt.Errorf("invalid MFA code")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	if mfaCode.Used {
+		return false, fmt.Errorf("MFA code already used")
+	}
 
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	if time.Now().After(mfaCode.ExpiresAt) {
+		return false, fmt.Errorf("MFA code expired")
+	}
+
+	if mfaCode.UserID != userID {
+		return false, fmt.Errorf("MFA code mismatch")
+	}
+
+	// Mark code as used
+	mfaCode.Used = true
+	m.codes[code] = mfaCode
+
+	return true, nil
+}
+
+// MockAuthorizationProvider provides mock RBAC authorization.
+
+type MockAuthorizationProvider struct {
+	mock.Mock
+
+	fixtures *AuthFixtures
+
+	mu sync.RWMutex
+}
+
+// NewMockAuthorizationProvider creates a new mock authorization provider.
+
+func NewMockAuthorizationProvider() *MockAuthorizationProvider {
+	return &MockAuthorizationProvider{
+		fixtures: DefaultAuthFixtures(),
 	}
 }
 
-func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.Request) {
-	baseURL := ms.Server.URL
+// WithAuthorizationFixtures sets authorization fixtures.
 
-	config := json.RawMessage(`{}`),
-
-		"response_types_supported": []string{
-			"code",
-		},
-
-		"grant_types_supported": []string{
-			"authorization_code", "refresh_token",
-		},
-
-		"subject_types_supported": []string{
-			"public",
-		},
-
-		"id_token_signing_alg_values_supported": []string{
-			"RS256",
-		},
-
-		"code_challenge_methods_supported": []string{
-			"S256",
-		},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(config); err != nil {
-		http.Error(w, "Failed to encode config", http.StatusInternalServerError)
-		return
-	}
+func (m *MockAuthorizationProvider) WithAuthorizationFixtures(fixtures *AuthFixtures) *MockAuthorizationProvider {
+	m.fixtures = fixtures
+	return m
 }
 
-func (ms *OAuth2MockServer) handleJWKS(w http.ResponseWriter, r *http.Request) {
-	jwks := json.RawMessage(`{}`){
-			{
-				"kty": "RSA",
+// CheckPermission checks if a user has permission for a specific resource and action.
 
-				"kid": "test-key-1",
+func (m *MockAuthorizationProvider) CheckPermission(ctx context.Context, userID, resource, action, namespace string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-				"use": "sig",
+	args := m.Called(ctx, userID, resource, action, namespace)
 
-				"alg": "RS256",
-
-				"n": "test-modulus",
-
-				"e": "AQAB",
-			},
-		},
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Bool(0), args.Error(1)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(jwks); err != nil {
-		http.Error(w, "Failed to encode JWKS", http.StatusInternalServerError)
-		return
-	}
+	// Default behavior using fixtures
+	permission := fmt.Sprintf("%s:%s:%s", resource, action, namespace)
+	return m.fixtures.HasPermission(userID, permission), nil
 }
 
-func (ms *OAuth2MockServer) handleRevoke(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+// GetUserRoles returns the roles for a user.
 
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func (m *MockAuthorizationProvider) GetUserRoles(ctx context.Context, userID string) ([]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-		return
+	args := m.Called(ctx, userID)
 
+	// If mock expects are set, return the mock result
+	if len(m.ExpectedCalls) > 0 {
+		return args.Get(0).([]string), args.Error(1)
 	}
 
-	if err := r.ParseForm(); err != nil {
-
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-
-		return
-
+	// Default behavior using fixtures
+	user, exists := m.fixtures.GetUserByUsername(userID)
+	if !exists {
+		return nil, fmt.Errorf("user not found")
 	}
 
-	token := r.FormValue("token")
+	return user.Roles, nil
+}
 
-	if token == "" {
+// ToJSON serializes mock data to JSON for debugging.
 
-		http.Error(w, "Missing token", http.StatusBadRequest)
+func (m *MockAuthenticator) ToJSON() ([]byte, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-		return
-
+	data := map[string]interface{}{
+		"fixtures": m.fixtures,
+		"sessions": m.sessions,
 	}
 
-	ms.mutex.Lock()
-
-	ms.InvalidTokens[token] = true
-
-	ms.mutex.Unlock()
-
-	w.WriteHeader(http.StatusOK)
+	return json.MarshalIndent(data, "", "  ")
 }
 
-// AddUser performs adduser operation.
+// Reset clears all mock data and expectations.
 
-func (ms *OAuth2MockServer) AddUser(token string, user *providers.UserInfo) {
-	ms.mutex.Lock()
+func (m *MockAuthenticator) Reset() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	defer ms.mutex.Unlock()
-
-	ms.Users[token] = user
+	m.Mock.ExpectedCalls = nil
+	m.Mock.Calls = nil
+	m.sessions = make(map[string]*UserSession)
 }
-
-// InvalidateToken performs invalidatetoken operation.
-
-func (ms *OAuth2MockServer) InvalidateToken(token string) {
-	ms.mutex.Lock()
-
-	defer ms.mutex.Unlock()
-
-	ms.InvalidTokens[token] = true
-}
-
-// Close performs close operation.
-
-func (ms *OAuth2MockServer) Close() {
-	if ms.Server != nil {
-		ms.Server.Close()
-	}
-}
-

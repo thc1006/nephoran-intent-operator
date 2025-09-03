@@ -496,7 +496,8 @@ func FindResourcesByGVK(resources []porch.KRMResource, gvk schema.GroupVersionKi
 func FindResourceByName(resources []porch.KRMResource, kind, name string) *porch.KRMResource {
 	for _, resource := range resources {
 		if resource.Kind == kind {
-			if resourceName, ok := resource.Metadata["name"].(string); ok && resourceName == name {
+			resourceName, err := GetResourceName(&resource)
+			if err == nil && resourceName == name {
 				return &resource
 			}
 		}
@@ -512,8 +513,12 @@ func GetResourceName(resource *porch.KRMResource) (string, error) {
 		return "", fmt.Errorf("resource metadata is nil")
 	}
 
-	name, ok := resource.Metadata["name"].(string)
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return "", fmt.Errorf("failed to unmarshal metadata: %w", err)
+	}
 
+	name, ok := metadata["name"].(string)
 	if !ok {
 		return "", fmt.Errorf("resource name not found or not a string")
 	}
@@ -528,8 +533,12 @@ func GetResourceNamespace(resource *porch.KRMResource) string {
 		return ""
 	}
 
-	namespace, ok := resource.Metadata["namespace"].(string)
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return ""
+	}
 
+	namespace, ok := metadata["namespace"].(string)
 	if !ok {
 		return ""
 	}
@@ -540,21 +549,29 @@ func GetResourceNamespace(resource *porch.KRMResource) string {
 // SetResourceAnnotation sets an annotation on a resource.
 
 func SetResourceAnnotation(resource *porch.KRMResource, key, value string) {
-	if resource.Metadata == nil {
-		resource.Metadata = make(map[string]interface{})
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	annotations, ok := resource.Metadata["annotations"].(map[string]interface{})
-
+	annotations, ok := metadata["annotations"].(map[string]interface{})
 	if !ok {
-
 		annotations = make(map[string]interface{})
-
-		resource.Metadata["annotations"] = annotations
-
+		metadata["annotations"] = annotations
 	}
 
 	annotations[key] = value
+
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(marshaled)
 }
 
 // GetResourceAnnotation gets an annotation from a resource.
@@ -564,35 +581,46 @@ func GetResourceAnnotation(resource *porch.KRMResource, key string) (string, boo
 		return "", false
 	}
 
-	annotations, ok := resource.Metadata["annotations"].(map[string]interface{})
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return "", false
+	}
 
+	annotations, ok := metadata["annotations"].(map[string]interface{})
 	if !ok {
 		return "", false
 	}
 
 	value, ok := annotations[key].(string)
-
 	return value, ok
 }
 
 // SetResourceLabel sets a label on a resource.
 
 func SetResourceLabel(resource *porch.KRMResource, key, value string) {
-	if resource.Metadata == nil {
-		resource.Metadata = make(map[string]interface{})
+	var metadata map[string]interface{}
+	if resource.Metadata != nil {
+		if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
 	}
 
-	labels, ok := resource.Metadata["labels"].(map[string]interface{})
-
+	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
-
 		labels = make(map[string]interface{})
-
-		resource.Metadata["labels"] = labels
-
+		metadata["labels"] = labels
 	}
 
 	labels[key] = value
+
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(metadata)
+	if err != nil {
+		return // Silent fail for now
+	}
+	resource.Metadata = json.RawMessage(marshaled)
 }
 
 // GetResourceLabel gets a label from a resource.
@@ -602,14 +630,17 @@ func GetResourceLabel(resource *porch.KRMResource, key string) (string, bool) {
 		return "", false
 	}
 
-	labels, ok := resource.Metadata["labels"].(map[string]interface{})
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return "", false
+	}
 
+	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
 		return "", false
 	}
 
 	value, ok := labels[key].(string)
-
 	return value, ok
 }
 
@@ -738,8 +769,12 @@ func ValidateKRMResource(resource *porch.KRMResource) error {
 		return fmt.Errorf("metadata is required")
 	}
 
-	name, ok := resource.Metadata["name"].(string)
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return fmt.Errorf("invalid metadata JSON: %w", err)
+	}
 
+	name, ok := metadata["name"].(string)
 	if !ok || name == "" {
 		return fmt.Errorf("metadata.name is required and must be a non-empty string")
 	}
@@ -820,17 +855,37 @@ func GetSpecField(resource *porch.KRMResource, fieldPath string) (interface{}, e
 		return nil, fmt.Errorf("resource spec is nil")
 	}
 
-	return getNestedField(resource.Spec, fieldPath)
+	var spec map[string]interface{}
+	if err := json.Unmarshal(resource.Spec, &spec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal spec: %w", err)
+	}
+
+	return getNestedField(spec, fieldPath)
 }
 
 // SetSpecField safely sets a field in resource spec.
 
 func SetSpecField(resource *porch.KRMResource, fieldPath string, value interface{}) error {
-	if resource.Spec == nil {
-		resource.Spec = make(map[string]interface{})
+	var spec map[string]interface{}
+	if resource.Spec != nil {
+		if err := json.Unmarshal(resource.Spec, &spec); err != nil {
+			spec = make(map[string]interface{})
+		}
+	} else {
+		spec = make(map[string]interface{})
 	}
 
-	return setNestedField(resource.Spec, fieldPath, value)
+	if err := setNestedField(spec, fieldPath, value); err != nil {
+		return err
+	}
+
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(spec)
+	if err != nil {
+		return fmt.Errorf("failed to marshal spec: %w", err)
+	}
+	resource.Spec = json.RawMessage(marshaled)
+	return nil
 }
 
 // GetStatusField safely gets a field from resource status.
@@ -840,17 +895,37 @@ func GetStatusField(resource *porch.KRMResource, fieldPath string) (interface{},
 		return nil, fmt.Errorf("resource status is nil")
 	}
 
-	return getNestedField(resource.Status, fieldPath)
+	var status map[string]interface{}
+	if err := json.Unmarshal(resource.Status, &status); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal status: %w", err)
+	}
+
+	return getNestedField(status, fieldPath)
 }
 
 // SetStatusField safely sets a field in resource status.
 
 func SetStatusField(resource *porch.KRMResource, fieldPath string, value interface{}) error {
-	if resource.Status == nil {
-		resource.Status = make(map[string]interface{})
+	var status map[string]interface{}
+	if resource.Status != nil {
+		if err := json.Unmarshal(resource.Status, &status); err != nil {
+			status = make(map[string]interface{})
+		}
+	} else {
+		status = make(map[string]interface{})
 	}
 
-	return setNestedField(resource.Status, fieldPath, value)
+	if err := setNestedField(status, fieldPath, value); err != nil {
+		return err
+	}
+
+	// Marshal back to JSON
+	marshaled, err := json.Marshal(status)
+	if err != nil {
+		return fmt.Errorf("failed to marshal status: %w", err)
+	}
+	resource.Status = json.RawMessage(marshaled)
+	return nil
 }
 
 // Private helper methods.
@@ -859,8 +934,13 @@ func (f *BaseFunctionImpl) validateAgainstSchema(config *FunctionConfig, schema 
 	// Basic schema validation - in production, use a proper JSON schema validator.
 
 	if schema.Required != nil {
+		var data map[string]interface{}
+		if err := json.Unmarshal(config.Data, &data); err != nil {
+			return fmt.Errorf("failed to unmarshal config data: %w", err)
+		}
+		
 		for _, requiredField := range schema.Required {
-			if _, exists := config.Data[requiredField]; !exists {
+			if _, exists := data[requiredField]; !exists {
 				return fmt.Errorf("required field '%s' is missing", requiredField)
 			}
 		}

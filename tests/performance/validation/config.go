@@ -119,7 +119,6 @@ func DefaultValidationConfig() *ValidationConfig {
 					Complexity: "moderate",
 
 					Parameters: json.RawMessage(`{}`),
-					},
 				},
 
 				// Complex Scenarios (30% of tests).
@@ -133,9 +132,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Complexity: "complex",
 
-					Parameters: map[string]interface{}{
-						"coordination_required": true,
-					},
+					Parameters: json.RawMessage(`{"coordination_required": true}`),
 				},
 			},
 
@@ -145,7 +142,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Development environment with minimal resources",
 
-					Config: map[string]interface{}{},
+					Config: json.RawMessage(`{}`),
 				},
 
 				{
@@ -153,7 +150,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Staging environment simulating production load",
 
-					Config: map[string]interface{}{},
+					Config: json.RawMessage(`{}`),
 				},
 
 				{
@@ -161,7 +158,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Production environment with full resources",
 
-					Config: map[string]interface{}{},
+					Config: json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -178,7 +175,6 @@ func DefaultValidationConfig() *ValidationConfig {
 			ConfidenceIntervals: true, // Include confidence intervals
 
 			HypothesisTests: true, // Perform formal hypothesis tests
-
 		},
 	}
 }

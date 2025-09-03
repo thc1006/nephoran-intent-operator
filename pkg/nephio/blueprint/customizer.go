@@ -31,9 +31,7 @@ limitations under the License.
 package blueprint
 
 import (
-	
-	"encoding/json"
-"context"
+	"context"
 	"fmt"
 	"regexp"
 	"strings"

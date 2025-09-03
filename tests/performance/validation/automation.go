@@ -288,7 +288,7 @@ func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*Valida
 
 		Notifications: []NotificationSent{},
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Gather environment metadata.
@@ -437,9 +437,14 @@ func (ar *AutomationRunner) executeBaselineStage(ctx context.Context, stage Stag
 
 	time.Sleep(2 * time.Second)
 
-	result.Metadata["baseline_updated"] = true
-
-	result.Metadata["baseline_timestamp"] = time.Now()
+	// Update metadata with baseline info
+	baselineMetadata := map[string]interface{}{
+		"baseline_updated":   true,
+		"baseline_timestamp": time.Now(),
+	}
+	if metadataBytes, err := json.Marshal(baselineMetadata); err == nil {
+		result.Metadata = metadataBytes
+	}
 
 	return nil
 }
@@ -455,9 +460,14 @@ func (ar *AutomationRunner) executeRegressionStage(ctx context.Context, stage St
 
 	time.Sleep(3 * time.Second)
 
-	result.Metadata["regression_analysis"] = true
-
-	result.Metadata["regressions_detected"] = 0
+	// Update metadata with regression analysis
+	regressionMetadata := map[string]interface{}{
+		"regression_analysis":  true,
+		"regressions_detected": 0,
+	}
+	if metadataBytes, err := json.Marshal(regressionMetadata); err == nil {
+		result.Metadata = metadataBytes
+	}
 
 	return nil
 }
@@ -766,21 +776,25 @@ func (ar *AutomationRunner) gatherMetadata(result *ValidationResult) {
 
 	// Gather environment information.
 
-	result.Metadata["go_version"] = ar.getGoVersion()
-
-	result.Metadata["kubernetes_version"] = ar.getKubernetesVersion()
-
-	result.Metadata["ci_mode"] = ar.ciMode
+	// Gather metadata
+	metadata := map[string]interface{}{
+		"go_version":         ar.getGoVersion(),
+		"kubernetes_version": ar.getKubernetesVersion(),
+		"ci_mode":            ar.ciMode,
+	}
 
 	// CI-specific metadata.
 
 	if ar.ciMode {
 
-		result.Metadata["ci_build_id"] = os.Getenv("BUILD_ID")
-
-		result.Metadata["ci_job_id"] = os.Getenv("JOB_ID")
-
-		result.Metadata["ci_pipeline_id"] = os.Getenv("PIPELINE_ID")
+		metadata["ci_build_id"] = os.Getenv("BUILD_ID")
+		metadata["ci_job_id"] = os.Getenv("JOB_ID")
+		metadata["ci_pipeline_id"] = os.Getenv("PIPELINE_ID")
+	}
+	
+	// Marshal metadata to json.RawMessage
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		result.Metadata = metadataBytes
 
 	}
 }

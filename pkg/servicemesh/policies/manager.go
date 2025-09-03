@@ -509,7 +509,6 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 						},
 					},
 				},
-				},
 			},
 		}
 

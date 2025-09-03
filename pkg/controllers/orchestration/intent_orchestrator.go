@@ -595,14 +595,31 @@ func (o *IntentOrchestrator) updateProcessingContext(processingCtx *interfaces.P
 
 	case interfaces.PhaseManifestGeneration:
 
-		if manifests, ok := result.Data["manifests"].(map[string]string); ok {
-			processingCtx.GeneratedManifests = manifests
+		if result.Data != nil {
+			var data map[string]interface{}
+			if err := json.Unmarshal(result.Data, &data); err == nil {
+				if manifests, ok := data["manifests"].(map[string]interface{}); ok {
+					// Convert to map[string]string
+					manifestsStr := make(map[string]string)
+					for k, v := range manifests {
+						if str, ok := v.(string); ok {
+							manifestsStr[k] = str
+						}
+					}
+					processingCtx.GeneratedManifests = manifestsStr
+				}
+			}
 		}
 
 	case interfaces.PhaseGitOpsCommit:
 
-		if commitHash, ok := result.Data["commitHash"].(string); ok {
-			processingCtx.GitCommitHash = commitHash
+		if result.Data != nil {
+			var data map[string]interface{}
+			if err := json.Unmarshal(result.Data, &data); err == nil {
+				if commitHash, ok := data["commitHash"].(string); ok {
+					processingCtx.GitCommitHash = commitHash
+				}
+			}
 		}
 
 	case interfaces.PhaseDeploymentVerification:
@@ -660,16 +677,32 @@ func (o *IntentOrchestrator) validatePhaseResult(phase interfaces.ProcessingPhas
 	case interfaces.PhaseManifestGeneration:
 
 		if result.Success {
-			if manifests, ok := result.Data["manifests"]; !ok || manifests == nil {
-				return fmt.Errorf("manifest generation must return manifests on success")
+			if result.Data != nil {
+				var data map[string]interface{}
+				if err := json.Unmarshal(result.Data, &data); err != nil {
+					return fmt.Errorf("manifest generation must return valid JSON data on success")
+				}
+				if manifests, ok := data["manifests"]; !ok || manifests == nil {
+					return fmt.Errorf("manifest generation must return manifests on success")
+				}
+			} else {
+				return fmt.Errorf("manifest generation must return data on success")
 			}
 		}
 
 	case interfaces.PhaseGitOpsCommit:
 
 		if result.Success {
-			if commitHash, ok := result.Data["commitHash"]; !ok || commitHash == "" {
-				return fmt.Errorf("GitOps commit must return commit hash on success")
+			if result.Data != nil {
+				var data map[string]interface{}
+				if err := json.Unmarshal(result.Data, &data); err != nil {
+					return fmt.Errorf("GitOps commit must return valid JSON data on success")
+				}
+				if commitHash, ok := data["commitHash"]; !ok || commitHash == "" {
+					return fmt.Errorf("GitOps commit must return commit hash on success")
+				}
+			} else {
+				return fmt.Errorf("GitOps commit must return data on success")
 			}
 		}
 

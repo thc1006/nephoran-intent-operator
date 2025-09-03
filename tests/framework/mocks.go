@@ -310,7 +310,8 @@ func (mm *MockManager) setupLLMMock() {
 
 		// Mock embedding response.
 
-		response := json.RawMessage(`{}`){
+		response := map[string]interface{}{
+			"data": []map[string]interface{}{
 				{
 					"object": "embedding",
 
@@ -349,8 +350,7 @@ func (mm *MockManager) setupORANMock() {
 	router.HandleFunc("/a1-p/v2/policytypes", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_a1_policy_types")
 
-		response := []json.RawMessage(`{}`),
-
+		response := []map[string]interface{}{
 			{
 				"policy_type_id": 2000,
 
@@ -370,9 +370,9 @@ func (mm *MockManager) setupORANMock() {
 	router.HandleFunc("/restconf/data/ietf-interfaces:interfaces", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o1_interfaces")
 
-		response := json.RawMessage(`{}`){
-				"interface": []json.RawMessage(`{}`),
-				},
+		response := map[string]interface{}{
+			"ietf-interfaces:interfaces": map[string]interface{}{
+				"interface": []map[string]interface{}{},
 			},
 		}
 
@@ -390,11 +390,12 @@ func (mm *MockManager) setupORANMock() {
 
 			w.WriteHeader(http.StatusCreated)
 
-			json.NewEncoder(w).Encode(json.RawMessage(`{}`))
+			json.NewEncoder(w).Encode(map[string]string{"deployment_id": "mock-deployment-1"})
 
 		} else {
 
-			response := []json.RawMessage(`{}`),
+			response := []map[string]interface{}{
+				{"deployment_id": "mock-deployment-1", "status": "running"},
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -417,11 +418,14 @@ func (mm *MockManager) setupPrometheusMock() {
 	router.HandleFunc("/api/v1/query", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("prometheus_query")
 
-		response := json.RawMessage(`{}`){
+		response := map[string]interface{}{
+			"status": "success",
+			"data": map[string]interface{}{
 				"resultType": "vector",
 
-				"result": []json.RawMessage(`{}`),
-
+				"result": []map[string]interface{}{
+					{
+						"metric": map[string]string{"__name__": "up"},
 						"value": []interface{}{
 							time.Now().Unix(),
 

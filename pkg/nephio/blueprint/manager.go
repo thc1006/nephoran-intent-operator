@@ -1075,14 +1075,16 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 // GetMetrics returns current metrics.
 
 func (m *Manager) GetMetrics() map[string]interface{} {
-	return json.RawMessage(`{}`)) bool {
-				size++
+	size := 0
+	m.cache.Range(func(k, v interface{}) bool {
+		size++
+		return true
+	})
 
-				return true
-			})
-
-			return size
-		}(),
+	return map[string]interface{}{
+		"blueprints_count": size,
+		"cache_size":      size,
+		"last_updated":    time.Now().Unix(),
 	}
 }
 

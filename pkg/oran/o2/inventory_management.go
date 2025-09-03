@@ -126,9 +126,9 @@ type Asset struct {
 
 	// Asset properties.
 
-	Properties json.RawMessage `json:"properties"`
+	Properties map[string]interface{} `json:"properties"`
 
-	Configuration json.RawMessage `json:"configuration,omitempty"`
+	Configuration map[string]interface{} `json:"configuration,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -188,7 +188,7 @@ type AssetRelationship struct {
 
 	RelationType string `json:"relationType"`
 
-	Properties json.RawMessage `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -206,7 +206,7 @@ type ComplianceCheck struct {
 
 	Result string `json:"result"`
 
-	Details json.RawMessage `json:"details,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -803,7 +803,7 @@ func (s *InventoryManagementService) updateExistingAsset(existing, discovered *A
 
 			ResourceID: existing.ID,
 
-			Changes: changes,
+			Changes: func() json.RawMessage { if data, err := json.Marshal(changes); err == nil { return data } else { return json.RawMessage("{}") } }(),
 
 			Timestamp: time.Now(),
 
@@ -1014,7 +1014,7 @@ func (s *InventoryManagementService) UpdateAsset(ctx context.Context, asset *Ass
 
 			ResourceID: asset.ID,
 
-			Changes: changes,
+			Changes: func() json.RawMessage { if data, err := json.Marshal(changes); err == nil { return data } else { return json.RawMessage("{}") } }(),
 
 			Timestamp: time.Now(),
 

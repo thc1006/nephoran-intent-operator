@@ -413,6 +413,9 @@ func (ohc *ORANHealthChecker) performHealthCheck() {
 
 	defer cancel()
 
+	// Create empty circuit breaker stats as raw JSON
+	emptyStats := json.RawMessage(`{}`)
+
 	snapshot := HealthSnapshot{
 		Timestamp: time.Now(),
 
@@ -420,7 +423,7 @@ func (ohc *ORANHealthChecker) performHealthCheck() {
 
 		DependencyStatus: make(map[string]health.Status),
 
-		CircuitBreakerStats: make(map[string]interface{}),
+		CircuitBreakerStats: emptyStats,
 	}
 
 	// Perform health check.
@@ -441,14 +444,20 @@ func (ohc *ORANHealthChecker) performHealthCheck() {
 		snapshot.DependencyStatus[dep.Name] = dep.Status
 	}
 
-	// Collect circuit breaker stats.
+	// Collect circuit breaker stats and marshal to JSON.
+	cbStats := make(map[string]interface{})
 
 	if ohc.a1Adaptor != nil {
-		snapshot.CircuitBreakerStats["a1"] = ohc.a1Adaptor.GetCircuitBreakerStats()
+		cbStats["a1"] = ohc.a1Adaptor.GetCircuitBreakerStats()
 	}
 
 	if ohc.e2Adaptor != nil {
-		snapshot.CircuitBreakerStats["e2"] = ohc.e2Adaptor.GetCircuitBreakerStats()
+		cbStats["e2"] = ohc.e2Adaptor.GetCircuitBreakerStats()
+	}
+
+	// Marshal circuit breaker stats to JSON
+	if statsJSON, err := json.Marshal(cbStats); err == nil {
+		snapshot.CircuitBreakerStats = json.RawMessage(statsJSON)
 	}
 
 	// Calculate metrics.
@@ -528,12 +537,14 @@ func (ohc *ORANHealthChecker) checkAlertingConditions(snapshot HealthSnapshot) {
 		ohc.triggerAlert("consecutive_failures", fmt.Sprintf("Detected %d consecutive health check failures", consecutiveFailures))
 	}
 
-	// Check circuit breaker status.
-
-	for interfaceName, stats := range snapshot.CircuitBreakerStats {
-		if statsMap, ok := stats.(map[string]interface{}); ok {
-			if state, ok := statsMap["state"].(string); ok && state == "open" {
-				ohc.triggerAlert("circuit_breaker_open", fmt.Sprintf("Circuit breaker for %s interface is open", interfaceName))
+	// Check circuit breaker status by unmarshaling the JSON.
+	var statsMap map[string]interface{}
+	if err := json.Unmarshal(snapshot.CircuitBreakerStats, &statsMap); err == nil {
+		for interfaceName, stats := range statsMap {
+			if interfaceStats, ok := stats.(map[string]interface{}); ok {
+				if state, ok := interfaceStats["state"].(string); ok && state == "open" {
+					ohc.triggerAlert("circuit_breaker_open", fmt.Sprintf("Circuit breaker for %s interface is open", interfaceName))
+				}
 			}
 		}
 	}
@@ -666,4 +677,3 @@ func errorString(err error) string {
 
 	return err.Error()
 }
-

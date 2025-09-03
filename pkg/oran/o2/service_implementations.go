@@ -305,8 +305,9 @@ func (s *O2IMSServiceImpl) DeleteResourcePool(ctx context.Context, resourcePoolI
 	// Check if pool has resources.
 
 	// Check if pool has resources using filter map
-	filterMap := json.RawMessage(`{}`),
-		"limit":             1,
+	filterMap := map[string]interface{}{
+		"resource_pool_id": resourcePoolID,
+		"limit":            1,
 	}
 	resources, err := s.storage.ListResources(ctx, filterMap)
 	if err != nil {
@@ -529,8 +530,9 @@ func (s *O2IMSServiceImpl) DeleteResourceType(ctx context.Context, resourceTypeI
 	// Check if type is in use by any resources.
 
 	// Check if type is in use using filter map
-	filterMap := json.RawMessage(`{}`),
-		"limit":             1,
+	filterMap := map[string]interface{}{
+		"resource_type_id": resourceTypeID,
+		"limit":            1,
 	}
 	resources, err := s.storage.ListResources(ctx, filterMap)
 	if err != nil {
@@ -1403,11 +1405,10 @@ func (is *InventoryServiceImpl) DiscoverInfrastructure(ctx context.Context, prov
 
 	// Create discovery result.
 
-	discovery := json.RawMessage(`{}`){},
-
+	discovery := map[string]interface{}{
+		"resources":     []interface{}{},
 		"resourcePools": []interface{}{},
-
-		"summary": json.RawMessage(`{}`),
+		"summary":       map[string]interface{}{},
 	}
 
 	// In a real implementation, this would discover actual infrastructure.
@@ -1452,7 +1453,7 @@ func (is *InventoryServiceImpl) UpdateInventory(ctx context.Context, request int
 
 	logger.Info("inventory update completed", "updates_processed", len(updates))
 
-	return json.RawMessage(`{}`), nil
+	return map[string]interface{}{"status": "success"}, nil
 }
 
 // TrackAsset tracks an asset in the inventory.
@@ -1697,4 +1698,3 @@ func (s *O2IMSServiceImpl) convertResourceFilterToMap(filter *models.ResourceFil
 }
 
 // Supporting types.
-

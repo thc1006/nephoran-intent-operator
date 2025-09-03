@@ -275,7 +275,7 @@ type ComponentCheck struct {
 
 	Duration time.Duration `json:"duration,omitempty"`
 
-	Details json.RawMessage `json:"details,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
 	CheckType string `json:"check_type,omitempty"` // connectivity, resource, dependency
 }

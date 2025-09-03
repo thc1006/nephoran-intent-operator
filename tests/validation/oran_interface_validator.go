@@ -7,9 +7,8 @@
 package test_validation
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"time"
 
@@ -317,10 +316,10 @@ func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??A1 Policy Management: 1/1 points")
+		ginkgo.By("✅A1 Policy Management: 1/1 points")
 
 	} else {
-		ginkgo.By("??A1 Policy Management: 0/1 points")
+		ginkgo.By("❌A1 Policy Management: 0/1 points")
 	}
 
 	// Test 2: Near-RT RIC Integration (0.5 points).
@@ -329,10 +328,10 @@ func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??A1 RIC Integration: 1/1 points")
+		ginkgo.By("✅A1 RIC Integration: 1/1 points")
 
 	} else {
-		ginkgo.By("??A1 RIC Integration: 0/1 points")
+		ginkgo.By("❌A1 RIC Integration: 0/1 points")
 	}
 
 	return score
@@ -351,10 +350,10 @@ func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??E2 Node Management: 1/1 points")
+		ginkgo.By("✅E2 Node Management: 1/1 points")
 
 	} else {
-		ginkgo.By("??E2 Node Management: 0/1 points")
+		ginkgo.By("❌E2 Node Management: 0/1 points")
 	}
 
 	// Test 2: Service Model Compliance (1 point).
@@ -363,10 +362,10 @@ func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??E2 Service Model Compliance: 1/1 points")
+		ginkgo.By("✅E2 Service Model Compliance: 1/1 points")
 
 	} else {
-		ginkgo.By("??E2 Service Model Compliance: 0/1 points")
+		ginkgo.By("❌E2 Service Model Compliance: 0/1 points")
 	}
 
 	return score
@@ -385,10 +384,10 @@ func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??O1 FCAPS Operations: 1/1 points")
+		ginkgo.By("✅O1 FCAPS Operations: 1/1 points")
 
 	} else {
-		ginkgo.By("??O1 FCAPS Operations: 0/1 points")
+		ginkgo.By("❌O1 FCAPS Operations: 0/1 points")
 	}
 
 	// Test 2: NETCONF/YANG Compliance (1 point).
@@ -397,10 +396,10 @@ func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??O1 NETCONF/YANG Compliance: 1/1 points")
+		ginkgo.By("✅O1 NETCONF/YANG Compliance: 1/1 points")
 
 	} else {
-		ginkgo.By("??O1 NETCONF/YANG Compliance: 0/1 points")
+		ginkgo.By("❌O1 NETCONF/YANG Compliance: 0/1 points")
 	}
 
 	return score
@@ -419,10 +418,10 @@ func (oiv *ORANInterfaceValidator) validateO2InterfaceComprehensive(ctx context.
 
 		score++
 
-		ginkgo.By("??O2 Cloud Infrastructure Management: 1/1 points")
+		ginkgo.By("✅O2 Cloud Infrastructure Management: 1/1 points")
 
 	} else {
-		ginkgo.By("??O2 Cloud Infrastructure Management: 0/1 points")
+		ginkgo.By("❌O2 Cloud Infrastructure Management: 0/1 points")
 	}
 
 	return score
@@ -510,7 +509,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 
 			PolicyTypeID: "traffic-steering",
 
-			PolicyData: json.RawMessage(`{}`),
+			PolicyData: json.RawMessage(`{"primaryPathWeight": 0.8, "secondaryPathWeight": 0.2}`),
 
 			Status: "ACTIVE",
 
@@ -542,10 +541,21 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 		}
 
 		// Test policy update.
+		policyDataMap := make(map[string]interface{})
+		if err := json.Unmarshal(retrievedPolicy.PolicyData, &policyDataMap); err != nil {
+			ginkgo.By("Failed to parse policy data")
+			return false
+		}
 
-		retrievedPolicy.PolicyData["primaryPathWeight"] = 0.7
+		policyDataMap["primaryPathWeight"] = 0.7
+		policyDataMap["secondaryPathWeight"] = 0.3
 
-		retrievedPolicy.PolicyData["secondaryPathWeight"] = 0.3
+		newPolicyData, err := json.Marshal(policyDataMap)
+		if err != nil {
+			ginkgo.By("Failed to marshal updated policy data")
+			return false
+		}
+		retrievedPolicy.PolicyData = json.RawMessage(newPolicyData)
 
 		if err := oiv.ricMockService.UpdatePolicy(retrievedPolicy); err != nil {
 
@@ -565,7 +575,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 
 		}
 
-		ginkgo.By("??A1 Policy Management CRUD operations completed successfully")
+		ginkgo.By("✅A1 Policy Management CRUD operations completed successfully")
 
 		return true
 
@@ -621,7 +631,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 		Version: "1.0.0",
 
-		ConfigData: json.RawMessage(`{}`),
+		ConfigData: json.RawMessage(`{"mlModel": "neural_network", "optimizationTarget": "qoe"}`),
 
 		Status: "RUNNING",
 
@@ -645,7 +655,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 		PolicyTypeID: "qoe-optimization",
 
-		PolicyData: json.RawMessage(`{}`),
+		PolicyData: json.RawMessage(`{"targetQoE": 4.5, "thresholds": {"low": 3.0, "high": 5.0}}`),
 
 		Status: "ACTIVE",
 
@@ -676,7 +686,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 
 	oiv.ricMockService.UndeployXApp(xappConfig.Name)
 
-	ginkgo.By("??A1 RIC Integration completed successfully")
+	ginkgo.By("✅A1 RIC Integration completed successfully")
 
 	return true
 }
@@ -805,7 +815,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 			ServiceModel: "KPM",
 
-			EventTrigger: json.RawMessage(`{}`),
+			EventTrigger: json.RawMessage(`{"reportingPeriod": 1000, "triggerType": "periodic"}`),
 
 			Actions: []E2Action{
 				{
@@ -813,7 +823,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 					ActionType: "REPORT",
 
-					Definition: json.RawMessage(`{}`),
+					Definition: json.RawMessage(`{"measTypes": ["throughput", "latency"], "granularityPeriod": 1000}`),
 				},
 			},
 
@@ -845,8 +855,20 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 		}
 
 		// Test subscription modification.
+		eventTriggerMap := make(map[string]interface{})
+		if err := json.Unmarshal(activeSubscription.EventTrigger, &eventTriggerMap); err != nil {
+			ginkgo.By("Failed to parse event trigger")
+			return false
+		}
 
-		activeSubscription.EventTrigger["reportingPeriod"] = 2000 // 2 seconds
+		eventTriggerMap["reportingPeriod"] = 2000 // 2 seconds
+
+		updatedEventTrigger, err := json.Marshal(eventTriggerMap)
+		if err != nil {
+			ginkgo.By("Failed to marshal updated event trigger")
+			return false
+		}
+		activeSubscription.EventTrigger = json.RawMessage(updatedEventTrigger)
 
 		if err := oiv.e2MockService.UpdateSubscription(activeSubscription); err != nil {
 
@@ -860,7 +882,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 
 		oiv.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 
-		ginkgo.By("??E2 Node Management completed successfully")
+		ginkgo.By("✅E2 Node Management completed successfully")
 
 		return true
 
@@ -886,10 +908,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: json.RawMessage(`{}`),
-
-				"granularityPeriods": []int{100, 1000, 10000},
-			},
+			Capabilities: json.RawMessage(`{"measTypes": ["DL_PRBUsage", "UL_PRBUsage", "DL_BLER", "UL_BLER"], "granularityPeriods": [100, 1000, 10000]}`),
 		},
 
 		{
@@ -901,10 +920,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"CONTROL", "POLICY"},
 
-			Capabilities: json.RawMessage(`{}`),
-
-				"policyTypes": []string{"ADMISSION_CONTROL", "LOAD_BALANCING"},
-			},
+			Capabilities: json.RawMessage(`{"controlTypes": ["QoS", "Handover", "Power"], "policyTypes": ["ADMISSION_CONTROL", "LOAD_BALANCING"]}`),
 		},
 
 		{
@@ -916,8 +932,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 			Functions: []string{"REPORT", "INSERT"},
 
-			Capabilities: json.RawMessage(`{}`),
-			},
+			Capabilities: json.RawMessage(`{"infoTypes": ["Cell", "UE", "Neighbor"], "updatePeriods": [100, 500, 1000]}`),
 		},
 	}
 
@@ -963,7 +978,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 
 	}
 
-	ginkgo.By("??E2 Service Model Compliance completed successfully")
+	ginkgo.By("✅E2 Service Model Compliance completed successfully")
 
 	return true
 }
@@ -974,13 +989,13 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 	// Create KPM subscription for throughput measurement.
 
 	subscription := &E2Subscription{
-		SubscriptionID: "kmp-sub-001",
+		SubscriptionID: "kpm-sub-001",
 
 		NodeID: "test-gnb-001",
 
 		ServiceModel: "KPM",
 
-		EventTrigger: json.RawMessage(`{}`),
+		EventTrigger: json.RawMessage(`{"reportingPeriod": 1000, "triggerType": "periodic"}`),
 
 		Actions: []E2Action{
 			{
@@ -988,8 +1003,7 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 
 				ActionType: "REPORT",
 
-				Definition: json.RawMessage(`{}`),
-				},
+				Definition: json.RawMessage(`{"measTypes": ["DL_PRBUsage", "UL_PRBUsage"], "granularityPeriod": 1000}`),
 			},
 		},
 
@@ -1023,7 +1037,7 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 
 		ServiceModel: "RC",
 
-		EventTrigger: json.RawMessage(`{}`),
+		EventTrigger: json.RawMessage(`{"threshold": {"type": "QoS", "value": 10}, "triggerType": "threshold"}`),
 
 		Actions: []E2Action{
 			{
@@ -1031,12 +1045,7 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 
 				ActionType: "CONTROL",
 
-				Definition: json.RawMessage(`{}`){
-						"5qi": 1,
-
-						"arp": 1,
-					},
-				},
+				Definition: json.RawMessage(`{"controlType": "QoS", "parameters": {"5qi": 1, "arp": 1}}`),
 			},
 		},
 
@@ -1070,7 +1079,7 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 
 		ServiceModel: "NI",
 
-		EventTrigger: json.RawMessage(`{}`),
+		EventTrigger: json.RawMessage(`{"updatePeriod": 500, "triggerType": "periodic"}`),
 
 		Actions: []E2Action{
 			{
@@ -1078,7 +1087,7 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 
 				ActionType: "REPORT",
 
-				Definition: json.RawMessage(`{}`),
+				Definition: json.RawMessage(`{"infoTypes": ["Cell", "Neighbor"], "updatePeriod": 500}`),
 			},
 		},
 
@@ -1180,7 +1189,7 @@ func (oiv *ORANInterfaceValidator) testO1FCAPSOperations(ctx context.Context) bo
 
 	}
 
-	ginkgo.By("??O1 FCAPS Operations completed successfully")
+	ginkgo.By("✅O1 FCAPS Operations completed successfully")
 
 	return true
 }
@@ -1195,14 +1204,7 @@ func (oiv *ORANInterfaceValidator) testO1FaultManagement(ctx context.Context) bo
 
 		ElementType: "AMF",
 
-		Configuration: json.RawMessage(`{}`){
-				"enabled": true,
-
-				"severity": []string{"CRITICAL", "MAJOR", "MINOR"},
-
-				"alertTargets": []string{"smo@example.com"},
-			},
-		},
+		Configuration: json.RawMessage(`{"faultManagement": {"enabled": true, "severity": ["CRITICAL", "MAJOR", "MINOR"], "alertTargets": ["smo@example.com"]}}`),
 
 		Status: "ACTIVE",
 
@@ -1240,18 +1242,7 @@ func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Con
 
 		ConfigType: "FCAPS",
 
-		ConfigData: json.RawMessage(`{}`){
-				"collection_interval": "15m",
-
-				"counters": []string{
-					"amf.registration.success",
-
-					"amf.registration.failure",
-
-					"amf.session.establishment",
-				},
-			},
-		},
+		ConfigData: json.RawMessage(`{"performanceCounters": {"collection_interval": "15m", "counters": ["amf.registration.success", "amf.registration.failure", "amf.session.establishment"]}}`),
 
 		Version: 1,
 
@@ -1263,9 +1254,20 @@ func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Con
 	}
 
 	// Test configuration update.
+	configDataMap := make(map[string]interface{})
+	if err := json.Unmarshal(config.ConfigData, &configDataMap); err != nil {
+		return false
+	}
 
-	config.ConfigData["performanceCounters"].(map[string]interface{})["collection_interval"] = "10m"
+	if perfCounters, ok := configDataMap["performanceCounters"].(map[string]interface{}); ok {
+		perfCounters["collection_interval"] = "10m"
+	}
 
+	updatedConfigData, err := json.Marshal(configDataMap)
+	if err != nil {
+		return false
+	}
+	config.ConfigData = json.RawMessage(updatedConfigData)
 	config.Version = 2
 
 	if err := oiv.smoMockService.ApplyConfiguration(config); err != nil {
@@ -1290,8 +1292,12 @@ func (oiv *ORANInterfaceValidator) testO1PerformanceManagement(ctx context.Conte
 	}
 
 	// Check if performance monitoring configuration exists.
+	configMap := make(map[string]interface{})
+	if err := json.Unmarshal(element.Configuration, &configMap); err != nil {
+		return false
+	}
 
-	if perfConfig, exists := element.Configuration["performanceMonitoring"]; exists {
+	if perfConfig, exists := configMap["performanceMonitoring"]; exists {
 		if perfMap, ok := perfConfig.(map[string]interface{}); ok {
 			if enabled, exists := perfMap["enabled"]; exists && enabled == true {
 				return true
@@ -1307,17 +1313,7 @@ func (oiv *ORANInterfaceValidator) testO1PerformanceManagement(ctx context.Conte
 func (oiv *ORANInterfaceValidator) testO1SecurityManagement(ctx context.Context) bool {
 	// Test security configuration.
 
-	securityConfig := json.RawMessage(`{}`){
-			"enabled": true,
-
-			"method": "certificate",
-		},
-
-		"authorization": json.RawMessage(`{}`),
-		},
-
-		"encryption": json.RawMessage(`{}`),
-	}
+	securityConfig := json.RawMessage(`{"authentication": {"enabled": true, "method": "certificate"}, "authorization": {"enabled": true}, "encryption": {"enabled": true}}`)
 
 	// Apply security configuration through SMO.
 
@@ -1384,21 +1380,23 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 
 	// Test YANG model validation.
 
-	yangModel := json.RawMessage(`{}`){
-			"container": json.RawMessage(`{}`){
+	yangModel := map[string]interface{}{
+		"module":      "ric-config",
+		"namespace":   "urn:oran:ric:config",
+		"prefix":      "ric",
+		"description": "RIC configuration YANG model",
+		"schema": map[string]interface{}{
+			"container": map[string]interface{}{
+				"name": "ric-config",
+				"leaves": []map[string]interface{}{
 					{
-						"name": "ric-id",
-
-						"type": "string",
-
+						"name":      "ric-id",
+						"type":      "string",
 						"mandatory": true,
 					},
-
 					{
-						"name": "xapp-namespace",
-
-						"type": "string",
-
+						"name":    "xapp-namespace",
+						"type":    "string",
 						"default": "ricxapp",
 					},
 				},
@@ -1426,7 +1424,7 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 
 	}
 
-	ginkgo.By("??O1 NETCONF/YANG Compliance completed successfully")
+	ginkgo.By("✅O1 NETCONF/YANG Compliance completed successfully")
 
 	return true
 }
@@ -1466,11 +1464,10 @@ func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{
 func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bool {
 	// Simulate NETCONF session establishment.
 
-	session := json.RawMessage(`{}`),
-
+	session := map[string]interface{}{
+		"sessionId": "netconf-session-001",
 		"transport": "SSH",
-
-		"status": "active",
+		"status":    "active",
 	}
 
 	// Validate session establishment.
@@ -1481,27 +1478,35 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 
 	// Test get operation.
 
-	getConfig := json.RawMessage(`{}`){
-			"type": "xpath",
-
+	getConfig := map[string]interface{}{
+		"operation": "get-config",
+		"filter": map[string]interface{}{
+			"type":  "xpath",
 			"xpath": "/ric-config",
 		},
 	}
 
 	// Test edit-config operation.
 
-	editConfig := json.RawMessage(`{}`){
-			"ric-config": json.RawMessage(`{}`),
+	editConfig := map[string]interface{}{
+		"operation": "edit-config",
+		"config": map[string]interface{}{
+			"ric-config": map[string]interface{}{
+				"ric-id":          "ric-001",
+				"xapp-namespace":  "ricxapp",
+			},
 		},
 	}
 
 	// Test commit operation.
 
-	commit := json.RawMessage(`{}`)
+	commit := map[string]interface{}{
+		"operation": "commit",
+	}
 
 	// Simulate NETCONF operations execution.
 
-	operations := []json.RawMessage(`{}`)
+	operations := []map[string]interface{}{getConfig, editConfig, commit}
 
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {
@@ -1598,7 +1603,7 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 
 	}
 
-	ginkgo.By("??O2 Cloud Infrastructure Management completed successfully")
+	ginkgo.By("✅O2 Cloud Infrastructure Management completed successfully")
 
 	return true
 }
@@ -1608,33 +1613,34 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context) bool {
 	// Test Terraform template generation.
 
-	terraformTemplate := json.RawMessage(`{}`){
-			"required_providers": json.RawMessage(`{}`){
-					"source": "hashicorp/kubernetes",
-
+	terraformTemplate := map[string]interface{}{
+		"terraform": map[string]interface{}{
+			"required_providers": map[string]interface{}{
+				"kubernetes": map[string]interface{}{
+					"source":  "hashicorp/kubernetes",
 					"version": "~> 2.0",
 				},
 			},
 		},
-
-		"resource": json.RawMessage(`{}`){
-				"upf_namespace": json.RawMessage(`{}`){
+		"resource": map[string]interface{}{
+			"kubernetes_namespace": map[string]interface{}{
+				"upf_namespace": map[string]interface{}{
+					"metadata": map[string]interface{}{
 						"name": "upf-production",
-
 						"labels": map[string]string{
-							"app.kubernetes.io/name": "upf",
-
+							"app.kubernetes.io/name":      "upf",
 							"app.kubernetes.io/component": "core-network",
 						},
 					},
 				},
 			},
-
-			"kubernetes_deployment": json.RawMessage(`{}`){
-					"metadata": json.RawMessage(`{}`)",
+			"kubernetes_deployment": map[string]interface{}{
+				"upf_deployment": map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"name": "upf-deployment",
 					},
-
-					"spec": json.RawMessage(`{}`){
+					"spec": map[string]interface{}{
+						"selector": map[string]interface{}{
 							"match_labels": map[string]string{
 								"app": "upf",
 							},
@@ -1685,36 +1691,40 @@ func (oiv *ORANInterfaceValidator) validateTerraformTemplate(template map[string
 func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context) bool {
 	// Test cloud provider configurations.
 
-	cloudProviders := []json.RawMessage(`{}`){
+	cloudProviders := []map[string]interface{}{
+		{
+			"provider": "aws",
+			"region":   "us-east-1",
+			"resources": map[string]interface{}{
 				"ec2_instances": 3,
-
 				"rds_instances": 1,
-
-				"s3_buckets": 2,
+				"s3_buckets":   2,
 			},
 		},
-
 		{
 			"provider": "azure",
-
-			"region": "West US 2",
-
-			"resources": json.RawMessage(`{}`),
+			"region":   "West US 2",
+			"resources": map[string]interface{}{
+				"virtual_machines": 3,
+				"sql_databases":    1,
+				"storage_accounts": 2,
+			},
 		},
-
 		{
 			"provider": "gcp",
-
-			"region": "us-west1",
-
-			"resources": json.RawMessage(`{}`),
+			"region":   "us-west1",
+			"resources": map[string]interface{}{
+				"compute_instances": 3,
+				"cloud_sql":         1,
+				"storage_buckets":   2,
+			},
 		},
 	}
 
 	// Validate each cloud provider configuration.
 
 	for _, provider := range cloudProviders {
-		if !oiv.validateCloudProviderConfig(provider) {
+		if !oiv.ValidateCloudProviderConfig(provider) {
 			return false
 		}
 	}
@@ -1722,9 +1732,9 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 	return true
 }
 
-// validateCloudProviderConfig validates cloud provider configuration.
+// ValidateCloudProviderConfig validates cloud provider configuration.
 
-func (oiv *ORANInterfaceValidator) validateCloudProviderConfig(config map[string]interface{}) bool {
+func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string]interface{}) bool {
 	requiredFields := []string{"provider", "region", "resources"}
 
 	for _, field := range requiredFields {
@@ -1753,7 +1763,12 @@ func (oiv *ORANInterfaceValidator) testResourceLifecycleManagement(ctx context.C
 
 	// Create resource.
 
-	resource := json.RawMessage(`{}`)
+	resource := map[string]interface{}{
+		"resourceId": "upf-cluster-001",
+		"nodeCount":  3,
+		"nodeType":   "m5.large",
+		"status":     "creating",
+	}
 
 	// Simulate provisioning time.
 
@@ -1856,3 +1871,240 @@ func (oiv *ORANInterfaceValidator) Cleanup() {
 	}
 }
 
+// Mock service implementations
+
+// NewRICMockService creates a new RIC mock service
+func NewRICMockService(endpoint string) *RICMockService {
+	return &RICMockService{
+		endpoint:      endpoint,
+		policies:      make(map[string]*A1Policy),
+		subscriptions: make(map[string]*E2Subscription),
+		xApps:         make(map[string]*XAppConfig),
+		isHealthy:     true,
+		latencySimMs:  50,
+	}
+}
+
+func (r *RICMockService) SetHealthStatus(healthy bool) {
+	r.isHealthy = healthy
+}
+
+func (r *RICMockService) CreatePolicy(policy *A1Policy) error {
+	if !r.isHealthy {
+		return fmt.Errorf("RIC service unavailable")
+	}
+	r.policies[policy.PolicyID] = policy
+	return nil
+}
+
+func (r *RICMockService) GetPolicy(policyID string) (*A1Policy, error) {
+	if !r.isHealthy {
+		return nil, fmt.Errorf("RIC service unavailable")
+	}
+	policy, exists := r.policies[policyID]
+	if !exists {
+		return nil, fmt.Errorf("policy not found")
+	}
+	return policy, nil
+}
+
+func (r *RICMockService) UpdatePolicy(policy *A1Policy) error {
+	if !r.isHealthy {
+		return fmt.Errorf("RIC service unavailable")
+	}
+	if _, exists := r.policies[policy.PolicyID]; !exists {
+		return fmt.Errorf("policy not found")
+	}
+	policy.UpdatedAt = time.Now()
+	r.policies[policy.PolicyID] = policy
+	return nil
+}
+
+func (r *RICMockService) DeletePolicy(policyID string) error {
+	if !r.isHealthy {
+		return fmt.Errorf("RIC service unavailable")
+	}
+	delete(r.policies, policyID)
+	return nil
+}
+
+func (r *RICMockService) DeployXApp(xapp *XAppConfig) error {
+	if !r.isHealthy {
+		return fmt.Errorf("RIC service unavailable")
+	}
+	r.xApps[xapp.Name] = xapp
+	return nil
+}
+
+func (r *RICMockService) GetXApp(name string) (*XAppConfig, error) {
+	if !r.isHealthy {
+		return nil, fmt.Errorf("RIC service unavailable")
+	}
+	xapp, exists := r.xApps[name]
+	if !exists {
+		return nil, fmt.Errorf("xApp not found")
+	}
+	return xapp, nil
+}
+
+func (r *RICMockService) UndeployXApp(name string) error {
+	if !r.isHealthy {
+		return fmt.Errorf("RIC service unavailable")
+	}
+	delete(r.xApps, name)
+	return nil
+}
+
+func (r *RICMockService) Cleanup() {
+	r.policies = make(map[string]*A1Policy)
+	r.subscriptions = make(map[string]*E2Subscription)
+	r.xApps = make(map[string]*XAppConfig)
+}
+
+// NewSMOMockService creates a new SMO mock service
+func NewSMOMockService(endpoint string) *SMOMockService {
+	return &SMOMockService{
+		endpoint:        endpoint,
+		managedElements: make(map[string]*ManagedElement),
+		configurations:  make(map[string]*O1Configuration),
+		isHealthy:       true,
+		latencySimMs:    50,
+	}
+}
+
+func (s *SMOMockService) SetHealthStatus(healthy bool) {
+	s.isHealthy = healthy
+}
+
+func (s *SMOMockService) AddManagedElement(element *ManagedElement) error {
+	if !s.isHealthy {
+		return fmt.Errorf("SMO service unavailable")
+	}
+	s.managedElements[element.ElementID] = element
+	return nil
+}
+
+func (s *SMOMockService) GetManagedElement(elementID string) (*ManagedElement, error) {
+	if !s.isHealthy {
+		return nil, fmt.Errorf("SMO service unavailable")
+	}
+	element, exists := s.managedElements[elementID]
+	if !exists {
+		return nil, fmt.Errorf("managed element not found")
+	}
+	return element, nil
+}
+
+func (s *SMOMockService) RemoveManagedElement(elementID string) error {
+	if !s.isHealthy {
+		return fmt.Errorf("SMO service unavailable")
+	}
+	delete(s.managedElements, elementID)
+	return nil
+}
+
+func (s *SMOMockService) ApplyConfiguration(config *O1Configuration) error {
+	if !s.isHealthy {
+		return fmt.Errorf("SMO service unavailable")
+	}
+	s.configurations[config.ConfigID] = config
+	return nil
+}
+
+func (s *SMOMockService) Cleanup() {
+	s.managedElements = make(map[string]*ManagedElement)
+	s.configurations = make(map[string]*O1Configuration)
+}
+
+// NewE2MockService creates a new E2 mock service
+func NewE2MockService(endpoint string) *E2MockService {
+	return &E2MockService{
+		endpoint:       endpoint,
+		connectedNodes: make(map[string]*E2Node),
+		subscriptions:  make(map[string]*E2Subscription),
+		serviceModels:  make(map[string]*ServiceModel),
+		isHealthy:      true,
+		latencySimMs:   50,
+	}
+}
+
+func (e *E2MockService) RegisterNode(node *E2Node) error {
+	if !e.isHealthy {
+		return fmt.Errorf("E2 service unavailable")
+	}
+	node.Status = "CONNECTED"
+	node.LastHeartbeat = time.Now()
+	e.connectedNodes[node.NodeID] = node
+	return nil
+}
+
+func (e *E2MockService) GetNode(nodeID string) (*E2Node, error) {
+	if !e.isHealthy {
+		return nil, fmt.Errorf("E2 service unavailable")
+	}
+	node, exists := e.connectedNodes[nodeID]
+	if !exists {
+		return nil, fmt.Errorf("node not found")
+	}
+	return node, nil
+}
+
+func (e *E2MockService) UnregisterNode(nodeID string) error {
+	if !e.isHealthy {
+		return fmt.Errorf("E2 service unavailable")
+	}
+	delete(e.connectedNodes, nodeID)
+	return nil
+}
+
+func (e *E2MockService) CreateSubscription(subscription *E2Subscription) error {
+	if !e.isHealthy {
+		return fmt.Errorf("E2 service unavailable")
+	}
+	e.subscriptions[subscription.SubscriptionID] = subscription
+	return nil
+}
+
+func (e *E2MockService) GetSubscription(subscriptionID string) (*E2Subscription, error) {
+	if !e.isHealthy {
+		return nil, fmt.Errorf("E2 service unavailable")
+	}
+	subscription, exists := e.subscriptions[subscriptionID]
+	if !exists {
+		return nil, fmt.Errorf("subscription not found")
+	}
+	return subscription, nil
+}
+
+func (e *E2MockService) UpdateSubscription(subscription *E2Subscription) error {
+	if !e.isHealthy {
+		return fmt.Errorf("E2 service unavailable")
+	}
+	if _, exists := e.subscriptions[subscription.SubscriptionID]; !exists {
+		return fmt.Errorf("subscription not found")
+	}
+	e.subscriptions[subscription.SubscriptionID] = subscription
+	return nil
+}
+
+func (e *E2MockService) DeleteSubscription(subscriptionID string) error {
+	if !e.isHealthy {
+		return fmt.Errorf("E2 service unavailable")
+	}
+	delete(e.subscriptions, subscriptionID)
+	return nil
+}
+
+func (e *E2MockService) RegisterServiceModel(model *ServiceModel) error {
+	if !e.isHealthy {
+		return fmt.Errorf("E2 service unavailable")
+	}
+	e.serviceModels[model.ModelName] = model
+	return nil
+}
+
+func (e *E2MockService) Cleanup() {
+	e.connectedNodes = make(map[string]*E2Node)
+	e.subscriptions = make(map[string]*E2Subscription)
+	e.serviceModels = make(map[string]*ServiceModel)
+}

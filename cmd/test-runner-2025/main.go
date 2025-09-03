@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -35,11 +36,11 @@ func main() {
 		log.Fatalf("Failed to demonstrate O2 API server: %v", err)
 	}
 
-	fmt.Println("??All 2025 Go testing patterns demonstrated successfully!")
+	fmt.Println("✅ All 2025 Go testing patterns demonstrated successfully!")
 }
 
 func demonstrateEnvtestSetup(ctx context.Context, logger *logging.StructuredLogger) error {
-	fmt.Println("?�� Demonstrating envtest environment setup...")
+	fmt.Println("🔧 Demonstrating envtest environment setup...")
 
 	// Get recommended options based on environment
 	opts := testtools.GetRecommendedOptions()
@@ -53,13 +54,13 @@ func demonstrateEnvtestSetup(ctx context.Context, logger *logging.StructuredLogg
 
 	// For demonstration purposes, we won't actually start the full environment
 	// as it requires Kubernetes binaries, but we show the proper patterns
-	fmt.Println("   - Environment configuration completed ??)
+	fmt.Println("   - Environment configuration completed ✅")
 
 	return nil
 }
 
 func demonstrateO2APIServer(ctx context.Context, logger *logging.StructuredLogger) error {
-	fmt.Println("?? Demonstrating O2 API Server with 2025 constructor patterns...")
+	fmt.Println("🚀 Demonstrating O2 API Server with 2025 constructor patterns...")
 
 	// Create O2 IMS configuration
 	config := &o2.O2IMSConfig{
@@ -82,7 +83,7 @@ func demonstrateO2APIServer(ctx context.Context, logger *logging.StructuredLogge
 		return fmt.Errorf("failed to create O2 API server: %w", err)
 	}
 
-	fmt.Println("   - O2 API Server created with modern constructor ??)
+	fmt.Println("   - O2 API Server created with modern constructor ✅")
 
 	// Demonstrate backward compatibility
 	o2ServerCompat, err := o2.NewO2APIServerWithConfig(config)
@@ -90,7 +91,7 @@ func demonstrateO2APIServer(ctx context.Context, logger *logging.StructuredLogge
 		return fmt.Errorf("failed to create O2 API server (compat): %w", err)
 	}
 
-	fmt.Println("   - Backward compatibility confirmed ??)
+	fmt.Println("   - Backward compatibility confirmed ✅")
 
 	// Demonstrate proper cleanup with context
 	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -104,7 +105,7 @@ func demonstrateO2APIServer(ctx context.Context, logger *logging.StructuredLogge
 		logger.Error("Failed to shutdown O2 server (compat)", "error", err)
 	}
 
-	fmt.Println("   - Proper cleanup with context demonstrated ??)
+	fmt.Println("   - Proper cleanup with context demonstrated ✅")
 
 	return nil
 }

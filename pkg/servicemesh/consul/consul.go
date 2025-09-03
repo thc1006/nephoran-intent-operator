@@ -5,6 +5,7 @@ package consul
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -36,19 +37,20 @@ func init() {
 		// Extract Consul-specific settings from custom config.
 
 		if meshConfig.CustomConfig != nil {
+			var customConfig map[string]interface{}
+			if err := json.Unmarshal(meshConfig.CustomConfig, &customConfig); err == nil {
+				if datacenter, ok := customConfig["datacenter"].(string); ok {
+					consulConfig.Datacenter = datacenter
+				}
 
-			if datacenter, ok := meshConfig.CustomConfig["datacenter"].(string); ok {
-				consulConfig.Datacenter = datacenter
+				if gossipKey, ok := customConfig["gossipKey"].(string); ok {
+					consulConfig.GossipKey = gossipKey
+				}
+
+				if aclEnabled, ok := customConfig["aclEnabled"].(bool); ok {
+					consulConfig.ACLEnabled = aclEnabled
+				}
 			}
-
-			if gossipKey, ok := meshConfig.CustomConfig["gossipKey"].(string); ok {
-				consulConfig.GossipKey = gossipKey
-			}
-
-			if aclEnabled, ok := meshConfig.CustomConfig["aclEnabled"].(bool); ok {
-				consulConfig.ACLEnabled = aclEnabled
-			}
-
 		}
 
 		return NewConsulMesh(kubeClient, dynamicClient, config, consulConfig)

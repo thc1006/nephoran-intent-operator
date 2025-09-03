@@ -338,7 +338,7 @@ type HealthCheck struct {
 
 	Uptime time.Duration `json:"uptime"`
 
-	Components json.RawMessage `json:"components"`
+	Components map[string]interface{} `json:"components"` 
 
 	Services []HealthServiceStatus `json:"services"`
 

@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
@@ -464,7 +465,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 
 	fmt.Printf("??Registered cloud provider: %s (%s)\n",
 
-		awsProvider["name"].(string), awsProvider["type"].(string))
+		awsProvider.Name, awsProvider.Type)
 
 	// List cloud providers.
 

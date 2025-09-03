@@ -1167,7 +1167,8 @@ func (oe *OptimizationEngine) UpdateModels(ctx context.Context) error {
 func (oe *OptimizationEngine) GetModelMetrics() map[string]interface{} {
 	metrics := make(map[string]interface{})
 
-	for name, model := range oe.models {
+	for name, _ := range oe.models {
+		// TODO: Implement actual model metrics extraction
 		metrics[name] = json.RawMessage(`{}`)
 	}
 

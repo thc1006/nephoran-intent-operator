@@ -438,14 +438,13 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationSt
 func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error) {
 	opt.logger.Info("Optimizing LLM processor configuration")
 
+	// Create temporary maps for collecting changes
+	configChanges := make(map[string]interface{})
+	rollbackData := make(map[string]interface{})
+
 	result := &OptimizationResult{
 		ComponentType: shared.ComponentTypeLLMProcessor,
-
-		ConfigChanges: make(map[string]interface{}),
-
-		RollbackData: make(map[string]interface{}),
-
-		Timestamp: time.Now(),
+		Timestamp:     time.Now(),
 	}
 
 	// Optimize token usage.
@@ -458,7 +457,7 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 			opt.logger.Error(err, "Failed to optimize token usage")
 		} else {
 
-			result.ConfigChanges["token_config"] = tokenConfig
+			configChanges["token_config"] = tokenConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "token_optimization")
 
@@ -476,7 +475,7 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 			opt.logger.Error(err, "Failed to optimize model selection")
 		} else {
 
-			result.ConfigChanges["model_config"] = modelConfig
+			configChanges["model_config"] = modelConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "model_selection_optimization")
 
@@ -494,7 +493,7 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 			opt.logger.Error(err, "Failed to optimize caching")
 		} else {
 
-			result.ConfigChanges["cache_config"] = cacheConfig
+			configChanges["cache_config"] = cacheConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "intelligent_caching")
 
@@ -512,7 +511,7 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 			opt.logger.Error(err, "Failed to optimize connections")
 		} else {
 
-			result.ConfigChanges["connection_config"] = connectionConfig
+			configChanges["connection_config"] = connectionConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "connection_pooling_optimization")
 
@@ -530,7 +529,7 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 			opt.logger.Error(err, "Failed to optimize batching")
 		} else {
 
-			result.ConfigChanges["batch_config"] = batchConfig
+			configChanges["batch_config"] = batchConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "batch_processing_optimization")
 
@@ -539,6 +538,29 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 	}
 
 	// Calculate expected impact.
+
+
+	// Marshal configChanges to json.RawMessage
+	if len(configChanges) > 0 {
+		configBytes, err := json.Marshal(configChanges)
+		if err != nil {
+			return nil, err
+		}
+		result.ConfigChanges = json.RawMessage(configBytes)
+	} else {
+		result.ConfigChanges = json.RawMessage(`{}`)
+	}
+
+	// Marshal rollbackData to json.RawMessage
+	if len(rollbackData) > 0 {
+		rollbackBytes, err := json.Marshal(rollbackData)
+		if err != nil {
+			return nil, err
+		}
+		result.RollbackData = json.RawMessage(rollbackBytes)
+	} else {
+		result.RollbackData = json.RawMessage(`{}`)
+	}
 
 	result.ExpectedImpact = opt.calculateExpectedImpact(result.AppliedStrategies)
 
@@ -724,14 +746,13 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrat
 func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error) {
 	opt.logger.Info("Optimizing RAG system configuration")
 
+	// Create temporary maps for collecting changes
+	configChanges := make(map[string]interface{})
+	rollbackData := make(map[string]interface{})
+
 	result := &OptimizationResult{
 		ComponentType: shared.ComponentTypeRAGSystem,
-
-		ConfigChanges: make(map[string]interface{}),
-
-		RollbackData: make(map[string]interface{}),
-
-		Timestamp: time.Now(),
+		Timestamp:     time.Now(),
 	}
 
 	// Optimize vector database.
@@ -744,7 +765,7 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 			opt.logger.Error(err, "Failed to optimize vector database")
 		} else {
 
-			result.ConfigChanges["vector_db_config"] = vectorDBConfig
+			configChanges["vector_db_config"] = vectorDBConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "vector_database_optimization")
 
@@ -762,7 +783,7 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 			opt.logger.Error(err, "Failed to optimize embeddings")
 		} else {
 
-			result.ConfigChanges["embedding_config"] = embeddingConfig
+			configChanges["embedding_config"] = embeddingConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "embedding_optimization")
 
@@ -780,12 +801,35 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 			opt.logger.Error(err, "Failed to optimize retrieval")
 		} else {
 
-			result.ConfigChanges["retrieval_config"] = retrievalConfig
+			configChanges["retrieval_config"] = retrievalConfig
 
 			result.AppliedStrategies = append(result.AppliedStrategies, "retrieval_strategy_optimization")
 
 		}
 
+	}
+
+	
+	// Marshal configChanges to json.RawMessage
+	if len(configChanges) > 0 {
+		configBytes, err := json.Marshal(configChanges)
+		if err != nil {
+			return nil, err
+		}
+		result.ConfigChanges = json.RawMessage(configBytes)
+	} else {
+		result.ConfigChanges = json.RawMessage(`{}`)
+	}
+
+	// Marshal rollbackData to json.RawMessage
+	if len(rollbackData) > 0 {
+		rollbackBytes, err := json.Marshal(rollbackData)
+		if err != nil {
+			return nil, err
+		}
+		result.RollbackData = json.RawMessage(rollbackBytes)
+	} else {
+		result.RollbackData = json.RawMessage(`{}`)
 	}
 
 	result.ExpectedImpact = opt.calculateExpectedImpact(result.AppliedStrategies)
@@ -988,17 +1032,38 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStra
 func (opt *KubernetesOptimizer) OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error) {
 	opt.logger.Info("Optimizing Kubernetes configuration")
 
+	// Create temporary maps for collecting changes
+	configChanges := make(map[string]interface{})
+	rollbackData := make(map[string]interface{})
+
 	result := &OptimizationResult{
 		ComponentType: shared.ComponentTypeKubernetes,
-
-		ConfigChanges: make(map[string]interface{}),
-
-		RollbackData: make(map[string]interface{}),
-
-		Timestamp: time.Now(),
+		Timestamp:     time.Now(),
 	}
 
 	// Implementation would include specific K8s optimizations.
+
+	// Marshal configChanges to json.RawMessage
+	if len(configChanges) > 0 {
+		configBytes, err := json.Marshal(configChanges)
+		if err != nil {
+			return nil, err
+		}
+		result.ConfigChanges = json.RawMessage(configBytes)
+	} else {
+		result.ConfigChanges = json.RawMessage(`{}`)
+	}
+
+	// Marshal rollbackData to json.RawMessage
+	if len(rollbackData) > 0 {
+		rollbackBytes, err := json.Marshal(rollbackData)
+		if err != nil {
+			return nil, err
+		}
+		result.RollbackData = json.RawMessage(rollbackBytes)
+	} else {
+		result.RollbackData = json.RawMessage(`{}`)
+	}
 
 	return result, nil
 }

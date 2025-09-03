@@ -1,9 +1,8 @@
 package availability
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -735,7 +734,7 @@ func (dt *DependencyTracker) performSingleHealthCheck(ctx context.Context, dep *
 
 		Timestamp: startTime,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage("{}"),
 	}
 
 	// Create timeout context.
@@ -814,7 +813,13 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 	}
 
 	if len(warnings) > 0 {
-		result.Metadata["warnings"] = warnings
+		// Convert metadata to map, add warnings, then marshal back
+		var metadata map[string]interface{}
+		json.Unmarshal(result.Metadata, &metadata)
+		metadata["warnings"] = warnings
+		if metadataJSON, err := json.Marshal(metadata); err == nil {
+			result.Metadata = json.RawMessage(metadataJSON)
+		}
 	}
 
 	// Evaluate result based on query type.
@@ -832,7 +837,13 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 			result.Error = "no metrics found"
 
 		} else {
-			result.Metadata["value"] = float64(vector[0].Value)
+			// Convert metadata to map, add value, then marshal back
+			var metadata map[string]interface{}
+			json.Unmarshal(result.Metadata, &metadata)
+			metadata["value"] = float64(vector[0].Value)
+			if metadataJSON, err := json.Marshal(metadata); err == nil {
+				result.Metadata = json.RawMessage(metadataJSON)
+			}
 
 			// You could add custom evaluation logic here based on the metric value.
 		}
@@ -841,7 +852,13 @@ func (dt *DependencyTracker) performPrometheusCheck(ctx context.Context, dep *De
 
 		scalar := promResult.(*model.Scalar)
 
-		result.Metadata["value"] = float64(scalar.Value)
+		// Convert metadata to map, add value, then marshal back
+		var metadata map[string]interface{}
+		json.Unmarshal(result.Metadata, &metadata)
+		metadata["value"] = float64(scalar.Value)
+		if metadataJSON, err := json.Marshal(metadata); err == nil {
+			result.Metadata = json.RawMessage(metadataJSON)
+		}
 
 	default:
 
@@ -893,7 +910,13 @@ func (dt *DependencyTracker) performHTTPCheck(ctx context.Context, dep *Dependen
 
 	defer resp.Body.Close()
 
-	result.Metadata["http_status"] = resp.StatusCode
+	// Convert metadata to map, add http_status, then marshal back
+	var metadata map[string]interface{}
+	json.Unmarshal(result.Metadata, &metadata)
+	metadata["http_status"] = resp.StatusCode
+	if metadataJSON, err := json.Marshal(metadata); err == nil {
+		result.Metadata = json.RawMessage(metadataJSON)
+	}
 
 	if healthCheck.ExpectedStatus != 0 && resp.StatusCode != healthCheck.ExpectedStatus {
 
@@ -972,7 +995,13 @@ func (dt *DependencyTracker) performDNSCheck(ctx context.Context, dep *Dependenc
 		result.Error = "no IP addresses found"
 
 	} else {
-		result.Metadata["resolved_ips"] = len(ips)
+		// Convert metadata to map, add resolved_ips, then marshal back
+		var metadata map[string]interface{}
+		json.Unmarshal(result.Metadata, &metadata)
+		metadata["resolved_ips"] = len(ips)
+		if metadataJSON, err := json.Marshal(metadata); err == nil {
+			result.Metadata = json.RawMessage(metadataJSON)
+		}
 	}
 
 	return result
@@ -1022,9 +1051,14 @@ func (dt *DependencyTracker) performKubernetesCheck(ctx context.Context, dep *De
 		}
 	}
 
-	result.Metadata["total_pods"] = len(pods.Items)
-
-	result.Metadata["running_pods"] = runningPods
+	// Convert metadata to map, add pod info, then marshal back
+	var metadata map[string]interface{}
+	json.Unmarshal(result.Metadata, &metadata)
+	metadata["total_pods"] = len(pods.Items)
+	metadata["running_pods"] = runningPods
+	if metadataJSON, err := json.Marshal(metadata); err == nil {
+		result.Metadata = json.RawMessage(metadataJSON)
+	}
 
 	if runningPods == 0 {
 
@@ -1638,7 +1672,7 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 
 	// Convert dependency status to availability status.
 
-	var status HealthStatus
+	var status AvailabilityStatus
 
 	switch health.Status {
 

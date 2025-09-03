@@ -32,6 +32,7 @@ package functions
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -159,8 +160,16 @@ func (o *FiveGCoreOptimizer) Execute(ctx context.Context, input *ResourceList) (
 	LogInfo(ctx, "Starting 5G Core optimization")
 
 	// Parse configuration.
+	var functionConfigMap map[string]interface{}
+	if input.FunctionConfig != nil {
+		if err := json.Unmarshal(input.FunctionConfig, &functionConfigMap); err != nil {
+			functionConfigMap = make(map[string]interface{})
+		}
+	} else {
+		functionConfigMap = make(map[string]interface{})
+	}
 
-	config := o.parseOptimizationConfig(input.FunctionConfig)
+	config := o.parseOptimizationConfig(functionConfigMap)
 
 	// Create output resource list.
 
@@ -414,7 +423,16 @@ func NewMultiVendorNormalizer() *MultiVendorNormalizer {
 func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 	LogInfo(ctx, "Starting multi-vendor normalization")
 
-	config := n.parseNormalizationConfig(input.FunctionConfig)
+	var functionConfigMap map[string]interface{}
+	if input.FunctionConfig != nil {
+		if err := json.Unmarshal(input.FunctionConfig, &functionConfigMap); err != nil {
+			functionConfigMap = make(map[string]interface{})
+		}
+	} else {
+		functionConfigMap = make(map[string]interface{})
+	}
+
+	config := n.parseNormalizationConfig(functionConfigMap)
 
 	output := &ResourceList{
 		Items: make([]porch.KRMResource, len(input.Items)),
@@ -447,13 +465,10 @@ func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList
 
 func (o *FiveGCoreOptimizer) parseOptimizationConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return json.RawMessage(`{}`){
-				"peakUsers": 100000,
-
-				"averageUsers": 50000,
-
-				"sessionRate": 1000,
-			},
+		return map[string]interface{}{
+			"peakUsers":    100000,
+			"averageUsers": 50000,
+			"sessionRate":  1000,
 		}
 	}
 
@@ -1028,7 +1043,7 @@ func (o *NetworkSliceOptimizer) findResourceIndex(resources []porch.KRMResource,
 
 func (n *MultiVendorNormalizer) parseNormalizationConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return json.RawMessage(`{}`)
+		return make(map[string]interface{})
 	}
 
 	return config
@@ -1089,25 +1104,23 @@ func (n *MultiVendorNormalizer) detectVendor(resource *porch.KRMResource) string
 	}
 
 	// Check spec fields for vendor-specific patterns.
-
 	if resource.Spec != nil {
+		var spec map[string]interface{}
+		if err := json.Unmarshal(resource.Spec, &spec); err == nil {
+			// Ericsson patterns.
+			if _, exists := spec["ericsson"]; exists {
+				return "ericsson"
+			}
 
-		// Ericsson patterns.
+			// Nokia patterns.
+			if _, exists := spec["nokia"]; exists {
+				return "nokia"
+			}
 
-		if _, exists := resource.Spec["ericsson"]; exists {
-			return "ericsson"
-		}
-
-		// Nokia patterns.
-
-		if _, exists := resource.Spec["nokia"]; exists {
-			return "nokia"
-		}
-
-		// Huawei patterns.
-
-		if _, exists := resource.Spec["huawei"]; exists {
-			return "huawei"
+			// Huawei patterns.
+			if _, exists := spec["huawei"]; exists {
+				return "huawei"
+			}
 		}
 
 	}
@@ -1156,7 +1169,14 @@ func (n *MultiVendorNormalizer) normalizeFromEricsson(ctx context.Context, resou
 			// Remove vendor-specific section.
 
 			if resource.Spec != nil {
-				delete(resource.Spec, "ericsson")
+				var spec map[string]interface{}
+				if err := json.Unmarshal(resource.Spec, &spec); err == nil {
+					delete(spec, "ericsson")
+					// Marshal back
+					if specBytes, err := json.Marshal(spec); err == nil {
+						resource.Spec = json.RawMessage(specBytes)
+					}
+				}
 			}
 
 			results = append(results, CreateInfo("Converted Ericsson-specific configuration"))
@@ -1208,7 +1228,7 @@ func (n *MultiVendorNormalizer) convertEricssonToGeneric(ericssonConfig interfac
 
 	// For now, return a placeholder.
 
-	return json.RawMessage(`{}`)
+	return make(map[string]interface{})
 }
 
 func (n *MultiVendorNormalizer) normalizeInterfaceMap(interfaces map[string]interface{}) map[string]interface{} {

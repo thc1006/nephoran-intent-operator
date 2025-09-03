@@ -5,6 +5,7 @@ package linkerd
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -38,15 +39,16 @@ func init() {
 		// Extract Linkerd-specific settings from custom config.
 
 		if meshConfig.CustomConfig != nil {
+			var customConfig map[string]interface{}
+			if err := json.Unmarshal(meshConfig.CustomConfig, &customConfig); err == nil {
+				if identityTrustDomain, ok := customConfig["identityTrustDomain"].(string); ok {
+					linkerdConfig.IdentityTrustDomain = identityTrustDomain
+				}
 
-			if identityTrustDomain, ok := meshConfig.CustomConfig["identityTrustDomain"].(string); ok {
-				linkerdConfig.IdentityTrustDomain = identityTrustDomain
+				if proxyLogLevel, ok := customConfig["proxyLogLevel"].(string); ok {
+					linkerdConfig.ProxyLogLevel = proxyLogLevel
+				}
 			}
-
-			if proxyLogLevel, ok := meshConfig.CustomConfig["proxyLogLevel"].(string); ok {
-				linkerdConfig.ProxyLogLevel = proxyLogLevel
-			}
-
 		}
 
 		return NewLinkerdMesh(kubeClient, dynamicClient, config, linkerdConfig)

@@ -493,7 +493,7 @@ func (wqm *WorkQueueManager) executeJob(ctx context.Context, job *ProcessingJob)
 
 		Success: true,
 
-		Data: make(map[string]interface{}),
+		Data: json.RawMessage(`{}`),
 
 		StartTime: *job.StartedAt,
 
@@ -502,9 +502,13 @@ func (wqm *WorkQueueManager) executeJob(ctx context.Context, job *ProcessingJob)
 
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
-	result.Data["executionPhase"] = string(job.Phase)
-
-	result.Data["processingContext"] = job.Context
+	// Serialize result data to JSON
+	resultData := map[string]interface{}{
+		"executionPhase":    string(job.Phase),
+		"processingContext": job.Context,
+	}
+	data, _ := json.Marshal(resultData)
+	result.Data = json.RawMessage(data)
 
 	return result, nil
 }
@@ -1038,6 +1042,14 @@ func (m *WorkQueueMetrics) GetMetrics() map[string]interface{} {
 
 	defer m.mutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"jobsEnqueued":   m.JobsEnqueued,
+		"jobsStarted":    m.JobsStarted,
+		"jobsCompleted":  m.JobsCompleted,
+		"jobsFailed":     m.JobsFailed,
+		"queueDepths":    m.QueueDepths,
+		"processingTimes": m.ProcessingTimes,
+		"activeJobCount": m.ActiveJobCount,
+	}
 }
 

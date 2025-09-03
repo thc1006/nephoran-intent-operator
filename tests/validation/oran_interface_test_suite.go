@@ -8,6 +8,7 @@ package test_validation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -77,7 +78,7 @@ func (oits *ORANInterfaceTestSuite) SetK8sClient(client client.Client) {
 // RunComprehensiveORANValidation runs the complete O-RAN interface validation suite.
 
 func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.Context) *ORANValidationReport {
-	ginkgo.By("?? Starting Comprehensive O-RAN Interface Validation Suite")
+	ginkgo.By("🚀 Starting Comprehensive O-RAN Interface Validation Suite")
 
 	report := &ORANValidationReport{
 		StartTime: time.Now(),
@@ -89,7 +90,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	// Phase 1: Functional Compliance Testing.
 
-	ginkgo.By("?? Phase 1: O-RAN Interface Functional Compliance Testing")
+	ginkgo.By("📋 Phase 1: O-RAN Interface Functional Compliance Testing")
 
 	oits.complianceScore = oits.runFunctionalComplianceTests(ctx)
 
@@ -101,7 +102,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	if oits.config.EnableLoadTesting {
 
-		ginkgo.By("??Phase 2: O-RAN Interface Performance Benchmarking")
+		ginkgo.By("⚡Phase 2: O-RAN Interface Performance Benchmarking")
 
 		oits.performanceResults = oits.runPerformanceBenchmarks(ctx)
 
@@ -115,7 +116,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	if oits.config.EnableChaosTesting {
 
-		ginkgo.By("?? Phase 3: O-RAN Interface Reliability Testing")
+		ginkgo.By("🔧 Phase 3: O-RAN Interface Reliability Testing")
 
 		reliabilityScore := oits.runReliabilityTests(ctx)
 
@@ -127,7 +128,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	// Phase 4: Multi-Vendor Interoperability Testing.
 
-	ginkgo.By("?? Phase 4: Multi-Vendor Interoperability Testing")
+	ginkgo.By("🤝 Phase 4: Multi-Vendor Interoperability Testing")
 
 	interopScore := oits.runInteroperabilityTests(ctx)
 
@@ -137,7 +138,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 
 	// Phase 5: End-to-End Integration Testing.
 
-	ginkgo.By("?? Phase 5: End-to-End Integration Testing")
+	ginkgo.By("🔄 Phase 5: End-to-End Integration Testing")
 
 	integrationScore := oits.runIntegrationTests(ctx)
 
@@ -172,11 +173,11 @@ func (oits *ORANInterfaceTestSuite) runFunctionalComplianceTests(ctx context.Con
 	ginkgo.By(fmt.Sprintf("O-RAN Functional Compliance Score: %d/%d points", score, oits.targetScore))
 
 	if score == oits.targetScore {
-		ginkgo.By("??Full O-RAN functional compliance achieved!")
+		ginkgo.By("✅Full O-RAN functional compliance achieved!")
 	} else if score >= oits.targetScore-1 {
-		ginkgo.By("?��?  Near-complete O-RAN functional compliance")
+		ginkgo.By("⚠️  Near-complete O-RAN functional compliance")
 	} else {
-		ginkgo.By("??O-RAN functional compliance below target")
+		ginkgo.By("❌O-RAN functional compliance below target")
 	}
 
 	return score
@@ -491,7 +492,10 @@ func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
 
 	// Test cloud provider failover scenario.
 
-	primaryCloudConfig := json.RawMessage(`{}`){
+	primaryCloudConfig := map[string]interface{}{
+		"provider": "aws",
+		"region":   "us-east-1",
+		"resources": map[string]interface{}{
 			"ec2_instances": 3,
 		},
 	}
@@ -504,7 +508,10 @@ func (oits *ORANInterfaceTestSuite) testO2Resilience(ctx context.Context) bool {
 
 	// Simulate primary cloud failure and failover to secondary.
 
-	secondaryCloudConfig := json.RawMessage(`{}`){
+	secondaryCloudConfig := map[string]interface{}{
+		"provider": "azure",
+		"region":   "eastus",
+		"resources": map[string]interface{}{
 			"virtual_machines": 3,
 		},
 	}
@@ -650,10 +657,12 @@ func (oits *ORANInterfaceTestSuite) testMultiCloudO2(ctx context.Context) bool {
 
 	for _, provider := range cloudProviders {
 
-		cloudConfig := json.RawMessage(`{}`){
+		cloudConfig := map[string]interface{}{
+			"provider": provider,
+			"region":   "us-east-1",
+			"resources": map[string]interface{}{
 				"instances": 2,
-
-				"storage": 1,
+				"storage":   1,
 			},
 		}
 
@@ -741,7 +750,7 @@ func (oits *ORANInterfaceTestSuite) calculateOverallResult(report *ORANValidatio
 // generateComprehensiveReport generates a comprehensive test report.
 
 func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANValidationReport) {
-	ginkgo.By("?? Generating Comprehensive O-RAN Validation Report")
+	ginkgo.By("📄 Generating Comprehensive O-RAN Validation Report")
 
 	ginkgo.By(strings.Repeat("=", 80))
 
@@ -759,14 +768,14 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 
 	// Compliance Results.
 
-	ginkgo.By("?? FUNCTIONAL COMPLIANCE RESULTS")
+	ginkgo.By("📋 FUNCTIONAL COMPLIANCE RESULTS")
 
 	ginkgo.By(fmt.Sprintf("Compliance Score: %d/%d points", report.ComplianceScore, report.TargetScore))
 
 	if report.CompliancePassed {
-		ginkgo.By("??Compliance: PASSED")
+		ginkgo.By("✅Compliance: PASSED")
 	} else {
-		ginkgo.By("??Compliance: FAILED")
+		ginkgo.By("❌Compliance: FAILED")
 	}
 
 	ginkgo.By("")
@@ -775,7 +784,7 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 
 	if report.PerformanceResults != nil {
 
-		ginkgo.By("??PERFORMANCE RESULTS")
+		ginkgo.By("⚡PERFORMANCE RESULTS")
 
 		for interfaceName, result := range report.PerformanceResults {
 			if interfaceName == "A1" || interfaceName == "E2" || interfaceName == "O1" || interfaceName == "O2" {
@@ -790,9 +799,9 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 		}
 
 		if report.PerformancePassed {
-			ginkgo.By("??Performance: PASSED")
+			ginkgo.By("✅Performance: PASSED")
 		} else {
-			ginkgo.By("??Performance: FAILED")
+			ginkgo.By("❌Performance: FAILED")
 		}
 
 		ginkgo.By("")
@@ -801,19 +810,19 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 
 	// Overall Result.
 
-	ginkgo.By("?? OVERALL RESULT")
+	ginkgo.By("🏁 OVERALL RESULT")
 
 	if report.OverallPassed {
 
-		ginkgo.By("??O-RAN INTERFACE VALIDATION: PASSED")
+		ginkgo.By("✅O-RAN INTERFACE VALIDATION: PASSED")
 
-		ginkgo.By("?? Congratulations! Full O-RAN compliance achieved.")
+		ginkgo.By("🎉 Congratulations! Full O-RAN compliance achieved.")
 
 	} else {
 
-		ginkgo.By("??O-RAN INTERFACE VALIDATION: FAILED")
+		ginkgo.By("❌O-RAN INTERFACE VALIDATION: FAILED")
 
-		ginkgo.By("?��?  Please review failed test categories and retry.")
+		ginkgo.By("⚠️  Please review failed test categories and retry.")
 
 	}
 
@@ -869,4 +878,3 @@ type ORANValidationReport struct {
 
 	OverallPassed bool `json:"overallPassed"`
 }
-

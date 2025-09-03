@@ -278,8 +278,7 @@ func BenchmarkThroughput(b *testing.B) {
 	defer server.Close()
 
 	intent := map[string]interface{}{
-			"intent": "Throughput benchmark",
-		},
+		"intent": "Throughput benchmark",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -451,8 +450,7 @@ func TestPerformanceCharacteristics(t *testing.T) {
 
 	t.Run("response time is under 100ms", func(t *testing.T) {
 		intent := map[string]interface{}{
-				"intent": "Performance test intent",
-			},
+			"intent": "Performance test intent",
 		}
 
 		intentJSON, err := json.Marshal(intent)
@@ -475,8 +473,7 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		const requestsPerWorker = 10
 
 		intent := map[string]interface{}{
-				"intent": "Concurrency test intent",
-			},
+			"intent": "Concurrency test intent",
 		}
 
 		intentJSON, err := json.Marshal(intent)

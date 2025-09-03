@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -25,7 +26,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // SharedMockRAGService provides a centralized mock RAG service for all tests
@@ -80,28 +80,24 @@ func (m *SharedMockRAGService) RetrieveContext(ctx context.Context, request *rag
 	m.mutex.RUnlock()
 
 	// Create default response
-	documents := make([]rag.Doc, 0, len(m.documents))
+	documents := make([]*rag.SearchResult, 0, len(m.documents))
 	for _, doc := range m.documents {
-		documents = append(documents, rag.Doc{
-			ID:         "doc-1",
-			Content:    doc["content"].(string),
-			Confidence: doc["similarity"].(float64),
-			Metadata:   doc["metadata"].(map[string]interface{}),
+		metadata, _ := json.Marshal(doc["metadata"].(map[string]interface{}))
+		documents = append(documents, &rag.SearchResult{
+			ID:       "doc-1",
+			Content:  doc["content"].(string),
+			Score:    float32(doc["similarity"].(float64)),
+			Metadata: json.RawMessage(metadata),
 		})
 	}
 
 	response := &rag.RetrievalResponse{
-		Documents:             make([]map[string]interface{}, len(documents)),
+		Documents:             documents,
 		Duration:              50 * time.Millisecond,
 		AverageRelevanceScore: 0.8,
 		TopRelevanceScore:     0.9,
 		QueryWasEnhanced:      false,
-		Metadata:              make(map[string]interface{}),
-	}
-
-	// Convert rag.Doc to map[string]interface{}
-	for i, doc := range documents {
-		response.Documents[i] = json.RawMessage(`{}`)
+		Metadata:              json.RawMessage(`{}`),
 	}
 
 	if args.Error(1) != nil {
@@ -138,13 +134,14 @@ func (m *SharedMockRAGService) Query(ctx context.Context, req *rag.QueryRequest)
 	}
 
 	// Convert filteredDocs to SearchResult format for QueryResponse
-	results := make([]*shared.SearchResult, len(filteredDocs))
+	results := make([]*rag.SearchResult, len(filteredDocs))
 	for i, doc := range filteredDocs {
-		results[i] = &shared.SearchResult{
+		metadata, _ := json.Marshal(doc["metadata"].(map[string]interface{}))
+		results[i] = &rag.SearchResult{
 			ID:       fmt.Sprintf("doc-%d", i),
 			Content:  doc["content"].(string),
 			Score:    float32(doc["similarity"].(float64)),
-			Metadata: doc["metadata"].(map[string]interface{}),
+			Metadata: json.RawMessage(metadata),
 		}
 	}
 
@@ -223,7 +220,10 @@ func (m *MockTelecomResourceCalculator) CalculateResources(ctx context.Context, 
 	}
 
 	// Return mock calculation result
-	result := json.RawMessage(`{}`)
+	result := map[string]interface{}{
+		"status": "completed",
+		"timestamp": time.Now().Unix(),
+	}
 
 	if args.Error(1) != nil {
 		return nil, args.Error(1)

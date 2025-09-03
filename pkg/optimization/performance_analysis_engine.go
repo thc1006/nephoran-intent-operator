@@ -1685,9 +1685,8 @@ func (engine *PerformanceAnalysisEngine) establishBaseline(ctx context.Context) 
 
 		Metrics: make(map[string]float64),
 
-		SystemConfiguration: make(map[string]interface{}),
+		EnvironmentInfo: make(map[string]string),
 
-		ValidityPeriod: 24 * time.Hour,
 	}
 
 	// Collect baseline metrics - simplified implementation.
@@ -1702,11 +1701,11 @@ func (engine *PerformanceAnalysisEngine) establishBaseline(ctx context.Context) 
 
 	baseline.Metrics["error_rate"] = 0.002
 
-	baseline.SystemConfiguration["version"] = "v1.0.0"
+	baseline.EnvironmentInfo["version"] = "v1.0.0"
 
-	baseline.SystemConfiguration["deployment_type"] = "kubernetes"
+	baseline.EnvironmentInfo["deployment_type"] = "kubernetes"
 
-	baseline.SystemConfiguration["replicas"] = 3
+	baseline.EnvironmentInfo["replicas"] = "3"
 
 	engine.currentBaseline = baseline
 

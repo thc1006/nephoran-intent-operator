@@ -49,6 +49,9 @@ type ExpectedImpact struct {
 	// Confidence metrics
 	ConfidenceLevel float64 `json:"confidenceLevel"`
 	DataQuality     float64 `json:"dataQuality"`
+	PerformanceImprovement float64 `json:"performanceImprovement"`
+	ResourceReduction      float64 `json:"resourceReduction"`
+	MemoryReduction        float64 `json:"memoryReduction"`
 }
 
 // OptimizationPriority represents the priority level of optimizations

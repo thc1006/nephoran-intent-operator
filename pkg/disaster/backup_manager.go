@@ -593,7 +593,7 @@ func (bm *BackupManager) createBackup(ctx context.Context, backupType string) (*
 
 		Components: make(map[string]ComponentBackup),
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Define components to backup.
@@ -786,7 +786,7 @@ func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecor
 
 		StartTime: start,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	bm.logger.Info("Starting Weaviate backup")
@@ -856,11 +856,15 @@ func (bm *BackupManager) backupWeaviate(ctx context.Context, record *BackupRecor
 
 	component.EndTime = time.Now()
 
-	component.Metadata["backup_method"] = "rest_api"
-
-	component.Metadata["include_vectors"] = bm.config.WeaviateConfig.IncludeVector
-
-	component.Metadata["include_schema"] = bm.config.WeaviateConfig.IncludeSchema
+	// Marshal metadata to json.RawMessage
+	metadata := map[string]interface{}{
+		"backup_method":   "rest_api",
+		"include_vectors": bm.config.WeaviateConfig.IncludeVector,
+		"include_schema":  bm.config.WeaviateConfig.IncludeSchema,
+	}
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		component.Metadata = metadataBytes
+	}
 
 	record.Components["weaviate"] = component
 
@@ -930,7 +934,7 @@ func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *Bac
 
 		StartTime: start,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	bm.logger.Info("Starting Kubernetes configuration backup")
@@ -989,9 +993,14 @@ func (bm *BackupManager) backupKubernetesConfig(ctx context.Context, record *Bac
 
 	component.EndTime = time.Now()
 
-	component.Metadata["namespaces"] = bm.config.ConfigBackupConfig.Namespaces
-
-	component.Metadata["resource_types"] = len(bm.config.ConfigBackupConfig.KubernetesResources)
+	// Marshal metadata to json.RawMessage
+	metadata := map[string]interface{}{
+		"namespaces":     bm.config.ConfigBackupConfig.Namespaces,
+		"resource_types": len(bm.config.ConfigBackupConfig.KubernetesResources),
+	}
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		component.Metadata = metadataBytes
+	}
 
 	record.Components["kubernetes-config"] = component
 
@@ -1134,7 +1143,7 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 
 		StartTime: start,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	bm.logger.Info("Starting Git repositories backup")
@@ -1207,9 +1216,14 @@ func (bm *BackupManager) backupGitRepositories(ctx context.Context, record *Back
 
 	component.EndTime = time.Now()
 
-	component.Metadata["repositories"] = repos
-
-	component.Metadata["total_repositories"] = len(bm.config.GitConfig.Repositories)
+	// Marshal metadata to json.RawMessage
+	metadata := map[string]interface{}{
+		"repositories":       repos,
+		"total_repositories": len(bm.config.GitConfig.Repositories),
+	}
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		component.Metadata = metadataBytes
+	}
 
 	record.Components["git-repositories"] = component
 
@@ -1372,7 +1386,7 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 
 		StartTime: start,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	bm.logger.Info("Starting persistent volumes backup")
@@ -1439,9 +1453,14 @@ func (bm *BackupManager) backupPersistentVolumes(ctx context.Context, record *Ba
 
 	component.EndTime = time.Now()
 
-	component.Metadata["pvc_count"] = len(pvcs)
-
-	component.Metadata["namespaces"] = bm.config.ConfigBackupConfig.Namespaces
+	// Marshal metadata to json.RawMessage
+	pvcMetadata := map[string]interface{}{
+		"pvc_count":  len(pvcs),
+		"namespaces": bm.config.ConfigBackupConfig.Namespaces,
+	}
+	if metadataBytes, err := json.Marshal(pvcMetadata); err == nil {
+		component.Metadata = metadataBytes
+	}
 
 	record.Components["persistent-volumes"] = component
 
@@ -1466,7 +1485,7 @@ func (bm *BackupManager) backupSystemState(ctx context.Context, record *BackupRe
 
 		StartTime: start,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	bm.logger.Info("Starting system state backup")
@@ -1543,7 +1562,10 @@ func (bm *BackupManager) getNodeInfo(ctx context.Context) map[string]interface{}
 
 	for _, node := range nodes.Items {
 
-		nodeInfo := json.RawMessage(`{}`)
+		nodeInfo := map[string]interface{}{
+			"name":   node.Name,
+			"status": node.Status.Phase,
+		}
 
 		nodeList = append(nodeList, nodeInfo)
 

@@ -972,7 +972,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 		Layer: endpoint.Layer,
 
-		Metadata: map[string]interface{}{},
+		Metadata: json.RawMessage("{}"),
 	}, nil
 }
 
@@ -1288,8 +1288,6 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 	// For services, we assume they're healthy if they exist.
 
 	// More sophisticated checks could verify endpoints.
-
-	service := services.Items[0]
 
 	return &ComponentStatus{
 		Status: HealthHealthy,

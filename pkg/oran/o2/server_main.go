@@ -4,6 +4,7 @@ package o2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"

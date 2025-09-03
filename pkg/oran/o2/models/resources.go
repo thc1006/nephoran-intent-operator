@@ -12,12 +12,13 @@ import (
 
 // SystemInfo represents basic system information for the O2 IMS service.
 type SystemInfo struct {
+	ID                     string                 `json:"id"`
 	Name                   string                 `json:"name"`
 	Description            string                 `json:"description"`
 	Version                string                 `json:"version"`
 	APIVersions            []string               `json:"apiVersions"`
 	SupportedResourceTypes []string               `json:"supportedResourceTypes"`
-	Extensions             json.RawMessage `json:"extensions,omitempty"`
+	Extensions             map[string]interface{} `json:"extensions,omitempty"`
 	Timestamp              time.Time              `json:"timestamp"`
 }
 
@@ -36,7 +37,7 @@ type ResourcePool struct {
 
 	GlobalLocationID string `json:"globalLocationId,omitempty"`
 
-	Extensions json.RawMessage `json:"extensions,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 
 	// Nephoran-specific extensions.
 
@@ -222,7 +223,7 @@ type CreateResourcePoolRequest struct {
 
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 
-	Extensions json.RawMessage `json:"extensions,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -240,7 +241,7 @@ type UpdateResourcePoolRequest struct {
 
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 
-	Extensions json.RawMessage `json:"extensions,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -274,7 +275,7 @@ type Node struct {
 
 	Location *NodeLocation `json:"location,omitempty"`
 
-	Extensions json.RawMessage `json:"extensions,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 

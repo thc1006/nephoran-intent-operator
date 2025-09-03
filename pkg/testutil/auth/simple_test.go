@@ -1,4 +1,4 @@
-package authtestutil
+package auth
 
 import (
 	"testing"

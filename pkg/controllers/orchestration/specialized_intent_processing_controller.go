@@ -495,7 +495,11 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 	}
 
-	session.RAGContext = ragContext
+	if ragContext != nil {
+		if ragBytes, err := json.Marshal(ragContext); err == nil {
+			session.RAGContext = json.RawMessage(ragBytes)
+		}
+	}
 
 	session.Metrics.RAGLatency = time.Since(startTime)
 
@@ -551,7 +555,11 @@ func (c *SpecializedIntentProcessingController) ProcessIntent(ctx context.Contex
 
 	}
 
-	session.LLMResponse = llmResponse
+	if llmResponse != nil {
+		if llmBytes, err := json.Marshal(llmResponse); err == nil {
+			session.LLMResponse = json.RawMessage(llmBytes)
+		}
+	}
 
 	session.Confidence = confidence
 

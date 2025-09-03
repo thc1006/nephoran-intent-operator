@@ -466,9 +466,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			TextSearch: "auth",
 			StartTime:  now.Add(-24 * time.Hour),
 			EndTime:    now.Add(-1 * time.Hour),
-			Filters: json.RawMessage(`{}`),
-				"result":   "success",
-			},
+			Filters: json.RawMessage(`{"result": "success"}`),
 			SortBy:    "timestamp",
 			SortOrder: "desc",
 			Limit:     100,
@@ -563,6 +561,7 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 	suite.Run("count by event type", func() {
 		query := &Query{
 			Aggregations: map[string]interface{}{
+				"event_types": map[string]interface{}{
 					"terms": json.RawMessage(`{}`),
 				},
 			},
@@ -578,6 +577,7 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 	suite.Run("count by severity", func() {
 		query := &Query{
 			Aggregations: map[string]interface{}{
+				"severities": map[string]interface{}{
 					"terms": json.RawMessage(`{}`),
 				},
 			},
@@ -593,6 +593,7 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 	suite.Run("date histogram", func() {
 		query := &Query{
 			Aggregations: map[string]interface{}{
+				"events_over_time": map[string]interface{}{
 					"date_histogram": json.RawMessage(`{}`),
 				},
 			},
@@ -735,6 +736,7 @@ func TestQueryBuilder(t *testing.T) {
 					WithUser("user123").
 					WithResult(ResultFailure).
 					WithAggregation("severity_counts", map[string]interface{}{
+						"terms": map[string]interface{}{
 							"field": "severity",
 						},
 					})
@@ -743,7 +745,10 @@ func TestQueryBuilder(t *testing.T) {
 				TextSearch: "error",
 				Filters: json.RawMessage(`{}`),
 				Aggregations: map[string]interface{}{
-						"terms": json.RawMessage(`{}`),
+					"severity_counts": map[string]interface{}{
+						"terms": map[string]interface{}{
+							"field": "severity",
+						},
 					},
 				},
 			},
@@ -820,8 +825,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 	b.Run("complex filter with sort", func(b *testing.B) {
 		query := &Query{
-			Filters: json.RawMessage(`{}`),
-			},
+			Filters: json.RawMessage(`{"severity": "error"}`),
 			SortBy:    "timestamp",
 			SortOrder: "desc",
 			Limit:     50,

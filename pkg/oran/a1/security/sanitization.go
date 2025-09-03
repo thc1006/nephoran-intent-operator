@@ -6,16 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	"log/slog"
-	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
-	"unicode/utf8"
+	"time"
 
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/xeipuuv/gojsonschema"
-
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
@@ -26,189 +23,280 @@ type SanitizationConfig struct {
 
 	Mode SanitizationMode `json:"mode"`
 
-	Policies map[string]*SanitizationPolicy `json:"policies"`
+	Rules []SanitizationRule `json:"rules"`
 
-	DefaultPolicy string `json:"default_policy"`
+	DefaultAction SanitizationAction `json:"default_action"`
 
 	MaxInputSize int64 `json:"max_input_size"`
 
-	MaxFieldCount int `json:"max_field_count"`
-
 	MaxNestingDepth int `json:"max_nesting_depth"`
 
-	MaxArrayLength int `json:"max_array_length"`
+	HTMLSanitization *HTMLSanitizationConfig `json:"html_sanitization"`
 
-	MaxStringLength int `json:"max_string_length"`
+	SQLInjectionProtection *SQLInjectionConfig `json:"sql_injection_protection"`
 
-	EnforceJSONSchema bool `json:"enforce_json_schema"`
+	XSSProtection *XSSProtectionConfig `json:"xss_protection"`
 
-	SchemaPath string `json:"schema_path"`
+	CSVInjectionProtection *CSVInjectionConfig `json:"csv_injection_protection"`
 
-	DetectMaliciousPatterns bool `json:"detect_malicious_patterns"`
+	PathTraversalProtection *PathTraversalConfig `json:"path_traversal_protection"`
 
-	LogSanitizationEvents bool `json:"log_sanitization_events"`
+	CommandInjectionProtection *CommandInjectionConfig `json:"command_injection_protection"`
 
-	RejectOnViolation bool `json:"reject_on_violation"`
+	LDAPInjectionProtection *LDAPInjectionConfig `json:"ldap_injection_protection"`
+
+	NoSQLInjectionProtection *NoSQLInjectionConfig `json:"nosql_injection_protection"`
+
+	TemplateInjectionProtection *TemplateInjectionConfig `json:"template_injection_protection"`
+
+	RegexTimeoutProtection *RegexTimeoutConfig `json:"regex_timeout_protection"`
+
+	CustomPatterns []CustomPattern `json:"custom_patterns"`
+
+	WhitelistEnabled bool `json:"whitelist_enabled"`
+
+	AllowedFields []string `json:"allowed_fields"`
+
+	BlockedFields []string `json:"blocked_fields"`
+
+	LogViolations bool `json:"log_violations"`
+
+	StrictMode bool `json:"strict_mode"`
 }
 
-// SanitizationMode represents the sanitization mode.
+// SanitizationMode defines sanitization mode.
 
 type SanitizationMode string
 
 const (
 
-	// ModeStrict holds modestrict value.
+	// ModeBlock blocks malicious input.
 
-	ModeStrict SanitizationMode = "strict" // Reject invalid input
+	ModeBlock SanitizationMode = "block"
 
-	// ModeSanitize holds modesanitize value.
+	// ModeSanitize sanitizes malicious input.
 
-	ModeSanitize SanitizationMode = "sanitize" // Clean invalid input
+	ModeSanitize SanitizationMode = "sanitize"
 
-	// ModeLog holds modelog value.
+	// ModeLog logs malicious input but allows it.
 
-	ModeLog SanitizationMode = "log" // Log violations only
+	ModeLog SanitizationMode = "log"
 
-	// ModePassthrough holds modepassthrough value.
+	// ModeStrict applies strict sanitization rules.
 
-	ModePassthrough SanitizationMode = "passthrough" // No sanitization
-
+	ModeStrict SanitizationMode = "strict"
 )
 
-// SanitizationPolicy defines a sanitization policy.
+// SanitizationAction defines the action to take for violations.
 
-type SanitizationPolicy struct {
-	Name string `json:"name"`
+type SanitizationAction string
 
-	Description string `json:"description"`
+const (
 
-	Rules []*SanitizationRule `json:"rules"`
+	// ActionBlock blocks the request.
 
-	AllowedPatterns []string `json:"allowed_patterns"`
+	ActionBlock SanitizationAction = "block"
 
-	BlockedPatterns []string `json:"blocked_patterns"`
+	// ActionSanitize sanitizes the input.
 
-	AllowedContentTypes []string `json:"allowed_content_types"`
+	ActionSanitize SanitizationAction = "sanitize"
 
-	CustomValidators map[string]Validator `json:"-"`
+	// ActionWarn logs a warning.
 
-	SchemaValidation *SchemaValidation `json:"schema_validation"`
-}
+	ActionWarn SanitizationAction = "warn"
+
+	// ActionAllow allows the input.
+
+	ActionAllow SanitizationAction = "allow"
+)
 
 // SanitizationRule defines a sanitization rule.
 
 type SanitizationRule struct {
-	Field string `json:"field"`
-
-	Type InputType `json:"type"`
-
-	Required bool `json:"required"`
-
-	MinLength int `json:"min_length"`
-
-	MaxLength int `json:"max_length"`
+	Name string `json:"name"`
 
 	Pattern string `json:"pattern"`
 
-	AllowHTML bool `json:"allow_html"`
+	Fields []string `json:"fields"`
+
+	Action SanitizationAction `json:"action"`
+
+	Replacement string `json:"replacement"`
+
+	Description string `json:"description"`
+
+	Enabled bool `json:"enabled"`
+
+	Priority int `json:"priority"`
+
+	CaseSensitive bool `json:"case_sensitive"`
+
+	MatchWholeWord bool `json:"match_whole_word"`
+}
+
+// HTMLSanitizationConfig holds HTML sanitization configuration.
+
+type HTMLSanitizationConfig struct {
+	Enabled bool `json:"enabled"`
 
 	AllowedTags []string `json:"allowed_tags"`
 
+	AllowedAttributes map[string][]string `json:"allowed_attributes"`
+
+	RemoveComments bool `json:"remove_comments"`
+
+	RemoveScripts bool `json:"remove_scripts"`
+
+	RemoveStyles bool `json:"remove_styles"`
+
+	AllowDataAttributes bool `json:"allow_data_attributes"`
+
 	StripTags bool `json:"strip_tags"`
-
-	EscapeHTML bool `json:"escape_html"`
-
-	TrimWhitespace bool `json:"trim_whitespace"`
-
-	Lowercase bool `json:"lowercase"`
-
-	Uppercase bool `json:"uppercase"`
-
-	CustomValidator string `json:"custom_validator"`
-
-	Transform TransformFunc `json:"-"`
 }
 
-// InputType represents the type of input.
+// SQLInjectionConfig holds SQL injection protection configuration.
 
-type InputType string
-
-const (
-
-	// TypeString holds typestring value.
-
-	TypeString InputType = "string"
-
-	// TypeNumber holds typenumber value.
-
-	TypeNumber InputType = "number"
-
-	// TypeBoolean holds typeboolean value.
-
-	TypeBoolean InputType = "boolean"
-
-	// TypeArray holds typearray value.
-
-	TypeArray InputType = "array"
-
-	// TypeObject holds typeobject value.
-
-	TypeObject InputType = "object"
-
-	// TypeEmail holds typeemail value.
-
-	TypeEmail InputType = "email"
-
-	// TypeURL holds typeurl value.
-
-	TypeURL InputType = "url"
-
-	// TypeIP holds typeip value.
-
-	TypeIP InputType = "ip"
-
-	// TypeJSON holds typejson value.
-
-	TypeJSON InputType = "json"
-
-	// TypeBase64 holds typebase64 value.
-
-	TypeBase64 InputType = "base64"
-
-	// TypeUUID holds typeuuid value.
-
-	TypeUUID InputType = "uuid"
-
-	// TypeAlphaNum holds typealphanum value.
-
-	TypeAlphaNum InputType = "alphanumeric"
-)
-
-// SchemaValidation holds JSON schema validation configuration.
-
-type SchemaValidation struct {
+type SQLInjectionConfig struct {
 	Enabled bool `json:"enabled"`
 
-	SchemaFile string `json:"schema_file"`
+	BlockPatterns []string `json:"block_patterns"`
 
-	SchemaJSON json.RawMessage `json:"schema_json"`
+	AllowedKeywords []string `json:"allowed_keywords"`
 
-	StrictMode bool `json:"strict_mode"`
+	CaseSensitive bool `json:"case_sensitive"`
 
-	AllowAdditional bool `json:"allow_additional"`
+	CheckComments bool `json:"check_comments"`
+
+	CheckUnionOperators bool `json:"check_union_operators"`
 }
 
-// Validator interface for custom validation.
+// XSSProtectionConfig holds XSS protection configuration.
 
-type Validator interface {
-	Validate(ctx context.Context, value interface{}) (bool, error)
+type XSSProtectionConfig struct {
+	Enabled bool `json:"enabled"`
 
-	Sanitize(ctx context.Context, value interface{}) (interface{}, error)
+	BlockJavaScript bool `json:"block_javascript"`
+
+	BlockOnEvent bool `json:"block_on_event"`
+
+	BlockDataURIs bool `json:"block_data_uris"`
+
+	SanitizeHTML bool `json:"sanitize_html"`
+
+	RemoveInlineStyles bool `json:"remove_inline_styles"`
+
+	BlockBase64 bool `json:"block_base64"`
 }
 
-// TransformFunc represents a transformation function.
+// CSVInjectionConfig holds CSV injection protection configuration.
 
-type TransformFunc func(value interface{}) (interface{}, error)
+type CSVInjectionConfig struct {
+	Enabled bool `json:"enabled"`
+
+	BlockFormulas bool `json:"block_formulas"`
+
+	BlockMacros bool `json:"block_macros"`
+
+	EscapeSpecialChars bool `json:"escape_special_chars"`
+
+	SpecialChars []string `json:"special_chars"`
+}
+
+// PathTraversalConfig holds path traversal protection configuration.
+
+type PathTraversalConfig struct {
+	Enabled bool `json:"enabled"`
+
+	BlockDotDotSlash bool `json:"block_dot_dot_slash"`
+
+	BlockAbsolutePaths bool `json:"block_absolute_paths"`
+
+	AllowedPaths []string `json:"allowed_paths"`
+
+	BlockedPaths []string `json:"blocked_paths"`
+
+	NormalizePaths bool `json:"normalize_paths"`
+}
+
+// CommandInjectionConfig holds command injection protection configuration.
+
+type CommandInjectionConfig struct {
+	Enabled bool `json:"enabled"`
+
+	BlockShellMetachars bool `json:"block_shell_metachars"`
+
+	BlockCommandChaining bool `json:"block_command_chaining"`
+
+	BlockPipeOperators bool `json:"block_pipe_operators"`
+
+	AllowedCommands []string `json:"allowed_commands"`
+
+	BlockedCommands []string `json:"blocked_commands"`
+}
+
+// LDAPInjectionConfig holds LDAP injection protection configuration.
+
+type LDAPInjectionConfig struct {
+	Enabled bool `json:"enabled"`
+
+	EscapeSpecialChars bool `json:"escape_special_chars"`
+
+	BlockWildcards bool `json:"block_wildcards"`
+
+	ValidateFilters bool `json:"validate_filters"`
+}
+
+// NoSQLInjectionConfig holds NoSQL injection protection configuration.
+
+type NoSQLInjectionConfig struct {
+	Enabled bool `json:"enabled"`
+
+	BlockOperators bool `json:"block_operators"`
+
+	ValidateJSON bool `json:"validate_json"`
+
+	BlockRegexOperators bool `json:"block_regex_operators"`
+
+	BlockWhereOperators bool `json:"block_where_operators"`
+}
+
+// TemplateInjectionConfig holds template injection protection configuration.
+
+type TemplateInjectionConfig struct {
+	Enabled bool `json:"enabled"`
+
+	BlockTemplateEngines bool `json:"block_template_engines"`
+
+	AllowedTemplateEngines []string `json:"allowed_template_engines"`
+
+	BlockExpressions bool `json:"block_expressions"`
+}
+
+// RegexTimeoutConfig holds regex timeout protection configuration.
+
+type RegexTimeoutConfig struct {
+	Enabled bool `json:"enabled"`
+
+	TimeoutSeconds int `json:"timeout_seconds"`
+
+	MaxRegexLength int `json:"max_regex_length"`
+
+	BlockComplexRegex bool `json:"block_complex_regex"`
+}
+
+// CustomPattern holds custom sanitization pattern.
+
+type CustomPattern struct {
+	Name string `json:"name"`
+
+	Pattern string `json:"pattern"`
+
+	Action SanitizationAction `json:"action"`
+
+	Replacement string `json:"replacement"`
+
+	Description string `json:"description"`
+}
 
 // SanitizationManager manages input sanitization.
 
@@ -217,35 +305,45 @@ type SanitizationManager struct {
 
 	logger *logging.StructuredLogger
 
-	policies map[string]*SanitizationPolicy
-
-	schemas map[string]*gojsonschema.Schema
-
 	htmlPolicy *bluemonday.Policy
 
-	maliciousPatterns []*regexp.Regexp
-
-	mu sync.RWMutex
+	compiledRules []*CompiledRule
 
 	stats *SanitizationStats
+
+	mu sync.RWMutex
 }
 
-// SanitizationStats tracks sanitization statistics.
+// CompiledRule represents a compiled sanitization rule.
+
+type CompiledRule struct {
+	*SanitizationRule
+
+	regex *regexp.Regexp
+}
+
+// SanitizationStats holds sanitization statistics.
 
 type SanitizationStats struct {
-	mu sync.RWMutex
+	TotalRequests int64 `json:"total_requests"`
 
-	TotalRequests int64
+	BlockedRequests int64 `json:"blocked_requests"`
 
-	SanitizedInputs int64
+	SanitizedRequests int64 `json:"sanitized_requests"`
 
-	RejectedInputs int64
+	TotalViolations int64 `json:"total_violations"`
 
-	MaliciousDetected int64
+	ViolationsByRule map[string]int64 `json:"violations_by_rule"`
 
-	SchemaViolations int64
+	ViolationsByField map[string]int64 `json:"violations_by_field"`
+
+	ViolationsByType map[string]int64 `json:"violations_by_type"`
+
+	ProcessingTime time.Duration `json:"processing_time"`
 
 	Violations map[string]int64
+
+	mu sync.RWMutex
 }
 
 // SanitizationResult represents the result of sanitization.
@@ -273,56 +371,20 @@ type Violation struct {
 
 	Value interface{} `json:"value,omitempty"`
 
+	Type string `json:"type"`
+
 	Message string `json:"message"`
 
-	Severity ViolationSeverity `json:"severity"`
+	Severity string `json:"severity"`
+
+	Action string `json:"action"`
 }
-
-// ViolationSeverity represents the severity of a violation.
-
-type ViolationSeverity string
-
-const (
-
-	// ViolationSeverityInfo holds violationseverityinfo value.
-
-	ViolationSeverityInfo ViolationSeverity = "info"
-
-	// ViolationSeverityWarning holds violationseveritywarning value.
-
-	ViolationSeverityWarning ViolationSeverity = "warning"
-
-	// ViolationSeverityError holds violationseverityerror value.
-
-	ViolationSeverityError ViolationSeverity = "error"
-
-	// ViolationSeverityCritical holds violationseveritycritical value.
-
-	ViolationSeverityCritical ViolationSeverity = "critical"
-)
-
-// Common malicious patterns.
-
-var (
-	sqlInjectionPattern = regexp.MustCompile(`(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|eval|setTimeout|setInterval)`)
-
-	xssPattern = regexp.MustCompile(`(?i)(<script|javascript:|onerror=|onclick=|onload=|<iframe|<embed|<object)`)
-
-	pathTraversalPattern = regexp.MustCompile(`\.\.[\\/]|\.\.%2[fF]`)
-
-	commandInjectionPattern = regexp.MustCompile(`[;&|<>$\x60]`)
-
-	ldapInjectionPattern = regexp.MustCompile(`[*()\\,=]`)
-
-	xmlInjectionPattern = regexp.MustCompile(`(?i)(<!DOCTYPE|<!ENTITY|SYSTEM|PUBLIC)`)
-
-	noSQLInjectionPattern = regexp.MustCompile(`[\$\{\}]`)
-)
 
 // NewSanitizationManager creates a new sanitization manager.
 
 func NewSanitizationManager(config *SanitizationConfig, logger *logging.StructuredLogger) (*SanitizationManager, error) {
 	if config == nil {
+
 		return nil, errors.New("sanitization config is required")
 	}
 
@@ -331,88 +393,114 @@ func NewSanitizationManager(config *SanitizationConfig, logger *logging.Structur
 
 		logger: logger,
 
-		policies: make(map[string]*SanitizationPolicy),
-
-		schemas: make(map[string]*gojsonschema.Schema),
-
 		stats: &SanitizationStats{
-			Violations: make(map[string]int64),
+			ViolationsByRule:  make(map[string]int64),
+			ViolationsByField: make(map[string]int64),
+			ViolationsByType:  make(map[string]int64),
+			Violations:        make(map[string]int64),
 		},
 	}
 
-	// Initialize HTML sanitization policy.
+	// Initialize HTML policy
 
-	sm.htmlPolicy = bluemonday.StrictPolicy()
+	if config.HTMLSanitization != nil && config.HTMLSanitization.Enabled {
 
-	// Initialize malicious patterns.
-
-	sm.initializeMaliciousPatterns()
-
-	// Load sanitization policies.
-
-	if err := sm.loadPolicies(); err != nil {
-		return nil, fmt.Errorf("failed to load sanitization policies: %w", err)
+		sm.htmlPolicy = sm.buildHTMLPolicy(config.HTMLSanitization)
 	}
 
-	// Load JSON schemas if enabled.
+	// Compile rules
 
-	if config.EnforceJSONSchema && config.SchemaPath != "" {
-		if err := sm.loadSchemas(); err != nil {
-			return nil, fmt.Errorf("failed to load JSON schemas: %w", err)
-		}
+	if err := sm.compileRules(); err != nil {
+
+		return nil, fmt.Errorf("failed to compile sanitization rules: %w", err)
 	}
 
 	return sm, nil
 }
 
-// initializeMaliciousPatterns initializes patterns for detecting malicious input.
+// buildHTMLPolicy builds HTML sanitization policy.
 
-func (sm *SanitizationManager) initializeMaliciousPatterns() {
-	sm.maliciousPatterns = []*regexp.Regexp{
-		sqlInjectionPattern,
+func (sm *SanitizationManager) buildHTMLPolicy(config *HTMLSanitizationConfig) *bluemonday.Policy {
+	policy := bluemonday.NewPolicy()
 
-		xssPattern,
+	// Allow specific tags
 
-		pathTraversalPattern,
+	if len(config.AllowedTags) > 0 {
 
-		commandInjectionPattern,
-
-		ldapInjectionPattern,
-
-		xmlInjectionPattern,
-
-		noSQLInjectionPattern,
+		policy.AllowElements(config.AllowedTags...)
 	}
+
+	// Allow specific attributes
+
+	for tag, attrs := range config.AllowedAttributes {
+
+		policy.AllowAttrs(attrs...).OnElements(tag)
+	}
+
+	// Configure data attributes
+
+	if config.AllowDataAttributes {
+
+		policy.AllowDataURIImages()
+	}
+
+	// Remove scripts and styles if configured
+
+	if config.RemoveScripts {
+
+		policy.AllowElements("script").SkipElementsContent("script")
+	}
+
+	if config.RemoveStyles {
+
+		policy.AllowElements("style").SkipElementsContent("style")
+	}
+
+	return policy
 }
 
-// loadPolicies loads sanitization policies.
+// compileRules compiles sanitization rules.
 
-func (sm *SanitizationManager) loadPolicies() error {
-	for name, policy := range sm.config.Policies {
+func (sm *SanitizationManager) compileRules() error {
+	sm.compiledRules = make([]*CompiledRule, 0, len(sm.config.Rules))
 
-		// Compile regex patterns.
+	for i, rule := range sm.config.Rules {
 
-		for _, rule := range policy.Rules {
-			if rule.Pattern != "" {
-				if _, err := regexp.Compile(rule.Pattern); err != nil {
-					return fmt.Errorf("invalid pattern in rule for field %s: %w", rule.Field, err)
-				}
-			}
+		if !rule.Enabled {
+
+			continue
 		}
 
-		sm.policies[name] = policy
+		// Compile regex
 
+		flags := ""
+
+		if !rule.CaseSensitive {
+
+			flags += "(?i)"
+		}
+
+		pattern := flags + rule.Pattern
+
+		regex, err := regexp.Compile(pattern)
+
+		if err != nil {
+
+			sm.logger.Error("failed to compile sanitization rule",
+				"rule", rule.Name,
+				"pattern", rule.Pattern,
+				"error", err)
+
+			continue
+		}
+
+		compiledRule := &CompiledRule{
+			SanitizationRule: &sm.config.Rules[i],
+			regex:            regex,
+		}
+
+		sm.compiledRules = append(sm.compiledRules, compiledRule)
 	}
-
-	return nil
-}
-
-// loadSchemas loads JSON schemas for validation.
-
-func (sm *SanitizationManager) loadSchemas() error {
-	// Load schemas from configured path.
-
-	// This is a simplified implementation.
 
 	return nil
 }
@@ -426,6 +514,18 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 
 	sm.stats.mu.Unlock()
 
+	// Create metadata map and marshal it to JSON
+	metadataMap := map[string]interface{}{
+		"timestamp":   time.Now().UTC(),
+		"input_size":  len(fmt.Sprintf("%v", input)),
+		"rule_count":  len(sm.compiledRules),
+	}
+	
+	var metadataJSON json.RawMessage
+	if metadataBytes, err := json.Marshal(metadataMap); err == nil {
+		metadataJSON = json.RawMessage(metadataBytes)
+	}
+
 	result := &SanitizationResult{
 		OriginalValue: input,
 
@@ -433,7 +533,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 
 		Violations: []Violation{},
 
-		Metadata: make(map[string]interface{}),
+		Metadata: metadataJSON,
 	}
 
 	// Check input size.
@@ -443,814 +543,217 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 		result.Violations = append(result.Violations, Violation{
 			Field: "_root",
 
-			Rule: "max_size",
+			Rule: "max_input_size",
+
+			Type: "size_violation",
 
 			Message: err.Error(),
 
-			Severity: ViolationSeverityError,
+			Severity: "high",
+
+			Action: string(ActionBlock),
 		})
 
-		if sm.config.RejectOnViolation {
-			return result, err
-		}
-
+		return result, err
 	}
 
-	// Check field count.
+	// Check nesting depth.
 
-	if len(input) > sm.config.MaxFieldCount {
+	if err := sm.checkNestingDepth(input, 0); err != nil {
 
 		result.Violations = append(result.Violations, Violation{
 			Field: "_root",
 
-			Rule: "max_fields",
+			Rule: "max_nesting_depth",
 
-			Message: fmt.Sprintf("too many fields: %d > %d", len(input), sm.config.MaxFieldCount),
+			Type: "structure_violation",
 
-			Severity: ViolationSeverityWarning,
+			Message: err.Error(),
+
+			Severity: "medium",
+
+			Action: string(ActionBlock),
 		})
 
-		if sm.config.RejectOnViolation {
-			return result, errors.New("field count exceeded")
-		}
-
-	}
-
-	// Get the appropriate policy.
-
-	policy := sm.getPolicy(sm.config.DefaultPolicy)
-
-	if policy == nil {
-		return result, errors.New("no sanitization policy found")
+		return result, err
 	}
 
 	// Sanitize each field.
 
-	sanitized := make(map[string]interface{})
+	sanitizedInput := make(map[string]interface{})
 
 	for key, value := range input {
 
-		sanitizedValue, violations := sm.sanitizeField(ctx, key, value, policy)
+		// Check if field is allowed.
 
-		sanitized[key] = sanitizedValue
+		if !sm.isFieldAllowed(key) {
+
+			result.Violations = append(result.Violations, Violation{
+				Field: key,
+
+				Rule: "field_whitelist",
+
+				Value: value,
+
+				Type: "field_violation",
+
+				Message: fmt.Sprintf("field '%s' is not allowed", key),
+
+				Severity: "medium",
+
+				Action: string(ActionBlock),
+			})
+
+			continue
+		}
+
+		// Check if field is blocked.
+
+		if sm.isFieldBlocked(key) {
+
+			result.Violations = append(result.Violations, Violation{
+				Field: key,
+
+				Rule: "field_blacklist",
+
+				Value: value,
+
+				Type: "field_violation",
+
+				Message: fmt.Sprintf("field '%s' is blocked", key),
+
+				Severity: "high",
+
+				Action: string(ActionBlock),
+			})
+
+			continue
+		}
+
+		// Sanitize field value.
+
+		sanitizedValue, violations := sm.sanitizeValue(key, value)
 
 		result.Violations = append(result.Violations, violations...)
 
-		if sanitizedValue != value {
+		sanitizedInput[key] = sanitizedValue
+
+		if len(violations) > 0 {
+
 			result.Modified = true
 		}
-
 	}
 
-	// Check for malicious patterns if enabled.
+	result.SanitizedValue = sanitizedInput
 
-	if sm.config.DetectMaliciousPatterns {
-		if violations := sm.detectMaliciousPatterns(sanitized); len(violations) > 0 {
-
-			result.Violations = append(result.Violations, violations...)
-
-			sm.stats.mu.Lock()
-
-			sm.stats.MaliciousDetected++
-
-			sm.stats.mu.Unlock()
-
-			if sm.config.RejectOnViolation {
-				return result, errors.New("malicious patterns detected")
-			}
-
-		}
-	}
-
-	// Validate against JSON schema if enabled.
-
-	if sm.config.EnforceJSONSchema {
-		if violations := sm.validateSchema(sanitized); len(violations) > 0 {
-
-			result.Violations = append(result.Violations, violations...)
-
-			sm.stats.mu.Lock()
-
-			sm.stats.SchemaViolations++
-
-			sm.stats.mu.Unlock()
-
-			if sm.config.RejectOnViolation {
-				return result, errors.New("schema validation failed")
-			}
-
-		}
-	}
-
-	result.Sanitized = true
-
-	result.SanitizedValue = sanitized
+	result.Sanitized = len(result.Violations) == 0
 
 	// Update statistics.
 
-	if result.Modified {
+	sm.updateStats(result)
 
-		sm.stats.mu.Lock()
+	// Determine final action based on violations.
 
-		sm.stats.SanitizedInputs++
+	if len(result.Violations) > 0 {
 
-		sm.stats.mu.Unlock()
+		switch sm.config.Mode {
 
-	}
+		case ModeBlock:
 
-	if len(result.Violations) > 0 && sm.config.LogSanitizationEvents {
-		sm.logger.Warn("input sanitization violations detected",
+			return result, errors.New("input blocked due to sanitization violations")
 
-			slog.Int("violation_count", len(result.Violations)),
+		case ModeSanitize:
 
-			slog.Any("violations", result.Violations))
+			// Continue with sanitized input
+
+		case ModeLog:
+
+			// Log violations but continue
+
+			sm.logViolations(ctx, result.Violations)
+
+		case ModeStrict:
+
+			// Block any violations in strict mode
+
+			return result, errors.New("input blocked in strict mode")
+		}
 	}
 
 	return result, nil
 }
 
-// sanitizeField sanitizes a single field.
-
-func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, value interface{}, policy *SanitizationPolicy) (interface{}, []Violation) {
-	var violations []Violation
-
-	// Find matching rule.
-
-	var rule *SanitizationRule
-
-	for _, r := range policy.Rules {
-		if r.Field == field || r.Field == "*" {
-
-			rule = r
-
-			break
-
-		}
-	}
-
-	if rule == nil {
-		// No specific rule, apply default sanitization.
-
-		return sm.defaultSanitize(value), violations
-	}
-
-	// Type validation.
-
-	if !sm.validateType(value, rule.Type) {
-
-		violations = append(violations, Violation{
-			Field: field,
-
-			Rule: "type",
-
-			Message: fmt.Sprintf("invalid type: expected %s", rule.Type),
-
-			Severity: ViolationSeverityError,
-		})
-
-		return sm.coerceType(value, rule.Type), violations
-
-	}
-
-	// Apply sanitization based on type.
-
-	switch rule.Type {
-
-	case TypeString:
-
-		sanitized, v := sm.sanitizeString(value.(string), rule)
-
-		violations = append(violations, v...)
-
-		return sanitized, violations
-
-	case TypeNumber:
-
-		return sm.sanitizeNumber(value, rule), violations
-
-	case TypeArray:
-
-		return sm.sanitizeArray(ctx, value, rule, policy)
-
-	case TypeObject:
-
-		return sm.sanitizeObject(ctx, value, rule, policy)
-
-	case TypeEmail:
-
-		return sm.sanitizeEmail(value.(string), rule)
-
-	case TypeURL:
-
-		return sm.sanitizeURL(value.(string), rule)
-
-	case TypeJSON:
-
-		return sm.sanitizeJSON(value, rule)
-
-	default:
-
-		return value, violations
-
-	}
-}
-
-// sanitizeString sanitizes string input.
-
-func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRule) (string, []Violation) {
-	var violations []Violation
-
-	sanitized := value
-
-	// Check length constraints.
-
-	if rule.MinLength > 0 && len(sanitized) < rule.MinLength {
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "min_length",
-
-			Message: fmt.Sprintf("string too short: %d < %d", len(sanitized), rule.MinLength),
-
-			Severity: ViolationSeverityWarning,
-		})
-	}
-
-	if rule.MaxLength > 0 && len(sanitized) > rule.MaxLength {
-
-		sanitized = sanitized[:rule.MaxLength]
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "max_length",
-
-			Message: "string truncated to max length",
-
-			Severity: ViolationSeverityInfo,
-		})
-
-	}
-
-	// Trim whitespace.
-
-	if rule.TrimWhitespace {
-		sanitized = strings.TrimSpace(sanitized)
-	}
-
-	// Case transformation.
-
-	if rule.Lowercase {
-		sanitized = strings.ToLower(sanitized)
-	} else if rule.Uppercase {
-		sanitized = strings.ToUpper(sanitized)
-	}
-
-	// HTML handling.
-
-	if rule.StripTags {
-		sanitized = sm.htmlPolicy.Sanitize(sanitized)
-	} else if rule.EscapeHTML {
-		sanitized = html.EscapeString(sanitized)
-	} else if rule.AllowHTML {
-
-		// Create custom policy for allowed tags.
-
-		policy := bluemonday.NewPolicy()
-
-		for _, tag := range rule.AllowedTags {
-			policy.AllowElements(tag)
-		}
-
-		sanitized = policy.Sanitize(sanitized)
-
-	}
-
-	// Pattern validation.
-
-	if rule.Pattern != "" {
-		if matched, _ := regexp.MatchString(rule.Pattern, sanitized); !matched {
-			violations = append(violations, Violation{
-				Field: rule.Field,
-
-				Rule: "pattern",
-
-				Message: "string does not match required pattern",
-
-				Severity: ViolationSeverityError,
-			})
-		}
-	}
-
-	// Check for control characters.
-
-	if containsControlCharacters(sanitized) {
-
-		sanitized = removeControlCharacters(sanitized)
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "control_chars",
-
-			Message: "control characters removed",
-
-			Severity: ViolationSeverityInfo,
-		})
-
-	}
-
-	// Ensure valid UTF-8.
-
-	if !utf8.ValidString(sanitized) {
-
-		sanitized = strings.ToValidUTF8(sanitized, "")
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "utf8",
-
-			Message: "invalid UTF-8 characters removed",
-
-			Severity: ViolationSeverityWarning,
-		})
-
-	}
-
-	return sanitized, violations
-}
-
-// sanitizeNumber sanitizes numeric input.
-
-func (sm *SanitizationManager) sanitizeNumber(value interface{}, rule *SanitizationRule) interface{} {
-	// Convert to float64 for processing.
-
-	var num float64
-
-	switch v := value.(type) {
-
-	case float64:
-
-		num = v
-
-	case float32:
-
-		num = float64(v)
-
-	case int:
-
-		num = float64(v)
-
-	case int64:
-
-		num = float64(v)
-
-	case string:
-
-		// Try to parse string as number.
-
-		if parsed, err := parseNumber(v); err == nil {
-			num = parsed
-		} else {
-			return 0
-		}
-
-	default:
-
-		return 0
-
-	}
-
-	// Apply any numeric constraints.
-
-	// This could include min/max values, precision, etc.
-
-	return num
-}
-
-// sanitizeEmail sanitizes email input.
-
-func (sm *SanitizationManager) sanitizeEmail(value string, rule *SanitizationRule) (string, []Violation) {
-	var violations []Violation
-
-	// Basic email sanitization.
-
-	email := strings.ToLower(strings.TrimSpace(value))
-
-	// Validate email format.
-
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-	if !emailRegex.MatchString(email) {
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "email_format",
-
-			Message: "invalid email format",
-
-			Severity: ViolationSeverityError,
-		})
-	}
-
-	// Remove any potentially dangerous characters.
-
-	email = strings.ReplaceAll(email, "<", "")
-
-	email = strings.ReplaceAll(email, ">", "")
-
-	email = strings.ReplaceAll(email, ";", "")
-
-	return email, violations
-}
-
-// sanitizeURL sanitizes URL input.
-
-func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule) (string, []Violation) {
-	var violations []Violation
-
-	// Parse and validate URL.
-
-	u, err := url.Parse(value)
-	if err != nil {
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "url_format",
-
-			Message: "invalid URL format",
-
-			Severity: ViolationSeverityError,
-		})
-
-		return "", violations
-
-	}
-
-	// Check for potentially dangerous schemes.
-
-	allowedSchemes := []string{"http", "https"}
-
-	schemeAllowed := false
-
-	for _, scheme := range allowedSchemes {
-		if u.Scheme == scheme {
-
-			schemeAllowed = true
-
-			break
-
-		}
-	}
-
-	if !schemeAllowed {
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "url_scheme",
-
-			Message: fmt.Sprintf("disallowed URL scheme: %s", u.Scheme),
-
-			Severity: ViolationSeverityError,
-		})
-
-		u.Scheme = "https" // Default to HTTPS
-
-	}
-
-	// Remove any fragments that might contain XSS.
-
-	u.Fragment = ""
-
-	// Encode the URL properly.
-
-	return u.String(), violations
-}
-
-// sanitizeArray sanitizes array input.
-
-func (sm *SanitizationManager) sanitizeArray(ctx context.Context, value interface{}, rule *SanitizationRule, policy *SanitizationPolicy) (interface{}, []Violation) {
-	var violations []Violation
-
-	arr, ok := value.([]interface{})
-
-	if !ok {
-		return []interface{}{}, violations
-	}
-
-	// Check array length.
-
-	if sm.config.MaxArrayLength > 0 && len(arr) > sm.config.MaxArrayLength {
-
-		arr = arr[:sm.config.MaxArrayLength]
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "max_array_length",
-
-			Message: "array truncated to max length",
-
-			Severity: ViolationSeverityWarning,
-		})
-
-	}
-
-	// Sanitize each element.
-
-	sanitized := make([]interface{}, 0, len(arr))
-
-	for i, elem := range arr {
-
-		fieldName := fmt.Sprintf("%s[%d]", rule.Field, i)
-
-		sanitizedElem, v := sm.sanitizeField(ctx, fieldName, elem, policy)
-
-		sanitized = append(sanitized, sanitizedElem)
-
-		violations = append(violations, v...)
-
-	}
-
-	return sanitized, violations
-}
-
-// sanitizeObject sanitizes object input.
-
-func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interface{}, rule *SanitizationRule, policy *SanitizationPolicy) (interface{}, []Violation) {
-	var violations []Violation
-
-	obj, ok := value.(map[string]interface{})
-
-	if !ok {
-		return json.RawMessage(`{}`), violations
-	}
-
-	// Check nesting depth.
-
-	if depth := getObjectDepth(obj); depth > sm.config.MaxNestingDepth {
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "max_nesting",
-
-			Message: fmt.Sprintf("object nesting too deep: %d > %d", depth, sm.config.MaxNestingDepth),
-
-			Severity: ViolationSeverityError,
-		})
-
-		return json.RawMessage(`{}`), violations
-
-	}
-
-	// Sanitize each field.
-
-	sanitized := make(map[string]interface{})
-
-	for key, val := range obj {
-
-		fieldName := fmt.Sprintf("%s.%s", rule.Field, key)
-
-		sanitizedVal, v := sm.sanitizeField(ctx, fieldName, val, policy)
-
-		sanitized[key] = sanitizedVal
-
-		violations = append(violations, v...)
-
-	}
-
-	return sanitized, violations
-}
-
-// sanitizeJSON sanitizes JSON input.
-
-func (sm *SanitizationManager) sanitizeJSON(value interface{}, rule *SanitizationRule) (interface{}, []Violation) {
-	var violations []Violation
-
-	// Validate JSON structure.
-
-	jsonBytes, err := json.Marshal(value)
-	if err != nil {
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "json_format",
-
-			Message: "invalid JSON format",
-
-			Severity: ViolationSeverityError,
-		})
-
-		return "{}", violations
-
-	}
-
-	// Re-parse to ensure valid JSON.
-
-	var parsed interface{}
-
-	if err := json.Unmarshal(jsonBytes, &parsed); err != nil {
-
-		violations = append(violations, Violation{
-			Field: rule.Field,
-
-			Rule: "json_parse",
-
-			Message: "JSON parsing failed",
-
-			Severity: ViolationSeverityError,
-		})
-
-		return "{}", violations
-
-	}
-
-	return parsed, violations
-}
-
-// detectMaliciousPatterns detects malicious patterns in input.
-
-func (sm *SanitizationManager) detectMaliciousPatterns(data interface{}) []Violation {
-	var violations []Violation
-
-	// Convert to string for pattern matching.
-
-	str := fmt.Sprintf("%v", data)
-
-	for _, pattern := range sm.maliciousPatterns {
-		if pattern.MatchString(str) {
-			violations = append(violations, Violation{
-				Field: "_content",
-
-				Rule: "malicious_pattern",
-
-				Message: fmt.Sprintf("potentially malicious pattern detected: %s", pattern.String()),
-
-				Severity: ViolationSeverityCritical,
-			})
-		}
-	}
-
-	return violations
-}
-
-// validateSchema validates input against JSON schema.
-
-func (sm *SanitizationManager) validateSchema(data interface{}) []Violation {
-	// This would validate against loaded JSON schemas.
-
-	// Simplified implementation.
-
-	return []Violation{}
-}
-
-// checkInputSize checks if input size is within limits.
+// checkInputSize checks if input size exceeds the limit.
 
 func (sm *SanitizationManager) checkInputSize(input interface{}) error {
-	// Serialize to check size.
+	if sm.config.MaxInputSize <= 0 {
 
-	data, err := json.Marshal(input)
-	if err != nil {
-		return err
+		return nil
 	}
 
-	if int64(len(data)) > sm.config.MaxInputSize {
-		return fmt.Errorf("input size exceeds limit: %d > %d", len(data), sm.config.MaxInputSize)
+	inputStr := fmt.Sprintf("%v", input)
+
+	if int64(len(inputStr)) > sm.config.MaxInputSize {
+
+		return fmt.Errorf("input size %d exceeds maximum allowed size %d",
+			len(inputStr), sm.config.MaxInputSize)
 	}
 
 	return nil
 }
 
-// getPolicy retrieves a sanitization policy.
+// checkNestingDepth checks if input nesting depth exceeds the limit.
 
-func (sm *SanitizationManager) getPolicy(name string) *SanitizationPolicy {
-	sm.mu.RLock()
+func (sm *SanitizationManager) checkNestingDepth(input interface{}, depth int) error {
+	if sm.config.MaxNestingDepth <= 0 {
 
-	defer sm.mu.RUnlock()
-
-	return sm.policies[name]
-}
-
-// defaultSanitize applies default sanitization.
-
-func (sm *SanitizationManager) defaultSanitize(value interface{}) interface{} {
-	switch v := value.(type) {
-
-	case string:
-
-		// Basic string sanitization.
-
-		return html.EscapeString(strings.TrimSpace(v))
-
-	default:
-
-		return value
-
+		return nil
 	}
-}
 
-// validateType validates if value matches expected type.
+	if depth > sm.config.MaxNestingDepth {
 
-func (sm *SanitizationManager) validateType(value interface{}, expectedType InputType) bool {
-	switch expectedType {
+		return fmt.Errorf("nesting depth %d exceeds maximum allowed depth %d",
+			depth, sm.config.MaxNestingDepth)
+	}
 
-	case TypeString:
+	switch v := input.(type) {
 
-		_, ok := value.(string)
+	case map[string]interface{}:
 
-		return ok
+		for _, value := range v {
 
-	case TypeNumber:
+			if err := sm.checkNestingDepth(value, depth+1); err != nil {
 
-		switch value.(type) {
-		case int, int64, float32, float64:
-
-			return true
+				return err
+			}
 		}
 
-		return false
+	case []interface{}:
 
-	case TypeBoolean:
+		for _, value := range v {
 
-		_, ok := value.(bool)
+			if err := sm.checkNestingDepth(value, depth+1); err != nil {
 
-		return ok
+				return err
+			}
+		}
+	}
 
-	case TypeArray:
+	return nil
+}
 
-		_, ok := value.([]interface{})
+// isFieldAllowed checks if a field is in the allowed list.
 
-		return ok
-
-	case TypeObject:
-
-		_, ok := value.(map[string]interface{})
-
-		return ok
-
-	default:
+func (sm *SanitizationManager) isFieldAllowed(field string) bool {
+	if !sm.config.WhitelistEnabled || len(sm.config.AllowedFields) == 0 {
 
 		return true
-
 	}
-}
 
-// coerceType attempts to coerce value to expected type.
+	for _, allowedField := range sm.config.AllowedFields {
 
-func (sm *SanitizationManager) coerceType(value interface{}, targetType InputType) interface{} {
-	switch targetType {
+		if field == allowedField {
 
-	case TypeString:
-
-		return fmt.Sprintf("%v", value)
-
-	case TypeNumber:
-
-		// Try to convert to number.
-
-		if num, err := parseNumber(fmt.Sprintf("%v", value)); err == nil {
-			return num
-		}
-
-		return 0
-
-	case TypeBoolean:
-
-		// Try to convert to boolean.
-
-		switch v := value.(type) {
-
-		case bool:
-
-			return v
-
-		case string:
-
-			return v == "true" || v == "1"
-
-		default:
-
-			return false
-
-		}
-
-	default:
-
-		return value
-
-	}
-}
-
-// Helper functions.
-
-func containsControlCharacters(s string) bool {
-	for _, r := range s {
-		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
 			return true
 		}
 	}
@@ -1258,65 +761,521 @@ func containsControlCharacters(s string) bool {
 	return false
 }
 
-func removeControlCharacters(s string) string {
-	var result strings.Builder
+// isFieldBlocked checks if a field is in the blocked list.
 
-	for _, r := range s {
-		if r >= 32 || r == '\t' || r == '\n' || r == '\r' {
-			result.WriteRune(r)
+func (sm *SanitizationManager) isFieldBlocked(field string) bool {
+	for _, blockedField := range sm.config.BlockedFields {
+
+		if field == blockedField {
+
+			return true
 		}
 	}
 
-	return result.String()
+	return false
 }
 
-func getObjectDepth(obj interface{}) int {
-	return getDepthRecursive(obj, 0)
-}
+// sanitizeValue sanitizes a value based on configured rules.
 
-func getDepthRecursive(obj interface{}, currentDepth int) int {
-	if currentDepth > 100 { // Prevent stack overflow
+func (sm *SanitizationManager) sanitizeValue(field string, value interface{}) (interface{}, []Violation) {
+	var violations []Violation
 
-		return currentDepth
+	// Convert value to string for pattern matching.
+
+	valueStr := fmt.Sprintf("%v", value)
+
+	sanitizedStr := valueStr
+
+	// Apply sanitization rules.
+
+	for _, rule := range sm.compiledRules {
+
+		// Check if rule applies to this field.
+
+		if len(rule.Fields) > 0 {
+
+			found := false
+
+			for _, ruleField := range rule.Fields {
+
+				if field == ruleField {
+
+					found = true
+
+					break
+				}
+			}
+
+			if !found {
+
+				continue
+			}
+		}
+
+		// Check if value matches rule pattern.
+
+		if rule.regex.MatchString(sanitizedStr) {
+
+			violation := Violation{
+				Field: field,
+
+				Rule: rule.Name,
+
+				Value: value,
+
+				Type: "pattern_violation",
+
+				Message: rule.Description,
+
+				Severity: "medium",
+
+				Action: string(rule.Action),
+			}
+
+			violations = append(violations, violation)
+
+			// Apply rule action.
+
+			switch rule.Action {
+
+			case ActionBlock:
+
+				return nil, violations
+
+			case ActionSanitize:
+
+				if rule.Replacement != "" {
+
+					sanitizedStr = rule.regex.ReplaceAllString(sanitizedStr, rule.Replacement)
+
+				} else {
+
+					sanitizedStr = rule.regex.ReplaceAllString(sanitizedStr, "")
+				}
+
+			case ActionWarn:
+
+				// Just log the violation, don't modify value
+
+			case ActionAllow:
+
+				// Allow the value as-is
+			}
+		}
 	}
 
-	maxDepth := currentDepth
+	// Apply specific sanitization based on value type.
 
-	switch v := obj.(type) {
+	switch v := value.(type) {
+
+	case string:
+
+		sanitizedStr = sm.sanitizeString(field, v)
 
 	case map[string]interface{}:
 
-		for _, val := range v {
-
-			depth := getDepthRecursive(val, currentDepth+1)
-
-			if depth > maxDepth {
-				maxDepth = depth
-			}
-
-		}
+		return sm.sanitizeMap(field, v)
 
 	case []interface{}:
 
-		for _, val := range v {
-
-			depth := getDepthRecursive(val, currentDepth+1)
-
-			if depth > maxDepth {
-				maxDepth = depth
-			}
-
-		}
-
+		return sm.sanitizeArray(field, v)
 	}
 
-	return maxDepth
+	// Convert back to original type if possible.
+
+	if sanitizedStr != valueStr {
+
+		return sm.convertToOriginalType(value, sanitizedStr), violations
+	}
+
+	return value, violations
 }
 
-func parseNumber(s string) (float64, error) {
-	// Implementation would parse string to number.
+// sanitizeString applies string-specific sanitization.
 
-	return 0, nil
+func (sm *SanitizationManager) sanitizeString(field, value string) string {
+	sanitized := value
+
+	// HTML sanitization.
+
+	if sm.config.HTMLSanitization != nil && sm.config.HTMLSanitization.Enabled {
+
+		if sm.htmlPolicy != nil {
+
+			sanitized = sm.htmlPolicy.Sanitize(sanitized)
+
+		} else {
+
+			sanitized = html.EscapeString(sanitized)
+		}
+	}
+
+	// SQL injection protection.
+
+	if sm.config.SQLInjectionProtection != nil && sm.config.SQLInjectionProtection.Enabled {
+
+		sanitized = sm.sanitizeSQL(sanitized)
+	}
+
+	// XSS protection.
+
+	if sm.config.XSSProtection != nil && sm.config.XSSProtection.Enabled {
+
+		sanitized = sm.sanitizeXSS(sanitized)
+	}
+
+	// Path traversal protection.
+
+	if sm.config.PathTraversalProtection != nil && sm.config.PathTraversalProtection.Enabled {
+
+		sanitized = sm.sanitizePath(sanitized)
+	}
+
+	// Command injection protection.
+
+	if sm.config.CommandInjectionProtection != nil && sm.config.CommandInjectionProtection.Enabled {
+
+		sanitized = sm.sanitizeCommand(sanitized)
+	}
+
+	// LDAP injection protection.
+
+	if sm.config.LDAPInjectionProtection != nil && sm.config.LDAPInjectionProtection.Enabled {
+
+		sanitized = sm.sanitizeLDAP(sanitized)
+	}
+
+	return sanitized
+}
+
+// sanitizeMap recursively sanitizes a map.
+
+func (sm *SanitizationManager) sanitizeMap(parentField string, value map[string]interface{}) (interface{}, []Violation) {
+	var allViolations []Violation
+
+	sanitized := make(map[string]interface{})
+
+	for key, val := range value {
+
+		fieldPath := parentField + "." + key
+
+		sanitizedVal, violations := sm.sanitizeValue(fieldPath, val)
+
+		allViolations = append(allViolations, violations...)
+
+		sanitized[key] = sanitizedVal
+	}
+
+	return sanitized, allViolations
+}
+
+// sanitizeArray recursively sanitizes an array.
+
+func (sm *SanitizationManager) sanitizeArray(parentField string, value []interface{}) (interface{}, []Violation) {
+	var allViolations []Violation
+
+	sanitized := make([]interface{}, len(value))
+
+	for i, val := range value {
+
+		fieldPath := parentField + "[" + strconv.Itoa(i) + "]"
+
+		sanitizedVal, violations := sm.sanitizeValue(fieldPath, val)
+
+		allViolations = append(allViolations, violations...)
+
+		sanitized[i] = sanitizedVal
+	}
+
+	return sanitized, allViolations
+}
+
+// convertToOriginalType attempts to convert sanitized string back to original type.
+
+func (sm *SanitizationManager) convertToOriginalType(original interface{}, sanitized string) interface{} {
+	switch original.(type) {
+
+	case int:
+
+		if val, err := strconv.Atoi(sanitized); err == nil {
+
+			return val
+		}
+
+	case int64:
+
+		if val, err := strconv.ParseInt(sanitized, 10, 64); err == nil {
+
+			return val
+		}
+
+	case float64:
+
+		if val, err := strconv.ParseFloat(sanitized, 64); err == nil {
+
+			return val
+		}
+
+	case bool:
+
+		if val, err := strconv.ParseBool(sanitized); err == nil {
+
+			return val
+		}
+	}
+
+	return sanitized
+}
+
+// Specific sanitization methods.
+
+// sanitizeSQL sanitizes SQL injection attempts.
+
+func (sm *SanitizationManager) sanitizeSQL(value string) string {
+	config := sm.config.SQLInjectionProtection
+
+	sanitized := value
+
+	// Block common SQL injection patterns.
+
+	sqlPatterns := []string{
+		`(?i)(union\s+select)`,
+		`(?i)(drop\s+table)`,
+		`(?i)(delete\s+from)`,
+		`(?i)(insert\s+into)`,
+		`(?i)(update\s+set)`,
+		`(?i)(exec\s*\()`,
+		`(?i)(sp_\w+)`,
+		`(?i)(xp_\w+)`,
+		`';\s*--`,
+		`';\s*/\*`,
+	}
+
+	// Add custom patterns.
+
+	sqlPatterns = append(sqlPatterns, config.BlockPatterns...)
+
+	for _, pattern := range sqlPatterns {
+
+		re, err := regexp.Compile(pattern)
+
+		if err != nil {
+
+			continue
+		}
+
+		sanitized = re.ReplaceAllString(sanitized, "")
+	}
+
+	// Remove SQL comments.
+
+	if config.CheckComments {
+
+		commentPattern := regexp.MustCompile(`--.*$|/\*.*?\*/`)
+
+		sanitized = commentPattern.ReplaceAllString(sanitized, "")
+	}
+
+	return sanitized
+}
+
+// sanitizeXSS sanitizes XSS attempts.
+
+func (sm *SanitizationManager) sanitizeXSS(value string) string {
+	config := sm.config.XSSProtection
+
+	sanitized := value
+
+	// Block JavaScript.
+
+	if config.BlockJavaScript {
+
+		jsPattern := regexp.MustCompile(`(?i)<script[^>]*>.*?</script>|javascript:|j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t\s*:`)
+
+		sanitized = jsPattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Block event handlers.
+
+	if config.BlockOnEvent {
+
+		eventPattern := regexp.MustCompile(`(?i)on\w+\s*=`)
+
+		sanitized = eventPattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Block data URIs.
+
+	if config.BlockDataURIs {
+
+		dataURIPattern := regexp.MustCompile(`(?i)data\s*:\s*[^,]*,`)
+
+		sanitized = dataURIPattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Remove inline styles.
+
+	if config.RemoveInlineStyles {
+
+		stylePattern := regexp.MustCompile(`(?i)style\s*=\s*["'][^"']*["']`)
+
+		sanitized = stylePattern.ReplaceAllString(sanitized, "")
+	}
+
+	return sanitized
+}
+
+// sanitizePath sanitizes path traversal attempts.
+
+func (sm *SanitizationManager) sanitizePath(value string) string {
+	config := sm.config.PathTraversalProtection
+
+	sanitized := value
+
+	// Block dot-dot-slash patterns.
+
+	if config.BlockDotDotSlash {
+
+		dotDotPattern := regexp.MustCompile(`\.\.[\\/]`)
+
+		sanitized = dotDotPattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Block absolute paths.
+
+	if config.BlockAbsolutePaths {
+
+		absolutePattern := regexp.MustCompile(`^[\\/]`)
+
+		sanitized = absolutePattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Normalize paths.
+
+	if config.NormalizePaths {
+
+		sanitized = strings.ReplaceAll(sanitized, "\\", "/")
+
+		sanitized = regexp.MustCompile(`/+`).ReplaceAllString(sanitized, "/")
+	}
+
+	return sanitized
+}
+
+// sanitizeCommand sanitizes command injection attempts.
+
+func (sm *SanitizationManager) sanitizeCommand(value string) string {
+	config := sm.config.CommandInjectionProtection
+
+	sanitized := value
+
+	// Block shell metacharacters.
+
+	if config.BlockShellMetachars {
+
+		metaPattern := regexp.MustCompile(`[;&|<>$` + "`" + `\\]`)
+
+		sanitized = metaPattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Block command chaining.
+
+	if config.BlockCommandChaining {
+
+		chainPattern := regexp.MustCompile(`[;&|]{1,2}`)
+
+		sanitized = chainPattern.ReplaceAllString(sanitized, "")
+	}
+
+	// Block pipe operators.
+
+	if config.BlockPipeOperators {
+
+		pipePattern := regexp.MustCompile(`\|+`)
+
+		sanitized = pipePattern.ReplaceAllString(sanitized, "")
+	}
+
+	return sanitized
+}
+
+// sanitizeLDAP sanitizes LDAP injection attempts.
+
+func (sm *SanitizationManager) sanitizeLDAP(value string) string {
+	config := sm.config.LDAPInjectionProtection
+
+	sanitized := value
+
+	// Escape special LDAP characters.
+
+	if config.EscapeSpecialChars {
+
+		replacements := map[string]string{
+			`\`:  `\\5c`,
+			`*`:  `\\2a`,
+			`(`:  `\\28`,
+			`)`:  `\\29`,
+			`\0`: `\\00`,
+		}
+
+		for char, escaped := range replacements {
+
+			sanitized = strings.ReplaceAll(sanitized, char, escaped)
+		}
+	}
+
+	// Block wildcards.
+
+	if config.BlockWildcards {
+
+		sanitized = strings.ReplaceAll(sanitized, "*", "")
+	}
+
+	return sanitized
+}
+
+// updateStats updates sanitization statistics.
+
+func (sm *SanitizationManager) updateStats(result *SanitizationResult) {
+	sm.stats.mu.Lock()
+
+	defer sm.stats.mu.Unlock()
+
+	if result.Modified {
+
+		sm.stats.SanitizedRequests++
+	}
+
+	sm.stats.TotalViolations += int64(len(result.Violations))
+
+	for _, violation := range result.Violations {
+
+		sm.stats.ViolationsByRule[violation.Rule]++
+
+		sm.stats.ViolationsByField[violation.Field]++
+
+		sm.stats.ViolationsByType[violation.Type]++
+	}
+}
+
+// logViolations logs sanitization violations.
+
+func (sm *SanitizationManager) logViolations(ctx context.Context, violations []Violation) {
+	if !sm.config.LogViolations {
+
+		return
+	}
+
+	for _, violation := range violations {
+
+		sm.logger.Warn("sanitization violation detected",
+			"field", violation.Field,
+			"rule", violation.Rule,
+			"type", violation.Type,
+			"message", violation.Message,
+			"severity", violation.Severity,
+			"action", violation.Action)
+	}
 }
 
 // GetStats returns sanitization statistics.
@@ -1326,20 +1285,88 @@ func (sm *SanitizationManager) GetStats() *SanitizationStats {
 
 	defer sm.stats.mu.RUnlock()
 
-	// Return a copy of stats.
+	// Create a copy of stats.
 
-	return &SanitizationStats{
-		TotalRequests: sm.stats.TotalRequests,
-
-		SanitizedInputs: sm.stats.SanitizedInputs,
-
-		RejectedInputs: sm.stats.RejectedInputs,
-
-		MaliciousDetected: sm.stats.MaliciousDetected,
-
-		SchemaViolations: sm.stats.SchemaViolations,
-
-		Violations: sm.stats.Violations,
+	stats := &SanitizationStats{
+		TotalRequests:     sm.stats.TotalRequests,
+		BlockedRequests:   sm.stats.BlockedRequests,
+		SanitizedRequests: sm.stats.SanitizedRequests,
+		TotalViolations:   sm.stats.TotalViolations,
+		ProcessingTime:    sm.stats.ProcessingTime,
+		ViolationsByRule:  make(map[string]int64),
+		ViolationsByField: make(map[string]int64),
+		ViolationsByType:  make(map[string]int64),
+		Violations:        make(map[string]int64),
 	}
+
+	// Copy maps.
+
+	for k, v := range sm.stats.ViolationsByRule {
+
+		stats.ViolationsByRule[k] = v
+	}
+
+	for k, v := range sm.stats.ViolationsByField {
+
+		stats.ViolationsByField[k] = v
+	}
+
+	for k, v := range sm.stats.ViolationsByType {
+
+		stats.ViolationsByType[k] = v
+	}
+
+	for k, v := range sm.stats.Violations {
+
+		stats.Violations[k] = v
+	}
+
+	return stats
 }
 
+// ResetStats resets sanitization statistics.
+
+func (sm *SanitizationManager) ResetStats() {
+	sm.stats.mu.Lock()
+
+	defer sm.stats.mu.Unlock()
+
+	sm.stats.TotalRequests = 0
+
+	sm.stats.BlockedRequests = 0
+
+	sm.stats.SanitizedRequests = 0
+
+	sm.stats.TotalViolations = 0
+
+	sm.stats.ProcessingTime = 0
+
+	sm.stats.ViolationsByRule = make(map[string]int64)
+
+	sm.stats.ViolationsByField = make(map[string]int64)
+
+	sm.stats.ViolationsByType = make(map[string]int64)
+
+	sm.stats.Violations = make(map[string]int64)
+}
+
+// Close shuts down the sanitization manager.
+
+func (sm *SanitizationManager) Close() error {
+	// No resources to clean up currently.
+
+	return nil
+}
+
+// Hash returns a hash of the sanitization manager configuration.
+
+func (sm *SanitizationManager) Hash() string {
+	configJSON, err := json.Marshal(sm.config)
+
+	if err != nil {
+
+		return ""
+	}
+
+	return fmt.Sprintf("%x", configJSON)
+}

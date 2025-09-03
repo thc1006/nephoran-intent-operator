@@ -821,13 +821,13 @@ func (s *InMemoryStorage) CheckStorageHealth(ctx context.Context) (*models.Healt
 	return &models.HealthStatus{
 		Status:    "UP",
 		LastCheck: time.Now(),
-		Details:   json.RawMessage(`{"storage":"in-memory"}`),
+		Details:   map[string]interface{}{"storage": "in-memory"},
 	}, nil
 }
 
 // GetStorageMetrics returns storage metrics.
 func (s *InMemoryStorage) GetStorageMetrics(ctx context.Context) (map[string]interface{}, error) {
-	return json.RawMessage(`{}`), nil
+	return make(map[string]interface{}), nil
 }
 
 // BeginTransaction begins a transaction.

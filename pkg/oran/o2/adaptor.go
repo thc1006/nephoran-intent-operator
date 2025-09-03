@@ -357,13 +357,13 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 
 	catalogService := ims.NewCatalogService()
 
-	inventoryService := ims.NewInventoryService(kubeClient, clientset)
+	inventoryService := ims.NewInventoryService()
 
 	lifecycleService := ims.NewLifecycleService()
 
 	subscriptionService := ims.NewSubscriptionService()
 
-	imsService := ims.NewIMSService(catalogService, inventoryService, lifecycleService, subscriptionService)
+	imsService := ims.NewIMSService(clientset, kubeClient)
 
 	// Initialize cloud providers.
 
@@ -711,7 +711,12 @@ func (a *O2Adaptor) getSupportedResourceTypes() []string {
 }
 
 func (a *O2Adaptor) getSystemExtensions() map[string]interface{} {
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"nephoran": map[string]interface{}{
+			"version":     "v1.0.0",
+			"capabilities": []string{"multi-cloud", "intent-driven"},
+		},
+	}
 }
 
 // Background monitoring services.

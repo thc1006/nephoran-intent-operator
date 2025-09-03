@@ -333,6 +333,14 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 
 // Component health check types are defined in health_checker.go
 
+// convertDetails converts json.RawMessage to map[string]interface{}
+func convertDetails(rawDetails json.RawMessage) map[string]interface{} {
+	var details map[string]interface{}
+	if len(rawDetails) > 0 {
+		json.Unmarshal(rawDetails, &details)
+	}
+	return details
+}
 // Health check wrapper functions to convert between common.ComponentCheck and local ComponentCheck
 
 // WrapCommonComponentCheck converts a function returning common.ComponentCheck to ComponentHealthCheck
@@ -345,7 +353,7 @@ func WrapCommonComponentCheck(checkFunc func(ctx context.Context) common.Compone
 			Message:   commonCheck.Message,
 			Timestamp: commonCheck.Timestamp,
 			Duration:  commonCheck.Duration,
-			Details:   commonCheck.Details,
+			Details:   convertDetails(commonCheck.Details),
 			CheckType: commonCheck.CheckType,
 		}
 	}
@@ -605,7 +613,7 @@ type SecurityStatus struct {
 	Policies    []string               `json:"policies"`
 	Violations  []SecurityViolation    `json:"violations,omitempty"`
 	LastChecked time.Time              `json:"lastChecked"`
-	Details     json.RawMessage `json:"details,omitempty"`
+	Details     map[string]interface{} `json:"details,omitempty"`
 }
 
 type SecurityViolation struct {
@@ -663,7 +671,7 @@ type HealthEventO2 struct {
 	HealthStatus   string                 `json:"healthStatus"`
 	PreviousStatus string                 `json:"previousStatus,omitempty"`
 	Timestamp      time.Time              `json:"timestamp"`
-	Details        json.RawMessage `json:"details,omitempty"`
+	Details        map[string]interface{} `json:"details,omitempty"`
 }
 
 type HealthTrendsO2 struct {

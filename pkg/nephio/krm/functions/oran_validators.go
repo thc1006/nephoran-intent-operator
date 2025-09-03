@@ -32,6 +32,7 @@ package functions
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -149,8 +150,16 @@ func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceLi
 	LogInfo(ctx, "Starting O-RAN compliance validation", "resourceCount", len(input.Items))
 
 	// Parse configuration.
+	var functionConfigMap map[string]interface{}
+	if input.FunctionConfig != nil {
+		if err := json.Unmarshal(input.FunctionConfig, &functionConfigMap); err != nil {
+			functionConfigMap = make(map[string]interface{})
+		}
+	} else {
+		functionConfigMap = make(map[string]interface{})
+	}
 
-	config := v.parseConfig(input.FunctionConfig)
+	config := v.parseConfig(functionConfigMap)
 
 	// Create output resource list.
 
@@ -467,10 +476,8 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 
 func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
-		return json.RawMessage(`{}`),
-
-			"strictMode": false,
-
+		return map[string]interface{}{
+			"strictMode":   false,
 			"skipWarnings": false,
 		}
 	}

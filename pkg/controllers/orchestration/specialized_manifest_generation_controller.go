@@ -539,8 +539,20 @@ func (c *SpecializedManifestGenerationController) GenerateManifests(ctx context.
 		return nil, fmt.Errorf("manifest generation failed: %s", result.ErrorMessage)
 	}
 
-	if manifests, ok := result.Data["generatedManifests"].(map[string]string); ok {
-		return manifests, nil
+	if result.Data != nil {
+		var data map[string]interface{}
+		if err := json.Unmarshal(result.Data, &data); err == nil {
+			if manifests, ok := data["generatedManifests"].(map[string]interface{}); ok {
+				// Convert to map[string]string
+				manifestsStr := make(map[string]string)
+				for k, v := range manifests {
+					if str, ok := v.(string); ok {
+						manifestsStr[k] = str
+					}
+				}
+				return manifestsStr, nil
+			}
+		}
 	}
 
 	return nil, fmt.Errorf("invalid manifests in result")
@@ -674,7 +686,11 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	session.GeneratedManifests = generatedManifests
 
-	session.ManifestMetadata = manifestMetadata
+	if manifestMetadata != nil {
+		if metadataBytes, err := json.Marshal(manifestMetadata); err == nil {
+			session.ManifestMetadata = json.RawMessage(metadataBytes)
+		}
+	}
 
 	session.Metrics.ManifestsGenerated = len(generatedManifests)
 
@@ -774,15 +790,17 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	// Create result.
 
-	resultData := json.RawMessage(`{}`)
+	resultDataMap := map[string]interface{}{}
 
 	if len(session.ValidationResults) > 0 {
-		resultData["validationResults"] = session.ValidationResults
+		resultDataMap["validationResults"] = session.ValidationResults
 	}
 
 	if len(session.PolicyResults) > 0 {
-		resultData["policyResults"] = session.PolicyResults
+		resultDataMap["policyResults"] = session.PolicyResults
 	}
+
+	resultData, _ := json.Marshal(resultDataMap)
 
 	result := interfaces.ProcessingResult{
 		Success: true,
@@ -912,12 +930,17 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 			}
 
+			var metadataRaw json.RawMessage
+			if metadataBytes, err := json.Marshal(metadata); err == nil {
+				metadataRaw = json.RawMessage(metadataBytes)
+			}
+
 			resultChan <- &nfManifestResult{
 				NFName: networkFunction.Name,
 
 				Manifests: manifests,
 
-				Metadata: metadata,
+				Metadata: metadataRaw,
 			}
 		}(nf)
 	}
@@ -943,8 +966,13 @@ func (c *SpecializedManifestGenerationController) generateManifestsParallel(ctx 
 
 			// Merge metadata.
 
-			for key, value := range result.Metadata {
-				manifestMetadata[key] = value
+			if result.Metadata != nil {
+				var metadataMap map[string]interface{}
+				if err := json.Unmarshal(result.Metadata, &metadataMap); err == nil {
+					for key, value := range metadataMap {
+						manifestMetadata[key] = value
+					}
+				}
 			}
 
 			completedCount++
@@ -1062,7 +1090,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 func (c *SpecializedManifestGenerationController) prepareTemplateVariables(nf *interfaces.PlannedNetworkFunction, resourcePlan *interfaces.ResourcePlan) map[string]interface{} {
 	return map[string]interface{}{
 		"networkFunction": nf.Name,
-		"namespace":      nf.Namespace,
+		"namespace":      "default", // PlannedNetworkFunction doesn't have Namespace field
 		"resources":      resourcePlan,
 	}
 }
@@ -1322,10 +1350,15 @@ func (c *SpecializedManifestGenerationController) cacheManifests(resourcePlan *i
 
 	}
 
+	var metadataRaw json.RawMessage
+	if metadataBytes, err := json.Marshal(metadata); err == nil {
+		metadataRaw = json.RawMessage(metadataBytes)
+	}
+
 	c.manifestCache.entries[planHash] = &ManifestCacheEntry{
 		Manifests: manifests,
 
-		Metadata: metadata,
+		Metadata: metadataRaw,
 
 		Timestamp: time.Now(),
 

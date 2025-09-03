@@ -573,7 +573,7 @@ type HealthEvent struct {
 
 	Timestamp time.Time `json:"timestamp"`
 
-	Details json.RawMessage `json:"details,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 }
 
 // HealthEventFilter defines filters for health events.
@@ -779,7 +779,7 @@ type OperationResult struct {
 
 	Message string `json:"message,omitempty"`
 
-	Details json.RawMessage `json:"details,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 
 	Errors []string `json:"errors,omitempty"`
 

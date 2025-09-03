@@ -376,7 +376,7 @@ type HealthCheckResult struct {
 
 	Duration time.Duration `json:"duration"`
 
-	Details json.RawMessage `json:"details,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 }
 
 // Alarm represents an alarm in the system.
@@ -1052,7 +1052,7 @@ type NetworkMapping struct {
 
 	VLAN *int `json:"vlan,omitempty"`
 
-	Properties json.RawMessage `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 // StorageMapping defines storage resource mappings.
@@ -1066,7 +1066,7 @@ type StorageMapping struct {
 
 	Performance string `json:"performance,omitempty"` // HIGH, MEDIUM, LOW
 
-	Properties json.RawMessage `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 // TemplateDependency represents a dependency of a deployment template.
@@ -1366,7 +1366,7 @@ type NetworkRequirement struct {
 
 	Latency time.Duration `json:"latency,omitempty"`
 
-	Properties json.RawMessage `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 // StorageRequirement defines storage requirements.
@@ -1386,7 +1386,7 @@ type StorageRequirement struct {
 
 	StorageClass string `json:"storageClass,omitempty"`
 
-	Properties json.RawMessage `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 // AcceleratorRequirement defines accelerator requirements (GPU, FPGA, etc.).
@@ -1400,7 +1400,7 @@ type AcceleratorRequirement struct {
 
 	Memory string `json:"memory,omitempty"`
 
-	Properties json.RawMessage `json:"properties,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 // ResourceSpec defines resource specifications for provisioning.

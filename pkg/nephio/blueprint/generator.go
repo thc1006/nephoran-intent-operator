@@ -385,7 +385,11 @@ Ensure all values are appropriate for the specified intent and components.
 // buildLLMContext creates context for LLM processing.
 
 func (g *Generator) buildLLMContext(intent *v1.NetworkIntent) map[string]interface{} {
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"intent_type": intent.Spec.IntentType,
+		"target":      intent.Spec.TargetComponents,
+		"namespace":   intent.Spec.TargetNamespace,
+	}
 }
 
 // generateCoreStructure generates the core blueprint structure files.
@@ -1185,20 +1189,35 @@ data:
 
 func (g *Generator) buildAMFTemplateData(genCtx *GenerationContext) map[string]interface{} {
 	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
+	_ = deployConfig // TODO: Use deployConfig for building template data
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"name":      "amf",
+		"namespace": genCtx.TargetNamespace,
+		"config":    g.buildAMFConfig(genCtx),
+	}
 }
 
 func (g *Generator) buildSMFTemplateData(genCtx *GenerationContext) map[string]interface{} {
 	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
+	_ = deployConfig // TODO: Use deployConfig for building template data
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"name":      "smf",
+		"namespace": genCtx.TargetNamespace,
+		"config":    g.buildSMFConfig(genCtx),
+	}
 }
 
 func (g *Generator) buildUPFTemplateData(genCtx *GenerationContext) map[string]interface{} {
 	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
+	_ = deployConfig // TODO: Use deployConfig for building template data
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"name":      "upf",
+		"namespace": genCtx.TargetNamespace,
+		"config":    g.buildUPFNetworkConfig(genCtx),
+	}
 }
 
 // Template execution helper.
@@ -1615,11 +1634,9 @@ func (g *Generator) extractResources(deployConfig map[string]interface{}) map[st
 
 	// Return default resource requirements
 
-	return json.RawMessage(`{}`),
-
+	return map[string]interface{}{
 		"limits": map[string]string{
-			"cpu": "500m",
-
+			"cpu":    "500m",
 			"memory": "512Mi",
 		},
 	}
@@ -1644,8 +1661,7 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 
 	// Return default environment variables
 
-	return []json.RawMessage(`{}`),
-
+	return []map[string]interface{}{
 		{"name": "DEBUG", "value": "false"},
 	}
 }
@@ -1653,17 +1669,17 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 // buildAMFConfig builds AMF-specific configuration.
 
 func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interface{} {
-	config := json.RawMessage(`{}`),
-
-		"sbi": json.RawMessage(`{}`),
-
+	config := map[string]interface{}{
+		"sbi": map[string]interface{}{
+			"scheme":         "http",
+			"registerIPv4":   "127.0.0.1",
+			"bindingIPv4":    "0.0.0.0",
+			"port":           8080,
+		},
 		"serviceNameList": []string{
 			"namf-comm",
-
 			"namf-evts",
-
 			"namf-mt",
-
 			"namf-loc",
 		},
 	}
@@ -1678,19 +1694,15 @@ func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interfa
 // buildSMFConfig builds SMF-specific configuration.
 
 func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage(`{}`){
-			"scheme": "http",
-
-			"registerIPv4": "127.0.0.1",
-
-			"bindingIPv4": "0.0.0.0",
-
-			"port": 8000,
+	return map[string]interface{}{
+		"sbi": map[string]interface{}{
+			"scheme":         "http",
+			"registerIPv4":   "127.0.0.1",
+			"bindingIPv4":    "0.0.0.0",
+			"port":           8000,
 		},
-
 		"serviceNameList": []string{
 			"nsmf-pdusession",
-
 			"nsmf-event-exposure",
 		},
 	}
@@ -1699,12 +1711,20 @@ func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interfa
 // buildUPFNetworkConfig builds UPF-specific network configuration.
 
 func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]interface{} {
-	return json.RawMessage(`{}`){
-			"ifList": []json.RawMessage(`{}`),
+	return map[string]interface{}{
+		"gtpu": map[string]interface{}{
+			"ifList": []map[string]interface{}{
+				{
+					"name":    "N3",
+					"addr":    "192.168.1.1",
+					"type":    "N3",
+				},
 			},
 		},
-
-		"pfcp": json.RawMessage(`{}`),
+		"pfcp": map[string]interface{}{
+			"addr": "127.0.0.1",
+			"port": 8805,
+		},
 	}
 }
 

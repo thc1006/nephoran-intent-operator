@@ -167,13 +167,15 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Stub implementation - return a generic response.
 
 	return &RAGResponse{
-		Context: json.RawMessage(`{"context_summary": "Mock context for intent: ` + request.Query + `"}`),
+		Context: map[string]interface{}{
+			"context_summary": "Mock context for intent: " + request.Query,
+		},
 
 		Metrics: &nephoranv1.RAGMetrics{},
 
 		SourceDocuments: []interface{}{},
 
-		Metadata: json.RawMessage(`{}`),
+		Metadata: map[string]interface{}{},
 
 		RetrievalTime: 100,
 
@@ -312,7 +314,7 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingStarted,
 
-		string(intentProcessing.UID), false, json.RawMessage(`{}`)); err != nil {
+		string(intentProcessing.UID), false, map[string]interface{}{}); err != nil {
 		log.Error(err, "Failed to publish processing start event")
 	}
 
@@ -363,15 +365,8 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 		request.Model = config.Model
 
-		if config.Temperature != nil {
-			if temp, err := strconv.ParseFloat(*config.Temperature, 32); err == nil {
-				request.Temperature = float32(temp)
-			}
-		}
-
-		if config.MaxTokens != nil {
-			request.MaxTokens = int(*config.MaxTokens)
-		}
+		// Temperature and MaxTokens are not available in ProcessingRequest struct
+		// These parameters may be handled internally by the LLM service
 
 		// SystemPrompt field doesn't exist in ProcessingRequest.
 
@@ -405,18 +400,10 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	}
 
-	// Serialize context map to JSON string for ProcessingRequest.Context field.
+	// Set context map directly to ProcessingRequest.Context field.
 
 	if len(contextMap) > 0 {
-
-		contextBytes, err := json.Marshal(contextMap)
-
-		if err != nil {
-			log.Error(err, "Failed to serialize context map")
-		} else {
-			request.Context = string(contextBytes)
-		}
-
+		request.Context = convertInterfaceMapToString(contextMap)
 	}
 
 	// Execute LLM processing.
@@ -456,7 +443,7 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 		TokenUsage: nil, // No token usage info from string response
 
-		RAGMetrics: r.extractRAGMetricsFromContextString(request.Context),
+		RAGMetrics: extractRAGMetricsFromContext(convertStringMapToInterface(request.Context)),
 	}
 
 	// Extract structured parameters.
@@ -520,7 +507,7 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 	// Create enhanced context.
 
-	enhancedContext := json.RawMessage(`{}`)
+	enhancedContext := map[string]interface{}{}
 
 	// Create RAG metrics.
 
@@ -529,9 +516,9 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 		RetrievalDuration: int64(response.RetrievalTime),
 
-		AverageRelevanceScore: fmt.Sprintf("%.4f", response.Confidence),
+		AverageRelevanceScore: float64Ptr(float64(response.Confidence)),
 
-		TopRelevanceScore: fmt.Sprintf("%.4f", response.Confidence),
+		TopRelevanceScore: float64Ptr(float64(response.Confidence)),
 
 		QueryEnhancement: "false", // Default to false as string
 
@@ -674,7 +661,7 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 
 		if scaleMap, ok := scaleParams.(map[string]interface{}); ok {
 
-			scaleParams := &nephoranv1.ScaleParameters{}
+			scalingParams := &nephoranv1.ScalingParameters{}
 
 			if replicas, ok := scaleMap["replicas"].(int); ok {
 
@@ -682,13 +669,13 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 
 				maxReplicas := int32(replicas * 3) // Default scaling range
 
-				scaleParams.MinReplicas = &minReplicas
+				scalingParams.MinReplicas = &minReplicas
 
-				scaleParams.MaxReplicas = &maxReplicas
+				scalingParams.MaxReplicas = &maxReplicas
 
 			}
 
-			params.ScaleParameters = scaleParams
+			params.Scaling = scalingParams
 
 		}
 	}
@@ -792,21 +779,9 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	intentProcessing.Status.RAGMetrics = result.RAGMetrics
 
-	// Set telecom context (if available in metadata).
-
-	if result.Response.Metadata != nil {
-
-		telecomContext := make(map[string]string)
-		for k, v := range result.Response.Metadata {
-			if str, ok := v.(string); ok {
-				telecomContext[k] = str
-			} else {
-				telecomContext[k] = fmt.Sprintf("%v", v)
-			}
-		}
-		intentProcessing.Status.TelecomContext = telecomContext
-
-	}
+	// Set telecom context - ProcessingResponse doesn't have Metadata field
+	// Using empty context for now
+	intentProcessing.Status.TelecomContext = make(map[string]string)
 
 	// Calculate processing duration.
 
@@ -832,7 +807,7 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingCompleted,
 
-		string(intentProcessing.UID), true, json.RawMessage(`{}`)); err != nil {
+		string(intentProcessing.UID), true, map[string]interface{}{}); err != nil {
 		log.Error(err, "Failed to publish completion event")
 	}
 
@@ -886,7 +861,7 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 		if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventRetryRequired,
 
-			string(intentProcessing.UID), false, json.RawMessage(`{}`)); pubErr != nil {
+			string(intentProcessing.UID), false, map[string]interface{}{}); pubErr != nil {
 			log.Error(pubErr, "Failed to publish retry event")
 		}
 
@@ -934,7 +909,7 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 
 	if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingFailed,
 
-		string(intentProcessing.UID), false, json.RawMessage(`{}`)); pubErr != nil {
+		string(intentProcessing.UID), false, map[string]interface{}{}); pubErr != nil {
 		log.Error(pubErr, "Failed to publish failure event")
 	}
 
@@ -1068,5 +1043,32 @@ func DefaultIntentProcessingConfig() *IntentProcessingConfig {
 
 		ValidationEnabled: true,
 	}
+}
+
+// convertStringMapToInterface converts map[string]string to map[string]interface{}
+func convertStringMapToInterface(m map[string]string) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
+}
+
+// convertInterfaceMapToString converts map[string]interface{} to map[string]string
+func convertInterfaceMapToString(m map[string]interface{}) map[string]string {
+	result := make(map[string]string)
+	for k, v := range m {
+		if str, ok := v.(string); ok {
+			result[k] = str
+		} else {
+			result[k] = fmt.Sprintf("%v", v)
+		}
+	}
+	return result
+}
+
+// float64Ptr returns a pointer to the given float64 value
+func float64Ptr(f float64) *float64 {
+	return &f
 }
 

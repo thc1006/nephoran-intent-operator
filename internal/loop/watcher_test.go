@@ -1901,7 +1901,7 @@ func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() 
 		},
 		{
 			name:                 "UnicodeCharacters",
-			intentFilename:       "intent-测�?.json",
+			intentFilename:       "intent-测试.json",
 			expectedStatusPrefix: "intent-",
 			shouldProcess:        true,
 			description:          "Should sanitize Unicode characters for Windows compatibility",
