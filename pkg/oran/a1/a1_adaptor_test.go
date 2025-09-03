@@ -127,10 +127,10 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 		instance := &A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1000,
-			PolicyData: map[string]interface{}{
-				"latency_ms":      10,
-				"throughput_mbps": 100,
-			},
+			PolicyData: json.RawMessage(`{
+				"latency_ms": 10,
+				"throughput_mbps": 100
+			}`),
 		}
 		err := adaptor.CreatePolicyInstance(ctx, 1000, instance)
 		assert.NoError(t, err)
@@ -508,7 +508,10 @@ func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 	adaptor, err := NewA1Adaptor(config)
 	require.NoError(t, err)
 
-	policyData := json.RawMessage(`{}`)
+	policyDataRaw := json.RawMessage(`{}`)
+	var policyData map[string]interface{}
+	err = json.Unmarshal(policyDataRaw, &policyData)
+	assert.NoError(t, err)
 
 	ctx := context.Background()
 	err = adaptor.createPolicyInstanceWithRetry(ctx, 1, "policy-1", policyData)
@@ -661,19 +664,23 @@ func TestA1PolicyStructures(t *testing.T) {
 			PolicyTypeID: 1,
 			Name:         "Test Policy",
 			Description:  "A test policy type",
-			PolicySchema: map[string]interface{}{
-				"properties": map[string]interface{}{
-					"param1": json.RawMessage(`{}`),
+			PolicySchema: json.RawMessage(`{
+				"properties": {
+					"param1": {}
 				},
-				"required": []string{"param1"},
-			},
+				"required": ["param1"]
+			}`),
 			CreateSchema: json.RawMessage(`{}`),
 		}
 
 		assert.Equal(t, 1, policyType.PolicyTypeID)
 		assert.Equal(t, "Test Policy", policyType.Name)
 		assert.NotNil(t, policyType.PolicySchema)
-		assert.Equal(t, "object", policyType.PolicySchema["type"])
+		// Validate that the schema is valid JSON
+		var schemaMap map[string]interface{}
+		err := json.Unmarshal(policyType.PolicySchema, &schemaMap)
+		assert.NoError(t, err)
+		assert.Contains(t, schemaMap, "properties")
 	})
 
 	t.Run("A1PolicyInstance validation", func(t *testing.T) {

@@ -893,7 +893,13 @@ func (s *APISecuritySuite) generateSecureErrorResponse(errorType string, statusC
 		message = "An error occurred processing your request."
 	}
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"error": map[string]interface{}{
+			"message":    message,
+			"statusCode": statusCode,
+			"timestamp":  "2024-01-01T00:00:00Z",
+		},
+	}
 }
 
 func generateRequestID() string {

@@ -149,7 +149,9 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 				},
 			},
 			// O-RAN extensions for additional metadata
-			Extensions: json.RawMessage(`{"complianceLevel": "O-RAN-WG6-v1.0"}`),
+			Extensions: map[string]interface{}{
+				"complianceLevel": "O-RAN-WG6-v1.0",
+			},
 		}
 
 		poolJSON, err := json.Marshal(pool)
@@ -245,12 +247,12 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 					{Name: "debug", Port: 8080, Protocol: "TCP"},
 				},
 				// O-RAN specific capabilities
-				Capabilities: map[string]interface{}{
-					"networkAcceleration":   []string{"SRIOV", "DPDK"},
-					"storageTypes":          []string{"SSD", "NVMe", "HDD"},
+				Capabilities: json.RawMessage(`{
+					"networkAcceleration": ["SRIOV", "DPDK"],
+					"storageTypes": ["SSD", "NVMe", "HDD"],
 					"virtualizationSupport": true,
-					"containerSupport":      true,
-				},
+					"containerSupport": true
+				}`),
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL", "BACKUP", "RESTORE"},
 			// O-RAN compliance metadata

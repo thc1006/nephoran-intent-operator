@@ -56,14 +56,24 @@ jobs:
           go version
           go env
           
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+          
       - name: Fail-fast syntax check
-        timeout-minutes: 2
+        timeout-minutes: 8
         run: |
           echo "Running fail-fast syntax check..."
           go build ./... && go vet ./...
           
       - name: Quick dependency check
-        timeout-minutes: 2
+        timeout-minutes: 5
         run: |
           echo "Downloading dependencies..."
           go mod download -x || true

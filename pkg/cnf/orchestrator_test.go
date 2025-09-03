@@ -18,6 +18,7 @@ package cnf
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"

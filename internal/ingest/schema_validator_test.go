@@ -318,7 +318,8 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 		assert.Equal(t, "Updated NetworkIntent Schema", schema["title"])
 
 		// Test validation with updated schema
-		intent := json.RawMessage(`{}`)
+		var intent map[string]interface{}
+		json.Unmarshal([]byte(`{}`), &intent)
 
 		err = validator.Validate(intent)
 		assert.NoError(t, err)

@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -189,7 +190,7 @@ func BenchmarkBackendPerformance(b *testing.B) {
 				Type:     backends.BackendTypeFile,
 				Enabled:  true,
 				Name:     "benchmark-file",
-				Settings: json.RawMessage(`{}`),
+				Settings: map[string]interface{}{},
 			},
 		},
 		{
@@ -199,7 +200,7 @@ func BenchmarkBackendPerformance(b *testing.B) {
 				Enabled:     true,
 				Name:        "benchmark-compressed",
 				Compression: true,
-				Settings:    json.RawMessage(`{}`),
+				Settings:    map[string]interface{}{},
 			},
 		},
 	}
@@ -660,7 +661,7 @@ func createMediumEvent() *AuditEvent {
 			ResourceID:   "data123",
 			Operation:    "read",
 		},
-		Data: json.RawMessage(`{}`),
+		Data: map[string]interface{}{},
 	}
 }
 

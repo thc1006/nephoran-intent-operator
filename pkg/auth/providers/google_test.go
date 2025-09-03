@@ -505,8 +505,11 @@ func TestGoogleProvider_GetUserInfo(t *testing.T) {
 			assert.Equal(t, "google", userInfo.Provider)
 
 			if tt.wantDomain != "" {
-				assert.Contains(t, userInfo.Attributes, "hosted_domain")
-				assert.Equal(t, tt.wantDomain, userInfo.Attributes["hosted_domain"])
+				var attributes map[string]interface{}
+				err := json.Unmarshal(userInfo.Attributes, &attributes)
+				assert.NoError(t, err)
+				assert.Contains(t, attributes, "hosted_domain")
+				assert.Equal(t, tt.wantDomain, attributes["hosted_domain"])
 			}
 		})
 	}

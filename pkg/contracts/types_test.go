@@ -17,6 +17,7 @@ limitations under the License.
 package contracts
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )

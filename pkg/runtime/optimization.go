@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"runtime"
 	"sort"
 	"sync"
 	"time"
@@ -16,6 +17,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// OptimizationConfig holds configuration for runtime optimization settings.
+type OptimizationConfig struct {
+	MaxProcs           int  `json:"max_procs"`
+	AutoTuneMaxProcs   bool `json:"auto_tune_max_procs"`
+	SwissTablesEnabled bool `json:"swiss_tables_enabled"`
+	GCPercent          int  `json:"gc_percent"`
+	PGOEnabled         bool `json:"pgo_enabled"`
+}
+
+// DefaultOptimizationConfig returns a default optimization configuration.
+func DefaultOptimizationConfig() *OptimizationConfig {
+	return &OptimizationConfig{
+		MaxProcs:           runtime.NumCPU(),
+		AutoTuneMaxProcs:   true,
+		SwissTablesEnabled: true,
+		GCPercent:          100,
+		PGOEnabled:         true,
+	}
+}
 
 // OptimizationEngine manages performance optimization for network functions.
 

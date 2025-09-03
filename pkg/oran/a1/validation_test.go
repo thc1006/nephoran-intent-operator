@@ -490,17 +490,15 @@ func TestValidatePolicyInstance_SchemaValidation(t *testing.T) {
 		{
 			"invalid action enum",
 			map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
+				"ue_id":     "test-ue-123",
 				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid cell_id pattern",
 			map[string]interface{}{
-					"ue_id":   "test-ue-123",
-					"cell_id": "INVALID",
-				},
+				"ue_id":     "test-ue-123",
+				"cell_id":   "INVALID",
 				"statement": json.RawMessage(`{}`),
 			},
 		},
@@ -533,8 +531,7 @@ func TestValidatePolicyInstance_InvalidNotificationURL(t *testing.T) {
 		PolicyID:     "test-policy",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-				"ue_id": "test-ue-123",
-			},
+			"ue_id":     "test-ue-123",
 			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
@@ -558,8 +555,7 @@ func TestValidateEIType_Success(t *testing.T) {
 		Description:     "Test enrichment information type",
 		EiJobDataSchema: createValidEIJobDataSchema(),
 		EiJobResultSchema: map[string]interface{}{
-				"results": json.RawMessage(`{}`),
-			},
+			"results": json.RawMessage(`{}`),
 		},
 	}
 
@@ -637,11 +633,10 @@ func TestValidateEIJob_Success(t *testing.T) {
 		EiJobID:  "test-job-1",
 		EiTypeID: "test-ei-type-1",
 		EiJobData: map[string]interface{}{
-				"measurement_type": "throughput",
-				"reporting_period": 5000,
-				"targets": []interface{}{
-					json.RawMessage(`{}`),
-				},
+			"measurement_type": "throughput",
+			"reporting_period": 5000,
+			"targets": []interface{}{
+				json.RawMessage(`{}`),
 			},
 		},
 		TargetURI:    "http://consumer.example.com/ei",
@@ -790,32 +785,40 @@ func TestSchemaValidation_ComplexTypes(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	complexSchema := map[string]interface{}{
-			"array_field": map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-							"type": "string",
-						},
+		"array_field": map[string]interface{}{
+			"type": "array",
+			"items": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]interface{}{
+						"type": "string",
 					},
-				},
-				"minItems": 1,
-				"maxItems": 10,
-			},
-			"oneOf_field": map[string]interface{}{
-					json.RawMessage(`{"type":"string"}`),
-					json.RawMessage(`{"type":"number"}`),
 				},
 			},
-			"conditional_field": map[string]interface{}{
-					"properties": map[string]interface{}{
-							"const": "special",
-						},
+			"minItems": 1,
+			"maxItems": 10,
+		},
+		"oneOf_field": map[string]interface{}{
+			"oneOf": []interface{}{
+				map[string]interface{}{"type": "string"},
+				map[string]interface{}{"type": "number"},
+			},
+		},
+		"conditional_field": map[string]interface{}{
+			"if": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"type": map[string]interface{}{
+						"const": "special",
 					},
 				},
-				"then": map[string]interface{}{
-						"special_value": json.RawMessage(`{}`),
+			},
+			"then": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"special_value": map[string]interface{}{
+						"type": "string",
 					},
-					"required": []string{"special_value"},
 				},
+				"required": []string{"special_value"},
 			},
 		},
 	}
@@ -830,7 +833,10 @@ func TestSchemaValidation_ComplexTypes(t *testing.T) {
 
 	// Test valid data
 	validData := map[string]interface{}{
-			json.RawMessage(`{}`),
+		"array_field": []interface{}{
+			map[string]interface{}{
+				"name": "test",
+			},
 		},
 		"oneOf_field": "string_value",
 	}
@@ -849,7 +855,9 @@ func TestSchemaValidation_Performance(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	// Create a large schema
-	largeSchema := json.RawMessage(`{}`)),
+	largeSchema := map[string]interface{}{
+		"type": "object",
+		"properties": make(map[string]interface{}),
 	}
 
 	properties := largeSchema["properties"].(map[string]interface{})
@@ -903,8 +911,7 @@ func TestValidation_Concurrent(t *testing.T) {
 				PolicyID:     fmt.Sprintf("policy-%d", id),
 				PolicyTypeID: 1,
 				PolicyData: map[string]interface{}{
-						"ue_id": fmt.Sprintf("ue-%d", id),
-					},
+					"ue_id":     fmt.Sprintf("ue-%d", id),
 					"statement": json.RawMessage(`{}`),
 				},
 			}
@@ -948,8 +955,7 @@ func BenchmarkValidatePolicyInstance(b *testing.B) {
 		PolicyID:     "test-policy",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-				"ue_id": "test-ue-123",
-			},
+			"ue_id":     "test-ue-123",
 			"statement": json.RawMessage(`{}`),
 		},
 	}
@@ -967,216 +973,7 @@ type SchemaValidator interface {
 	ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error
 }
 
-type JSONSchemaValidator struct{}
+// Note: JSONSchemaValidator is imported from validation.go
 
-func NewJSONSchemaValidator() SchemaValidator {
-	return &JSONSchemaValidator{}
-}
-
-func (v *JSONSchemaValidator) ValidateSchema(schema map[string]interface{}) error {
-	// Basic schema validation - in real implementation, use a JSON schema library
-	if schema == nil || len(schema) == 0 {
-		return fmt.Errorf("schema cannot be empty")
-	}
-
-	// Check for required schema fields
-	if schemaType, ok := schema["type"]; ok {
-		switch schemaType {
-		case "object", "array", "string", "number", "integer", "boolean", "null":
-			// Valid types
-		default:
-			return fmt.Errorf("invalid schema type: %v", schemaType)
-		}
-	}
-
-	// Validate enum if present
-	if enum, ok := schema["enum"]; ok {
-		if enumArray, ok := enum.([]interface{}); ok {
-			if len(enumArray) == 0 {
-				return fmt.Errorf("enum cannot be empty")
-			}
-		} else {
-			return fmt.Errorf("enum must be array")
-		}
-	}
-
-	return nil
-}
-
-func (v *JSONSchemaValidator) ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error {
-	// Simplified validation - in real implementation, use a proper JSON schema validator
-	if data == nil {
-		return fmt.Errorf("data cannot be nil")
-	}
-
-	if schema == nil {
-		return fmt.Errorf("schema cannot be nil")
-	}
-
-	// Basic type checking
-	if schemaType, ok := schema["type"]; ok {
-		if schemaType == "object" {
-			// Validate required fields
-			if required, ok := schema["required"]; ok {
-				if requiredFields, ok := required.([]interface{}); ok {
-					for _, field := range requiredFields {
-						if fieldName, ok := field.(string); ok {
-							if _, exists := data[fieldName]; !exists {
-								return fmt.Errorf("required field missing: %s", fieldName)
-							}
-						}
-					}
-				}
-			}
-
-			// Validate properties
-			if properties, ok := schema["properties"]; ok {
-				if props, ok := properties.(map[string]interface{}); ok {
-					for fieldName, value := range data {
-						if fieldSchema, exists := props[fieldName]; exists {
-							if fieldMap, ok := fieldSchema.(map[string]interface{}); ok {
-								if err := v.validateField(value, fieldMap); err != nil {
-									return fmt.Errorf("field %s: %w", fieldName, err)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (v *JSONSchemaValidator) validateField(value interface{}, schema map[string]interface{}) error {
-	// Basic field validation
-	if fieldType, ok := schema["type"]; ok {
-		switch fieldType {
-		case "string":
-			if _, ok := value.(string); !ok {
-				return fmt.Errorf("expected string, got %T", value)
-			}
-
-			// Check string constraints
-			if str, ok := value.(string); ok {
-				if minLen, exists := schema["minLength"]; exists {
-					if min, ok := minLen.(int); ok && len(str) < min {
-						return fmt.Errorf("string too short, minimum length %d", min)
-					}
-				}
-				if maxLen, exists := schema["maxLength"]; exists {
-					if max, ok := maxLen.(int); ok && len(str) > max {
-						return fmt.Errorf("string too long, maximum length %d", max)
-					}
-				}
-				if pattern, exists := schema["pattern"]; exists {
-					// Simplified pattern checking
-					if patternStr, ok := pattern.(string); ok {
-						if patternStr == "^[0-9A-Fa-f]{8}$" && len(str) != 8 {
-							return fmt.Errorf("string does not match pattern")
-						}
-					}
-				}
-			}
-
-		case "integer":
-			switch v := value.(type) {
-			case int, int32, int64:
-				// Valid integer types
-				if intVal := v.(int); true { // Convert to int for range checking
-					if min, exists := schema["minimum"]; exists {
-						if minVal, ok := min.(int); ok && intVal < minVal {
-							return fmt.Errorf("integer %d below minimum %d", intVal, minVal)
-						}
-					}
-					if max, exists := schema["maximum"]; exists {
-						if maxVal, ok := max.(int); ok && intVal > maxVal {
-							return fmt.Errorf("integer %d above maximum %d", intVal, maxVal)
-						}
-					}
-				}
-			case float64:
-				// JSON numbers are parsed as float64, check if it's actually an integer
-				if floatVal := v; floatVal == float64(int(floatVal)) {
-					intVal := int(floatVal)
-					if min, exists := schema["minimum"]; exists {
-						if minVal, ok := min.(int); ok && intVal < minVal {
-							return fmt.Errorf("integer %d below minimum %d", intVal, minVal)
-						}
-					}
-					if max, exists := schema["maximum"]; exists {
-						if maxVal, ok := max.(int); ok && intVal > maxVal {
-							return fmt.Errorf("integer %d above maximum %d", intVal, maxVal)
-						}
-					}
-				} else {
-					return fmt.Errorf("expected integer, got float %v", floatVal)
-				}
-			default:
-				return fmt.Errorf("expected integer, got %T", value)
-			}
-
-		case "number":
-			if _, ok := value.(float64); !ok {
-				if _, ok := value.(int); !ok {
-					return fmt.Errorf("expected number, got %T", value)
-				}
-			}
-
-		case "object":
-			if _, ok := value.(map[string]interface{}); !ok {
-				return fmt.Errorf("expected object, got %T", value)
-			}
-
-		case "array":
-			if _, ok := value.([]interface{}); !ok {
-				return fmt.Errorf("expected array, got %T", value)
-			}
-		}
-
-		// Check enum constraint
-		if enum, exists := schema["enum"]; exists {
-			if enumArray, ok := enum.([]interface{}); ok {
-				found := false
-				for _, enumValue := range enumArray {
-					if value == enumValue {
-						found = true
-						break
-					}
-				}
-				if !found {
-					return fmt.Errorf("value %v not in enum %v", value, enumArray)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func ValidateURL(urlStr string) error {
-	if !strings.HasPrefix(urlStr, "http://") && !strings.HasPrefix(urlStr, "https://") {
-		return fmt.Errorf("URL must start with http:// or https://")
-	}
-	return nil
-}
-
-type ValidationError struct {
-	Message string
-	Field   string
-	Value   interface{}
-}
-
-func NewValidationError(message, field string, value interface{}) error {
-	return &ValidationError{
-		Message: message,
-		Field:   field,
-		Value:   value,
-	}
-}
-
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation error in field '%s': %s (value: %v)", e.Field, e.Message, e.Value)
-}
+// Note: All validation functions and types are imported from validation.go and types.go
 

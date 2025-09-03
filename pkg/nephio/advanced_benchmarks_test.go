@@ -78,7 +78,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 				Version:   "v1.0.0",
 				Namespace: "telecom-core",
 				Replicas:  3,
-				Resources: ResourceRequirements{
+				Resources: BenchmarkResourceRequirements{
 					CPU:    "500m",
 					Memory: "1Gi",
 				},
@@ -871,11 +871,11 @@ type PackageSpec struct {
 	Version       string
 	Namespace     string
 	Replicas      int
-	Resources     ResourceRequirements
+	Resources     BenchmarkResourceRequirements
 	Configuration map[string]interface{}
 }
 
-type ResourceRequirements struct {
+type BenchmarkBenchmarkResourceRequirements struct {
 	CPU    string
 	Memory string
 }

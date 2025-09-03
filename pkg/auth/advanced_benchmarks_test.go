@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"sync/atomic"
@@ -874,7 +875,7 @@ func generateAuthorizationRequests(resourceTypes, count int) []AuthorizationRequ
 		requests[i] = AuthorizationRequest{
 			Resource: fmt.Sprintf("resource-%d", i%resourceTypes),
 			Action:   actions[i%len(actions)],
-			Context:  json.RawMessage(`{}`),
+			Context:  map[string]interface{}{},
 		}
 	}
 
@@ -890,7 +891,7 @@ func generateTestUser(username string, groupCount int) User {
 	return User{
 		Username: username,
 		Groups:   groups,
-		Attributes: json.RawMessage(`{}`),
+		Attributes: map[string]interface{}{},
 	}
 }
 

@@ -2,8 +2,8 @@ package scenarios
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -329,7 +329,7 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 				}
 
 				// Small delay between requests
-				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+				time.Sleep(time.Duration(rand.IntN(100)) * time.Millisecond)
 			}
 		}
 	}
@@ -505,7 +505,7 @@ func testFailureResilience(ctx context.Context, failure struct {
 	}
 
 	// Count circuit breakers (simplified)
-	result.CircuitBreakersTriggered = rand.Intn(3) // Placeholder
+	result.CircuitBreakersTriggered = rand.IntN(3) // Placeholder
 
 	return result
 }
@@ -576,7 +576,7 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 			time.Sleep(pattern.BurstInterval)
 		} else {
 			// Random interval for irregular bursts
-			time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
+			time.Sleep(time.Duration(rand.IntN(10)+1) * time.Second)
 		}
 	}
 
@@ -596,7 +596,7 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 
 func processRequest(ctx context.Context) error {
 	// Simulate request processing with variable latency
-	latency := time.Duration(rand.Intn(100)+50) * time.Millisecond
+	latency := time.Duration(rand.IntN(100)+50) * time.Millisecond
 
 	select {
 	case <-ctx.Done():

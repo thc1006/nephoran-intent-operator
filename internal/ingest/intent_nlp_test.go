@@ -16,25 +16,25 @@ func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
 		{
 			name:  "Valid scaling intent with namespace",
 			input: "scale nf-sim to 4 in ns ran-a",
-			want: json.RawMessage(`{}`),
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid scaling intent without namespace",
 			input: "scale my-app to 3",
-			want: json.RawMessage(`{}`),
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid deployment intent",
 			input: "deploy nginx in ns production",
-			want: json.RawMessage(`{}`),
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name:  "Valid delete intent",
 			input: "delete old-app from ns staging",
-			want: json.RawMessage(`{}`),
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
@@ -67,7 +67,7 @@ func TestRuleBasedIntentParser_ParseIntent(t *testing.T) {
 		{
 			name:  "Case insensitive command",
 			input: "SCALE APP TO 2 IN NS TEST",
-			want: json.RawMessage(`{}`),
+			want: map[string]interface{}{},
 			wantErr: false,
 		},
 	}
@@ -94,27 +94,27 @@ func TestValidateIntent(t *testing.T) {
 	}{
 		{
 			name: "Valid scaling intent",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
 			name: "Missing intent_type",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Missing target",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Invalid replicas (negative)",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Valid deployment intent",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 			wantErr: false,
 		},
 		{
@@ -127,12 +127,12 @@ func TestValidateIntent(t *testing.T) {
 		},
 		{
 			name:    "Invalid configuration (empty config)",
-			intent:  json.RawMessage(`{}`),
+			intent:  map[string]interface{}{},
 			wantErr: true,
 		},
 		{
 			name: "Unknown intent_type",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 			wantErr: true,
 		},
 	}

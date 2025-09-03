@@ -2,6 +2,7 @@ package oranhealth
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -305,9 +306,7 @@ func TestHealthSnapshot_Structure(t *testing.T) {
 		DependencyStatus: map[string]health.Status{
 			"ric": health.StatusHealthy,
 		},
-		CircuitBreakerStats: map[string]interface{}{
-			"state": "closed",
-		},
+		CircuitBreakerStats: json.RawMessage(`{"state": "closed"}`),
 		Metrics: HealthMetrics{
 			TotalChecks:         10,
 			HealthyChecks:       9,

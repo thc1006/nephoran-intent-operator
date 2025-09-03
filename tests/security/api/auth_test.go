@@ -2,7 +2,7 @@ package api
 
 import (
 	"crypto/rand"
-	mathrand "crypto/rand"
+	mathrand "math/rand/v2"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base32"
@@ -903,7 +903,7 @@ func (s *AuthTestSuite) verifyTOTPCode(secret, code string, t time.Time) bool {
 }
 
 func (s *AuthTestSuite) generateSMSOTP() string {
-	return fmt.Sprintf("%06d", mathrand.Intn(1000000))
+	return fmt.Sprintf("%06d", mathrand.IntN(1000000))
 }
 
 func (s *AuthTestSuite) verifySMSOTP(phone, otp string) bool {

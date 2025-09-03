@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -231,7 +232,7 @@ func (suite *BackupManagerTestSuite) TestBackupKubernetesConfig_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	err = manager.backupKubernetesConfig(suite.ctx, record)
@@ -328,7 +329,7 @@ func (suite *BackupManagerTestSuite) TestBackupWeaviate_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	err = manager.backupWeaviate(suite.ctx, record)
@@ -363,7 +364,7 @@ func (suite *BackupManagerTestSuite) TestBackupGitRepositories_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	// Note: This will fail in test environment without actual Git repo,
@@ -387,7 +388,7 @@ func (suite *BackupManagerTestSuite) TestBackupSystemState_Success() {
 	record := &BackupRecord{
 		ID:         "test-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	err = manager.backupSystemState(suite.ctx, record)
@@ -760,7 +761,7 @@ func BenchmarkBackupKubernetesConfig(b *testing.B) {
 	record := &BackupRecord{
 		ID:         "bench-backup",
 		Components: make(map[string]ComponentBackup),
-		Metadata:   make(map[string]interface{}),
+		Metadata:   json.RawMessage(`{}`),
 	}
 
 	b.ResetTimer()

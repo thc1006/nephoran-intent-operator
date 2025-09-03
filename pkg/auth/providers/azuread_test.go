@@ -520,13 +520,19 @@ func TestAzureADProvider_GetUserInfo(t *testing.T) {
 			assert.Equal(t, "azuread", userInfo.Provider)
 
 			if tt.wantUserType != "" {
-				assert.Contains(t, userInfo.Attributes, "user_type")
-				assert.Equal(t, tt.wantUserType, userInfo.Attributes["user_type"])
+				var attributes map[string]interface{}
+				err := json.Unmarshal(userInfo.Attributes, &attributes)
+				assert.NoError(t, err)
+				assert.Contains(t, attributes, "user_type")
+				assert.Equal(t, tt.wantUserType, attributes["user_type"])
 			}
 
 			if tt.wantEnabled != nil {
-				assert.Contains(t, userInfo.Attributes, "account_enabled")
-				assert.Equal(t, *tt.wantEnabled, userInfo.Attributes["account_enabled"])
+				var attributes map[string]interface{}
+				err := json.Unmarshal(userInfo.Attributes, &attributes)
+				assert.NoError(t, err)
+				assert.Contains(t, attributes, "account_enabled")
+				assert.Equal(t, *tt.wantEnabled, attributes["account_enabled"])
 			}
 		})
 	}

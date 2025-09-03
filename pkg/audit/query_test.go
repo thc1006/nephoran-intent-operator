@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"testing"
@@ -67,7 +68,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 			NetworkContext: &NetworkContext{
 				SourcePort: 8080,
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		},
 		{
 			ID:        uuid.New().String(),
@@ -85,7 +86,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 			NetworkContext: &NetworkContext{
 				SourcePort: 8080,
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		},
 		{
 			ID:        uuid.New().String(),
@@ -105,7 +106,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				ResourceID:   "user123",
 				Operation:    "read",
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		},
 		{
 			ID:        uuid.New().String(),
@@ -120,7 +121,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				Username: "charlie",
 				Role:     "operator",
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		},
 		{
 			ID:        uuid.New().String(),
@@ -135,7 +136,7 @@ func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 				Username: "",
 				Role:     "",
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		},
 	}
 }
@@ -560,11 +561,7 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 func (suite *QueryEngineTestSuite) TestAggregations() {
 	suite.Run("count by event type", func() {
 		query := &Query{
-			Aggregations: map[string]interface{}{
-				"event_types": map[string]interface{}{
-					"terms": json.RawMessage(`{}`),
-				},
-			},
+			Aggregations: json.RawMessage(`{"event_types": {"terms": {}}}`),
 			Limit: 0, // No events, just aggregations
 		}
 
@@ -576,11 +573,7 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 
 	suite.Run("count by severity", func() {
 		query := &Query{
-			Aggregations: map[string]interface{}{
-				"severities": map[string]interface{}{
-					"terms": json.RawMessage(`{}`),
-				},
-			},
+			Aggregations: json.RawMessage(`{"severities": {"terms": {}}}`),
 			Limit: 0,
 		}
 
@@ -592,11 +585,7 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 
 	suite.Run("date histogram", func() {
 		query := &Query{
-			Aggregations: map[string]interface{}{
-				"events_over_time": map[string]interface{}{
-					"date_histogram": json.RawMessage(`{}`),
-				},
-			},
+			Aggregations: json.RawMessage(`{"events_over_time": {"date_histogram": {}}}`),
 			Limit: 0,
 		}
 
@@ -744,13 +733,7 @@ func TestQueryBuilder(t *testing.T) {
 			expected: &Query{
 				TextSearch: "error",
 				Filters: json.RawMessage(`{}`),
-				Aggregations: map[string]interface{}{
-					"severity_counts": map[string]interface{}{
-						"terms": map[string]interface{}{
-							"field": "severity",
-						},
-					},
-				},
+				Aggregations: json.RawMessage(`{"severity_counts": {"terms": {"field": "severity"}}}`),
 			},
 		},
 	}
@@ -854,14 +837,16 @@ func BenchmarkQueryEngine(b *testing.B) {
 
 // QueryBuilder provides a fluent interface for building queries
 type QueryBuilder struct {
-	query *Query
+	query        *Query
+	filters      map[string]interface{}
+	aggregations map[string]interface{}
 }
 
 func NewQueryBuilder() *QueryBuilder {
 	return &QueryBuilder{
-		query: &Query{
-			Filters: make(map[string]interface{}),
-		},
+		query:        &Query{},
+		filters:      make(map[string]interface{}),
+		aggregations: make(map[string]interface{}),
 	}
 }
 
@@ -877,27 +862,27 @@ func (qb *QueryBuilder) WithTimeRange(start, end time.Time) *QueryBuilder {
 }
 
 func (qb *QueryBuilder) WithEventType(eventType EventType) *QueryBuilder {
-	qb.query.Filters["event_type"] = eventType
+	qb.filters["event_type"] = eventType
 	return qb
 }
 
 func (qb *QueryBuilder) WithSeverity(severity Severity) *QueryBuilder {
-	qb.query.Filters["severity"] = severity
+	qb.filters["severity"] = severity
 	return qb
 }
 
 func (qb *QueryBuilder) WithComponent(component string) *QueryBuilder {
-	qb.query.Filters["component"] = component
+	qb.filters["component"] = component
 	return qb
 }
 
 func (qb *QueryBuilder) WithUser(userID string) *QueryBuilder {
-	qb.query.Filters["user_id"] = userID
+	qb.filters["user_id"] = userID
 	return qb
 }
 
 func (qb *QueryBuilder) WithResult(result EventResult) *QueryBuilder {
-	qb.query.Filters["result"] = result
+	qb.filters["result"] = result
 	return qb
 }
 
@@ -918,14 +903,23 @@ func (qb *QueryBuilder) WithOffset(offset int) *QueryBuilder {
 }
 
 func (qb *QueryBuilder) WithAggregation(name string, config map[string]interface{}) *QueryBuilder {
-	if qb.query.Aggregations == nil {
-		qb.query.Aggregations = make(map[string]interface{})
-	}
-	qb.query.Aggregations[name] = config
+	qb.aggregations[name] = config
 	return qb
 }
 
 func (qb *QueryBuilder) Build() *Query {
+	// Marshal filters to JSON
+	if len(qb.filters) > 0 {
+		filtersJSON, _ := json.Marshal(qb.filters)
+		qb.query.Filters = json.RawMessage(filtersJSON)
+	}
+	
+	// Marshal aggregations to JSON
+	if len(qb.aggregations) > 0 {
+		aggregationsJSON, _ := json.Marshal(qb.aggregations)
+		qb.query.Aggregations = json.RawMessage(aggregationsJSON)
+	}
+	
 	return qb.query
 }
 

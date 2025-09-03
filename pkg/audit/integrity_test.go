@@ -1,7 +1,6 @@
 package audit
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -302,7 +301,7 @@ func (suite *IntegrityTestSuite) TestIntegrityValidation() {
 func (suite *IntegrityTestSuite) TestTamperDetection() {
 	suite.Run("detect data field tampering", func() {
 		event := createIntegrityTestEvent("tamper-data-test")
-		event.Data = json.RawMessage(`{}`)
+		event.Data = map[string]interface{}{}
 
 		err := suite.integrityChain.ProcessEvent(event)
 		suite.NoError(err)
@@ -511,7 +510,7 @@ func (suite *IntegrityTestSuite) TestIntegrityRecovery() {
 func (suite *IntegrityTestSuite) TestForensicAnalysis() {
 	suite.Run("forensic event analysis", func() {
 		event := createIntegrityTestEvent("forensic-test")
-		event.Data = json.RawMessage(`{}`)
+		event.Data = map[string]interface{}{}
 
 		err := suite.integrityChain.ProcessEvent(event)
 		suite.NoError(err)
@@ -572,7 +571,7 @@ func createIntegrityTestEvent(action string) *types.AuditEvent {
 		UserContext: &types.UserContext{
 			UserID: "test-user",
 		},
-		Data: json.RawMessage(`{}`),
+		Data: map[string]interface{}{},
 	}
 }
 

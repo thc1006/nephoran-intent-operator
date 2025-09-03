@@ -1,8 +1,8 @@
 package loop
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"sync"
@@ -53,12 +53,12 @@ func TestConcurrentStateStress(t *testing.T) {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			rng := rand.New(rand.NewSource(time.Now().UnixNano() + int64(workerID)))
+			rng := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(workerID)))
 
 			for op := 0; op < operationsPerWorker; op++ {
-				fileIdx := rng.Intn(numFiles)
+				fileIdx := rng.IntN(numFiles)
 				filename := files[fileIdx]
-				operation := rng.Intn(4)
+				operation := rng.IntN(4)
 
 				totalOps.Add(1)
 
@@ -113,7 +113,7 @@ func TestConcurrentStateStress(t *testing.T) {
 
 				// Small random delay to increase race conditions
 				if rng.Float32() > 0.7 {
-					time.Sleep(time.Duration(rng.Intn(5)) * time.Millisecond)
+					time.Sleep(time.Duration(rng.IntN(5)) * time.Millisecond)
 				}
 			}
 		}(w)

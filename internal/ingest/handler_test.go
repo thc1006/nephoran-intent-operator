@@ -239,22 +239,22 @@ func TestHandleIntent_PlainTextInput_Success(t *testing.T) {
 		{
 			name:  "basic scaling command",
 			input: "scale my-app to 5 in ns production",
-			expected: json.RawMessage(`{}`),
+			expected: map[string]interface{}{},
 		},
 		{
 			name:  "hyphenated names",
 			input: "scale nf-sim to 10 in ns ran-a",
-			expected: json.RawMessage(`{}`),
+			expected: map[string]interface{}{},
 		},
 		{
 			name:  "case insensitive",
 			input: "SCALE MY-SERVICE TO 3 IN NS DEFAULT",
-			expected: json.RawMessage(`{}`),
+			expected: map[string]interface{}{},
 		},
 		{
 			name:  "with extra whitespace",
 			input: "  scale   web-frontend   to   8   in   ns   backend  ",
-			expected: json.RawMessage(`{}`),
+			expected: map[string]interface{}{},
 		},
 	}
 
@@ -539,7 +539,7 @@ func TestHandleIntent_FileCreation(t *testing.T) {
 		t.Fatalf("Failed to parse saved JSON: %v", err)
 	}
 
-	expectedFields := json.RawMessage(`{}`)
+	expectedFields := map[string]interface{}{}
 
 	for key, expected := range expectedFields {
 		if savedIntent[key] != expected {

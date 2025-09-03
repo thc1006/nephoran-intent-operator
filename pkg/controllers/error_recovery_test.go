@@ -181,9 +181,9 @@ func (m *MockDependencies) GetMetricsCollector() monitoring.MetricsCollector {
 
 // Package-level test variables
 var (
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
+	errorRecoveryClient client.Client
+	errorRecoveryTestEnv *envtest.Environment
+	errorRecoveryCtx     context.Context
 )
 
 func init() {
@@ -195,12 +195,12 @@ func init() {
 	}
 
 	// Create a fake client for unit testing
-	k8sClient = fake.NewClientBuilder().WithScheme(s).Build()
-	ctx = context.Background()
+	errorRecoveryClient = fake.NewClientBuilder().WithScheme(s).Build()
+	errorRecoveryCtx = context.Background()
 
-	// Create a mock testEnv for compatibility
-	testEnv = &envtest.Environment{}
-	testEnv.Scheme = s
+	// Create a mock errorRecoveryTestEnv for compatibility
+	errorRecoveryTestEnv = &envtest.Environment{}
+	errorRecoveryTestEnv.Scheme = s
 }
 
 // Helper functions for the error recovery tests
@@ -254,16 +254,16 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 		// Create NetworkIntentReconciler with proper constructor
 		var err error
 		networkIntentReconciler, err = NewNetworkIntentReconciler(
-			k8sClient,
-			testEnv.Scheme,
+			errorRecoveryClient,
+			errorRecoveryTestEnv.Scheme,
 			mockDeps,
 			config,
 		)
 		Expect(err).NotTo(HaveOccurred())
 
 		e2nodeSetReconciler = &E2NodeSetReconciler{
-			Client: k8sClient,
-			Scheme: k8sClient.Scheme(),
+			Client: errorRecoveryClient,
+			Scheme: errorRecoveryClient.Scheme(),
 		}
 	})
 
@@ -289,7 +289,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Setting up persistently failing LLM client")
 			// Update the mock dependencies to use failing LLM client
@@ -306,7 +306,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Exhausting all retry attempts")
 			for i := 0; i <= networkIntentReconciler.GetConfig().MaxRetries; i++ {
-				result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+				result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -321,7 +321,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying NetworkIntent is marked as failed after max retries")
 			finalIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, namespacedName, finalIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, finalIntent)).To(Succeed())
 
 			processedCondition := testGetCondition(finalIntent.Status.Conditions, "Processed")
 			Expect(processedCondition).NotTo(BeNil())
@@ -361,7 +361,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Setting up temporarily failing Git client")
 			mockGitClient := &MockGitClient{
@@ -379,14 +379,14 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("First reconciliation should fail Git operation")
-			result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.GetConfig().RetryDelay))
 
 			By("Second reconciliation should also fail")
-			result, err = networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -396,7 +396,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			mockGitClient.CommitHash = "recovery-commit-success"
 			mockGitClient.Error = nil
 
-			result, err = networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -405,7 +405,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Verifying NetworkIntent deployment eventually succeeds")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				if err := k8sClient.Get(ctx, namespacedName, updated); err != nil {
+				if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, updated); err != nil {
 					return false
 				}
 				return testutils.IsConditionTrue(updated.Status.Conditions, "Deployed")
@@ -413,7 +413,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying final state")
 			finalIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, namespacedName, finalIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, finalIntent)).To(Succeed())
 			Expect(finalIntent.Status.GitCommitHash).To(Equal("recovery-commit-success"))
 			Expect(finalIntent.Status.Phase).To(Equal("Completed"))
 		})
@@ -434,7 +434,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Setting up LLM client with malformed JSON responses")
 			malformedResponses := []string{
@@ -462,7 +462,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					error:    nil,
 				}
 
-				result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+				result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -470,7 +470,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 				// Verify error condition is set
 				updatedIntent := &nephoranv1.NetworkIntent{}
-				Expect(k8sClient.Get(ctx, namespacedName, updatedIntent)).To(Succeed())
+				Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, updatedIntent)).To(Succeed())
 
 				processedCondition := testGetCondition(updatedIntent.Status.Conditions, "Processed")
 				Expect(processedCondition).NotTo(BeNil())
@@ -498,7 +498,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Intent: fmt.Sprintf("Deploy concurrent network function %d", i),
 					},
 				}
-				Expect(k8sClient.Create(ctx, ni)).To(Succeed())
+				Expect(errorRecoveryClient.Create(errorRecoveryCtx, ni)).To(Succeed())
 				networkIntents = append(networkIntents, ni)
 			}
 
@@ -528,7 +528,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Namespace: intent.Namespace,
 					}
 
-					result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+					result, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 						NamespacedName: namespacedName,
 					})
 					if err != nil {
@@ -560,7 +560,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Name:      ni.Name,
 						Namespace: ni.Namespace,
 					}
-					if err := k8sClient.Get(ctx, namespacedName, updated); err != nil {
+					if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, updated); err != nil {
 						return false
 					}
 					return testutils.IsConditionTrue(updated.Status.Conditions, "Processed") &&
@@ -587,7 +587,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			By("Pre-creating conflicting ConfigMaps")
 			conflictingCMs := []*corev1.ConfigMap{}
@@ -606,7 +606,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						"index":    fmt.Sprintf("%d", i),
 					},
 				}
-				Expect(k8sClient.Create(ctx, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Create(errorRecoveryCtx, cm)).To(Succeed())
 				conflictingCMs = append(conflictingCMs, cm)
 			}
 
@@ -616,7 +616,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation should encounter conflicts")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).To(HaveOccurred())
@@ -624,29 +624,29 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying E2NodeSet status reflects partial creation")
 			partialE2NodeSet := &nephoranv1.E2NodeSet{}
-			Expect(k8sClient.Get(ctx, namespacedName, partialE2NodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, partialE2NodeSet)).To(Succeed())
 			// Should have created only 1 ConfigMap (node-2) since 0 and 1 conflicted
 			Expect(partialE2NodeSet.Status.ReadyReplicas).To(BeNumerically("<=", 1))
 
 			By("Resolving conflicts by deleting conflicting ConfigMaps")
 			for _, cm := range conflictingCMs {
-				Expect(k8sClient.Delete(ctx, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Delete(errorRecoveryCtx, cm)).To(Succeed())
 			}
 
 			By("Retry reconciliation should succeed after conflict resolution")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying E2NodeSet recovers and creates all ConfigMaps")
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 3)
 
-			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 3)
 		})
 
 		It("Should handle partial ConfigMap deletions during scale-down", func() {
@@ -665,7 +665,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			namespacedName := types.NamespacedName{
 				Name:      e2nodeSet.Name,
@@ -673,13 +673,13 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation to create all ConfigMaps")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Waiting for all ConfigMaps to be created")
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 5)
@@ -696,24 +696,24 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					Name:      cmName,
 					Namespace: namespaceName,
 				}
-				Expect(k8sClient.Get(ctx, cmNamespacedName, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Get(errorRecoveryCtx, cmNamespacedName, cm)).To(Succeed())
 
 				cm.Finalizers = append(cm.Finalizers, "test.nephoran.com/prevent-deletion")
-				Expect(k8sClient.Update(ctx, cm)).To(Succeed())
+				Expect(errorRecoveryClient.Update(errorRecoveryCtx, cm)).To(Succeed())
 			}
 
 			By("Scaling down to 2 replicas")
 			Eventually(func() error {
 				var currentE2NodeSet nephoranv1.E2NodeSet
-				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+				if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, &currentE2NodeSet); err != nil {
 					return err
 				}
 				currentE2NodeSet.Spec.Replicas = 2
-				return k8sClient.Update(ctx, &currentE2NodeSet)
+				return errorRecoveryClient.Update(errorRecoveryCtx, &currentE2NodeSet)
 			}, timeout, interval).Should(Succeed())
 
 			By("Reconciling after scale down")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 
@@ -729,28 +729,28 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 						Name:      cmName,
 						Namespace: namespaceName,
 					}
-					if err := k8sClient.Get(ctx, cmNamespacedName, cm); err != nil {
+					if err := errorRecoveryClient.Get(errorRecoveryCtx, cmNamespacedName, cm); err != nil {
 						return err
 					}
 					cm.Finalizers = []string{}
-					return k8sClient.Update(ctx, cm)
+					return errorRecoveryClient.Update(errorRecoveryCtx, cm)
 				}, timeout, interval).Should(Succeed())
 			}
 
 			By("Retry reconciliation should succeed after finalizer removal")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying scale down completed successfully")
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 2)
 
-			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 2)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 2)
 		})
 
 		It("Should handle rapid scaling operations", func() {
@@ -769,7 +769,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			namespacedName := types.NamespacedName{
 				Name:      e2nodeSet.Name,
@@ -777,12 +777,12 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial state establishment")
-			_, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 1)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 1)
 
 			By("Performing rapid scaling operations")
 			scaleSequence := []int32{5, 2, 8, 3, 1, 6}
@@ -793,22 +793,22 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				// Update replica count
 				Eventually(func() error {
 					var currentE2NodeSet nephoranv1.E2NodeSet
-					if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					if err := errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, &currentE2NodeSet); err != nil {
 						return err
 					}
 					currentE2NodeSet.Spec.Replicas = targetReplicas
-					return k8sClient.Update(ctx, &currentE2NodeSet)
+					return errorRecoveryClient.Update(errorRecoveryCtx, &currentE2NodeSet)
 				}, timeout, interval).Should(Succeed())
 
 				// Reconcile
-				_, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+				_, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify scaling completed
-				testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, targetReplicas)
-				testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+				testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, targetReplicas)
+				testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 					"app":       "e2node",
 					"e2nodeset": e2nodeSet.Name,
 				}, int(targetReplicas))
@@ -816,7 +816,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Verifying final state consistency")
 			finalE2NodeSet := &nephoranv1.E2NodeSet{}
-			Expect(k8sClient.Get(ctx, namespacedName, finalE2NodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, namespacedName, finalE2NodeSet)).To(Succeed())
 
 			finalReplicas := scaleSequence[len(scaleSequence)-1]
 			Expect(finalE2NodeSet.Spec.Replicas).To(Equal(finalReplicas))
@@ -839,7 +839,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			namespacedName := types.NamespacedName{
 				Name:      e2nodeSet.Name,
@@ -847,13 +847,13 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation")
-			_, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Waiting for normal operation")
-			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 3)
 
 			By("Simulating ConfigMap corruption by modifying labels")
 			configMapList := &corev1.ConfigMapList{}
@@ -864,7 +864,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					"e2nodeset": e2nodeSet.Name,
 				}),
 			}
-			Expect(k8sClient.List(ctx, configMapList, listOptions...)).To(Succeed())
+			Expect(errorRecoveryClient.List(errorRecoveryCtx, configMapList, listOptions...)).To(Succeed())
 			Expect(len(configMapList.Items)).To(Equal(3))
 
 			// Corrupt one ConfigMap by removing essential labels
@@ -872,10 +872,10 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			delete(corruptedCM.Labels, "e2nodeset")
 			delete(corruptedCM.Labels, "app")
 			corruptedCM.Labels["corrupted"] = "true"
-			Expect(k8sClient.Update(ctx, corruptedCM)).To(Succeed())
+			Expect(errorRecoveryClient.Update(errorRecoveryCtx, corruptedCM)).To(Succeed())
 
 			By("Reconciling after corruption - should detect and recover")
-			_, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -884,15 +884,15 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			// The controller should recreate the missing/corrupted ConfigMap
 			Eventually(func() int {
 				correctConfigMaps := &corev1.ConfigMapList{}
-				Expect(k8sClient.List(ctx, correctConfigMaps, listOptions...)).To(Succeed())
+				Expect(errorRecoveryClient.List(errorRecoveryCtx, correctConfigMaps, listOptions...)).To(Succeed())
 				return len(correctConfigMaps.Items)
 			}, timeout, interval).Should(Equal(3))
 
-			testutils.WaitForE2NodeSetReady(ctx, k8sClient, namespacedName, 3)
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, namespacedName, 3)
 
 			By("Verifying all ConfigMaps have correct labels and data")
 			finalConfigMaps := &corev1.ConfigMapList{}
-			Expect(k8sClient.List(ctx, finalConfigMaps, listOptions...)).To(Succeed())
+			Expect(errorRecoveryClient.List(errorRecoveryCtx, finalConfigMaps, listOptions...)).To(Succeed())
 
 			for _, cm := range finalConfigMaps.Items {
 				Expect(cm.Labels["app"]).To(Equal("e2node"))
@@ -927,7 +927,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Error:      nil,
 			}
 
-			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, networkIntent)).To(Succeed())
 
 			By("Processing NetworkIntent successfully")
 			niNamespacedName := types.NamespacedName{
@@ -935,7 +935,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Namespace: networkIntent.Namespace,
 			}
 
-			_, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := networkIntentReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: niNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -943,7 +943,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Verifying NetworkIntent processing completed")
 			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				if err := k8sClient.Get(ctx, niNamespacedName, updated); err != nil {
+				if err := errorRecoveryClient.Get(errorRecoveryCtx, niNamespacedName, updated); err != nil {
 					return false
 				}
 				return testutils.IsConditionTrue(updated.Status.Conditions, "Processed") &&
@@ -969,7 +969,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, e2nodeSet)).To(Succeed())
 
 			By("Simulating E2NodeSet failures during processing")
 			e2nsNamespacedName := types.NamespacedName{
@@ -990,10 +990,10 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					"invalid": "configuration",
 				},
 			}
-			Expect(k8sClient.Create(ctx, invalidCM)).To(Succeed())
+			Expect(errorRecoveryClient.Create(errorRecoveryCtx, invalidCM)).To(Succeed())
 
 			By("E2NodeSet reconciliation should handle the invalid ConfigMap")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: e2nsNamespacedName,
 			})
 			// Should fail due to conflicting ConfigMap
@@ -1001,27 +1001,27 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 
 			By("Resolving the conflict and retrying")
-			Expect(k8sClient.Delete(ctx, invalidCM)).To(Succeed())
+			Expect(errorRecoveryClient.Delete(errorRecoveryCtx, invalidCM)).To(Succeed())
 
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			result, err = e2nodeSetReconciler.Reconcile(errorRecoveryCtx, reconcile.Request{
 				NamespacedName: e2nsNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying both controllers eventually reach consistent state")
-			testutils.WaitForE2NodeSetReady(ctx, k8sClient, e2nsNamespacedName, 3)
-			testutils.WaitForConfigMapCount(ctx, k8sClient, namespaceName, map[string]string{
+			testutils.WaitForE2NodeSetReady(errorRecoveryCtx, errorRecoveryClient, e2nsNamespacedName, 3)
+			testutils.WaitForConfigMapCount(errorRecoveryCtx, errorRecoveryClient, namespaceName, map[string]string{
 				"app":       "e2node",
 				"e2nodeset": e2nodeSet.Name,
 			}, 3)
 
 			By("Verifying NetworkIntent and E2NodeSet relationship is maintained")
 			finalNetworkIntent := &nephoranv1.NetworkIntent{}
-			Expect(k8sClient.Get(ctx, niNamespacedName, finalNetworkIntent)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, niNamespacedName, finalNetworkIntent)).To(Succeed())
 			Expect(finalNetworkIntent.Status.Phase).To(Equal("Completed"))
 
 			finalE2NodeSet := &nephoranv1.E2NodeSet{}
-			Expect(k8sClient.Get(ctx, e2nsNamespacedName, finalE2NodeSet)).To(Succeed())
+			Expect(errorRecoveryClient.Get(errorRecoveryCtx, e2nsNamespacedName, finalE2NodeSet)).To(Succeed())
 			Expect(finalE2NodeSet.Annotations["nephoran.com/intent-source"]).To(Equal(networkIntent.Name))
 			Expect(finalE2NodeSet.Status.ReadyReplicas).To(Equal(int32(3)))
 		})

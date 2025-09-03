@@ -21,7 +21,7 @@ func TestRequestSizeLimiter(t *testing.T) {
 
 	// Create test handler that reads the full body
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
+		_, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

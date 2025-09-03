@@ -3,8 +3,9 @@ package chaos
 
 import (
 	"context"
-	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 	"testing"
 	"time"

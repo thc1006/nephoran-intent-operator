@@ -2,11 +2,9 @@ package audit
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -785,7 +783,8 @@ func createChaosTestEvent(action string) *AuditEvent {
 		UserContext: &UserContext{
 			UserID: "chaos-test-user",
 		},
-		Data: json.RawMessage(`{}`),
+		Data: map[string]interface{}{},
+
 	}
 }
 
@@ -823,7 +822,8 @@ func createSizedChaosEvent(action string, targetSize int) *AuditEvent {
 		Action:    action,
 		Severity:  SeverityInfo,
 		Result:    ResultSuccess,
-		Data:      json.RawMessage(`{}`),
+		Data:      map[string]interface{}{},
+
 	}
 }
 

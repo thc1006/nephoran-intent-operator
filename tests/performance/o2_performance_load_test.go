@@ -84,7 +84,7 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	defer pm.mutex.RUnlock()
 
 	if len(pm.durations) == 0 {
-		return json.RawMessage(`{}`)
+		return map[string]interface{}{}
 	}
 
 	// Sort durations for percentile calculations
@@ -105,7 +105,16 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	p95 := sortedDurations[count*95/100]
 	p99 := sortedDurations[count*99/100]
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"count": count,
+		"mean":  mean,
+		"min":   min,
+		"max":   max,
+		"p50":   p50,
+		"p95":   p95,
+		"p99":   p99,
+		"errors": atomic.LoadInt64(&pm.errorCount),
+	}
 }
 
 var _ = Describe("O2 Performance and Load Testing Suite", func() {

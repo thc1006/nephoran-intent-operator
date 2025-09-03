@@ -21,12 +21,16 @@ import (
 // TestUser represents a test user for authentication scenarios.
 
 type TestUser struct {
-	Username string            `json:"username"`
-	Password string            `json:"password"`
-	Email    string            `json:"email"`
-	Roles    []string          `json:"roles"`
-	Claims   map[string]interface{} `json:"claims"`
-	Enabled  bool              `json:"enabled"`
+	Username      string            `json:"username"`
+	Password      string            `json:"password"`
+	Email         string            `json:"email"`
+	Roles         []string          `json:"roles"`
+	Claims        map[string]interface{} `json:"claims"`
+	Enabled       bool              `json:"enabled"`
+	Subject       string            `json:"subject"`
+	Name          string            `json:"name"`
+	EmailVerified bool              `json:"email_verified"`
+	Provider      string            `json:"provider"`
 }
 
 // TestCertificate represents a test certificate for mTLS scenarios.

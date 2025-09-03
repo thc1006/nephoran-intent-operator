@@ -966,14 +966,7 @@ func BenchmarkLargePolicyData_JSON_Marshal(b *testing.B) {
 
 // Helper types and functions for validation
 
-// Additional types for comprehensive testing
-type DeliveryInfo struct {
-	DeliveryURL    string            `json:"delivery_url"`
-	DeliveryMethod string            `json:"delivery_method"`
-	Headers        map[string]string `json:"headers,omitempty"`
-	RetryPolicy    RetryPolicy       `json:"retry_policy,omitempty"`
-	Timeout        time.Duration     `json:"timeout,omitempty"`
-}
+// Note: DeliveryInfo is imported from types.go
 
 type RetryPolicy struct {
 	MaxRetries  int           `json:"max_retries"`

@@ -249,7 +249,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 					OCloudID:         "test-ocloud-id",
 					GlobalLocationID: "test-global-location",
 					Provider:         "kubernetes",
-					Extensions:       json.RawMessage(`{}`),
+					Extensions:       map[string]interface{}{},
 					CreatedAt:        time.Now(),
 					UpdatedAt:        time.Now(),
 				}

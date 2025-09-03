@@ -18,6 +18,153 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// UserFactory creates test users.
+type UserFactory struct{}
+
+// TokenFactory creates test tokens.
+type TokenFactory struct {
+	issuer string
+}
+
+// OAuthResponseFactory creates test OAuth responses.
+type OAuthResponseFactory struct{}
+
+// TokenResponse represents an OAuth token response.
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+// NewUserFactory creates a new user factory.
+func NewUserFactory() *UserFactory {
+	return &UserFactory{}
+}
+
+// CreateBasicUser creates a basic test user.
+func (uf *UserFactory) CreateBasicUser() *TestUser {
+	return &TestUser{
+		Username:      "testuser",
+		Password:      "password123",
+		Email:         "test@example.com",
+		Roles:         []string{"user"},
+		Claims:        make(map[string]interface{}),
+		Enabled:       true,
+		Subject:       "test-user-123",
+		Name:          "Test User",
+		EmailVerified: true,
+		Provider:      "test",
+	}
+}
+
+// NewTokenFactory creates a new token factory.
+func NewTokenFactory(issuer string) *TokenFactory {
+	return &TokenFactory{issuer: issuer}
+}
+
+// CreateBasicToken creates basic token claims.
+func (tf *TokenFactory) CreateBasicToken(subject string) jwt.MapClaims {
+	now := time.Now()
+	return jwt.MapClaims{
+		"iss": tf.issuer,
+		"sub": subject,
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
+	}
+}
+
+// NewOAuthResponseFactory creates a new OAuth response factory.
+func NewOAuthResponseFactory() *OAuthResponseFactory {
+	return &OAuthResponseFactory{}
+}
+
+// CreateTokenResponse creates a test token response.
+func (of *OAuthResponseFactory) CreateTokenResponse() *TokenResponse {
+	return &TokenResponse{
+		AccessToken:  "test-access-token",
+		RefreshToken: "test-refresh-token",
+		TokenType:    "Bearer",
+		ExpiresIn:    3600,
+	}
+}
+
+// JWTManagerMock is a mock JWT manager for testing.
+type JWTManagerMock struct {
+	blacklistedTokens map[string]bool
+	tokenStore        map[string]interface{}
+}
+
+// RBACManagerMock is a mock RBAC manager for testing.
+type RBACManagerMock struct {
+	roles           map[string][]string
+	permissions     map[string][]string
+	roleStore       map[string]interface{}
+	permissionStore map[string]interface{}
+}
+
+// SessionManagerMock is a mock session manager for testing.
+type SessionManagerMock struct {
+	sessions map[string]interface{}
+	config   struct {
+		SessionTTL time.Duration
+	}
+}
+
+// NewJWTManagerMock creates a new JWT manager mock.
+func NewJWTManagerMock() *JWTManagerMock {
+	return &JWTManagerMock{
+		blacklistedTokens: make(map[string]bool),
+		tokenStore:        make(map[string]interface{}),
+	}
+}
+
+// NewRBACManagerMock creates a new RBAC manager mock.
+func NewRBACManagerMock() *RBACManagerMock {
+	return &RBACManagerMock{
+		roles:           make(map[string][]string),
+		permissions:     make(map[string][]string),
+		roleStore:       make(map[string]interface{}),
+		permissionStore: make(map[string]interface{}),
+	}
+}
+
+// NewSessionManagerMock creates a new session manager mock.
+func NewSessionManagerMock() *SessionManagerMock {
+	mock := &SessionManagerMock{
+		sessions: make(map[string]interface{}),
+	}
+	mock.config.SessionTTL = time.Hour
+	return mock
+}
+
+// CreateCompleteTestSetup creates a complete test setup with all factories.
+func CreateCompleteTestSetup() (*UserFactory, *TokenFactory, *OAuthResponseFactory, interface{}, interface{}, interface{}, interface{}) {
+	uf := NewUserFactory()
+	tf := NewTokenFactory("test-issuer")
+	of := NewOAuthResponseFactory()
+	cf := struct{}{} // placeholder
+	rf := struct{}{} // placeholder
+	pf := struct{}{} // placeholder
+	sf := struct{}{} // placeholder
+	return uf, tf, of, cf, rf, pf, sf
+}
+
+// CreateTestData creates test data for authentication scenarios.
+func CreateTestData() map[string]interface{} {
+	return map[string]interface{}{
+		"users": map[string]interface{}{
+			"basic":  map[string]string{"id": "user1", "name": "Basic User"},
+			"admin":  map[string]string{"id": "user2", "name": "Admin User"},
+			"github": map[string]string{"id": "user3", "name": "GitHub User"},
+		},
+		"tokens":      []string{"token1", "token2"},
+		"roles":       []string{"user", "admin"},
+		"permissions": []string{"read", "write"},
+		"sessions":    map[string]string{"session1": "user1"},
+	}
+}
+
 // AuthTestSuite provides a comprehensive authentication testing framework.
 
 type AuthTestSuite struct {

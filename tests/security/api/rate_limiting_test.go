@@ -1,8 +1,8 @@
 package api
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -1032,7 +1032,7 @@ func TestRateLimitingMetrics(t *testing.T) {
 
 		// Simulate processing time
 		if allowed {
-			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
+			time.Sleep(time.Duration(rand.IntN(50)) * time.Millisecond)
 		}
 
 		responseTime := time.Since(start)
