@@ -57,7 +57,7 @@ permissions:
 
 # Optimized environment for Ubuntu Linux-only deployment
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.25.0"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -85,7 +85,7 @@ jobs:
   # =============================================================================
   setup:
     name: Setup & Change Detection
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       should-build: ${{ steps.changes.outputs.should-build }}
@@ -105,7 +105,7 @@ jobs:
         id: go-setup
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: false  # We manage caching manually
           check-latest: true
 
@@ -334,7 +334,7 @@ jobs:
   # =============================================================================
   build:
     name: Build - ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
     timeout-minutes: ${{ matrix.timeout }}
@@ -351,7 +351,7 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.setup.outputs.go-version }}
+          go-version: '1.25.0'
           cache: false
 
       - name: Prepare optimized build environment
@@ -375,7 +375,7 @@ jobs:
           go env GOMODCACHE
 
       - name: Restore Go module and build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key }}
@@ -540,7 +540,7 @@ jobs:
 
       - name: Save Go cache (optimized)
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key }}
@@ -560,7 +560,7 @@ jobs:
   # =============================================================================
   test:
     name: Test - ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, build]
     if: needs.setup.outputs.should-build == 'true' && env.SKIP_TESTS != 'true'
     timeout-minutes: ${{ matrix.timeout }}
@@ -577,7 +577,7 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.setup.outputs.go-version }}
+          go-version: '1.25.0'
           cache: false
 
       - name: Prepare test environment
@@ -593,7 +593,7 @@ jobs:
           echo "GOMODCACHE=/tmp/go-mod-cache" >> $GITHUB_ENV
 
       - name: Restore Go cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key }}
@@ -702,7 +702,7 @@ jobs:
   # =============================================================================
   quality:
     name: Code Quality & Linting
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-build == 'true'
     timeout-minutes: 15
@@ -716,11 +716,11 @@ jobs:
       - name: Setup Go ${{ needs.setup.outputs.go-version }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.setup.outputs.go-version }}
+          go-version: '1.25.0'
           cache: false
 
       - name: Restore Go cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         with:
           path: ${{ needs.setup.outputs.cache-paths }}
           key: ${{ needs.setup.outputs.cache-key }}
@@ -779,7 +779,7 @@ jobs:
   # =============================================================================
   integration:
     name: Integration Tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, build]
     if: needs.setup.outputs.should-build == 'true' && env.BUILD_MODE != 'fast'
     timeout-minutes: 12
@@ -893,7 +893,7 @@ jobs:
   # =============================================================================
   status:
     name: Pipeline Status
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, build, test, quality, integration]
     if: always()
     timeout-minutes: 5

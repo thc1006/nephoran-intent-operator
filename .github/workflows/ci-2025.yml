@@ -39,7 +39,7 @@ permissions:
 
 # Environment optimized for Go 1.25.0 and Ubuntu Linux
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.25.0"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"
@@ -95,7 +95,7 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           check-latest: true
           cache: false  # We handle caching manually
 
@@ -196,7 +196,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           check-latest: true
           cache: false
 
@@ -313,7 +313,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           check-latest: true
           cache: false
 
@@ -399,7 +399,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           check-latest: true
           cache: false
 
@@ -441,37 +441,12 @@ jobs:
           args: --timeout=15m --verbose
           skip-cache: true  # We handle caching manually
 
-      - name: Go vulnerability check (CI-optimized)
-        timeout-minutes: 12
+      - name: Go vulnerability check (using govulncheck-action)
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.25.0'
+          go-package: './cmd/... ./api/... ./controllers/...'
         continue-on-error: true  # Don't fail CI for vulnerabilities
-        run: |
-          echo "Checking for known vulnerabilities (CI-optimized)..."
-          
-          # Install with timeout
-          timeout 180s go install golang.org/x/vuln/cmd/govulncheck@latest || {
-            echo "⚠️ govulncheck installation timeout - skipping"
-            exit 0
-          }
-          
-          # Run quick scan on critical paths only for CI
-          echo "🔍 Scanning critical components for CI..."
-          if timeout 8m govulncheck ./cmd/... ./api/... ./controllers/... 2>&1; then
-            echo "✅ No critical vulnerabilities found in core components"
-          else
-            exit_code=$?
-            if [[ $exit_code -eq 124 ]]; then
-              echo "⚠️ Vulnerability scan timed out - check detailed security workflow"
-            elif [[ $exit_code -eq 1 ]]; then
-              echo "⚠️ Vulnerabilities found - check detailed security workflow"
-            else
-              echo "⚠️ Vulnerability scan failed - check detailed security workflow"
-            fi
-            
-            # Add to summary but don't fail CI
-            echo "## ⚠️ CI Vulnerability Check" >> $GITHUB_STEP_SUMMARY
-            echo "Quick vulnerability check completed with warnings." >> $GITHUB_STEP_SUMMARY
-            echo "Review the full Security Scan workflow for detailed results." >> $GITHUB_STEP_SUMMARY
-          fi
 
       - name: Go mod tidy check
         run: |

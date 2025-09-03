@@ -30,10 +30,10 @@ updates:
     allow:
       # Only allow security updates by default
       - dependency-type: "all"
-    ignore:
-      # Ignore specific dependencies if needed
-      - dependency-name: "example-legacy-lib"
-        versions: ["1.x", "2.x"]
+    # ignore:
+    #   # Ignore specific dependencies if needed
+    #   - dependency-name: "example-legacy-lib"
+    #     versions: ["1.x", "2.x"]
     groups:
       # Group related dependencies
       kubernetes:
@@ -88,22 +88,21 @@ updates:
       prefix: "build"
       include: "scope"
     
-  # Terraform (if used)
-  - package-ecosystem: "terraform"
-    directory: "/deployments/terraform"
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-      time: "04:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 3
-    # reviewers can be configured when teams exist
-    labels:
-      - "infrastructure"
-      - "terraform"
-      - "automated"
-    commit-message:
-      prefix: "infra"
-      include: "scope"
+  # Terraform (if used) - commented out as directory doesn't exist
+  # - package-ecosystem: "terraform"
+  #   directory: "/deployments/terraform"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "wednesday"
+  #     time: "04:00"
+  #     timezone: "UTC"
+  #   open-pull-requests-limit: 3
+  #   labels:
+  #     - "infrastructure"
+  #     - "terraform"
+  #     - "automated"
+  #   commit-message:
+  #     prefix: "infra"
+  #     include: "scope"
 
 # Security vulnerability alerts are configured in repository settings

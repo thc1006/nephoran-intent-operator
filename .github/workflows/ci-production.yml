@@ -37,7 +37,7 @@ concurrency:
 
 env:
   # Upgraded to latest stable Go version for performance improvements  
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.25.0"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   # Build optimizations for CI environment
@@ -65,12 +65,12 @@ jobs:
       
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v4  # Latest stable
         with:
           fetch-depth: 1
           
       - name: Detect changes
-        uses: dorny/paths-filter@v3.0.2  # PINNED VERSION
+        uses: dorny/paths-filter@v3  # Latest stable
         id: changes
         with:
           filters: |
@@ -84,7 +84,7 @@ jobs:
         if: steps.changes.outputs.go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: false  # We'll handle caching manually for better control
           
       - name: Generate standardized cache key
@@ -163,12 +163,12 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v4  # Latest stable
         
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5.0.2  # PINNED VERSION
+        uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: false
           
       - name: Restore STANDARDIZED Go cache
@@ -199,7 +199,7 @@ jobs:
           make -f Makefile.ci ci-status
           
       - name: Upload critical binaries
-        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
+        uses: actions/upload-artifact@v4  # Latest stable
         with:
           name: critical-binaries
           path: bin/
@@ -226,12 +226,12 @@ jobs:
           
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v4  # Latest stable
         
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5.0.2  # PINNED VERSION
+        uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: false
           
       - name: Restore STANDARDIZED Go cache
@@ -276,7 +276,7 @@ jobs:
           
       - name: Upload coverage
         if: success()
-        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
+        uses: actions/upload-artifact@v4  # Latest stable
         with:
           name: coverage-${{ matrix.component }}
           path: coverage-*.html
@@ -305,12 +305,12 @@ jobs:
           
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v4  # Latest stable
         
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5.0.2  # PINNED VERSION
+        uses: actions/setup-go@v5  # Latest stable
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: false
           
       - name: Restore STANDARDIZED Go cache
@@ -374,7 +374,7 @@ jobs:
           
       - name: Upload build artifacts
         if: matrix.build-target != 'pkg-and-controllers'
-        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
+        uses: actions/upload-artifact@v4  # Latest stable
         with:
           name: binaries-${{ matrix.build-target }}
           path: bin/
@@ -392,7 +392,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.1  # PINNED VERSION
+        uses: actions/checkout@v4  # Latest stable
         
       - name: Download critical binaries
         uses: actions/download-artifact@v4.1.8  # PINNED VERSION

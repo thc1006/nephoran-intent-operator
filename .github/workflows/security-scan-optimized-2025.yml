@@ -38,7 +38,7 @@ permissions:
   pull-requests: write
 
 env:
-  GO_VERSION: "1.22.7"
+  GO_VERSION: "1.25.0"
   SCAN_MODE: ${{ github.event.inputs.scan_mode || 'standard' }}
   FORCE_FULL_SCAN: ${{ github.event.inputs.force_full_scan == 'true' }}
   CGO_ENABLED: "0"
@@ -51,7 +51,7 @@ jobs:
   # =============================================================================
   setup:
     name: Security Scan Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
       scan-strategy: ${{ steps.strategy.outputs.strategy }}
@@ -178,7 +178,7 @@ jobs:
   # =============================================================================
   gosec-analysis:
     name: Gosec Static Analysis
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-scan == 'true'
     timeout-minutes: 8
@@ -190,7 +190,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: true
 
       - name: Run gosec security scanner
@@ -262,7 +262,7 @@ jobs:
   # =============================================================================
   vulnerability-scan:
     name: Vulnerability Scan - ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-scan == 'true'
     timeout-minutes: ${{ matrix.timeout }}
@@ -279,7 +279,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: true
 
       - name: Create scan environment
@@ -293,101 +293,33 @@ jobs:
           # Create results directories
           mkdir -p scan-results logs
 
-      - name: Install and cache govulncheck (optimized)
-        timeout-minutes: 3
-        run: |
-          echo "📦 Installing govulncheck..."
-          
-          # Create cache directory
-          mkdir -p ~/.cache/govulncheck
-          
-          # Install with timeout and retry logic
-          for attempt in 1 2 3; do
-            echo "Installation attempt $attempt/3..."
-            if timeout 120s go install golang.org/x/vuln/cmd/govulncheck@latest; then
-              echo "✅ govulncheck installed successfully"
-              govulncheck -version || echo "Version command not available"
-              break
-            elif [[ $attempt -eq 3 ]]; then
-              echo "❌ Failed to install govulncheck after 3 attempts"
-              echo "scan_status=install_failed" > scan-results/status.txt
-              exit 0  # Don't fail the job
-            else
-              echo "⚠️ Installation attempt $attempt failed, retrying..."
-              sleep 10
-            fi
-          done
+      - name: Run govulncheck (using official action)
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.25.0'
+          go-package: '${{ matrix.paths }}'
+        continue-on-error: true
+        id: govulncheck
 
-      - name: Run optimized vulnerability scan
-        timeout-minutes: ${{ matrix.timeout - 2 }}
+      - name: Process govulncheck results
+        if: always()
         run: |
-          if [[ -f "scan-results/status.txt" ]] && grep -q "install_failed" scan-results/status.txt; then
-            echo "⚠️ Skipping scan due to installation failure"
-            exit 0
+          echo "📊 Processing govulncheck results for ${{ matrix.name }}..."
+          
+          # Create results directory if it doesn't exist
+          mkdir -p scan-results
+          
+          # Check if govulncheck step succeeded
+          if [[ "${{ steps.govulncheck.outcome }}" == "success" ]]; then
+            echo "scan_status=success" > scan-results/status.txt
+            echo "✅ No vulnerabilities found in ${{ matrix.paths }}"
+          elif [[ "${{ steps.govulncheck.outcome }}" == "failure" ]]; then
+            echo "scan_status=vulnerabilities_found" > scan-results/status.txt
+            echo "⚠️ Vulnerabilities found in ${{ matrix.paths }}"
+          else
+            echo "scan_status=skipped" > scan-results/status.txt
+            echo "ℹ️ Govulncheck scan was skipped or cancelled"
           fi
-          
-          echo "🚀 Starting vulnerability scan for ${{ matrix.name }}"
-          echo "Target paths: ${{ matrix.paths }}"
-          
-          scan_timeout=$(((${{ matrix.timeout }} - 2) * 60))
-          echo "Scan timeout: ${scan_timeout}s"
-          
-          # Function to run scan with proper error handling
-          run_vulnerability_scan() {
-            local target_paths="$1"
-            local output_format="$2"
-            local output_file="$3"
-            
-            echo "🔍 Scanning with format: $output_format"
-            
-            # Use timeout with govulncheck
-            if timeout "${scan_timeout}s" govulncheck \
-              -${output_format} \
-              -C "$(pwd)" \
-              ${target_paths} > "$output_file" 2>&1; then
-              
-              echo "✅ Scan completed successfully"
-              echo "scan_status=success" > scan-results/status.txt
-              return 0
-            else
-              local exit_code=$?
-              echo "⚠️ Scan exited with code: $exit_code"
-              
-              case $exit_code in
-                124)  # timeout
-                  echo "⏱️ Scan timed out (${scan_timeout}s limit reached)" >> "$output_file"
-                  echo "This indicates a very large codebase or slow network." >> "$output_file"
-                  echo "scan_status=timeout" > scan-results/status.txt
-                  ;;
-                1)  # vulnerabilities found
-                  echo "⚠️ Vulnerabilities detected" >> "$output_file"
-                  echo "scan_status=vulnerabilities_found" > scan-results/status.txt
-                  ;;
-                3)  # analysis error (e.g., build issues)
-                  echo "❌ Analysis error - possibly due to build issues" >> "$output_file"
-                  echo "scan_status=analysis_error" > scan-results/status.txt
-                  ;;
-                *)  # other errors
-                  echo "❌ Scan failed with unexpected error" >> "$output_file"
-                  echo "scan_status=scan_error" > scan-results/status.txt
-                  ;;
-              esac
-              
-              return 0  # Don't fail the job
-            fi
-          }
-          
-          # Run JSON scan for machine processing
-          echo "Running JSON format scan..."
-          run_vulnerability_scan "${{ matrix.paths }}" "json" "scan-results/vulnerabilities-${{ matrix.name }}.json"
-          
-          # Run text scan for human readability (only for smaller scopes)
-          if [[ "${{ matrix.priority }}" == "critical" ]] || [[ "${{ env.SCAN_MODE }}" == "quick" ]]; then
-            echo "Running text format scan..."
-            run_vulnerability_scan "${{ matrix.paths }}" "text" "scan-results/vulnerabilities-${{ matrix.name }}.txt"
-          fi
-          
-          echo "📊 Scan completed for ${{ matrix.name }}"
 
       - name: Process scan results and generate report
         if: always()
@@ -470,7 +402,7 @@ jobs:
   # =============================================================================
   dependency-scan:
     name: Dependency Security Scan
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: setup
     if: needs.setup.outputs.should-scan == 'true'
     timeout-minutes: 10
@@ -482,7 +414,7 @@ jobs:
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.25.0'
           cache: true
 
       - name: Optimized dependency vulnerability scan
@@ -615,7 +547,7 @@ jobs:
   # =============================================================================
   security-summary:
     name: Security Summary Report
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [setup, gosec-analysis, vulnerability-scan, dependency-scan]
     if: always() && needs.setup.outputs.should-scan == 'true'
     timeout-minutes: 5
