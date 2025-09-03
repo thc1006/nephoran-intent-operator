@@ -143,7 +143,7 @@ jobs:
 
       - name: Check scan result cache
         id: cache_check
-        uses: actions/cache/restore@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.0
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/scan-results
@@ -788,7 +788,7 @@ jobs:
 
       - name: Cache scan results
         if: success()
-        uses: actions/cache/save@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.0
+        uses: actions/cache/save@v4
         with:
           path: |
             ~/.cache/scan-results
