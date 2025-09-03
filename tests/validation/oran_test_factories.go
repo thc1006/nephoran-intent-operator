@@ -5,10 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // ORANTestFactory provides factory methods for creating test data.

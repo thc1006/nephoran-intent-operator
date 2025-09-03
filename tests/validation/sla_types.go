@@ -1,9 +1,9 @@
 package test_validation
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
+	"sync"
 	"time"
 )
 
@@ -185,6 +185,17 @@ type ThroughputScore struct {
 type SLAValidationTestSuite struct {
 	// This is a placeholder - the real struct is defined in the _test.go file
 	// but we need this for compilation when not running tests
+	config *SLAValidationConfig
+}
+
+// SLAValidationConfig placeholder for compilation
+type SLAValidationConfig struct {
+	AvailabilityClaim    float64       `json:"availability_claim"`
+	AvailabilityAccuracy float64       `json:"availability_accuracy"`
+	LatencyP95Claim      time.Duration `json:"latency_p95_claim"`
+	ThroughputClaim      float64       `json:"throughput_claim"`
+	ThroughputAccuracy   float64       `json:"throughput_accuracy"`
+	ConfidenceLevel      float64       `json:"confidence_level"`
 }
 
 // MeasurementSet contains a collection of measurements for validation
@@ -193,11 +204,25 @@ type MeasurementSet struct {
 	Timestamps     []int64   `json:"timestamps"`
 	Labels         []string  `json:"labels,omitempty"`
 	AggregatedData json.RawMessage `json:"aggregated_data,omitempty"`
+	
+	// Statistical properties (calculated by calculateMeasurementStatistics)
+	Mean        float64         `json:"mean"`
+	Median      float64         `json:"median"`
+	StdDev      float64         `json:"std_dev"`
+	Min         float64         `json:"min"`
+	Max         float64         `json:"max"`
+	Percentiles map[int]float64 `json:"percentiles"`
+
+	// Quality metrics
+	OutlierCount int     `json:"outlier_count"`
+	MissingData  int     `json:"missing_data"`
+	QualityScore float64 `json:"quality_score"`
 }
 
 // StatisticalAnalyzer performs statistical analysis on measurement data
 type StatisticalAnalyzer struct {
-	Config *AnalyzerConfig `json:"config,omitempty"`
+	Config          *AnalyzerConfig `json:"config,omitempty"`
+	confidenceLevel float64         `json:"confidence_level"`
 }
 
 // StatisticalAnalysis contains statistical analysis results
@@ -229,7 +254,9 @@ type AnalyzerConfig struct {
 
 // ClaimVerifier verifies SLA claims against measurements
 type ClaimVerifier struct {
-	Config *VerifierConfig `json:"config,omitempty"`
+	Config *VerifierConfig         `json:"config,omitempty"`
+	claims map[string]*SLAClaim    `json:"claims,omitempty"`
+	mutex  sync.RWMutex           `json:"-"`
 }
 
 // ClaimVerification contains claim verification results

@@ -239,7 +239,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 	// Parse query parameters for initial filters.
 
-	filters := s.parseStreamFilters(r)
+	_ = s.parseStreamFilters(r)
 
 	// Create WebSocket connection object.
 
@@ -252,7 +252,7 @@ func (s *NephoranAPIServer) handleWebSocketConnection(w http.ResponseWriter, r *
 
 		Send: make(chan []byte, 256),
 
-		Filters: json.RawMessage(`{}`),
+		Filters: make(map[string]interface{}),
 
 		LastSeen: time.Now(),
 	}
@@ -486,7 +486,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection, msg *WebSocketMessage) {
 	// Reset filters to default.
 
-	conn.Filters = json.RawMessage(`{}`)
+	conn.Filters = make(map[string]interface{})
 
 	// Send unsubscription confirmation.
 
@@ -554,9 +554,9 @@ func (s *NephoranAPIServer) handleWebSocketPing(conn *WebSocketConnection, msg *
 func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, msg *WebSocketMessage) {
 	s.connectionsMutex.RLock()
 
-	totalConnections := len(s.wsConnections)
+	_ = len(s.wsConnections)
 
-	sseConnections := len(s.sseConnections)
+	_ = len(s.sseConnections)
 
 	s.connectionsMutex.RUnlock()
 
@@ -702,7 +702,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 	// Parse query parameters for initial filters.
 
-	filters := s.parseStreamFilters(r)
+	_ = s.parseStreamFilters(r)
 
 	// Create SSE connection object.
 
@@ -715,7 +715,7 @@ func (s *NephoranAPIServer) handleSSEConnection(w http.ResponseWriter, r *http.R
 
 		Flusher: flusher,
 
-		Filters: json.RawMessage(`{}`),
+		Filters: make(map[string]interface{}),
 
 		LastSeen: time.Now(),
 	}
@@ -834,17 +834,35 @@ func (s *NephoranAPIServer) listActiveStreams(w http.ResponseWriter, r *http.Req
 
 	// Add WebSocket connections.
 
-	for id, conn := range s.wsConnections {
-		streams = append(streams, json.RawMessage(`{}`))
+	for _, conn := range s.wsConnections {
+		streamInfo := map[string]interface{}{
+			"id":       conn.ID,
+			"user_id":  conn.UserID,
+			"type":     "websocket",
+			"filters":  conn.Filters,
+			"last_seen": conn.LastSeen,
+		}
+		streams = append(streams, streamInfo)
 	}
 
 	// Add SSE connections.
 
-	for id, conn := range s.sseConnections {
-		streams = append(streams, json.RawMessage(`{}`))
+	for _, conn := range s.sseConnections {
+		streamInfo := map[string]interface{}{
+			"id":       conn.ID,
+			"user_id":  conn.UserID,
+			"type":     "sse",
+			"filters":  conn.Filters,
+			"last_seen": conn.LastSeen,
+		}
+		streams = append(streams, streamInfo)
 	}
 
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
+	response := map[string]interface{}{
+		"streams": streams,
+		"total":   len(streams),
+	}
+	s.writeJSONResponse(w, http.StatusOK, response)
 }
 
 // Helper functions.
@@ -1015,8 +1033,13 @@ func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request
 	streamID := vars["id"]
 
 	// TODO: Implement actual stream info retrieval.
+	s.logger.V(1).Info("Getting stream info", "streamID", streamID)
 
-	streamInfo := json.RawMessage(`{}`)
+	streamInfo := map[string]interface{}{
+		"id": streamID,
+		"status": "unknown",
+		"message": "Stream info retrieval not yet implemented",
+	}
 
 	s.writeJSONResponse(w, http.StatusOK, streamInfo)
 }
@@ -1032,7 +1055,11 @@ func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) 
 
 	s.logger.Info("Closing stream", "streamID", streamID)
 
-	response := json.RawMessage(`{}`)
+	response := map[string]interface{}{
+		"id": streamID,
+		"status": "closed",
+		"message": "Stream close requested (not yet implemented)",
+	}
 
 	s.writeJSONResponse(w, http.StatusOK, response)
 }

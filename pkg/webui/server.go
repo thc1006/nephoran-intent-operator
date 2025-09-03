@@ -1153,3 +1153,101 @@ func getClientIP(r *http.Request) string {
 
 	return r.RemoteAddr
 }
+
+// setupDashboardRoutes configures dashboard-specific endpoints.
+func (s *NephoranAPIServer) setupDashboardRoutes(router *mux.Router) {
+	dashboard := router.PathPrefix("/dashboard").Subrouter()
+	
+	// Apply dashboard-specific middleware
+	if s.authMiddleware != nil {
+		dashboard.Use(s.authMiddleware.RequirePermissionMiddleware(auth.PermissionReadIntent))
+	}
+
+	// Health and status endpoints
+	dashboard.HandleFunc("/health", s.healthCheck).Methods("GET")
+	dashboard.HandleFunc("/system/info", s.getSystemInfo).Methods("GET")
+	dashboard.HandleFunc("/system/health", s.getSystemHealth).Methods("GET")
+	
+	// Metrics and monitoring endpoints
+	dashboard.HandleFunc("/metrics/cluster", s.getClusterMetrics).Methods("GET")
+	dashboard.HandleFunc("/topology/components", s.getComponentTopology).Methods("GET")
+	dashboard.HandleFunc("/system/dependencies", s.getSystemDependencies).Methods("GET")
+	dashboard.HandleFunc("/system/config", s.getSystemConfig).Methods("GET")
+	
+	// Trend analysis endpoints
+	dashboard.HandleFunc("/trends/intents", s.getIntentTrends).Methods("GET")
+	dashboard.HandleFunc("/trends/packages", s.getPackageTrends).Methods("GET")
+	dashboard.HandleFunc("/trends/performance", s.getPerformanceTrends).Methods("GET")
+	
+	// Alert and event endpoints
+	dashboard.HandleFunc("/alerts/active", s.getActiveAlerts).Methods("GET")
+	dashboard.HandleFunc("/events/recent", s.getRecentEvents).Methods("GET")
+}
+
+// setupSystemRoutes configures system-level endpoints that don't require API versioning.
+func (s *NephoranAPIServer) setupSystemRoutes(router *mux.Router) {
+	// Health check endpoints - typically accessed by load balancers and monitoring systems
+	router.HandleFunc("/health", s.healthCheck).Methods("GET")
+	router.HandleFunc("/healthz", s.healthCheck).Methods("GET")
+	router.HandleFunc("/ready", s.healthCheck).Methods("GET")
+	router.HandleFunc("/readiness", s.healthCheck).Methods("GET")
+	router.HandleFunc("/liveness", s.healthCheck).Methods("GET")
+	
+	// Metrics endpoint for Prometheus scraping
+	if s.config.EnableMetrics {
+		router.Handle("/metrics", s.createMetricsHandler()).Methods("GET")
+	}
+	
+	// Profiling endpoints (enabled only if profiling is enabled)
+	if s.config.EnableProfiling {
+		s.setupProfilingRoutes(router)
+	}
+	
+	// Root endpoint with basic API information
+	router.HandleFunc("/", s.getRootInfo).Methods("GET")
+	
+	// API discovery endpoints
+	router.HandleFunc("/openapi", s.getOpenAPISpec).Methods("GET")
+	router.HandleFunc("/docs", s.getAPIDocs).Methods("GET")
+}
+
+// createMetricsHandler creates a Prometheus metrics handler.
+func (s *NephoranAPIServer) createMetricsHandler() http.Handler {
+	// Import prometheus/promhttp when implementing
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Placeholder implementation - would use promhttp.Handler() in real implementation
+		s.writeJSONResponse(w, http.StatusOK, map[string]string{
+			"message": "Metrics endpoint placeholder",
+		})
+	})
+}
+
+// setupProfilingRoutes adds pprof profiling endpoints.
+func (s *NephoranAPIServer) setupProfilingRoutes(router *mux.Router) {
+	// Profiling routes would typically be:
+	// router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
+	// Placeholder implementation for compilation
+	router.HandleFunc("/debug/pprof/", func(w http.ResponseWriter, r *http.Request) {
+		s.writeJSONResponse(w, http.StatusOK, map[string]string{
+			"message": "Profiling endpoints placeholder",
+		})
+	}).Methods("GET")
+}
+
+// getRootInfo provides basic API information at the root endpoint.
+func (s *NephoranAPIServer) getRootInfo(w http.ResponseWriter, r *http.Request) {
+	info := map[string]interface{}{
+		"name":        "Nephoran Intent Operator API",
+		"version":     "v1",
+		"description": "RESTful API for managing network intents and packages",
+		"endpoints": map[string]string{
+			"api":     "/api/v1",
+			"health":  "/health",
+			"metrics": "/metrics",
+			"docs":    "/docs",
+			"openapi": "/openapi",
+		},
+	}
+	s.writeJSONResponse(w, http.StatusOK, info)
+}
+

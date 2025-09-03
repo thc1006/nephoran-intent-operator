@@ -3,7 +3,6 @@ package webui
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 // Minimal implementations to fix compilation issues

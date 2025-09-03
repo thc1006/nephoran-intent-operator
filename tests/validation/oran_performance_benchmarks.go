@@ -4,8 +4,6 @@ package test_validation
 import (
 	"context"
 	"fmt"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"

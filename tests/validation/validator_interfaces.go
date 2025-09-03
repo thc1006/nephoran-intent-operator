@@ -194,6 +194,13 @@ func NewBasicAvailabilityValidator() AvailabilityValidator {
 func (v *BasicAvailabilityValidator) ValidateAvailability(ctx context.Context, target float64, duration time.Duration) (*AvailabilityValidationResult, error) {
 	// Basic implementation - in real scenario this would measure actual availability.
 
+	// Create metrics map and marshal to json.RawMessage
+	metricsMap := make(map[string]interface{})
+	metricsJSON, err := json.Marshal(metricsMap)
+	if err != nil {
+		return nil, err
+	}
+
 	result := &AvailabilityValidationResult{
 		ValidationResult: &ValidationResult{
 			TestName: "availability_validation",
@@ -206,7 +213,7 @@ func (v *BasicAvailabilityValidator) ValidateAvailability(ctx context.Context, t
 
 			ExecutionTime: duration,
 
-			Metrics: make(map[string]interface{}),
+			Metrics: metricsJSON,
 		},
 
 		TargetAvailability: target,
@@ -288,6 +295,13 @@ func NewBasicLatencyValidator() LatencyValidator {
 func (v *BasicLatencyValidator) ValidateLatency(ctx context.Context, p95Threshold, duration time.Duration) (*LatencyValidationResult, error) {
 	actualP95 := p95Threshold - 100*time.Millisecond // Simulate better than threshold
 
+	// Create metrics map and marshal to json.RawMessage
+	metricsMap := make(map[string]interface{})
+	metricsJSON, err := json.Marshal(metricsMap)
+	if err != nil {
+		return nil, err
+	}
+
 	result := &LatencyValidationResult{
 		ValidationResult: &ValidationResult{
 			TestName: "latency_validation",
@@ -300,7 +314,7 @@ func (v *BasicLatencyValidator) ValidateLatency(ctx context.Context, p95Threshol
 
 			ExecutionTime: duration,
 
-			Metrics: make(map[string]interface{}),
+			Metrics: metricsJSON,
 		},
 
 		P50Latency: 300 * time.Millisecond,
@@ -382,6 +396,13 @@ func NewBasicThroughputValidator() ThroughputValidator {
 func (v *BasicThroughputValidator) ValidateThroughput(ctx context.Context, minThroughput float64, duration time.Duration) (*ThroughputValidationResult, error) {
 	actualThroughput := minThroughput + 5.0 // Simulate better than minimum
 
+	// Create metrics map and marshal to json.RawMessage
+	metricsMap := make(map[string]interface{})
+	metricsJSON, err := json.Marshal(metricsMap)
+	if err != nil {
+		return nil, err
+	}
+
 	result := &ThroughputValidationResult{
 		ValidationResult: &ValidationResult{
 			TestName: "throughput_validation",
@@ -394,7 +415,7 @@ func (v *BasicThroughputValidator) ValidateThroughput(ctx context.Context, minTh
 
 			ExecutionTime: duration,
 
-			Metrics: make(map[string]interface{}),
+			Metrics: metricsJSON,
 		},
 
 		TargetThroughput: minThroughput,
