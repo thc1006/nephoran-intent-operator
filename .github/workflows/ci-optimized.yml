@@ -1,18 +1,29 @@
-name: Optimized CI Pipeline - DISABLED
-# DISABLED: Overlapping with ci-production.yml
-# This workflow has been consolidated into the main ci-production.yml workflow
+name: CI Status Check
+# Provides "CI Status" check required by branch protection rules
+# Runs in parallel with ci-production.yml for comprehensive validation
 
-# DISABLED - No triggers to prevent conflicts
+# Re-enabled to provide CI Status check for branch protection
 on:
-  # DISABLED: This workflow is consolidated into ci-production.yml
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - integrate/**
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/ci-optimized.yml'
+      - 'Makefile*'
+      - 'scripts/**'
   workflow_dispatch: {}
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-status-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.22.7"  # Updated to latest stable version
+  GO_VERSION: "1.25.0"  # Match production CI version
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"
