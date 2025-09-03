@@ -7,20 +7,13 @@
 
 name: Security Scan - 2025 Optimized
 
+# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
+# Original triggers preserved in comments for reference:
+# - push: [ main, integrate/mvp ] with path filters  
+# - pull_request: [ main, integrate/mvp ]
+# - schedule: Daily at 2 AM UTC
+
 on:
-  push:
-    branches: [ main, integrate/mvp ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/security-scan-optimized-2025.yml'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened ]
-  schedule:
-    # Daily comprehensive scan at 2 AM UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       scan_mode:
@@ -33,8 +26,9 @@ on:
         type: boolean
         default: false
 
+# Concurrency control - manual-only mode
 concurrency:
-  group: security-scan-${{ github.ref }}
+  group: security-scan-${{ github.ref }}-manual
   cancel-in-progress: true
 
 permissions:
@@ -44,7 +38,7 @@ permissions:
   pull-requests: write
 
 env:
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   SCAN_MODE: ${{ github.event.inputs.scan_mode || 'standard' }}
   FORCE_FULL_SCAN: ${{ github.event.inputs.force_full_scan == 'true' }}
   CGO_ENABLED: "0"

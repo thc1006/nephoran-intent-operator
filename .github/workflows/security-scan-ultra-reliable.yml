@@ -36,8 +36,8 @@ permissions:
 
 # Reliability-focused environment
 env:
-  GO_VERSION: "1.25"
-  GOSEC_VERSION: "2.22.0"
+  GO_VERSION: "1.22.7"
+  GOSEC_VERSION: "2.20.0"
   
   # Timeout configurations (in seconds)
   GOSEC_TIMEOUT: "600"      # 10 minutes max for gosec

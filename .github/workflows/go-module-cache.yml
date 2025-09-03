@@ -13,7 +13,7 @@ jobs:
       - name: Set up Go 1.25.0
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.22.7'
           cache: false  # Disable default caching mechanism
       
       - name: Configure Go Module Cache

@@ -7,23 +7,12 @@
 
 name: CI Pipeline 2025
 
+# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
+# Original triggers preserved in comments for reference:
+# - push: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ] with path filters
+# - pull_request: [ main, integrate/mvp ]
+
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'api/**'
-      - 'cmd/**'
-      - 'controllers/**'
-      - 'pkg/**'
-      - 'internal/**'
-      - 'Makefile*'
-      - '.github/workflows/ci-2025.yml'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -35,9 +24,9 @@ on:
         type: boolean
         default: false
 
-# Single concurrency group per branch - cancel overlapping runs
+# Single concurrency group per branch - manual-only mode
 concurrency:
-  group: ci-2025-${{ github.ref }}
+  group: ci-2025-${{ github.ref }}-manual
   cancel-in-progress: true
 
 # 2025 Security: Minimal required permissions
@@ -50,7 +39,7 @@ permissions:
 
 # Environment optimized for Go 1.25.0 and Ubuntu Linux
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.22.7"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   GOPRIVATE: "github.com/thc1006/*"

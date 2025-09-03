@@ -49,7 +49,7 @@ permissions:
   pull-requests: write  # For PR comments with performance metrics
 
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.22.7"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"
@@ -95,7 +95,7 @@ jobs:
           echo "**Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
 
       - name: Checkout code (sparse for analysis)
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           sparse-checkout: |
@@ -226,19 +226,19 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1  # Shallow clone for speed
 
       - name: Setup Go with ultra-cache
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: false  # Skip version check for speed
           cache: false  # We'll handle caching ourselves for better control
 
       - name: Advanced Go module caching
-        uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.0
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
@@ -284,7 +284,7 @@ jobs:
           go install github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }} &
           
           echo "Installing govulncheck..."
-          go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }} &
+          timeout 300s go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }} &
           
           echo "Installing nancy..."
           go install github.com/sonatype-nexus-community/nancy@${{ env.NANCY_VERSION }} &
@@ -313,7 +313,7 @@ jobs:
           echo "📦 Tool bundle created: $(du -h security-tools.tar.gz)"
 
       - name: Upload tool bundle
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: security-tools-${{ github.run_id }}
           path: |
@@ -352,18 +352,18 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Setup Go (minimal)
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Download tool bundle
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: security-tools-${{ github.run_id }}
           path: tools
@@ -466,7 +466,7 @@ jobs:
 
       - name: Upload shard results
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: gosec-shard-${{ matrix.shard }}-${{ github.run_id }}
           path: |
@@ -488,18 +488,18 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Setup Go (minimal)
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Download tool bundle
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: security-tools-${{ github.run_id }}
           path: tools
@@ -511,7 +511,7 @@ jobs:
           export PATH=$PATH:~/go/bin
 
       - name: Cache vulnerability database
-        uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.0
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/govulncheck
@@ -586,7 +586,7 @@ jobs:
 
       - name: Upload vulnerability results
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: vulnerability-results-${{ github.run_id }}
           path: |
@@ -610,7 +610,7 @@ jobs:
     
     steps:
       - name: Download all scan artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@v4
         with:
           path: all-results
           pattern: "*-${{ github.run_id }}"
@@ -647,7 +647,7 @@ jobs:
 
       - name: Upload merged SARIF to GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: merged-results.sarif
           category: gosec-security-scan-optimized
@@ -825,7 +825,7 @@ jobs:
 
       - name: Upload final consolidated report
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: security-scan-final-report-${{ github.run_id }}
           path: |

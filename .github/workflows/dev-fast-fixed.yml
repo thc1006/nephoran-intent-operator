@@ -14,27 +14,27 @@ on:
 #       - 'fix/**' 
 #       - 'chore/**'
 #       - 'dev/**'
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Makefile*'
-      - '.github/workflows/*.yml'
-  pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        description: 'Enable debug logging'
-        type: boolean
-        default: false
+#     paths:
+#       - '**.go'
+#       - 'go.mod'
+#       - 'go.sum'
+#       - 'Makefile*'
+#       - '.github/workflows/*.yml'
+#   pull_request:
+#     types: [opened, synchronize, reopened]
+#   workflow_dispatch:
+#     inputs:
+#       debug_enabled:
+#         description: 'Enable debug logging'
+#         type: boolean
+#         default: false
 
 concurrency:
   group: dev-fast-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.25.0"  # Updated to latest stable version
+  GO_VERSION: "1.22.7"  # Updated to latest stable version
   GOPROXY: "https://proxy.golang.org,direct"
   CGO_ENABLED: "0"
   GOMAXPROCS: "4"

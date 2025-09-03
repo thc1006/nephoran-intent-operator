@@ -4,8 +4,7 @@
 
 version: 2
 
-# Enable security updates globally
-enable-beta-ecosystems: true
+# Dependabot updates configuration
 
 updates:
   # Go modules
@@ -16,11 +15,7 @@ updates:
       time: "03:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
-    reviewers:
-      - "security-team"
-      - "platform-team"
-    assignees:
-      - "security-bot"
+    # reviewers and assignees can be configured when teams exist
     labels:
       - "dependencies"
       - "security"
@@ -64,8 +59,7 @@ updates:
       time: "04:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
-    reviewers:
-      - "devops-team"
+    # reviewers can be configured when teams exist
     labels:
       - "ci/cd"
       - "github-actions"
@@ -85,8 +79,7 @@ updates:
       time: "04:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
-    reviewers:
-      - "platform-team"
+    # reviewers can be configured when teams exist
     labels:
       - "docker"
       - "containers"
@@ -104,8 +97,7 @@ updates:
       time: "04:00"
       timezone: "UTC"
     open-pull-requests-limit: 3
-    reviewers:
-      - "infrastructure-team"
+    # reviewers can be configured when teams exist
     labels:
       - "infrastructure"
       - "terraform"
@@ -114,31 +106,4 @@ updates:
       prefix: "infra"
       include: "scope"
 
-# Security vulnerability alerts configuration
-# These settings apply to all ecosystems
-registries:
-  # Private registry configuration (if needed)
-  private-registry:
-    type: "npm-registry"
-    url: "https://registry.npmjs.org"
-    username: "${{ secrets.NPM_USERNAME }}"
-    password: "${{ secrets.NPM_PASSWORD }}"
-
-# Dependency review configuration
-dependency-review:
-  # Fail on any vulnerability with CVSS score >= 7.0
-  fail-on-severity: high
-  # License restrictions
-  deny-licenses:
-    - GPL-3.0
-    - AGPL-3.0
-    - SSPL-1.0
-    - Commons-Clause
-  # Allow specific licenses
-  allow-licenses:
-    - MIT
-    - Apache-2.0
-    - BSD-3-Clause
-    - BSD-2-Clause
-    - ISC
-    - MPL-2.0
+# Security vulnerability alerts are configured in repository settings

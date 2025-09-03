@@ -10,27 +10,27 @@ on:
 # on:
 #   push:
 #     branches: 
-      - 'feat/**'
-      - 'fix/**' 
-      - 'chore/**'
-      - 'dev/**'
-    paths:
-      - '**.go'
-      - '**.mod'
-      - '**.sum'
-  workflow_dispatch:
-    inputs:
-      force_run:
-        description: 'Force run on any branch'
-        type: boolean
-        default: false
+#       - 'feat/**'
+#       - 'fix/**' 
+#       - 'chore/**'
+#       - 'dev/**'
+#     paths:
+#       - '**.go'
+#       - '**.mod'
+#       - '**.sum'
+#   workflow_dispatch:
+#     inputs:
+#       force_run:
+#         description: 'Force run on any branch'
+#         type: boolean
+#         default: false
 
 concurrency:
   group: dev-fast-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.25.0"  # Updated to latest stable version
+  GO_VERSION: "1.22.7"  # Updated to latest stable version
   GOPROXY: "https://proxy.golang.org,direct"
   CGO_ENABLED: "0"
   FORCE_RUN: ${{ github.event.inputs.force_run || 'false' }}

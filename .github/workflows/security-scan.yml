@@ -43,7 +43,7 @@ permissions:
   actions: read
 
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.22.7"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"
@@ -60,12 +60,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
@@ -239,7 +239,7 @@ jobs:
 
       - name: Upload gosec SARIF results
         if: always()
-        uses: github/codeql-action/upload-sarif@e2b3eafc8d227b0241d48be5f425d47c2d750a13 # v3.26.10
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec-results.sarif
           category: gosec-security-scan
@@ -362,7 +362,7 @@ jobs:
 
       - name: Upload gosec artifacts
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: gosec-reports-${{ github.run_id }}
           path: |
@@ -394,10 +394,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
 
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
@@ -411,7 +411,7 @@ jobs:
         run: echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
 
       - name: Cache govulncheck database
-        uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.0
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/govulncheck
@@ -426,11 +426,17 @@ jobs:
         run: |
           echo "Installing govulncheck with timeout handling..."
           timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
-            echo "⚠️ Installation timeout - using cached version if available"
-            if ! command -v govulncheck &> /dev/null; then
-              echo "❌ govulncheck not available, skipping scan"
-              exit 0
-            fi
+            echo "⚠️ Installation timeout - trying alternative method"
+            curl -L https://github.com/golang/vuln/releases/latest/download/govulncheck_linux_amd64.tar.gz | tar -xz -C ~/go/bin/ || {
+              echo "❌ govulncheck installation failed completely"
+              exit 1
+            }
+          }
+          
+          # Verify installation
+          govulncheck -version || {
+            echo "❌ govulncheck verification failed"
+            exit 1
           }
 
       - name: Run govulncheck with optimized scanning strategy
@@ -616,7 +622,7 @@ jobs:
 
       - name: Upload vulnerability reports
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: vulnerability-reports-${{ matrix.scan-type }}-${{ github.run_id }}
           path: |
@@ -639,10 +645,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
 
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
@@ -672,7 +678,7 @@ jobs:
 
       - name: Upload license reports
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: license-reports-${{ github.run_id }}
           path: |
@@ -695,10 +701,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4
 
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
@@ -750,7 +756,7 @@ jobs:
 
       - name: Upload OWASP reports
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: owasp-reports-${{ github.run_id }}
           path: |
@@ -772,7 +778,7 @@ jobs:
 
     steps:
       - name: Download all security artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@v4
         with:
           path: security-artifacts
           # 2025 Enhancement: Better artifact pattern matching
@@ -956,7 +962,7 @@ jobs:
 
       - name: Upload consolidated report
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: security-report-consolidated-${{ github.run_id }}
           path: consolidated-security-report.md

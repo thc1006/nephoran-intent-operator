@@ -46,7 +46,7 @@ permissions:
 # Stability-focused environment configuration
 env:
   # Core versions
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   NODE_VERSION: "20"
   
   # Stability settings

@@ -55,7 +55,7 @@ env:
   DEPLOYMENT_TARGET: ${{ github.event.inputs.deployment_target || 'local-kind' }}
   
   # System versions
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   KUBERNETES_VERSION: "1.31.0"
   HELM_VERSION: "3.16.0"
   

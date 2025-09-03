@@ -40,6 +40,11 @@ permissions:
   packages: read
   id-token: write
 
+# CRITICAL: Add concurrency control for security workflows
+concurrency:
+  group: security-enhanced-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 # Security-hardened environment variables
 env:
   SECURITY_LEVEL: ${{ github.event.inputs.security_level || 'standard' }}
@@ -67,7 +72,7 @@ env:
   AUDIT_LOGGING: "true"
   
   # Go security settings
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   CGO_ENABLED: "0"
   GOFLAGS: "-mod=readonly -buildvcs=true"
   GOSUMDB: "sum.golang.org"

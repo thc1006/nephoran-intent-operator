@@ -10,16 +10,13 @@
 
 name: Nephoran Master Orchestrator
 
+# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
+# Original triggers preserved in comments for reference:
+# - push: [ main, integrate/mvp, "feat/**", "fix/**", "release/**" ]
+# - pull_request: [ main, integrate/mvp ]
+# - schedule: Daily at 3 AM UTC
+
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**", "release/**" ]
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened, ready_for_review ]
-  schedule:
-    # Daily comprehensive validation at 3 AM UTC
-    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       deployment_target:
@@ -51,10 +48,10 @@ on:
         type: boolean
         default: false
 
-# Enterprise-grade concurrency control
+# Enterprise-grade concurrency control (manual-only mode)
 concurrency:
-  group: nephoran-orchestrator-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: nephoran-orchestrator-${{ github.ref }}-manual
+  cancel-in-progress: true
 
 # Zero-trust security permissions
 permissions:
@@ -70,7 +67,7 @@ permissions:
 # Nephoran-specific environment optimized for telecommunications
 env:
   # Core versions for telecommunications stack
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   KUBERNETES_VERSION: "1.31.0"
   HELM_VERSION: "3.16.0"
   ISTIO_VERSION: "1.24.0"

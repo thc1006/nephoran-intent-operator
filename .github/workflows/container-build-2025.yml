@@ -7,23 +7,13 @@
 
 name: Container Build - 2025
 
+# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
+# Original triggers preserved in comments for reference:
+# - push: [ main, integrate/mvp ] with path filters
+# - pull_request: [ main, integrate/mvp ]
+# - release: [ published ]
+
 on:
-  push:
-    branches: [ main, integrate/mvp ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'cmd/**'
-      - 'api/**'
-      - 'controllers/**'
-      - 'Dockerfile*'
-      - '.github/workflows/container-build-2025.yml'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened, ready_for_review ]
-  release:
-    types: [ published ]
   workflow_dispatch:
     inputs:
       build_mode:
@@ -41,8 +31,9 @@ on:
         options: ['linux/amd64', 'linux/amd64,linux/arm64', 'all-platforms']
         default: 'linux/amd64'
 
+# Concurrency control - manual-only mode
 concurrency:
-  group: container-build-${{ github.ref }}
+  group: container-build-${{ github.ref }}-manual
   cancel-in-progress: true
 
 permissions:
@@ -55,7 +46,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/nephoran
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   BUILD_MODE: ${{ github.event.inputs.build_mode || 'fast' }}
   PUSH_IMAGES: ${{ github.event.inputs.push_images != 'false' }}
   

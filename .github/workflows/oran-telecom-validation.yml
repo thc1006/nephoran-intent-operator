@@ -97,7 +97,7 @@ jobs:
       - name: 🔧 Setup Go for O-RAN validation
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.22.7'
           
       - name: 📡 A1 Policy Management Interface Validation
         id: a1-validation

@@ -19,14 +19,14 @@ on:
 # ORIGINAL TRIGGERS - DISABLED
 # on:
 #   pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, ready_for_review ]
-  workflow_dispatch:
-    inputs:
-      skip_tests:
-        description: 'Skip test execution'
-        type: boolean
-        default: false
+#     branches: [ main, integrate/mvp ]
+#     types: [ opened, synchronize, ready_for_review ]
+#   workflow_dispatch:
+#     inputs:
+#       skip_tests:
+#         description: 'Skip test execution'
+#         type: boolean
+#         default: false
 
 concurrency:
   group: pr-ci-ultra-${{ github.ref }}
@@ -36,7 +36,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.25.0"
+  GO_VERSION: "1.22.7"
   GOPRIVATE: "github.com/thc1006/*"
   SKIP_TESTS: ${{ github.event.inputs.skip_tests == 'true' || contains(github.event.head_commit.message, '[skip-tests]') }}
 

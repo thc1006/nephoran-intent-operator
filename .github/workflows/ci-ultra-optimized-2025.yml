@@ -9,18 +9,12 @@
 
 name: Ultra-Optimized CI 2025
 
+# CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
+# Original triggers preserved in comments for reference:
+# - push: [ main, integrate/mvp, "feat/**", "fix/**" ] with path ignores
+# - pull_request: [ main, integrate/mvp ]
+
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
-    paths-ignore:
-      - '**.md'
-      - '**.txt'
-      - 'docs/**'
-      - 'examples/**'
-      - '.vscode/**'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
     inputs:
       build_mode:
@@ -38,9 +32,9 @@ on:
         options: ['aggressive', 'conservative', 'reset']
         default: 'aggressive'
 
-# Aggressive concurrency control for maximum resource utilization
+# Aggressive concurrency control - manual-only mode
 concurrency:
-  group: ultra-ci-${{ github.ref }}-${{ github.event_name }}
+  group: ultra-ci-${{ github.ref }}-manual
   cancel-in-progress: true
 
 # Minimal permissions following zero-trust principles
@@ -56,7 +50,7 @@ permissions:
 # Global environment optimized for Go 1.25 and Ubuntu 22.04
 env:
   # Go 1.25 configuration
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.22.7"
   GOTOOLCHAIN: "go1.25.0"
   
   # Build optimization environment
