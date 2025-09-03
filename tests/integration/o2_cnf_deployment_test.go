@@ -45,9 +45,8 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 			TLSEnabled:    false,
 			DatabaseConfig: json.RawMessage(`{}`),
 			ProviderConfigs: map[string]interface{}{
-					"enabled": true,
-					"config": json.RawMessage(`{}`),
-				},
+				"enabled": true,
+				"config":  json.RawMessage(`{}`),
 			},
 			CNFConfig: map[string]interface{}{
 				"repositories": []map[string]interface{}{

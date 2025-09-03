@@ -822,6 +822,7 @@ func generateTestResource(resourceType string) KRMResource {
 			Kind:       "Service",
 			Metadata: json.RawMessage(`{}`),
 			Spec: map[string]interface{}{
+				"ports": []map[string]interface{}{
 					{"port": 80, "targetPort": 8080},
 				},
 			},

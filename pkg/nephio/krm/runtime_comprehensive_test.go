@@ -253,7 +253,7 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				},
 			},
 		},
-	}
+	})
 
 	// Set Namespace function
 	r.RegisterFunction(&RegisteredFunction{

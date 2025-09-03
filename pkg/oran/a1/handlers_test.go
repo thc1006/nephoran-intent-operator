@@ -75,8 +75,7 @@ func createTestEIType() *EnrichmentInfoType {
 		EiTypeName:  "Test EI Type",
 		Description: "Test enrichment information type",
 		EiJobDataSchema: map[string]interface{}{
-				"config": json.RawMessage(`{}`),
-			},
+			"config": json.RawMessage(`{}`),
 		},
 		EiJobResultSchema: json.RawMessage(`{}`),
 		CreatedAt:  time.Now(),
