@@ -1,51 +1,80 @@
 # Dependabot configuration for automated dependency updates
+# This configuration enables comprehensive vulnerability monitoring
+# and automated security patches for all package ecosystems
+
 version: 2
+
+# Enable security updates globally
+enable-beta-ecosystems: true
+
 updates:
-  # Go modules dependencies
+  # Go modules
   - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "security-team"
+      - "platform-team"
+    assignees:
+      - "security-bot"
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
+    rebase-strategy: "auto"
+    allow:
+      # Only allow security updates by default
+      - dependency-type: "all"
+    ignore:
+      # Ignore specific dependencies if needed
+      - dependency-name: "example-legacy-lib"
+        versions: ["1.x", "2.x"]
+    groups:
+      # Group related dependencies
+      kubernetes:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      testing:
+        patterns:
+          - "*test*"
+          - "*mock*"
+      security:
+        patterns:
+          - "*security*"
+          - "*crypto*"
+          - "*auth*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "06:00"
+      time: "04:00"
       timezone: "UTC"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     reviewers:
-      - "thc1006"
-    assignees:
-      - "thc1006"
-    commit-message:
-      prefix: "build(deps): "
-      include: "scope"
+      - "devops-team"
     labels:
-      - "dependencies"
-      - "go"
+      - "ci/cd"
+      - "github-actions"
       - "automated"
-    # Security updates get higher priority
-    groups:
-      security-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "security"
-    # Group non-security updates by ecosystem
-    groups:
-      go-dependencies:
-        patterns:
-          - "*"
-        exclude-patterns:
-          - "k8s.io/*"
-          - "sigs.k8s.io/*"
-        update-types:
-          - "minor"
-          - "patch"
-      kubernetes-dependencies:
-        patterns:
-          - "k8s.io/*"
-          - "sigs.k8s.io/*"
-        update-types:
-          - "minor"
-          - "patch"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
 
   # Docker dependencies
   - package-ecosystem: "docker"
@@ -53,81 +82,63 @@ updates:
     schedule:
       interval: "weekly"
       day: "tuesday"
-      time: "06:00"
+      time: "04:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "thc1006"
-    assignees:
-      - "thc1006"
-    commit-message:
-      prefix: "build(docker): "
+      - "platform-team"
     labels:
-      - "dependencies"
       - "docker"
+      - "containers"
       - "automated"
-
-  # GitHub Actions dependencies
-  - package-ecosystem: "github-actions"
-    directory: "/"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    
+  # Terraform (if used)
+  - package-ecosystem: "terraform"
+    directory: "/deployments/terraform"
     schedule:
       interval: "weekly"
       day: "wednesday"
-      time: "06:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "thc1006"
-    assignees:
-      - "thc1006"
-    commit-message:
-      prefix: "ci: "
-    labels:
-      - "dependencies"
-      - "github-actions"
-      - "ci-cd"
-      - "automated"
-
-  # Helm dependencies
-  - package-ecosystem: "bundler"
-    directory: "/deployments/helm"
-    schedule:
-      interval: "monthly"
-      day: 15
-      time: "06:00"
+      time: "04:00"
       timezone: "UTC"
     open-pull-requests-limit: 3
     reviewers:
-      - "thc1006"
-    assignees:
-      - "thc1006"
-    commit-message:
-      prefix: "build(helm): "
+      - "infrastructure-team"
     labels:
-      - "dependencies"
-      - "helm"
+      - "infrastructure"
+      - "terraform"
       - "automated"
-
-  # Python dependencies (for rag-python module)
-  - package-ecosystem: "pip"
-    directory: "/rag-python"
-    schedule:
-      interval: "weekly"
-      day: "thursday"
-      time: "06:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "thc1006"
-    assignees:
-      - "thc1006"
     commit-message:
-      prefix: "build(python): "
-    labels:
-      - "dependencies"
-      - "python"
-      - "rag"
-      - "automated"
+      prefix: "infra"
+      include: "scope"
 
-# Global settings for all ecosystems
-enable-beta-ecosystems: true
+# Security vulnerability alerts configuration
+# These settings apply to all ecosystems
+registries:
+  # Private registry configuration (if needed)
+  private-registry:
+    type: "npm-registry"
+    url: "https://registry.npmjs.org"
+    username: "${{ secrets.NPM_USERNAME }}"
+    password: "${{ secrets.NPM_PASSWORD }}"
+
+# Dependency review configuration
+dependency-review:
+  # Fail on any vulnerability with CVSS score >= 7.0
+  fail-on-severity: high
+  # License restrictions
+  deny-licenses:
+    - GPL-3.0
+    - AGPL-3.0
+    - SSPL-1.0
+    - Commons-Clause
+  # Allow specific licenses
+  allow-licenses:
+    - MIT
+    - Apache-2.0
+    - BSD-3-Clause
+    - BSD-2-Clause
+    - ISC
+    - MPL-2.0

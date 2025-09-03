@@ -1,0 +1,421 @@
+# =============================================================================
+# CACHE RECOVERY SYSTEM - NEPHORAN INTENT OPERATOR
+# =============================================================================
+# Purpose: Comprehensive cache management with 400 error recovery
+# Features: Cache validation, corruption detection, automatic recovery
+# Last Updated: 2025-09-03
+# =============================================================================
+
+name: Cache Recovery System
+
+on:
+  workflow_call:
+    inputs:
+      force_refresh:
+        description: 'Force cache refresh'
+        type: boolean
+        default: false
+        required: false
+      cache_prefix:
+        description: 'Cache key prefix'
+        type: string
+        default: 'go-modules'
+        required: false
+    outputs:
+      cache-hit:
+        description: 'Whether cache was hit'
+        value: ${{ jobs.cache-recovery.outputs.cache-hit }}
+      cache-key:
+        description: 'Cache key used'
+        value: ${{ jobs.cache-recovery.outputs.cache-key }}
+      recovery-performed:
+        description: 'Whether cache recovery was performed'
+        value: ${{ jobs.cache-recovery.outputs.recovery-performed }}
+        
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: 'Force cache refresh'
+        type: boolean
+        default: false
+      cache_prefix:
+        description: 'Cache key prefix'
+        type: string
+        default: 'go-modules'
+
+env:
+  GO_VERSION: "1.25"
+  CACHE_VERSION: "v4"
+  MAX_CACHE_SIZE_MB: "2048"  # 2GB limit
+  CACHE_VALIDATION_TIMEOUT: "60"  # seconds
+
+jobs:
+  cache-recovery:
+    name: 🗂️ Cache Recovery & Validation
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    outputs:
+      cache-hit: ${{ steps.final-status.outputs.cache-hit }}
+      cache-key: ${{ steps.final-status.outputs.cache-key }}
+      recovery-performed: ${{ steps.final-status.outputs.recovery-performed }}
+      
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: 🔍 Analyze cache requirements
+        id: cache-analysis
+        run: |
+          echo "🔍 Analyzing cache requirements..."
+          
+          # Calculate file hashes for cache key
+          go_mod_hash=""
+          go_sum_hash=""
+          go_files_hash=""
+          
+          if [[ -f go.mod ]]; then
+            go_mod_hash=$(sha256sum go.mod | cut -d' ' -f1)
+            echo "✅ go.mod hash: ${go_mod_hash:0:12}..."
+          else
+            echo "❌ No go.mod found"
+            exit 1
+          fi
+          
+          if [[ -f go.sum ]]; then
+            go_sum_hash=$(sha256sum go.sum | cut -d' ' -f1)
+            echo "✅ go.sum hash: ${go_sum_hash:0:12}..."
+          fi
+          
+          # Hash critical Go files for more precise caching
+          if find . -name "*.go" -type f | head -100 | xargs sha256sum 2>/dev/null; then
+            go_files_hash=$(find . -name "*.go" -type f | head -100 | xargs sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)
+            echo "✅ Go files hash: ${go_files_hash:0:12}..."
+          fi
+          
+          # Create comprehensive cache key
+          cache_prefix="${{ inputs.cache_prefix || 'go-modules' }}"
+          base_key="${cache_prefix}-${{ env.CACHE_VERSION }}-${{ runner.os }}-go${{ env.GO_VERSION }}"
+          
+          # Include all hashes in key
+          if [[ -n "$go_sum_hash" ]]; then
+            primary_key="${base_key}-mod${go_mod_hash:0:8}-sum${go_sum_hash:0:8}"
+          else
+            primary_key="${base_key}-mod${go_mod_hash:0:8}-nosum"
+          fi
+          
+          if [[ -n "$go_files_hash" ]]; then
+            primary_key="${primary_key}-files${go_files_hash:0:8}"
+          fi
+          
+          # Fallback keys for partial restoration
+          fallback_key1="${base_key}-mod${go_mod_hash:0:8}"
+          fallback_key2="${base_key}"
+          
+          echo "primary-key=$primary_key" >> $GITHUB_OUTPUT
+          echo "fallback-key1=$fallback_key1" >> $GITHUB_OUTPUT
+          echo "fallback-key2=$fallback_key2" >> $GITHUB_OUTPUT
+          echo "base-key=$base_key" >> $GITHUB_OUTPUT
+          
+          echo "🔑 Primary cache key: $primary_key"
+          echo "🔑 Fallback 1: $fallback_key1"
+          echo "🔑 Fallback 2: $fallback_key2"
+          
+      - name: 🧹 Pre-cache cleanup
+        run: |
+          echo "🧹 Performing pre-cache cleanup..."
+          
+          # Remove any existing Go cache to prevent conflicts
+          rm -rf ~/go/pkg/mod ~/.cache/go-build || true
+          
+          # Create clean cache directories with proper permissions
+          mkdir -p ~/go/pkg/mod
+          mkdir -p ~/.cache/go-build
+          chmod 755 ~/go/pkg/mod ~/.cache/go-build
+          
+          # Set Go environment variables
+          go env -w GOMODCACHE="$HOME/go/pkg/mod"
+          go env -w GOCACHE="$HOME/.cache/go-build"
+          
+          echo "✅ Pre-cache cleanup completed"
+          
+      - name: 🗂️ Attempt primary cache restore
+        id: primary-cache
+        if: inputs.force_refresh != true
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ steps.cache-analysis.outputs.primary-key }}
+          
+      - name: 🔄 Fallback cache restore (level 1)
+        id: fallback-cache1
+        if: steps.primary-cache.outputs.cache-hit != 'true' && inputs.force_refresh != true
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ steps.cache-analysis.outputs.fallback-key1 }}
+          restore-keys: |
+            ${{ steps.cache-analysis.outputs.fallback-key1 }}
+            
+      - name: 🔄 Fallback cache restore (level 2)
+        id: fallback-cache2
+        if: steps.primary-cache.outputs.cache-hit != 'true' && steps.fallback-cache1.outputs.cache-hit != 'true' && inputs.force_refresh != true
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ steps.cache-analysis.outputs.fallback-key2 }}
+          restore-keys: |
+            ${{ steps.cache-analysis.outputs.base-key }}
+            
+      - name: 🔍 Validate cache integrity
+        id: cache-validation
+        run: |
+          echo "🔍 Validating cache integrity..."
+          
+          cache_valid=true
+          cache_source="none"
+          validation_errors=()
+          
+          # Determine which cache was restored
+          if [[ "${{ steps.primary-cache.outputs.cache-hit }}" == "true" ]]; then
+            cache_source="primary"
+          elif [[ "${{ steps.fallback-cache1.outputs.cache-hit }}" == "true" ]]; then
+            cache_source="fallback1"
+          elif [[ "${{ steps.fallback-cache2.outputs.cache-hit }}" == "true" ]]; then
+            cache_source="fallback2"
+          fi
+          
+          echo "📊 Cache source: $cache_source"
+          
+          if [[ "$cache_source" != "none" ]]; then
+            echo "🔍 Validating restored cache..."
+            
+            # Check if cache directories exist and are accessible
+            if [[ ! -d ~/go/pkg/mod ]]; then
+              validation_errors+=("GOMODCACHE directory missing")
+              cache_valid=false
+            fi
+            
+            if [[ ! -d ~/.cache/go-build ]]; then
+              validation_errors+=("GOCACHE directory missing")
+              cache_valid=false
+            fi
+            
+            # Check directory permissions
+            if [[ ! -r ~/go/pkg/mod || ! -w ~/go/pkg/mod ]]; then
+              validation_errors+=("GOMODCACHE permissions invalid")
+              cache_valid=false
+            fi
+            
+            # Check for corrupted files (timeout protection)
+            timeout ${{ env.CACHE_VALIDATION_TIMEOUT }}s find ~/go/pkg/mod -name "*.mod" -type f 2>/dev/null | head -10 > /tmp/mod_files || {
+              validation_errors+=("Cache validation timeout or corruption detected")
+              cache_valid=false
+            }
+            
+            # Validate Go modules can be accessed
+            if [[ "$cache_valid" == "true" ]]; then
+              if ! timeout 30s go list -m all &>/dev/null; then
+                validation_errors+=("Go modules validation failed")
+                cache_valid=false
+              fi
+            fi
+            
+            # Check cache size (prevent runaway cache growth)
+            cache_size_mb=$(du -sm ~/go/pkg/mod ~/.cache/go-build 2>/dev/null | awk '{s+=$1} END {print s}' || echo "0")
+            if [[ $cache_size_mb -gt ${{ env.MAX_CACHE_SIZE_MB }} ]]; then
+              validation_errors+=("Cache size too large: ${cache_size_mb}MB > ${{ env.MAX_CACHE_SIZE_MB }}MB")
+              cache_valid=false
+            fi
+            
+            echo "📊 Cache size: ${cache_size_mb}MB"
+          fi
+          
+          echo "cache-valid=$cache_valid" >> $GITHUB_OUTPUT
+          echo "cache-source=$cache_source" >> $GITHUB_OUTPUT
+          
+          if [[ "$cache_valid" == "true" ]]; then
+            echo "✅ Cache validation passed"
+          else
+            echo "❌ Cache validation failed:"
+            printf '%s\n' "${validation_errors[@]}"
+            echo "🔄 Cache recovery required"
+          fi
+          
+      - name: 🚨 Cache recovery
+        id: cache-recovery
+        if: steps.cache-validation.outputs.cache-valid != 'true' || inputs.force_refresh == true
+        run: |
+          echo "🚨 Performing cache recovery..."
+          
+          recovery_reason="validation_failed"
+          if [[ "${{ inputs.force_refresh }}" == "true" ]]; then
+            recovery_reason="force_refresh"
+          fi
+          
+          echo "🔧 Recovery reason: $recovery_reason"
+          
+          # Complete cleanup of corrupted cache
+          echo "🧹 Removing corrupted/old cache..."
+          rm -rf ~/go/pkg/mod ~/.cache/go-build || true
+          
+          # Recreate clean directories
+          mkdir -p ~/go/pkg/mod ~/.cache/go-build
+          chmod 755 ~/go/pkg/mod ~/.cache/go-build
+          
+          # Ensure Go environment is correct
+          go env -w GOMODCACHE="$HOME/go/pkg/mod"
+          go env -w GOCACHE="$HOME/.cache/go-build"
+          go env GOMODCACHE GOCACHE
+          
+          # Download modules with error handling
+          echo "📦 Downloading Go modules..."
+          
+          download_with_retry() {
+            local max_attempts=3
+            local attempt=1
+            
+            while [[ $attempt -le $max_attempts ]]; do
+              echo "🔄 Download attempt $attempt..."
+              
+              if timeout 600s go mod download -x; then
+                echo "✅ Module download successful"
+                return 0
+              else
+                exit_code=$?
+                echo "❌ Download attempt $attempt failed (exit code: $exit_code)"
+                
+                if [[ $attempt -eq $max_attempts ]]; then
+                  return $exit_code
+                fi
+                
+                # Clean up before retry
+                go clean -modcache || true
+                sleep 30
+                attempt=$((attempt + 1))
+              fi
+            done
+          }
+          
+          if download_with_retry; then
+            # Verify download integrity
+            if go mod verify; then
+              echo "recovery-successful=true" >> $GITHUB_OUTPUT
+              echo "✅ Cache recovery completed successfully"
+            else
+              echo "❌ Module verification failed after recovery"
+              exit 1
+            fi
+          else
+            echo "❌ Cache recovery failed - module download unsuccessful"
+            exit 1
+          fi
+          
+      - name: 💾 Save recovered cache
+        if: steps.cache-recovery.outputs.recovery-successful == 'true' || (steps.cache-validation.outputs.cache-valid == 'true' && steps.cache-validation.outputs.cache-source == 'none')
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ steps.cache-analysis.outputs.primary-key }}
+          
+      - name: 📊 Generate cache report
+        id: cache-report
+        run: |
+          echo "📊 Generating cache management report..."
+          
+          cat > cache-report.md <<EOF
+          # Cache Management Report
+          
+          **Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)  
+          **Commit:** ${{ github.sha }}  
+          **Branch:** ${{ github.ref_name }}  
+          
+          ## Cache Status
+          
+          | Component | Status | Details |
+          |-----------|--------|---------|
+          | Primary Cache | ${{ steps.primary-cache.outputs.cache-hit == 'true' && '✅ Hit' || '❌ Miss' }} | Key: ${{ steps.cache-analysis.outputs.primary-key }} |
+          | Fallback Cache 1 | ${{ steps.fallback-cache1.outputs.cache-hit == 'true' && '✅ Hit' || '❌ Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key1 }} |
+          | Fallback Cache 2 | ${{ steps.fallback-cache2.outputs.cache-hit == 'true' && '✅ Hit' || '❌ Miss' }} | Key: ${{ steps.cache-analysis.outputs.fallback-key2 }} |
+          | Validation | ${{ steps.cache-validation.outputs.cache-valid == 'true' && '✅ Valid' || '❌ Invalid' }} | Source: ${{ steps.cache-validation.outputs.cache-source }} |
+          | Recovery | ${{ steps.cache-recovery.outputs.recovery-successful == 'true' && '✅ Performed' || '⏭️ Not needed' }} | - |
+          
+          ## Summary
+          
+          EOF
+          
+          if [[ "${{ steps.cache-validation.outputs.cache-valid }}" == "true" ]]; then
+            echo "✅ **Cache is healthy and ready for use.**" >> cache-report.md
+          elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
+            echo "🔧 **Cache was corrupted but successfully recovered.**" >> cache-report.md
+          else
+            echo "❌ **Cache issues detected - manual intervention may be required.**" >> cache-report.md
+          fi
+          
+          # Cache statistics
+          if [[ -d ~/go/pkg/mod ]]; then
+            mod_count=$(find ~/go/pkg/mod -name "*.mod" 2>/dev/null | wc -l || echo "0")
+            cache_size=$(du -sh ~/go/pkg/mod ~/.cache/go-build 2>/dev/null | awk '{s+=$1} END {print s}' || echo "0")
+            
+            echo "" >> cache-report.md
+            echo "## Cache Statistics" >> cache-report.md
+            echo "- **Modules cached:** $mod_count" >> cache-report.md
+            echo "- **Total size:** ${cache_size}" >> cache-report.md
+          fi
+          
+      - name: 🎯 Final status determination
+        id: final-status
+        run: |
+          echo "🎯 Determining final cache status..."
+          
+          # Determine if we have a working cache
+          cache_hit="false"
+          recovery_performed="false"
+          actual_cache_key="${{ steps.cache-analysis.outputs.primary-key }}"
+          
+          if [[ "${{ steps.cache-validation.outputs.cache-valid }}" == "true" ]]; then
+            cache_hit="true"
+            echo "✅ Cache is valid and ready"
+          elif [[ "${{ steps.cache-recovery.outputs.recovery-successful }}" == "true" ]]; then
+            cache_hit="true"
+            recovery_performed="true"
+            echo "🔧 Cache recovered and ready"
+          else
+            echo "❌ No valid cache available"
+          fi
+          
+          echo "cache-hit=$cache_hit" >> $GITHUB_OUTPUT
+          echo "cache-key=$actual_cache_key" >> $GITHUB_OUTPUT
+          echo "recovery-performed=$recovery_performed" >> $GITHUB_OUTPUT
+          
+          echo "📊 Final Status:"
+          echo "  - Cache Hit: $cache_hit"
+          echo "  - Recovery Performed: $recovery_performed" 
+          echo "  - Cache Key: $actual_cache_key"
+          
+      - name: 📤 Upload cache report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cache-management-report
+          path: cache-report.md
+          retention-days: 7

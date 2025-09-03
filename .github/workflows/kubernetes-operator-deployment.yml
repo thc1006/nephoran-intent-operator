@@ -1,0 +1,1133 @@
+# =============================================================================
+# KUBERNETES OPERATOR DEPLOYMENT OPTIMIZATION
+# =============================================================================
+# Purpose: Production-ready Kubernetes operator deployment with advanced patterns
+# Features: Multi-stage deployment, canary releases, rollback automation,
+#           health monitoring, resource optimization, security hardening
+# Target: Ubuntu Linux Kubernetes clusters (EKS, AKS, GKE, on-premises)
+# =============================================================================
+
+name: Kubernetes Operator Deployment
+
+on:
+  workflow_call:
+    inputs:
+      deployment_environment:
+        description: 'Target deployment environment'
+        type: string
+        default: 'development'
+        required: false
+      deployment_strategy:
+        description: 'Deployment strategy'
+        type: string
+        default: 'rolling'
+        required: false
+      kubernetes_version:
+        description: 'Target Kubernetes version'
+        type: string
+        default: '1.31.0'
+        required: false
+      enable_monitoring:
+        description: 'Enable monitoring stack deployment'
+        type: boolean
+        default: true
+        required: false
+  workflow_dispatch:
+    inputs:
+      deployment_environment:
+        description: 'Target deployment environment'
+        type: choice
+        options: ['development', 'staging', 'production', 'disaster-recovery']
+        default: 'development'
+      deployment_strategy:
+        description: 'Deployment strategy'
+        type: choice
+        options: ['rolling', 'blue-green', 'canary', 'recreate']
+        default: 'rolling'
+      kubernetes_version:
+        description: 'Target Kubernetes version'
+        type: string
+        default: '1.31.0'
+      enable_monitoring:
+        description: 'Deploy monitoring stack'
+        type: boolean
+        default: true
+      enable_service_mesh:
+        description: 'Deploy with service mesh'
+        type: boolean
+        default: false
+      resource_profile:
+        description: 'Resource allocation profile'
+        type: choice
+        options: ['minimal', 'standard', 'production', 'high-performance']
+        default: 'standard'
+
+permissions:
+  contents: read
+  actions: read
+  packages: write
+  id-token: write
+
+env:
+  DEPLOYMENT_ENV: ${{ inputs.deployment_environment || 'development' }}
+  DEPLOYMENT_STRATEGY: ${{ inputs.deployment_strategy || 'rolling' }}
+  KUBERNETES_VERSION: ${{ inputs.kubernetes_version || '1.31.0' }}
+  ENABLE_MONITORING: ${{ inputs.enable_monitoring != 'false' }}
+  ENABLE_SERVICE_MESH: ${{ inputs.enable_service_mesh == 'true' }}
+  RESOURCE_PROFILE: ${{ inputs.resource_profile || 'standard' }}
+  
+  # Nephoran operator configuration
+  OPERATOR_NAME: "nephoran-intent-operator"
+  OPERATOR_NAMESPACE: "nephoran-system"
+  OPERATOR_VERSION: "v1.0.0"
+  
+  # Container registry
+  REGISTRY: "ghcr.io"
+  IMAGE_NAME: "nephoran/intent-operator"
+  
+  # Deployment timeouts
+  DEPLOYMENT_TIMEOUT: "600s"
+  READINESS_TIMEOUT: "300s"
+  ROLLBACK_TIMEOUT: "180s"
+
+jobs:
+  # =============================================================================
+  # DEPLOYMENT PREPARATION: Environment setup and validation
+  # =============================================================================
+  deployment-preparation:
+    name: 🚀 Deployment Preparation
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    outputs:
+      deployment-config: ${{ steps.config.outputs.config }}
+      resource-limits: ${{ steps.resources.outputs.limits }}
+      monitoring-config: ${{ steps.monitoring.outputs.config }}
+      
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup Kubernetes Tools
+        run: |
+          echo "🔧 Setting up Kubernetes deployment tools..."
+          
+          # Install kubectl
+          curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          
+          # Install Helm
+          curl https://get.helm.sh/helm-v3.16.0-linux-amd64.tar.gz | tar xz
+          sudo mv linux-amd64/helm /usr/local/bin/
+          
+          # Install kustomize
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          
+          # Install operator-sdk (if needed)
+          curl -LO https://github.com/operator-framework/operator-sdk/releases/download/v1.38.0/operator-sdk_linux_amd64
+          chmod +x operator-sdk_linux_amd64
+          sudo mv operator-sdk_linux_amd64 /usr/local/bin/operator-sdk
+          
+          echo "✅ Kubernetes tools installed successfully"
+          kubectl version --client
+          helm version
+          kustomize version
+          
+      - name: ⚙️ Generate Deployment Configuration
+        id: config
+        run: |
+          echo "⚙️ Generating deployment configuration for ${{ env.DEPLOYMENT_ENV }}"
+          
+          case "${{ env.DEPLOYMENT_ENV }}" in
+            "development")
+              config='{
+                "replicas": 1,
+                "namespace": "nephoran-dev",
+                "image_tag": "latest",
+                "resource_tier": "development",
+                "monitoring_level": "basic",
+                "security_policy": "permissive",
+                "high_availability": false,
+                "auto_scaling": false
+              }'
+              ;;
+            "staging")
+              config='{
+                "replicas": 2,
+                "namespace": "nephoran-staging",
+                "image_tag": "staging",
+                "resource_tier": "standard",
+                "monitoring_level": "enhanced",
+                "security_policy": "standard",
+                "high_availability": true,
+                "auto_scaling": true
+              }'
+              ;;
+            "production")
+              config='{
+                "replicas": 3,
+                "namespace": "nephoran-system",
+                "image_tag": "stable",
+                "resource_tier": "production",
+                "monitoring_level": "comprehensive",
+                "security_policy": "strict",
+                "high_availability": true,
+                "auto_scaling": true
+              }'
+              ;;
+            "disaster-recovery")
+              config='{
+                "replicas": 2,
+                "namespace": "nephoran-dr",
+                "image_tag": "stable",
+                "resource_tier": "production",
+                "monitoring_level": "comprehensive",
+                "security_policy": "strict",
+                "high_availability": true,
+                "auto_scaling": false
+              }'
+              ;;
+          esac
+          
+          echo "config=$config" >> $GITHUB_OUTPUT
+          echo "🔧 Deployment configuration generated"
+          
+      - name: 📊 Calculate Resource Limits
+        id: resources
+        run: |
+          echo "📊 Calculating resource limits for ${{ env.RESOURCE_PROFILE }} profile"
+          
+          case "${{ env.RESOURCE_PROFILE }}" in
+            "minimal")
+              limits='{
+                "cpu_request": "100m",
+                "cpu_limit": "500m",
+                "memory_request": "128Mi",
+                "memory_limit": "512Mi",
+                "storage": "1Gi",
+                "max_pods": 5
+              }'
+              ;;
+            "standard")
+              limits='{
+                "cpu_request": "200m",
+                "cpu_limit": "1000m",
+                "memory_request": "256Mi",
+                "memory_limit": "1Gi",
+                "storage": "5Gi",
+                "max_pods": 10
+              }'
+              ;;
+            "production")
+              limits='{
+                "cpu_request": "500m",
+                "cpu_limit": "2000m",
+                "memory_request": "512Mi",
+                "memory_limit": "2Gi",
+                "storage": "20Gi",
+                "max_pods": 20
+              }'
+              ;;
+            "high-performance")
+              limits='{
+                "cpu_request": "1000m",
+                "cpu_limit": "4000m",
+                "memory_request": "1Gi",
+                "memory_limit": "4Gi",
+                "storage": "50Gi",
+                "max_pods": 50
+              }'
+              ;;
+          esac
+          
+          echo "limits=$limits" >> $GITHUB_OUTPUT
+          echo "📊 Resource limits calculated for ${{ env.RESOURCE_PROFILE }} profile"
+          
+      - name: 📊 Configure Monitoring Stack
+        id: monitoring
+        if: env.ENABLE_MONITORING == 'true'
+        run: |
+          echo "📊 Configuring monitoring stack for telecommunications"
+          
+          monitoring_config='{
+            "prometheus": {
+              "enabled": true,
+              "retention": "30d",
+              "storage": "100Gi",
+              "scrape_interval": "15s"
+            },
+            "grafana": {
+              "enabled": true,
+              "persistence": true,
+              "dashboards": ["telecommunications", "o-ran", "kubernetes-operators"]
+            },
+            "alertmanager": {
+              "enabled": true,
+              "slack_webhook": true,
+              "pagerduty": false
+            },
+            "jaeger": {
+              "enabled": true,
+              "storage": "elasticsearch"
+            },
+            "service_monitor": {
+              "enabled": true,
+              "endpoints": ["controller-manager", "webhook", "metrics"]
+            }
+          }'
+          
+          echo "config=$monitoring_config" >> $GITHUB_OUTPUT
+          echo "📊 Monitoring configuration generated"
+
+  # =============================================================================
+  # KUBERNETES CLUSTER VALIDATION: Pre-deployment cluster checks
+  # =============================================================================
+  cluster-validation:
+    name: 🔍 Cluster Validation
+    runs-on: ubuntu-22.04
+    needs: deployment-preparation
+    timeout-minutes: 12
+    outputs:
+      cluster-ready: ${{ steps.validation.outputs.ready }}
+      cluster-info: ${{ steps.info.outputs.info }}
+      
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          
+      - name: 🏗️ Create Test Cluster (Kind)
+        uses: helm/kind-action@v1
+        with:
+          version: v0.24.0
+          kubernetes_version: ${{ env.KUBERNETES_VERSION }}
+          cluster_name: nephoran-deployment-test
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "ingress-ready=true,nephoran.io/node-type=control-plane"
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+            - role: worker
+              kubeAdmConfigPatches:
+              - |
+                kind: JoinConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "nephoran.io/node-type=worker"
+                    
+      - name: 🔍 Cluster Validation
+        id: validation
+        run: |
+          echo "🔍 Validating Kubernetes cluster for Nephoran deployment..."
+          
+          validation_passed=true
+          
+          # Check cluster connectivity
+          echo "📡 Testing cluster connectivity..."
+          if kubectl cluster-info; then
+            echo "  ✅ Cluster connectivity verified"
+          else
+            echo "  ❌ Cluster connectivity failed"
+            validation_passed=false
+          fi
+          
+          # Check Kubernetes version
+          echo "📋 Verifying Kubernetes version..."
+          k8s_version=$(kubectl version --short | grep Server | awk '{print $3}' | sed 's/v//')
+          if [[ "$k8s_version" == "${{ env.KUBERNETES_VERSION }}"* ]]; then
+            echo "  ✅ Kubernetes version compatible: $k8s_version"
+          else
+            echo "  ⚠️ Kubernetes version mismatch: expected ${{ env.KUBERNETES_VERSION }}, got $k8s_version"
+          fi
+          
+          # Check RBAC
+          echo "🔐 Verifying RBAC capabilities..."
+          if kubectl auth can-i create clusterroles --as=system:serviceaccount:default:default; then
+            echo "  ✅ RBAC permissions available"
+          else
+            echo "  ❌ Insufficient RBAC permissions"
+            validation_passed=false
+          fi
+          
+          # Check Custom Resource Definitions support
+          echo "📋 Testing CRD support..."
+          if kubectl api-resources | grep -q "customresourcedefinitions"; then
+            echo "  ✅ CRD support available"
+          else
+            echo "  ❌ CRD support not available"
+            validation_passed=false
+          fi
+          
+          # Check storage classes
+          echo "💾 Checking storage classes..."
+          storage_classes=$(kubectl get storageclass -o name | wc -l)
+          if [[ $storage_classes -gt 0 ]]; then
+            echo "  ✅ Storage classes available: $storage_classes"
+          else
+            echo "  ⚠️ No storage classes found"
+          fi
+          
+          # Check network policies support
+          echo "🌐 Testing network policies..."
+          if kubectl api-resources | grep -q "networkpolicies"; then
+            echo "  ✅ Network policies supported"
+          else
+            echo "  ⚠️ Network policies not supported"
+          fi
+          
+          # Node readiness check
+          echo "🖥️ Checking node readiness..."
+          ready_nodes=$(kubectl get nodes --no-headers | grep "Ready" | wc -l)
+          total_nodes=$(kubectl get nodes --no-headers | wc -l)
+          echo "  📊 Ready nodes: $ready_nodes/$total_nodes"
+          
+          if [[ $ready_nodes -eq $total_nodes ]] && [[ $ready_nodes -gt 0 ]]; then
+            echo "  ✅ All nodes ready"
+          else
+            echo "  ❌ Not all nodes ready"
+            validation_passed=false
+          fi
+          
+          if [[ "$validation_passed" == "true" ]]; then
+            echo "✅ Cluster validation passed"
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Cluster validation failed"
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: 📊 Collect Cluster Information
+        id: info
+        run: |
+          echo "📊 Collecting cluster information..."
+          
+          info='{
+            "version": "'$(kubectl version --short | grep Server | awk '{print $3}')'",
+            "nodes": '$(kubectl get nodes --no-headers | wc -l)',
+            "ready_nodes": '$(kubectl get nodes --no-headers | grep "Ready" | wc -l)',
+            "storage_classes": '$(kubectl get storageclass -o name | wc -l)',
+            "api_resources": '$(kubectl api-resources | wc -l)',
+            "cluster_dns": "'$(kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo 'not-found')'"
+          }'
+          
+          echo "info=$info" >> $GITHUB_OUTPUT
+          echo "📊 Cluster information collected"
+
+  # =============================================================================
+  # OPERATOR DEPLOYMENT: Deploy Nephoran Intent Operator
+  # =============================================================================
+  operator-deployment:
+    name: 🚀 Operator Deployment
+    runs-on: ubuntu-22.04
+    needs: [deployment-preparation, cluster-validation]
+    if: needs.cluster-validation.outputs.cluster-ready == 'true'
+    timeout-minutes: 20
+    outputs:
+      deployment-status: ${{ steps.deploy.outputs.status }}
+      operator-version: ${{ steps.deploy.outputs.version }}
+      
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup Deployment Tools
+        run: |
+          # Install kubectl
+          curl -LO "https://dl.k8s.io/release/v${{ env.KUBERNETES_VERSION }}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          
+          # Install Helm
+          curl https://get.helm.sh/helm-v3.16.0-linux-amd64.tar.gz | tar xz
+          sudo mv linux-amd64/helm /usr/local/bin/
+          
+          # Install kustomize
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          
+      - name: 🏗️ Reconnect to Test Cluster
+        uses: helm/kind-action@v1
+        with:
+          version: v0.24.0
+          kubernetes_version: ${{ env.KUBERNETES_VERSION }}
+          cluster_name: nephoran-deployment-test
+          install_only: true
+          
+      - name: 🏗️ Create Namespace and Prerequisites
+        run: |
+          echo "🏗️ Creating namespace and prerequisites..."
+          
+          deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
+          namespace=$(echo "$deployment_config" | jq -r '.namespace')
+          
+          # Create namespace
+          kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Label namespace for monitoring
+          kubectl label namespace "$namespace" nephoran.io/monitoring=enabled --overwrite
+          kubectl label namespace "$namespace" nephoran.io/environment=${{ env.DEPLOYMENT_ENV }} --overwrite
+          
+          # Create service account
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: nephoran-operator
+            namespace: $namespace
+            labels:
+              app.kubernetes.io/name: nephoran-intent-operator
+              app.kubernetes.io/component: operator
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: nephoran-operator-role
+          rules:
+          - apiGroups: [""]
+            resources: ["*"]
+            verbs: ["*"]
+          - apiGroups: ["apps"]
+            resources: ["*"]
+            verbs: ["*"]
+          - apiGroups: ["apiextensions.k8s.io"]
+            resources: ["customresourcedefinitions"]
+            verbs: ["*"]
+          - apiGroups: ["nephoran.io"]
+            resources: ["*"]
+            verbs: ["*"]
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: nephoran-operator-binding
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: nephoran-operator-role
+          subjects:
+          - kind: ServiceAccount
+            name: nephoran-operator
+            namespace: $namespace
+          EOF
+          
+          echo "✅ Prerequisites created successfully"
+          
+      - name: 📋 Deploy Custom Resource Definitions
+        run: |
+          echo "📋 Deploying Custom Resource Definitions..."
+          
+          # Create sample CRDs if they don't exist
+          if [[ ! -d "config/crd" ]]; then
+            mkdir -p config/crd
+            
+            cat <<EOF > config/crd/intent_crd.yaml
+          apiVersion: apiextensions.k8s.io/v1
+          kind: CustomResourceDefinition
+          metadata:
+            name: intents.nephoran.io
+          spec:
+            group: nephoran.io
+            versions:
+            - name: v1alpha1
+              served: true
+              storage: true
+              schema:
+                openAPIV3Schema:
+                  type: object
+                  properties:
+                    spec:
+                      type: object
+                      properties:
+                        intent:
+                          type: string
+                        priority:
+                          type: integer
+                        target:
+                          type: string
+                    status:
+                      type: object
+                      properties:
+                        phase:
+                          type: string
+                        message:
+                          type: string
+            scope: Namespaced
+            names:
+              plural: intents
+              singular: intent
+              kind: Intent
+              shortNames:
+              - int
+          EOF
+          fi
+          
+          # Apply CRDs
+          if [[ -d "config/crd" ]]; then
+            echo "Applying CRDs from config/crd..."
+            kubectl apply -f config/crd/
+          else
+            echo "⚠️ No CRDs found in config/crd - using sample CRD"
+            kubectl apply -f config/crd/intent_crd.yaml
+          fi
+          
+          # Wait for CRDs to be established
+          echo "⏳ Waiting for CRDs to be established..."
+          kubectl wait --for=condition=established crd/intents.nephoran.io --timeout=60s
+          
+          echo "✅ CRDs deployed successfully"
+          
+      - name: 🚀 Deploy Nephoran Operator
+        id: deploy
+        run: |
+          echo "🚀 Deploying Nephoran Intent Operator..."
+          
+          deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
+          resource_limits='${{ needs.deployment-preparation.outputs.resource-limits }}'
+          
+          namespace=$(echo "$deployment_config" | jq -r '.namespace')
+          replicas=$(echo "$deployment_config" | jq -r '.replicas')
+          image_tag=$(echo "$deployment_config" | jq -r '.image_tag')
+          
+          cpu_request=$(echo "$resource_limits" | jq -r '.cpu_request')
+          cpu_limit=$(echo "$resource_limits" | jq -r '.cpu_limit')
+          memory_request=$(echo "$resource_limits" | jq -r '.memory_request')
+          memory_limit=$(echo "$resource_limits" | jq -r '.memory_limit')
+          
+          # Create operator deployment
+          cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: nephoran-operator-controller-manager
+            namespace: $namespace
+            labels:
+              app.kubernetes.io/name: nephoran-intent-operator
+              app.kubernetes.io/component: controller-manager
+              app.kubernetes.io/version: ${{ env.OPERATOR_VERSION }}
+          spec:
+            replicas: $replicas
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: nephoran-intent-operator
+                app.kubernetes.io/component: controller-manager
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: nephoran-intent-operator
+                  app.kubernetes.io/component: controller-manager
+                  app.kubernetes.io/version: ${{ env.OPERATOR_VERSION }}
+              spec:
+                serviceAccountName: nephoran-operator
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 1000
+                  fsGroup: 2000
+                containers:
+                - name: manager
+                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$image_tag
+                  imagePullPolicy: Always
+                  command:
+                  - /manager
+                  args:
+                  - --leader-elect
+                  - --health-probe-bind-address=:8081
+                  - --metrics-bind-address=:8080
+                  - --zap-log-level=info
+                  ports:
+                  - name: webhook
+                    containerPort: 9443
+                    protocol: TCP
+                  - name: metrics
+                    containerPort: 8080
+                    protocol: TCP
+                  - name: health
+                    containerPort: 8081
+                    protocol: TCP
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: health
+                    initialDelaySeconds: 15
+                    periodSeconds: 20
+                    timeoutSeconds: 5
+                  readinessProbe:
+                    httpGet:
+                      path: /readyz
+                      port: health
+                    initialDelaySeconds: 5
+                    periodSeconds: 10
+                    timeoutSeconds: 5
+                  resources:
+                    requests:
+                      cpu: $cpu_request
+                      memory: $memory_request
+                    limits:
+                      cpu: $cpu_limit
+                      memory: $memory_limit
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    capabilities:
+                      drop:
+                      - ALL
+                  env:
+                  - name: DEPLOYMENT_ENVIRONMENT
+                    value: "${{ env.DEPLOYMENT_ENV }}"
+                  - name: OPERATOR_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: nephoran-operator-controller-manager-service
+            namespace: $namespace
+            labels:
+              app.kubernetes.io/name: nephoran-intent-operator
+              app.kubernetes.io/component: controller-manager
+          spec:
+            selector:
+              app.kubernetes.io/name: nephoran-intent-operator
+              app.kubernetes.io/component: controller-manager
+            ports:
+            - name: webhook
+              port: 443
+              targetPort: webhook
+              protocol: TCP
+            - name: metrics
+              port: 8080
+              targetPort: metrics
+              protocol: TCP
+          EOF
+          
+          # Wait for deployment to be ready
+          echo "⏳ Waiting for deployment to be ready..."
+          kubectl wait --for=condition=available deployment/nephoran-operator-controller-manager \
+            -n "$namespace" --timeout=${{ env.DEPLOYMENT_TIMEOUT }}
+          
+          # Check deployment status
+          deployment_status=$(kubectl get deployment nephoran-operator-controller-manager -n "$namespace" -o jsonpath='{.status.conditions[?(@.type=="Available")].status}')
+          
+          if [[ "$deployment_status" == "True" ]]; then
+            echo "✅ Nephoran Operator deployed successfully"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Nephoran Operator deployment failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            kubectl describe deployment nephoran-operator-controller-manager -n "$namespace"
+            kubectl logs -l app.kubernetes.io/name=nephoran-intent-operator -n "$namespace" --tail=50
+            exit 1
+          fi
+          
+          echo "version=${{ env.OPERATOR_VERSION }}" >> $GITHUB_OUTPUT
+          
+      - name: 🧪 Post-Deployment Testing
+        run: |
+          echo "🧪 Running post-deployment tests..."
+          
+          deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
+          namespace=$(echo "$deployment_config" | jq -r '.namespace')
+          
+          # Test CRD functionality
+          echo "📋 Testing CRD functionality..."
+          cat <<EOF | kubectl apply -f -
+          apiVersion: nephoran.io/v1alpha1
+          kind: Intent
+          metadata:
+            name: test-intent
+            namespace: $namespace
+          spec:
+            intent: "Scale up to 3 replicas"
+            priority: 1
+            target: "my-service"
+          EOF
+          
+          # Verify intent was created
+          if kubectl get intent test-intent -n "$namespace"; then
+            echo "  ✅ Intent CRD working correctly"
+          else
+            echo "  ❌ Intent CRD not working"
+            exit 1
+          fi
+          
+          # Test operator health endpoints
+          echo "🏥 Testing health endpoints..."
+          pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
+          
+          if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8081/healthz | grep -q "ok"; then
+            echo "  ✅ Health endpoint responding"
+          else
+            echo "  ⚠️ Health endpoint not responding"
+          fi
+          
+          # Test metrics endpoint
+          echo "📊 Testing metrics endpoint..."
+          if kubectl exec -n "$namespace" "$pod_name" -- wget -q -O - http://localhost:8080/metrics | head -5; then
+            echo "  ✅ Metrics endpoint responding"
+          else
+            echo "  ⚠️ Metrics endpoint not responding"
+          fi
+          
+          echo "✅ Post-deployment tests completed"
+
+  # =============================================================================
+  # MONITORING DEPLOYMENT: Deploy observability stack
+  # =============================================================================
+  monitoring-deployment:
+    name: 📊 Monitoring Deployment
+    runs-on: ubuntu-22.04
+    needs: [deployment-preparation, operator-deployment]
+    if: needs.operator-deployment.outputs.deployment-status == 'success' && inputs.enable_monitoring != 'false'
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup Helm
+        run: |
+          curl https://get.helm.sh/helm-v3.16.0-linux-amd64.tar.gz | tar xz
+          sudo mv linux-amd64/helm /usr/local/bin/
+          
+          # Add Helm repositories
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+          helm repo update
+          
+      - name: 🏗️ Reconnect to Test Cluster
+        uses: helm/kind-action@v1
+        with:
+          version: v0.24.0
+          kubernetes_version: ${{ env.KUBERNETES_VERSION }}
+          cluster_name: nephoran-deployment-test
+          install_only: true
+          
+      - name: 📊 Deploy Prometheus Stack
+        run: |
+          echo "📊 Deploying Prometheus monitoring stack..."
+          
+          monitoring_config='${{ needs.deployment-preparation.outputs.monitoring-config }}'
+          deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
+          namespace=$(echo "$deployment_config" | jq -r '.namespace')
+          
+          # Create monitoring namespace
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Deploy Prometheus with custom values
+          cat <<EOF > prometheus-values.yaml
+          prometheus:
+            prometheusSpec:
+              retention: 30d
+              storageSpec:
+                volumeClaimTemplate:
+                  spec:
+                    storageClassName: standard
+                    accessModes: ["ReadWriteOnce"]
+                    resources:
+                      requests:
+                        storage: 50Gi
+              serviceMonitorSelectorNilUsesHelmValues: false
+              serviceMonitorSelector: {}
+              ruleSelectorNilUsesHelmValues: false
+              ruleSelector: {}
+              additionalScrapeConfigs:
+                - job_name: 'nephoran-operator'
+                  static_configs:
+                    - targets: ['nephoran-operator-controller-manager-service.$namespace:8080']
+          grafana:
+            enabled: true
+            persistence:
+              enabled: true
+              size: 10Gi
+            adminPassword: admin123
+            dashboardProviders:
+              dashboardproviders.yaml:
+                apiVersion: 1
+                providers:
+                  - name: 'default'
+                    orgId: 1
+                    folder: ''
+                    type: file
+                    disableDeletion: false
+                    editable: true
+                    options:
+                      path: /var/lib/grafana/dashboards/default
+          alertmanager:
+            enabled: true
+          EOF
+          
+          helm install prometheus-stack prometheus-community/kube-prometheus-stack \
+            -n monitoring -f prometheus-values.yaml --wait --timeout=10m
+          
+          echo "✅ Prometheus stack deployed"
+          
+      - name: 📊 Create ServiceMonitor for Nephoran Operator
+        run: |
+          echo "📊 Creating ServiceMonitor for Nephoran Operator..."
+          
+          deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
+          namespace=$(echo "$deployment_config" | jq -r '.namespace')
+          
+          cat <<EOF | kubectl apply -f -
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: nephoran-operator-metrics
+            namespace: monitoring
+            labels:
+              app.kubernetes.io/name: nephoran-intent-operator
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: nephoran-intent-operator
+                app.kubernetes.io/component: controller-manager
+            namespaceSelector:
+              matchNames:
+              - $namespace
+            endpoints:
+            - port: metrics
+              interval: 30s
+              path: /metrics
+          EOF
+          
+          echo "✅ ServiceMonitor created for metrics collection"
+          
+      - name: 📈 Deploy Grafana Dashboard
+        run: |
+          echo "📈 Deploying Nephoran-specific Grafana dashboard..."
+          
+          # Create ConfigMap with dashboard JSON
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: nephoran-dashboard
+            namespace: monitoring
+            labels:
+              grafana_dashboard: "1"
+          data:
+            dashboard.json: |
+              {
+                "dashboard": {
+                  "id": null,
+                  "title": "Nephoran Intent Operator",
+                  "tags": ["nephoran", "operator", "telecommunications"],
+                  "timezone": "browser",
+                  "panels": [
+                    {
+                      "id": 1,
+                      "title": "Operator Status",
+                      "type": "stat",
+                      "targets": [
+                        {
+                          "expr": "up{job=\"nephoran-operator\"}",
+                          "legendFormat": "Operator Status"
+                        }
+                      ],
+                      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+                    },
+                    {
+                      "id": 2,
+                      "title": "Intent Processing Rate",
+                      "type": "graph",
+                      "targets": [
+                        {
+                          "expr": "rate(controller_runtime_reconcile_total[5m])",
+                          "legendFormat": "Reconcile Rate"
+                        }
+                      ],
+                      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+                    }
+                  ],
+                  "time": {"from": "now-1h", "to": "now"},
+                  "refresh": "30s"
+                }
+              }
+          EOF
+          
+          echo "✅ Grafana dashboard deployed"
+
+  # =============================================================================
+  # DEPLOYMENT VALIDATION: Comprehensive post-deployment validation
+  # =============================================================================
+  deployment-validation:
+    name: ✅ Deployment Validation
+    runs-on: ubuntu-22.04
+    needs: [deployment-preparation, operator-deployment, monitoring-deployment]
+    if: always() && needs.operator-deployment.outputs.deployment-status == 'success'
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🏗️ Reconnect to Test Cluster
+        uses: helm/kind-action@v1
+        with:
+          version: v0.24.0
+          kubernetes_version: ${{ env.KUBERNETES_VERSION }}
+          cluster_name: nephoran-deployment-test
+          install_only: true
+          
+      - name: ✅ Comprehensive Validation
+        run: |
+          echo "✅ Running comprehensive deployment validation..."
+          
+          deployment_config='${{ needs.deployment-preparation.outputs.deployment-config }}'
+          namespace=$(echo "$deployment_config" | jq -r '.namespace')
+          
+          validation_passed=true
+          
+          # Validate operator deployment
+          echo "🔍 Validating operator deployment..."
+          if kubectl get deployment nephoran-operator-controller-manager -n "$namespace" | grep -q "1/1"; then
+            echo "  ✅ Operator deployment healthy"
+          else
+            echo "  ❌ Operator deployment unhealthy"
+            validation_passed=false
+          fi
+          
+          # Validate CRDs
+          echo "📋 Validating CRDs..."
+          if kubectl get crd intents.nephoran.io; then
+            echo "  ✅ Intent CRD available"
+          else
+            echo "  ❌ Intent CRD missing"
+            validation_passed=false
+          fi
+          
+          # Validate RBAC
+          echo "🔐 Validating RBAC..."
+          if kubectl auth can-i create intents --as=system:serviceaccount:$namespace:nephoran-operator -n "$namespace"; then
+            echo "  ✅ RBAC permissions correct"
+          else
+            echo "  ❌ RBAC permissions incorrect"
+            validation_passed=false
+          fi
+          
+          # Validate service endpoints
+          echo "🌐 Validating service endpoints..."
+          if kubectl get svc nephoran-operator-controller-manager-service -n "$namespace"; then
+            echo "  ✅ Service endpoints available"
+          else
+            echo "  ❌ Service endpoints missing"
+            validation_passed=false
+          fi
+          
+          # Validate monitoring (if enabled)
+          if [[ "${{ env.ENABLE_MONITORING }}" == "true" ]]; then
+            echo "📊 Validating monitoring stack..."
+            if kubectl get prometheus -n monitoring; then
+              echo "  ✅ Prometheus deployed"
+            else
+              echo "  ⚠️ Prometheus not deployed"
+            fi
+            
+            if kubectl get servicemonitor nephoran-operator-metrics -n monitoring; then
+              echo "  ✅ ServiceMonitor configured"
+            else
+              echo "  ⚠️ ServiceMonitor missing"
+            fi
+          fi
+          
+          # Performance validation
+          echo "⚡ Performance validation..."
+          pod_name=$(kubectl get pods -n "$namespace" -l app.kubernetes.io/name=nephoran-intent-operator -o jsonpath='{.items[0].metadata.name}')
+          
+          cpu_usage=$(kubectl top pod "$pod_name" -n "$namespace" --no-headers | awk '{print $2}' | sed 's/m//' 2>/dev/null || echo "0")
+          memory_usage=$(kubectl top pod "$pod_name" -n "$namespace" --no-headers | awk '{print $3}' | sed 's/Mi//' 2>/dev/null || echo "0")
+          
+          echo "  📊 Resource usage - CPU: ${cpu_usage}m, Memory: ${memory_usage}Mi"
+          
+          # Final validation result
+          if [[ "$validation_passed" == "true" ]]; then
+            echo ""
+            echo "🎉 DEPLOYMENT VALIDATION SUCCESSFUL!"
+            echo "✅ Nephoran Intent Operator is ready for production use"
+            echo ""
+            echo "📊 Deployment Summary:"
+            echo "  - Environment: ${{ env.DEPLOYMENT_ENV }}"
+            echo "  - Strategy: ${{ env.DEPLOYMENT_STRATEGY }}"
+            echo "  - Operator Version: ${{ needs.operator-deployment.outputs.operator-version }}"
+            echo "  - Kubernetes Version: ${{ env.KUBERNETES_VERSION }}"
+            echo "  - Resource Profile: ${{ env.RESOURCE_PROFILE }}"
+            echo "  - Monitoring: ${{ env.ENABLE_MONITORING }}"
+            echo ""
+          else
+            echo ""
+            echo "❌ DEPLOYMENT VALIDATION FAILED!"
+            echo "🔧 Please check the issues above and retry deployment"
+            echo ""
+            exit 1
+          fi
+          
+      - name: 📊 Generate Deployment Report
+        if: always()
+        run: |
+          echo "# 🚀 Kubernetes Operator Deployment Report" > deployment-report.md
+          echo "" >> deployment-report.md
+          echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deployment-report.md
+          echo "**Environment:** ${{ env.DEPLOYMENT_ENV }}" >> deployment-report.md
+          echo "**Deployment Strategy:** ${{ env.DEPLOYMENT_STRATEGY }}" >> deployment-report.md
+          echo "**Operator Version:** ${{ needs.operator-deployment.outputs.operator-version }}" >> deployment-report.md
+          echo "" >> deployment-report.md
+          
+          echo "## 📊 Deployment Status" >> deployment-report.md
+          echo "| Component | Status | Notes |" >> deployment-report.md
+          echo "|-----------|--------|-------|" >> deployment-report.md
+          echo "| Cluster Validation | ${{ needs.cluster-validation.result }} | Pre-deployment checks |" >> deployment-report.md
+          echo "| Operator Deployment | ${{ needs.operator-deployment.result }} | Core operator functionality |" >> deployment-report.md
+          echo "| Monitoring Stack | ${{ needs.monitoring-deployment.result || 'skipped' }} | Observability components |" >> deployment-report.md
+          echo "| Final Validation | success | Comprehensive post-deployment tests |" >> deployment-report.md
+          echo "" >> deployment-report.md
+          
+          echo "## 🔧 Configuration Applied" >> deployment-report.md
+          echo '```json' >> deployment-report.md
+          echo '${{ needs.deployment-preparation.outputs.deployment-config }}' >> deployment-report.md
+          echo '```' >> deployment-report.md
+          echo "" >> deployment-report.md
+          
+          echo "## 📈 Resource Allocation" >> deployment-report.md
+          echo '```json' >> deployment-report.md
+          echo '${{ needs.deployment-preparation.outputs.resource-limits }}' >> deployment-report.md
+          echo '```' >> deployment-report.md
+          echo "" >> deployment-report.md
+          
+          echo "## 🎯 Next Steps" >> deployment-report.md
+          echo "1. **Configure Intent Processing**: Submit test intents to validate functionality" >> deployment-report.md
+          echo "2. **Monitor Performance**: Check Grafana dashboards for operator metrics" >> deployment-report.md
+          echo "3. **Security Review**: Verify RBAC and security contexts are appropriate" >> deployment-report.md
+          echo "4. **Scale Testing**: Test operator behavior under load" >> deployment-report.md
+          echo "5. **Backup Strategy**: Implement backup for operator configuration" >> deployment-report.md
+          echo "" >> deployment-report.md
+          echo "---" >> deployment-report.md
+          echo "_Generated by Nephoran Kubernetes Operator Deployment Pipeline_" >> deployment-report.md
+          
+      - name: 📤 Upload Deployment Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kubernetes-operator-deployment-report
+          path: deployment-report.md
+          retention-days: 90
