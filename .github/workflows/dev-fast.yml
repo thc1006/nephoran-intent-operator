@@ -1,5 +1,3 @@
-# Ultra Fast Development CI - 2 Minute Pipeline
-# Use this for rapid development iterations on feature branches
 name: ⚡ Development Fast Track
 
 on:
@@ -25,8 +23,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.24.6"
-  GOPRIVATE: "github.com/thc1006/*"
+  GO_VERSION: "1.25"  # Updated to latest stable version
+  GOPROXY: "https://proxy.golang.org,direct"
+  CGO_ENABLED: "0"
+  FORCE_RUN: ${{ github.event.inputs.force_run || 'false' }}
 
 jobs:
   lightning-check:
@@ -38,35 +38,28 @@ jobs:
       - name: ⚡ Checkout
         uses: actions/checkout@v4
         
-      - name: ⚡ Setup Go with cache
+      - name: ⚡ Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-          cache-dependency-path: go.sum
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
           
       - name: 🔧 Quick dependency check
         run: |
           echo "📦 Quick module check..."
-          go mod download || echo "Some modules failed (expected during migration)"
+          go mod download || echo "Some modules failed"
+          go mod verify
           
       - name: ⚡ Ultra-fast build check
         run: |
           echo "🏗️ Testing main packages build..."
-          set -e
-          go build ./cmd/... || { echo "❌ Main packages failed to build"; exit 1; }
-          go build ./controllers/... || { echo "❌ Controllers failed to build"; exit 1; }
-          echo "✅ Core packages build successfully!"
+          go build -v ./cmd/... 
+          go build -v ./controllers/...
           
       - name: ⚡ Critical tests only
         run: |
           echo "🧪 Running critical tests only..."
-          # Only test core functionality, skip slow tests
-          go test -short -timeout=2m ./api/... ./controllers/... || echo "⚠️ Some tests failed (non-blocking in dev mode)"
-          echo "✅ Critical tests completed!"
-          
-      - name: ✅ Success notification
-        run: |
-          echo "🎉 Lightning build successful!"
-          echo "⏱️ Total time: ~2 minutes"
-          echo "🚀 Ready for rapid development!"
+          go test -short -timeout=2m ./...

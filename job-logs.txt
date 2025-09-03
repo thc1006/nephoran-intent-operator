@@ -1,390 +1,211 @@
-﻿2025-09-02T11:08:11.5539596Z Current runner version: '2.328.0'
-2025-09-02T11:08:11.5563270Z ##[group]Runner Image Provisioner
-2025-09-02T11:08:11.5564095Z Hosted Compute Agent
-2025-09-02T11:08:11.5564636Z Version: 20250829.383
-2025-09-02T11:08:11.5565308Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
-2025-09-02T11:08:11.5566339Z Build Date: 2025-08-29T13:48:48Z
-2025-09-02T11:08:11.5566913Z ##[endgroup]
-2025-09-02T11:08:11.5567501Z ##[group]Operating System
-2025-09-02T11:08:11.5568030Z Ubuntu
-2025-09-02T11:08:11.5568511Z 24.04.3
-2025-09-02T11:08:11.5568970Z LTS
-2025-09-02T11:08:11.5569472Z ##[endgroup]
-2025-09-02T11:08:11.5569912Z ##[group]Runner Image
-2025-09-02T11:08:11.5570473Z Image: ubuntu-24.04
-2025-09-02T11:08:11.5570982Z Version: 20250824.1.0
-2025-09-02T11:08:11.5571929Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250824.1/images/ubuntu/Ubuntu2404-Readme.md
-2025-09-02T11:08:11.5573518Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250824.1
-2025-09-02T11:08:11.5574448Z ##[endgroup]
-2025-09-02T11:08:11.5575844Z ##[group]GITHUB_TOKEN Permissions
-2025-09-02T11:08:11.5577696Z Contents: read
-2025-09-02T11:08:11.5578199Z Metadata: read
-2025-09-02T11:08:11.5578846Z Packages: write
-2025-09-02T11:08:11.5579337Z SecurityEvents: write
-2025-09-02T11:08:11.5579848Z ##[endgroup]
-2025-09-02T11:08:11.5581889Z Secret source: Actions
-2025-09-02T11:08:11.5582590Z Prepare workflow directory
-2025-09-02T11:08:11.5965332Z Prepare all required actions
-2025-09-02T11:08:11.6011072Z Getting action download info
-2025-09-02T11:08:12.1022419Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
-2025-09-02T11:08:12.1716043Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
-2025-09-02T11:08:12.7429634Z Download action repository 'golangci/golangci-lint-action@v6' (SHA:55c2c1448f86e01eaae002a5a3a9624417608d84)
-2025-09-02T11:08:13.3820760Z Complete job name: Lint
-2025-09-02T11:08:13.4601428Z ##[group]Run actions/checkout@v4
-2025-09-02T11:08:13.4602786Z with:
-2025-09-02T11:08:13.4603670Z   repository: thc1006/nephoran-intent-operator
-2025-09-02T11:08:13.4605102Z   token: ***
-2025-09-02T11:08:13.4606034Z   ssh-strict: true
-2025-09-02T11:08:13.4606842Z   ssh-user: git
-2025-09-02T11:08:13.4607664Z   persist-credentials: true
-2025-09-02T11:08:13.4608586Z   clean: true
-2025-09-02T11:08:13.4609410Z   sparse-checkout-cone-mode: true
-2025-09-02T11:08:13.4610406Z   fetch-depth: 1
-2025-09-02T11:08:13.4611196Z   fetch-tags: false
-2025-09-02T11:08:13.4612016Z   show-progress: true
-2025-09-02T11:08:13.4612846Z   lfs: false
-2025-09-02T11:08:13.4613610Z   submodules: false
-2025-09-02T11:08:13.4614441Z   set-safe-directory: true
-2025-09-02T11:08:13.4615560Z env:
-2025-09-02T11:08:13.4616610Z   GO_VERSION: 1.24
-2025-09-02T11:08:13.4617539Z   GOPROXY: https://proxy.golang.org,direct
-2025-09-02T11:08:13.4618650Z   GOSUMDB: sum.golang.org
-2025-09-02T11:08:13.4619527Z   REGISTRY: ghcr.io
-2025-09-02T11:08:13.4620450Z   IMAGE_NAME: nephoran-intent-operator
-2025-09-02T11:08:13.4621488Z ##[endgroup]
-2025-09-02T11:08:13.5700971Z Syncing repository: thc1006/nephoran-intent-operator
-2025-09-02T11:08:13.5703831Z ##[group]Getting Git version info
-2025-09-02T11:08:13.5705961Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
-2025-09-02T11:08:13.5708535Z [command]/usr/bin/git version
-2025-09-02T11:08:13.5734096Z git version 2.51.0
-2025-09-02T11:08:13.5760413Z ##[endgroup]
-2025-09-02T11:08:13.5774169Z Temporarily overriding HOME='/home/runner/work/_temp/b7ceaf7c-7065-4385-9182-38fca8496b73' before making global git config changes
-2025-09-02T11:08:13.5777139Z Adding repository directory to the temporary git global config as a safe directory
-2025-09-02T11:08:13.5786784Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
-2025-09-02T11:08:13.5819741Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
-2025-09-02T11:08:13.5822884Z ##[group]Initializing the repository
-2025-09-02T11:08:13.5827218Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
-2025-09-02T11:08:13.5901569Z hint: Using 'master' as the name for the initial branch. This default branch name
-2025-09-02T11:08:13.5903522Z hint: is subject to change. To configure the initial branch name to use in all
-2025-09-02T11:08:13.5906067Z hint: of your new repositories, which will suppress this warning, call:
-2025-09-02T11:08:13.5907446Z hint:
-2025-09-02T11:08:13.5908412Z hint: 	git config --global init.defaultBranch <name>
-2025-09-02T11:08:13.5909841Z hint:
-2025-09-02T11:08:13.5911241Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
-2025-09-02T11:08:13.5913229Z hint: 'development'. The just-created branch can be renamed via this command:
-2025-09-02T11:08:13.5915213Z hint:
-2025-09-02T11:08:13.5916315Z hint: 	git branch -m <name>
-2025-09-02T11:08:13.5917242Z hint:
-2025-09-02T11:08:13.5918436Z hint: Disable this message with "git config set advice.defaultBranchName false"
-2025-09-02T11:08:13.5920895Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
-2025-09-02T11:08:13.5924553Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
-2025-09-02T11:08:13.5950638Z ##[endgroup]
-2025-09-02T11:08:13.5952058Z ##[group]Disabling automatic garbage collection
-2025-09-02T11:08:13.5953990Z [command]/usr/bin/git config --local gc.auto 0
-2025-09-02T11:08:13.5986057Z ##[endgroup]
-2025-09-02T11:08:13.5988353Z ##[group]Setting up auth
-2025-09-02T11:08:13.5994516Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2025-09-02T11:08:13.6034566Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2025-09-02T11:08:13.6352013Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2025-09-02T11:08:13.6387463Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2025-09-02T11:08:13.6631137Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
-2025-09-02T11:08:13.6678401Z ##[endgroup]
-2025-09-02T11:08:13.6681440Z ##[group]Fetching the repository
-2025-09-02T11:08:13.6690616Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +be2a30d169b7a8c29f2829f2ce7c17d1cba769ef:refs/remotes/origin/feat/e2e
-2025-09-02T11:08:16.8595527Z From https://github.com/thc1006/nephoran-intent-operator
-2025-09-02T11:08:16.8596658Z  * [new ref]         be2a30d169b7a8c29f2829f2ce7c17d1cba769ef -> origin/feat/e2e
-2025-09-02T11:08:16.8624517Z ##[endgroup]
-2025-09-02T11:08:16.8625275Z ##[group]Determining the checkout info
-2025-09-02T11:08:16.8627140Z ##[endgroup]
-2025-09-02T11:08:16.8632593Z [command]/usr/bin/git sparse-checkout disable
-2025-09-02T11:08:16.8670560Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
-2025-09-02T11:08:16.8697367Z ##[group]Checking out the ref
-2025-09-02T11:08:16.8701743Z [command]/usr/bin/git checkout --progress --force -B feat/e2e refs/remotes/origin/feat/e2e
-2025-09-02T11:08:17.5396541Z Switched to a new branch 'feat/e2e'
-2025-09-02T11:08:17.5397496Z branch 'feat/e2e' set up to track 'origin/feat/e2e'.
-2025-09-02T11:08:17.5424658Z ##[endgroup]
-2025-09-02T11:08:17.5461278Z [command]/usr/bin/git log -1 --format=%H
-2025-09-02T11:08:17.5483188Z be2a30d169b7a8c29f2829f2ce7c17d1cba769ef
-2025-09-02T11:08:17.5692764Z ##[group]Run actions/setup-go@v5
-2025-09-02T11:08:17.5693048Z with:
-2025-09-02T11:08:17.5693227Z   go-version: 1.24
-2025-09-02T11:08:17.5693415Z   cache: true
-2025-09-02T11:08:17.5693589Z   check-latest: false
-2025-09-02T11:08:17.5694203Z   token: ***
-2025-09-02T11:08:17.5694373Z env:
-2025-09-02T11:08:17.5694534Z   GO_VERSION: 1.24
-2025-09-02T11:08:17.5694762Z   GOPROXY: https://proxy.golang.org,direct
-2025-09-02T11:08:17.5695034Z   GOSUMDB: sum.golang.org
-2025-09-02T11:08:17.5695228Z   REGISTRY: ghcr.io
-2025-09-02T11:08:17.5695446Z   IMAGE_NAME: nephoran-intent-operator
-2025-09-02T11:08:17.5696051Z ##[endgroup]
-2025-09-02T11:08:17.7277728Z Setup go version spec 1.24
-2025-09-02T11:08:17.7536896Z Found in cache @ /opt/hostedtoolcache/go/1.24.6/x64
-2025-09-02T11:08:17.7538858Z Added go to the path
-2025-09-02T11:08:17.7542705Z Successfully set up Go version 1.24
-2025-09-02T11:08:17.8125351Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
-2025-09-02T11:08:17.8168489Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
-2025-09-02T11:08:17.8194247Z /home/runner/go/pkg/mod
-2025-09-02T11:08:17.8229344Z /home/runner/.cache/go-build
-2025-09-02T11:08:18.1013518Z Cache is not found
-2025-09-02T11:08:18.1034420Z go version go1.24.6 linux/amd64
-2025-09-02T11:08:18.1034667Z 
-2025-09-02T11:08:18.1034966Z ##[group]go env
-2025-09-02T11:08:18.6430351Z AR='ar'
-2025-09-02T11:08:18.6431129Z CC='gcc'
-2025-09-02T11:08:18.6431549Z CGO_CFLAGS='-O2 -g'
-2025-09-02T11:08:18.6432052Z CGO_CPPFLAGS=''
-2025-09-02T11:08:18.6432580Z CGO_CXXFLAGS='-O2 -g'
-2025-09-02T11:08:18.6433136Z CGO_ENABLED='1'
-2025-09-02T11:08:18.6433596Z CGO_FFLAGS='-O2 -g'
-2025-09-02T11:08:18.6434206Z CGO_LDFLAGS='-O2 -g'
-2025-09-02T11:08:18.6434717Z CXX='g++'
-2025-09-02T11:08:18.6435093Z GCCGO='gccgo'
-2025-09-02T11:08:18.6435931Z GO111MODULE=''
-2025-09-02T11:08:18.6436369Z GOAMD64='v1'
-2025-09-02T11:08:18.6436861Z GOARCH='amd64'
-2025-09-02T11:08:18.6437329Z GOAUTH='netrc'
-2025-09-02T11:08:18.6437780Z GOBIN=''
-2025-09-02T11:08:18.6438225Z GOCACHE='/home/runner/.cache/go-build'
-2025-09-02T11:08:18.6438868Z GOCACHEPROG=''
-2025-09-02T11:08:18.6439310Z GODEBUG=''
-2025-09-02T11:08:18.6439810Z GOENV='/home/runner/.config/go/env'
-2025-09-02T11:08:18.6440479Z GOEXE=''
-2025-09-02T11:08:18.6440955Z GOEXPERIMENT=''
-2025-09-02T11:08:18.6441469Z GOFIPS140='off'
-2025-09-02T11:08:18.6441867Z GOFLAGS=''
-2025-09-02T11:08:18.6443259Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3252645185=/tmp/go-build -gno-record-gcc-switches'
-2025-09-02T11:08:18.6444607Z GOHOSTARCH='amd64'
-2025-09-02T11:08:18.6445014Z GOHOSTOS='linux'
-2025-09-02T11:08:18.6445853Z GOINSECURE=''
-2025-09-02T11:08:18.6446684Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
-2025-09-02T11:08:18.6447626Z GOMODCACHE='/home/runner/go/pkg/mod'
-2025-09-02T11:08:18.6448302Z GONOPROXY=''
-2025-09-02T11:08:18.6448806Z GONOSUMDB=''
-2025-09-02T11:08:18.6449183Z GOOS='linux'
-2025-09-02T11:08:18.6449748Z GOPATH='/home/runner/go'
-2025-09-02T11:08:18.6450253Z GOPRIVATE=''
-2025-09-02T11:08:18.6450746Z GOPROXY='https://proxy.golang.org,direct'
-2025-09-02T11:08:18.6451552Z GOROOT='/opt/hostedtoolcache/go/1.24.6/x64'
-2025-09-02T11:08:18.6452158Z GOSUMDB='sum.golang.org'
-2025-09-02T11:08:18.6452797Z GOTELEMETRY='local'
-2025-09-02T11:08:18.6453405Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
-2025-09-02T11:08:18.6454075Z GOTMPDIR=''
-2025-09-02T11:08:18.6454474Z GOTOOLCHAIN='auto'
-2025-09-02T11:08:18.6455238Z GOTOOLDIR='/opt/hostedtoolcache/go/1.24.6/x64/pkg/tool/linux_amd64'
-2025-09-02T11:08:18.6456307Z GOVCS=''
-2025-09-02T11:08:18.6456722Z GOVERSION='go1.24.6'
-2025-09-02T11:08:18.6457286Z GOWORK=''
-2025-09-02T11:08:18.6457718Z PKG_CONFIG='pkg-config'
-2025-09-02T11:08:18.6458059Z 
-2025-09-02T11:08:18.6459181Z ##[endgroup]
-2025-09-02T11:08:18.6579495Z ##[group]Run golangci/golangci-lint-action@v6
-2025-09-02T11:08:18.6579853Z with:
-2025-09-02T11:08:18.6580108Z   version: v1.64.3
-2025-09-02T11:08:18.6580469Z   args: --config=.golangci-fast.yml --timeout=5m
-2025-09-02T11:08:18.6580806Z   install-mode: binary
-2025-09-02T11:08:18.6581220Z   github-token: ***
-2025-09-02T11:08:18.6581473Z   verify: true
-2025-09-02T11:08:18.6581813Z   only-new-issues: false
-2025-09-02T11:08:18.6582254Z   skip-cache: false
-2025-09-02T11:08:18.6582518Z   skip-save-cache: false
-2025-09-02T11:08:18.6582875Z   problem-matchers: false
-2025-09-02T11:08:18.6583153Z   cache-invalidation-interval: 7
-2025-09-02T11:08:18.6583475Z env:
-2025-09-02T11:08:18.6583741Z   GO_VERSION: 1.24
-2025-09-02T11:08:18.6584049Z   GOPROXY: https://proxy.golang.org,direct
-2025-09-02T11:08:18.6584368Z   GOSUMDB: sum.golang.org
-2025-09-02T11:08:18.6584700Z   REGISTRY: ghcr.io
-2025-09-02T11:08:18.6584958Z   IMAGE_NAME: nephoran-intent-operator
-2025-09-02T11:08:18.6585337Z ##[endgroup]
-2025-09-02T11:08:18.8229196Z ##[group]prepare environment
-2025-09-02T11:08:18.8233581Z Checking for go.mod: go.mod
-2025-09-02T11:08:19.1434422Z Cache hit for: golangci-lint.cache-Linux-2904-7ac7656f297d8d869e258ab04ee0ac24e22653f3
-2025-09-02T11:08:20.4462151Z Received 1188710 of 5383014 (22.1%), 1.1 MBs/sec
-2025-09-02T11:08:20.4581942Z Received 5383014 of 5383014 (100.0%), 5.1 MBs/sec
-2025-09-02T11:08:20.4583712Z Cache Size: ~5 MB (5383014 B)
-2025-09-02T11:08:20.4639881Z [command]/usr/bin/tar -xf /home/runner/work/_temp/cbe44a40-6957-4f35-9192-1f7a2e06f765/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
-2025-09-02T11:08:21.7835508Z Cache restored successfully
-2025-09-02T11:08:21.7853066Z Restored cache for golangci-lint from key 'golangci-lint.cache-Linux-2904-7ac7656f297d8d869e258ab04ee0ac24e22653f3' in 2962ms
-2025-09-02T11:08:21.7854411Z Finding needed golangci-lint version...
-2025-09-02T11:08:21.7857533Z Installation mode: binary
-2025-09-02T11:08:21.7858723Z Installing golangci-lint binary v1.64.3...
-2025-09-02T11:08:21.7860073Z Downloading binary https://github.com/golangci/golangci-lint/releases/download/v1.64.3/golangci-lint-1.64.3-linux-amd64.tar.gz ...
-2025-09-02T11:08:21.9612928Z [command]/usr/bin/tar xz --overwrite --warning=no-unknown-keyword --overwrite -C /home/runner -f /home/runner/work/_temp/571f0a34-62a5-4dac-9ea0-2f836b7a3a44
-2025-09-02T11:08:22.1746479Z Installed golangci-lint into /home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint in 389ms
-2025-09-02T11:08:22.1748216Z Prepared env in 3352ms
-2025-09-02T11:08:22.1749325Z ##[endgroup]
-2025-09-02T11:08:22.1751965Z ##[group]run golangci-lint
-2025-09-02T11:08:22.1759541Z Running [/home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint config path --config=.golangci-fast.yml] in [/home/runner/work/nephoran-intent-operator/nephoran-intent-operator] ...
-2025-09-02T11:08:22.2593640Z Running [/home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint config verify --config=.golangci-fast.yml] in [/home/runner/work/nephoran-intent-operator/nephoran-intent-operator] ...
-2025-09-02T11:08:22.3804010Z Running [/home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint run  --config=.golangci-fast.yml --timeout=5m] in [/home/runner/work/nephoran-intent-operator/nephoran-intent-operator] ...
-2025-09-02T11:12:35.4596554Z ##[error]api/v1/zz_generated.deepcopy.go:1252:10: cannot use make(map[string]float64, len(*in)) (value of type map[string]float64) as map[string]string value in assignment (typecheck)
-2025-09-02T11:12:35.4604052Z 		*out = make(map[string]float64, len(*in))
-2025-09-02T11:12:35.4604355Z 		       ^
-2025-09-02T11:12:35.4605518Z ##[error]api/v1/zz_generated.deepcopy.go:1258:22: invalid operation: in.Confidence != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4607029Z 	if in.Confidence != nil {
-2025-09-02T11:12:35.4607326Z 	                    ^
-2025-09-02T11:12:35.4608605Z ##[error]api/v1/zz_generated.deepcopy.go:1260:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4609586Z 		*out = new(float64)
-2025-09-02T11:12:35.4609808Z 		       ^
-2025-09-02T11:12:35.4610572Z ##[error]api/v1/zz_generated.deepcopy.go:1261:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4611440Z 		**out = **in
-2025-09-02T11:12:35.4611634Z 		 ^
-2025-09-02T11:12:35.4612444Z ##[error]api/v1/zz_generated.deepcopy.go:3231:24: invalid operation: in.QualityScore != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4613604Z 	if in.QualityScore != nil {
-2025-09-02T11:12:35.4613903Z 	                      ^
-2025-09-02T11:12:35.4614733Z ##[error]api/v1/zz_generated.deepcopy.go:3233:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4615950Z 		*out = new(float64)
-2025-09-02T11:12:35.4616180Z 		       ^
-2025-09-02T11:12:35.4616988Z ##[error]api/v1/zz_generated.deepcopy.go:3234:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4617879Z 		**out = **in
-2025-09-02T11:12:35.4618100Z 		 ^
-2025-09-02T11:12:35.4619662Z ##[error]api/v1/zz_generated.deepcopy.go:3251:30: invalid operation: in.ImprovementPercent != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4621445Z 	if in.ImprovementPercent != nil {
-2025-09-02T11:12:35.4622091Z 	                            ^
-2025-09-02T11:12:35.4623677Z ##[error]api/v1/zz_generated.deepcopy.go:3253:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4625414Z 		*out = new(float64)
-2025-09-02T11:12:35.4626022Z 		       ^
-2025-09-02T11:12:35.4627426Z ##[error]api/v1/zz_generated.deepcopy.go:3254:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4629133Z 		**out = **in
-2025-09-02T11:12:35.4629421Z 		 ^
-2025-09-02T11:12:35.4630795Z ##[error]api/v1/zz_generated.deepcopy.go:4316:18: invalid operation: in.Weight != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4632423Z 	if in.Weight != nil {
-2025-09-02T11:12:35.4632785Z 	                ^
-2025-09-02T11:12:35.4634146Z ##[error]api/v1/zz_generated.deepcopy.go:4318:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4635886Z 		*out = new(float64)
-2025-09-02T11:12:35.4636228Z 		       ^
-2025-09-02T11:12:35.4637461Z ##[error]api/v1/zz_generated.deepcopy.go:4319:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4638963Z 		**out = **in
-2025-09-02T11:12:35.4639134Z 		 ^
-2025-09-02T11:12:35.4640573Z ##[error]api/v1/zz_generated.deepcopy.go:4348:30: invalid operation: in.ImprovementPercent != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4642317Z 	if in.ImprovementPercent != nil {
-2025-09-02T11:12:35.4642942Z 	                            ^
-2025-09-02T11:12:35.4644147Z ##[error]api/v1/zz_generated.deepcopy.go:4350:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4645160Z 		*out = new(float64)
-2025-09-02T11:12:35.4645364Z 		       ^
-2025-09-02T11:12:35.4646324Z ##[error]api/v1/zz_generated.deepcopy.go:4351:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4647255Z 		**out = **in
-2025-09-02T11:12:35.4647433Z 		 ^
-2025-09-02T11:12:35.4648324Z ##[error]api/v1/zz_generated.deepcopy.go:4405:30: invalid operation: in.ExpectedThroughput != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4649321Z 	if in.ExpectedThroughput != nil {
-2025-09-02T11:12:35.4649662Z 	                            ^
-2025-09-02T11:12:35.4650457Z ##[error]api/v1/zz_generated.deepcopy.go:4407:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4651444Z 		*out = new(float64)
-2025-09-02T11:12:35.4651878Z 		       ^
-2025-09-02T11:12:35.4652613Z ##[error]api/v1/zz_generated.deepcopy.go:4408:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4653497Z 		**out = **in
-2025-09-02T11:12:35.4653663Z 		 ^
-2025-09-02T11:12:35.4654473Z ##[error]api/v1/zz_generated.deepcopy.go:4410:27: invalid operation: in.ExpectedLatency != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4655585Z 	if in.ExpectedLatency != nil {
-2025-09-02T11:12:35.4656086Z 	                         ^
-2025-09-02T11:12:35.4656918Z ##[error]api/v1/zz_generated.deepcopy.go:4412:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4657822Z 		*out = new(float64)
-2025-09-02T11:12:35.4658025Z 		       ^
-2025-09-02T11:12:35.4658723Z ##[error]api/v1/zz_generated.deepcopy.go:4413:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4659567Z 		**out = **in
-2025-09-02T11:12:35.4659736Z 		 ^
-2025-09-02T11:12:35.4660583Z ##[error]api/v1/zz_generated.deepcopy.go:4415:32: invalid operation: in.ExpectedAvailability != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4661536Z 	if in.ExpectedAvailability != nil {
-2025-09-02T11:12:35.4661892Z 	                              ^
-2025-09-02T11:12:35.4662658Z ##[error]api/v1/zz_generated.deepcopy.go:4417:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4663537Z 		*out = new(float64)
-2025-09-02T11:12:35.4663730Z 		       ^
-2025-09-02T11:12:35.4664407Z ##[error]api/v1/zz_generated.deepcopy.go:4418:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4665246Z 		**out = **in
-2025-09-02T11:12:35.4665414Z 		 ^
-2025-09-02T11:12:35.4666577Z ##[error]api/v1/zz_generated.deepcopy.go:4422:10: cannot use make(map[string]float64, len(*in)) (value of type map[string]float64) as map[string]string value in assignment (typecheck)
-2025-09-02T11:12:35.4667662Z 		*out = make(map[string]float64, len(*in))
-2025-09-02T11:12:35.4667910Z 		       ^
-2025-09-02T11:12:35.4668740Z ##[error]api/v1/zz_generated.deepcopy.go:4561:25: invalid operation: in.EstimatedCost != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4669665Z 	if in.EstimatedCost != nil {
-2025-09-02T11:12:35.4669955Z 	                       ^
-2025-09-02T11:12:35.4670756Z ##[error]api/v1/zz_generated.deepcopy.go:4563:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4671639Z 		*out = new(float64)
-2025-09-02T11:12:35.4671832Z 		       ^
-2025-09-02T11:12:35.4672522Z ##[error]api/v1/zz_generated.deepcopy.go:4564:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4673382Z 		**out = **in
-2025-09-02T11:12:35.4673548Z 		 ^
-2025-09-02T11:12:35.4674339Z ##[error]api/v1/zz_generated.deepcopy.go:5367:24: invalid operation: in.QualityScore != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4675251Z 	if in.QualityScore != nil {
-2025-09-02T11:12:35.4675529Z 	                      ^
-2025-09-02T11:12:35.4676920Z ##[error]api/v1/zz_generated.deepcopy.go:5369:10: cannot use new(float64) (value of type *float64) as string value in assignment (typecheck)
-2025-09-02T11:12:35.4677881Z 		*out = new(float64)
-2025-09-02T11:12:35.4678089Z 		       ^
-2025-09-02T11:12:35.4678809Z ##[error]api/v1/zz_generated.deepcopy.go:5370:4: invalid operation: cannot indirect *out (variable of type string) (typecheck)
-2025-09-02T11:12:35.4679663Z 		**out = **in
-2025-09-02T11:12:35.4679834Z 		 ^
-2025-09-02T11:12:35.4680658Z ##[error]api/v1/zz_generated.deepcopy.go:5670:30: invalid operation: in.AvailabilityTarget != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4681608Z 	if in.AvailabilityTarget != nil {
-2025-09-02T11:12:35.4681940Z 	                            ^
-2025-09-02T11:12:35.4682952Z ##[error]api/v1/zz_generated.deepcopy.go:5685:25: invalid operation: in.MaxPacketLoss != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4684658Z 	if in.MaxPacketLoss != nil {
-2025-09-02T11:12:35.4685131Z 	                       ^
-2025-09-02T11:12:35.4686980Z ##[error]api/v1/zz_generated.deepcopy.go:5789:22: invalid operation: in.Confidence != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4688324Z 	if in.Confidence != nil {
-2025-09-02T11:12:35.4688803Z 	                    ^
-2025-09-02T11:12:35.4689683Z ##[error]api/v1/zz_generated.deepcopy.go:5879:17: invalid operation: in.Score != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4690597Z 	if in.Score != nil {
-2025-09-02T11:12:35.4690824Z 	               ^
-2025-09-02T11:12:35.4691609Z ##[error]api/v1/zz_generated.deepcopy.go:5914:21: invalid operation: in.CVSSScore != nil (mismatched types string and untyped nil) (typecheck)
-2025-09-02T11:12:35.4692534Z 	if in.CVSSScore != nil {
-2025-09-02T11:12:35.4692795Z 	                   ^
-2025-09-02T11:12:35.4693766Z ##[error]cmd/main.go:15:2: could not import sigs.k8s.io/controller-runtime/pkg/metrics (-: # sigs.k8s.io/controller-runtime/pkg/metrics
-2025-09-02T11:12:35.4696510Z ##[error]../../../go/pkg/mod/sigs.k8s.io/controller-runtime@v0.14.1/pkg/metrics/leaderelection.go:26:71: undefined: leaderelection.SwitchMetric) (typecheck)
-2025-09-02T11:12:35.4698331Z 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-2025-09-02T11:12:35.4698609Z 	^
-2025-09-02T11:12:35.4699086Z ##[error]cmd/main.go:105:41: undefined: filters (typecheck)
-2025-09-02T11:12:35.4700024Z 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
-2025-09-02T11:12:35.4700617Z 		                                      ^
-2025-09-02T11:12:35.4701836Z ##[error]pkg/shared/coordination_manager.go:450:12: cannot use make(map[string]interface{}) (value of type map[string]interface{}) as json.RawMessage value in struct literal (typecheck)
-2025-09-02T11:12:35.4702906Z 		Context: make(map[string]interface{}),
-2025-09-02T11:12:35.4703173Z 		         ^
-2025-09-02T11:12:35.4703626Z ##[error]pkg/shared/coordination_manager.go:763:15: undefined: json (typecheck)
-2025-09-02T11:12:35.4704393Z 		metadata := json.RawMessage("{}")
-2025-09-02T11:12:35.4704646Z 		            ^
-2025-09-02T11:12:35.4705092Z ##[error]pkg/shared/coordination_manager.go:848:14: undefined: json (typecheck)
-2025-09-02T11:12:35.4706270Z 	metadata := json.RawMessage("{}")
-2025-09-02T11:12:35.4706547Z 	            ^
-2025-09-02T11:12:35.4707341Z ##[error]pkg/shared/coordination_manager.go:976:14: undefined: json (typecheck)
-2025-09-02T11:12:35.4708511Z 	metadata := json.RawMessage("{}")
-2025-09-02T11:12:35.4708790Z 	            ^
-2025-09-02T11:12:35.4709358Z ##[error]pkg/shared/coordination_manager.go:982:14: undefined: json (typecheck)
-2025-09-02T11:12:35.4710141Z 	metadata := json.RawMessage("{}")
-2025-09-02T11:12:35.4710393Z 	            ^
-2025-09-02T11:12:35.4710852Z ##[error]pkg/shared/coordination_manager.go:992:14: undefined: json (typecheck)
-2025-09-02T11:12:35.4711603Z 	metadata := json.RawMessage("{}")
-2025-09-02T11:12:35.4711844Z 	            ^
-2025-09-02T11:12:35.4712562Z ##[error]pkg/shared/enhanced_event_bus.go:355:22: invalid operation: value (variable of type byte) is not an interface (typecheck)
-2025-09-02T11:12:35.4713463Z 		if strValue, ok := value.(string); ok {
-2025-09-02T11:12:35.4713765Z 		                   ^
-2025-09-02T11:12:35.4714467Z ##[error]pkg/shared/enhanced_event_bus.go:356:29: cannot use key (variable of type int) as string value in map index (typecheck)
-2025-09-02T11:12:35.4715373Z 			processingEvent.Metadata[key] = strValue
-2025-09-02T11:12:35.4715938Z 			                         ^
-2025-09-02T11:12:35.4716787Z ##[error]pkg/shared/enhanced_event_bus.go:559:13: cannot convert "sequenceNumber" (untyped string constant) to type int (typecheck)
-2025-09-02T11:12:35.4717792Z 	event.Data["sequenceNumber"] = eb.sequenceNumber
-2025-09-02T11:12:35.4718086Z 	           ^
-2025-09-02T11:12:35.4719300Z ##[error]pkg/shared/execution_queue.go:454:19: cannot use make(map[string]interface{}) (value of type map[string]interface{}) as json.RawMessage value in assignment (typecheck)
-2025-09-02T11:12:35.4720422Z 			task.Context = make(map[string]interface{})
-2025-09-02T11:12:35.4720725Z 			               ^
-2025-09-02T11:12:35.4721484Z ##[error]pkg/shared/execution_queue.go:457:16: cannot convert "cancelled" (untyped string constant) to type int (typecheck)
-2025-09-02T11:12:35.4722552Z 		task.Context["cancelled"] = true
-2025-09-02T11:12:35.4722825Z 		             ^
-2025-09-02T11:12:35.4722933Z 
-2025-09-02T11:12:35.4734043Z ##[error]issues found
-2025-09-02T11:12:35.4734814Z Ran golangci-lint in 253076ms
-2025-09-02T11:12:35.4735296Z ##[endgroup]
-2025-09-02T11:12:35.4796623Z Post job cleanup.
-2025-09-02T11:12:35.6633294Z Cache hit occurred on the primary key golangci-lint.cache-Linux-2904-7ac7656f297d8d869e258ab04ee0ac24e22653f3, not saving cache.
-2025-09-02T11:12:35.6778437Z Post job cleanup.
-2025-09-02T11:12:35.7761827Z [command]/usr/bin/git version
-2025-09-02T11:12:35.7800269Z git version 2.51.0
-2025-09-02T11:12:35.7846835Z Temporarily overriding HOME='/home/runner/work/_temp/c835e890-1471-4bb4-b26a-172151c8d96b' before making global git config changes
-2025-09-02T11:12:35.7848172Z Adding repository directory to the temporary git global config as a safe directory
-2025-09-02T11:12:35.7853927Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
-2025-09-02T11:12:35.7895559Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2025-09-02T11:12:35.7929836Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2025-09-02T11:12:35.8172265Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2025-09-02T11:12:35.8195950Z http.https://github.com/.extraheader
-2025-09-02T11:12:35.8209231Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-2025-09-02T11:12:35.8241351Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2025-09-02T11:12:35.8593055Z Cleaning up orphan processes
+﻿2025-09-03T00:15:59.6932001Z Current runner version: '2.328.0'
+2025-09-03T00:15:59.6965007Z ##[group]Runner Image Provisioner
+2025-09-03T00:15:59.6966122Z Hosted Compute Agent
+2025-09-03T00:15:59.6967294Z Version: 20250829.383
+2025-09-03T00:15:59.6968417Z Commit: 27cb235aab5b0e52e153a26cd86b4742e89dac5d
+2025-09-03T00:15:59.6969630Z Build Date: 2025-08-29T13:48:48Z
+2025-09-03T00:15:59.6970726Z ##[endgroup]
+2025-09-03T00:15:59.6971611Z ##[group]Operating System
+2025-09-03T00:15:59.6972580Z Ubuntu
+2025-09-03T00:15:59.6973292Z 24.04.3
+2025-09-03T00:15:59.6974203Z LTS
+2025-09-03T00:15:59.6975009Z ##[endgroup]
+2025-09-03T00:15:59.6975900Z ##[group]Runner Image
+2025-09-03T00:15:59.6977035Z Image: ubuntu-24.04
+2025-09-03T00:15:59.6977887Z Version: 20250831.1.0
+2025-09-03T00:15:59.6979675Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250831.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-03T00:15:59.6982300Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250831.1
+2025-09-03T00:15:59.6983852Z ##[endgroup]
+2025-09-03T00:15:59.6985569Z ##[group]GITHUB_TOKEN Permissions
+2025-09-03T00:15:59.6988320Z Contents: read
+2025-09-03T00:15:59.6989168Z Metadata: read
+2025-09-03T00:15:59.6989933Z Packages: read
+2025-09-03T00:15:59.6990797Z ##[endgroup]
+2025-09-03T00:15:59.6993949Z Secret source: Actions
+2025-09-03T00:15:59.6995486Z Prepare workflow directory
+2025-09-03T00:15:59.7534302Z Prepare all required actions
+2025-09-03T00:15:59.7589796Z Getting action download info
+2025-09-03T00:16:00.0038791Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-09-03T00:16:00.0701679Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-09-03T00:16:00.4244225Z Complete job name: ⚡ Lightning Fast Check
+2025-09-03T00:16:00.4949957Z ##[group]Run actions/checkout@v4
+2025-09-03T00:16:00.4950813Z with:
+2025-09-03T00:16:00.4951310Z   repository: thc1006/nephoran-intent-operator
+2025-09-03T00:16:00.4952091Z   token: ***
+2025-09-03T00:16:00.4952646Z   ssh-strict: true
+2025-09-03T00:16:00.4953070Z   ssh-user: git
+2025-09-03T00:16:00.4953514Z   persist-credentials: true
+2025-09-03T00:16:00.4953990Z   clean: true
+2025-09-03T00:16:00.4954415Z   sparse-checkout-cone-mode: true
+2025-09-03T00:16:00.4954924Z   fetch-depth: 1
+2025-09-03T00:16:00.4955327Z   fetch-tags: false
+2025-09-03T00:16:00.4955754Z   show-progress: true
+2025-09-03T00:16:00.4956173Z   lfs: false
+2025-09-03T00:16:00.4956563Z   submodules: false
+2025-09-03T00:16:00.4957188Z   set-safe-directory: true
+2025-09-03T00:16:00.4958008Z env:
+2025-09-03T00:16:00.4958396Z   GO_VERSION: 1.24.6
+2025-09-03T00:16:00.4958853Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T00:16:00.4959345Z ##[endgroup]
+2025-09-03T00:16:00.6067221Z Syncing repository: thc1006/nephoran-intent-operator
+2025-09-03T00:16:00.6070378Z ##[group]Getting Git version info
+2025-09-03T00:16:00.6072082Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-09-03T00:16:00.6073540Z [command]/usr/bin/git version
+2025-09-03T00:16:00.6113390Z git version 2.51.0
+2025-09-03T00:16:00.6138976Z ##[endgroup]
+2025-09-03T00:16:00.6152788Z Temporarily overriding HOME='/home/runner/work/_temp/39d8dd3b-d894-4854-852c-b404f6b18dd8' before making global git config changes
+2025-09-03T00:16:00.6154591Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-03T00:16:00.6157963Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T00:16:00.6191404Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-09-03T00:16:00.6194275Z ##[group]Initializing the repository
+2025-09-03T00:16:00.6198739Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T00:16:00.6285085Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-09-03T00:16:00.6288226Z hint: is subject to change. To configure the initial branch name to use in all
+2025-09-03T00:16:00.6291092Z hint: of your new repositories, which will suppress this warning, call:
+2025-09-03T00:16:00.6292594Z hint:
+2025-09-03T00:16:00.6293285Z hint: 	git config --global init.defaultBranch <name>
+2025-09-03T00:16:00.6294125Z hint:
+2025-09-03T00:16:00.6294932Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-09-03T00:16:00.6296384Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-09-03T00:16:00.6297830Z hint:
+2025-09-03T00:16:00.6298348Z hint: 	git branch -m <name>
+2025-09-03T00:16:00.6298929Z hint:
+2025-09-03T00:16:00.6299708Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-09-03T00:16:00.6301326Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-09-03T00:16:00.6304205Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-09-03T00:16:00.6338112Z ##[endgroup]
+2025-09-03T00:16:00.6339042Z ##[group]Disabling automatic garbage collection
+2025-09-03T00:16:00.6342156Z [command]/usr/bin/git config --local gc.auto 0
+2025-09-03T00:16:00.6373685Z ##[endgroup]
+2025-09-03T00:16:00.6374555Z ##[group]Setting up auth
+2025-09-03T00:16:00.6380571Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-03T00:16:00.6412024Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-03T00:16:00.6715276Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-03T00:16:00.6749254Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-03T00:16:00.6991956Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-03T00:16:00.7038814Z ##[endgroup]
+2025-09-03T00:16:00.7040346Z ##[group]Fetching the repository
+2025-09-03T00:16:00.7049385Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +90efc46f793e3243fc022b4ee5e63f8eabd188ab:refs/remotes/origin/feat/e2e
+2025-09-03T00:16:03.8600753Z From https://github.com/thc1006/nephoran-intent-operator
+2025-09-03T00:16:03.8602985Z  * [new ref]         90efc46f793e3243fc022b4ee5e63f8eabd188ab -> origin/feat/e2e
+2025-09-03T00:16:03.8632798Z ##[endgroup]
+2025-09-03T00:16:03.8634300Z ##[group]Determining the checkout info
+2025-09-03T00:16:03.8636059Z ##[endgroup]
+2025-09-03T00:16:03.8641544Z [command]/usr/bin/git sparse-checkout disable
+2025-09-03T00:16:03.8681789Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-09-03T00:16:03.8713839Z ##[group]Checking out the ref
+2025-09-03T00:16:03.8714764Z [command]/usr/bin/git checkout --progress --force -B feat/e2e refs/remotes/origin/feat/e2e
+2025-09-03T00:16:04.5702495Z Switched to a new branch 'feat/e2e'
+2025-09-03T00:16:04.5705103Z branch 'feat/e2e' set up to track 'origin/feat/e2e'.
+2025-09-03T00:16:04.5731049Z ##[endgroup]
+2025-09-03T00:16:04.5779610Z [command]/usr/bin/git log -1 --format=%H
+2025-09-03T00:16:04.5803670Z 90efc46f793e3243fc022b4ee5e63f8eabd188ab
+2025-09-03T00:16:04.6096994Z ##[group]Run actions/setup-go@v5
+2025-09-03T00:16:04.6098238Z with:
+2025-09-03T00:16:04.6099124Z   go-version: 1.24.6
+2025-09-03T00:16:04.6100059Z   cache: true
+2025-09-03T00:16:04.6100976Z   cache-dependency-path: go.sum
+2025-09-03T00:16:04.6102087Z   check-latest: false
+2025-09-03T00:16:04.6103327Z   token: ***
+2025-09-03T00:16:04.6104154Z env:
+2025-09-03T00:16:04.6104945Z   GO_VERSION: 1.24.6
+2025-09-03T00:16:04.6105920Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T00:16:04.6107134Z ##[endgroup]
+2025-09-03T00:16:04.7760825Z Setup go version spec 1.24.6
+2025-09-03T00:16:04.7782754Z Found in cache @ /opt/hostedtoolcache/go/1.24.6/x64
+2025-09-03T00:16:04.7787391Z Added go to the path
+2025-09-03T00:16:04.7791806Z Successfully set up Go version 1.24.6
+2025-09-03T00:16:05.4511689Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-09-03T00:16:05.4550384Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-09-03T00:16:05.4571689Z /home/runner/go/pkg/mod
+2025-09-03T00:16:05.4606685Z /home/runner/.cache/go-build
+2025-09-03T00:16:05.5966449Z Cache is not found
+2025-09-03T00:16:05.5991271Z go version go1.24.6 linux/amd64
+2025-09-03T00:16:05.5991587Z 
+2025-09-03T00:16:05.5992027Z ##[group]go env
+2025-09-03T00:16:05.7269007Z AR='ar'
+2025-09-03T00:16:05.7269477Z CC='gcc'
+2025-09-03T00:16:05.7269808Z CGO_CFLAGS='-O2 -g'
+2025-09-03T00:16:05.7270180Z CGO_CPPFLAGS=''
+2025-09-03T00:16:05.7270549Z CGO_CXXFLAGS='-O2 -g'
+2025-09-03T00:16:05.7270927Z CGO_ENABLED='1'
+2025-09-03T00:16:05.7271268Z CGO_FFLAGS='-O2 -g'
+2025-09-03T00:16:05.7271690Z CGO_LDFLAGS='-O2 -g'
+2025-09-03T00:16:05.7272106Z CXX='g++'
+2025-09-03T00:16:05.7272444Z GCCGO='gccgo'
+2025-09-03T00:16:05.7272844Z GO111MODULE=''
+2025-09-03T00:16:05.7273175Z GOAMD64='v1'
+2025-09-03T00:16:05.7273515Z GOARCH='amd64'
+2025-09-03T00:16:05.7273831Z GOAUTH='netrc'
+2025-09-03T00:16:05.7274154Z GOBIN=''
+2025-09-03T00:16:05.7274527Z GOCACHE='/home/runner/.cache/go-build'
+2025-09-03T00:16:05.7274995Z GOCACHEPROG=''
+2025-09-03T00:16:05.7275342Z GODEBUG=''
+2025-09-03T00:16:05.7275744Z GOENV='/home/runner/.config/go/env'
+2025-09-03T00:16:05.7276269Z GOEXE=''
+2025-09-03T00:16:05.7277005Z GOEXPERIMENT=''
+2025-09-03T00:16:05.7277394Z GOFIPS140='off'
+2025-09-03T00:16:05.7277762Z GOFLAGS=''
+2025-09-03T00:16:05.7278949Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build2772266149=/tmp/go-build -gno-record-gcc-switches'
+2025-09-03T00:16:05.7280121Z GOHOSTARCH='amd64'
+2025-09-03T00:16:05.7280480Z GOHOSTOS='linux'
+2025-09-03T00:16:05.7280814Z GOINSECURE=''
+2025-09-03T00:16:05.7281411Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+2025-09-03T00:16:05.7282095Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-09-03T00:16:05.7282542Z GONOPROXY='github.com/thc1006/*'
+2025-09-03T00:16:05.7282950Z GONOSUMDB='github.com/thc1006/*'
+2025-09-03T00:16:05.7283302Z GOOS='linux'
+2025-09-03T00:16:05.7283607Z GOPATH='/home/runner/go'
+2025-09-03T00:16:05.7283965Z GOPRIVATE='github.com/thc1006/*'
+2025-09-03T00:16:05.7284442Z GOPROXY='https://proxy.golang.org,direct'
+2025-09-03T00:16:05.7284926Z GOROOT='/opt/hostedtoolcache/go/1.24.6/x64'
+2025-09-03T00:16:05.7285363Z GOSUMDB='sum.golang.org'
+2025-09-03T00:16:05.7285697Z GOTELEMETRY='local'
+2025-09-03T00:16:05.7286096Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-09-03T00:16:05.7286544Z GOTMPDIR=''
+2025-09-03T00:16:05.7287002Z GOTOOLCHAIN='auto'
+2025-09-03T00:16:05.7287567Z GOTOOLDIR='/opt/hostedtoolcache/go/1.24.6/x64/pkg/tool/linux_amd64'
+2025-09-03T00:16:05.7288091Z GOVCS=''
+2025-09-03T00:16:05.7288385Z GOVERSION='go1.24.6'
+2025-09-03T00:16:05.7288700Z GOWORK=''
+2025-09-03T00:16:05.7288999Z PKG_CONFIG='pkg-config'
+2025-09-03T00:16:05.7289212Z 
+2025-09-03T00:16:05.7289925Z ##[endgroup]
+2025-09-03T00:16:05.7411043Z ##[group]Run echo "📦 Quick module check..."
+2025-09-03T00:16:05.7411511Z [36;1mecho "📦 Quick module check..."[0m
+2025-09-03T00:16:05.7412034Z [36;1mgo mod download || echo "Some modules failed (expected during migration)"[0m
+2025-09-03T00:16:05.7474684Z shell: /usr/bin/bash -e {0}
+2025-09-03T00:16:05.7475021Z env:
+2025-09-03T00:16:05.7475259Z   GO_VERSION: 1.24.6
+2025-09-03T00:16:05.7475572Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T00:16:05.7475899Z ##[endgroup]
+2025-09-03T00:16:05.7554522Z 📦 Quick module check...
+2025-09-03T00:16:18.8476202Z ##[group]Run echo "🏗️ Testing main packages build..."
+2025-09-03T00:16:18.8476751Z [36;1mecho "🏗️ Testing main packages build..."[0m
+2025-09-03T00:16:18.8477392Z [36;1mset -e[0m
+2025-09-03T00:16:18.8477811Z [36;1mgo build ./cmd/... || { echo "❌ Main packages failed to build"; exit 1; }[0m
+2025-09-03T00:16:18.8478836Z [36;1mgo build ./controllers/... || { echo "❌ Controllers failed to build"; exit 1; }[0m
+2025-09-03T00:16:18.8479375Z [36;1mecho "✅ Core packages build successfully!"[0m
+2025-09-03T00:16:18.8515845Z shell: /usr/bin/bash -e {0}
+2025-09-03T00:16:18.8516168Z env:
+2025-09-03T00:16:18.8516398Z   GO_VERSION: 1.24.6
+2025-09-03T00:16:18.8516692Z   GOPRIVATE: github.com/thc1006/*
+2025-09-03T00:16:18.8517275Z ##[endgroup]
+2025-09-03T00:16:18.8576015Z 🏗️ Testing main packages build...
+2025-09-03T00:19:11.7486286Z ##[error]The operation was canceled.
+2025-09-03T00:19:11.7653024Z Post job cleanup.
+2025-09-03T00:19:11.9523225Z [command]/usr/bin/git version
+2025-09-03T00:19:11.9658893Z git version 2.51.0
+2025-09-03T00:19:11.9881058Z Temporarily overriding HOME='/home/runner/work/_temp/56e8aa30-403b-4aa3-9fce-bb45308b1c09' before making global git config changes
+2025-09-03T00:19:11.9882834Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-03T00:19:11.9897424Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-09-03T00:19:12.0097921Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-03T00:19:12.0133887Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-03T00:19:12.1150068Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-03T00:19:12.1250040Z http.https://github.com/.extraheader
+2025-09-03T00:19:12.1302082Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-09-03T00:19:12.1622261Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-03T00:19:12.2546618Z Cleaning up orphan processes
+2025-09-03T00:19:12.3465423Z Terminate orphan process: pid (2142) (go)
+2025-09-03T00:19:12.3564113Z Terminate orphan process: pid (14184) (compile)
+2025-09-03T00:19:12.3595164Z Terminate orphan process: pid (14464) (compile)

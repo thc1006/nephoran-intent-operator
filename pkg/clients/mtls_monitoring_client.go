@@ -151,10 +151,9 @@ func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, 
 
 	// Prepare alert payload.
 
-	payload := json.RawMessage(`{}`),
-
-		"source": "nephoran-intent-operator",
-	}
+	payload := json.RawMessage(`{
+		"source": "nephoran-intent-operator"
+	}`)
 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
