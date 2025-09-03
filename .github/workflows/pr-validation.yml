@@ -213,7 +213,7 @@ jobs:
           cache: true
 
       - name: Run gosec security scanner
-        uses: securecodewarrior/github-action-gosec@master
+        uses: securego/gosec@master
         with:
           args: '-no-fail -fmt sarif -out gosec.sarif ./...'
         continue-on-error: true

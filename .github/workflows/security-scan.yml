@@ -1,0 +1,401 @@
+# =============================================================================
+# Security Scanning Pipeline - 2025 Edition
+# =============================================================================
+# Comprehensive security analysis for Nephoran Intent Operator
+# Implements defense-in-depth with multiple scanning tools
+# =============================================================================
+
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, integrate/mvp ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/security-scan.yml'
+  pull_request:
+    branches: [ main, integrate/mvp ]
+  schedule:
+    # Daily security scan at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      scan_depth:
+        description: 'Scan depth level'
+        type: choice
+        options:
+          - quick
+          - standard
+          - comprehensive
+        default: 'standard'
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+env:
+  GO_VERSION: "1.25.0"
+  GOPROXY: "https://proxy.golang.org,direct"
+  GOSUMDB: "sum.golang.org"
+  CGO_ENABLED: "0"
+  SCAN_DEPTH: ${{ github.event.inputs.scan_depth || 'standard' }}
+
+jobs:
+  # =============================================================================
+  # GOSEC: Go Security Checker - AST and SSA analysis
+  # =============================================================================
+  gosec-scan:
+    name: Gosec Security Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5.0.2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Run gosec security scanner
+        uses: securego/gosec@master
+        with:
+          # Include all Go files, output in SARIF format for GitHub integration
+          args: '-fmt sarif -out gosec-results.sarif -severity medium ./...'
+
+      - name: Upload gosec SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec
+
+      - name: Generate gosec text report
+        if: always()
+        run: |
+          # Install gosec locally for additional reporting
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          
+          # Generate detailed text report
+          gosec -fmt text -severity low ./... > gosec-detailed.txt 2>&1 || true
+          
+          # Generate JSON report for processing
+          gosec -fmt json -out gosec-results.json ./... || true
+          
+          # Summary for PR comments
+          echo "# Gosec Security Scan Results" > gosec-summary.md
+          echo "" >> gosec-summary.md
+          
+          if [ -f gosec-results.json ]; then
+            ISSUES=$(jq '.Issues | length' gosec-results.json)
+            echo "- Total issues found: $ISSUES" >> gosec-summary.md
+            
+            # Group by severity
+            echo "" >> gosec-summary.md
+            echo "## Issues by Severity" >> gosec-summary.md
+            jq -r '.Issues | group_by(.severity) | .[] | "- \(.[0].severity): \(length)"' gosec-results.json >> gosec-summary.md || true
+            
+            # Group by CWE
+            echo "" >> gosec-summary.md
+            echo "## Issues by CWE" >> gosec-summary.md
+            jq -r '.Issues | group_by(.cwe.id) | .[] | "- CWE-\(.[0].cwe.id): \(length) issues"' gosec-results.json >> gosec-summary.md || true
+          fi
+
+      - name: Upload gosec artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gosec-reports
+          path: |
+            gosec-results.sarif
+            gosec-results.json
+            gosec-detailed.txt
+            gosec-summary.md
+          retention-days: 30
+
+  # =============================================================================
+  # VULNERABILITY SCAN: Check for known vulnerabilities
+  # =============================================================================
+  vulnerability-scan:
+    name: Vulnerability Assessment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.1
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5.0.2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Run govulncheck
+        run: |
+          echo "Installing govulncheck..."
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          
+          echo "Running vulnerability scan..."
+          govulncheck -json ./... > vulncheck-results.json 2>&1 || true
+          
+          # Also generate text output for readability
+          govulncheck ./... > vulncheck-results.txt 2>&1 || true
+          
+          # Generate summary
+          echo "# Vulnerability Scan Results" > vulncheck-summary.md
+          echo "" >> vulncheck-summary.md
+          
+          if [ -f vulncheck-results.json ]; then
+            # Parse JSON for summary (basic parsing)
+            echo "Scan completed. Check detailed results in artifacts." >> vulncheck-summary.md
+          fi
+
+      - name: Nancy dependency scan
+        run: |
+          echo "Installing nancy..."
+          go install github.com/sonatype-nexus-community/nancy@latest
+          
+          echo "Running dependency vulnerability scan..."
+          go list -json -deps ./... | nancy sleuth > nancy-results.txt 2>&1 || true
+          
+          # Check for vulnerabilities
+          if grep -q "Vulnerable Packages Found" nancy-results.txt; then
+            echo "⚠️ Vulnerable dependencies detected!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            grep -A 50 "Vulnerable Packages Found" nancy-results.txt >> $GITHUB_STEP_SUMMARY || true
+          else
+            echo "✅ No vulnerable dependencies found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload vulnerability reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-reports
+          path: |
+            vulncheck-results.json
+            vulncheck-results.txt
+            vulncheck-summary.md
+            nancy-results.txt
+          retention-days: 30
+
+  # =============================================================================
+  # LICENSE COMPLIANCE: Ensure license compatibility
+  # =============================================================================
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: github.event.inputs.scan_depth == 'comprehensive' || github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.1
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5.0.2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Check licenses
+        run: |
+          echo "Installing go-licenses..."
+          go install github.com/google/go-licenses@latest
+          
+          echo "Checking license compliance..."
+          go-licenses report ./... > license-report.csv 2>&1 || true
+          
+          # Check for problematic licenses
+          go-licenses check ./... > license-check.txt 2>&1 || {
+            echo "⚠️ License compliance issues detected"
+            cat license-check.txt
+          }
+          
+          echo "# License Compliance Report" > license-summary.md
+          echo "" >> license-summary.md
+          echo "License report generated. Check artifacts for details." >> license-summary.md
+
+      - name: Upload license reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-reports
+          path: |
+            license-report.csv
+            license-check.txt
+            license-summary.md
+          retention-days: 30
+
+  # =============================================================================
+  # OWASP CHECKS: Additional OWASP-specific security checks
+  # =============================================================================
+  owasp-checks:
+    name: OWASP Security Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    if: github.event.inputs.scan_depth != 'quick'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.1
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v5.0.2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: OWASP dependency check
+        run: |
+          echo "# OWASP Security Check Results" > owasp-summary.md
+          echo "" >> owasp-summary.md
+          
+          # Check for common OWASP Top 10 patterns in Go code
+          echo "## Checking for OWASP Top 10 patterns..." >> owasp-summary.md
+          
+          # A1: Injection checks
+          echo "### A1 - Injection Vulnerabilities" >> owasp-summary.md
+          if grep -r "fmt.Sprintf.*SELECT\|UPDATE\|DELETE\|INSERT" --include="*.go" .; then
+            echo "⚠️ Potential SQL injection patterns found" >> owasp-summary.md
+          else
+            echo "✅ No obvious SQL injection patterns" >> owasp-summary.md
+          fi
+          
+          # A2: Broken Authentication
+          echo "### A2 - Authentication Issues" >> owasp-summary.md
+          if grep -r "password.*=.*\"" --include="*.go" .; then
+            echo "⚠️ Hardcoded passwords detected" >> owasp-summary.md
+          else
+            echo "✅ No hardcoded passwords found" >> owasp-summary.md
+          fi
+          
+          # A3: Sensitive Data Exposure
+          echo "### A3 - Sensitive Data Exposure" >> owasp-summary.md
+          if grep -r "http://" --include="*.go" . | grep -v "http://localhost" | grep -v "test"; then
+            echo "⚠️ Unencrypted HTTP connections found" >> owasp-summary.md
+          else
+            echo "✅ No unencrypted external connections" >> owasp-summary.md
+          fi
+          
+          # A5: Security Misconfiguration
+          echo "### A5 - Security Misconfiguration" >> owasp-summary.md
+          if grep -r "InsecureSkipVerify.*true" --include="*.go" .; then
+            echo "⚠️ TLS verification disabled" >> owasp-summary.md
+          else
+            echo "✅ TLS verification properly configured" >> owasp-summary.md
+          fi
+
+      - name: Upload OWASP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-reports
+          path: |
+            owasp-summary.md
+          retention-days: 30
+
+  # =============================================================================
+  # SECURITY SUMMARY: Aggregate results and create report
+  # =============================================================================
+  security-summary:
+    name: Security Summary Report
+    runs-on: ubuntu-latest
+    needs: [gosec-scan, vulnerability-scan, license-compliance, owasp-checks]
+    if: always()
+    timeout-minutes: 5
+
+    steps:
+      - name: Download all security artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: security-artifacts
+
+      - name: Generate comprehensive security report
+        run: |
+          echo "# 🔒 Nephoran Security Scan - Comprehensive Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Depth:** ${{ env.SCAN_DEPTH }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 📊 Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "| Scanner | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Gosec | ${{ needs.gosec-scan.result }} | AST/SSA security analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerability Scan | ${{ needs.vulnerability-scan.result }} | Known CVE detection |" >> $GITHUB_STEP_SUMMARY
+          echo "| License Compliance | ${{ needs.license-compliance.result }} | License compatibility check |" >> $GITHUB_STEP_SUMMARY
+          echo "| OWASP Checks | ${{ needs.owasp-checks.result }} | OWASP Top 10 patterns |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add key findings if available
+          if [ -d "security-artifacts" ]; then
+            echo "## 🔍 Key Findings" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Check for gosec summary
+            if [ -f "security-artifacts/gosec-reports/gosec-summary.md" ]; then
+              echo "### Gosec Analysis" >> $GITHUB_STEP_SUMMARY
+              tail -n 20 "security-artifacts/gosec-reports/gosec-summary.md" >> $GITHUB_STEP_SUMMARY || true
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Check for vulnerability summary
+            if [ -f "security-artifacts/vulnerability-reports/vulncheck-summary.md" ]; then
+              echo "### Vulnerability Assessment" >> $GITHUB_STEP_SUMMARY
+              cat "security-artifacts/vulnerability-reports/vulncheck-summary.md" >> $GITHUB_STEP_SUMMARY || true
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "## 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review detailed reports in the workflow artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. Address any critical or high severity findings" >> $GITHUB_STEP_SUMMARY
+          echo "3. Update dependencies with known vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          echo "4. Implement recommended security headers and configurations" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create consolidated security report
+        if: always()
+        run: |
+          # Create a consolidated report file
+          echo "# Nephoran Security Scan Report" > consolidated-security-report.md
+          echo "Generated: $(date -u +"%Y-%m-%d %H:%M UTC")" >> consolidated-security-report.md
+          echo "" >> consolidated-security-report.md
+          
+          # Add all summaries
+          for summary in security-artifacts/*/[!.]*.md; do
+            if [ -f "$summary" ]; then
+              echo "---" >> consolidated-security-report.md
+              cat "$summary" >> consolidated-security-report.md
+              echo "" >> consolidated-security-report.md
+            fi
+          done
+
+      - name: Upload consolidated report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-consolidated
+          path: consolidated-security-report.md
+          retention-days: 30
