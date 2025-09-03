@@ -77,13 +77,10 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Get file modification time
+# Get file modification time (Linux only)
 get_file_mtime() {
     if [[ -f "$1" ]]; then
-        case "$(uname)" in
-            Darwin) stat -f %m "$1" ;;
-            *) stat -c %Y "$1" ;;
-        esac
+        stat -c %Y "$1"
     else
         echo "0"
     fi

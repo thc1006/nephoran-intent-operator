@@ -414,10 +414,9 @@ func TestGoogleProvider_GetUserInfo(t *testing.T) {
 			case "invalid-token":
 				w.WriteHeader(http.StatusUnauthorized)
 				response := map[string]interface{}{
-						"code":    401,
-						"message": "Invalid Credentials",
-						"status":  "UNAUTHENTICATED",
-					},
+					"code":    401,
+					"message": "Invalid Credentials",
+					"status":  "UNAUTHENTICATED",
 				}
 				json.NewEncoder(w).Encode(response)
 			default:

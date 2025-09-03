@@ -245,7 +245,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 					{Name: "debug", Port: 8080, Protocol: "TCP"},
 				},
 				// O-RAN specific capabilities
-				Capabilities: json.RawMessage(`{}`),
+				Capabilities: map[string]interface{}{
 					"networkAcceleration":   []string{"SRIOV", "DPDK"},
 					"storageTypes":          []string{"SSD", "NVMe", "HDD"},
 					"virtualizationSupport": true,

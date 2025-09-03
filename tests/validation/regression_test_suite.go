@@ -4,6 +4,7 @@ package test_validation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -561,7 +562,7 @@ func detectCIEnvironment() bool {
 // GetRegressionMetrics returns current regression metrics for monitoring.
 
 func (rts *RegressionTestSuite) GetRegressionMetrics() map[string]interface{} {
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{}
 }
 
 func (rts *RegressionTestSuite) getBaselineCount() int {

@@ -230,7 +230,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				Action:    "suspicious_activity",
 				Severity:  SeverityCritical,
 				Result:    ResultFailure,
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 		}
 
@@ -352,7 +352,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Operation:    "update",
 				Namespace:    "default",
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		}
 
 		err := suite.auditSystem.LogEvent(reconcileEvent)
@@ -390,7 +390,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Operation:    "create",
 				Namespace:    "production",
 			},
-			Data: json.RawMessage(`{}`),
+			Data: map[string]interface{}{},
 		}
 
 		err := suite.auditSystem.LogEvent(admissionEvent)
@@ -418,8 +418,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				UserAgent: "kubectl/v1.28.0",
 				RequestID: "req-" + uuid.New().String(),
 			},
-			Data: json.RawMessage(`{}`),
-			},
+			Data: map[string]interface{}{},
 		}
 
 		err := suite.auditSystem.LogEvent(authEvent)
@@ -496,7 +495,7 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 						UserContext: &UserContext{
 							UserID: fmt.Sprintf("user-%d", goroutineID),
 						},
-						Data: json.RawMessage(`{}`),
+						Data: map[string]interface{}{},
 					}
 
 					err := suite.auditSystem.LogEvent(event)
@@ -669,7 +668,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID:     "compliance-user-1",
 					AuthMethod: "mfa",
 				},
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 			{
 				ID:                 uuid.New().String(),
@@ -684,7 +683,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID: "payment-processor",
 					Role:   "service_account",
 				},
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 			{
 				ID:        uuid.New().String(),
@@ -697,7 +696,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				UserContext: &UserContext{
 					UserID: "suspicious-user",
 				},
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 		}
 
@@ -853,7 +852,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					Operation:    "create",
 					APIVersion:   "v1",
 				},
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 			{
 				ID:        uuid.New().String(),
@@ -873,7 +872,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					Operation:    "get",
 					APIVersion:   "v1",
 				},
-				Data: json.RawMessage(`{}`),
+				Data: map[string]interface{}{},
 			},
 		}
 

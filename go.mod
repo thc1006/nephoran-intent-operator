@@ -74,6 +74,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.38.0
+	github.com/tsenart/vegeta v12.7.0+incompatible
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/valyala/fastjson v1.6.4
 	github.com/vmware/govmomi v0.52.0

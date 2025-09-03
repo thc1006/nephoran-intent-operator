@@ -49,7 +49,7 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]any) bool 
 }
 
 // TestNETCONFOperations tests NETCONF protocol operations for O1 testing.
-func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.WithCancel) bool {
+func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bool {
 	// Simulate NETCONF session establishment
 	session := map[string]any{
 		"transport": "SSH",
@@ -119,21 +119,3 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 	return exists
 }
 
-// ValidateCloudProviderConfig validates cloud provider configuration for O2 testing.
-func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string]any) bool {
-	requiredFields := []string{"provider", "region", "resources"}
-
-	for _, field := range requiredFields {
-		if _, exists := config[field].(string); !exists {
-			return false
-		}
-	}
-
-	// Validate resources section
-	resources, exists := config["resources"].(map[string]any)
-	if !exists || len(resources) == 0 {
-		return false
-	}
-
-	return true
-}

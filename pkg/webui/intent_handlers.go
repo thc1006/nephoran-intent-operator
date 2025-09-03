@@ -198,7 +198,8 @@ func (s *NephoranAPIServer) setupIntentRoutes(router *mux.Router) {
 
 	intents.HandleFunc("/{name}/logs", s.getIntentLogs).Methods("GET")
 
-	intents.HandleFunc("/{name}/metrics", s.getIntentMetrics).Methods("GET")
+	// Metrics endpoint - not implemented in this version
+	// intents.HandleFunc("/{name}/metrics", s.getIntentMetrics).Methods("GET")
 
 	// Intent operations.
 
@@ -1273,14 +1274,7 @@ func mustMarshalString(v interface{}) string {
 func (s *NephoranAPIServer) getIntentEvents(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	intentID := vars["id"]
-
-	events := []json.RawMessage(`{}`),
-
-		{"type": "processing", "timestamp": time.Now().Add(-8 * time.Minute), "message": "Intent processing started"},
-
-		{"type": "completed", "timestamp": time.Now().Add(-5 * time.Minute), "message": "Intent completed successfully"},
-	}
+	_ = vars["id"] // intentID would be used in full implementation
 
 	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -1290,14 +1284,7 @@ func (s *NephoranAPIServer) getIntentEvents(w http.ResponseWriter, r *http.Reque
 func (s *NephoranAPIServer) getIntentLogs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	intentID := vars["id"]
-
-	logs := []json.RawMessage(`{}`),
-
-		{"level": "INFO", "timestamp": time.Now().Add(-8 * time.Minute), "message": "Validating configuration"},
-
-		{"level": "INFO", "timestamp": time.Now().Add(-5 * time.Minute), "message": "Intent completed"},
-	}
+	_ = vars["id"] // intentID would be used in full implementation
 
 	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -1307,7 +1294,7 @@ func (s *NephoranAPIServer) getIntentLogs(w http.ResponseWriter, r *http.Request
 func (s *NephoranAPIServer) validateIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	intentID := vars["id"]
+	_ = vars["id"] // intentID would be used in full implementation
 
 	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -1317,7 +1304,7 @@ func (s *NephoranAPIServer) validateIntent(w http.ResponseWriter, r *http.Reques
 func (s *NephoranAPIServer) retryIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	intentID := vars["id"]
+	_ = vars["id"] // intentID would be used in full implementation
 
 	s.writeJSONResponse(w, http.StatusAccepted, json.RawMessage(`{}`))
 }
@@ -1327,7 +1314,7 @@ func (s *NephoranAPIServer) retryIntent(w http.ResponseWriter, r *http.Request) 
 func (s *NephoranAPIServer) cancelIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	intentID := vars["id"]
+	_ = vars["id"] // intentID would be used in full implementation
 
 	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
@@ -1335,38 +1322,23 @@ func (s *NephoranAPIServer) cancelIntent(w http.ResponseWriter, r *http.Request)
 // getIntentTemplates handles GET /api/v1/intents/templates.
 
 func (s *NephoranAPIServer) getIntentTemplates(w http.ResponseWriter, r *http.Request) {
-	templates := []json.RawMessage(`{}`),
-
-		{"name": "scale-down", "description": "Scale down network functions", "type": "scaling"},
-
-		{"name": "deploy-cnf", "description": "Deploy cloud-native network function", "type": "deployment"},
-	}
-
 	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // getIntentSuggestions handles GET /api/v1/intents/suggestions.
 
 func (s *NephoranAPIServer) getIntentSuggestions(w http.ResponseWriter, r *http.Request) {
-	suggestions := []json.RawMessage(`{}`),
-
-		{"text": "Deploy AMF in us-west region", "type": "deployment", "confidence": 0.87},
-	}
-
 	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`))
 }
 
 // previewIntent handles POST /api/v1/intents/preview.
 
 func (s *NephoranAPIServer) previewIntent(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`){
-			"estimated_duration": "2-5 minutes",
-
-			"affected_resources": []string{"deployment/upf", "service/upf-service"},
-
-			"validation_status": "valid",
-		},
-	})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{
+		"estimated_duration": "2-5 minutes",
+		"affected_resources": ["deployment/upf", "service/upf-service"],
+		"validation_status": "valid"
+	}`))
 }
 
 // bulkCreateIntents handles POST /api/v1/intents/bulk.
@@ -1384,12 +1356,10 @@ func (s *NephoranAPIServer) bulkDeleteIntents(w http.ResponseWriter, r *http.Req
 // bulkGetIntentStatus handles GET /api/v1/intents/bulk/status.
 
 func (s *NephoranAPIServer) bulkGetIntentStatus(w http.ResponseWriter, r *http.Request) {
-	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`{}`){
-			{"id": "intent-1", "status": "completed"},
-
-			{"id": "intent-2", "status": "processing"},
-		},
-	})
+	s.writeJSONResponse(w, http.StatusOK, json.RawMessage(`[
+		{"id": "intent-1", "status": "completed"},
+		{"id": "intent-2", "status": "processing"}
+	]`))
 }
 
 // Additional intent operation handlers would go here...

@@ -1,13 +1,24 @@
 # =============================================================================
-# ULTRA-FAST PR CI - 3 Minute Pipeline
+# DEPRECATED: Use pr-validation.yml instead  
 # =============================================================================
-# Lightning-fast CI for pull requests with essential checks only
+# This workflow is deprecated as of 2025-01-XX
+# Please migrate to pr-validation.yml which addresses:
+# - Cache key generation failures
+# - Tar extraction errors  
+# - Better Go 1.25.0 optimization
+# - Enhanced error handling and reliability
 # =============================================================================
 
-name: PR CI (Ultra Fast)
+name: "[DEPRECATED] PR CI (Ultra Fast)"
 
+# COMPLETELY DISABLED - No triggers to prevent conflicts
 on:
-  pull_request:
+  # DISABLED: This workflow is deprecated - use pr-validation.yml
+  workflow_dispatch: {}
+
+# ORIGINAL TRIGGERS - DISABLED
+# on:
+#   pull_request:
     branches: [ main, integrate/mvp ]
     types: [ opened, synchronize, ready_for_review ]
   workflow_dispatch:
@@ -25,7 +36,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.24.6"
+  GO_VERSION: "1.25.0"
   GOPRIVATE: "github.com/thc1006/*"
   SKIP_TESTS: ${{ github.event.inputs.skip_tests == 'true' || contains(github.event.head_commit.message, '[skip-tests]') }}
 
@@ -35,6 +46,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
+      - name: "⚠️ DEPRECATION WARNING"
+        run: |
+          echo "🚨 WARNING: This workflow is DEPRECATED"
+          echo "🔄 Please use pr-validation.yml instead"
+          echo "📖 See .github/workflows/DEPRECATED-WORKFLOWS.md for migration guide"
+          echo ""
+          echo "This workflow will be removed in 2025-03-XX"
+          echo ""
+          
       - uses: actions/checkout@v4
       
       - name: Setup Go with aggressive caching

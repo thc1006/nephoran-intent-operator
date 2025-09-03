@@ -1,27 +1,18 @@
-name: Optimized CI Pipeline
+name: Optimized CI Pipeline - DISABLED
+# DISABLED: Overlapping with ci-production.yml
+# This workflow has been consolidated into the main ci-production.yml workflow
 
+# DISABLED - No triggers to prevent conflicts
 on:
-  push:
-    branches: 
-      - main
-      - 'feat/**'
-      - 'fix/**'
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/ci-optimized.yml'
-      - 'Makefile*'
-  pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_dispatch:
+  # DISABLED: This workflow is consolidated into ci-production.yml
+  workflow_dispatch: {}
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.24.6"  # Fixed to actual Go version
+  GO_VERSION: "1.25.0"  # Updated to latest stable version
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   CGO_ENABLED: "0"

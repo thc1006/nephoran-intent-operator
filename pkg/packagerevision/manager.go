@@ -1445,7 +1445,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 
 		Success: true,
 
-		Metadata: make(map[string]interface{}),
+		Metadata: json.RawMessage(`{}`),
 	}
 
 	// Get current package state.

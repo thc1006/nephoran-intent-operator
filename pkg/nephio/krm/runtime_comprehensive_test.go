@@ -241,7 +241,6 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				Config: &FunctionConfig{
 					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 					ConfigMap: json.RawMessage(`{}`),
-					},
 				},
 				Input: []KRMResource{
 					generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),

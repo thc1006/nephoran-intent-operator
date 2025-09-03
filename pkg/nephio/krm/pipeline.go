@@ -906,11 +906,15 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 
 		Errors: []ExecutionError{},
 
-		Variables: p.convertAndInitializeVariables(definition.Variables),
+		Variables: func() json.RawMessage {
+			vars := p.convertAndInitializeVariables(definition.Variables)
+			data, _ := json.Marshal(vars)
+			return json.RawMessage(data)
+		}(),
 
 		Checkpoints: []*ExecutionCheckpoint{},
 
-		Context: make(map[string]interface{}),
+		Context: json.RawMessage(`{}`),
 
 		Metadata: make(map[string]string),
 	}
@@ -1049,7 +1053,7 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 
 		Functions: make(map[string]*FunctionExecution),
 
-		Output: make(map[string]interface{}),
+		Output: json.RawMessage(`{}`),
 	}
 
 	span.SetAttributes(
@@ -1077,7 +1081,15 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 
 	// Check conditions.
 
-	if !p.evaluateConditions(stage.Conditions, execution.Variables, resources) {
+	// Convert Variables from json.RawMessage to map[string]interface{}
+	var variables map[string]interface{}
+	if len(execution.Variables) > 0 {
+		json.Unmarshal(execution.Variables, &variables)
+	} else {
+		variables = make(map[string]interface{})
+	}
+	
+	if !p.evaluateConditions(stage.Conditions, variables, resources) {
 
 		logger.Info("Stage conditions not met, skipping")
 
@@ -1460,7 +1472,13 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 		FunctionConfig: porch.FunctionConfig{
 			Image: function.Image,
 
-			ConfigMap: function.Config,
+			ConfigMap: func() json.RawMessage {
+				if function.Config != nil {
+					data, _ := json.Marshal(function.Config)
+					return json.RawMessage(data)
+				}
+				return json.RawMessage(`{}`)
+			}(),
 
 			Selectors: convertResourceSelectors(function.Selectors),
 		},
@@ -1877,13 +1895,14 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 		name := condition.Parameters["name"].(string)
 
 		for _, resource := range resources {
-			if resource.APIVersion == apiVersion &&
-
-				resource.Kind == kind &&
-
-				resource.Metadata["name"] == name {
-
-				return !condition.Negate
+			if resource.APIVersion == apiVersion && resource.Kind == kind {
+				// Extract name from Metadata
+				var metadata map[string]interface{}
+				if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
+					if resourceName, ok := metadata["name"].(string); ok && resourceName == name {
+						return !condition.Negate
+					}
+				}
 			}
 		}
 
@@ -1925,14 +1944,20 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 		return false
 	}
 
+	// Unmarshal metadata once
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return false
+	}
+
 	if selector.Name != "" {
-		if name, ok := resource.Metadata["name"].(string); !ok || name != selector.Name {
+		if name, ok := metadata["name"].(string); !ok || name != selector.Name {
 			return false
 		}
 	}
 
 	if selector.Namespace != "" {
-		if namespace, ok := resource.Metadata["namespace"].(string); !ok || namespace != selector.Namespace {
+		if namespace, ok := metadata["namespace"].(string); !ok || namespace != selector.Namespace {
 			return false
 		}
 	}
@@ -1940,7 +1965,7 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 	// Check labels.
 
 	for key, value := range selector.Labels {
-		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
+		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
 				return false
 			}

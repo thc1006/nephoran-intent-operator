@@ -2011,6 +2011,19 @@ func (s *SMOMockService) ApplyConfiguration(config *O1Configuration) error {
 	return nil
 }
 
+func (s *SMOMockService) GetConfiguration(configID string) (*O1Configuration, error) {
+	if !s.isHealthy {
+		return nil, fmt.Errorf("SMO service unavailable")
+	}
+	
+	config, exists := s.configurations[configID]
+	if !exists {
+		return nil, fmt.Errorf("configuration not found: %s", configID)
+	}
+	
+	return config, nil
+}
+
 func (s *SMOMockService) Cleanup() {
 	s.managedElements = make(map[string]*ManagedElement)
 	s.configurations = make(map[string]*O1Configuration)

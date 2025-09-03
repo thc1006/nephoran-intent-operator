@@ -1,0 +1,97 @@
+name: Go Module Cache Management
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  cache-modules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go 1.25.0
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false  # Disable default caching mechanism
+      
+      - name: Configure Go Module Cache
+        env:
+          # Ensure predictable and secure module cache location
+          GOMODCACHE: /home/runner/.cache/go-mod
+          GOCACHE: /home/runner/.cache/go-build
+        run: |
+          # Ensure module cache directory exists with correct permissions
+          mkdir -p $GOMODCACHE
+          mkdir -p $GOCACHE
+          
+          # Set restrictive but accessible permissions
+          chmod 755 $GOMODCACHE
+          chmod 755 $GOCACHE
+          
+          # Configure Go to use these specific paths
+          go env -w GOMODCACHE=$GOMODCACHE
+          go env -w GOCACHE=$GOCACHE
+      
+      - name: Restore Go Modules Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Verify Module Cache Permissions
+        run: |
+          # Verify module cache directory permissions and ownership
+          ls -ld $GOMODCACHE
+          ls -ld $GOCACHE
+          
+          # Check for any problematic files
+          find $GOMODCACHE -type f -perm /go+w | xargs -r chmod go-w
+          find $GOCACHE -type f -perm /go+w | xargs -r chmod go-w
+      
+      - name: Download and Verify Go Modules
+        run: |
+          # Clean existing module cache to prevent conflicts
+          go clean -modcache
+          
+          # Explicitly download modules with verbose output
+          go mod download -x
+          
+          # Verify module integrity
+          go mod verify
+      
+      - name: Tar Extraction Safeguards
+        run: |
+          # Detect and handle existing files during tar extraction
+          cat > safe-tar-extract.sh <<'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          
+          # Custom safe tar extraction with overwrite protection
+          safe_extract() {
+            local tarfile="$1"
+            local target="$2"
+            
+            # Remove existing files to prevent conflicts
+            find "$target" -type f -delete 2>/dev/null || true
+            
+            # Extract with verbose logging
+            tar -xvf "$tarfile" -C "$target" --keep-old-files
+          }
+          
+          safe_extract "$@"
+          EOF
+          
+          chmod +x safe-tar-extract.sh
+      
+      - name: Final Verification
+        run: |
+          # Comprehensive module cache verification
+          go version
+          go env | grep -E "GOMODCACHE|GOCACHE"
+          go mod graph

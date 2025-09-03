@@ -4,22 +4,14 @@
 # Ubuntu-only, Go 1.25, smart caching, and parallel execution
 # =============================================================================
 
-name: Main CI (Optimized)
+name: Main CI (Optimized) - DISABLED
+# DISABLED: Overlapping with ci-production.yml
+# This workflow has been consolidated into the main ci-production.yml workflow
 
+# DISABLED - No triggers to prevent conflicts
 on:
-  push:
-    branches: [ main, integrate/mvp ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-  workflow_dispatch:
-    inputs:
-      fast_mode:
-        description: 'Use ultra-fast mode'
-        type: boolean
-        default: false
+  # DISABLED: This workflow is consolidated into ci-production.yml
+  workflow_dispatch: {}
 
 # Single runner per branch - no overlapping runs
 concurrency:
@@ -32,7 +24,7 @@ permissions:
   security-events: write
 
 env:
-  GO_VERSION: "1.25"  # Updated to latest stable version (released Aug 2025)
+  GO_VERSION: "1.25.0"  # Updated to latest stable version (released Aug 2025)
   GO_CACHE_KEY: "nephoran-go-cache-v2"
   GOPROXY: "https://proxy.golang.org,direct"
   FAST_MODE: ${{ github.event.inputs.fast_mode == 'true' || contains(github.event.head_commit.message, '[fast]') }}

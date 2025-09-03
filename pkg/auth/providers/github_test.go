@@ -299,8 +299,7 @@ func TestGitHubProvider_GetUserInfo(t *testing.T) {
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
 			if token == "no-email-token" {
-				emails := []json.RawMessage(`{}`),
-				}
+				emails := []json.RawMessage{json.RawMessage(`{}`)}
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(emails)
 			}

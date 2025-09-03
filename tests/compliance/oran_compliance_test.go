@@ -285,10 +285,9 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_PolicyCoordination", func() {
 		// Test policy coordination
 		policy := map[string]interface{}{
-				"ric_ids":  []string{"ric_001", "ric_002"},
-				"cell_ids": []string{"cell_001", "cell_002"},
-			},
-			"objectives": json.RawMessage(`{}`),
+			"ric_ids":    []string{"ric_001", "ric_002"},
+			"cell_ids":   []string{"cell_001", "cell_002"},
+			"objectives": map[string]interface{}{},
 		}
 
 		resp := s.makeRequest("POST", "/SMO/v1/policies/coordinate", policy)

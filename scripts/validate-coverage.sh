@@ -27,7 +27,7 @@ set -e
 # Step 3: Check if coverage file was generated
 echo "Step 3: Checking coverage file..."
 if [ -f "$COVERAGE_FILE" ]; then
-    file_size=$(stat -c%s "$COVERAGE_FILE" 2>/dev/null || stat -f%z "$COVERAGE_FILE" 2>/dev/null || echo "unknown")
+    file_size=$(stat -c%s "$COVERAGE_FILE" 2>/dev/null || echo "unknown")
     echo "✅ Coverage file generated: $COVERAGE_FILE ($file_size bytes)"
     
     # Generate HTML report

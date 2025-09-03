@@ -11,6 +11,35 @@ import (
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
+// ORANTestFactory provides factory methods for creating test data.
+type ORANTestFactory struct {
+	nameCounter int
+	timeBase    time.Time
+}
+
+// NewORANTestFactory creates a new instance of ORANTestFactory.
+func NewORANTestFactory() *ORANTestFactory {
+	return &ORANTestFactory{
+		nameCounter: 0,
+		timeBase:    time.Now(),
+	}
+}
+
+// GetNextName generates a unique name with a prefix
+func (otf *ORANTestFactory) GetNextName(prefix string) string {
+	otf.nameCounter++
+	return fmt.Sprintf("%s-%d", prefix, otf.nameCounter)
+}
+
+// CreateE2Node creates a test E2 node configuration.
+func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
+	return &E2Node{
+		NodeID:   fmt.Sprintf("%s-node-001", nodeType),
+		NodeType: nodeType,
+		Status:   "CONNECTED",
+	}
+}
+
 // CreateA1Policy creates a test A1 policy with strongly typed handling.
 func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 	var policyData map[string]any
@@ -51,10 +80,12 @@ func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 		}
 	}
 
+	policyDataBytes, _ := json.Marshal(policyData)
+	
 	return &A1Policy{
 		PolicyID:      otf.GetNextName("policy"),
 		PolicyTypeID:  policyType,
-		PolicyData:    policyData,
+		PolicyData:    json.RawMessage(policyDataBytes),
 		Status:        "ACTIVE",
 		CreatedAt:     otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Second),
 		UpdatedAt:     otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Second),
@@ -105,11 +136,50 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 		}
 	}
 
+	configDataBytes, _ := json.Marshal(configData)
+	
 	return &XAppConfig{
 		Name:       otf.GetNextName("xapp-" + xappType),
 		Version:    "1.0.0",
-		ConfigData: configData,
+		ConfigData: json.RawMessage(configDataBytes),
 		Status:     "RUNNING",
 		DeployedAt: otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Minute),
+	}
+}
+
+// CreateManagedElement creates a test O1 managed element
+func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedElement {
+	return &ManagedElement{
+		ElementID:     fmt.Sprintf("%s-element-%d", elementType, otf.nameCounter+1),
+		ElementType:   elementType,
+		Configuration: json.RawMessage(`{}`),
+		Status:        "ACTIVE",
+		LastSync:      time.Now(),
+	}
+}
+
+// CreateO1Configuration creates a test O1 configuration
+func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) *O1Configuration {
+	otf.nameCounter++
+	return &O1Configuration{
+		ConfigID:   fmt.Sprintf("%s-config-%d", configType, otf.nameCounter),
+		ElementID:  elementID,
+		ConfigType: configType,
+		ConfigData: json.RawMessage(`{}`),
+		Version:    1,
+	}
+}
+
+// CreateE2Subscription creates a test E2 subscription
+func (otf *ORANTestFactory) CreateE2Subscription(nodeID, serviceModel string) *E2Subscription {
+	otf.nameCounter++
+	return &E2Subscription{
+		SubscriptionID: fmt.Sprintf("sub-%d", otf.nameCounter),
+		NodeID:         nodeID,
+		ServiceModel:   serviceModel,
+		EventTrigger:   json.RawMessage(`{}`),
+		Actions:        []E2Action{},
+		Status:         "ACTIVE",
+		CreatedAt:      time.Now(),
 	}
 }

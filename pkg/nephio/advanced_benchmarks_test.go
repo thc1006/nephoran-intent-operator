@@ -742,9 +742,9 @@ func generateResourceSpec(sizeBytes int) map[string]interface{} {
 					{
 						"name":  "main",
 						"image": "nginx:latest",
-						"ports": []json.RawMessage(`{}`),
-						},
+						"ports": []json.RawMessage{json.RawMessage(`{}`)},
 					},
+				},
 				},
 			},
 		},

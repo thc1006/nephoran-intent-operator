@@ -852,6 +852,8 @@ github.com/tklauser/go-sysconf v0.3.12 h1:0QaGUFOdQaIVdPgfITYzaTegZvdCjmYO52cSFA
 github.com/tklauser/go-sysconf v0.3.12/go.mod h1:Ho14jnntGE1fpdOqQEEaiKRpvIavV0hSfmBq8nJbHYI=
 github.com/tklauser/numcpus v0.6.1 h1:ng9scYS7az0Bk4OZLvrNXNSAO2Pxr1XXRAPyjhIx+Fk=
 github.com/tklauser/numcpus v0.6.1/go.mod h1:1XfjsgE2zo8GVw7POkMbHENHzVg3GzmoZ9fESEdAacY=
+github.com/tsenart/vegeta v12.7.0+incompatible h1:sGlrv11EMxQoKOlDuMWR23UdL90LE5VlhKw/6PWkZmU=
+github.com/tsenart/vegeta v12.7.0+incompatible/go.mod h1:Smz/ZWfhKRcyDDChZkG3CyTHdj87lHzio/HOCkbndXM=
 github.com/tsenart/vegeta/v12 v12.12.0 h1:FKMMNomd3auAElO/TtbXzRFXAKGee6N/GKCGweFVm2U=
 github.com/tsenart/vegeta/v12 v12.12.0/go.mod h1:gpdfR++WHV9/RZh4oux0f6lNPhsOH8pCjIGUlcPQe1M=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=

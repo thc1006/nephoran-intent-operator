@@ -10,10 +10,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
@@ -42,7 +42,12 @@ func (h *BufferLogHandler) Enabled(ctx context.Context, level slog.Level) bool {
 // Handle implements slog.Handler.Handle
 func (h *BufferLogHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Create a structured log entry
-	entry := json.RawMessage(`{}`)
+	entry := make(map[string]interface{})
+
+	// Add basic fields
+	entry["message"] = record.Message
+	entry["level"] = record.Level.String()
+	entry["time"] = record.Time.Format("2006-01-02T15:04:05.000Z")
 
 	// Add record attributes
 	record.Attrs(func(attr slog.Attr) bool {
@@ -144,7 +149,7 @@ func (m *MockStreamingProcessor) GetMetrics() map[string]interface{} {
 	if m.getMetricsFunc != nil {
 		return m.getMetricsFunc()
 	}
-	return json.RawMessage(`{}`)
+	return make(map[string]interface{})
 }
 
 // TestStructuredLoggingInStreamingHandler tests that structured logging works correctly
@@ -744,7 +749,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 	}{
 		{
 			name:            "No circuit breakers registered",
-			stats:           json.RawMessage(`{}`),
+			stats:           make(map[string]interface{}),
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "No circuit breakers registered",
 			expectUnhealthy: false,
@@ -754,7 +759,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			stats: map[string]interface{}{
 				"state":     "closed",
 				"failures":  0,
-				"service-b": json.RawMessage(`{}`),
+				"service-b": make(map[string]interface{}),
 			},
 			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
@@ -785,8 +790,8 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			stats: map[string]interface{}{
 				"state":     "closed",
 				"failures":  0,
-				"service-b": json.RawMessage(`{}`),
-				"service-c": json.RawMessage(`{}`),
+				"service-b": make(map[string]interface{}),
+				"service-c": make(map[string]interface{}),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
@@ -799,7 +804,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 					"state":    "open",
 					"failures": 3,
 				},
-				"service-b": json.RawMessage(`{}`),
+				"service-b": make(map[string]interface{}),
 			},
 			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a, service-b]",
@@ -841,10 +846,10 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
 
 			// Create service manager with mock components
-			sm := &ServiceManager{
-				circuitBreakerMgr: mockCBMgr,
-				healthChecker:     healthChecker,
-			}
+			cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+			sm := NewServiceManager(cfg, slog.Default())
+			sm.circuitBreakerMgr = mockCBMgr
+			sm.healthChecker = healthChecker
 
 			// Register health checks (including circuit breaker check)
 			sm.registerHealthChecks()
@@ -893,10 +898,10 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		}
 
 		healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
-		sm := &ServiceManager{
-			circuitBreakerMgr: mockCBMgr,
-			healthChecker:     healthChecker,
-		}
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, slog.Default())
+		sm.circuitBreakerMgr = mockCBMgr
+		sm.healthChecker = healthChecker
 
 		// Register health checks
 		sm.registerHealthChecks()
@@ -912,10 +917,10 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 
 	t.Run("without_circuit_breaker_manager", func(t *testing.T) {
 		healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
-		sm := &ServiceManager{
-			circuitBreakerMgr: nil, // No circuit breaker manager
-			healthChecker:     healthChecker,
-		}
+		cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+		sm := NewServiceManager(cfg, slog.Default())
+		sm.circuitBreakerMgr = nil // No circuit breaker manager
+		sm.healthChecker = healthChecker
 
 		// Register health checks
 		sm.registerHealthChecks()
@@ -934,15 +939,15 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 	// Create a large number of circuit breakers for benchmarking
 	stats := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		stats[fmt.Sprintf("service-%d", i)] = json.RawMessage(`{}`)
+		stats[fmt.Sprintf("service-%d", i)] = make(map[string]interface{})
 	}
 
 	mockCBMgr := &MockCircuitBreakerManager{stats: stats}
 	healthChecker := health.NewHealthChecker("test-service", "v1.0.0", slog.Default())
-	sm := &ServiceManager{
-		circuitBreakerMgr: mockCBMgr,
-		healthChecker:     healthChecker,
-	}
+	cfg := &config.LLMProcessorConfig{ServiceVersion: "test-1.0.0"}
+	sm := NewServiceManager(cfg, slog.Default())
+	sm.circuitBreakerMgr = mockCBMgr
+	sm.healthChecker = healthChecker
 
 	sm.registerHealthChecks()
 	ctx := context.Background()

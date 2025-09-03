@@ -12,15 +12,16 @@ name: Ubuntu CI
 on:
   workflow_dispatch: {}
 
+# STANDARDIZED concurrency group
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: nephoran-ubuntu-ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.24.6"
+  GO_VERSION: "1.25.0"
   GOLANGCI_LINT_VERSION: "v1.64.3"  # 2025 compatibility
   ENVTEST_K8S_VERSION: "1.31.0"      # Latest stable for envtest
 
@@ -36,12 +37,12 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
         with:
           go-version-file: go.mod
           check-latest: true
@@ -252,7 +253,7 @@ jobs:
 
       - name: Upload lint reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
         with:
           name: lint-reports-ubuntu
           path: |
@@ -269,12 +270,12 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
         with:
           go-version-file: go.mod
           check-latest: true
@@ -313,7 +314,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
         with:
           name: test-results-ubuntu
           path: test-results/
@@ -330,10 +331,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
         with:
           go-version-file: go.mod
           check-latest: true

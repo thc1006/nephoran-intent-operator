@@ -1,4 +1,4 @@
-package validation
+package test_validation
 
 import (
 	"encoding/json"
@@ -7,6 +7,41 @@ import (
 	
 	vegeta "github.com/tsenart/vegeta/lib"
 )
+
+// AdvancedLoadGenerator provides advanced load generation capabilities.
+type AdvancedLoadGenerator struct {
+	// Add load generator configuration fields
+}
+
+// ConstantRateScenario represents a constant rate load scenario.
+type ConstantRateScenario struct {
+	Rate     int
+	Duration time.Duration
+}
+
+// RampUpScenario represents a ramp-up load scenario.
+type RampUpScenario struct {
+	StartRate    int
+	EndRate      int
+	Duration     time.Duration
+	StepDuration time.Duration
+}
+
+// SpikeScenario represents a spike load scenario.
+type SpikeScenario struct {
+	BaseRate   int
+	SpikeRate  int
+	SpikeDuration time.Duration
+	Name       string
+}
+
+// LoadRequest represents a load test request.
+type LoadRequest struct {
+	URL     string
+	Method  string
+	Headers map[string]string
+	Body    []byte
+}
 
 // Rest of the file remains the same, but these specific methods are corrected
 
@@ -21,7 +56,7 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 		"Deploy Near-RT RIC",
 	}
 
-	for i, intent := range intents {
+	for i, _ := range intents {
 		// Corrected JSON marshaling
 		body := map[string]interface{}{
 			"metadata": map[string]string{
@@ -37,7 +72,7 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 			Method: "POST",
 			URL: fmt.Sprintf("http://localhost:8080/api/v1/intents"),
 			Body: bodyBytes,
-			Headers: map[string][]string{
+			Header: map[string][]string{
 				"Content-Type": {"application/json"},
 			},
 		})
@@ -91,7 +126,5 @@ func (ss *SpikeScenario) generateRequest(id, rate int) *LoadRequest {
 		URL: "http://localhost:8080/api/v1/intents",
 		Body: bodyBytes,
 		Headers: map[string]string{"Content-Type": "application/json"},
-		Timestamp: time.Now(),
-		ScenarioTag: ss.name,
 	}
 }

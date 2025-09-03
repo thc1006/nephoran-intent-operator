@@ -1,23 +1,35 @@
-name: Parallel Test Execution
+name: Parallel Test Execution - DISABLED
+# DISABLED: Overlapping with ci-production.yml
+# This workflow has been consolidated into the main ci-production.yml workflow
 
+# DISABLED - Only manual dispatch allowed
 on:
   workflow_dispatch:
     inputs:
-      test_suite:
-        description: 'Specific test suite to run'
+      disabled_notice:
+        description: 'This workflow is DISABLED - use ci-production.yml instead'
         required: false
-        type: choice
-        options:
-          - all
-          - unit-core
-          - unit-controllers
-          - unit-internal
-          - integration
-          - security
-          - performance
-        default: 'all'
-  push:
-    branches: [ main, integrate/mvp, "feat/**" ]
+        default: 'DISABLED - Use ci-production.yml instead'
+
+# ORIGINAL TRIGGERS - DISABLED
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       test_suite:
+#         description: 'Specific test suite to run'
+#         required: false
+#         type: choice
+#         options:
+#           - all
+#           - unit-core
+#           - unit-controllers
+#           - unit-internal
+#           - integration
+#           - security
+#           - performance
+#         default: 'all'
+#   push:
+#     branches: [ main, integrate/mvp, "feat/**" ]
   pull_request:
     branches: [ main, integrate/mvp ]
 
@@ -30,7 +42,7 @@ permissions:
   checks: write
 
 env:
-  GO_VERSION: "1.25"  # Updated to latest stable version
+  GO_VERSION: "1.25.0"  # Updated to latest stable version
   GOPROXY: "https://proxy.golang.org,direct"
   REGISTRY: ghcr.io
 
@@ -54,7 +66,7 @@ jobs:
           # Determine which test suites to run based on changes and input
           suites='["unit-core", "unit-controllers", "unit-internal", "integration", "security", "performance"]'
           
-          if [ "${{ github.event.inputs.test_suite }}" != "" ] && [ "${{ github.event.inputs.test_suite }}" != "all" ]: then
+          if [ "${{ github.event.inputs.test_suite }}" != "" ] && [ "${{ github.event.inputs.test_suite }}" != "all" ]; then
             suites='["${{ github.event.inputs.test_suite }}"]'
           fi
           
@@ -170,12 +182,12 @@ jobs:
           test_opts="-v -timeout=${{ matrix.timeout }} -race"
           
           # Add coverage profile for suites that support it
-          if [ "${{ matrix.coverage }}" = "true" ]: then
+          if [ "${{ matrix.coverage }}" = "true" ]; then
             test_opts+=" -coverprofile=coverage-${{ matrix.suite }}.out"
           fi
           
           # Performance and benchmark tests
-          if [ "${{ matrix.suite }}" = "performance" ]: then
+          if [ "${{ matrix.suite }}" = "performance" ]; then
             test_opts+=" -bench=. -benchtime=${{ matrix.benchtime }}"
           fi
           

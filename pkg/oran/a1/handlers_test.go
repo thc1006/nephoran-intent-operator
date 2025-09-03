@@ -28,14 +28,11 @@ func createTestPolicyType() *PolicyType {
 		PolicyTypeName: "test-policy-type",
 		Description:    "Test policy type for unit tests",
 		Schema: map[string]interface{}{
-				"scope": map[string]interface{}{
-						"ue_id": json.RawMessage(`{}`),
-					},
-				},
-				"statement": map[string]interface{}{
-						"qos_class": json.RawMessage(`{}`),
-					},
-				},
+			"scope": map[string]interface{}{
+				"ue_id": map[string]interface{}{},
+			},
+			"statement": map[string]interface{}{
+				"qos_class": map[string]interface{}{},
 			},
 		},
 		CreatedAt:  time.Now(),

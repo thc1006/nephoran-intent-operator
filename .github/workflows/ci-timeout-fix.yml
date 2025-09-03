@@ -1,35 +1,42 @@
-name: CI Timeout Fix Pipeline
-# Optimized CI pipeline designed to prevent build timeouts
-# Focus on critical components only
+name: CI Timeout Fix Pipeline - DISABLED
+# DISABLED: Overlapping with ci-production.yml
+# This workflow has been consolidated into the main ci-production.yml workflow
+# to prevent resource contention and conflicts
+
+# DISABLED - No triggers
+# on:
+#   push:
+#     branches: 
+#       - main
+#       - feat/e2e
+#       - 'feat/**'
+#       - 'fix/**'
+#     paths:
+#       - '**.go'
+#       - 'go.mod'
+#       - 'go.sum'
+#       - 'Makefile*'
+#       - '.github/workflows/ci-timeout-fix.yml'
+#   pull_request:
+#     types: [opened, synchronize, reopened]
+#   workflow_dispatch:
+#     inputs:
+#       debug_enabled:
+#         description: 'Enable debug logging'
+#         required: false
+#         default: 'false'
 
 on:
-  push:
-    branches: 
-      - main
-      - feat/e2e
-      - 'feat/**'
-      - 'fix/**'
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Makefile*'
-      - '.github/workflows/ci-timeout-fix.yml'
-  pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        description: 'Enable debug logging'
-        required: false
-        default: 'false'
+  # DISABLED: This workflow is consolidated into ci-production.yml
+  workflow_dispatch: {}
 
+# DISABLED: Workflow consolidated into ci-production.yml
 concurrency:
-  group: ci-timeout-fix-${{ github.ref }}
+  group: disabled-ci-timeout-fix-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.24.6"
+  GO_VERSION: "1.25.0"
   GOPRIVATE: "github.com/thc1006/*"
   GONOPROXY: "github.com/thc1006/*" 
   GONOSUMDB: "github.com/thc1006/*"
@@ -58,18 +65,32 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           check-latest: false
           
-      - name: Generate cache key
+      - name: Generate cache key with proper validation
         id: cache-key
         run: |
-          # Generate cache key with validation and fallback
-          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
-          if [ -z "$GO_SUM_HASH" ]; then
-            echo "Warning: go.sum hash is empty, using timestamp fallback"
-            GO_SUM_HASH="$(date +%Y%m%d)"
+          # Generate cache key with proper validation and fallback
+          GO_SUM_HASH="${{ hashFiles('go.sum', '**/go.sum') }}"
+          
+          # Debug: Show what we're working with
+          echo "Raw hash from hashFiles: '$GO_SUM_HASH'"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Go version: ${{ env.GO_VERSION }}"
+          
+          # Validate hash is not empty
+          if [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then
+            echo "Warning: go.sum hash is empty, checking for go.sum files..."
+            find . -name "go.sum" -type f | head -5
+            # Use git commit SHA as fallback for cache key
+            GO_SUM_HASH="${{ github.sha }}"
+            echo "Using git SHA as fallback: $GO_SUM_HASH"
           fi
+          
+          # Generate cache key with consistent format
           CACHE_KEY="${{ runner.os }}-go-${{ env.GO_VERSION }}-${GO_SUM_HASH}"
           echo "Generated cache key: $CACHE_KEY"
-          echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
+          
+          # Ensure output is set correctly
+          echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
         
       - name: Verify Go installation
         run: |
@@ -93,8 +114,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: go.sum
+          cache: false  # We handle caching manually for better control
+          check-latest: false
           
       - name: Clean Go cache directories
         run: |
@@ -115,7 +136,7 @@ jobs:
           fi
           echo "Cache key validation passed"
           
-      - name: Setup Go build cache
+      - name: Setup Go build cache (2025 pattern)
         uses: actions/cache@v4
         with:
           path: |
@@ -125,6 +146,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
             ${{ runner.os }}-go-
+          enableCrossOsArchive: false
+          fail-on-cache-miss: false
             
       - name: Pre-download critical dependencies
         timeout-minutes: 2
@@ -175,8 +198,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: go.sum
+          cache: false  # We handle caching manually for better control
+          check-latest: false
           
       - name: Clean Go cache directories
         run: |
@@ -197,7 +220,7 @@ jobs:
           fi
           echo "Cache key validation passed"
           
-      - name: Restore build cache
+      - name: Restore build cache (2025 pattern)
         uses: actions/cache@v4
         with:
           path: |
@@ -206,6 +229,9 @@ jobs:
           key: ${{ needs.preflight.outputs.go-cache-key }}
           restore-keys: |
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-
+          enableCrossOsArchive: false
+          fail-on-cache-miss: false
             
       - name: Run core tests
         timeout-minutes: 2

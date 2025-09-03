@@ -30,14 +30,14 @@ on:
           - fast
           - full
 
-# Prevent overlapping CI runs on the same branch
+# Prevent overlapping CI runs on the same branch - STANDARDIZED
 concurrency:
-  group: ci-${{ github.ref }}
+  group: nephoran-ci-production-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  # Upgraded to latest stable Go version for performance improvements
-  GO_VERSION: "1.25.x"
+  # Upgraded to latest stable Go version for performance improvements  
+  GO_VERSION: "1.25.0"
   GOPROXY: "https://proxy.golang.org,direct"
   GOSUMDB: "sum.golang.org"
   # Build optimizations for CI environment
@@ -60,17 +60,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
-      go-cache-key: ${{ steps.go-cache.outputs.cache-hit }}
+      go-cache-key: ${{ steps.cache-key-gen.outputs.cache-key }}
       should-build: ${{ steps.changes.outputs.go == 'true' }}
       
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         with:
           fetch-depth: 1
           
       - name: Detect changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2  # PINNED VERSION
         id: changes
         with:
           filters: |
@@ -87,18 +87,51 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false  # We'll handle caching manually for better control
           
-      - name: Setup Go cache
+      - name: Generate standardized cache key
+        if: steps.changes.outputs.go == 'true'
+        id: cache-key-gen
+        run: |
+          # STANDARDIZED cache key generation for all workflows
+          GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
+          GO_MOD_HASH="${{ hashFiles('go.mod') }}"
+          
+          # Debug information
+          echo "Raw go.sum hash: '$GO_SUM_HASH'"
+          echo "Raw go.mod hash: '$GO_MOD_HASH'"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Go version: ${{ env.GO_VERSION }}"
+          
+          # Use fallback if hashes are empty
+          if [ -z "$GO_SUM_HASH" ] || [ "$GO_SUM_HASH" = "" ]; then
+            echo "Warning: go.sum hash is empty, using git SHA as fallback"
+            GO_SUM_HASH="${{ github.sha }}"
+          fi
+          if [ -z "$GO_MOD_HASH" ] || [ "$GO_MOD_HASH" = "" ]; then
+            echo "Warning: go.mod hash is empty, using git SHA as fallback"
+            GO_MOD_HASH="${{ github.sha }}"
+          fi
+          
+          # STANDARDIZED cache key format
+          CACHE_KEY="nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}"
+          echo "Generated STANDARDIZED cache key: $CACHE_KEY"
+          
+          # Set output
+          echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          
+      - name: Setup STANDARDIZED Go cache
         if: steps.changes.outputs.go == 'true'
         id: go-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v4.1.2  # PINNED VERSION
         with:
           path: |
             /tmp/go-cache
             /tmp/go-mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: ${{ steps.cache-key-gen.outputs.cache-key }}
           restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
-            go-${{ runner.os }}-
+            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-
+          enableCrossOsArchive: false
+          fail-on-cache-miss: false
             
       - name: Verify Go environment
         if: steps.changes.outputs.go == 'true'
@@ -130,23 +163,24 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
+      - name: Restore STANDARDIZED Go cache
+        uses: actions/cache@v4.1.2  # PINNED VERSION
         with:
           path: |
             /tmp/go-cache
             /tmp/go-mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
           restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-
             
       - name: Syntax validation
         timeout-minutes: 2
@@ -165,7 +199,7 @@ jobs:
           make -f Makefile.ci ci-status
           
       - name: Upload critical binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
         with:
           name: critical-binaries
           path: bin/
@@ -192,23 +226,24 @@ jobs:
           
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
+      - name: Restore STANDARDIZED Go cache
+        uses: actions/cache@v4.1.2  # PINNED VERSION
         with:
           path: |
             /tmp/go-cache
             /tmp/go-mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
           restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-
             
       - name: Run ${{ matrix.component }} tests
         timeout-minutes: 8
@@ -241,7 +276,7 @@ jobs:
           
       - name: Upload coverage
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
         with:
           name: coverage-${{ matrix.component }}
           path: coverage-*.html
@@ -270,23 +305,24 @@ jobs:
           
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         
       - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.0.2  # PINNED VERSION
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           
-      - name: Restore Go cache
-        uses: actions/cache@v4
+      - name: Restore STANDARDIZED Go cache
+        uses: actions/cache@v4.1.2  # PINNED VERSION
         with:
           path: |
             /tmp/go-cache
             /tmp/go-mod
-          key: go-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          key: nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('go.mod') }}
           restore-keys: |
-            go-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-${{ env.GO_VERSION }}-
+            nephoran-go-v1-${{ runner.os }}-
             
       - name: Build ${{ matrix.build-target }}
         timeout-minutes: 12
@@ -338,7 +374,7 @@ jobs:
           
       - name: Upload build artifacts
         if: matrix.build-target != 'pkg-and-controllers'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3  # PINNED VERSION
         with:
           name: binaries-${{ matrix.build-target }}
           path: bin/
@@ -356,10 +392,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.1  # PINNED VERSION
         
       - name: Download critical binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.1.8  # PINNED VERSION
         with:
           name: critical-binaries
           path: bin/
@@ -462,7 +498,7 @@ jobs:
     
     steps:
       - name: Collect build artifacts info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.1.8  # PINNED VERSION
         with:
           path: artifacts/
           

@@ -1570,7 +1570,7 @@ func (c *FunctionCache) getStatus() *CacheStatus {
 
 		Items: len(c.items),
 
-		HitRate: 0.0, // Would calculate from metrics
+		HitRate: "0.0", // Would calculate from metrics
 
 		LastClean: time.Now(),
 	}

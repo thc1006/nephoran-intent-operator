@@ -822,11 +822,15 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 
 		Errors: []ExecutionError{},
 
-		Variables: po.initializeVariables(definition.Variables),
+		Variables: func() json.RawMessage {
+			vars := po.initializeVariables(definition.Variables)
+			data, _ := json.Marshal(vars)
+			return json.RawMessage(data)
+		}(),
 
 		Checkpoints: []*ExecutionCheckpoint{},
 
-		Context: make(map[string]interface{}),
+		Context: json.RawMessage(`{}`),
 
 		Metadata: make(map[string]string),
 	}
@@ -1378,7 +1382,7 @@ func (po *PipelineOrchestrator) executeStage(ctx context.Context, execution *Pip
 
 		Dependencies: []*DependencyStatus{},
 
-		Output: make(map[string]interface{}),
+		Output: json.RawMessage(`{}`),
 	}
 
 	logger := log.FromContext(ctx).WithValues("stage", stage.Name)
@@ -1544,7 +1548,13 @@ func (po *PipelineOrchestrator) executeStageFunction(ctx context.Context, execut
 
 		FunctionImage: function.Image,
 
-		FunctionConfig: function.Config,
+		FunctionConfig: func() json.RawMessage {
+			if function.Config != nil {
+				data, _ := json.Marshal(function.Config)
+				return json.RawMessage(data)
+			}
+			return json.RawMessage(`{}`)
+		}(),
 
 		Resources: filteredResources,
 
@@ -1653,14 +1663,20 @@ func (po *PipelineOrchestrator) resourceMatchesSelector(resource *porch.KRMResou
 		return false
 	}
 
+	// Unmarshal metadata once
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
+		return false
+	}
+
 	if selector.Name != "" {
-		if name, ok := resource.Metadata["name"].(string); !ok || name != selector.Name {
+		if name, ok := metadata["name"].(string); !ok || name != selector.Name {
 			return false
 		}
 	}
 
 	if selector.Namespace != "" {
-		if namespace, ok := resource.Metadata["namespace"].(string); !ok || namespace != selector.Namespace {
+		if namespace, ok := metadata["namespace"].(string); !ok || namespace != selector.Namespace {
 			return false
 		}
 	}
@@ -1668,7 +1684,7 @@ func (po *PipelineOrchestrator) resourceMatchesSelector(resource *porch.KRMResou
 	// Check label selectors.
 
 	for key, value := range selector.Labels {
-		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
+		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
 				return false
 			}

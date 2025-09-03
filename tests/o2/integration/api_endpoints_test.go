@@ -50,9 +50,8 @@ func (suite *O2APITestSuite) SetupSuite() {
 		TLSEnabled:    false,
 		DatabaseConfig: json.RawMessage(`{}`),
 		ProviderConfigs: map[string]interface{}{
-				"enabled": true,
-			},
-		}
+			"enabled": true,
+		},
 	}
 
 	var err error

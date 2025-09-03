@@ -73,7 +73,7 @@ func TestRequestBodySizeLimit(t *testing.T) {
 
 			// Create test handler
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				body, err := io.ReadAll(r.Body)
+				_, err := io.ReadAll(r.Body)
 				if err != nil {
 					if strings.Contains(err.Error(), "http: request body too large") {
 						w.WriteHeader(http.StatusRequestEntityTooLarge)

@@ -140,7 +140,7 @@ build_component() {
         
         # Verify binary
         if [ -x "$binary_path" ]; then
-            local binary_size=$(stat -f%z "$binary_path" 2>/dev/null || stat -c%s "$binary_path" 2>/dev/null || echo "unknown")
+            local binary_size=$(stat -c%s "$binary_path" 2>/dev/null || echo "unknown")
             log_info "  Binary size: $(numfmt --to=iec-i --suffix=B $binary_size 2>/dev/null || echo $binary_size bytes)"
         fi
         

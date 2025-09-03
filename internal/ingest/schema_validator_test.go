@@ -150,7 +150,6 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 		incompleteIntent := map[string]interface{}{
 				"intentType": "scaling",
 				"target":     "nginx-deployment",
-			},
 		}
 
 		err := validator.Validate(incompleteIntent)
@@ -160,9 +159,8 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("returns error for invalid enum values", func(t *testing.T) {
 		invalidIntent := map[string]interface{}{
-				"name": "test-intent",
-			},
-			"spec": json.RawMessage(`{}`),
+			"name": "test-intent",
+			"spec": map[string]interface{}{},
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -172,9 +170,8 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("returns error for out-of-range values", func(t *testing.T) {
 		invalidIntent := map[string]interface{}{
-				"name": "test-intent",
-			},
-			"spec": json.RawMessage(`{}`),
+			"name": "test-intent",
+			"spec": map[string]interface{}{},
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -184,13 +181,11 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("validates optional fields correctly", func(t *testing.T) {
 		intentWithResources := map[string]interface{}{
-				"name":      "test-intent",
-				"namespace": "default",
-			},
+			"name":      "test-intent",
+			"namespace": "default",
 			"spec": map[string]interface{}{
-					"cpu":    "100m",
-					"memory": "128Mi",
-				},
+				"cpu":    "100m",
+				"memory": "128Mi",
 			},
 		}
 
@@ -200,9 +195,8 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("returns error for wrong data types", func(t *testing.T) {
 		invalidIntent := map[string]interface{}{
-				"name": "test-intent",
-			},
-			"spec": json.RawMessage(`{}`),
+			"name": "test-intent",
+			"spec": map[string]interface{}{},
 		}
 
 		err := validator.Validate(invalidIntent)
@@ -306,10 +300,8 @@ func TestIntentSchemaValidator_UpdateSchema(t *testing.T) {
 	t.Run("updates schema successfully", func(t *testing.T) {
 		// Create an updated schema
 		updatedSchema := map[string]interface{}{
-				"apiVersion": json.RawMessage(`{}`), // Updated version
-				},
-			},
-			"required": []string{"apiVersion"},
+			"apiVersion": map[string]interface{}{}, // Updated version
+			"required":   []string{"apiVersion"},
 		}
 
 		// Write updated schema to file
@@ -351,9 +343,8 @@ func TestIntentSchemaValidator_ConcurrentAccess(t *testing.T) {
 
 	t.Run("handles concurrent validation requests", func(t *testing.T) {
 		validIntent := map[string]interface{}{
-				"name": "test-intent",
-			},
-			"spec": json.RawMessage(`{}`),
+			"name": "test-intent",
+			"spec": map[string]interface{}{},
 		}
 
 		// Run multiple validations concurrently
@@ -381,10 +372,9 @@ func BenchmarkIntentSchemaValidator_Validate(b *testing.B) {
 	require.NoError(b, err)
 
 	validIntent := map[string]interface{}{
-			"name":      "test-intent",
-			"namespace": "default",
-		},
-		"spec": json.RawMessage(`{}`),
+		"name":      "test-intent",
+		"namespace": "default",
+		"spec":      map[string]interface{}{},
 	}
 
 	b.ResetTimer()

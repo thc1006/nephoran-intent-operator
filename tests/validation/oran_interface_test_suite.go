@@ -196,9 +196,9 @@ func (oits *ORANInterfaceTestSuite) runPerformanceBenchmarks(ctx context.Context
 		if interfaceName == "A1" || interfaceName == "E2" || interfaceName == "O1" || interfaceName == "O2" {
 			ginkgo.By(fmt.Sprintf("%s Performance: %.2f RPS, %.2fms latency, %.1f%% errors",
 
-				interfaceName, result.ThroughputRPS,
+				interfaceName, result.Throughput,
 
-				float64(result.AverageLatency.Nanoseconds())/1e6,
+				float64(result.Latency.Nanoseconds())/1e6,
 
 				result.ErrorRate))
 		}
@@ -583,7 +583,7 @@ func (oits *ORANInterfaceTestSuite) testMultiVendorE2(ctx context.Context) bool 
 
 		node := oits.testFactory.CreateE2Node(vendorNode.nodeType)
 
-		node.Capabilities["vendor"] = vendorNode.vendor
+		node.Capabilities = json.RawMessage(fmt.Sprintf(`{"vendor": "%s"}`, vendorNode.vendor))
 
 		err := oits.validator.e2MockService.RegisterNode(node)
 		if err != nil {
@@ -623,7 +623,7 @@ func (oits *ORANInterfaceTestSuite) testHeterogeneousO1(ctx context.Context) boo
 
 		element := oits.testFactory.CreateManagedElement(nfType)
 
-		element.Configuration["vendor"] = fmt.Sprintf("Vendor-%s", nfType)
+		element.Configuration = json.RawMessage(fmt.Sprintf(`{"vendor": "Vendor-%s"}`, nfType))
 
 		err := oits.validator.smoMockService.AddManagedElement(element)
 		if err != nil {
@@ -722,7 +722,7 @@ func (oits *ORANInterfaceTestSuite) validatePerformanceResults() bool {
 
 	for interfaceName, target := range targets {
 		if result, exists := oits.performanceResults[interfaceName]; exists {
-			if result.ThroughputRPS < target.minThroughput || result.ErrorRate > target.maxErrorRate {
+			if result.Throughput < target.minThroughput || result.ErrorRate > target.maxErrorRate {
 				return false
 			}
 		}
@@ -790,9 +790,9 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 			if interfaceName == "A1" || interfaceName == "E2" || interfaceName == "O1" || interfaceName == "O2" {
 				ginkgo.By(fmt.Sprintf("%s: %.2f RPS, %.2fms latency, %.1f%% errors",
 
-					interfaceName, result.ThroughputRPS,
+					interfaceName, result.Throughput,
 
-					float64(result.AverageLatency.Nanoseconds())/1e6,
+					float64(result.Latency.Nanoseconds())/1e6,
 
 					result.ErrorRate))
 			}

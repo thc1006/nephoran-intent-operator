@@ -140,9 +140,8 @@ func TestO2APILoadPerformance(t *testing.T) {
 		TLSEnabled:    false,
 		DatabaseConfig: json.RawMessage(`{}`),
 		ProviderConfigs: map[string]interface{}{
-				"enabled": true,
-			},
-		}
+			"enabled": true,
+		},
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -631,7 +630,6 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 			},
-		},
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)

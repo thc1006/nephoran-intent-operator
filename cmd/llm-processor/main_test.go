@@ -122,7 +122,7 @@ func TestRequestSizeLimits(t *testing.T) {
 			// Create a test handler that simulates successful processing
 			testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Try to read the body to trigger MaxBytesReader
-				body, err := io.ReadAll(r.Body)
+				_, err := io.ReadAll(r.Body)
 				if err != nil {
 					// MaxBytesReader error should be caught by middleware
 					t.Errorf("Unexpected error reading body: %v", err)
@@ -130,7 +130,7 @@ func TestRequestSizeLimits(t *testing.T) {
 				}
 
 				// Simulate successful processing
-				response := json.RawMessage(`{}`)
+				response := make(map[string]interface{})
 
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)

@@ -2,9 +2,10 @@ package test_validation
 
 import (
 	"context"
-	"time"
+	"encoding/json"
 	"math"
 	"math/rand"
+	"time"
 )
 
 // Helper methods for SLA validation test suite
@@ -44,19 +45,17 @@ func (s *SLAValidationTestSuite) measureProcessingOverhead() time.Duration {
 // measureAvailabilityDirect measures availability through direct uptime monitoring
 func (s *SLAValidationTestSuite) measureAvailabilityDirect(ctx context.Context) *MeasurementSet {
 	measurements := &MeasurementSet{
-		Name:       "availability_direct",
-		Type:       MeasurementTypeAvailability,
-		Values:     make([]float64, 0),
-		Timestamps: make([]time.Time, 0),
-		Metadata:   json.RawMessage(`{"method":"direct_uptime"}`),
+		Measurements:   make([]float64, 0),
+		Timestamps:     make([]int64, 0),
+		AggregatedData: json.RawMessage(`{"method":"direct_uptime"}`),
 	}
 
 	// Simulate measurements
 	for i := 0; i < 100; i++ {
 		// Generate mock availability values around 99.95%
 		value := 99.95 + (rand.Float64()-0.5)*0.1
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -76,8 +75,8 @@ func (s *SLAValidationTestSuite) measureAvailabilityErrorRate(ctx context.Contex
 	// Simulate measurements
 	for i := 0; i < 100; i++ {
 		value := 99.96 + (rand.Float64()-0.5)*0.08
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -97,8 +96,8 @@ func (s *SLAValidationTestSuite) measureAvailabilityComponents(ctx context.Conte
 	// Simulate measurements
 	for i := 0; i < 100; i++ {
 		value := 99.94 + (rand.Float64()-0.5)*0.12
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -126,8 +125,8 @@ func (s *SLAValidationTestSuite) measureLatencyEndToEnd(ctx context.Context) *Me
 		} else {
 			value = 1.5 + rand.Float64()*0.4 // 1.5-1.9 seconds for 5% of requests
 		}
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -147,8 +146,8 @@ func (s *SLAValidationTestSuite) measureLatencyComponents(ctx context.Context) *
 	// Simulate measurements
 	for i := 0; i < 1000; i++ {
 		value := 0.9 + rand.Float64()*0.8
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -168,8 +167,8 @@ func (s *SLAValidationTestSuite) measureLatencyTracing(ctx context.Context) *Mea
 	// Simulate measurements
 	for i := 0; i < 1000; i++ {
 		value := 0.85 + rand.Float64()*0.9
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -191,8 +190,8 @@ func (s *SLAValidationTestSuite) measureThroughputDirect(ctx context.Context) *M
 	// Simulate throughput measurements (intents per minute)
 	for i := 0; i < 60; i++ {
 		value := 42.0 + rand.Float64()*8.0 // 42-50 intents per minute
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -212,8 +211,8 @@ func (s *SLAValidationTestSuite) measureThroughputCounters(ctx context.Context) 
 	// Simulate measurements
 	for i := 0; i < 60; i++ {
 		value := 44.0 + rand.Float64()*6.0
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)
@@ -233,8 +232,8 @@ func (s *SLAValidationTestSuite) measureThroughputQueue(ctx context.Context) *Me
 	// Simulate measurements
 	for i := 0; i < 60; i++ {
 		value := 43.0 + rand.Float64()*7.0
-		measurements.Values = append(measurements.Values, value)
-		measurements.Timestamps = append(measurements.Timestamps, time.Now())
+		measurements.Measurements = append(measurements.Measurements, value)
+		measurements.Timestamps = append(measurements.Timestamps, time.Now().Unix())
 	}
 
 	s.calculateMeasurementStatistics(measurements)

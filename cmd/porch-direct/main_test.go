@@ -121,43 +121,43 @@ func TestRunWithInvalidIntents(t *testing.T) {
 	}{
 		{
 			name: "negative_replicas",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "zero_replicas",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "missing_target",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "missing_namespace",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "missing_intent_type",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "invalid_intent_type",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "too_many_replicas",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "empty_target",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "empty_namespace",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 		{
 			name: "invalid_source",
-			intent: json.RawMessage(`{}`),
+			intent: map[string]interface{}{},
 		},
 	}
 

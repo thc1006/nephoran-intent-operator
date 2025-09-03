@@ -459,8 +459,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	suite.Run("AWS Specific Features", func() {
 		// Test AWS-specific functionality like spot instances, placement groups, etc.
 		testPool := suite.helpers.CreateTestResourcePool("aws", "us-east-1")
-		testPool.Extensions = json.RawMessage(`{}`),
-		}
+		testPool.Extensions = json.RawMessage(`{}`)
 
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:     testPool.Name,
