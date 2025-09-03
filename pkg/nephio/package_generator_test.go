@@ -182,37 +182,34 @@ func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 
 // Helper function to create test parameters based on intent type
 func createTestParameters(intentType string) map[string]interface{} {
-	baseParams := json.RawMessage(`{}`)
+	baseParams := make(map[string]interface{})
 
 	switch intentType {
 	case "deployment", "":
 		baseParams["replicas"] = 3
 		baseParams["image"] = "test-image:latest"
-		baseParams["ports"] = []json.RawMessage(`{}`),
-		}
-		baseParams["env"] = []json.RawMessage(`{}`),
-		}
+		baseParams["ports"] = []map[string]interface{}{{}}
+		baseParams["env"] = []map[string]interface{}{{}}
 		baseParams["resources"] = map[string]interface{}{
+			"Requests": map[string]interface{}{
 				"CPU":    "100m",
 				"Memory": "128Mi",
 			},
-			"Limits": json.RawMessage(`{}`),
+			"Limits": map[string]interface{}{},
 		}
 	case "scaling":
 		baseParams["target"] = "existing-deployment"
 		baseParams["replicas"] = 5
 	case "policy":
 		baseParams["policy_spec"] = map[string]interface{}{
-				"matchLabels": map[string]string{
-					"app": "test-app",
-				},
+			"matchLabels": map[string]string{
+				"app": "test-app",
 			},
 			"policyTypes": []string{"Ingress", "Egress"},
 		}
 		baseParams["a1_policy"] = map[string]interface{}{
-				"scope":  "network-slice",
-				"target": "slice-001",
-			},
+			"scope":  "network-slice",
+			"target": "slice-001",
 		}
 	}
 

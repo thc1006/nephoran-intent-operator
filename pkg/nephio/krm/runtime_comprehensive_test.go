@@ -247,8 +247,8 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 				},
 				Output: []KRMResource{
 					generateTestResourceWithLabels("apps/v1", "Deployment", "test-deployment", "default", map[string]string{
-						"app": "my-app",
-						"env": "production",
+					"app": "my-app",
+					"env": "production",
 					}),
 				},
 			},
@@ -886,9 +886,8 @@ func TestStandardFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
+					"app": "test-app",
+					"env": "production",
 				},
 			},
 			Resources: resources,
@@ -978,9 +977,7 @@ func TestORANFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
 				ConfigMap: map[string]interface{}{
-						json.RawMessage(`{}`),
-						json.RawMessage(`{}`),
-					},
+					"interfaces": []interface{}{},
 				},
 			},
 			Resources: resources,
@@ -1012,10 +1009,9 @@ func TestORANFunctions(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
 				ConfigMap: map[string]interface{}{
-						"sliceType": "eMBB",
-						"sst":       1,
-						"sd":        "000001",
-					},
+					"sliceType": "eMBB",
+					"sst":       1,
+					"sd":        "000001",
 				},
 			},
 			Resources: resources,
@@ -1059,9 +1055,8 @@ func TestPipelineExecution(t *testing.T) {
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
+					"app": "test-app",
+					"env": "production",
 				},
 			},
 		},
@@ -1154,8 +1149,7 @@ func TestFunctionValidation(t *testing.T) {
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-						"app": "test",
-					},
+					"app": "test",
 				},
 			},
 			Resources: []KRMResource{
@@ -1235,9 +1229,8 @@ func TestConcurrentExecution(t *testing.T) {
 					FunctionConfig: FunctionConfig{
 						Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 						ConfigMap: map[string]interface{}{
-								"worker": fmt.Sprintf("worker-%d", id),
-								"job":    fmt.Sprintf("job-%d", j),
-							},
+							"worker": fmt.Sprintf("worker-%d", id),
+							"job":    fmt.Sprintf("job-%d", j),
 						},
 					},
 					Resources: resources,
@@ -1292,7 +1285,7 @@ func TestExecutionHistory(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: funcImage,
-				ConfigMap: json.RawMessage(`{}`)`),
+				ConfigMap: map[string]interface{}{
 					"namespace": "test-namespace",
 				},
 			},
@@ -1368,8 +1361,7 @@ func TestErrorHandling(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage(`{}`)`),
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1397,8 +1389,7 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-				ConfigMap: json.RawMessage(`{}`)`),
-				},
+				ConfigMap: json.RawMessage(`{}`),
 			},
 			Resources: []KRMResource{
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
@@ -1431,9 +1422,8 @@ func BenchmarkFunctionExecution(b *testing.B) {
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 			ConfigMap: map[string]interface{}{
-					"app": "test-app",
-					"env": "production",
-				},
+				"app": "test-app",
+				"env": "production",
 			},
 		},
 		Resources: resources,
@@ -1470,9 +1460,8 @@ func BenchmarkPipelineExecution(b *testing.B) {
 			{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
-						"app": "test-app",
-						"env": "production",
-					},
+					"app": "test-app",
+					"env": "production",
 				},
 			},
 		},

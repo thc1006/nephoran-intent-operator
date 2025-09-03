@@ -90,7 +90,6 @@ func createTestEIJob() *EnrichmentInfoJob {
 		EiJobData: map[string]interface{}{
 				"param1": "value1",
 			},
-		},
 		TargetURI:      "http://test-consumer.com/ei",
 		JobOwner:       "test-owner",
 		JobStatusURL:   "http://test-status.com",
@@ -791,8 +790,8 @@ func TestHandleCreateEIJob(t *testing.T) {
 			name:    "successful create EI job",
 			eiJobID: "new-ei-job",
 			requestBody: map[string]interface{}{
-					"config": json.RawMessage(`{}`),
-				},
+				"ei_type_id": "test-ei-type-1",
+				"config":     json.RawMessage(`{}`),
 				"target_uri": "http://consumer.com/ei",
 				"job_owner":  "test-owner",
 			},
@@ -815,7 +814,8 @@ func TestHandleCreateEIJob(t *testing.T) {
 		{
 			name:    "EI type not found",
 			eiJobID: "new-ei-job",
-			requestBody: json.RawMessage(`{}`)"),
+			requestBody: map[string]interface{}{
+				"ei_type_id":  "non-existent-type",
 				"target_uri":  "http://consumer.com/ei",
 				"job_owner":   "test-owner",
 			},

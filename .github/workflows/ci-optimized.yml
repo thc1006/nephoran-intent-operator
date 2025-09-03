@@ -56,18 +56,18 @@ jobs:
           go version
           go env
           
+      - name: Fail-fast syntax check
+        timeout-minutes: 2
+        run: |
+          echo "Running fail-fast syntax check..."
+          go build ./... && go vet ./...
+          
       - name: Quick dependency check
         timeout-minutes: 2
         run: |
           echo "Downloading dependencies..."
           go mod download -x || true
           go mod verify
-          
-      - name: Quick syntax check
-        timeout-minutes: 1
-        run: |
-          echo "Running syntax check..."
-          go vet -tags=fast_build ./... || true
 
   # Stage 2: Parallel builds with chunking
   build:

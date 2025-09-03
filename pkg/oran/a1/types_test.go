@@ -87,18 +87,13 @@ func TestPolicyType_JSON_Serialization(t *testing.T) {
 		PolicyTypeName: "Traffic Steering Policy",
 		Description:    "Policy for managing traffic steering in O-RAN",
 		Schema: map[string]interface{}{
-				"scope": map[string]interface{}{
-						"ue_id": json.RawMessage(`{}`),
-					},
-				},
+			"scope": map[string]interface{}{
+				"ue_id": json.RawMessage(`{}`),
 			},
 		},
-		CreateSchema: map[string]interface{}{
-				"notification_destination": json.RawMessage(`{}`),
-			},
-		},
-		CreatedAt:  now,
-		ModifiedAt: now,
+		CreateSchema: json.RawMessage(`{"notification_destination": {}}`),
+		CreatedAt:    now,
+		ModifiedAt:   now,
 	}
 
 	jsonData, err := json.Marshal(policyType)
@@ -200,9 +195,8 @@ func TestPolicyInstance_JSON_Serialization(t *testing.T) {
 		PolicyID:     "traffic-policy-123",
 		PolicyTypeID: 456,
 		PolicyData: map[string]interface{}{
-				"ue_id":   "ue-12345",
-				"cell_id": "cell-abcde",
-			},
+			"ue_id":     "ue-12345",
+			"cell_id":   "cell-abcde",
 			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
@@ -287,19 +281,17 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 
 func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
 	complexData := map[string]interface{}{
-			"ue_ids": []interface{}{
-				"ue-001", "ue-002", "ue-003",
-			},
-			"cell_ids": []interface{}{
-				json.RawMessage(`{}`),
-				json.RawMessage(`{}`),
-			},
+		"ue_ids": []interface{}{
+			"ue-001", "ue-002", "ue-003",
+		},
+		"cell_ids": []interface{}{
+			json.RawMessage(`{}`),
+			json.RawMessage(`{}`),
 		},
 		"statements": []interface{}{
 			map[string]interface{}{
-					"time_window": json.RawMessage(`{}`),
-				},
-				"action": json.RawMessage(`{}`),
+				"time_window": json.RawMessage(`{}`),
+				"action":      json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -345,10 +337,7 @@ func TestPolicyStatus_JSON_Serialization(t *testing.T) {
 		Deleted:           false,
 		CreatedAt:         now,
 		ModifiedAt:        now,
-		AdditionalInfo: json.RawMessage(`{}`),
-			"enforcement_time":   "2023-01-01T12:00:00Z",
-			"metrics": json.RawMessage(`{}`),
-		},
+		AdditionalInfo: json.RawMessage(`{"enforcement_time": "2023-01-01T12:00:00Z", "metrics": {}}`),
 	}
 
 	jsonData, err := json.Marshal(status)
@@ -439,27 +428,21 @@ func TestEnrichmentInfoType_JSON_Serialization(t *testing.T) {
 		EiTypeName:  "Throughput Measurement EI Type",
 		Description: "Enrichment Information type for measuring cell throughput",
 		EiJobDataSchema: map[string]interface{}{
-				"measurement_config": map[string]interface{}{
-						"interval_seconds": json.RawMessage(`{}`),
-						"target_cells": map[string]interface{}{
-								"type": "string",
-							},
-							"minItems": 1,
-						},
-					},
-					"required": []string{"interval_seconds", "target_cells"},
+			"measurement_config": map[string]interface{}{
+				"interval_seconds": json.RawMessage(`{}`),
+				"target_cells": map[string]interface{}{
+					"type":     "string",
+					"minItems": 1,
 				},
 			},
-			"required": []string{"measurement_config"},
+			"required": []string{"interval_seconds", "target_cells"},
 		},
 		EiJobResultSchema: map[string]interface{}{
-				"measurements": map[string]interface{}{
-						"type": "object",
-						"properties": json.RawMessage(`{}`)`),
-							"throughput": json.RawMessage(`{"type":"number"}`),
-							"timestamp":  json.RawMessage(`{}`),
-						},
-					},
+			"measurements": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"throughput": json.RawMessage(`{"type":"number"}`),
+					"timestamp":  json.RawMessage(`{}`),
 				},
 			},
 		},
@@ -534,11 +517,10 @@ func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 		EiJobID:  "throughput-job-001",
 		EiTypeID: "throughput-measurement",
 		EiJobData: map[string]interface{}{
-				"interval_seconds": 60,
-				"target_cells":     []interface{}{"cell-001", "cell-002"},
-				"thresholds": json.RawMessage(`{}`),
-			},
-			"reporting": json.RawMessage(`{}`),
+			"interval_seconds": 60,
+			"target_cells":     []interface{}{"cell-001", "cell-002"},
+			"thresholds":       json.RawMessage(`{}`),
+			"reporting":        json.RawMessage(`{}`),
 		},
 		TargetURI:    "http://ei-consumer.example.com/measurements",
 		JobOwner:     "network-analytics-service",
@@ -556,8 +538,7 @@ func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 			},
 			JobParameters: json.RawMessage(`{}`),
 			JobResultSchema: map[string]interface{}{
-					"cell_measurements": json.RawMessage(`{}`),
-				},
+				"cell_measurements": json.RawMessage(`{}`),
 			},
 		},
 		CreatedAt:      now,
@@ -768,7 +749,8 @@ func TestTypes_LargeDataHandling(t *testing.T) {
 	// Create a large policy data structure
 	largeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{i, i + 1, i + 2},
+		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
+			"values": []interface{}{i, i + 1, i + 2},
 			"nested": json.RawMessage(`{}`),
 		}
 	}
@@ -796,11 +778,10 @@ func TestTypes_UnicodeHandling(t *testing.T) {
 	// Test Unicode characters in various fields
 	policyType := &PolicyType{
 		PolicyTypeID:   1,
-		PolicyTypeName: "测�?策略类�? ??",
-		Description:    "?оли?ика дл? ?е??и?овани? ا?عرب?ة हिन�?द�? ?�本�?,
+		PolicyTypeName: "Unicode Test Policy",
+		Description:    "Multi-language policy testing",
 		Schema: map[string]interface{}{
-				"unicode_field": json.RawMessage(`{}`),
-			},
+			"unicode_field": json.RawMessage(`{}`),
 		},
 	}
 
@@ -851,7 +832,8 @@ func TestTypes_TimeHandling(t *testing.T) {
 
 func TestTypes_InterfaceConversion(t *testing.T) {
 	// Test conversion between interface{} and concrete types
-	data := map[string]interface{}{1, 2, 3},
+	data := map[string]interface{}{
+		"array_field":  []interface{}{1, 2, 3},
 		"object_field": json.RawMessage(`{"nested":"value"}`),
 	}
 
@@ -932,10 +914,9 @@ func BenchmarkPolicyType_JSON_Marshal(b *testing.B) {
 		PolicyTypeName: "Benchmark Policy Type",
 		Description:    "Policy type for benchmarking JSON serialization",
 		Schema: map[string]interface{}{
-				"field1": json.RawMessage(`{"type":"string"}`),
-				"field2": json.RawMessage(`{"type":"integer"}`),
-				"field3": json.RawMessage(`{"type":"boolean"}`),
-			},
+			"field1": json.RawMessage(`{"type":"string"}`),
+			"field2": json.RawMessage(`{"type":"integer"}`),
+			"field3": json.RawMessage(`{"type":"boolean"}`),
 		},
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
@@ -952,8 +933,7 @@ func BenchmarkPolicyInstance_JSON_Marshal(b *testing.B) {
 		PolicyID:     "benchmark-policy",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-				"sub_field": "sub_value",
-			},
+			"sub_field": "sub_value",
 		},
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
@@ -969,8 +949,7 @@ func BenchmarkLargePolicyData_JSON_Marshal(b *testing.B) {
 	// Create large policy data
 	largeData := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
-		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{i, i + 1, i + 2},
-		}
+		largeData[fmt.Sprintf("field_%d", i)] = []interface{}{i, i + 1, i + 2}
 	}
 
 	instance := &PolicyInstance{

@@ -13,47 +13,39 @@ import (
 
 func createValidPolicyTypeSchema() map[string]interface{} {
 	return map[string]interface{}{
-			"scope": map[string]interface{}{
-					"ue_id": json.RawMessage(`{}`),
-					"cell_id": json.RawMessage(`{}`)$",
-					},
-				},
-				"required": []string{"ue_id"},
-			},
-			"statement": map[string]interface{}{
-					"qos_class": json.RawMessage(`{}`),
-					"bitrate": json.RawMessage(`{}`),
-					"action": json.RawMessage(`{}`),
-					},
-				},
-				"required": []string{"qos_class", "action"},
-			},
+		"scope": map[string]interface{}{
+			"ue_id":   json.RawMessage(`{}`),
+			"cell_id": json.RawMessage(`{}`),
 		},
-		"required": []string{"scope", "statement"},
+		"required": []string{"ue_id"},
+		"statement": map[string]interface{}{
+			"qos_class": json.RawMessage(`{}`),
+			"bitrate":   json.RawMessage(`{}`),
+			"action":    json.RawMessage(`{}`),
+		},
+		"required": []string{"qos_class", "action"},
 	}
 }
 
 func createValidEIJobDataSchema() map[string]interface{} {
 	return map[string]interface{}{
-			"config": map[string]interface{}{
-					"measurement_type": json.RawMessage(`{}`),
+		"config": map[string]interface{}{
+			"measurement_type":  json.RawMessage(`{}`),
+			"reporting_period":  json.RawMessage(`{}`),
+			"targets": map[string]interface{}{
+				"type": "array",
+				"items": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"cell_id":   json.RawMessage(`{"type": "string"}`),
+						"threshold": json.RawMessage(`{}`),
 					},
-					"reporting_period": json.RawMessage(`{}`),
-					"targets": map[string]interface{}{
-							"type": "object",
-							"properties": map[string]interface{}{
-									"type": "string",
-								},
-								"threshold": json.RawMessage(`{}`),
-							},
-							"required": []string{"cell_id", "threshold"},
-						},
-						"minItems": 1,
-						"maxItems": 100,
-					},
+					"required": []string{"cell_id", "threshold"},
 				},
-				"required": []string{"measurement_type", "reporting_period", "targets"},
+				"minItems": 1,
+				"maxItems": 100,
 			},
+			"required": []string{"measurement_type", "reporting_period", "targets"},
 		},
 		"required": []string{"config"},
 	}
@@ -304,14 +296,12 @@ func TestValidatePolicyType_InvalidSchema(t *testing.T) {
 		{
 			"circular reference",
 			map[string]interface{}{
-					"self": json.RawMessage(`{}`),
-				},
+				"self": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"invalid enum values",
 			json.RawMessage(`{}`), // Empty enum
-			},
 		},
 	}
 
@@ -343,9 +333,8 @@ func TestValidatePolicyInstance_Success(t *testing.T) {
 		PolicyID:     "test-policy-1",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-				"ue_id":   "test-ue-123",
-				"cell_id": "ABCD1234",
-			},
+			"ue_id":     "test-ue-123",
+			"cell_id":   "ABCD1234",
 			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{
@@ -474,31 +463,27 @@ func TestValidatePolicyInstance_SchemaValidation(t *testing.T) {
 		{
 			"missing required scope",
 			map[string]interface{}{
-					"qos_class": 5,
-					"action":    "allow",
-				},
+				"qos_class": 5,
+				"action":    "allow",
 			},
 		},
 		{
 			"missing required statement",
 			map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
+				"ue_id": "test-ue-123",
 			},
 		},
 		{
 			"invalid qos_class type",
 			map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
+				"ue_id":     "test-ue-123",
 				"statement": json.RawMessage(`{}`),
 			},
 		},
 		{
 			"qos_class out of range",
 			map[string]interface{}{
-					"ue_id": "test-ue-123",
-				},
+				"ue_id":     "test-ue-123",
 				"statement": json.RawMessage(`{}`),
 			},
 		},
