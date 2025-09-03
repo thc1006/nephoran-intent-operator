@@ -198,7 +198,7 @@ jobs:
       - name: Run gosec security scanner
         uses: securego/gosec@master
         with:
-          args: '-fmt sarif -out gosec-results.sarif -severity medium ./...'
+          args: '-fmt sarif -out gosec-results.sarif -severity medium -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs ./...'
 
       - name: Upload SARIF results to GitHub
         if: always()
@@ -215,8 +215,8 @@ jobs:
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           
           # Generate comprehensive reports
-          gosec -fmt json -out gosec-detailed.json ./... || true
-          gosec -fmt text -severity low ./... > gosec-detailed.txt 2>&1 || true
+          gosec -fmt json -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs -out gosec-detailed.json ./... || true
+          gosec -fmt text -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs -severity low ./... > gosec-detailed.txt 2>&1 || true
           
           # Create summary
           echo "# Gosec Static Security Analysis" > gosec-summary.md

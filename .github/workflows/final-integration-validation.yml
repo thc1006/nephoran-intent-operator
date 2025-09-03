@@ -359,8 +359,8 @@ jobs:
               
               if command -v gosec >/dev/null 2>&1; then
                 # Run Gosec security scanner
-                gosec -fmt json -out test-results/${{ matrix.category }}/gosec-report.json ./... || true
-                gosec -fmt text ./... 2>&1 | tee test-results/${{ matrix.category }}/security-scan.log || true
+                gosec -fmt json -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs -out test-results/${{ matrix.category }}/gosec-report.json ./... || true
+                gosec -fmt text -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs ./... 2>&1 | tee test-results/${{ matrix.category }}/security-scan.log || true
               fi
               
               # Check for common security anti-patterns

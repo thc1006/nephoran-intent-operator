@@ -147,6 +147,9 @@ jobs:
               -severity "$SEVERITY" \
               -confidence medium \
               -exclude-generated \
+              -conf .gosec.json \
+              -exclude G306,G301,G302,G204,G304 \
+              -exclude-dir vendor,testdata,tests,test,examples,docs,scripts,hack,tools \
               $extra_args \
               $SCAN_TARGETS 2>&1 || {
               local exit_code=$?

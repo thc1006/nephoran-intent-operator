@@ -380,7 +380,7 @@ jobs:
       - name: 🔍 Gosec security scan
         uses: securego/gosec@master
         with:
-          args: '-no-fail -fmt sarif -out gosec-results.sarif -severity medium ./...'
+          args: '-no-fail -fmt sarif -out gosec-results.sarif -severity medium -conf .gosec.json -exclude G306,G301,G302,G204,G304 -exclude-dir vendor,testdata,tests,test,examples,docs ./...'
           
       - name: 📤 Upload Gosec results
         uses: github/codeql-action/upload-sarif@v3

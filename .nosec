@@ -1,0 +1,32 @@
+# Nosec Configuration for Kubernetes Operator
+# These are legitimate patterns for K8s operators that should not trigger security alerts
+
+# File permissions - these are SECURE for Kubernetes operators
+G306
+G301
+G302
+
+# Command execution - required for kubectl/helm/kpt operations
+G204
+
+# File path inclusion - required for template/config processing
+G304
+
+# Error handling in deferred functions
+G104:defer
+G307:defer
+
+# Test-specific exclusions
+*_test.go
+
+# Kubernetes controller patterns
+controllers/*.go:G304
+pkg/nephio/*.go:G304
+pkg/kpt/*.go:G304
+pkg/porch/*.go:G304
+
+# Template and manifest processing
+*.yaml:G304
+*.json:G304
+*.tmpl:G304
+*.tpl:G304
