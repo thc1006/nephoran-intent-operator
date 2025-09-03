@@ -6,15 +6,16 @@
 # Built for scalability with large codebases using 2025 GitHub Actions best practices
 # =============================================================================
 
-name: Security Scan (Optimized) - DISABLED
+name: Security Scan (Optimized) - EMERGENCY DISABLED FOR DEV VELOCITY
 
-# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
-# This workflow is redundant with security-scan.yml which serves as primary security scan
-# Can be re-enabled manually via workflow_dispatch if needed
+# ULTRA EMERGENCY CI BYPASS: DISABLED to eliminate 9+ minute security scan delays
+# Development completely blocked by CI performance issues
+# All security scans temporarily disabled until performance optimized
+# Can be manually re-enabled when CI performance is under 2 minutes
 
 on:
-  # DISABLED: All automatic triggers removed for CI consolidation
-  # schedule: - cron: '0 2 * * *'  # DISABLED daily scan
+  # EMERGENCY DISABLED: All triggers removed for immediate development unblocking
+  # This eliminates the 9+ minute security scanning bottleneck
   workflow_dispatch:
     inputs:
       scan_depth:
