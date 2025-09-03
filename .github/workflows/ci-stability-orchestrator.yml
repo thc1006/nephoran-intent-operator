@@ -7,14 +7,14 @@
 # Last Updated: 2025-09-03
 # =============================================================================
 
-name: CI Stability Orchestrator
+name: CI Stability Orchestrator - DISABLED
+
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow functionality is covered by ci-production.yml which serves as primary CI
+# Can be re-enabled manually via workflow_dispatch if needed
 
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened ]
+  # DISABLED: All automatic triggers removed for CI consolidation
   workflow_dispatch:
     inputs:
       stability_mode:

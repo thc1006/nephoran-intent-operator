@@ -8,8 +8,9 @@
 # Target: Production Kubernetes clusters (Ubuntu Linux only)
 # =============================================================================
 
-name: Nephoran Master Orchestrator
+name: Nephoran Master Orchestrator - DISABLED
 
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
 # CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
 # Original triggers preserved in comments for reference:
 # - push: [ main, integrate/mvp, "feat/**", "fix/**", "release/**" ]

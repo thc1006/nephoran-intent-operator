@@ -1,5 +1,6 @@
-name: Ubuntu CI
+name: Ubuntu CI - DISABLED
 
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
 # TEMPORARILY DISABLED for fast-merge; see Revert Plan
 # on:
 #   workflow_dispatch: {}

@@ -6,21 +6,15 @@
 # Built for scalability with large codebases using 2025 GitHub Actions best practices
 # =============================================================================
 
-name: Security Scan (Optimized)
+name: Security Scan (Optimized) - DISABLED
+
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow is redundant with security-scan.yml which serves as primary security scan
+# Can be re-enabled manually via workflow_dispatch if needed
 
 on:
-  push:
-    branches: [ main, integrate/mvp, feat/e2e ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/security-scan*.yml'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-  schedule:
-    # Daily security scan at 2 AM UTC (off-peak hours)
-    - cron: '0 2 * * *'
+  # DISABLED: All automatic triggers removed for CI consolidation
+  # schedule: - cron: '0 2 * * *'  # DISABLED daily scan
   workflow_dispatch:
     inputs:
       scan_depth:

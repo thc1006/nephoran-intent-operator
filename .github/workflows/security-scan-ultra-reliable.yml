@@ -6,14 +6,14 @@
 # Last Updated: 2025-09-03
 # =============================================================================
 
-name: Ultra-Reliable Security Scan
+name: Ultra-Reliable Security Scan - DISABLED
+
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow is redundant with security-scan.yml which serves as primary security scan
+# Can be re-enabled manually via workflow_dispatch if needed
 
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened ]
+  # DISABLED: All automatic triggers removed for CI consolidation
   workflow_dispatch:
     inputs:
       security_level:

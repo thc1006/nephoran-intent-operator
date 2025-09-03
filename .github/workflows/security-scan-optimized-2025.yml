@@ -5,8 +5,10 @@
 # Optimized for large codebases (1,338+ Go files, 381 dependencies)
 # =============================================================================
 
-name: Security Scan - 2025 Optimized
+name: Security Scan - 2025 Optimized - DISABLED
 
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow is redundant with security-scan.yml which serves as primary security scan
 # CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
 # Original triggers preserved in comments for reference:
 # - push: [ main, integrate/mvp ] with path filters  

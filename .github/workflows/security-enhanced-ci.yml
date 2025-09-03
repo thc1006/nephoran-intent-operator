@@ -7,17 +7,15 @@
 # Last Updated: 2025-09-03
 # =============================================================================
 
-name: Security-Enhanced CI Pipeline
+name: Security-Enhanced CI Pipeline - DISABLED
+
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow is redundant with security-scan.yml which serves as primary security scan
+# Can be re-enabled manually via workflow_dispatch if needed
 
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened ]
-  schedule:
-    # Daily security scan at 2 AM UTC
-    - cron: '0 2 * * *'
+  # DISABLED: All automatic triggers removed for CI consolidation
+  # schedule: - cron: '0 2 * * *'  # DISABLED daily scan
   workflow_dispatch:
     inputs:
       security_level:

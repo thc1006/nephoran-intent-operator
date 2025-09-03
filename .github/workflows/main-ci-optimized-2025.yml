@@ -6,25 +6,14 @@
 # Target: 1,338+ Go files, 381 dependencies, 30+ binaries
 # =============================================================================
 
-name: Main CI - 2025 Optimized
+name: Main CI - 2025 Optimized - DISABLED
+
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
+# This workflow is redundant with ci-production.yml which serves as primary CI
+# Can be re-enabled manually via workflow_dispatch if needed
 
 on:
-  push:
-    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'api/**'
-      - 'cmd/**'
-      - 'controllers/**'
-      - 'pkg/**'
-      - 'internal/**'
-      - 'Makefile*'
-      - '.github/workflows/main-ci-optimized-2025.yml'
-  pull_request:
-    branches: [ main, integrate/mvp ]
-    types: [ opened, synchronize, reopened, ready_for_review ]
+  # DISABLED: All automatic triggers removed for CI consolidation
   workflow_dispatch:
     inputs:
       build_mode:

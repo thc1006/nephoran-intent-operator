@@ -5,8 +5,9 @@
 # Addresses: cache key failures, tar extraction errors, timeout issues
 # =============================================================================
 
-name: CI Pipeline 2025
+name: CI Pipeline 2025 - DISABLED
 
+# EMERGENCY CI CONSOLIDATION: DISABLED to reduce 75%+ CI job overhead
 # CONVERTED TO MANUAL-ONLY: Auto-triggering disabled to prevent CI conflicts
 # Original triggers preserved in comments for reference:
 # - push: [ main, integrate/mvp, "feat/**", "fix/**", "chore/**" ] with path filters
