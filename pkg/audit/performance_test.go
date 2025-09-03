@@ -714,7 +714,8 @@ func createExtraLargeEvent() *AuditEvent {
 	// Create extra large data payload
 	extraLargeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		extraLargeData[fmt.Sprintf("field_%d", i)] = json.RawMessage(`{}`),
+		extraLargeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
+			"payload":     json.RawMessage(`{}`),
 			"nested_data": []string{"item1", "item2", "item3"},
 			"timestamp":   time.Now(),
 		}

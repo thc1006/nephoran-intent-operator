@@ -742,6 +742,7 @@ func TestServer_Intent_ConcurrentRequests(t *testing.T) {
 			time.Sleep(time.Duration(id) * time.Millisecond)
 
 			payload := map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 3,
 					"target":          fmt.Sprintf("concurrent-test-%d", id),
 					"namespace":       "default",
@@ -886,6 +887,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid with all optional fields",
 			payload: map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 50,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -902,6 +904,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at minimum boundary",
 			payload: map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 1,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -915,6 +918,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "replicas at maximum boundary",
 			payload: map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 100,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -928,6 +932,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "valid source enum values",
 			payload: map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -942,6 +947,7 @@ func TestServer_RealSchemaValidation(t *testing.T) {
 		{
 			name: "reason at max length",
 			payload: map[string]interface{}{
+				"metadata": map[string]interface{}{
 					"target_replicas": 5,
 					"target":          "test-deployment",
 					"namespace":       "default",
@@ -989,6 +995,7 @@ func TestServer_IntegrationFlow(t *testing.T) {
 	correlationID := fmt.Sprintf("integration-test-%d", time.Now().Unix())
 
 	payload := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"target_replicas": 7,
 			"target":          "integration-test-app",
 			"namespace":       "integration",
@@ -1136,4 +1143,3 @@ func TestServer_IntegrationFlow(t *testing.T) {
 		t.Errorf("Invalid timestamp in filename %s: %v", timestampPart, err)
 	}
 }
-

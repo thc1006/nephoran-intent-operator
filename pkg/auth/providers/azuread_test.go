@@ -211,7 +211,8 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 				json.NewEncoder(w).Encode(response)
 			case "invalid-code":
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage(`{}`),
+				response := map[string]interface{}{
+					"error":             "invalid_code",
 					"timestamp":         "2023-01-01 12:00:00Z",
 					"trace_id":          "test-trace-id",
 					"correlation_id":    "test-correlation-id",
@@ -304,7 +305,8 @@ func TestAzureADProvider_RefreshToken(t *testing.T) {
 				json.NewEncoder(w).Encode(response)
 			case "expired-refresh-token":
 				w.WriteHeader(http.StatusBadRequest)
-				response := json.RawMessage(`{}`),
+				response := map[string]interface{}{
+					"error": "expired_refresh_token",
 				}
 				json.NewEncoder(w).Encode(response)
 			default:
@@ -425,6 +427,7 @@ func TestAzureADProvider_GetUserInfo(t *testing.T) {
 			case "invalid-token":
 				w.WriteHeader(http.StatusUnauthorized)
 				response := map[string]interface{}{
+					"error": map[string]interface{}{
 						"code":    "InvalidAuthenticationToken",
 						"message": "Access token is empty.",
 					},
@@ -433,6 +436,7 @@ func TestAzureADProvider_GetUserInfo(t *testing.T) {
 			default:
 				w.WriteHeader(http.StatusForbidden)
 				response := map[string]interface{}{
+					"error": map[string]interface{}{
 						"code":    "Forbidden",
 						"message": "Insufficient privileges to complete the operation.",
 					},
@@ -539,6 +543,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 			switch token {
 			case "valid-token":
 				groups := map[string]interface{}{
+					"value": []map[string]interface{}{
 						{
 							"id":          "group1-1234-5678-9012-123456789012",
 							"displayName": "Engineering Team",
@@ -554,8 +559,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(groups)
 			case "no-groups-token":
-				groups := json.RawMessage(`{}`)"),
-				}
+				groups := json.RawMessage(`{"value":[]}`)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(groups)
 			default:

@@ -142,7 +142,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 		ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 			},
-		},
+		}
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)

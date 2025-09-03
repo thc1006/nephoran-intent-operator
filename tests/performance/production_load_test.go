@@ -470,7 +470,6 @@ func generatePolicyPayload() interface{} {
 			"min_throughput":    rand.Intn(1000) + 100,
 			"latency_target_ms": rand.Intn(50) + 10,
 			"reliability":       0.99 + rand.Float64()*0.009,
-		},
 		"target_cells": []string{
 			fmt.Sprintf("cell-%d", rand.Intn(100)),
 			fmt.Sprintf("cell-%d", rand.Intn(100)),

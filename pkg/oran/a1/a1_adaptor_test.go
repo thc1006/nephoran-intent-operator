@@ -128,9 +128,8 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1000,
 			PolicyData: map[string]interface{}{
-					"latency_ms":      10,
-					"throughput_mbps": 100,
-				},
+				"latency_ms":      10,
+				"throughput_mbps": 100,
 			},
 		}
 		err := adaptor.CreatePolicyInstance(ctx, 1000, instance)
@@ -663,6 +662,7 @@ func TestA1PolicyStructures(t *testing.T) {
 			Name:         "Test Policy",
 			Description:  "A test policy type",
 			PolicySchema: map[string]interface{}{
+				"properties": map[string]interface{}{
 					"param1": json.RawMessage(`{}`),
 				},
 				"required": []string{"param1"},

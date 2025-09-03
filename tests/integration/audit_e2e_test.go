@@ -391,7 +391,6 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Namespace:    "production",
 			},
 			Data: json.RawMessage(`{}`),
-			},
 		}
 
 		err := suite.auditSystem.LogEvent(admissionEvent)

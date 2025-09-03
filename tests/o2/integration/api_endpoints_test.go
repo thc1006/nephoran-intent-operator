@@ -52,7 +52,7 @@ func (suite *O2APITestSuite) SetupSuite() {
 		ProviderConfigs: map[string]interface{}{
 				"enabled": true,
 			},
-		},
+		}
 	}
 
 	var err error

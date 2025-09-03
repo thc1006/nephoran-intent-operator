@@ -45,11 +45,11 @@ func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 	s.Run("A1_PolicyTypeManagement", func() {
 		// Test policy type creation
 		policyType := map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-						"type":    "integer",
-						"minimum": 0,
-					},
+			"type": "object",
+			"properties": map[string]interface{}{
+				"threshold": map[string]interface{}{
+					"type":    "integer",
+					"minimum": 0,
 				},
 			},
 		}
@@ -61,8 +61,7 @@ func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 	s.Run("A1_PolicyInstanceManagement", func() {
 		// Test policy instance creation
 		policy := map[string]interface{}{
-				"max_throughput": 1000,
-			},
+			"max_throughput": 1000,
 		}
 
 		resp := s.makeRequest("PUT", "/A1-P/v2/policies/policy_001", policy)
@@ -156,6 +155,7 @@ func (s *ORANComplianceTestSuite) TestO1InterfaceCompliance() {
 
 		// Test alarm subscription
 		subscription := map[string]interface{}{
+			"filter": map[string]interface{}{
 				"severity": []string{"CRITICAL", "MAJOR"},
 			},
 			"callback_url": "http://test-callback/alarms",
@@ -186,6 +186,7 @@ func (s *ORANComplianceTestSuite) TestO2InterfaceCompliance() {
 	s.Run("O2_DeploymentManagement", func() {
 		// Test deployment descriptor
 		deployment := map[string]interface{}{
+			"resources": map[string]interface{}{
 				"cpu":     "4",
 				"memory":  "8Gi",
 				"storage": "100Gi",
@@ -218,11 +219,11 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 	s.Run("E2_SetupProcedure", func() {
 		// Test E2 setup request
 		setup := map[string]interface{}{
+			"global_enb_id": map[string]interface{}{
 				"gnb_id":  "001",
 				"plmn_id": "00101",
 			},
-			"ran_functions": []json.RawMessage(`{}`),
-			},
+			"ran_functions": []json.RawMessage{json.RawMessage(`{}`)},
 		}
 
 		resp := s.makeRequest("POST", "/E2/v1/setup", setup)
@@ -232,10 +233,10 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 	s.Run("E2_SubscriptionManagement", func() {
 		// Test subscription creation
 		subscription := map[string]interface{}{
+			"event_trigger": map[string]interface{}{
 				"period_ms": 1000,
 			},
-			"action_list": []json.RawMessage(`{}`),
-			},
+			"action_list": []json.RawMessage{json.RawMessage(`{}`)},
 		}
 
 		resp := s.makeRequest("POST", "/E2/v1/subscriptions", subscription)
@@ -272,7 +273,8 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_ServiceRegistration", func() {
 		// Test service registration with SMO
-		service := json.RawMessage(`{}`),
+		service := map[string]interface{}{
+			"name":         "nephoran-operator",
 			"endpoint":     "http://nephoran:8080",
 		}
 

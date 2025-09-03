@@ -149,9 +149,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 				},
 			},
 			// O-RAN extensions for additional metadata
-			Extensions: json.RawMessage(`{}`),
-				"complianceLevel":      "O-RAN-WG6-v1.0",
-			},
+			Extensions: json.RawMessage(`{"complianceLevel": "O-RAN-WG6-v1.0"}`),
 		}
 
 		poolJSON, err := json.Marshal(pool)

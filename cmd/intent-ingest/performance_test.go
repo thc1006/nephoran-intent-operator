@@ -25,8 +25,7 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 	defer server.Close()
 
 	intent := map[string]interface{}{
-			"intent": "Deploy nginx with 3 replicas",
-		},
+		"intent": "Deploy nginx with 3 replicas",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -90,13 +89,13 @@ func BenchmarkHTTPHandler_MetricsEndpoint(b *testing.B) {
 // BenchmarkJSONMarshal benchmarks JSON marshaling performance
 func BenchmarkJSONMarshal(b *testing.B) {
 	intent := map[string]interface{}{
+		"metadata": map[string]interface{}{
 			"name":      "test-intent",
 			"namespace": "default",
 		},
 		"spec": map[string]interface{}{
-				"cpu":    "100m",
-				"memory": "128Mi",
-			},
+			"cpu":    "100m",
+			"memory": "128Mi",
 		},
 	}
 
@@ -147,8 +146,7 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	defer server.Close()
 
 	intent := map[string]interface{}{
-			"intent": "Benchmark concurrent processing",
-		},
+		"intent": "Benchmark concurrent processing",
 	}
 
 	intentJSON, err := json.Marshal(intent)
@@ -198,9 +196,8 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 	// Create large intent payload to test memory usage
 	largeIntent := map[string]interface{}{
-			"intent":   "Large intent for memory testing",
-			"metadata": make(map[string]interface{}),
-		},
+		"intent":   "Large intent for memory testing",
+		"metadata": make(map[string]interface{}),
 	}
 
 	// Add many fields to create a large payload
@@ -234,8 +231,7 @@ func BenchmarkResponseTime(b *testing.B) {
 	defer server.Close()
 
 	intent := map[string]interface{}{
-			"intent": "Response time benchmark",
-		},
+		"intent": "Response time benchmark",
 	}
 
 	intentJSON, err := json.Marshal(intent)

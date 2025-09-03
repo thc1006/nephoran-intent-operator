@@ -306,8 +306,7 @@ func TestHealthSnapshot_Structure(t *testing.T) {
 			"ric": health.StatusHealthy,
 		},
 		CircuitBreakerStats: map[string]interface{}{
-				"state": "closed",
-			},
+			"state": "closed",
 		},
 		Metrics: HealthMetrics{
 			TotalChecks:         10,

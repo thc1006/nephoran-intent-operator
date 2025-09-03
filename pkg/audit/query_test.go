@@ -195,9 +195,8 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 
 	suite.Run("filter by multiple event types", func() {
 		query := &Query{
-			Filters: json.RawMessage(`{}`),
-			},
-			Limit: 100,
+			Filters: json.RawMessage(`{"event_type": ["create", "update"]}`),
+			Limit:   100,
 		}
 
 		result, err := suite.queryEngine.Execute(context.Background(), query, "mock")

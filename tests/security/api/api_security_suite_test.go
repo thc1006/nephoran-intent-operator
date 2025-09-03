@@ -943,7 +943,6 @@ func TestTelecommunicationsSpecificSecurity(t *testing.T) {
 				policy := map[string]interface{}{
 						"targetCell": "cell-123",
 						"action":     "optimize",
-					},
 				}
 
 				if test.signature {

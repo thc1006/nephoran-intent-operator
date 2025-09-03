@@ -33,8 +33,8 @@ func TestNewStateManager(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				dir := t.TempDir()
 				stateFile := filepath.Join(dir, StateFileName)
-				stateData := json.RawMessage(`{}`),
-					},
+				stateData := map[string]interface{}{
+					"last_processed": time.Now().Format(time.RFC3339),
 				}
 				data, _ := json.Marshal(stateData)
 				require.NoError(t, os.WriteFile(stateFile, data, 0o644))

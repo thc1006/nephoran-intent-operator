@@ -206,8 +206,7 @@ func TestOPAPolicy(t *testing.T) {
 		UpdatedAt:       &time.Time{},
 		EvaluationCount: 100,
 		ViolationCount:  5,
-		Metadata: json.RawMessage(`{}`),
-		},
+		Metadata:     json.RawMessage(`{}`),
 		Dependencies: []string{"base-policy"},
 	}
 
@@ -264,8 +263,6 @@ func TestPolicyTestCase(t *testing.T) {
 		name:        "Test Pod Security",
 		description: "Test that pods without security context are flagged",
 		input: json.RawMessage(`{}`),
-			"spec": json.RawMessage(`{}`),
-		},
 		expectedOutput:    "violation",
 		expectedViolation: true,
 	}

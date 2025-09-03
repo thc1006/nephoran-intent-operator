@@ -795,20 +795,21 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Multiple open circuit breakers (should return all open breakers)",
 			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
 					"state":    "open",
 					"failures": 3,
 				},
 				"service-b": json.RawMessage(`{}`),
 			},
 			expectedStatus:  health.StatusUnhealthy,
+			expectedMessage: "Circuit breakers in open state: [service-a, service-b]",
 			expectUnhealthy: true,
-			// Message should contain all open breakers in array format
 		},
 		{
 			name: "Circuit breaker with malformed stats (missing state)",
 			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
 					"failures": 0,
-					// Missing "state" field
 				},
 			},
 			expectedStatus:  health.StatusHealthy,
@@ -818,6 +819,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 		{
 			name: "Circuit breaker with non-map stats (should be ignored)",
 			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -883,6 +885,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 	t.Run("with_circuit_breaker_manager", func(t *testing.T) {
 		mockCBMgr := &MockCircuitBreakerManager{
 			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
 					"state":    "closed",
 					"failures": 0,
 				},
@@ -949,4 +952,3 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 		sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 	}
 }
-

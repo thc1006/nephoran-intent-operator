@@ -726,16 +726,19 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 func generateResourceSpec(sizeBytes int) map[string]interface{} {
 	// Generate realistic Kubernetes resource spec
 	spec := map[string]interface{}{
+		"selector": map[string]interface{}{
 			"matchLabels": map[string]string{
 				"app": "test-app",
 			},
 		},
 		"template": map[string]interface{}{
+			"metadata": map[string]interface{}{
 				"labels": map[string]string{
 					"app": "test-app",
 				},
 			},
 			"spec": map[string]interface{}{
+				"containers": []map[string]interface{}{
 					{
 						"name":  "main",
 						"image": "nginx:latest",

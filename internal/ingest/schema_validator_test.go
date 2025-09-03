@@ -122,6 +122,7 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("validates valid intent successfully", func(t *testing.T) {
 		validIntent := map[string]interface{}{
+			"metadata": map[string]interface{}{
 				"name":      "test-intent",
 				"namespace": "default",
 			},
@@ -134,6 +135,7 @@ func TestIntentSchemaValidator_Validate(t *testing.T) {
 
 	t.Run("returns error for invalid apiVersion", func(t *testing.T) {
 		invalidIntent := map[string]interface{}{
+			"metadata": map[string]interface{}{
 				"name": "test-intent",
 			},
 			"spec": json.RawMessage(`{}`),

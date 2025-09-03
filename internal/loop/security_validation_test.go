@@ -257,14 +257,13 @@ func TestIntentValidation(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		intent      map[string]interface{}
+		intent      json.RawMessage
 		shouldError bool
 		description string
 	}{
 		{
-			name: "valid intent",
-			intent: map[string]interface{}{"count": 3},
-			},
+			name:        "valid intent",
+			intent:      json.RawMessage(`{"count": 3}`),
 			shouldError: false,
 			description: "should accept valid intent",
 		},
@@ -275,16 +274,14 @@ func TestIntentValidation(t *testing.T) {
 			description: "should reject command injection in target",
 		},
 		{
-			name: "path traversal in target",
-			intent: json.RawMessage(`{}`)"),
-			},
+			name:        "path traversal in target",
+			intent:      json.RawMessage(`{"target": "../../../etc/passwd"}`),
 			shouldError: true,
 			description: "should reject path traversal in target",
 		},
 		{
-			name: "invalid action",
-			intent: json.RawMessage(`{}`)"),
-			},
+			name:        "invalid action",
+			intent:      json.RawMessage(`{"action": "rm -rf /"}`),
 			shouldError: true,
 			description: "should reject invalid actions",
 		},
