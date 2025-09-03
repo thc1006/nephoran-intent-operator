@@ -218,7 +218,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	sm.relevanceScorer = llm.NewRelevanceScorerStub()
 
 	if sm.config.EnableContextBuilder {
-		sm.contextBuilder = llm.NewContextBuilderStub()
+		sm.contextBuilder = &llm.ContextBuilder{}
 	}
 
 	sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
@@ -238,7 +238,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	if sm.config.StreamingEnabled {
 		// Use stub implementation for now.
 
-		sm.streamingProcessor = llm.NewStreamingProcessor()
+		sm.streamingProcessor = &llm.ConsolidatedStreamingProcessor{}
 	}
 
 	// Initialize main processor with circuit breaker.
@@ -654,7 +654,7 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 // metricsHandler provides comprehensive metrics.
 
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	metrics := json.RawMessage(`{}`)
+	metrics := make(map[string]interface{})
 
 	// Add token manager metrics.
 

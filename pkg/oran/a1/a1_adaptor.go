@@ -1425,7 +1425,7 @@ func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workfl
 	workflow.UpdatedAt = time.Now()
 
 	if workflow.Context == nil {
-		workflow.Context = make(map[string]interface{})
+		workflow.Context = json.RawMessage(`{}`)
 	}
 
 	o.workflows[workflow.ID] = workflow
@@ -1598,7 +1598,12 @@ func (o *SMOPolicyOrchestrator) executeUpdatePolicyStep(ctx context.Context, wor
 func (o *SMOPolicyOrchestrator) executeValidationStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
 	// Perform validation logic based on step parameters.
 
-	validationType, ok := step.Parameters["validation_type"].(string)
+	var params map[string]interface{}
+	if err := json.Unmarshal(step.Parameters, &params); err != nil {
+		return fmt.Errorf("failed to unmarshal step parameters: %w", err)
+	}
+
+	validationType, ok := params["validation_type"].(string)
 
 	if !ok {
 		return fmt.Errorf("validation_type not specified in step parameters")
@@ -1630,13 +1635,18 @@ func (o *SMOPolicyOrchestrator) executeValidationStep(ctx context.Context, workf
 func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
 	// Send notification based on step parameters.
 
-	notificationType, ok := step.Parameters["notification_type"].(string)
+	var params map[string]interface{}
+	if err := json.Unmarshal(step.Parameters, &params); err != nil {
+		return fmt.Errorf("failed to unmarshal step parameters: %w", err)
+	}
+
+	notificationType, ok := params["notification_type"].(string)
 
 	if !ok {
 		return fmt.Errorf("notification_type not specified in step parameters")
 	}
 
-	message, ok := step.Parameters["message"].(string)
+	message, ok := params["message"].(string)
 
 	if !ok {
 		message = fmt.Sprintf("Workflow %s step %s completed", workflow.ID, step.Name)
@@ -1646,6 +1656,7 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 
 	case "smo_event":
 
+		eventData, _ := json.Marshal(map[string]string{"message": message})
 		event := &PolicyEvent{
 			ID: fmt.Sprintf("%s-notification-%s", workflow.ID, step.ID),
 
@@ -1657,7 +1668,7 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 
 			Target: "smo",
 
-			Data: json.RawMessage(`{}`),
+			Data: eventData,
 
 			Timestamp: time.Now(),
 
@@ -1676,7 +1687,12 @@ func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, wor
 // validatePolicyEnforcement validates that policies are properly enforced.
 
 func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
-	ricID, ok := step.Parameters["ric_id"].(string)
+	var params map[string]interface{}
+	if err := json.Unmarshal(step.Parameters, &params); err != nil {
+		return fmt.Errorf("failed to unmarshal step parameters: %w", err)
+	}
+
+	ricID, ok := params["ric_id"].(string)
 
 	if !ok {
 		return fmt.Errorf("ric_id not specified in validation parameters")
@@ -1719,14 +1735,18 @@ func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context
 	// This would integrate with cloud management APIs to check resource availability.
 
 	// For now, we'll do a simple validation.
+	var params map[string]interface{}
+	if err := json.Unmarshal(step.Parameters, &params); err != nil {
+		return fmt.Errorf("failed to unmarshal step parameters: %w", err)
+	}
 
-	requiredCPU, ok := step.Parameters["required_cpu"].(float64)
+	requiredCPU, ok := params["required_cpu"].(float64)
 
 	if !ok {
 		requiredCPU = 0
 	}
 
-	requiredMemory, ok := step.Parameters["required_memory"].(float64)
+	requiredMemory, ok := params["required_memory"].(float64)
 
 	if !ok {
 		requiredMemory = 0
@@ -1943,13 +1963,18 @@ func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTyp
 		}
 
 		// Cache the policy instance locally.
+		// Convert policy data to json.RawMessage
+		policyDataBytes, err := json.Marshal(policyData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal policy data: %w", err)
+		}
 
 		policyInstance := &A1PolicyInstance{
 			PolicyInstanceID: policyInstanceID,
 
 			PolicyTypeID: policyTypeID,
 
-			PolicyData: policyData,
+			PolicyData: policyDataBytes,
 
 			Status: A1PolicyStatus{
 				EnforcementStatus: "ENFORCED",

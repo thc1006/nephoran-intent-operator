@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -134,7 +135,7 @@ func (a *llmClientAdapter) GetModelCapabilities() shared.ModelCapabilities {
 		CostPerToken:         0.001,
 		SupportedMimeTypes:   []string{"text/plain", "application/json"},
 		ModelVersion:         "legacy-1.0",
-		Features:             make(map[string]interface{}),
+		Features:             json.RawMessage(`{}`),
 	}
 }
 

@@ -826,7 +826,7 @@ func (e *ParallelProcessingEngine) handleTaskResult(task *Task) {
 				task.Error,
 				string(task.Type),
 				"task_execution",
-				json.RawMessage(`{}`))
+				map[string]interface{}{})
 		}
 	} else {
 		e.logger.V(1).Info("Task completed successfully",
@@ -1117,8 +1117,7 @@ func (w *Worker) processRAGQuery(ctx context.Context, task *Task) error {
 	// Simulate RAG query work
 	select {
 	case <-time.After(200 * time.Millisecond):
-		task.OutputData = json.RawMessage(`{}`),
-		}
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -1140,8 +1139,7 @@ func (w *Worker) processManifestGeneration(ctx context.Context, task *Task) erro
 	// Simulate manifest generation work
 	select {
 	case <-time.After(400 * time.Millisecond):
-		task.OutputData = json.RawMessage(`{}`),
-		}
+		task.OutputData = json.RawMessage(`{}`)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

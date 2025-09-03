@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"sync"
@@ -107,13 +108,25 @@ func (v *VMwareProvider) GetProviderInfo() *ProviderInfo {
 
 		Endpoint: v.config.Endpoint,
 
-		Tags: map[string]string{
-			"vcenter": v.config.Endpoint,
-
-			"datacenter": v.config.Parameters["datacenter"].(string),
-
-			"cluster": v.config.Parameters["cluster"].(string),
-		},
+		Tags: func() map[string]string {
+			tags := map[string]string{
+				"vcenter": v.config.Endpoint,
+			}
+			
+			if v.config.Parameters != nil {
+				var params map[string]interface{}
+				if err := json.Unmarshal(v.config.Parameters, &params); err == nil {
+					if datacenter, ok := params["datacenter"].(string); ok {
+						tags["datacenter"] = datacenter
+					}
+					if cluster, ok := params["cluster"].(string); ok {
+						tags["cluster"] = cluster
+					}
+				}
+			}
+			
+			return tags
+		}(),
 
 		LastUpdated: time.Now(),
 	}
@@ -253,9 +266,19 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 
 	v.finder = find.NewFinder(client.Client, true)
 
-	// Set datacenter if specified.
+	// Parse parameters once
+	var params map[string]interface{}
+	if v.config.Parameters != nil {
+		if err := json.Unmarshal(v.config.Parameters, &params); err != nil {
+			logger.Error(err, "failed to parse parameters")
+			params = make(map[string]interface{})
+		}
+	} else {
+		params = make(map[string]interface{})
+	}
 
-	if dcName, ok := v.config.Parameters["datacenter"].(string); ok && dcName != "" {
+	// Set datacenter if specified.
+	if dcName, ok := params["datacenter"].(string); ok && dcName != "" {
 
 		dc, err := v.finder.Datacenter(ctx, dcName)
 		if err != nil {
@@ -269,8 +292,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 	}
 
 	// Initialize resource pool if specified.
-
-	if poolPath, ok := v.config.Parameters["resource_pool"].(string); ok && poolPath != "" {
+	if poolPath, ok := params["resource_pool"].(string); ok && poolPath != "" {
 
 		pool, err := v.finder.ResourcePool(ctx, poolPath)
 
@@ -283,8 +305,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 	}
 
 	// Initialize VM folder if specified.
-
-	if folderPath, ok := v.config.Parameters["vm_folder"].(string); ok && folderPath != "" {
+	if folderPath, ok := params["vm_folder"].(string); ok && folderPath != "" {
 
 		folder, err := v.finder.Folder(ctx, folderPath)
 
@@ -297,8 +318,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 	}
 
 	// Initialize datastore if specified.
-
-	if dsName, ok := v.config.Parameters["datastore"].(string); ok && dsName != "" {
+	if dsName, ok := params["datastore"].(string); ok && dsName != "" {
 
 		ds, err := v.finder.Datastore(ctx, dsName)
 
@@ -1394,8 +1414,16 @@ func (v *VMwareProvider) ValidateConfiguration(ctx context.Context, config *Prov
 	}
 
 	// Check required parameters.
-
-	if _, exists := config.Parameters["datacenter"]; !exists {
+	if config.Parameters != nil {
+		var params map[string]interface{}
+		if err := json.Unmarshal(config.Parameters, &params); err == nil {
+			if _, exists := params["datacenter"]; !exists {
+				return fmt.Errorf("datacenter parameter is required")
+			}
+		} else {
+			return fmt.Errorf("datacenter parameter is required")
+		}
+	} else {
 		return fmt.Errorf("datacenter parameter is required")
 	}
 

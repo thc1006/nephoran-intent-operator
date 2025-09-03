@@ -837,8 +837,11 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 	}
 
 	// Return control acknowledge.
-
-	outcomeData, _ := json.Marshal(json.RawMessage(`{}`))
+	outcomeMap := map[string]interface{}{
+		"result": outcome,
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+	outcomeData, _ := json.Marshal(outcomeMap)
 
 	return &RICControlAcknowledge{
 		RICRequestID: req.RICRequestID,

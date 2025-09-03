@@ -160,7 +160,7 @@ func (wp *WorkerPool) GetMetrics() map[string]interface{} {
 
 	defer wp.mutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{}
 }
 
 // GetHealth returns health status of the worker pool.
@@ -174,19 +174,21 @@ func (wp *WorkerPool) GetHealth() map[string]interface{} {
 
 	healthy := activeWorkers > 0 && queueLength < queueCapacity
 
-	health := json.RawMessage(`{}`)
+	health := map[string]interface{}{}
 
 	if !healthy {
 
-		health["issues"] = []string{}
+		issues := []string{}
 
 		if activeWorkers == 0 {
-			health["issues"] = append(health["issues"].([]string), "no active workers")
+			issues = append(issues, "no active workers")
 		}
 
 		if queueLength >= queueCapacity {
-			health["issues"] = append(health["issues"].([]string), "queue full")
+			issues = append(issues, "queue full")
 		}
+
+		health["issues"] = issues
 
 	}
 
@@ -368,7 +370,7 @@ func (w *Worker) GetMetrics() map[string]interface{} {
 
 	defer w.mutex.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{}
 }
 
 // IsHealthy returns whether the worker is healthy.

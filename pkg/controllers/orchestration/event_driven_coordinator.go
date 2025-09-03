@@ -475,10 +475,13 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 	edc.logger.Info("Handling conflict detection", "intentId", event.IntentID, "conflict", event.Data)
 
 	// Extract conflict data from event.
+	var conflictData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &conflictData); err != nil {
+		return fmt.Errorf("failed to unmarshal conflict data: %w", err)
+	}
 
-	conflictID, _ := event.Data["conflictId"].(string)
-
-	if conflictID == "" {
+	conflictID, ok := conflictData["conflictId"].(string)
+	if !ok || conflictID == "" {
 		return fmt.Errorf("missing conflict ID in conflict detected event")
 	}
 
@@ -488,10 +491,10 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 
 	if coordCtx, exists := edc.coordinationContexts[event.IntentID]; exists {
 
+		conflictType, _ := conflictData["type"].(string)
 		conflict := Conflict{
 			ID: conflictID,
-
-			Type: event.Data["type"].(string),
+			Type: conflictType,
 
 			InvolvedIntents: []string{event.IntentID},
 
@@ -512,7 +515,11 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 func (edc *EventDrivenCoordinator) handleConflictResolved(ctx context.Context, event ProcessingEvent) error {
 	edc.logger.Info("Handling conflict resolution", "intentId", event.IntentID)
 
-	conflictID, _ := event.Data["conflictId"].(string)
+	var conflictData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &conflictData); err != nil {
+		return fmt.Errorf("failed to unmarshal conflict data: %w", err)
+	}
+	conflictID, _ := conflictData["conflictId"].(string)
 
 	// Remove resolved conflict from coordination context.
 
@@ -540,7 +547,11 @@ func (edc *EventDrivenCoordinator) handleConflictResolved(ctx context.Context, e
 func (edc *EventDrivenCoordinator) handleResourceLockAcquired(ctx context.Context, event ProcessingEvent) error {
 	edc.logger.Info("Handling resource lock acquired", "intentId", event.IntentID)
 
-	lockID, _ := event.Data["lockId"].(string)
+	var lockData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &lockData); err != nil {
+		return fmt.Errorf("failed to unmarshal lock data: %w", err)
+	}
+	lockID, _ := lockData["lockId"].(string)
 
 	// Add lock to coordination context.
 
@@ -560,7 +571,11 @@ func (edc *EventDrivenCoordinator) handleResourceLockAcquired(ctx context.Contex
 func (edc *EventDrivenCoordinator) handleResourceLockReleased(ctx context.Context, event ProcessingEvent) error {
 	edc.logger.Info("Handling resource lock released", "intentId", event.IntentID)
 
-	lockID, _ := event.Data["lockId"].(string)
+	var lockData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &lockData); err != nil {
+		return fmt.Errorf("failed to unmarshal lock data: %w", err)
+	}
+	lockID, _ := lockData["lockId"].(string)
 
 	// Remove lock from coordination context.
 
@@ -589,6 +604,10 @@ func (edc *EventDrivenCoordinator) handleRecoveryInitiated(ctx context.Context, 
 	edc.logger.Info("Handling recovery initiated", "intentId", event.IntentID)
 
 	// Record recovery in coordination context.
+	var recoveryData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &recoveryData); err != nil {
+		return fmt.Errorf("failed to unmarshal recovery data: %w", err)
+	}
 
 	edc.mutex.Lock()
 
@@ -596,7 +615,7 @@ func (edc *EventDrivenCoordinator) handleRecoveryInitiated(ctx context.Context, 
 
 		coordCtx.RetryCount++
 
-		recoveryAction, _ := event.Data["action"].(string)
+		recoveryAction, _ := recoveryData["action"].(string)
 
 		coordCtx.ErrorHistory = append(coordCtx.ErrorHistory, fmt.Sprintf("Recovery initiated: %s", recoveryAction))
 
@@ -613,12 +632,16 @@ func (edc *EventDrivenCoordinator) handleRecoveryCompleted(ctx context.Context, 
 	edc.logger.Info("Handling recovery completed", "intentId", event.IntentID)
 
 	// Update coordination context.
+	var recoveryData map[string]interface{}
+	if err := json.Unmarshal(event.Data, &recoveryData); err != nil {
+		return fmt.Errorf("failed to unmarshal recovery data: %w", err)
+	}
 
 	edc.mutex.Lock()
 
 	if coordCtx, exists := edc.coordinationContexts[event.IntentID]; exists {
 
-		recoveryAction, _ := event.Data["action"].(string)
+		recoveryAction, _ := recoveryData["action"].(string)
 
 		coordCtx.ErrorHistory = append(coordCtx.ErrorHistory, fmt.Sprintf("Recovery completed: %s", recoveryAction))
 

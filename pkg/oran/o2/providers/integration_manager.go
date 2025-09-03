@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -134,12 +135,27 @@ func (im *IntegrationManager) RegisterCloudProvider(ctx context.Context, name st
 	case ProviderTypeKubernetes:
 
 		// Special handling for additional Kubernetes clusters.
+		providerConfig := make(map[string]string)
+		
+		// Parse parameters from JSON
+		if config.Parameters != nil {
+			var params map[string]interface{}
+			if err := json.Unmarshal(config.Parameters, &params); err != nil {
+				return fmt.Errorf("failed to unmarshal parameters: %w", err)
+			}
+			if kubeconfig, ok := params["kubeconfig"]; ok {
+				if kubeconfigStr, ok := kubeconfig.(string); ok {
+					providerConfig["kubeconfig"] = kubeconfigStr
+				}
+			}
+			if context, ok := params["context"]; ok {
+				if contextStr, ok := context.(string); ok {
+					providerConfig["context"] = contextStr
+				}
+			}
+		}
 
-		provider, err = NewKubernetesProvider(im.kubeClient, im.clientset, map[string]string{
-			"kubeconfig": config.Parameters["kubeconfig"].(string),
-
-			"context": config.Parameters["context"].(string),
-		})
+		provider, err = NewKubernetesProvider(im.kubeClient, im.clientset, providerConfig)
 
 	case ProviderTypeOpenStack:
 

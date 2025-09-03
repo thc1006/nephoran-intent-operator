@@ -758,7 +758,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "moderate",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 		},
 
 		{
@@ -780,7 +780,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 		},
 
 		// O-RAN Network Function Intents.
@@ -792,7 +792,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "moderate",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 		},
 
 		{
@@ -802,7 +802,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 		},
 
 		// Network Slicing Intents.
@@ -814,7 +814,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "moderate",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 		},
 
 		{
@@ -824,7 +824,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "complex",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 		},
 
 		// Simple configuration intents.
@@ -836,7 +836,7 @@ func (tr *TestRunner) generateTestIntents() []*NetworkIntent {
 
 			Complexity: "simple",
 
-			Parameters: json.RawMessage(`{}`),
+			Parameters: map[string]interface{}{},
 			},
 		},
 	}

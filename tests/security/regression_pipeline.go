@@ -438,7 +438,7 @@ func (p *SecurityRegressionPipeline) loadSecurityBaselines(ctx context.Context) 
 			Name:            "default",
 			Version:         "1.0.0",
 			LastUpdated:     time.Now(),
-			Controls:        make(map[string]interface{}),
+			Controls:        json.RawMessage("{}"),
 			Metrics:         make(map[string]float64),
 			ComplianceScore: 100.0,
 			Thresholds:      make(map[string]float64),
@@ -482,7 +482,7 @@ func (p *SecurityRegressionPipeline) executeSecurityScanStage(ctx context.Contex
 		Metrics:          make(map[string]float64),
 		Logs:             make([]string, 0),
 		Errors:           make([]string, 0),
-		Metadata:         make(map[string]interface{}),
+		Metadata:         json.RawMessage("{}"),
 	}
 
 	// Execute security scanning tools
@@ -526,7 +526,7 @@ func (p *SecurityRegressionPipeline) executePenetrationTestStage(ctx context.Con
 		Metrics:          make(map[string]float64),
 		Logs:             make([]string, 0),
 		Errors:           make([]string, 0),
-		Metadata:         make(map[string]interface{}),
+		Metadata:         json.RawMessage("{}"),
 	}
 
 	// Execute penetration testing suite
@@ -562,7 +562,7 @@ func (p *SecurityRegressionPipeline) executeComplianceCheckStage(ctx context.Con
 		Metrics:     make(map[string]float64),
 		Logs:        make([]string, 0),
 		Errors:      make([]string, 0),
-		Metadata:    make(map[string]interface{}),
+		Metadata:    json.RawMessage("{}"),
 	}
 
 	// Execute compliance validation
@@ -609,7 +609,7 @@ func (p *SecurityRegressionPipeline) executeRegressionAnalysisStage(ctx context.
 		Metrics:     make(map[string]float64),
 		Logs:        make([]string, 0),
 		Errors:      make([]string, 0),
-		Metadata:    make(map[string]interface{}),
+		Metadata:    json.RawMessage("{}"),
 	}
 
 	// Collect current findings from previous stages
@@ -1050,7 +1050,7 @@ func (p *SecurityRegressionPipeline) createSecurityBaseline(ctx context.Context)
 		Version:         "1.0.0",
 		LastUpdated:     time.Now(),
 		ComplianceScore: 100.0,
-		Controls:        make(map[string]interface{}),
+		Controls:        json.RawMessage("{}"),
 		Metrics:         make(map[string]float64),
 		Thresholds:      make(map[string]float64),
 	}

@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -65,7 +66,7 @@ func NewMockLLMService() *MockLLMService {
 
 // ProcessRequest simulates LLM request processing.
 
-func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.IntentRequest) (*llm.IntentResponse, error) {
+func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.ProcessIntentRequest) (*llm.ProcessIntentResponse, error) {
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -96,7 +97,7 @@ func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.Intent
 		responseText = fmt.Sprintf("Generated response for: %s", request.Intent)
 	}
 
-	return &llm.IntentResponse{
+	return &llm.ProcessIntentResponse{
 		Response: responseText,
 
 		Confidence: float32(0.8 + rand.Float64()*0.2), // 0.8-1.0 (cast to float32)
@@ -168,7 +169,7 @@ func (m *MockLLMService) GetCallCount() int {
 type MockWeaviateService struct {
 	mu sync.RWMutex
 
-	documents map[string]llm.Document
+	documents map[string]interface{}
 
 	vectors map[string][]float32
 
@@ -187,7 +188,7 @@ type MockWeaviateService struct {
 
 func NewMockWeaviateService() *MockWeaviateService {
 	return &MockWeaviateService{
-		documents: make(map[string]llm.Document),
+		documents: make(map[string]interface{}),
 
 		vectors: make(map[string][]float32),
 
@@ -203,7 +204,7 @@ func NewMockWeaviateService() *MockWeaviateService {
 
 // StoreDocument simulates document storage.
 
-func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc llm.Document) error {
+func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc interface{}) error {
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -243,7 +244,7 @@ func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc llm.Documen
 
 // GetDocument simulates document retrieval.
 
-func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*llm.Document, error) {
+func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*interface{}, error) {
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
@@ -594,7 +595,7 @@ func (m *MockRedisService) GetStats() map[string]interface{} {
 
 	defer m.mu.RUnlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{}
 }
 
 // SetError configures an error for a specific operation.

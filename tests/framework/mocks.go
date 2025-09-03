@@ -176,14 +176,16 @@ func (mm *MockManager) setupWeaviateMock() {
 
 		// Mock response for semantic search.
 
-		response := json.RawMessage(`{}`){
-				"Get": json.RawMessage(`{}`){
+		response := map[string]interface{}{
+			"data": map[string]interface{}{
+				"Get": map[string]interface{}{
+					"Objects": []map[string]interface{}{
 						{
 							"title": "AMF Configuration Guide",
 
 							"content": "Access and Mobility Management Function configuration for 5G networks...",
 
-							"_additional": json.RawMessage(`{}`),
+							"_additional": map[string]interface{}{},
 						},
 
 						{
@@ -191,7 +193,7 @@ func (mm *MockManager) setupWeaviateMock() {
 
 							"content": "Session Management Function deployment in containerized environments...",
 
-							"_additional": json.RawMessage(`{}`),
+							"_additional": map[string]interface{}{},
 						},
 					},
 				},
@@ -252,30 +254,26 @@ func (mm *MockManager) setupLLMMock() {
 
 		// Mock structured response for network intent processing.
 
-		response := json.RawMessage(`{}`){
+		response := map[string]interface{}{
+			"choices": []map[string]interface{}{
 				{
 					"index": 0,
 
-					"message": json.RawMessage(`{}`),
-
+					"message": map[string]interface{}{
+						"role": "assistant",
+						"content": `{
+							"resources": {
 								"limits": {"cpu": "2000m", "memory": "4Gi"}
-
 							},
 
 							"ports": [
-
 								{"name": "sbi", "port": 8080, "protocol": "TCP"}
-
 							],
 
 							"config": {
-
 								"plmn": {"mcc": "001", "mnc": "01"},
-
 								"slice_support": ["eMBB", "URLLC"]
-
 							}
-
 						}`,
 					},
 

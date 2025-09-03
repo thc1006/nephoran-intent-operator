@@ -32,7 +32,10 @@ type ProblemDetail struct {
 // handleGetServiceInfo returns service information.
 
 func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Request) {
-	serviceInfo := json.RawMessage(`{}`),
+	serviceInfo := map[string]interface{}{
+		"service": "O2 Infrastructure Management Service",
+
+		"version": "1.0.0",
 
 		"supported_providers": s.providerRegistry.GetSupportedProviders(),
 
@@ -61,7 +64,9 @@ func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 // handleReadinessCheck returns readiness status.
 
 func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Request) {
-	ready := json.RawMessage(`{}`),
+	ready := map[string]interface{}{
+		"ready": true,
+		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, ready)

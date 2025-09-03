@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"net/http"
 	"time"
 )
 
@@ -74,6 +75,16 @@ type ConsolidatedStreamingProcessor struct{}
 // ContextBuilder provides a stub implementation
 type ContextBuilder struct{}
 
+// GetMetrics returns metrics for the context builder
+func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"contexts_built":   0,
+		"cache_hits":       0,
+		"cache_misses":     0,
+		"build_time_ms":    0,
+	}
+}
+
 // StreamingProcessor provides a stub implementation
 type StreamingProcessor struct{}
 
@@ -118,6 +129,10 @@ func (csp *ConsolidatedStreamingProcessor) ProcessStreaming(ctx context.Context,
 }
 
 func (csp *ConsolidatedStreamingProcessor) Close() error {
+	return nil
+}
+
+func (csp *ConsolidatedStreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *StreamingRequest) error {
 	return nil
 }
 

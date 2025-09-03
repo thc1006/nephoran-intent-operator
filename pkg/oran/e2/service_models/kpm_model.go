@@ -398,7 +398,7 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 
 	}
 
-	eventTrigger, err := kpm.CreateEventTrigger(triggerConfig)
+	_, err := kpm.CreateEventTrigger(triggerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +429,7 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID, cellID string, measure
 		CellID: cellID,
 	}
 
-	actionDef, err := kpm.CreateActionDefinition(actionConfig)
+	_, err = kpm.CreateActionDefinition(actionConfig)
 	if err != nil {
 		return nil, err
 	}

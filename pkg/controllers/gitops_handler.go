@@ -320,7 +320,7 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 	// Update deployment status.
 
-	deploymentStatus := json.RawMessage(`{}`)
+	deploymentStatus := make(map[string]interface{})
 
 	processingCtx.DeploymentStatus = deploymentStatus
 

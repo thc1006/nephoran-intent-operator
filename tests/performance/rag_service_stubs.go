@@ -2,6 +2,7 @@ package performance_tests
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
@@ -49,7 +50,7 @@ func (r *RAGServiceStub) ProcessQuery(ctx context.Context, request *rag.RAGReque
 		GenerationTime:  25 * time.Millisecond,
 		UsedCache:       false,
 		IntentType:      "test",
-		Metadata:        make(map[string]interface{}),
+		Metadata:        json.RawMessage("{}"),
 	}, nil
 }
 

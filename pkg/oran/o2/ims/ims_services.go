@@ -20,19 +20,5 @@ limitations under the License.
 
 package ims
 
-import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
-)
-
 // Rest of the file remains the same as the previous implementation
 // (including all functions and methods)

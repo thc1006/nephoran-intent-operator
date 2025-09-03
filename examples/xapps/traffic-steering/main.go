@@ -999,14 +999,13 @@ func (x *TrafficSteeringXApp) handleHealth(w http.ResponseWriter, r *http.Reques
 
 	metrics := x.sdk.GetMetrics()
 
-	health := json.RawMessage(`{}`){
-
+	health := map[string]interface{}{
+		"status": "running",
+		"timestamp": time.Now(),
+		"metrics": map[string]interface{}{
 			"subscriptions_active": metrics.SubscriptionsActive,
-
 			"indications_received": metrics.IndicationsReceived,
-
 			"control_requests_sent": metrics.ControlRequestsSent,
-
 			"error_count": metrics.ErrorCount,
 		},
 	}
@@ -1079,7 +1078,17 @@ func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request)
 
 	config := x.sdk.GetConfig()
 
-	info := json.RawMessage(`{}`)
+	info := map[string]interface{}{
+		"xapp_name": config.XAppName,
+		"xapp_version": config.XAppVersion,
+		"xapp_description": config.XAppDescription,
+		"e2_node_id": config.E2NodeID,
+		"near_rt_ric_url": config.NearRTRICURL,
+		"service_models": config.ServiceModels,
+		"steering_rules": x.steeringRules,
+		"cells_monitored": len(x.cellLoadInfo),
+		"timestamp": time.Now(),
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1091,41 +1100,11 @@ func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request)
 
 func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRequest) (*e2.RICControlRequest, error) {
 
-	// Extract header bytes.
+	// Extract header bytes from RawMessage.
+	headerBytes := []byte(e2Req.ControlHeader)
 
-	var headerBytes []byte
-
-	if headerData, ok := e2Req.ControlHeader["data"]; ok {
-
-		if bytes, ok := headerData.([]byte); ok {
-
-			headerBytes = bytes
-
-		} else {
-
-			return nil, fmt.Errorf("control header data is not []byte")
-
-		}
-
-	}
-
-	// Extract message bytes.
-
-	var messageBytes []byte
-
-	if messageData, ok := e2Req.ControlMessage["data"]; ok {
-
-		if bytes, ok := messageData.([]byte); ok {
-
-			messageBytes = bytes
-
-		} else {
-
-			return nil, fmt.Errorf("control message data is not []byte")
-
-		}
-
-	}
+	// Extract message bytes from RawMessage.
+	messageBytes := []byte(e2Req.ControlMessage)
 
 	// Parse request ID to get requestor and instance IDs.
 

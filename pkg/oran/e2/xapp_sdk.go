@@ -353,6 +353,12 @@ func (sdk *XAppSDK) Subscribe(ctx context.Context, subscriptionReq *E2Subscripti
 	}
 
 	// Create xApp subscription.
+	
+	// Marshal empty event trigger to json.RawMessage
+	eventTriggerBytes, err := json.Marshal(map[string]interface{}{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal event trigger: %w", err)
+	}
 
 	subscription := &XAppSubscription{
 		SubscriptionID: subscriptionReq.SubscriptionID,
@@ -361,7 +367,7 @@ func (sdk *XAppSDK) Subscribe(ctx context.Context, subscriptionReq *E2Subscripti
 
 		RANFunctionID: subscriptionReq.RanFunctionID,
 
-		EventTrigger: make(map[string]interface{}),
+		EventTrigger: eventTriggerBytes,
 
 		Actions: make([]XAppAction, len(subscriptionReq.Actions)),
 
@@ -388,7 +394,7 @@ func (sdk *XAppSDK) Subscribe(ctx context.Context, subscriptionReq *E2Subscripti
 
 	// Attempt to subscribe via E2Manager.
 
-	_, err := sdk.e2Manager.SubscribeE2(subscriptionReq)
+	_, err = sdk.e2Manager.SubscribeE2(subscriptionReq)
 	if err != nil {
 
 		subscription.Status = XAppSubscriptionStatusFailed

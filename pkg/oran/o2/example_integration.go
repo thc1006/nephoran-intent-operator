@@ -439,30 +439,22 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error {
 	// Register additional cloud provider - using map for compatibility with interface{}.
 
-	awsProvider := json.RawMessage(`{}`){
-			"access_key_id": "example-key",
+	awsProvider := &providers.ProviderConfiguration{
+		Name:    "aws-demo",
+		Type:    "aws",
+		Version: "1.0.0",
+		Enabled: true,
+		Region:  "us-east-1",
 
+		Credentials: map[string]string{
+			"access_key_id":     "example-key",
 			"secret_access_key": "example-secret",
 		},
 
-		"enabled": true,
-
-		"status": "ACTIVE",
-
-		"properties": json.RawMessage(`{}`),
-
-			"storage_types": []string{"gp2", "gp3", "io1"},
-		},
-
-		"tags": map[string]string{
+		Metadata: map[string]string{
 			"environment": "demo",
-
-			"cloud": "aws",
+			"cloud":       "aws",
 		},
-
-		"createdAt": time.Now(),
-
-		"updatedAt": time.Now(),
 	}
 
 	_, err := service.RegisterCloudProvider(ctx, awsProvider)
@@ -615,12 +607,7 @@ func RESTAPIClientExample() {
 
 			description: "Create resource",
 
-			payload: json.RawMessage(`{}`){
-					"replicas": 1,
-
-					"image": "nginx:latest",
-				},
-			},
+			payload: json.RawMessage(`{"replicas": 1, "image": "nginx:latest"}`),
 		},
 
 		{

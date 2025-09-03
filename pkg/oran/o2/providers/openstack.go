@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -710,6 +711,14 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 		}`
 	}
 
+	// Convert parameters from JSON to map
+	var parameters map[string]interface{}
+	if req.Parameters != nil {
+		if err := json.Unmarshal(req.Parameters, &parameters); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
+	}
+
 	createOpts := stacks.CreateOpts{
 		Name: req.Name,
 
@@ -719,7 +728,7 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 			},
 		},
 
-		Parameters: req.Parameters,
+		Parameters: parameters,
 
 		Tags: convertLabelsToTags(req.Labels),
 
@@ -784,6 +793,14 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 		}`
 	}
 
+	// Convert parameters from JSON to map
+	var parameters map[string]interface{}
+	if req.Parameters != nil {
+		if err := json.Unmarshal(req.Parameters, &parameters); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
+	}
+
 	updateOpts := stacks.UpdateOpts{
 		TemplateOpts: &stacks.Template{
 			TE: stacks.TE{
@@ -791,7 +808,7 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 			},
 		},
 
-		Parameters: req.Parameters,
+		Parameters: parameters,
 
 		Tags: convertLabelsToTags(req.Labels),
 
@@ -884,8 +901,11 @@ func (o *OpenStackProvider) ScaleResource(ctx context.Context, resourceID string
 		flavorID := ""
 
 		if req.Target != nil {
-			if fid, ok := req.Target["flavor_id"].(string); ok {
-				flavorID = fid
+			var targetMap map[string]interface{}
+			if err := json.Unmarshal(req.Target, &targetMap); err == nil {
+				if fid, ok := targetMap["flavor_id"].(string); ok {
+					flavorID = fid
+				}
 			}
 		}
 

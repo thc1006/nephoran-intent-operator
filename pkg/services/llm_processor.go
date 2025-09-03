@@ -5,6 +5,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -23,7 +24,7 @@ type LLMProcessorService struct {
 
 	processor *handlers.IntentProcessor
 
-	streamingProcessor *llm.StreamingProcessorStub
+	streamingProcessor *llm.ConsolidatedStreamingProcessor
 
 	circuitBreakerMgr *llm.CircuitBreakerManager
 
@@ -181,7 +182,7 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	// Initialize context builder if enabled.
 
 	if s.config.EnableContextBuilder {
-		s.contextBuilder = llm.NewContextBuilderStub()
+		s.contextBuilder = &llm.ContextBuilder{}
 	}
 
 	// Initialize prompt builder.
@@ -201,7 +202,7 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	if s.config.StreamingEnabled {
 		// StreamingConfig doesn't exist, use basic streaming processor.
 
-		s.streamingProcessor = llm.NewStreamingProcessor()
+		s.streamingProcessor = &llm.ConsolidatedStreamingProcessor{}
 	}
 
 	// Initialize main processor with circuit breaker.
@@ -411,7 +412,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 func (s *LLMProcessorService) GetComponents() (
 	*handlers.IntentProcessor,
 
-	*llm.StreamingProcessorStub,
+	*llm.ConsolidatedStreamingProcessor,
 
 	*llm.CircuitBreakerManager,
 
@@ -444,7 +445,7 @@ func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 	// Shutdown streaming processor if enabled.
 
 	if s.streamingProcessor != nil {
-		if err := s.streamingProcessor.Shutdown(ctx); err != nil {
+		if err := s.streamingProcessor.Close(); err != nil {
 			s.logger.Error("Failed to shutdown streaming processor", slog.String("error", err.Error()))
 		}
 	}

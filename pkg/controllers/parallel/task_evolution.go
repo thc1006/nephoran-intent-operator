@@ -1,6 +1,7 @@
 package parallel
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -55,7 +56,9 @@ func (tb *TaskBuilder) WithDependencies(dependencies []string) *TaskBuilder {
 
 // WithInputData sets input data
 func (tb *TaskBuilder) WithInputData(inputData map[string]interface{}) *TaskBuilder {
-	tb.task.InputData = inputData
+	if data, err := json.Marshal(inputData); err == nil {
+		tb.task.InputData = json.RawMessage(data)
+	}
 	return tb
 }
 

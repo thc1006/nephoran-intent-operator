@@ -371,9 +371,15 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 	// This is a simplified version - in production, use a proper JSON schema validator.
 
 	if policyType.Schema != nil {
+		// Parse schema JSON
+		var schema map[string]interface{}
+		if err := json.Unmarshal(policyType.Schema, &schema); err != nil {
+			return fmt.Errorf("failed to unmarshal schema: %w", err)
+		}
+		
 		// Check required fields.
 
-		if requiredFields, ok := policyType.Schema["required"].([]interface{}); ok {
+		if requiredFields, ok := schema["required"].([]interface{}); ok {
 			for _, field := range requiredFields {
 				if fieldName, ok := field.(string); ok {
 					if _, exists := policyData[fieldName]; !exists {

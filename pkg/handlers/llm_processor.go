@@ -544,7 +544,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 		)
 	}()
 
-	metrics := json.RawMessage(`{}`)
+	metrics := make(map[string]interface{})
 
 	// Add token manager metrics.
 
@@ -579,7 +579,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 	// Add prompt builder metrics.
 
 	if h.promptBuilder != nil {
-		metrics["prompt_builder"] = json.RawMessage(`{"status":"stubbed"}`)
+		metrics["prompt_builder"] = map[string]string{"status": "stubbed"}
 	}
 
 	h.writeJSONResponse(w, metrics, http.StatusOK)
@@ -747,7 +747,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 	startTime := time.Now()
 
 	defer func() {
-		duration := time.Since(startTime).Seconds()
+		duration := time.Since(startTime)
 
 		if h.metricsCollector != nil {
 			h.metricsCollector.RecordHTTPRequest(
@@ -758,7 +758,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 
 				strconv.Itoa(statusCode),
 
-				time.Duration(duration*float64(time.Second)),
+				duration,
 			)
 		}
 	}()
@@ -849,7 +849,9 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 }
 
 func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int, requestID string) {
-	response := json.RawMessage(`{}`)
+	response := map[string]string{
+		"error": message,
+	}
 
 	if requestID != "" {
 

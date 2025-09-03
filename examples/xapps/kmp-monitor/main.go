@@ -521,16 +521,14 @@ func (x *KMPMonitorXApp) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	metrics := x.sdk.GetMetrics()
 
-	health := json.RawMessage(`{}`){
-
+	health := map[string]interface{}{
+		"status": "running",
+		"timestamp": time.Now(),
+		"metrics": map[string]interface{}{
 			"subscriptions_active": metrics.SubscriptionsActive,
-
 			"indications_received": metrics.IndicationsReceived,
-
 			"control_requests_sent": metrics.ControlRequestsSent,
-
 			"error_count": metrics.ErrorCount,
-
 			"throughput_per_second": metrics.ThroughputPerSecond,
 		},
 	}
@@ -593,7 +591,15 @@ func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	config := x.sdk.GetConfig()
 
-	info := json.RawMessage(`{}`)
+	info := map[string]interface{}{
+		"xapp_name": config.XAppName,
+		"xapp_version": config.XAppVersion,
+		"xapp_description": config.XAppDescription,
+		"e2_node_id": config.E2NodeID,
+		"near_rt_ric_url": config.NearRTRICURL,
+		"service_models": config.ServiceModels,
+		"timestamp": time.Now(),
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 

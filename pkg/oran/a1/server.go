@@ -1194,7 +1194,21 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 
 	defer cb.mutex.Unlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"name": cb.name,
+		"state": int(cb.state),
+		"counts": map[string]interface{}{
+			"requests": cb.counts.Requests,
+			"total_successes": cb.counts.TotalSuccesses,
+			"total_failures": cb.counts.TotalFailures,
+			"consecutive_successes": cb.counts.ConsecutiveSuccesses,
+			"consecutive_failures": cb.counts.ConsecutiveFailures,
+		},
+		"expiry": cb.expiry,
+		"max_requests": cb.maxRequests,
+		"interval": cb.interval,
+		"timeout": cb.timeout,
+	}
 }
 
 // Reset manually resets the circuit breaker.

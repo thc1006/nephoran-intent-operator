@@ -219,16 +219,21 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 				Isolation: "standard",
 
-				Parameters: make(map[string]interface{}),
-			}
+		}
 
-			// Copy slice requirements to parameters.
+		// Create slice parameters.
+		sliceParams := map[string]interface{}{
+			"latency_requirement": sliceSpec.Requirements.Latency.UserPlane,
+			"throughput_min":      sliceSpec.Requirements.Throughput.Min,
+			"reliability":         sliceSpec.Requirements.Reliability.Availability,
+		}
 
-			resourcePlan.SliceConfiguration.Parameters["latency_requirement"] = sliceSpec.Requirements.Latency.UserPlane
-
-			resourcePlan.SliceConfiguration.Parameters["throughput_min"] = sliceSpec.Requirements.Throughput.Min
-
-			resourcePlan.SliceConfiguration.Parameters["reliability"] = sliceSpec.Requirements.Reliability.Availability
+		// Marshal parameters to JSON.
+		if paramsJSON, err := json.Marshal(sliceParams); err == nil {
+			resourcePlan.SliceConfiguration.Parameters = json.RawMessage(paramsJSON)
+		} else {
+			resourcePlan.SliceConfiguration.Parameters = json.RawMessage(`{}`)
+		}
 
 		}
 
@@ -535,7 +540,12 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 			Accelerator: nfSpec.Resources.Accelerator,
 		},
 
-		Configuration: configuration,
+		Configuration: func() json.RawMessage {
+			if configJSON, err := json.Marshal(configuration); err == nil {
+				return configJSON
+			}
+			return json.RawMessage(`{}`)
+		}(),
 
 		Dependencies: nfSpec.Dependencies,
 
@@ -869,19 +879,22 @@ func (p *ResourcePlanner) generateConfigMapManifest(networkIntent *nephoranv1.Ne
 
 	data := make(map[string]string)
 
-	for key, value := range nf.Configuration {
-		if strValue, ok := value.(string); ok {
-			data[key] = strValue
-		} else {
-
-			jsonValue, _ := json.Marshal(value)
-
-			data[key] = string(jsonValue)
-
+	// First unmarshal the JSON configuration
+	var configData map[string]interface{}
+	if len(nf.Configuration) > 0 {
+		if err := json.Unmarshal(nf.Configuration, &configData); err == nil {
+			for key, value := range configData {
+				if strValue, ok := value.(string); ok {
+					data[key] = strValue
+				} else {
+					jsonValue, _ := json.Marshal(value)
+					data[key] = string(jsonValue)
+				}
+			}
 		}
 	}
 
-	configMap := &corev1.ConfigMap{
+	resultConfigMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
 
@@ -899,7 +912,7 @@ func (p *ResourcePlanner) generateConfigMapManifest(networkIntent *nephoranv1.Ne
 		Data: data,
 	}
 
-	return configMap
+	return resultConfigMap
 }
 
 // generateNetworkPolicyManifest generates a NetworkPolicy for security.

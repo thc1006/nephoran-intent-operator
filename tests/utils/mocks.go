@@ -3,9 +3,8 @@
 package testutils
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -601,6 +600,10 @@ func (m *MockLLMClient) GetStatus() shared.ClientStatus {
 
 // GetModelCapabilities implements shared.ClientInterface.GetModelCapabilities
 func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	// Create properly marshaled JSON for Features
+	features := map[string]interface{}{}
+	featuresJSON, _ := json.Marshal(features)
+
 	return shared.ModelCapabilities{
 		SupportsStreaming:    true,
 		SupportsSystemPrompt: true,
@@ -611,7 +614,7 @@ func (m *MockLLMClient) GetModelCapabilities() shared.ModelCapabilities {
 		CostPerToken:         0.0001,
 		SupportedMimeTypes:   []string{"text/plain", "application/json"},
 		ModelVersion:         "1.0.0",
-		Features:             make(map[string]interface{}),
+		Features:             json.RawMessage(featuresJSON),
 	}
 }
 
@@ -773,33 +776,27 @@ func NewMockMetricsCollector() *MockMetricsCollector {
 
 // CollectMetrics implements MetricsCollector interface.
 
-func (m *MockMetricsCollector) CollectMetrics() ([]*monitoring.Metric, error) {
+func (m *MockMetricsCollector) CollectMetrics(ctx context.Context, source string) (*monitoring.MetricsData, error) {
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
 
-	metrics := make([]*monitoring.Metric, 0, len(m.metrics))
+	metrics := make(map[string]string)
 
 	for name, value := range m.metrics {
-		metrics = append(metrics, &monitoring.Metric{
-			Name: name,
-
-			Type: monitoring.MetricTypeGauge,
-
-			Value: value,
-
-			Labels: m.labels[name],
-
-			Timestamp: time.Now(),
-		})
+		metrics[name] = fmt.Sprintf("%.2f", value)
 	}
 
-	return metrics, nil
+	return &monitoring.MetricsData{
+		Source:    source,
+		Timestamp: time.Now(),
+		Metrics:   metrics,
+	}, nil
 }
 
 // Start implements MetricsCollector interface.
 
-func (m *MockMetricsCollector) Start() error {
+func (m *MockMetricsCollector) Start(ctx context.Context) error {
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
@@ -1215,18 +1212,26 @@ func NewMockHTTPClient() *MockHTTPClient {
 // Helper functions for creating mock responses.
 
 func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
+	// Create properly marshaled JSON for Parameters
+	parameters := map[string]interface{}{}
+	parametersJSON, _ := json.Marshal(parameters)
+
+	// Create properly marshaled JSON for Manifests
+	manifests := map[string]interface{}{
+		"apiVersion": "apps/v1",
+		"kind":       "Deployment",
+		"metadata":   map[string]interface{}{},
+	}
+	manifestsJSON, _ := json.Marshal(manifests)
+
 	return &LLMResponse{
 		IntentType: intentType,
 
 		Confidence: confidence,
 
-		Parameters: json.RawMessage(`{}`),
+		Parameters: json.RawMessage(parametersJSON),
 
-		Manifests: json.RawMessage(`{
-			"apiVersion": "apps/v1",
-			"kind": "Deployment", 
-			"metadata": {}
-		}`),
+		Manifests: json.RawMessage(manifestsJSON),
 
 		ProcessingTime: 1500,
 
@@ -1427,4 +1432,3 @@ func (m *MemoryTracker) Stop() uint64 {
 
 	return m.peakMem
 }
-

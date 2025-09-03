@@ -66,6 +66,7 @@ type StreamingRequest struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`       // Added for compatibility
 	Context    map[string]string      `json:"context,omitempty"`
 	Stream     bool                   `json:"stream"`
+	MaxTokens  int                    `json:"max_tokens,omitempty"`     // Added for compatibility
 }
 
 // StreamingResponse represents a streaming response chunk

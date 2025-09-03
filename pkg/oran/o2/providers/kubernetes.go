@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -1400,10 +1401,15 @@ func (k *KubernetesProvider) ApplyConfiguration(ctx context.Context, config *Pro
 	defer k.mutex.Unlock()
 
 	// Update internal configuration.
-
-	for key, value := range config.Parameters {
-		if strValue, ok := value.(string); ok {
-			k.config[key] = strValue
+	if config.Parameters != nil {
+		var params map[string]interface{}
+		if err := json.Unmarshal(config.Parameters, &params); err != nil {
+			return fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
+		for key, value := range params {
+			if strValue, ok := value.(string); ok {
+				k.config[key] = strValue
+			}
 		}
 	}
 
@@ -1426,11 +1432,17 @@ func (k *KubernetesProvider) GetConfiguration(ctx context.Context) (*ProviderCon
 
 		Enabled: k.connected,
 
-		Parameters: make(map[string]interface{}),
 	}
 
-	for key, value := range k.config {
-		config.Parameters[key] = value
+	// Marshal config to JSON for Parameters field
+	if len(k.config) > 0 {
+		configMap := make(map[string]interface{})
+		for key, value := range k.config {
+			configMap[key] = value
+		}
+		if paramBytes, err := json.Marshal(configMap); err == nil {
+			config.Parameters = paramBytes
+		}
 	}
 
 	return config, nil
@@ -1458,8 +1470,13 @@ func (k *KubernetesProvider) ValidateConfiguration(ctx context.Context, config *
 
 func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 	// Convert request specification to Deployment.
+	
+	var specMap map[string]interface{}
+	if err := json.Unmarshal(req.Specification, &specMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal specification: %w", err)
+	}
 
-	spec, ok := req.Specification["deployment"].(map[string]interface{})
+	spec, ok := specMap["deployment"].(map[string]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("invalid deployment specification")
@@ -1531,7 +1548,12 @@ func (k *KubernetesProvider) CreateDeployment(ctx context.Context, req *CreateRe
 // CreateService creates a Kubernetes service.
 
 func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-	spec, ok := req.Specification["service"].(map[string]interface{})
+	var specMap map[string]interface{}
+	if err := json.Unmarshal(req.Specification, &specMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal specification: %w", err)
+	}
+
+	spec, ok := specMap["service"].(map[string]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("invalid service specification")
@@ -1584,7 +1606,12 @@ func (k *KubernetesProvider) CreateService(ctx context.Context, req *CreateResou
 // CreateConfigMap creates a Kubernetes ConfigMap.
 
 func (k *KubernetesProvider) CreateConfigMap(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-	spec, ok := req.Specification["configmap"].(map[string]interface{})
+	var specMap map[string]interface{}
+	if err := json.Unmarshal(req.Specification, &specMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal specification: %w", err)
+	}
+
+	spec, ok := specMap["configmap"].(map[string]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("invalid configmap specification")
@@ -1625,7 +1652,12 @@ func (k *KubernetesProvider) CreateConfigMap(ctx context.Context, req *CreateRes
 // CreateSecret creates a Kubernetes Secret.
 
 func (k *KubernetesProvider) CreateSecret(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-	spec, ok := req.Specification["secret"].(map[string]interface{})
+	var specMap map[string]interface{}
+	if err := json.Unmarshal(req.Specification, &specMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal specification: %w", err)
+	}
+
+	spec, ok := specMap["secret"].(map[string]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("invalid secret specification")
@@ -1668,7 +1700,12 @@ func (k *KubernetesProvider) CreateSecret(ctx context.Context, req *CreateResour
 // CreatePersistentVolumeClaim creates a Kubernetes PVC.
 
 func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-	spec, ok := req.Specification["persistentvolumeclaim"].(map[string]interface{})
+	var specMap map[string]interface{}
+	if err := json.Unmarshal(req.Specification, &specMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal specification: %w", err)
+	}
+
+	spec, ok := specMap["persistentvolumeclaim"].(map[string]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("invalid persistentvolumeclaim specification")
@@ -1717,7 +1754,12 @@ func (k *KubernetesProvider) CreatePersistentVolumeClaim(ctx context.Context, re
 // CreateIngress creates a Kubernetes Ingress.
 
 func (k *KubernetesProvider) CreateIngress(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
-	spec, ok := req.Specification["ingress"].(map[string]interface{})
+	var specMap map[string]interface{}
+	if err := json.Unmarshal(req.Specification, &specMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal specification: %w", err)
+	}
+
+	spec, ok := specMap["ingress"].(map[string]interface{})
 
 	if !ok {
 		return nil, fmt.Errorf("invalid ingress specification")

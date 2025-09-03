@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -75,8 +76,19 @@ func NewAzureProvider(config *ProviderConfiguration) (CloudProvider, error) {
 		location: config.Region,
 
 		subscriptionID: config.Credentials["subscription_id"],
+	}
 
-		resourceGroupName: config.Parameters["resource_group"].(string),
+	// Parse parameters from JSON
+	if config.Parameters != nil {
+		var params map[string]interface{}
+		if err := json.Unmarshal(config.Parameters, &params); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
+		if rg, ok := params["resource_group"]; ok {
+			if rgStr, ok := rg.(string); ok {
+				provider.resourceGroupName = rgStr
+			}
+		}
 	}
 
 	return provider, nil

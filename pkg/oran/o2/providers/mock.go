@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -351,13 +352,13 @@ func (m *MockProvider) GetScalingCapabilities(ctx context.Context, resourceID st
 // GetMetrics returns provider metrics (CloudProvider interface)
 func (m *MockProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 	// Mock implementation
-	return json.RawMessage(`{}`), nil
+	return make(map[string]interface{}), nil
 }
 
 // GetResourceMetrics returns resource-specific metrics (CloudProvider interface)
 func (m *MockProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
 	// Mock implementation
-	return json.RawMessage(`{}`), nil
+	return make(map[string]interface{}), nil
 }
 
 // GetResourceHealth returns resource health (CloudProvider interface)
@@ -680,9 +681,14 @@ func (a *ProviderAdapter) Close() error {
 // MockProviderConstructor is a constructor function for mock providers
 func MockProviderConstructor(config ProviderConfig) (Provider, error) {
 	name := "mock-provider"
-	if nameVal, exists := config.Config["name"]; exists {
-		if nameStr, ok := nameVal.(string); ok {
-			name = nameStr
+	if config.Config != nil {
+		var configMap map[string]interface{}
+		if err := json.Unmarshal(config.Config, &configMap); err == nil {
+			if nameVal, exists := configMap["name"]; exists {
+				if nameStr, ok := nameVal.(string); ok {
+					name = nameStr
+				}
+			}
 		}
 	}
 

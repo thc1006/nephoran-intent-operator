@@ -145,7 +145,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Development environment with minimal resources",
 
-					Config: json.RawMessage(`{}`),
+					Config: map[string]interface{}{},
 				},
 
 				{
@@ -153,7 +153,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Staging environment simulating production load",
 
-					Config: json.RawMessage(`{}`),
+					Config: map[string]interface{}{},
 				},
 
 				{
@@ -161,7 +161,7 @@ func DefaultValidationConfig() *ValidationConfig {
 
 					Description: "Production environment with full resources",
 
-					Config: json.RawMessage(`{}`),
+					Config: map[string]interface{}{},
 				},
 			},
 		},

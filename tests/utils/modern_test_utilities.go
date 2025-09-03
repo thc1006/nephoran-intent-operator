@@ -10,26 +10,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 )
 
 // TestContext provides enhanced context for modern testing patterns
 type TestContext struct {
-	t           *testing.T
-	ctx         context.Context
-	cancel      context.CancelFunc
-	cleanup     []func()
-	assertions  *AssertionHelper
-	fixtures    *FixtureManager
-	mutex       sync.RWMutex
+	t          *testing.T
+	ctx        context.Context
+	cancel     context.CancelFunc
+	cleanup    []func()
+	assertions *AssertionHelper
+	fixtures   *FixtureManager
+	mutex      sync.RWMutex
 }
 
 // NewTestContext creates a new modern test context following 2025 standards
 func NewTestContext(t *testing.T) *TestContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	
+
 	tc := &TestContext{
 		t:          t,
 		ctx:        ctx,
@@ -39,17 +39,17 @@ func NewTestContext(t *testing.T) *TestContext {
 		fixtures:   NewFixtureManager(),
 		mutex:      sync.RWMutex{},
 	}
-	
+
 	// Register cleanup for context cancellation
 	t.Cleanup(func() {
 		tc.Cleanup()
 	})
-	
+
 	// Enable goroutine leak detection following 2025 standards
 	if testing.Short() == false {
 		goleak.VerifyNone(t)
 	}
-	
+
 	return tc
 }
 
@@ -74,12 +74,12 @@ func (tc *TestContext) AddCleanup(fn func()) {
 func (tc *TestContext) Cleanup() {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
-	
+
 	// Cancel context first
 	if tc.cancel != nil {
 		tc.cancel()
 	}
-	
+
 	// Execute cleanup functions in reverse order
 	for i := len(tc.cleanup) - 1; i >= 0; i-- {
 		if tc.cleanup[i] != nil {
@@ -125,27 +125,27 @@ func (a *AssertionHelper) RequireEqual(expected, actual interface{}, msgAndArgs 
 // RequireJSONEqual asserts JSON equality with detailed diff
 func (a *AssertionHelper) RequireJSONEqual(expected, actual json.RawMessage, msgAndArgs ...interface{}) {
 	a.t.Helper()
-	
+
 	var expectedObj, actualObj interface{}
-	
+
 	err := json.Unmarshal(expected, &expectedObj)
 	require.NoError(a.t, err, "Failed to unmarshal expected JSON")
-	
+
 	err = json.Unmarshal(actual, &actualObj)
 	require.NoError(a.t, err, "Failed to unmarshal actual JSON")
-	
+
 	require.Equal(a.t, expectedObj, actualObj, msgAndArgs...)
 }
 
 // RequireEventuallyTrue implements eventual consistency testing
 func (a *AssertionHelper) RequireEventuallyTrue(condition func() bool, timeout time.Duration, msgAndArgs ...interface{}) {
 	a.t.Helper()
-	
+
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	timeoutCh := time.After(timeout)
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -161,7 +161,7 @@ func (a *AssertionHelper) RequireEventuallyTrue(condition func() bool, timeout t
 // AssertHTTPStatusCode asserts HTTP response status with context
 func (a *AssertionHelper) AssertHTTPStatusCode(expected, actual int, url string, msgAndArgs ...interface{}) {
 	a.t.Helper()
-	
+
 	if expected != actual {
 		msg := fmt.Sprintf("HTTP status mismatch for URL %s: expected %d, got %d", url, expected, actual)
 		if len(msgAndArgs) > 0 {
@@ -189,22 +189,22 @@ func NewFixtureManager() *FixtureManager {
 func (fm *FixtureManager) LoadFixture(name string, target interface{}) error {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	fixture, exists := fm.fixtures[name]
 	if !exists {
 		return fmt.Errorf("fixture %s not found", name)
 	}
-	
+
 	// Type-safe fixture loading using JSON marshaling
 	data, err := json.Marshal(fixture)
 	if err != nil {
 		return fmt.Errorf("failed to marshal fixture %s: %w", name, err)
 	}
-	
+
 	if err := json.Unmarshal(data, target); err != nil {
 		return fmt.Errorf("failed to unmarshal fixture %s: %w", name, err)
 	}
-	
+
 	return nil
 }
 
@@ -246,7 +246,7 @@ func (fm *FixtureManager) CreateNetworkIntentFixture(name, namespace, intentType
 			},
 		},
 	}
-	
+
 	fm.RegisterFixture(fmt.Sprintf("NetworkIntent/%s", name), fixture)
 	return fixture
 }
@@ -262,7 +262,7 @@ func (fm *FixtureManager) CreateLLMResponseFixture(intentType string, confidence
 		TokensUsed:     250,
 		Model:          "gpt-4o-mini",
 	}
-	
+
 	fm.RegisterFixture(fmt.Sprintf("LLMResponse/%s", intentType), response)
 	return response
 }
@@ -285,7 +285,7 @@ func NewTestDataFactory() *TestDataFactory {
 func (tdf *TestDataFactory) GenerateUniqueID(prefix string) string {
 	tdf.mutex.Lock()
 	defer tdf.mutex.Unlock()
-	
+
 	tdf.sequence++
 	return fmt.Sprintf("%s-%d-%d", prefix, time.Now().Unix(), tdf.sequence)
 }
@@ -315,30 +315,30 @@ func RunTableTests[T any, R any](
 ) {
 	for _, tc := range testCases {
 		tc := tc // Capture loop variable for parallel execution
-		
+
 		t.Run(tc.Name, func(t *testing.T) {
 			if testing.Short() && tc.Timeout > 10*time.Second {
 				t.Skip("Skipping long-running test in short mode")
 			}
-			
+
 			// Enable parallel execution for independent tests
 			t.Parallel()
-			
+
 			testCtx := NewTestContext(t)
-			
+
 			// Setup phase
 			if tc.Setup != nil {
 				err := tc.Setup(testCtx)
 				require.NoError(t, err, "Test setup failed")
 			}
-			
+
 			// Teardown phase
 			if tc.Teardown != nil {
 				testCtx.AddCleanup(func() {
 					tc.Teardown(testCtx)
 				})
 			}
-			
+
 			// Set custom timeout if specified
 			ctx := testCtx.Context()
 			if tc.Timeout > 0 {
@@ -346,10 +346,10 @@ func RunTableTests[T any, R any](
 				ctx, cancel = context.WithTimeout(ctx, tc.Timeout)
 				defer cancel()
 			}
-			
+
 			// Execute test
 			result, err := testFunc(ctx, tc.Input)
-			
+
 			// Assert results
 			if tc.ShouldError {
 				require.Error(t, err, "Expected error but got none")
@@ -377,10 +377,10 @@ func NewBenchmarkHelper(b *testing.B) *BenchmarkHelper {
 // MeasureOperation measures operation performance with memory tracking
 func (bh *BenchmarkHelper) MeasureOperation(operation func()) {
 	bh.b.Helper()
-	
+
 	bh.b.ReportAllocs()
 	bh.b.ResetTimer()
-	
+
 	for i := 0; i < bh.b.N; i++ {
 		operation()
 	}
@@ -389,10 +389,10 @@ func (bh *BenchmarkHelper) MeasureOperation(operation func()) {
 // MeasureAsyncOperation measures async operation performance
 func (bh *BenchmarkHelper) MeasureAsyncOperation(operation func() <-chan struct{}) {
 	bh.b.Helper()
-	
+
 	bh.b.ReportAllocs()
 	bh.b.ResetTimer()
-	
+
 	for i := 0; i < bh.b.N; i++ {
 		done := operation()
 		<-done

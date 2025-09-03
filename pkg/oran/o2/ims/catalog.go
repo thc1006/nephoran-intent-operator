@@ -1261,10 +1261,16 @@ func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template
 
 	// In a full implementation, this would render templates with actual templating engines.
 
+	// Marshal parameters to json.RawMessage
+	parametersJSON, err := json.Marshal(parameters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal parameters: %w", err)
+	}
+
 	processed := &ProcessedTemplate{
 		RenderedContent: string(template.Content.Raw),
 
-		Parameters: parameters,
+		Parameters: parametersJSON,
 
 		Metadata: map[string]string{
 			"template_id": template.DeploymentTemplateID,

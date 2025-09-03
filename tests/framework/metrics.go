@@ -684,7 +684,8 @@ func (tm *TestMetrics) GenerateReport() {
 // createTestReport creates a comprehensive test report.
 
 func (tm *TestMetrics) createTestReport() map[string]interface{} {
-	report := json.RawMessage(`{}`){
+	report := map[string]interface{}{
+		"test_summary": map[string]interface{}{
 			"start_time": tm.testStartTime,
 
 			"end_time": tm.testEndTime,
@@ -702,9 +703,9 @@ func (tm *TestMetrics) createTestReport() map[string]interface{} {
 			"success_rate": float64(tm.passedTests) / float64(tm.totalTests) * 100,
 		},
 
-		"performance_metrics": json.RawMessage(`{}`),
+		"performance_metrics": map[string]interface{}{},
 
-		"resource_utilization": json.RawMessage(`{}`),
+		"resource_utilization": map[string]interface{}{},
 
 		"load_test_results": tm.loadTestResults,
 

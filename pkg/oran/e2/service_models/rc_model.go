@@ -196,7 +196,7 @@ func (rc *RCServiceModel) CreateEventTrigger(_ interface{}) ([]byte, error) {
 		EventDefinitionFormats: &E2SMRCEventTriggerDefinitionFormat1{
 			TriggerType: "ON_DEMAND",
 
-			Parameters: make(map[string]interface{}),
+			Parameters: json.RawMessage(`{}`),
 		},
 	}
 
@@ -214,7 +214,7 @@ func (rc *RCServiceModel) CreateActionDefinition(_ interface{}) ([]byte, error) 
 
 			ControlStyle: 1,
 
-			Parameters: make(map[string]interface{}),
+			Parameters: json.RawMessage(`{}`),
 		},
 	}
 
@@ -283,7 +283,7 @@ func (rc *RCServiceModel) ParseControlOutcome(outcome []byte) (interface{}, erro
 
 		Cause: outcomeMsg.ControlOutcomeFormats.Cause,
 
-		Details: make(map[string]interface{}),
+		Details: json.RawMessage(`{}`),
 	}
 
 	return result, nil
@@ -344,7 +344,7 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 		ControlStyle: 1,
 	}
 
-	header, err := rc.CreateControlHeader(headerParams)
+	_, err := rc.CreateControlHeader(headerParams)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID, targetCellID string
 		},
 	}
 
-	message, err := rc.CreateControlMessage(params)
+	_, err = rc.CreateControlMessage(params)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +418,7 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 		ControlStyle: 2,
 	}
 
-	header, err := rc.CreateControlHeader(headerParams)
+	_, err := rc.CreateControlHeader(headerParams)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +485,7 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 		},
 	}
 
-	message, err := rc.CreateControlMessage(params)
+	_, err = rc.CreateControlMessage(params)
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +524,7 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 		ControlStyle: 3,
 	}
 
-	header, err := rc.CreateControlHeader(headerParams)
+	_, err := rc.CreateControlHeader(headerParams)
 	if err != nil {
 		return nil, err
 	}
@@ -570,7 +570,7 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID, targetCellID, handoverType
 		},
 	}
 
-	message, err := rc.CreateControlMessage(params)
+	_, err = rc.CreateControlMessage(params)
 	if err != nil {
 		return nil, err
 	}
@@ -609,7 +609,7 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 		ControlStyle: 4,
 	}
 
-	header, err := rc.CreateControlHeader(headerParams)
+	_, err := rc.CreateControlHeader(headerParams)
 	if err != nil {
 		return nil, err
 	}
@@ -654,7 +654,7 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID, operation, seconda
 		},
 	}
 
-	message, err := rc.CreateControlMessage(params)
+	_, err = rc.CreateControlMessage(params)
 	if err != nil {
 		return nil, err
 	}

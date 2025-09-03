@@ -254,19 +254,16 @@ func handleAuthInfo(authManager *auth.Manager) http.HandlerFunc {
 
 		providers := authManager.ListProviders()
 
-		info := json.RawMessage(`{}`))) > 0,
-
+		info := map[string]interface{}{
+			"providers": providers,
+			"features": map[string]interface{}{
+				"ldap":   len(providers["ldap"].([]string)) > 0,
 				"oauth2": len(providers["oauth2"].(map[string]interface{})) > 0,
-
 				"session": true,
-
-				"jwt": true,
-
-				"rbac": true,
-
-				"csrf": true,
-
-				"pkce": true,
+				"jwt":     true,
+				"rbac":    true,
+				"csrf":    true,
+				"pkce":    true,
 			},
 		}
 
@@ -299,11 +296,17 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 		}
 
 		// Remove sensitive information.
-
-		response := json.RawMessage(`{}`)
+		response := map[string]interface{}{
+			"subject":      userInfo.Subject,
+			"username":     userInfo.PreferredName,
+			"display_name": userInfo.Name,
+			"email":        userInfo.Email,
+			"given_name":   userInfo.GivenName,
+			"family_name":  userInfo.FamilyName,
+			"provider":     provider,
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(response)
 
 	}
@@ -316,25 +319,25 @@ func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 
 		results := ldapMiddleware.TestLDAPConnection(r.Context())
 
-		response := json.RawMessage(`{}`)),
+		response := map[string]interface{}{
+			"results": make(map[string]interface{}),
 		}
 
 		allHealthy := true
+		results_map := response["results"].(map[string]interface{})
 
 		for provider, err := range results {
-
 			if err != nil {
-
-				response["results"].(map[string]interface{})[provider] = json.RawMessage(`{}`)
-
+				results_map[provider] = map[string]interface{}{
+					"status": "unhealthy",
+					"error":  err.Error(),
+				}
 				allHealthy = false
-
 			} else {
-
-				response["results"].(map[string]interface{})[provider] = json.RawMessage(`{}`)
-
+				results_map[provider] = map[string]interface{}{
+					"status": "healthy",
+				}
 			}
-
 		}
 
 		response["overall_status"] = "healthy"
@@ -360,10 +363,9 @@ func handleOAuth2Providers(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// This would be implemented to list available OAuth2 providers.
-
-		providers := json.RawMessage(`{}`),
-
-			"message": "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
+		providers := map[string]interface{}{
+			"providers": []string{"google", "github", "microsoft"},
+			"message":   "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -434,10 +436,13 @@ func handleTokenRefresh(authManager *auth.Manager) http.HandlerFunc {
 
 		}
 
-		response := json.RawMessage(`{}`)
+		response := map[string]interface{}{
+			"access_token":  accessToken,
+			"refresh_token": refreshToken,
+			"token_type":    "Bearer",
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(response)
 
 	}
@@ -470,10 +475,16 @@ func handleSessionInfo(authManager *auth.Manager) http.HandlerFunc {
 
 		}
 
-		response := json.RawMessage(`{}`)
+		response := map[string]interface{}{
+			"session_id":    userSession.ID,
+			"user_id":       userSession.UserID,
+			"provider":      userSession.Provider,
+			"expires_at":    userSession.ExpiresAt,
+			"created_at":    userSession.CreatedAt,
+			"last_activity": userSession.LastActivity,
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(response)
 
 	}
@@ -544,10 +555,17 @@ func handleUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	profile := json.RawMessage(`{}`)
+	profile := map[string]interface{}{
+		"user_id":     authContext.UserID,
+		"session_id":  authContext.SessionID,
+		"provider":    authContext.Provider,
+		"roles":       authContext.Roles,
+		"permissions": authContext.Permissions,
+		"is_admin":    authContext.IsAdmin,
+		"attributes":  authContext.Attributes,
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-
 	json.NewEncoder(w).Encode(profile)
 
 }
@@ -557,24 +575,27 @@ func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 	authContext := auth.GetAuthContext(r.Context())
 
 	// Example intents list - in real implementation, this would query the database.
-
-	intents := []json.RawMessage(`{}`),
-
+	intents := []map[string]interface{}{
 		{
-
-			"id": "intent-002",
-
+			"id":          "intent-001",
+			"description": "Scale CU-UP instances for peak traffic",
+			"status":      "active",
+			"created_by":  authContext.UserID,
+			"created_at":  time.Now().Add(-2 * time.Hour),
+		},
+		{
+			"id":          "intent-002",
 			"description": "Scale UPF instances for increased traffic",
-
-			"status": "pending",
-
-			"created_by": authContext.UserID,
-
-			"created_at": time.Now().Add(-1 * time.Hour),
+			"status":      "pending",
+			"created_by":  authContext.UserID,
+			"created_at":  time.Now().Add(-1 * time.Hour),
 		},
 	}
 
-	response := json.RawMessage(`{}`)
+	response := map[string]interface{}{
+		"intents": intents,
+		"total":   len(intents),
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -603,13 +624,18 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Example intent creation - in real implementation, this would create the intent.
-
-	intent := json.RawMessage(`{}`)
+	intent := map[string]interface{}{
+		"id":          "intent-" + fmt.Sprintf("%d", time.Now().Unix()),
+		"description": request.Description,
+		"type":        request.Type,
+		"parameters":  request.Parameters,
+		"status":      "pending",
+		"created_by":  authContext.UserID,
+		"created_at":  time.Now(),
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(intent)
 
 }
@@ -617,33 +643,31 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 
 	// Example admin endpoint - in real implementation, this would query user data.
-
-	users := []json.RawMessage(`{}`),
-
-			"last_login": time.Now().Add(-1 * time.Hour),
-
-			"active": true,
-		},
-
+	users := []map[string]interface{}{
 		{
-
-			"user_id": "operator1",
-
-			"username": "operator1",
-
-			"email": "operator1@company.com",
-
+			"user_id":      "admin1",
+			"username":     "admin1",
+			"email":        "admin1@company.com",
+			"display_name": "System Administrator",
+			"roles":        []string{"admin", "system-admin"},
+			"last_login":   time.Now().Add(-1 * time.Hour),
+			"active":       true,
+		},
+		{
+			"user_id":      "operator1",
+			"username":     "operator1",
+			"email":        "operator1@company.com",
 			"display_name": "Network Operator",
-
-			"roles": []string{"network-operator"},
-
-			"last_login": time.Now().Add(-2 * time.Hour),
-
-			"active": true,
+			"roles":        []string{"network-operator"},
+			"last_login":   time.Now().Add(-2 * time.Hour),
+			"active":       true,
 		},
 	}
 
-	response := json.RawMessage(`{}`)
+	response := map[string]interface{}{
+		"users": users,
+		"total": len(users),
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 

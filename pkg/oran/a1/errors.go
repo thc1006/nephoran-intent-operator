@@ -196,6 +196,30 @@ func (e *A1Error) IsRetryable() bool {
 // ToProblemDetail converts A1Error to RFC 7807 compliant ProblemDetail.
 
 func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
+	// Create extensions map
+	extensions := make(map[string]interface{})
+	
+	// Add context as extensions if available
+	if len(e.Context) > 0 {
+		var contextMap map[string]interface{}
+		if err := json.Unmarshal(e.Context, &contextMap); err == nil {
+			for key, value := range contextMap {
+				extensions[key] = value
+			}
+		}
+	}
+
+	if e.Retryable {
+		extensions["retryable"] = true
+	}
+	
+	// Marshal extensions to json.RawMessage
+	extensionsBytes, err := json.Marshal(extensions)
+	if err != nil {
+		// If marshaling fails, use empty JSON object
+		extensionsBytes = json.RawMessage("{}")
+	}
+
 	pd := &A1ProblemDetail{
 		Type: string(e.Type),
 
@@ -211,17 +235,7 @@ func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 
 		RequestID: e.CorrelationID,
 
-		Extensions: make(map[string]interface{}),
-	}
-
-	// Add context as extensions.
-
-	for key, value := range e.Context {
-		pd.Extensions[key] = value
-	}
-
-	if e.Retryable {
-		pd.Extensions["retryable"] = true
+		Extensions: extensionsBytes,
 	}
 
 	return pd
@@ -257,9 +271,13 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 	}
 
 	// Add extensions.
-
-	for key, value := range pd.Extensions {
-		result[key] = value
+	if len(pd.Extensions) > 0 {
+		var extensions map[string]interface{}
+		if err := json.Unmarshal(pd.Extensions, &extensions); err == nil {
+			for key, value := range extensions {
+				result[key] = value
+			}
+		}
 	}
 
 	return json.Marshal(result)
@@ -279,7 +297,7 @@ func NewA1Error(errorType A1ErrorType, title string, status int, detail string) 
 
 		Timestamp: time.Now(),
 
-		Context: make(map[string]interface{}),
+		Context: json.RawMessage("{}"),
 	}
 }
 
@@ -296,11 +314,25 @@ func NewA1ErrorWithCause(errorType A1ErrorType, title string, status int, detail
 // WithContext adds context information to the error.
 
 func (e *A1Error) WithContext(key string, value interface{}) *A1Error {
-	if e.Context == nil {
-		e.Context = make(map[string]interface{})
+	// Parse existing context or create new one
+	var contextMap map[string]interface{}
+	if len(e.Context) > 0 {
+		if err := json.Unmarshal(e.Context, &contextMap); err != nil {
+			contextMap = make(map[string]interface{})
+		}
+	} else {
+		contextMap = make(map[string]interface{})
 	}
 
-	e.Context[key] = value
+	contextMap[key] = value
+	
+	// Marshal back to json.RawMessage
+	contextBytes, err := json.Marshal(contextMap)
+	if err != nil {
+		// If marshaling fails, keep the original context
+		return e
+	}
+	e.Context = contextBytes
 
 	return e
 }
@@ -812,9 +844,13 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 	}
 
 	// Check if error is marked as retryable.
-
-	if retryable, ok := problemDetail.Extensions["retryable"].(bool); ok {
-		a1Error.Retryable = retryable
+	if len(problemDetail.Extensions) > 0 {
+		var extensions map[string]interface{}
+		if err := json.Unmarshal(problemDetail.Extensions, &extensions); err == nil {
+			if retryable, ok := extensions["retryable"].(bool); ok {
+				a1Error.Retryable = retryable
+			}
+		}
 	}
 
 	return a1Error, nil
