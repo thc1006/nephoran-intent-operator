@@ -212,13 +212,6 @@ func CleanupIsolatedNamespace(namespaceName string) {
 	testutils.CleanupIsolatedNamespace(namespaceName)
 }
 
-func GetUniqueName(prefix string) string {
-	return testutils.GetUniqueName(prefix)
-}
-
-func CreateTestNetworkIntent(name, namespace, intent string) *nephoranv1.NetworkIntent {
-	return testutils.CreateTestNetworkIntent(name, namespace, intent)
-}
 
 
 var _ = Describe("Error Handling and Recovery Tests", func() {

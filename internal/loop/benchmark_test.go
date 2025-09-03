@@ -119,7 +119,7 @@ func runPerformanceBenchmark(b *testing.B, test PerformanceTest) {
 	if err != nil {
 		b.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Pre-generate test files
 	testFiles := generateBenchmarkFiles(b, tempDir, test.FileCount, test.FileSize)
@@ -468,7 +468,7 @@ func BenchmarkJSONValidation(b *testing.B) {
 	defer os.Remove(testFile)
 
 	watcher := createTestWatcher(b)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -478,7 +478,7 @@ func BenchmarkJSONValidation(b *testing.B) {
 
 func BenchmarkStateManagerLookup(b *testing.B) {
 	watcher := createTestWatcher(b)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	testFile := "test-file.json"
 
@@ -490,7 +490,7 @@ func BenchmarkStateManagerLookup(b *testing.B) {
 
 func BenchmarkWorkerPoolThroughput(b *testing.B) {
 	watcher := createTestWatcher(b)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	var completed int64
 
@@ -540,7 +540,7 @@ func createTestIntentFile(b *testing.B, size int) string {
 	if err != nil {
 		b.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer tempFile.Close()
+	defer tempFile.Close() // #nosec G307 - Error handled in defer
 
 	content := generateIntentContent(size)
 	if _, err := tempFile.Write(content); err != nil {

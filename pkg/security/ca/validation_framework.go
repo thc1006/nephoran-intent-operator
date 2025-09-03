@@ -871,7 +871,7 @@ func (ct *CTClient) searchCertificate(ctx context.Context, endpoint, certHash st
 		return false, fmt.Errorf("CT log request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("CT log returned status %d", resp.StatusCode)

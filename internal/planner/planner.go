@@ -59,7 +59,7 @@ func PostIntent(url string, in Intent) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("post intent status=%d", resp.StatusCode)

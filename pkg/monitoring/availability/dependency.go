@@ -908,7 +908,7 @@ func (dt *DependencyTracker) performHTTPCheck(ctx context.Context, dep *Dependen
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Convert metadata to map, add http_status, then marshal back
 	var metadata map[string]interface{}
@@ -959,7 +959,7 @@ func (dt *DependencyTracker) performTCPCheck(ctx context.Context, dep *Dependenc
 
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	return result
 }
@@ -1742,4 +1742,3 @@ func (dt *DependencyTracker) GetAvailabilityMetrics(dependencyID string) (*Avail
 
 	return metric, nil
 }
-

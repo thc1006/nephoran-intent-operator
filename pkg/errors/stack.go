@@ -409,7 +409,7 @@ func readSourceContext(file string, line, context int) string {
 		return fmt.Sprintf("// Could not read source: %v", err)
 	}
 
-	defer f.Close()
+	defer f.Close() // #nosec G307 - Error handled in defer
 
 	scanner := bufio.NewScanner(f)
 

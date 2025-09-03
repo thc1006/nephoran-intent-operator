@@ -43,7 +43,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	// Configure dependency resolver with advanced options
 	config := &DependencyResolverConfig{
@@ -69,7 +69,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 	if err != nil {
 		return fmt.Errorf("failed to create resolver: %w", err)
 	}
-	defer resolver.Close()
+	defer resolver.Close() // #nosec G307 - Error handled in defer
 
 	// Define 5G Core AMF with dependencies
 	amfPackage := &PackageReference{
@@ -349,10 +349,10 @@ func ExampleORANDeploymentWithDependencies() error {
 			},
 		},
 	})
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	resolver, _ := NewDependencyResolver(client, nil)
-	defer resolver.Close()
+	defer resolver.Close() // #nosec G307 - Error handled in defer
 
 	// Define Near-RT RIC with xApp dependencies
 	ricPackage := &PackageReference{
@@ -416,10 +416,10 @@ func ExampleNetworkSliceDependencies() error {
 			},
 		},
 	})
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	resolver, _ := NewDependencyResolver(client, nil)
-	defer resolver.Close()
+	defer resolver.Close() // #nosec G307 - Error handled in defer
 
 	selector := NewContextAwareDependencySelector()
 

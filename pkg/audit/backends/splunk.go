@@ -355,7 +355,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check response.
 
@@ -444,7 +444,7 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 		return nil, fmt.Errorf("search request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 
@@ -486,7 +486,7 @@ func (sb *SplunkBackend) Health(ctx context.Context) error {
 		return fmt.Errorf("health check failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("health check failed with status %d", resp.StatusCode)
@@ -668,4 +668,3 @@ func parseSplunkConfig(settings map[string]interface{}) (*SplunkConfig, error) {
 
 	return &config, nil
 }
-

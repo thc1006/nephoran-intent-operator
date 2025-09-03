@@ -1,0 +1,136 @@
+{
+  "global": {
+    "nosec": "enabled",
+    "audit": "enabled"
+  },
+  "rules": {
+    "G101": {
+      "pattern": "(?i)(password|passwd|pwd|secret|token|apikey|api_key)\\s*=\\s*\"[^\"]+\"",
+      "ignore_entropy": false,
+      "entropy_threshold": "4.5",
+      "per_char_threshold": "3.0",
+      "truncate": "32"
+    },
+    "G102": {
+      "bind": ["0.0.0.0", "127.0.0.1"]
+    },
+    "G104": {
+      "audit": true
+    },
+    "G106": {
+      "audit": true
+    },
+    "G107": {
+      "audit": true
+    },
+    "G108": {
+      "audit": true
+    },
+    "G109": {
+      "audit": true
+    },
+    "G110": {
+      "audit": true
+    },
+    "G111": {
+      "audit": true
+    },
+    "G112": {
+      "audit": true
+    },
+    "G113": {
+      "audit": true
+    },
+    "G114": {
+      "audit": true
+    },
+    "G201": {
+      "audit": true
+    },
+    "G202": {
+      "audit": true
+    },
+    "G203": {
+      "audit": true
+    },
+    "G204": {
+      "audit": true
+    },
+    "G301": {
+      "audit": true
+    },
+    "G302": {
+      "audit": true
+    },
+    "G303": {
+      "audit": true
+    },
+    "G304": {
+      "audit": true
+    },
+    "G305": {
+      "audit": true
+    },
+    "G306": {
+      "audit": true
+    },
+    "G307": {
+      "audit": true
+    },
+    "G401": {
+      "audit": true
+    },
+    "G402": {
+      "audit": true
+    },
+    "G403": {
+      "audit": true
+    },
+    "G404": {
+      "audit": true
+    },
+    "G501": {
+      "audit": true
+    },
+    "G502": {
+      "audit": true
+    },
+    "G503": {
+      "audit": true
+    },
+    "G504": {
+      "audit": true
+    },
+    "G601": {
+      "audit": true
+    },
+    "G602": {
+      "audit": true
+    }
+  },
+  "exclude-rules": [
+    {
+      "id": "G104",
+      "path": "_test\\.go"
+    },
+    {
+      "id": "G402",
+      "path": "_test\\.go"
+    },
+    {
+      "id": "G404",
+      "path": "_test\\.go"
+    }
+  ],
+  "exclude-dirs": [
+    "vendor",
+    "testdata",
+    ".git",
+    "hack",
+    "tools",
+    "docs"
+  ],
+  "exclude-generated": true,
+  "severity": "low",
+  "confidence": "low"
+}

@@ -131,7 +131,12 @@ jobs:
   vulnerability-scan:
     name: Vulnerability Assessment
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scan-type: [critical, standard, comprehensive]
 
     steps:
       - name: Checkout code
@@ -144,54 +149,216 @@ jobs:
           check-latest: true
           cache: true
 
-      - name: Run govulncheck
+      - name: Cache govulncheck database
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/govulncheck
+          key: govulncheck-db-${{ runner.os }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            govulncheck-db-${{ runner.os }}-
+
+      - name: Install govulncheck with timeout handling
         run: |
-          echo "Installing govulncheck..."
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          echo "Installing govulncheck with timeout handling..."
+          timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
+            echo "⚠️ Installation timeout - using cached version if available"
+            if ! command -v govulncheck &> /dev/null; then
+              echo "❌ govulncheck not available, skipping scan"
+              exit 0
+            fi
+          }
+
+      - name: Run govulncheck with optimized scanning strategy
+        timeout-minutes: 40
+        run: |
+          set -euo pipefail
           
-          echo "Running vulnerability scan..."
-          govulncheck -json ./... > vulncheck-results.json 2>&1 || true
+          echo "🔍 Running vulnerability scan (scan-type: ${{ matrix.scan-type }})"
           
-          # Also generate text output for readability
-          govulncheck ./... > vulncheck-results.txt 2>&1 || true
+          # Create output directory
+          mkdir -p scan-results
           
-          # Generate summary
-          echo "# Vulnerability Scan Results" > vulncheck-summary.md
-          echo "" >> vulncheck-summary.md
+          # Define scan targets based on scan type
+          case "${{ matrix.scan-type }}" in
+            critical)
+              SCAN_TARGETS="./cmd/... ./api/... ./controllers/..."
+              SCAN_MODE="source"
+              TIMEOUT_DURATION="10m"
+              ;;
+            standard)
+              SCAN_TARGETS="./pkg/... ./internal/..."
+              SCAN_MODE="source"
+              TIMEOUT_DURATION="15m"
+              ;;
+            comprehensive)
+              SCAN_TARGETS="./..."
+              SCAN_MODE="source"
+              TIMEOUT_DURATION="35m"
+              ;;
+          esac
           
-          if [ -f vulncheck-results.json ]; then
-            # Parse JSON for summary (basic parsing)
-            echo "Scan completed. Check detailed results in artifacts." >> vulncheck-summary.md
+          echo "📋 Scan targets: $SCAN_TARGETS"
+          echo "⏱️ Timeout: $TIMEOUT_DURATION"
+          
+          # Run govulncheck with timeout and proper error handling
+          run_scan() {
+            local target="$1"
+            local output_file="$2"
+            local format="$3"
+            
+            echo "🔍 Scanning $target (format: $format)..."
+            
+            timeout "$TIMEOUT_DURATION" govulncheck \
+              -$format \
+              -C "$(pwd)" \
+              "$target" > "$output_file" 2>&1 || {
+              local exit_code=$?
+              echo "⚠️ Scan completed with exit code: $exit_code"
+              
+              case $exit_code in
+                124) # timeout
+                  echo "❌ Scan timed out for $target" >> "$output_file"
+                  echo "scan_timeout" > "scan-results/status-$(basename "$output_file" .txt)"
+                  ;;
+                1) # vulnerabilities found
+                  echo "⚠️ Vulnerabilities detected in $target" >> "$output_file"
+                  echo "vulnerabilities_found" > "scan-results/status-$(basename "$output_file" .txt)"
+                  ;;
+                *) # other errors
+                  echo "❌ Scan failed with error code $exit_code" >> "$output_file"
+                  echo "scan_error" > "scan-results/status-$(basename "$output_file" .txt)"
+                  ;;
+              esac
+              
+              # Don't fail the job for scan issues
+              return 0
+            }
+            
+            echo "✅ Scan completed successfully for $target"
+            echo "success" > "scan-results/status-$(basename "$output_file" .txt)"
+          }
+          
+          # Run JSON scan for machine parsing
+          run_scan "$SCAN_TARGETS" "scan-results/vulncheck-${{ matrix.scan-type }}.json" "json"
+          
+          # Run text scan for human readability (only for critical and standard)
+          if [[ "${{ matrix.scan-type }}" != "comprehensive" ]]; then
+            run_scan "$SCAN_TARGETS" "scan-results/vulncheck-${{ matrix.scan-type }}.txt" "text"
           fi
 
-      - name: Nancy dependency scan
+      - name: Generate scan summary
+        if: always()
         run: |
-          echo "Installing nancy..."
-          go install github.com/sonatype-nexus-community/nancy@latest
+          echo "# Vulnerability Scan Results (${{ matrix.scan-type }})" > vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "**Scan Type:** ${{ matrix.scan-type }}" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "" >> vulncheck-summary-${{ matrix.scan-type }}.md
           
-          echo "Running dependency vulnerability scan..."
-          go list -json -deps ./... | nancy sleuth > nancy-results.txt 2>&1 || true
+          # Check scan status
+          for status_file in scan-results/status-*; do
+            if [[ -f "$status_file" ]]; then
+              scan_name=$(basename "$status_file" | sed 's/status-//')
+              status=$(cat "$status_file")
+              
+              case "$status" in
+                success)
+                  echo "✅ $scan_name: Scan completed successfully" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  ;;
+                vulnerabilities_found)
+                  echo "⚠️ $scan_name: Vulnerabilities detected" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  ;;
+                scan_timeout)
+                  echo "⏱️ $scan_name: Scan timed out (large codebase)" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  ;;
+                scan_error)
+                  echo "❌ $scan_name: Scan encountered errors" >> vulncheck-summary-${{ matrix.scan-type }}.md
+                  ;;
+              esac
+            fi
+          done
           
-          # Check for vulnerabilities
-          if grep -q "Vulnerable Packages Found" nancy-results.txt; then
-            echo "⚠️ Vulnerable dependencies detected!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            grep -A 50 "Vulnerable Packages Found" nancy-results.txt >> $GITHUB_STEP_SUMMARY || true
+          echo "" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          
+          # Parse JSON results if available
+          json_file="scan-results/vulncheck-${{ matrix.scan-type }}.json"
+          if [[ -f "$json_file" && -s "$json_file" ]]; then
+            echo "## Detailed Results" >> vulncheck-summary-${{ matrix.scan-type }}.md
+            
+            # Count vulnerabilities (basic JSON parsing)
+            if command -v jq &> /dev/null; then
+              vuln_count=$(jq -r '.Vulns // [] | length' "$json_file" 2>/dev/null || echo "0")
+              echo "- Vulnerabilities found: $vuln_count" >> vulncheck-summary-${{ matrix.scan-type }}.md
+              
+              if [[ "$vuln_count" -gt 0 ]]; then
+                echo "- See detailed JSON report in artifacts" >> vulncheck-summary-${{ matrix.scan-type }}.md
+              fi
+            else
+              echo "- Detailed analysis available in JSON artifacts" >> vulncheck-summary-${{ matrix.scan-type }}.md
+            fi
           else
-            echo "✅ No vulnerable dependencies found" >> $GITHUB_STEP_SUMMARY
+            echo "## Status" >> vulncheck-summary-${{ matrix.scan-type }}.md
+            echo "Scan results not available or empty. Check scan logs above." >> vulncheck-summary-${{ matrix.scan-type }}.md
+          fi
+          
+          echo "" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "## Next Steps" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "1. Review detailed results in workflow artifacts" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "2. Update vulnerable dependencies using \`go get -u\`" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          echo "3. Check for alternative packages if updates aren't available" >> vulncheck-summary-${{ matrix.scan-type }}.md
+          
+          # Add to GitHub step summary
+          echo "## Vulnerability Scan (${{ matrix.scan-type }})" >> $GITHUB_STEP_SUMMARY
+          cat vulncheck-summary-${{ matrix.scan-type }}.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Nancy dependency scan (optimized)
+        timeout-minutes: 8
+        continue-on-error: true
+        run: |
+          echo "Installing nancy with timeout..."
+          timeout 180s go install github.com/sonatype-nexus-community/nancy@latest || {
+            echo "⚠️ Nancy installation timeout - skipping dependency scan"
+            echo "nancy_install_timeout" > scan-results/nancy-status.txt
+            exit 0
+          }
+          
+          echo "Running optimized dependency vulnerability scan..."
+          
+          # Use go.mod directly instead of full dependency tree for faster scanning
+          if timeout 300s go list -json -m all | nancy sleuth > nancy-results-${{ matrix.scan-type }}.txt 2>&1; then
+            echo "nancy_success" > scan-results/nancy-status.txt
+            echo "✅ Nancy dependency scan completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "nancy_timeout_or_error" > scan-results/nancy-status.txt
+            echo "⚠️ Nancy scan encountered issues (timeout or vulnerabilities)" >> nancy-results-${{ matrix.scan-type }}.txt
+          fi
+          
+          # Check for vulnerabilities without failing the job
+          if [[ -f nancy-results-${{ matrix.scan-type }}.txt ]] && grep -q "Vulnerable Packages Found" nancy-results-${{ matrix.scan-type }}.txt; then
+            echo "⚠️ Vulnerable dependencies detected in ${{ matrix.scan-type }} scan!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Click to view vulnerable packages</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            grep -A 50 "Vulnerable Packages Found" nancy-results-${{ matrix.scan-type }}.txt | head -n 100 >> $GITHUB_STEP_SUMMARY || true
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No vulnerable dependencies found in ${{ matrix.scan-type }} scan" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload vulnerability reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vulnerability-reports
+          name: vulnerability-reports-${{ matrix.scan-type }}
           path: |
-            vulncheck-results.json
-            vulncheck-results.txt
-            vulncheck-summary.md
-            nancy-results.txt
+            scan-results/
+            vulncheck-summary-${{ matrix.scan-type }}.md
+            nancy-results-${{ matrix.scan-type }}.txt
           retention-days: 30
+          compression-level: 6
 
   # =============================================================================
   # LICENSE COMPLIANCE: Ensure license compatibility
@@ -319,7 +486,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [gosec-scan, vulnerability-scan, license-compliance, owasp-checks]
     if: always()
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     steps:
       - name: Download all security artifacts
@@ -337,15 +504,23 @@ jobs:
           echo "**Scan Depth:** ${{ env.SCAN_DEPTH }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## 📊 Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Scan Results Overview" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "| Scanner | Status | Details |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| Gosec | ${{ needs.gosec-scan.result }} | AST/SSA security analysis |" >> $GITHUB_STEP_SUMMARY
-          echo "| Vulnerability Scan | ${{ needs.vulnerability-scan.result }} | Known CVE detection |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerability Scan (Matrix) | ${{ needs.vulnerability-scan.result }} | Multi-tier CVE detection |" >> $GITHUB_STEP_SUMMARY
           echo "| License Compliance | ${{ needs.license-compliance.result }} | License compatibility check |" >> $GITHUB_STEP_SUMMARY
           echo "| OWASP Checks | ${{ needs.owasp-checks.result }} | OWASP Top 10 patterns |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 🔍 Vulnerability Scan Details" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The vulnerability scan now runs in three tiers:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Critical**: Core components (cmd, api, controllers) - 10min timeout" >> $GITHUB_STEP_SUMMARY
+          echo "- **Standard**: Internal packages (pkg, internal) - 15min timeout" >> $GITHUB_STEP_SUMMARY  
+          echo "- **Comprehensive**: Full codebase scan - 35min timeout" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Add key findings if available
@@ -360,12 +535,61 @@ jobs:
               echo "" >> $GITHUB_STEP_SUMMARY
             fi
             
-            # Check for vulnerability summary
-            if [ -f "security-artifacts/vulnerability-reports/vulncheck-summary.md" ]; then
-              echo "### Vulnerability Assessment" >> $GITHUB_STEP_SUMMARY
-              cat "security-artifacts/vulnerability-reports/vulncheck-summary.md" >> $GITHUB_STEP_SUMMARY || true
-              echo "" >> $GITHUB_STEP_SUMMARY
-            fi
+            # Check for vulnerability summaries from matrix jobs
+            echo "### Vulnerability Assessment Results" >> $GITHUB_STEP_SUMMARY
+            for scan_type in critical standard comprehensive; do
+              summary_file="security-artifacts/vulnerability-reports-${scan_type}/vulncheck-summary-${scan_type}.md"
+              if [ -f "$summary_file" ]; then
+                echo "#### ${scan_type^} Scan Results" >> $GITHUB_STEP_SUMMARY
+                cat "$summary_file" >> $GITHUB_STEP_SUMMARY || true
+                echo "" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "#### ${scan_type^} Scan" >> $GITHUB_STEP_SUMMARY
+                echo "Results not available (may have timed out or failed)" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            # Aggregate scan status summary
+            echo "### Scan Status Summary" >> $GITHUB_STEP_SUMMARY
+            echo "| Scan Type | Status | Notes |" >> $GITHUB_STEP_SUMMARY
+            echo "|-----------|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            
+            for scan_type in critical standard comprehensive; do
+              status_dir="security-artifacts/vulnerability-reports-${scan_type}/scan-results"
+              if [ -d "$status_dir" ]; then
+                # Check for status files
+                success_count=0
+                timeout_count=0
+                error_count=0
+                vuln_count=0
+                
+                for status_file in "$status_dir"/status-*; do
+                  if [ -f "$status_file" ]; then
+                    status=$(cat "$status_file")
+                    case "$status" in
+                      success) ((success_count++)) ;;
+                      scan_timeout) ((timeout_count++)) ;;
+                      scan_error) ((error_count++)) ;;
+                      vulnerabilities_found) ((vuln_count++)) ;;
+                    esac
+                  fi
+                done
+                
+                status_summary=""
+                [ $success_count -gt 0 ] && status_summary="${status_summary}✅${success_count} "
+                [ $vuln_count -gt 0 ] && status_summary="${status_summary}⚠️${vuln_count} "
+                [ $timeout_count -gt 0 ] && status_summary="${status_summary}⏱️${timeout_count} "
+                [ $error_count -gt 0 ] && status_summary="${status_summary}❌${error_count} "
+                
+                [ -z "$status_summary" ] && status_summary="No data"
+                
+                echo "| ${scan_type^} | $status_summary | Scanned core components |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| ${scan_type^} | ❌ Failed | Job may have failed to start |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "## 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
@@ -381,16 +605,69 @@ jobs:
           # Create a consolidated report file
           echo "# Nephoran Security Scan Report" > consolidated-security-report.md
           echo "Generated: $(date -u +"%Y-%m-%d %H:%M UTC")" >> consolidated-security-report.md
+          echo "Branch: ${{ github.ref_name }}" >> consolidated-security-report.md
+          echo "Commit: ${{ github.sha }}" >> consolidated-security-report.md
           echo "" >> consolidated-security-report.md
           
-          # Add all summaries
-          for summary in security-artifacts/*/[!.]*.md; do
-            if [ -f "$summary" ]; then
-              echo "---" >> consolidated-security-report.md
-              cat "$summary" >> consolidated-security-report.md
-              echo "" >> consolidated-security-report.md
+          # Add scan configuration
+          echo "## Scan Configuration" >> consolidated-security-report.md
+          echo "- **Timeout per scan type**: 45 minutes maximum" >> consolidated-security-report.md
+          echo "- **Matrix strategy**: critical, standard, comprehensive" >> consolidated-security-report.md
+          echo "- **Fail-safe enabled**: Jobs continue on timeout/error" >> consolidated-security-report.md
+          echo "" >> consolidated-security-report.md
+          
+          # Add all summaries with better organization
+          echo "## Reports by Scanner Type" >> consolidated-security-report.md
+          echo "" >> consolidated-security-report.md
+          
+          # Gosec reports
+          if [ -d "security-artifacts/gosec-reports" ]; then
+            echo "### Gosec Static Analysis" >> consolidated-security-report.md
+            for summary in security-artifacts/gosec-reports/*.md; do
+              if [ -f "$summary" ]; then
+                echo "---" >> consolidated-security-report.md
+                cat "$summary" >> consolidated-security-report.md
+                echo "" >> consolidated-security-report.md
+              fi
+            done
+          fi
+          
+          # Vulnerability scan reports
+          echo "### Vulnerability Assessment" >> consolidated-security-report.md
+          for scan_type in critical standard comprehensive; do
+            vuln_dir="security-artifacts/vulnerability-reports-${scan_type}"
+            if [ -d "$vuln_dir" ]; then
+              echo "#### ${scan_type^} Vulnerability Scan" >> consolidated-security-report.md
+              for summary in "$vuln_dir"/*.md; do
+                if [ -f "$summary" ]; then
+                  echo "---" >> consolidated-security-report.md
+                  cat "$summary" >> consolidated-security-report.md
+                  echo "" >> consolidated-security-report.md
+                fi
+              done
             fi
           done
+          
+          # License and OWASP reports
+          for report_type in license owasp; do
+            if [ -d "security-artifacts/${report_type}-reports" ]; then
+              echo "### ${report_type^} Reports" >> consolidated-security-report.md
+              for summary in security-artifacts/${report_type}-reports/*.md; do
+                if [ -f "$summary" ]; then
+                  echo "---" >> consolidated-security-report.md
+                  cat "$summary" >> consolidated-security-report.md
+                  echo "" >> consolidated-security-report.md
+                fi
+              done
+            fi
+          done
+          
+          # Add metadata
+          echo "---" >> consolidated-security-report.md
+          echo "## Scan Metadata" >> consolidated-security-report.md
+          echo "- Report generated at: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> consolidated-security-report.md
+          echo "- GitHub Actions Run: ${{ github.run_id }}" >> consolidated-security-report.md
+          echo "- Workflow: ${{ github.workflow }}" >> consolidated-security-report.md
 
       - name: Upload consolidated report
         if: always()

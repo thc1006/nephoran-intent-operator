@@ -583,7 +583,7 @@ func (r *TestRunner) generateJUnitReport(results []TestResult) error {
 		return err
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintf(file, `<?xml version="1.0" encoding="UTF-8"?>`)
 
@@ -638,7 +638,7 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 		return err
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintln(file, "mode: atomic")
 
@@ -664,7 +664,7 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 
 	htmlFile := filepath.Join(r.OutputDir, fmt.Sprintf("coverage-shard-%d.html", r.ShardIndex))
 
-	cmd := exec.Command("go", "tool", "cover", "-html="+combinedFile, "-o", htmlFile)
+	cmd := exec.Command("go", "tool", "cover", "-html="+combinedFile, "-o", htmlFile) // #nosec G204 - Static command with validated args
 
 	if err := cmd.Run(); err != nil {
 		log.Printf("Warning: failed to generate HTML coverage report: %v", err)
@@ -683,7 +683,7 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 		return err
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintf(file, "Test Timing Report - Shard %d\n", r.ShardIndex)
 

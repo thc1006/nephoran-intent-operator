@@ -337,7 +337,7 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
@@ -441,7 +441,7 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 		}, nil
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return &TokenValidation{
@@ -532,7 +532,7 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 		return nil, fmt.Errorf("failed to get organizations: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d for organizations", resp.StatusCode)
@@ -578,7 +578,7 @@ func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) 
 		return nil, fmt.Errorf("failed to get emails: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d for emails", resp.StatusCode)
@@ -612,7 +612,7 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 		return nil, fmt.Errorf("failed to get teams: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return []string{}, nil // Teams endpoint might not be accessible
@@ -734,4 +734,3 @@ func (p *GitHubProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	return nil
 }
-

@@ -846,7 +846,7 @@ func TestValidateBytes_ExtremeCases(t *testing.T) {
 		},
 		{
 			name:        "unicode in json",
-			input:       []byte(`{"intent_type": "scaling", "target": "测�?-deployment", "namespace": "default", "replicas": 3}`),
+			input:       []byte(`{"intent_type": "scaling", "target": "测试-deployment", "namespace": "default", "replicas": 3}`),
 			expectError: false,
 			description: "Unicode characters should be allowed",
 		},

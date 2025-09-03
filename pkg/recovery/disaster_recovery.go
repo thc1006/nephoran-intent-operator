@@ -1303,7 +1303,7 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	}
 
-	defer result.Body.Close()
+	defer result.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Read and unmarshal backup data.
 

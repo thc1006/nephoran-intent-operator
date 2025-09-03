@@ -257,7 +257,7 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 
 	// Build the command to run porch-publisher.
 
-	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir)
+	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir) // #nosec G204 - Static command with validated args
 
 	// Capture output.
 

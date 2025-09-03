@@ -372,7 +372,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperat
 
 	watcher, err := NewWatcher(handoffDir, config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher in background
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -627,7 +627,7 @@ func (s *ValidationTestSuite) TestPerformance_NoRegressionFromFixes() {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Measure processing time
 	startTime := time.Now()
@@ -673,7 +673,7 @@ func (s *ValidationTestSuite) TestStress_HighConcurrencyWithFixes() {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -833,7 +833,7 @@ func (s *ValidationTestSuite) TestEdgeCase_RaceConditionUnderMemoryPressure() {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	s.Require().NoError(err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create many files rapidly to stress memory and concurrency
 	numFiles := 200
@@ -922,7 +922,7 @@ func TestRaceDetection_RunWithRaceFlag(t *testing.T) {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

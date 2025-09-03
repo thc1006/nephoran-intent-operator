@@ -2,9 +2,10 @@ package audit
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -41,7 +42,7 @@ func TestChaosTestSuite(t *testing.T) {
 
 func (suite *ChaosTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "chaos_test")
+	suite.tempDir, err = os.MkdirTemp("", "chaos_test")
 	suite.Require().NoError(err)
 
 	// Setup chaos server that randomly fails
@@ -822,7 +823,7 @@ func createSizedChaosEvent(action string, targetSize int) *AuditEvent {
 		Action:    action,
 		Severity:  SeverityInfo,
 		Result:    ResultSuccess,
-		Data: json.RawMessage(`{}`),
+		Data:      json.RawMessage(`{}`),
 	}
 }
 
@@ -1278,4 +1279,3 @@ func (ne *NetworkEmulator) SimulateNetworkCall(ctx context.Context, data []byte)
 
 	return nil
 }
-

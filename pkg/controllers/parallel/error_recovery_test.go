@@ -18,6 +18,7 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -601,7 +602,7 @@ func (fp *FailingProcessor) HealthCheck(ctx context.Context) error {
 }
 
 func (fp *FailingProcessor) GetMetrics() map[string]interface{} {
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{}
 }
 
 // RetryableProcessor fails a specific number of times then succeeds
@@ -635,9 +636,9 @@ func (rp *RetryableProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 
 	// Succeed after enough attempts
 	return &TaskResult{
-		TaskID:  task.ID,
-		Success: true,
-		OutputData: json.RawMessage(`{}`),
+		TaskID:     task.ID,
+		Success:    true,
+		OutputData: map[string]interface{}{"status": "completed", "attempts": rp.currentTries},
 	}, nil
 }
 
@@ -653,6 +654,6 @@ func (rp *RetryableProcessor) GetMetrics() map[string]interface{} {
 	rp.mutex.Lock()
 	defer rp.mutex.Unlock()
 
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{"current_tries": rp.currentTries, "fail_count": rp.failCount}
 }
 

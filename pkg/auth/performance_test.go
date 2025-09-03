@@ -2,10 +2,10 @@ package auth_test
 
 import (
 	"context"
+	"crypto/rand"
 	cryptorand "crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -32,7 +32,7 @@ type BenchmarkSuite struct {
 func NewBenchmarkSuite() *BenchmarkSuite {
 	// Temporarily disabled due to auth mock type compatibility issues
 	return &BenchmarkSuite{}
-	
+
 	// tc := authtestutil.NewTestContext(&testing.T{})
 	// suite := &BenchmarkSuite{
 	//	jwtManager:     tc.SetupJWTManager(),
@@ -726,7 +726,7 @@ func BenchmarkAuthSystem_ThroughputTest(b *testing.B) {
 	})
 
 	server := httptest.NewServer(authMiddleware.Middleware(mux))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,
@@ -833,4 +833,3 @@ func BenchmarkSessionManager_SessionCleanup(b *testing.B) {
 		}
 	}
 }
-

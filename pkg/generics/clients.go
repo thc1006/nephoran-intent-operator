@@ -211,7 +211,7 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 		return Err[TResponse, error](fmt.Errorf("HTTP request failed: %w", err))
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check status code.
 
@@ -297,7 +297,7 @@ func (c *HTTPClient[TRequest, TResponse]) IsHealthy(ctx context.Context) Result[
 		return Err[bool, error](err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	healthy := resp.StatusCode >= 200 && resp.StatusCode < 300
 

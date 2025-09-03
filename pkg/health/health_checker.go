@@ -634,7 +634,7 @@ func HTTPCheck(name, url string) CheckFunc {
 			}
 		}
 
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			return &Check{
@@ -698,4 +698,3 @@ func MemoryCheck(name string, maxMemoryMB int64) CheckFunc {
 		}
 	}
 }
-

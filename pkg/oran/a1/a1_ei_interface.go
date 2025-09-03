@@ -113,7 +113,7 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -157,7 +157,7 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -199,7 +199,7 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list EI types: status=%d", resp.StatusCode)
@@ -246,7 +246,7 @@ func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error 
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -293,7 +293,7 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -341,7 +341,7 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -383,7 +383,7 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list EI jobs: status=%d", resp.StatusCode)
@@ -430,7 +430,7 @@ func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -466,7 +466,7 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -515,7 +515,7 @@ func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProdu
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 

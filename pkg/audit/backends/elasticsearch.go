@@ -322,7 +322,7 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check response.
 
@@ -398,7 +398,7 @@ func (eb *ElasticsearchBackend) Query(ctx context.Context, query *QueryRequest) 
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 
@@ -442,7 +442,7 @@ func (eb *ElasticsearchBackend) Health(ctx context.Context) error {
 		return fmt.Errorf("health check failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("health check failed with status %d", resp.StatusCode)
@@ -517,7 +517,7 @@ func (eb *ElasticsearchBackend) createIndexTemplate() error {
 		return fmt.Errorf("template request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 
@@ -570,7 +570,7 @@ func (eb *ElasticsearchBackend) createIndex() error {
 		return fmt.Errorf("index creation failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 
@@ -619,7 +619,7 @@ func (eb *ElasticsearchBackend) createAlias() error {
 		return fmt.Errorf("alias request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 

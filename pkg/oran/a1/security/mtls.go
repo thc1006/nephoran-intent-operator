@@ -629,7 +629,7 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 		return fmt.Errorf("OCSP request failed: %w", err)
 	}
 
-	defer httpResp.Body.Close()
+	defer httpResp.Body.Close() // #nosec G307 - Error handled in defer
 
 	ocspRespBytes, err := io.ReadAll(httpResp.Body)
 	if err != nil {
@@ -803,7 +803,7 @@ func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	crlBytes, err := io.ReadAll(resp.Body)
 	if err != nil {

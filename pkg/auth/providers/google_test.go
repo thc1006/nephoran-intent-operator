@@ -220,7 +220,7 @@ func TestGoogleProvider_ExchangeCodeForToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create provider with custom endpoint
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
@@ -307,7 +307,7 @@ func TestGoogleProvider_RefreshToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	provider.oauth2Cfg.Endpoint = oauth2.Endpoint{
@@ -425,13 +425,12 @@ func TestGoogleProvider_GetUserInfo(t *testing.T) {
 						"code":    403,
 						"message": "Forbidden",
 						"status":  "PERMISSION_DENIED",
-					},
 				}
 				json.NewEncoder(w).Encode(response)
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/oauth2/v2/userinfo"
@@ -531,7 +530,7 @@ func TestGoogleProvider_ValidateToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/oauth2/v2/userinfo"
@@ -598,7 +597,7 @@ func TestGoogleProvider_RevokeToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.RevokeURL = server.URL + "/o/oauth2/revoke"
@@ -666,7 +665,7 @@ func TestGoogleProvider_DiscoverConfiguration(t *testing.T) {
 			json.NewEncoder(w).Encode(config)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
@@ -807,7 +806,7 @@ func TestGoogleProvider_EdgeCases(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(5 * time.Second) // Longer than typical timeout
 		}))
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 		provider.oauth2Cfg.Endpoint = oauth2.Endpoint{

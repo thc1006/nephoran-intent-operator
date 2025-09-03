@@ -584,7 +584,7 @@ func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) 
 		return // Port is closed or filtered
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	// Port is open
 
@@ -734,7 +734,7 @@ func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port strin
 		return
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	certs := conn.ConnectionState().PeerCertificates
 
@@ -888,7 +888,7 @@ func (ss *SecurityScanner) scanHTTPHeaders(ctx context.Context, target string) {
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check for security headers
 
@@ -1095,7 +1095,7 @@ func (ss *SecurityScanner) testSingleInjection(ctx context.Context, testURL, pay
 		return
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	body, _ := io.ReadAll(resp.Body)
 

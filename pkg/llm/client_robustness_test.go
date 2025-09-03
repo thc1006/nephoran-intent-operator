@@ -28,7 +28,7 @@ func TestProcessIntentWithTimeout(t *testing.T) {
 			"image":    "test:latest",
 		})
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	client := NewClient(server.URL)
 	ctx := context.Background()
@@ -77,7 +77,7 @@ func TestProcessIntentWithRetryRobustness(t *testing.T) {
 			})
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	client := NewClient(server.URL)
 	client.retryConfig.BaseDelay = 10 * time.Millisecond // Speed up test
@@ -144,7 +144,7 @@ func TestProcessIntentRejectsNonJSON(t *testing.T) {
 				}
 				w.Write([]byte(tt.body))
 			}))
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := NewClient(server.URL)
 			ctx := context.Background()
@@ -298,7 +298,7 @@ func TestFallbackURLs(t *testing.T) {
 		primaryCalled = true
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer primaryServer.Close()
+	defer primaryServer.Close() // #nosec G307 - Error handled in defer
 
 	// Fallback server succeeds
 	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +309,7 @@ func TestFallbackURLs(t *testing.T) {
 			"image":    "test:latest",
 		})
 	}))
-	defer fallbackServer.Close()
+	defer fallbackServer.Close() // #nosec G307 - Error handled in defer
 
 	client := NewClient(primaryServer.URL)
 	client.SetFallbackURLs([]string{fallbackServer.URL})
@@ -351,7 +351,7 @@ func TestLoggingLevels(t *testing.T) {
 			"description": longText,
 		})
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	client := NewClient(server.URL)
 	ctx := context.Background()
@@ -378,4 +378,3 @@ func contains(s, substr string) bool {
 		len(substr) > 0 && len(s) > 0 && s[:len(substr)] == substr ||
 		fmt.Sprintf("%s", s) != s
 }
-

@@ -42,7 +42,7 @@ func TestAuthHandlers_Login(t *testing.T) {
 
 	// Setup mock OAuth server
 	oauthServer := authtestutil.NewOAuth2MockServer("test")
-	defer oauthServer.Close()
+	defer oauthServer.Close() // #nosec G307 - Error handled in defer
 
 	// Setup test managers
 	jwtManager, sessionManager, rbacManager := setupTestManagers(tc)
@@ -69,10 +69,10 @@ func TestAuthHandlers_Login(t *testing.T) {
 		checkResponse func(*testing.T, *httptest.ResponseRecorder)
 	}{
 		{
-			name:   "Valid login request",
-			method: "POST",
-			path:   "/auth/login",
-			body: json.RawMessage(`{}`),
+			name:         "Valid login request",
+			method:       "POST",
+			path:         "/auth/login",
+			body:         json.RawMessage(`{}`),
 			expectStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -83,10 +83,10 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:   "Login with PKCE",
-			method: "POST",
-			path:   "/auth/login",
-			body: json.RawMessage(`{}`),
+			name:         "Login with PKCE",
+			method:       "POST",
+			path:         "/auth/login",
+			body:         json.RawMessage(`{}`),
 			expectStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -98,10 +98,10 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:   "Missing provider",
-			method: "POST",
-			path:   "/auth/login",
-			body: json.RawMessage(`{}`),
+			name:         "Missing provider",
+			method:       "POST",
+			path:         "/auth/login",
+			body:         json.RawMessage(`{}`),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -111,10 +111,10 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:   "Invalid provider",
-			method: "POST",
-			path:   "/auth/login",
-			body: json.RawMessage(`{}`),
+			name:         "Invalid provider",
+			method:       "POST",
+			path:         "/auth/login",
+			body:         json.RawMessage(`{}`),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -124,10 +124,10 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:   "Invalid redirect URI",
-			method: "POST",
-			path:   "/auth/login",
-			body: json.RawMessage(`{}`),
+			name:         "Invalid redirect URI",
+			method:       "POST",
+			path:         "/auth/login",
+			body:         json.RawMessage(`{}`),
 			expectStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				var response map[string]string
@@ -1013,12 +1013,12 @@ func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 		// mux.HandleFunc("/.well-known/jwks.json", handlers.JWKSHandler) // Method not available
 
 		server := httptest.NewServer(mux)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		// Test health check
 		resp, err := http.Get(server.URL + "/auth/health")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -1031,7 +1031,7 @@ func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 		// Test JWKS endpoint
 		resp, err = http.Get(server.URL + "/.well-known/jwks.json")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -1041,4 +1041,3 @@ func TestAuthHandlers_HTTPServerIntegration_DISABLED(t *testing.T) {
 		assert.Contains(t, jwks, "keys")
 	*/
 }
-

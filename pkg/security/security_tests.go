@@ -621,9 +621,9 @@ func (sts *TestSuite) TestSecureChannels() *TestResult {
 
 	server, client := net.Pipe()
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	config := DefaultChannelConfig()
 

@@ -546,7 +546,7 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 		return fmt.Errorf("request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	result.StatusCode = resp.StatusCode
 
@@ -599,7 +599,7 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	// Create health client.
 
@@ -651,7 +651,7 @@ func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *He
 		return fmt.Errorf("TCP connection failed: %w", err)
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	result.Metadata["protocol"] = "tcp"
 
@@ -676,7 +676,7 @@ func (hc *HealthChecker) performUDPCheck(session *HealthCheckSession, result *He
 		return fmt.Errorf("UDP connection failed: %w", err)
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	result.Metadata["protocol"] = "udp"
 

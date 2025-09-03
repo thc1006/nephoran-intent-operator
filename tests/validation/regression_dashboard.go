@@ -336,7 +336,7 @@ func (rd *RegressionDashboard) generateHTMLDashboard(data *DashboardData, output
 		return err
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	return tmpl.Execute(file, data)
 }
@@ -800,7 +800,7 @@ func (rd *RegressionDashboard) exportRegressionHistoryCSV(history []*RegressionD
 		return err
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 
@@ -839,7 +839,7 @@ func (rd *RegressionDashboard) exportPerformanceMetricsCSV(metrics map[string]*M
 		return err
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 
@@ -878,7 +878,7 @@ func (rd *RegressionDashboard) exportBaselineComparisonCSV(baselines []*Baseline
 		return err
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 

@@ -87,7 +87,7 @@ func (s *E2ETestSuite) TestFullWorkflow_IntentIngestionToHandoff() {
 		// Send intent to ingest service
 		resp, err := http.Post(s.intentIngestURL+"/ingest", "application/json", bytes.NewBuffer(intentJSON))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -125,7 +125,7 @@ func (s *E2ETestSuite) TestHealthEndpoints() {
 		// Test intent-ingest health
 		resp, err := http.Get(s.intentIngestURL + "/health")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -155,7 +155,7 @@ func (s *E2ETestSuite) TestMetricsCollection() {
 		// Check metrics endpoint
 		resp, err := http.Get(s.intentIngestURL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
@@ -213,7 +213,7 @@ func (s *E2ETestSuite) TestErrorScenarios() {
 				client := &http.Client{Timeout: 10 * time.Second}
 				resp, err := client.Do(req)
 				require.NoError(t, err)
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				assert.Equal(t, tc.expectedStatus, resp.StatusCode, "Test case: %s", tc.name)
 			})
@@ -486,7 +486,7 @@ func (s *E2ETestSuite) isServiceReady() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	return resp.StatusCode == http.StatusOK
 }

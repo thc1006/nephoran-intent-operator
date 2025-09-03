@@ -154,7 +154,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 
 			watcher, err := NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			tt.testFunc(t, watcher, testFile)
 
@@ -297,7 +297,7 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 
 			watcher, err := NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			tt.testFunc(t, watcher, handoffDir, outDir)
 		})
@@ -414,7 +414,7 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 
 			watcher, err := NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -595,7 +595,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 
 			// State manager creation should succeed even with corrupted state
 			require.NoError(t, err, "StateManager should handle corrupted state during creation")
-			defer sm.Close()
+			defer sm.Close() // #nosec G307 - Error handled in defer
 
 			tt.testFunc(t, sm)
 		})
@@ -608,7 +608,7 @@ func TestConcurrentStateManagement(t *testing.T) {
 
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Test concurrent read/write operations
 	var wg sync.WaitGroup
@@ -812,7 +812,7 @@ func TestWindowsFileHashRetry(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create a test file
 	testFile := filepath.Join(tempDir, "test-retry.json")

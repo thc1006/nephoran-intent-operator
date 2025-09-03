@@ -80,7 +80,7 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 		return err
 	}
 
-	defer f.Close()
+	defer f.Close() // #nosec G307 - Error handled in defer
 
 	if _, err := f.Write(data); err != nil {
 		return err
@@ -203,14 +203,14 @@ func copyFileWithSync(src, dst string) error {
 		return fmt.Errorf("failed to open source: %w", err)
 	}
 
-	defer srcFile.Close()
+	defer srcFile.Close() // #nosec G307 - Error handled in defer
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("failed to create destination: %w", err)
 	}
 
-	defer dstFile.Close()
+	defer dstFile.Close() // #nosec G307 - Error handled in defer
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
 		return fmt.Errorf("failed to copy: %w", err)

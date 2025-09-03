@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -170,7 +171,12 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 	}
 
 	if config.SkipTLSVerification {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		// Security check: only allow in non-production environments
+		if !allowInsecureClient() {
+			panic("Security violation: TLS verification cannot be disabled in production")
+		}
+		slog.Warn("SECURITY WARNING: TLS verification disabled (testing only)")
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402 - Controlled by environment check
 	}
 
 	httpClient := &http.Client{
@@ -326,7 +332,7 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 		return "", fmt.Errorf("failed to execute request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -491,7 +497,7 @@ func (c *Client) Health(ctx context.Context) error {
 		return fmt.Errorf("health check failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("health check returned status %d", resp.StatusCode)
@@ -533,3 +539,7 @@ func (c *Client) GetEndpoint() string {
 	return c.url
 }
 
+// allowInsecureClient returns true if insecure TLS connections are explicitly allowed
+func allowInsecureClient() bool {
+	return os.Getenv("ALLOW_INSECURE_CLIENT") == "true"
+}

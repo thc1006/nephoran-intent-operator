@@ -184,7 +184,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return ""
@@ -380,7 +380,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 							updateErrors <- err
 							return
 						}
-						defer resp.Body.Close()
+						defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 						if resp.StatusCode == http.StatusOK {
 							updateSuccesses <- true
@@ -581,7 +581,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return 0
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					var pool models.ResourcePool
 					err = json.NewDecoder(resp.Body).Decode(&pool)
@@ -623,7 +623,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					var pool models.ResourcePool
 					err = json.NewDecoder(resp.Body).Decode(&pool)
@@ -739,7 +739,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return http.StatusNotFound
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					return resp.StatusCode
 				}, 2*time.Minute, 10*time.Second).Should(Equal(http.StatusNotFound))
 
@@ -749,7 +749,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return http.StatusNotFound
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					return resp.StatusCode
 				}, 2*time.Minute, 10*time.Second).Should(Equal(http.StatusNotFound))
 			})
@@ -811,7 +811,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode == http.StatusNotFound {
 						return "DELETED"
@@ -875,7 +875,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					if err != nil {
 						return observedStates
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return observedStates

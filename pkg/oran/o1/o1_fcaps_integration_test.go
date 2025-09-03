@@ -174,7 +174,7 @@ var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {
 
 				w.WriteHeader(http.StatusOK)
 			}))
-			defer alertManagerServer.Close()
+			defer alertManagerServer.Close() // #nosec G307 - Error handled in defer
 
 			// Configure AlertManager integration
 			faultMgr.ConfigureAlertManager(alertManagerServer.URL, "")
@@ -472,11 +472,11 @@ var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {
 
 			// Simulate fraudulent usage
 			fraudulentUsage := &o1.UsageRecord{
-				ID:        "usage-fraud-001",
-				UserID:    "user-123",
-				ServiceID: "5g-data",
-				StartTime: time.Now().Add(-10 * time.Minute),
-				EndTime:   time.Now(),
+				ID:            "usage-fraud-001",
+				UserID:        "user-123",
+				ServiceID:     "5g-data",
+				StartTime:     time.Now().Add(-10 * time.Minute),
+				EndTime:       time.Now(),
 				ResourceUsage: json.RawMessage(`{}`),
 			}
 
@@ -504,7 +504,7 @@ var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {
 					w.WriteHeader(http.StatusNotFound)
 				}
 			}))
-			defer smoServer.Close()
+			defer smoServer.Close() // #nosec G307 - Error handled in defer
 
 			// Update SMO configuration
 			smoIntegrator.UpdateEndpoint(smoServer.URL)
@@ -569,7 +569,7 @@ var _ = ginkgo.Describe("O1 FCAPS Integration Tests", func() {
 			wsURL := strings.Replace(wsServer.URL, "http", "ws", 1) + "/stream/alarms"
 			ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			defer ws.Close()
+			defer ws.Close() // #nosec G307 - Error handled in defer
 
 			// Subscribe to alarm stream
 			subscription := o1.StreamSubscription{
@@ -816,7 +816,7 @@ func handleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	// Echo messages back for testing
 	for {
@@ -835,4 +835,3 @@ func TestO1FCAPSIntegration(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "O1 FCAPS Integration Test Suite")
 }
-

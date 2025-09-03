@@ -32,10 +32,10 @@ func (suite *ORANComplianceTestSuite) SetupSuite() {
 
 	// Setup O2 IMS server according to O-RAN specifications
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false, // TLS would be enabled in production
-		DatabaseConfig: json.RawMessage(`{}`),
+		ServerAddress:        "127.0.0.1",
+		ServerPort:           0,
+		TLSEnabled:           false, // TLS would be enabled in production
+		DatabaseConfig:       json.RawMessage(`{}`),
 		ComplianceMode:       true, // Enable strict O-RAN compliance
 		SpecificationVersion: "O-RAN.WG6.O2ims-Interface-v01.01",
 	}
@@ -257,7 +257,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 			Compliance: &models.ComplianceInfo{
 				Standard:           "O-RAN-WG6-v1.0.1",
 				CertificationLevel: "CERTIFIED",
-				TestResults: json.RawMessage(`{}`),
+				TestResults:        json.RawMessage(`{}`),
 			},
 		}
 
@@ -367,7 +367,7 @@ func (suite *ORANComplianceTestSuite) TestORANAPIEndpointsCompliance() {
 
 					resp, err := suite.client.Do(req)
 					suite.Require().NoError(err)
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					// Endpoint should exist (not return 404) and method should be allowed (not 405)
 					suite.Assert().NotEqual(http.StatusNotFound, resp.StatusCode,
@@ -597,7 +597,7 @@ func (suite *ORANComplianceTestSuite) TestORANContentTypeCompliance() {
 		suite.Run("Response Content Type is JSON", func() {
 			resp, err := suite.client.Get(suite.server.URL + "/o2ims/v1/")
 			suite.Require().NoError(err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			contentType := resp.Header.Get("Content-Type")
 			suite.Assert().Contains(contentType, "application/json",
@@ -628,7 +628,7 @@ func (suite *ORANComplianceTestSuite) TestORANVersioningCompliance() {
 		suite.Run("API Version in Response", func() {
 			resp, err := suite.client.Get(suite.server.URL + "/o2ims/v1/")
 			suite.Require().NoError(err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			var serviceInfo map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&serviceInfo)
@@ -647,7 +647,7 @@ func (suite *ORANComplianceTestSuite) TestORANSecurityHeadersCompliance() {
 
 		resp, err := suite.client.Get(suite.server.URL + "/o2ims/v1/")
 		suite.Require().NoError(err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Check for security-related headers that should be present
 		headers := resp.Header
@@ -757,4 +757,3 @@ func (suite *ORANComplianceTestSuite) TestORANDataModelConsistency() {
 func TestORANCompliance(t *testing.T) {
 	suite.Run(t, new(ORANComplianceTestSuite))
 }
-

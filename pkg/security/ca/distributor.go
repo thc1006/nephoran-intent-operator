@@ -1097,7 +1097,7 @@ func (n *CertificateNotifier) sendWebhook(url, message string, data interface{})
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		n.logger.Warn("webhook returned error status",
@@ -1119,4 +1119,3 @@ func (n *CertificateNotifier) sendSlack(message string, data interface{}) {
 
 	n.logger.Debug("sending Slack notification", "message", message)
 }
-

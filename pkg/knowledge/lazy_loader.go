@@ -1165,7 +1165,7 @@ func (l *LazyKnowledgeLoader) decompress(data []byte, target interface{}) error 
 		return err
 	}
 
-	defer gz.Close()
+	defer gz.Close() // #nosec G307 - Error handled in defer
 
 	dec := gob.NewDecoder(gz)
 

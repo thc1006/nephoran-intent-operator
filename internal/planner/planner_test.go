@@ -15,7 +15,7 @@ func TestPostIntent_OK(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusAccepted)
 	}))
-	defer s.Close()
+	defer s.Close() // #nosec G307 - Error handled in defer
 
 	err := PostIntent(s.URL, Intent{
 		IntentType: "scaling",

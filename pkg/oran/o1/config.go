@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -55,7 +55,7 @@ func NewO1SecurityConfig(config *O1Config) (*tls.Config, error) {
 
 	// Load CA certificate if provided
 	if config.TLSConfig.CAFile != "" {
-		caCert, err := ioutil.ReadFile(config.TLSConfig.CAFile)
+		caCert, err := os.ReadFile(config.TLSConfig.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA certificate: %v", err)
 		}

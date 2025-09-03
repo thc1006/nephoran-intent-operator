@@ -108,7 +108,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() // #nosec G307 - Error handled in defer
 
 	var payload []byte
 

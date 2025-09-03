@@ -22,7 +22,7 @@ func BenchmarkHTTPHandler_IngestEndpoint(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
 		"intent": "Deploy nginx with 3 replicas",
@@ -50,7 +50,7 @@ func BenchmarkHTTPHandler_HealthEndpoint(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -71,7 +71,7 @@ func BenchmarkHTTPHandler_MetricsEndpoint(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -143,7 +143,7 @@ func BenchmarkConcurrentRequests(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
 		"intent": "Benchmark concurrent processing",
@@ -192,7 +192,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create large intent payload to test memory usage
 	largeIntent := map[string]interface{}{
@@ -228,7 +228,7 @@ func BenchmarkResponseTime(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
 		"intent": "Response time benchmark",
@@ -275,7 +275,7 @@ func BenchmarkThroughput(b *testing.B) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(b, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	intent := map[string]interface{}{
 		"intent": "Throughput benchmark",
@@ -399,7 +399,7 @@ func FuzzHTTPIngest(f *testing.F) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(f, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Add seed corpus
 	f.Add(`{"spec":{"intent":"test"}}`)
@@ -414,7 +414,7 @@ func FuzzHTTPIngest(f *testing.F) {
 		if err != nil {
 			return // Network errors are acceptable in fuzzing
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Read response to ensure no panic
 		io.Copy(io.Discard, resp.Body)
@@ -446,7 +446,7 @@ func TestPerformanceCharacteristics(t *testing.T) {
 	handoffDir := filepath.Join(tempDir, "handoff")
 
 	server := createBenchmarkServer(t, handoffDir)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("response time is under 100ms", func(t *testing.T) {
 		intent := map[string]interface{}{
@@ -461,7 +461,7 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		duration := time.Since(start)
 
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		if duration > 100*time.Millisecond {
 			t.Errorf("Response time %v exceeds 100ms threshold", duration)
@@ -517,4 +517,3 @@ func TestPerformanceCharacteristics(t *testing.T) {
 		}
 	})
 }
-

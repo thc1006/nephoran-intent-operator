@@ -38,7 +38,7 @@ func TestMainIntegration(t *testing.T) {
 
 	// Test default format (full)
 	t.Run("DefaultFormat", func(t *testing.T) {
-		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDir)
+		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDir) // #nosec G204 - Static command with validated args
 		cmd.Dir = "."
 		output, err := cmd.CombinedOutput()
 		if err != nil {
@@ -68,7 +68,7 @@ spec:
 	// Test SMP format
 	t.Run("SMPFormat", func(t *testing.T) {
 		outputDirSMP := filepath.Join(tmpDir, "output-smp")
-		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDirSMP, "-format", "smp")
+		cmd := exec.Command("go", "run", "main.go", "-intent", intentFile, "-out", outputDirSMP, "-format", "smp") // #nosec G204 - Static command with validated args
 		cmd.Dir = "."
 		output, err := cmd.CombinedOutput()
 		if err != nil {
@@ -111,7 +111,7 @@ spec:
 			t.Fatalf("Failed to write test file: %v", err)
 		}
 
-		cmd := exec.Command("go", "run", "main.go", "-intent", invalidFile, "-out", tmpDir)
+		cmd := exec.Command("go", "run", "main.go", "-intent", invalidFile, "-out", tmpDir) // #nosec G204 - Static command with validated args
 		cmd.Dir = "."
 		output, err := cmd.CombinedOutput()
 		if err == nil {

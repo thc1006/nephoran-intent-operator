@@ -159,7 +159,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				if err != nil {
 					Skip(fmt.Sprintf("%s service not available: %v", service.name, err))
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -195,7 +195,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				if err != nil {
 					Skip(fmt.Sprintf("Metrics endpoint not available: %v", err))
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 

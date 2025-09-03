@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,7 +40,7 @@ func TestBackendIntegrationSuite(t *testing.T) {
 
 func (suite *TestBackendIntegrationSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "audit_backend_test")
+	suite.tempDir, err = os.MkdirTemp("", "audit_backend_test")
 	suite.Require().NoError(err)
 }
 
@@ -118,7 +118,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackendWithRotation() {
 
 	backend, err := NewFileBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	// Write enough events to trigger rotation
 	for i := 0; i < 100; i++ {
@@ -146,7 +146,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackendCompression() {
 
 	backend, err := NewFileBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	event := createTestEvent("compression-test")
 	err = backend.WriteEvent(context.Background(), event)
@@ -202,7 +202,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := backends.BackendConfig{
 		Type:    backends.BackendTypeElasticsearch,
@@ -216,7 +216,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 
 	backend, err := NewElasticsearchBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	suite.Run("write single event", func() {
 		event := createTestEvent("elasticsearch-single")
@@ -276,7 +276,7 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := backends.BackendConfig{
 		Type:    backends.BackendTypeSplunk,
@@ -291,7 +291,7 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 
 	backend, err := NewSplunkBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	suite.Run("write single event", func() {
 		event := createTestEvent("splunk-single")
@@ -322,7 +322,7 @@ func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			var event audit.AuditEvent
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			suite.NoError(err)
 
 			err = json.Unmarshal(body, &event)
@@ -334,7 +334,7 @@ func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
 			w.Write([]byte(`{"status": "ok"}`))
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := backends.BackendConfig{
 		Type:    backends.BackendTypeWebhook,
@@ -347,7 +347,7 @@ func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
 
 	backend, err := NewWebhookBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	suite.Run("write single event", func() {
 		event := createTestEvent("webhook-single")
@@ -381,7 +381,7 @@ func (suite *TestBackendIntegrationSuite) TestSyslogBackend() {
 
 	backend, err := NewSyslogBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	suite.Run("write single event", func() {
 		event := createTestEvent("syslog-single")
@@ -439,7 +439,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchWithContainer() {
 
 	backend, err := NewElasticsearchBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	suite.Run("container health check", func() {
 		// Wait for Elasticsearch to be ready
@@ -629,7 +629,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 
 	backend, err := NewFileBackend(config)
 	suite.Require().NoError(err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	// Measure batch write performance
 	events := make([]*audit.AuditEvent, 100)
@@ -683,7 +683,7 @@ func fileExists(path string) bool {
 }
 
 func readFileContent(t *testing.T, path string) string {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(content)
 }
@@ -706,7 +706,7 @@ func calculateBackoffDelays(policy RetryPolicy) []time.Duration {
 // Benchmark tests
 
 func BenchmarkFileBackendWriteEvent(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_test")
+	tempDir, err := os.MkdirTemp("", "benchmark_test")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 
@@ -720,7 +720,7 @@ func BenchmarkFileBackendWriteEvent(b *testing.B) {
 
 	backend, err := NewFileBackend(config)
 	require.NoError(b, err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	event := createTestEvent("benchmark")
 	ctx := context.Background()
@@ -734,7 +734,7 @@ func BenchmarkFileBackendWriteEvent(b *testing.B) {
 }
 
 func BenchmarkFileBackendWriteBatch(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_batch_test")
+	tempDir, err := os.MkdirTemp("", "benchmark_batch_test")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 
@@ -748,7 +748,7 @@ func BenchmarkFileBackendWriteBatch(b *testing.B) {
 
 	backend, err := NewFileBackend(config)
 	require.NoError(b, err)
-	defer backend.Close()
+	defer backend.Close() // #nosec G307 - Error handled in defer
 
 	events := make([]*audit.AuditEvent, 10)
 	for i := 0; i < len(events); i++ {

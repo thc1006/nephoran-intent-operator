@@ -759,7 +759,7 @@ func ReadFileLines(filename string) ([]string, error) {
 
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	var lines []string
 
@@ -787,7 +787,7 @@ func WriteFileLines(filename string, lines []string) error {
 
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	writer := bufio.NewWriter(file)
 

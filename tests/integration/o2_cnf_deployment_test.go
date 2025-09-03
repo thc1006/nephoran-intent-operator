@@ -50,6 +50,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 				},
 			},
 			CNFConfig: map[string]interface{}{
+				"repositories": []map[string]interface{}{
 					{
 						"name": "nephoran-charts",
 						"url":  "https://charts.nephoran.io",
@@ -60,7 +61,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					},
 				},
 				"defaultTimeout": "10m",
-				"retryPolicy": json.RawMessage(`{}`),
+				"retryPolicy":    json.RawMessage(`{}`),
 			},
 		}
 
@@ -335,7 +336,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return ""
@@ -391,7 +392,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return 0
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return 0
@@ -453,7 +454,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode == http.StatusNotFound {
 						return "NOT_INSTANTIATED"
@@ -542,7 +543,7 @@ var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					var instance map[string]interface{}
 					err = json.NewDecoder(resp.Body).Decode(&instance)

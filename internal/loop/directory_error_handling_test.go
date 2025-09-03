@@ -126,7 +126,7 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 					}
 				} else {
 					require.NoError(t, err, "Watcher creation should succeed")
-					defer watcher.Close()
+					defer watcher.Close() // #nosec G307 - Error handled in defer
 
 					// Try to write a status file
 					intentFile := filepath.Join(watchDir, "test-intent.json")

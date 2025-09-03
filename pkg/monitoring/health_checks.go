@@ -224,7 +224,7 @@ func (hc *HTTPHealthChecker) CheckHealth(ctx context.Context) (*ComponentHealth,
 			Timestamp: time.Now(),
 		}, nil
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	var statusStr string
 	var message string

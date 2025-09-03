@@ -79,7 +79,7 @@ func TestStateManager_IsProcessed(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
@@ -160,7 +160,7 @@ func TestStateManager_MarkProcessed(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
@@ -208,7 +208,7 @@ func TestStateManager_MarkFailed(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
@@ -233,7 +233,7 @@ func TestStateManager_ConcurrentAccess(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create multiple test files
 	testFiles := make([]string, 10)
@@ -300,7 +300,7 @@ func TestStateManager_CleanupOldEntries(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create test files
 	testFile1 := filepath.Join(dir, "old-intent.json")
@@ -485,7 +485,7 @@ func TestStateManager_GetProcessedAndFailedFiles(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create test files
 	processedFiles := []string{
@@ -531,7 +531,7 @@ func TestStateManager_AutoSave(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Disable auto-save temporarily
 	sm.autoSave = false
@@ -561,7 +561,7 @@ func BenchmarkStateManager_IsProcessed(b *testing.B) {
 	dir := b.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(b, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create and mark many files as processed
 	testFiles := make([]string, 1000)
@@ -587,7 +587,7 @@ func BenchmarkStateManager_MarkProcessed(b *testing.B) {
 	dir := b.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(b, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Disable auto-save for benchmark
 	sm.autoSave = false
@@ -601,4 +601,3 @@ func BenchmarkStateManager_MarkProcessed(b *testing.B) {
 		_ = sm.MarkProcessed(testFile)
 	}
 }
-

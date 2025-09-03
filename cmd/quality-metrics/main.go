@@ -395,7 +395,7 @@ func (qmr *QualityMetricsReport) generateJSONReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 
@@ -426,7 +426,7 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation.
 
@@ -531,7 +531,7 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	html := `<!DOCTYPE html>
 

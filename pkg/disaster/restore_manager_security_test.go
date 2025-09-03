@@ -165,7 +165,7 @@ func TestPathTraversalProtection(t *testing.T) {
 				t.Fatalf("Failed to create gzip reader: %v", err)
 			}
 
-			defer gr.Close()
+			defer gr.Close() // #nosec G307 - Error handled in defer
 
 			tr := tar.NewReader(gr)
 

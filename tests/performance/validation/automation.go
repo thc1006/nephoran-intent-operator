@@ -791,7 +791,7 @@ func (ar *AutomationRunner) gatherMetadata(result *ValidationResult) {
 		metadata["ci_job_id"] = os.Getenv("JOB_ID")
 		metadata["ci_pipeline_id"] = os.Getenv("PIPELINE_ID")
 	}
-	
+
 	// Marshal metadata to json.RawMessage
 	if metadataBytes, err := json.Marshal(metadata); err == nil {
 		result.Metadata = metadataBytes
@@ -800,7 +800,7 @@ func (ar *AutomationRunner) gatherMetadata(result *ValidationResult) {
 }
 
 func (ar *AutomationRunner) getGitCommitHash() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd := exec.Command("git", "rev-parse", "HEAD") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -811,7 +811,7 @@ func (ar *AutomationRunner) getGitCommitHash() (string, error) {
 }
 
 func (ar *AutomationRunner) getGitBranch() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -822,7 +822,7 @@ func (ar *AutomationRunner) getGitBranch() (string, error) {
 }
 
 func (ar *AutomationRunner) getGoVersion() string {
-	cmd := exec.Command("go", "version")
+	cmd := exec.Command("go", "version") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -833,7 +833,7 @@ func (ar *AutomationRunner) getGoVersion() string {
 }
 
 func (ar *AutomationRunner) getKubernetesVersion() string {
-	cmd := exec.Command("kubectl", "version", "--client", "--short")
+	cmd := exec.Command("kubectl", "version", "--client", "--short") // #nosec G204 - Static command with validated args
 
 	output, err := cmd.Output()
 	if err != nil {

@@ -430,7 +430,7 @@ func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, 
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 

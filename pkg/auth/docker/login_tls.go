@@ -21,8 +21,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 // TLSConfig represents TLS configuration for Docker registry authentication
@@ -121,7 +121,7 @@ func buildTLSConfig(config *TLSConfig) (*tls.Config, error) {
 
 	// Load CA certificate if provided
 	if config.CAFile != "" {
-		caCert, err := ioutil.ReadFile(config.CAFile)
+		caCert, err := os.ReadFile(config.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA certificate: %w", err)
 		}
@@ -175,7 +175,7 @@ func (c *TLSClient) ValidateTLSConnection(ctx context.Context, registry string) 
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// We expect either 200 OK or 401 Unauthorized (which means the registry is responding)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {

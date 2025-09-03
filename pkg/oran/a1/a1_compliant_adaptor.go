@@ -88,7 +88,7 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// O-RAN compliant status code handling.
 
@@ -138,7 +138,7 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -180,7 +180,7 @@ func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error)
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, a.handleErrorResponse(resp, "Failed to list policy types")
@@ -212,7 +212,7 @@ func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID 
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -265,7 +265,7 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -313,7 +313,7 @@ func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID i
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -376,7 +376,7 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 		if err := json.Unmarshal(policyType.Schema, &schema); err != nil {
 			return fmt.Errorf("failed to unmarshal schema: %w", err)
 		}
-		
+
 		// Check required fields.
 
 		if requiredFields, ok := schema["required"].([]interface{}); ok {

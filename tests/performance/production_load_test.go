@@ -2,9 +2,9 @@ package performance_tests
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"runtime"
 	"sync"
@@ -442,15 +442,15 @@ func generateNetworkIntentPayload() interface{} {
 
 	specs := []map[string]interface{}{
 		{
-			"intent": intents[rand.Intn(len(intents))],
+			"intent":   intents[rand.Intn(len(intents))],
 			"priority": "high",
 		},
 		{
-			"intent": intents[rand.Intn(len(intents))],
+			"intent":   intents[rand.Intn(len(intents))],
 			"priority": "medium",
 		},
 		{
-			"intent": intents[rand.Intn(len(intents))],
+			"intent":   intents[rand.Intn(len(intents))],
 			"priority": "low",
 		},
 	}
@@ -466,10 +466,10 @@ func generateNetworkIntentPayload() interface{} {
 
 func generatePolicyPayload() interface{} {
 	return map[string]interface{}{
-			"max_throughput":    rand.Intn(10000) + 1000,
-			"min_throughput":    rand.Intn(1000) + 100,
-			"latency_target_ms": rand.Intn(50) + 10,
-			"reliability":       0.99 + rand.Float64()*0.009,
+		"max_throughput":    rand.Intn(10000) + 1000,
+		"min_throughput":    rand.Intn(1000) + 100,
+		"latency_target_ms": rand.Intn(50) + 10,
+		"reliability":       0.99 + rand.Float64()*0.009,
 		"target_cells": []string{
 			fmt.Sprintf("cell-%d", rand.Intn(100)),
 			fmt.Sprintf("cell-%d", rand.Intn(100)),
@@ -484,7 +484,7 @@ func generateScalingPayload() interface{} {
 			"replicas":  rand.Intn(10) + 1,
 		},
 		{
-			"component": "smf", 
+			"component": "smf",
 			"replicas":  rand.Intn(5) + 1,
 		},
 	}

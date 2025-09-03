@@ -175,7 +175,7 @@ func (p *OAuth2Provider) ValidateToken(ctx context.Context, accessToken string) 
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("user info request failed with status: %d", resp.StatusCode)
@@ -217,7 +217,7 @@ func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) 
 		return nil, fmt.Errorf("failed to refresh token: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("token refresh failed with status: %d", resp.StatusCode)

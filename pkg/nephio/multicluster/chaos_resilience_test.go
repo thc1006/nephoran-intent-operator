@@ -18,8 +18,8 @@ package multicluster
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"

@@ -92,7 +92,14 @@ func TestTaskStructEvolution(t *testing.T) {
 
 	t.Run("Migration from legacy format", func(t *testing.T) {
 		// Simulate a legacy task from external storage/API
-		legacyData := json.RawMessage(`{}`)
+		legacyData := map[string]interface{}{
+			"id":          "migrated-task-1",
+			"intent_id":   "test-intent",
+			"type":        "llm_processing",
+			"status":      "pending",
+			"input_data":  map[string]interface{}{},
+			"timeout":     "30s",
+		}
 
 		// Use the evolution layer to migrate
 		evolution := &TaskEvolution{}

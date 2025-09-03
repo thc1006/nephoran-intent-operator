@@ -299,7 +299,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(kmpData)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	validator := NewValidator(DefaultValidationConfig())
 
@@ -315,7 +315,7 @@ func TestIntegration_HTTPSecurityHeaders(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to make HTTP request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Verify security headers are present
 		securityHeaders := map[string]string{

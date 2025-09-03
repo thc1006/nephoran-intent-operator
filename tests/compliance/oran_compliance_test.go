@@ -297,6 +297,7 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 	s.Run("SMO_WorkflowOrchestration", func() {
 		// Test workflow creation
 		workflow := map[string]interface{}{
+			"steps": []map[string]interface{}{
 				{
 					"step_id": "1",
 					"action":  "deploy_nf",

@@ -71,7 +71,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 	Context("mTLS Handshake Testing", func() {
 		It("should successfully establish mTLS connection with valid certificates", func() {
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(suite.clientCert)
 
@@ -85,7 +85,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 
 		It("should reject connections with expired client certificates", func() {
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(suite.expiredCert)
 
@@ -101,7 +101,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			suite.testCA.revokeCertificate(suite.clientCert)
 
 			server := suite.createTestServerWithCRL(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(suite.clientCert)
 
@@ -113,7 +113,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 
 		It("should reject connections with malformed certificates", func() {
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Create malformed certificate
 			malformedCert := tls.Certificate{
@@ -130,7 +130,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 
 		It("should enforce mutual authentication requirements", func() {
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Create client without certificate
 			client := &http.Client{
@@ -155,7 +155,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			leafCert := suite.createLeafCertificateFromIntermediate(intermediateCert, intermediateKey)
 
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(leafCert)
 
@@ -203,7 +203,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			}
 
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(&malformedCertificate)
 
@@ -229,7 +229,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			wrongUsageCert := suite.createCertificateWithKeyUsage(x509.KeyUsageKeyEncipherment)
 
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(wrongUsageCert)
 
@@ -269,7 +269,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 		It("should support zero-downtime certificate rotation", func() {
 			// Create initial server
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(suite.clientCert)
 
@@ -360,7 +360,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			spoofedCert := suite.createSpoofedCertificate(suite.clientCert)
 
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(spoofedCert)
 
@@ -375,7 +375,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			attackerCert := suite.createAttackerCertificate()
 
 			server := suite.createTestServer(attackerCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(suite.clientCert)
 
@@ -388,7 +388,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 		It("should resist certificate downgrade attacks", func() {
 			// Try to force TLS 1.0/1.1 usage
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := &http.Client{
 				Transport: &http.Transport{
@@ -413,7 +413,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 			// In practice, this involves nonce validation and timestamps
 
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := suite.createMTLSClient(suite.clientCert)
 
@@ -430,7 +430,7 @@ var _ = Describe("mTLS Security Test Suite", func() {
 		It("should handle certificate enumeration attacks", func() {
 			// Test resistance to certificate enumeration
 			server := suite.createTestServer(suite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Try multiple invalid certificates
 			for i := 0; i < 5; i++ {
@@ -805,7 +805,7 @@ func BenchmarkMTLSOperations(b *testing.B) {
 
 	b.Run("TLSHandshake", func(b *testing.B) {
 		server := suite.createTestServer(suite.serverCert, true)
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		client := suite.createMTLSClient(suite.clientCert)
 

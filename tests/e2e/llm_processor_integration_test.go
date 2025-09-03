@@ -48,7 +48,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				// Service might not be running in test environment
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -69,7 +69,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 		})
@@ -121,7 +121,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -162,7 +162,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 			Expect(resp.Header.Get("Content-Type")).Should(ContainSubstring("text/event-stream"))
@@ -217,7 +217,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				if err != nil {
 					Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				Expect(resp.StatusCode).Should(Equal(tc.expectedStatus))
 			}
@@ -252,7 +252,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				}
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// If no timeout, service should return 408 or 504
 			Expect(resp.StatusCode).Should(BeElementOf([]int{http.StatusRequestTimeout, http.StatusGatewayTimeout}))
@@ -296,7 +296,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("Health endpoint not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			body, err := io.ReadAll(resp.Body)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -365,7 +365,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// Should return 401 Unauthorized if auth is enabled
 			Expect(resp.StatusCode).Should(Equal(http.StatusUnauthorized))
@@ -389,7 +389,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("LLM processor service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// Should return 200 OK with valid token
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))

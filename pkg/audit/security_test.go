@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,7 +35,7 @@ func TestSecurityTestSuite(t *testing.T) {
 
 func (suite *SecurityTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "security_test")
+	suite.tempDir, err = os.MkdirTemp("", "security_test")
 	suite.Require().NoError(err)
 
 	// Setup TLS test server
@@ -92,9 +91,9 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 	suite.Run("secure backend authentication", func() {
 		// Test secure backend configuration with authentication
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeWebhook,
-			Enabled: true,
-			Name:    "secure-webhook",
+			Type:     backends.BackendTypeWebhook,
+			Enabled:  true,
+			Name:     "secure-webhook",
 			Settings: json.RawMessage(`{}`),
 			Auth: backends.AuthConfig{
 				Type:  "bearer",
@@ -102,7 +101,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			},
 			TLS: backends.TLSConfig{
 				Enabled:            true,
-				InsecureSkipVerify: true, // Only for testing
+				InsecureSkipVerify: true, // Only for testing // #nosec G402 - Test file only
 			},
 		}
 
@@ -119,14 +118,14 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 	suite.Run("reject unauthenticated requests", func() {
 		// Test backend without authentication
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeWebhook,
-			Enabled: true,
-			Name:    "insecure-webhook",
+			Type:     backends.BackendTypeWebhook,
+			Enabled:  true,
+			Name:     "insecure-webhook",
 			Settings: json.RawMessage(`{}`),
 			// No auth configuration
 			TLS: backends.TLSConfig{
 				Enabled:            true,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			},
 		}
 
@@ -145,9 +144,9 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 		newToken := "rotated-token"
 
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeWebhook,
-			Enabled: true,
-			Name:    "rotation-webhook",
+			Type:     backends.BackendTypeWebhook,
+			Enabled:  true,
+			Name:     "rotation-webhook",
 			Settings: json.RawMessage(`{}`),
 			Auth: backends.AuthConfig{
 				Type:  "bearer",
@@ -155,7 +154,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			},
 			TLS: backends.TLSConfig{
 				Enabled:            true,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			},
 		}
 
@@ -183,9 +182,9 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 func (suite *SecurityTestSuite) TestTLSSecurity() {
 	suite.Run("enforce TLS connections", func() {
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeWebhook,
-			Enabled: true,
-			Name:    "tls-webhook",
+			Type:     backends.BackendTypeWebhook,
+			Enabled:  true,
+			Name:     "tls-webhook",
 			Settings: json.RawMessage(`{}`),
 			Auth: backends.AuthConfig{
 				Type:  "bearer",
@@ -223,9 +222,9 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 		encryptedLogFile := filepath.Join(suite.tempDir, "encrypted_audit.log")
 
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeFile,
-			Enabled: true,
-			Name:    "encrypted-file",
+			Type:     backends.BackendTypeFile,
+			Enabled:  true,
+			Name:     "encrypted-file",
 			Settings: json.RawMessage(`{}`),
 		}
 
@@ -264,7 +263,7 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 				Action:    maliciousInput, // Malicious input in action field
 				Severity:  SeverityInfo,
 				Result:    ResultSuccess,
-				Data: json.RawMessage(`{}`),
+				Data:      json.RawMessage(`{}`),
 			}
 
 			// Event should be validated and sanitized
@@ -370,9 +369,9 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 		secureLogFile := filepath.Join(suite.tempDir, "secure_audit.log")
 
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeFile,
-			Enabled: true,
-			Name:    "secure-file",
+			Type:     backends.BackendTypeFile,
+			Enabled:  true,
+			Name:     "secure-file",
 			Settings: json.RawMessage(`{}`),
 		}
 
@@ -400,9 +399,9 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 
 		// Create backend with access controls
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeFile,
-			Enabled: true,
-			Name:    "protected-file",
+			Type:     backends.BackendTypeFile,
+			Enabled:  true,
+			Name:     "protected-file",
 			Settings: json.RawMessage(`{}`),
 		}
 
@@ -425,9 +424,9 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		logFile := filepath.Join(suite.tempDir, "tamper_test.log")
 
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeFile,
-			Enabled: true,
-			Name:    "tamper-test",
+			Type:     backends.BackendTypeFile,
+			Enabled:  true,
+			Name:     "tamper-test",
 			Settings: json.RawMessage(`{}`),
 		}
 
@@ -446,12 +445,12 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		}
 
 		// Read original content
-		originalContent, err := ioutil.ReadFile(logFile)
+		originalContent, err := os.ReadFile(logFile)
 		suite.NoError(err)
 
 		// Simulate tampering
 		tamperedContent := strings.Replace(string(originalContent), "tamper-test-1", "tampered-event", 1)
-		err = ioutil.WriteFile(logFile, []byte(tamperedContent), 0o644)
+		err = os.WriteFile(logFile, []byte(tamperedContent), 0o644)
 		suite.NoError(err)
 
 		// Verify tampering is detected (would require integrity validation implementation)
@@ -464,9 +463,9 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		immutableLogFile := filepath.Join(suite.tempDir, "immutable_audit.log")
 
 		config := backends.BackendConfig{
-			Type:    backends.BackendTypeFile,
-			Enabled: true,
-			Name:    "immutable-test",
+			Type:     backends.BackendTypeFile,
+			Enabled:  true,
+			Name:     "immutable-test",
 			Settings: json.RawMessage(`{}`),
 		}
 
@@ -481,7 +480,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		}
 
 		// Verify file exists and has content
-		content, err := ioutil.ReadFile(immutableLogFile)
+		content, err := os.ReadFile(immutableLogFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -583,7 +582,7 @@ func (suite *SecurityTestSuite) TestSensitiveDataProtection() {
 			Severity:           SeverityInfo,
 			Result:             ResultSuccess,
 			DataClassification: "Confidential",
-			Data: json.RawMessage(`{}`),
+			Data:               json.RawMessage(`{}`),
 		}
 
 		// Encrypt sensitive event
@@ -640,7 +639,7 @@ func (suite *SecurityTestSuite) TestSecurityMonitoring() {
 			Action:    "policy_violation",
 			Severity:  SeverityCritical,
 			Result:    ResultFailure,
-			Data: json.RawMessage(`{}`),
+			Data:      json.RawMessage(`{}`),
 		}
 
 		err := suite.auditSystem.LogEvent(violationEvent)
@@ -929,9 +928,9 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 
 		for _, path := range traversalPaths {
 			config := backends.BackendConfig{
-				Type:    backends.BackendTypeFile,
-				Enabled: true,
-				Name:    "traversal-test",
+				Type:     backends.BackendTypeFile,
+				Enabled:  true,
+				Name:     "traversal-test",
 				Settings: json.RawMessage(`{}`),
 			}
 
@@ -976,4 +975,3 @@ func BenchmarkSecurityOperations(b *testing.B) {
 		}
 	})
 }
-

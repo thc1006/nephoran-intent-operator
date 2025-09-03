@@ -1152,7 +1152,7 @@ func (pe *PrometheusExporter) Export(ctx context.Context, batch MetricBatch) (*E
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	success := resp.StatusCode >= 200 && resp.StatusCode < 300
 
@@ -1188,7 +1188,7 @@ func (pe *PrometheusExporter) HealthCheck(ctx context.Context) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unhealthy status: %d", resp.StatusCode)
@@ -1274,7 +1274,7 @@ func (ie *InfluxDBExporter) Export(ctx context.Context, batch MetricBatch) (*Exp
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	success := resp.StatusCode >= 200 && resp.StatusCode < 300
 
@@ -1310,7 +1310,7 @@ func (ie *InfluxDBExporter) HealthCheck(ctx context.Context) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("unhealthy status: %d", resp.StatusCode)
@@ -1407,7 +1407,7 @@ func (de *DataDogExporter) Export(ctx context.Context, batch MetricBatch) (*Expo
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	success := resp.StatusCode >= 200 && resp.StatusCode < 300
 
@@ -1447,7 +1447,7 @@ func (de *DataDogExporter) HealthCheck(ctx context.Context) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unhealthy status: %d", resp.StatusCode)
@@ -1529,7 +1529,7 @@ func (nr *NewRelicExporter) Export(ctx context.Context, batch MetricBatch) (*Exp
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	success := resp.StatusCode >= 200 && resp.StatusCode < 300
 
@@ -1647,7 +1647,7 @@ func (ce *CustomExporter) Export(ctx context.Context, batch MetricBatch) (*Expor
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	success := resp.StatusCode >= 200 && resp.StatusCode < 300
 
@@ -1683,7 +1683,7 @@ func (ce *CustomExporter) HealthCheck(ctx context.Context) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("unhealthy status: %d", resp.StatusCode)

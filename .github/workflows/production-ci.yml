@@ -488,11 +488,63 @@ jobs:
         with:
           args: '-fmt sarif -out gosec.sarif ./...'
 
-      - name: Vulnerability assessment
+      - name: Vulnerability assessment (production-grade)
+        timeout-minutes: 25
+        continue-on-error: true
         run: |
-          echo "Running vulnerability assessment..."
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck -json ./... > vuln-report.json || true
+          echo "Running production-grade vulnerability assessment..."
+          
+          # Install with timeout
+          timeout 300s go install golang.org/x/vuln/cmd/govulncheck@latest || {
+            echo "⚠️ govulncheck installation timeout"
+            echo "vulnerability_install_failed" > vuln-status.txt
+            exit 0
+          }
+          
+          # Production scan: comprehensive but with timeout
+          echo "🔍 Comprehensive vulnerability scan for production..."
+          if timeout 20m govulncheck -json ./... > vuln-report.json 2>&1; then
+            echo "✅ Production vulnerability scan completed"
+            echo "vulnerability_scan_success" > vuln-status.txt
+          else
+            exit_code=$?
+            case $exit_code in
+              124) # timeout
+                echo "⚠️ Production vulnerability scan timed out"
+                echo "vulnerability_scan_timeout" > vuln-status.txt
+                echo "Partial results may be available in vuln-report.json" >> vuln-report.json
+                ;;
+              1) # vulnerabilities found
+                echo "⚠️ Vulnerabilities found in production scan"
+                echo "vulnerabilities_detected" > vuln-status.txt
+                ;;
+              *) # other errors
+                echo "❌ Production vulnerability scan failed"
+                echo "vulnerability_scan_error" > vuln-status.txt
+                ;;
+            esac
+          fi
+          
+          # Generate summary regardless of outcome
+          echo "## 🔒 Production Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
+          if [[ -f "vuln-status.txt" ]]; then
+            status=$(cat vuln-status.txt)
+            case "$status" in
+              vulnerability_scan_success)
+                echo "✅ Comprehensive scan completed successfully" >> $GITHUB_STEP_SUMMARY
+                ;;
+              vulnerabilities_detected)
+                echo "⚠️ Vulnerabilities detected - review required" >> $GITHUB_STEP_SUMMARY
+                ;;
+              vulnerability_scan_timeout)
+                echo "⏱️ Scan timed out - partial results available" >> $GITHUB_STEP_SUMMARY
+                ;;
+              *)
+                echo "❌ Scan encountered issues - check logs" >> $GITHUB_STEP_SUMMARY
+                ;;
+            esac
+          fi
+          echo "📄 Detailed results available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
 
       - name: License compliance check  
         run: |

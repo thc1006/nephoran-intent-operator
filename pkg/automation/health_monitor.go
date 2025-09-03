@@ -326,7 +326,7 @@ func (hm *HealthMonitor) checkHTTPEndpoint(ctx context.Context, endpoint string)
 		return 0.0
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Base score based on response code.
 

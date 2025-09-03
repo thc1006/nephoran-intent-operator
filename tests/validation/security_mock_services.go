@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"math/big"
 
-	// Removed insecure math/rand - using crypto/rand for security
+	// Removed insecure crypto/rand - using crypto/rand for security
 	"net"
 	"net/http"
 	"net/http/httptest"

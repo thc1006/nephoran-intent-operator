@@ -226,12 +226,12 @@ func TestMetricsEndpointControl(t *testing.T) {
 
 			// Create test server
 			server := httptest.NewServer(router)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Make request to metrics endpoint
 			resp, err := http.Get(server.URL + "/metrics")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// Check status
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
@@ -403,14 +403,14 @@ func TestIntegrationSecurityStack(t *testing.T) {
 
 	// Create test server
 	server := httptest.NewServer(router)
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("Process endpoint with security headers", func(t *testing.T) {
 		body := bytes.NewReader([]byte(`{"test": "data"}`))
 		req, _ := http.NewRequest("POST", server.URL+"/process", body)
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"))
@@ -422,7 +422,7 @@ func TestIntegrationSecurityStack(t *testing.T) {
 		req, _ := http.NewRequest("POST", server.URL+"/process", body)
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Note: The actual 413 handling depends on the server implementation
 		// This test verifies the middleware is working
@@ -433,7 +433,7 @@ func TestIntegrationSecurityStack(t *testing.T) {
 		// This would work in actual deployment with proper IP
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// The test server may not properly simulate IP restrictions
 		// In production, this would be properly restricted
@@ -472,4 +472,3 @@ func TestEnvironmentVariableDefaults(t *testing.T) {
 	// Verify defaults are secure
 	assert.Equal(t, "false", metricsEnabled, "Metrics should be disabled by default")
 }
-

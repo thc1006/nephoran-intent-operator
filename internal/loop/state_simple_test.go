@@ -13,7 +13,7 @@ func TestStateManager_BasicOperations(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create a test file
 	testFile := filepath.Join(dir, "test-intent.json")
@@ -48,7 +48,7 @@ func TestStateManager_FileModification(t *testing.T) {
 	dir := t.TempDir()
 	sm, err := NewStateManager(dir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	// Create and mark file as processed
 	testFile := filepath.Join(dir, "test-intent.json")

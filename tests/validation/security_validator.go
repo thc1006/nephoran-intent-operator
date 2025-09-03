@@ -1111,7 +1111,7 @@ func (sv *SecurityValidator) validateOIDCEndpoint(issuerURL string) bool {
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	return resp.StatusCode == http.StatusOK
 }

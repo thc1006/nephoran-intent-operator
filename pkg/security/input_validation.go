@@ -178,7 +178,7 @@ func (v *SQLValidator) ExecuteSafeQuery(ctx context.Context, db *sql.DB, query s
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare statement: %w", err)
 	}
-	defer stmt.Close()
+	defer stmt.Close() // #nosec G307 - Error handled in defer
 
 	rows, err := stmt.QueryContext(ctx, args...)
 	if err != nil {

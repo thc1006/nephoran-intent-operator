@@ -108,7 +108,7 @@ func TestProcessIntentWithMockServer(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -173,7 +173,7 @@ func TestProcessIntentWithRAGBackend(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		BackendType: "rag",
@@ -222,7 +222,7 @@ func TestProcessIntentWithCache(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -312,7 +312,7 @@ func TestProcessIntentWithRetry(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -359,7 +359,7 @@ func TestProcessIntentWithFallback(t *testing.T) {
 		w.Write([]byte("Service Unavailable"))
 	}))
 
-	defer primaryServer.Close()
+	defer primaryServer.Close() // #nosec G307 - Error handled in defer
 
 	// Fallback server that succeeds.
 
@@ -383,7 +383,7 @@ func TestProcessIntentWithFallback(t *testing.T) {
 		}`))
 	}))
 
-	defer fallbackServer.Close()
+	defer fallbackServer.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -430,7 +430,7 @@ func TestProcessIntentTimeout(t *testing.T) {
 		w.Write([]byte(`{"choices": [{"message": {"content": "slow response"}}]}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -471,7 +471,7 @@ func TestCircuitBreaker(t *testing.T) {
 		w.Write([]byte("Server Error"))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -581,7 +581,7 @@ func TestTokenTracker(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -644,7 +644,7 @@ func TestClientMetrics(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -709,7 +709,7 @@ func BenchmarkProcessIntent(b *testing.B) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",
@@ -762,7 +762,7 @@ func BenchmarkProcessIntentWithCache(b *testing.B) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := ClientConfig{
 		APIKey: "test-key",

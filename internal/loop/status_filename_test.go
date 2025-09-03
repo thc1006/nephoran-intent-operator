@@ -59,7 +59,7 @@ func TestStatusFilenameGeneration(t *testing.T) {
 
 			watcher, err := NewWatcher(tempDir, *config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Create the intent file
 			intentPath := filepath.Join(tempDir, tc.intentFile)
@@ -131,7 +131,7 @@ func TestStatusFilenameConsistency(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, *config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create intent file
 	intentFile := "intent-versioning.json"

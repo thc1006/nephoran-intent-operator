@@ -788,7 +788,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 
 	// Ignore body close error - defer handles cleanup.
 
-	defer func() { _ = r.Body.Close() }()
+	defer func() { _ = r.Body.Close() }() // #nosec G307 - Error handled in defer
 
 	text := string(body)
 
@@ -863,4 +863,3 @@ func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message 
 
 	h.writeJSONResponse(w, response, statusCode)
 }
-

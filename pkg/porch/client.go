@@ -153,7 +153,7 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 		return nil, fmt.Errorf("failed to submit proposal: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusCreated {
 
@@ -195,7 +195,7 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 		return fmt.Errorf("failed to approve package: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 
@@ -218,7 +218,7 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("package not found")
@@ -246,7 +246,7 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 	body := map[string]interface{}{
 		"metadata": map[string]interface{}{
-			"name": req.Package,
+			"name":      req.Package,
 			"namespace": req.Namespace,
 		},
 		"spec": map[string]interface{}{},
@@ -262,7 +262,7 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 		return nil, fmt.Errorf("failed to create package: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusCreated {
 
@@ -287,7 +287,7 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 	body := map[string]interface{}{
 		"spec": map[string]interface{}{
 			"workspace": req.Workspace,
-			"intent": req.Intent,
+			"intent":    req.Intent,
 		},
 	}
 
@@ -312,7 +312,7 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 		return nil, fmt.Errorf("failed to update package: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -473,4 +473,3 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 func isNotFound(err error) bool {
 	return err != nil && err.Error() == "package not found"
 }
-

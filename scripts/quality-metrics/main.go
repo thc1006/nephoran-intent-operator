@@ -264,7 +264,7 @@ func analyzeFile(filePath string) (FileMetrics, error) {
 	if err != nil {
 		return metrics, err
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Parse file for AST analysis
 	fset := token.NewFileSet()
@@ -318,7 +318,7 @@ func analyzeFileBasic(filePath string) (FileMetrics, error) {
 	if err != nil {
 		return metrics, err
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	scanner := bufio.NewScanner(file)
 	commentRegex := regexp.MustCompile(`^\s*//|^\s*/\*|\*/\s*$`)

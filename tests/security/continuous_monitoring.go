@@ -51,35 +51,35 @@ type MonitoringData struct {
 
 // SecurityAlert represents a security alert
 type SecurityAlert struct {
-	ID          string                 `json:"id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Severity    string                 `json:"severity"`
-	Category    string                 `json:"category"`
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	Source      string                 `json:"source"`
-	Resource    string                 `json:"resource"`
-	Namespace   string                 `json:"namespace"`
-	Tags        []string               `json:"tags"`
+	ID          string          `json:"id"`
+	Timestamp   time.Time       `json:"timestamp"`
+	Severity    string          `json:"severity"`
+	Category    string          `json:"category"`
+	Title       string          `json:"title"`
+	Description string          `json:"description"`
+	Source      string          `json:"source"`
+	Resource    string          `json:"resource"`
+	Namespace   string          `json:"namespace"`
+	Tags        []string        `json:"tags"`
 	Metadata    json.RawMessage `json:"metadata"`
-	Status      string                 `json:"status"`
-	ResponseID  string                 `json:"response_id,omitempty"`
+	Status      string          `json:"status"`
+	ResponseID  string          `json:"response_id,omitempty"`
 }
 
 // ThreatDetection represents detected security threats
 type ThreatDetection struct {
-	ID          string                 `json:"id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	ThreatType  string                 `json:"threat_type"`
-	Confidence  float64                `json:"confidence"`
-	Source      string                 `json:"source"`
-	Target      string                 `json:"target"`
-	Description string                 `json:"description"`
-	Indicators  []ThreatIndicator      `json:"indicators"`
-	Remediation string                 `json:"remediation"`
-	Severity    string                 `json:"severity"`
-	Status      string                 `json:"status"`
-	Metadata    json.RawMessage `json:"metadata"`
+	ID          string            `json:"id"`
+	Timestamp   time.Time         `json:"timestamp"`
+	ThreatType  string            `json:"threat_type"`
+	Confidence  float64           `json:"confidence"`
+	Source      string            `json:"source"`
+	Target      string            `json:"target"`
+	Description string            `json:"description"`
+	Indicators  []ThreatIndicator `json:"indicators"`
+	Remediation string            `json:"remediation"`
+	Severity    string            `json:"severity"`
+	Status      string            `json:"status"`
+	Metadata    json.RawMessage   `json:"metadata"`
 }
 
 // ThreatIndicator represents indicators of compromise
@@ -94,30 +94,30 @@ type ThreatIndicator struct {
 
 // ComplianceDrift represents compliance violations
 type ComplianceDrift struct {
-	ID            string                 `json:"id"`
-	Timestamp     time.Time              `json:"timestamp"`
-	Framework     string                 `json:"framework"`
-	Control       string                 `json:"control"`
-	Resource      string                 `json:"resource"`
-	Namespace     string                 `json:"namespace"`
-	CurrentState  string                 `json:"current_state"`
-	ExpectedState string                 `json:"expected_state"`
-	Severity      string                 `json:"severity"`
-	AutoRemediate bool                   `json:"auto_remediate"`
-	RemediationID string                 `json:"remediation_id,omitempty"`
+	ID            string          `json:"id"`
+	Timestamp     time.Time       `json:"timestamp"`
+	Framework     string          `json:"framework"`
+	Control       string          `json:"control"`
+	Resource      string          `json:"resource"`
+	Namespace     string          `json:"namespace"`
+	CurrentState  string          `json:"current_state"`
+	ExpectedState string          `json:"expected_state"`
+	Severity      string          `json:"severity"`
+	AutoRemediate bool            `json:"auto_remediate"`
+	RemediationID string          `json:"remediation_id,omitempty"`
 	Metadata      json.RawMessage `json:"metadata"`
 }
 
 // MetricValue represents a monitoring metric
 type MetricValue struct {
-	Name      string                 `json:"name"`
-	Value     float64                `json:"value"`
-	Unit      string                 `json:"unit"`
-	Timestamp time.Time              `json:"timestamp"`
-	Labels    map[string]string      `json:"labels"`
-	Threshold *ThresholdConfig       `json:"threshold,omitempty"`
-	Status    string                 `json:"status"`
-	Metadata  json.RawMessage `json:"metadata"`
+	Name      string            `json:"name"`
+	Value     float64           `json:"value"`
+	Unit      string            `json:"unit"`
+	Timestamp time.Time         `json:"timestamp"`
+	Labels    map[string]string `json:"labels"`
+	Threshold *ThresholdConfig  `json:"threshold,omitempty"`
+	Status    string            `json:"status"`
+	Metadata  json.RawMessage   `json:"metadata"`
 }
 
 // ThresholdConfig defines alerting thresholds
@@ -129,39 +129,39 @@ type ThresholdConfig struct {
 
 // HealthStatus represents component health status
 type HealthStatus struct {
-	Component    string                 `json:"component"`
-	Status       string                 `json:"status"`
-	LastCheck    time.Time              `json:"last_check"`
-	Message      string                 `json:"message"`
-	Metrics      map[string]float64     `json:"metrics"`
-	Dependencies []string               `json:"dependencies"`
-	Metadata     json.RawMessage `json:"metadata"`
+	Component    string             `json:"component"`
+	Status       string             `json:"status"`
+	LastCheck    time.Time          `json:"last_check"`
+	Message      string             `json:"message"`
+	Metrics      map[string]float64 `json:"metrics"`
+	Dependencies []string           `json:"dependencies"`
+	Metadata     json.RawMessage    `json:"metadata"`
 }
 
 // AuditEvent represents security audit events
 type AuditEvent struct {
-	ID        string                 `json:"id"`
-	Timestamp time.Time              `json:"timestamp"`
-	User      string                 `json:"user"`
-	Action    string                 `json:"action"`
-	Resource  string                 `json:"resource"`
-	Namespace string                 `json:"namespace"`
-	Result    string                 `json:"result"`
-	Risk      string                 `json:"risk"`
-	Source    string                 `json:"source"`
+	ID        string          `json:"id"`
+	Timestamp time.Time       `json:"timestamp"`
+	User      string          `json:"user"`
+	Action    string          `json:"action"`
+	Resource  string          `json:"resource"`
+	Namespace string          `json:"namespace"`
+	Result    string          `json:"result"`
+	Risk      string          `json:"risk"`
+	Source    string          `json:"source"`
 	Metadata  json.RawMessage `json:"metadata"`
 }
 
 // ResponseAction represents automated security responses
 type ResponseAction struct {
-	ID          string                 `json:"id"`
-	Timestamp   time.Time              `json:"timestamp"`
-	AlertID     string                 `json:"alert_id"`
-	ActionType  string                 `json:"action_type"`
-	Status      string                 `json:"status"`
-	Description string                 `json:"description"`
-	Result      string                 `json:"result"`
-	Duration    time.Duration          `json:"duration"`
+	ID          string          `json:"id"`
+	Timestamp   time.Time       `json:"timestamp"`
+	AlertID     string          `json:"alert_id"`
+	ActionType  string          `json:"action_type"`
+	Status      string          `json:"status"`
+	Description string          `json:"description"`
+	Result      string          `json:"result"`
+	Duration    time.Duration   `json:"duration"`
 	Metadata    json.RawMessage `json:"metadata"`
 }
 
@@ -451,7 +451,7 @@ func (m *ContinuousSecurityMonitor) detectContainerThreats(ctx context.Context) 
 						},
 					},
 					Remediation: "Remove privileged flag from container security context",
-					Metadata: json.RawMessage(`{}`),
+					Metadata:    json.RawMessage(`{}`),
 				}
 				threats = append(threats, threat)
 			}
@@ -523,7 +523,7 @@ func (m *ContinuousSecurityMonitor) detectSecretsExposure(ctx context.Context) [
 									},
 								},
 								Remediation: "Use volume mounts instead of environment variables for secrets",
-								Metadata: json.RawMessage(`{}`),
+								Metadata:    json.RawMessage(`{}`),
 							}
 							threats = append(threats, threat)
 						}
@@ -562,7 +562,7 @@ func (m *ContinuousSecurityMonitor) detectComplianceDrift(ctx context.Context) [
 			ExpectedState: "All pods should have network policies",
 			Severity:      "MEDIUM",
 			AutoRemediate: false,
-			Metadata: json.RawMessage(`{}`),
+			Metadata:      json.RawMessage(`{}`),
 		}
 		drifts = append(drifts, drift)
 	}
@@ -598,7 +598,7 @@ func (m *ContinuousSecurityMonitor) remediateComplianceDrift(ctx context.Context
 		Description: fmt.Sprintf("Auto-remediated compliance drift: %s", drift.Control),
 		Result:      "success",
 		Duration:    2 * time.Second,
-		Metadata: json.RawMessage(`{}`),
+		Metadata:    json.RawMessage(`{}`),
 	}
 
 	m.addResponseAction(action)
@@ -615,7 +615,7 @@ func (m *ContinuousSecurityMonitor) handleSecurityAlert(ctx context.Context, ale
 		ActionType:  "automated_response",
 		Status:      "in_progress",
 		Description: fmt.Sprintf("Handling alert: %s", alert.Title),
-		Metadata: json.RawMessage(`{}`),
+		Metadata:    json.RawMessage(`{}`),
 	}
 
 	start := time.Now()
@@ -662,7 +662,7 @@ func (m *ContinuousSecurityMonitor) sendAlertNotification(alert SecurityAlert) b
 		payload, _ := json.Marshal(alert)
 		resp, err := http.Post(m.alertManager.webhookURL, "application/json", strings.NewReader(string(payload)))
 		if err == nil {
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 			return resp.StatusCode == 200
 		}
 	}
@@ -865,4 +865,3 @@ func (m *ContinuousSecurityMonitor) generateMonitoringReport() *MonitoringData {
 
 	return m.monitoringData
 }
-

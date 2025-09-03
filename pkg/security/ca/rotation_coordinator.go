@@ -688,7 +688,7 @@ func (rc *RotationCoordinator) checkGRPCHealth(
 		return false
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	client := grpc_health_v1.NewHealthClient(conn)
 

@@ -225,8 +225,46 @@ jobs:
           sarif_file: gosec.sarif
         continue-on-error: true
 
-      - name: Quick vulnerability check
+      - name: Quick vulnerability check (PR-optimized)
+        timeout-minutes: 8
+        continue-on-error: true
         run: |
-          echo "Checking for known vulnerabilities..."
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./... || echo "Vulnerability check completed with warnings"
+          echo "Quick vulnerability check for PR validation..."
+          
+          # Install with short timeout for PR speed
+          timeout 120s go install golang.org/x/vuln/cmd/govulncheck@latest || {
+            echo "⚠️ govulncheck installation timeout - skipping PR check"
+            echo "## ⚠️ PR Vulnerability Check Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "Installation timed out. Full scan will run on merge." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          }
+          
+          # PR-optimized: scan only modified or critical components
+          echo "🔍 PR Quick Scan: Core components only..."
+          if timeout 5m govulncheck ./cmd/... ./api/... 2>&1; then
+            echo "✅ No critical vulnerabilities in core components"
+            echo "## ✅ PR Vulnerability Check" >> $GITHUB_STEP_SUMMARY
+            echo "Core components scan completed successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            exit_code=$?
+            case $exit_code in
+              124) # timeout
+                echo "⚠️ PR vulnerability scan timed out"
+                echo "## ⚠️ PR Vulnerability Check" >> $GITHUB_STEP_SUMMARY
+                echo "Quick scan timed out. Full security scan will run after merge." >> $GITHUB_STEP_SUMMARY
+                ;;
+              1) # vulnerabilities found
+                echo "⚠️ Vulnerabilities detected in core components"
+                echo "## ⚠️ PR Vulnerability Check" >> $GITHUB_STEP_SUMMARY
+                echo "Potential vulnerabilities detected. Review recommended before merge." >> $GITHUB_STEP_SUMMARY
+                echo "Full details will be available in the Security Scan workflow." >> $GITHUB_STEP_SUMMARY
+                ;;
+              *) # other errors
+                echo "⚠️ Vulnerability scan encountered errors"
+                echo "## ⚠️ PR Vulnerability Check" >> $GITHUB_STEP_SUMMARY
+                echo "Scan encountered errors. Will retry on merge." >> $GITHUB_STEP_SUMMARY
+                ;;
+            esac
+            
+            # Don't block PR for vulnerability issues
+          fi

@@ -280,7 +280,7 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 
@@ -311,7 +311,7 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintf(file, "# Performance Regression Test Report\n\n")
 

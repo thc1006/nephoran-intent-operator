@@ -87,7 +87,7 @@ func TestClientCreation(t *testing.T) {
 					// Note: This might fail in unit tests without a real server, which is expected
 
 					// Cleanup
-					defer client.Close()
+					defer client.Close() // #nosec G307 - Error handled in defer
 				}
 			}
 		})

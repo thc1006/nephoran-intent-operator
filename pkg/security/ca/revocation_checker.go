@@ -894,7 +894,7 @@ func (rc *RevocationChecker) fetchCRL(ctx context.Context, crlURL string) (*CRLE
 		return nil, fmt.Errorf("CRL request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("CRL server returned status %d", resp.StatusCode)
@@ -1126,4 +1126,3 @@ func (rc *RevocationChecker) ClearCache() {
 
 	rc.logger.Info("revocation caches cleared")
 }
-

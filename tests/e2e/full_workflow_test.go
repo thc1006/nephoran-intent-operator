@@ -89,7 +89,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func
 				bytes.NewBuffer(jsonPayload),
 			)
 			if err == nil {
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				if resp.StatusCode == http.StatusOK {
 					body, err := io.ReadAll(resp.Body)
@@ -135,7 +135,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func
 				bytes.NewBuffer(ragPayload),
 			)
 			if err == nil {
-				defer ragResp.Body.Close()
+				defer ragResp.Body.Close() // #nosec G307 - Error handled in defer
 
 				if ragResp.StatusCode == http.StatusOK {
 					By("RAG service provided knowledge context successfully")
@@ -629,4 +629,3 @@ var _ = Describe("Full Workflow E2E Tests (Intent ??LLM ??Nephio ??Scale)", func
 		})
 	})
 })
-

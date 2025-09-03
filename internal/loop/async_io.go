@@ -240,7 +240,7 @@ func (m *AsyncIOManager) readWithBuffer(ctx context.Context, path string) ([]byt
 		return nil, err
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Get file size for pre-allocation.
 

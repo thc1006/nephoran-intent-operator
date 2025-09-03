@@ -2,13 +2,13 @@ package api
 
 import (
 	"crypto/rand"
+	mathrand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	mathrand "math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"

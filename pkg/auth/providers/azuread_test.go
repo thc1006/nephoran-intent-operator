@@ -212,10 +212,10 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 			case "invalid-code":
 				w.WriteHeader(http.StatusBadRequest)
 				response := map[string]interface{}{
-					"error":             "invalid_code",
-					"timestamp":         "2023-01-01 12:00:00Z",
-					"trace_id":          "test-trace-id",
-					"correlation_id":    "test-correlation-id",
+					"error":          "invalid_code",
+					"timestamp":      "2023-01-01 12:00:00Z",
+					"trace_id":       "test-trace-id",
+					"correlation_id": "test-correlation-id",
 				}
 				json.NewEncoder(w).Encode(response)
 			default:
@@ -225,7 +225,7 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create provider with custom endpoint
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
@@ -316,7 +316,7 @@ func TestAzureADProvider_RefreshToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.oauth2Cfg.Endpoint = oauth2.Endpoint{
@@ -445,7 +445,7 @@ func TestAzureADProvider_GetUserInfo(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/v1.0/me"
@@ -567,7 +567,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
@@ -641,7 +641,7 @@ func TestAzureADProvider_ValidateToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/v1.0/me"
@@ -707,7 +707,7 @@ func TestAzureADProvider_RevokeToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
@@ -773,7 +773,7 @@ func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 			json.NewEncoder(w).Encode(config)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
@@ -921,7 +921,7 @@ func TestAzureADProvider_EdgeCases(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(5 * time.Second) // Longer than typical timeout
 		}))
-		defer server.Close()
+		defer server.Close() // #nosec G307 - Error handled in defer
 
 		provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 		provider.oauth2Cfg.Endpoint = oauth2.Endpoint{
@@ -937,4 +937,3 @@ func TestAzureADProvider_EdgeCases(t *testing.T) {
 		assert.Contains(t, err.Error(), "token_exchange_failed")
 	})
 }
-

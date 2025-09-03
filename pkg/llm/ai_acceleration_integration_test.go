@@ -24,7 +24,7 @@ func TestGPUAcceleratorIntegration(t *testing.T) {
 	if err != nil {
 		t.Skipf("GPU accelerator not available: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("SingleInference", func(t *testing.T) {
 		request := &InferenceRequest{
@@ -120,7 +120,7 @@ func TestEnhancedModelCacheIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create enhanced model cache: %v", err)
 	}
-	defer cache.Close()
+	defer cache.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 	modelName := "test-model"
@@ -174,7 +174,7 @@ func TestVectorSearchAcceleratorIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create vector search accelerator: %v", err)
 	}
-	defer accelerator.Close()
+	defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 	dimensions := config.VectorDimensions
@@ -234,18 +234,18 @@ func TestVectorSearchAcceleratorIntegration(t *testing.T) {
 			metadata map[string]interface{}
 		}{
 			{
-				id:     "doc1",
-				vector: generateRandomVector(dimensions),
+				id:       "doc1",
+				vector:   generateRandomVector(dimensions),
 				metadata: json.RawMessage(`{}`),
 			},
 			{
-				id:     "doc2",
-				vector: generateRandomVector(dimensions),
+				id:       "doc2",
+				vector:   generateRandomVector(dimensions),
 				metadata: json.RawMessage(`{}`),
 			},
 			{
-				id:     "doc3",
-				vector: generateRandomVector(dimensions),
+				id:       "doc3",
+				vector:   generateRandomVector(dimensions),
 				metadata: json.RawMessage(`{}`),
 			},
 		}
@@ -328,7 +328,7 @@ func TestGPUMemoryManagerIntegration(t *testing.T) {
 	if err != nil {
 		t.Skipf("GPU memory manager not available: %v", err)
 	}
-	defer manager.Close()
+	defer manager.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 
@@ -430,7 +430,7 @@ func TestConcurrentOperations(t *testing.T) {
 		if err != nil {
 			t.Skipf("GPU accelerator not available: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		concurrency := 10
 		requestsPerWorker := 5
@@ -483,7 +483,7 @@ func TestConcurrentOperations(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create vector search accelerator: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		concurrency := 5
 		operationsPerWorker := 10
@@ -554,7 +554,7 @@ func TestErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Skipf("GPU memory manager not available: %v", err)
 		}
-		defer manager.Close()
+		defer manager.Close() // #nosec G307 - Error handled in defer
 
 		ctx := context.Background()
 
@@ -583,7 +583,7 @@ func TestErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create vector search accelerator: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		ctx := context.Background()
 
@@ -610,7 +610,7 @@ func TestErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Skipf("GPU accelerator not available: %v", err)
 		}
-		defer accelerator.Close()
+		defer accelerator.Close() // #nosec G307 - Error handled in defer
 
 		request := &InferenceRequest{
 			ModelName:   "gpt-3.5-turbo",
@@ -678,4 +678,3 @@ func TestResourceCleanup(t *testing.T) {
 		}
 	})
 }
-

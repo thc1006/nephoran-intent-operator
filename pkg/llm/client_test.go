@@ -145,7 +145,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			}))
-			defer slowServer.Close()
+			defer slowServer.Close() // #nosec G307 - Error handled in defer
 
 			// Create client with short timeout
 			shortTimeoutClient := NewClient(slowServer.URL)
@@ -180,7 +180,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			}))
-			defer errorServer.Close()
+			defer errorServer.Close() // #nosec G307 - Error handled in defer
 
 			errorClient := NewClient(errorServer.URL)
 			defer errorClient.Shutdown() // Clean up the test client
@@ -199,7 +199,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(`{"error": "invalid request format"}`))
 			}))
-			defer badRequestServer.Close()
+			defer badRequestServer.Close() // #nosec G307 - Error handled in defer
 
 			badRequestClient := NewClient(badRequestServer.URL)
 			defer badRequestClient.Shutdown() // Clean up the test client

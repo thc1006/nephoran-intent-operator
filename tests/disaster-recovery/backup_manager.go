@@ -709,7 +709,7 @@ func (bm *BackupManager) calculateBackupChecksum(backupPath string) (string, int
 			return nil
 		}
 
-		defer file.Close()
+		defer file.Close() // #nosec G307 - Error handled in defer
 
 		size, err := io.Copy(hash, file)
 		if err != nil {

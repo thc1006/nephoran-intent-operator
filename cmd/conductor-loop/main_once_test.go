@@ -91,7 +91,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Run the watcher (it should process and exit immediately in once mode)
 			err = watcher.Start()

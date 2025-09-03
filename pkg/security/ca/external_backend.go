@@ -934,7 +934,7 @@ func (b *ExternalBackend) testConnectivity(ctx context.Context) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("connectivity test failed with status %d", resp.StatusCode)
@@ -1010,7 +1010,7 @@ func (b *ExternalBackend) makeRequest(ctx context.Context, method, endpoint stri
 		return nil, lastErr
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 

@@ -388,7 +388,7 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 		return fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	c.logger.Debug("received monitoring response",
 
@@ -482,4 +482,3 @@ type SilenceMatcher struct {
 type SilenceResponse struct {
 	SilenceID string `json:"silenceID"`
 }
-

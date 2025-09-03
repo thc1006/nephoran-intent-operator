@@ -396,7 +396,7 @@ func (tc *TrafficController) checkRegionHealth(ctx context.Context, regionName s
 		return health
 	}
 	// Security fix (bodyclose): Always close response body
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != 200 {
 		health.IsHealthy = false

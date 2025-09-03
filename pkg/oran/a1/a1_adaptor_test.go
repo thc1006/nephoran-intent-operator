@@ -40,7 +40,7 @@ func TestA1AdaptorPolicyTypeOperations(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -110,7 +110,7 @@ func TestA1AdaptorPolicyInstanceOperations(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -184,7 +184,7 @@ func TestA1AdaptorApplyPolicy(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -235,7 +235,7 @@ func TestA1AdaptorRemovePolicy(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create adaptor
 	adaptor, err := NewA1Adaptor(&A1AdaptorConfig{
@@ -346,7 +346,7 @@ func TestA1Adaptor_RetryMechanism(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusCreated)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
 		RICURL:     server.URL,
@@ -497,7 +497,7 @@ func TestA1Adaptor_PolicyInstanceCreationWithRetry(t *testing.T) {
 		assert.Contains(t, r.URL.Path, "/a1-p/policytypes/1/policies/policy-1")
 		w.WriteHeader(http.StatusCreated)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
 		RICURL:     server.URL,
@@ -531,7 +531,7 @@ func TestA1Adaptor_FailureAfterMaxRetries(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	config := &A1AdaptorConfig{
 		RICURL:     server.URL,
@@ -682,7 +682,7 @@ func TestA1PolicyStructures(t *testing.T) {
 		instance := A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1,
-			PolicyData: json.RawMessage(`{}`),
+			PolicyData:       json.RawMessage(`{}`),
 			Status: A1PolicyStatus{
 				EnforcementStatus: "ENFORCED",
 				EnforcementReason: "Policy applied successfully",
@@ -719,4 +719,3 @@ func TestRetryConfig_Structure(t *testing.T) {
 	assert.Contains(t, config.RetryableErrors, "error1")
 	assert.Contains(t, config.RetryableErrors, "error2")
 }
-

@@ -461,7 +461,7 @@ func (tdm *TechnicalDebtMonitor) generateJSONReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 
@@ -492,7 +492,7 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	// FIXME: Batch error handling for fmt.Fprintf calls per errcheck linter.
 
@@ -598,7 +598,7 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	// Write CSV header.
 

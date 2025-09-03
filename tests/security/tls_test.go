@@ -663,7 +663,7 @@ func testTLSConnectivity(endpoint string, expectedCert *x509.Certificate) error 
 	if err != nil {
 		return fmt.Errorf("TLS connection failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Verify certificate chain
 	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {

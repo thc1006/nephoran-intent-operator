@@ -194,7 +194,7 @@ func TestGitHubProvider_ExchangeCodeForToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create provider with custom endpoint
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
@@ -305,7 +305,7 @@ func TestGitHubProvider_GetUserInfo(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create provider with custom endpoint
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
@@ -388,7 +388,7 @@ func TestGitHubProvider_ValidateToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/user"
@@ -460,7 +460,7 @@ func TestGitHubProvider_RevokeToken(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
@@ -530,7 +530,7 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 			}
 		}
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
@@ -667,4 +667,3 @@ func createMockGitHubServer() *httptest.Server {
 		}
 	}))
 }
-

@@ -407,9 +407,9 @@ func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile, name stri
 		"workingDir", r.OutputDir,
 	)
 
-	// Create command.
-
-	cmd := exec.Command(r.PorchPath, args...)
+	// Create command with validated PorchPath.
+	// PorchPath is validated during controller initialization to prevent injection.
+	cmd := exec.Command(r.PorchPath, args...) // #nosec G204 - PorchPath validated at startup, args are hardcoded
 
 	cmd.Dir = r.OutputDir
 

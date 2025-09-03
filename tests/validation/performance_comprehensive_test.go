@@ -3,10 +3,10 @@ package test_validation
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -1020,4 +1020,3 @@ func (pmc *PerformanceMetricsCollector) getMetrics() map[string]interface{} {
 
 	return json.RawMessage(`{}`)
 }
-

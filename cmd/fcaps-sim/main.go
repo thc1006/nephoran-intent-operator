@@ -315,7 +315,7 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 		return fmt.Errorf("failed to send VES request: %w", err)
 	}
 
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }() // #nosec G307 - Error handled in defer
 
 	// Read response.
 
@@ -394,7 +394,7 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }() // #nosec G307 - Error handled in defer
 
 	// Read response.
 

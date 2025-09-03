@@ -1712,4 +1712,3 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 func (r *E2NodeSetReconciler) getNearRTRICEndpoint(e2nodeSet *nephoranv1.E2NodeSet) string {
 	return r.getRICEndpoint(e2nodeSet)
 }
-

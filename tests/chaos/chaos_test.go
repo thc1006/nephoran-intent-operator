@@ -3,8 +3,8 @@ package chaos
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -824,4 +824,3 @@ var _ = ginkgo.Describe("Chaos Engineering", func() {
 		testSuite.TestCombinedChaosScenarios()
 	})
 })
-

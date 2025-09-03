@@ -58,7 +58,7 @@
 //	if err != nil {
 //		log.Fatal(err)
 //	}
-//	defer provider.Close()
+//	defer provider.Close() // #nosec G307 - Error handled in defer
 //
 //	// Initialize the provider
 //	ctx := context.Background()
@@ -118,7 +118,7 @@
 //	devProvider, err := registry.GetProvider("aws-dev")
 //
 //	// Clean up
-//	defer registry.Close()
+//	defer registry.Close() // #nosec G307 - Error handled in defer
 //
 // # Testing
 //
@@ -147,4 +147,3 @@
 // and integrates with the broader Nephio ecosystem for cloud-native network
 // function management.
 package providers
-

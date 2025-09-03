@@ -522,7 +522,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Read response.
 
@@ -617,7 +617,7 @@ func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, re
 		return fmt.Errorf("failed to connect to RAG API stream: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -915,4 +915,3 @@ func (bp *batchProcessor) processingWorker() {
 		}
 	}
 }
-

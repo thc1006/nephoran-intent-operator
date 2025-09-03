@@ -1,8 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"sort"

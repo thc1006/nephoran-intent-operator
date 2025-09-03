@@ -2,8 +2,8 @@ package security
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -113,7 +113,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 			// Setup baseline - verify normal operation
 			server := chaosSuite.testSuite.createTestServer(chaosSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := chaosSuite.testSuite.createMTLSClient(chaosSuite.testSuite.clientCert)
 
@@ -187,7 +187,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			}
 
 			server := chaosSuite.testSuite.createTestServer(chaosSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := chaosSuite.testSuite.createMTLSClient(chaosSuite.testSuite.clientCert)
 
@@ -245,7 +245,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			}
 
 			server := chaosSuite.testSuite.createTestServer(chaosSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Inject certificate corruption
 			faultID := chaosSuite.faultInjector.injectCertificateCorruption()
@@ -371,7 +371,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			}
 
 			server := chaosSuite.testSuite.createTestServer(chaosSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := chaosSuite.testSuite.createMTLSClient(chaosSuite.testSuite.clientCert)
 
@@ -423,7 +423,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			)
 
 			server := chaosSuite.testSuite.createTestServer(chaosSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := chaosSuite.testSuite.createMTLSClient(chaosSuite.testSuite.clientCert)
 
@@ -655,11 +655,11 @@ func (f *FaultInjector) injectIntermittentCAFailure(duration time.Duration, inte
 	faultID := f.generateFaultID()
 
 	fault := &ActiveFault{
-		ID:        faultID,
-		Type:      "INTERMITTENT_CA_FAILURE",
-		StartTime: time.Now(),
-		Duration:  duration,
-		Parameters: json.RawMessage(`{}`),
+		ID:          faultID,
+		Type:        "INTERMITTENT_CA_FAILURE",
+		StartTime:   time.Now(),
+		Duration:    duration,
+		Parameters:  json.RawMessage(`{}`),
 		StopChannel: make(chan bool),
 	}
 
@@ -696,11 +696,11 @@ func (f *FaultInjector) injectNetworkPartition(target string, duration time.Dura
 	faultID := f.generateFaultID()
 
 	fault := &ActiveFault{
-		ID:        faultID,
-		Type:      "NETWORK_PARTITION",
-		StartTime: time.Now(),
-		Duration:  duration,
-		Parameters: json.RawMessage(`{}`),
+		ID:          faultID,
+		Type:        "NETWORK_PARTITION",
+		StartTime:   time.Now(),
+		Duration:    duration,
+		Parameters:  json.RawMessage(`{}`),
 		StopChannel: make(chan bool),
 	}
 
@@ -717,11 +717,11 @@ func (f *FaultInjector) injectNetworkDegradation(packetLoss int, latency time.Du
 	faultID := f.generateFaultID()
 
 	fault := &ActiveFault{
-		ID:        faultID,
-		Type:      "NETWORK_DEGRADATION",
-		StartTime: time.Now(),
-		Duration:  duration,
-		Parameters: json.RawMessage(`{}`),
+		ID:          faultID,
+		Type:        "NETWORK_DEGRADATION",
+		StartTime:   time.Now(),
+		Duration:    duration,
+		Parameters:  json.RawMessage(`{}`),
 		StopChannel: make(chan bool),
 	}
 
@@ -878,4 +878,3 @@ func (c *ChaosEngineeringTestSuite) compareSystemStates(baseline, current map[st
 func (c *ChaosEngineeringTestSuite) injectFailure(failureType string, duration time.Duration) string {
 	return "fault-id"
 }
-

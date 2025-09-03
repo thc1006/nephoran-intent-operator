@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
@@ -176,7 +175,7 @@ func BenchmarkEventSerialization(b *testing.B) {
 
 // BenchmarkBackendPerformance measures backend-specific performance
 func BenchmarkBackendPerformance(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_backend")
+	tempDir, err := os.MkdirTemp("", "benchmark_backend")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 
@@ -187,9 +186,9 @@ func BenchmarkBackendPerformance(b *testing.B) {
 		{
 			"FileBackend",
 			backends.BackendConfig{
-				Type:    backends.BackendTypeFile,
-				Enabled: true,
-				Name:    "benchmark-file",
+				Type:     backends.BackendTypeFile,
+				Enabled:  true,
+				Name:     "benchmark-file",
 				Settings: json.RawMessage(`{}`),
 			},
 		},
@@ -200,7 +199,7 @@ func BenchmarkBackendPerformance(b *testing.B) {
 				Enabled:     true,
 				Name:        "benchmark-compressed",
 				Compression: true,
-				Settings: json.RawMessage(`{}`),
+				Settings:    json.RawMessage(`{}`),
 			},
 		},
 	}
@@ -962,4 +961,3 @@ func BenchmarkComplianceMetadataGeneration(b *testing.B) {
 		auditSystem.enrichEvent(event)
 	}
 }
-

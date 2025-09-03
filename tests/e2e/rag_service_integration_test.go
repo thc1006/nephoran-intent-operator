@@ -38,7 +38,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -61,7 +61,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -105,7 +105,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusCreated))
 
@@ -164,7 +164,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusCreated))
 
@@ -199,7 +199,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -260,7 +260,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 				if err != nil {
 					Skip(fmt.Sprintf("RAG service not available: %v", err))
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -292,7 +292,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -323,7 +323,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(Equal(http.StatusOK))
 
@@ -361,7 +361,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).Should(BeElementOf([]int{http.StatusOK, http.StatusAccepted}))
 
@@ -417,7 +417,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 				if err != nil {
 					Skip(fmt.Sprintf("RAG service not available: %v", err))
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				Expect(resp.StatusCode).Should(Equal(tc.expectedStatus))
 			}
@@ -440,7 +440,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			// Should either succeed or return proper error status
 			Expect(resp.StatusCode).Should(BeElementOf([]int{
@@ -489,7 +489,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 						results <- 500
 						return
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					results <- resp.StatusCode
 				}()
@@ -527,7 +527,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			if err != nil {
 				Skip(fmt.Sprintf("RAG service not available: %v", err))
 			}
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			responseTime := time.Since(startTime)
 

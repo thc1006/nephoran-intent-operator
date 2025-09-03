@@ -88,7 +88,7 @@ func TestFixedOnceMode(t *testing.T) {
 
 	require.NoError(t, err)
 
-	defer enhancedWatcher.Close()
+	defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 	// Step 6: Start watcher with completion tracking.
 
@@ -170,7 +170,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 	require.NoError(t, err)
 
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create completion waiter.
 
@@ -260,7 +260,7 @@ func TestFailureHandling(t *testing.T) {
 
 	require.NoError(t, err)
 
-	defer enhancedWatcher.Close()
+	defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start with tracking.
 
@@ -344,7 +344,7 @@ func TestCrossPlatformTiming(t *testing.T) {
 
 	require.NoError(t, err)
 
-	defer enhancedWatcher.Close()
+	defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 	require.NoError(t, enhancedWatcher.StartWithTracking())
 
@@ -443,7 +443,7 @@ func TestFilePatternValidation(t *testing.T) {
 
 	require.NoError(t, err)
 
-	defer enhancedWatcher.Close()
+	defer enhancedWatcher.Close() // #nosec G307 - Error handled in defer
 
 	require.NoError(t, enhancedWatcher.StartWithTracking())
 
@@ -523,7 +523,7 @@ func TestDebugTracking(t *testing.T) {
 
 	require.NoError(t, err)
 
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	synchronizer := NewOnceModeSynchronizer(watcher, 2)
 

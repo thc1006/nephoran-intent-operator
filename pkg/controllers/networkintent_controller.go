@@ -1,9 +1,8 @@
 package controllers
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -1003,7 +1002,7 @@ func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, network
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		r.logger.Info("Cache cleanup returned error status (non-critical)",

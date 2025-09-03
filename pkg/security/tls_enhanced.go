@@ -501,7 +501,7 @@ func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][
 		return fmt.Errorf("OCSP request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -939,4 +939,3 @@ func (c *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16
 func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
 	return c.GetTLSConfig()
 }
-

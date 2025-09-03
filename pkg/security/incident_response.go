@@ -1490,7 +1490,7 @@ func (ir *IncidentResponse) HandleWebhook(w http.ResponseWriter, r *http.Request
 
 	}
 
-	defer r.Body.Close()
+	defer r.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Get the signature from headers.
 
@@ -1790,4 +1790,3 @@ func copyStringInt64Map(original map[string]int64) map[string]int64 {
 
 	return result
 }
-

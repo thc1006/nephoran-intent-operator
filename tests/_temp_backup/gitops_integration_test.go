@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -42,7 +41,7 @@ var _ = Describe("GitOps Integration Tests", func() {
 
 		// Create temporary directory for Git repository simulation
 		var err error
-		tempRepoDir, err = ioutil.TempDir("", "nephoran-git-test-*")
+		tempRepoDir, err = os.MkdirTemp("", "nephoran-git-test-*")
 		Expect(err).NotTo(HaveOccurred())
 		DeferCleanup(func() {
 			os.RemoveAll(tempRepoDir)
@@ -731,9 +730,9 @@ func handleNephioPackageGen(w http.ResponseWriter, r *http.Request, tracker *Git
 	}
 
 	var request struct {
-		IntentName      string                 `json:"intentName"`
-		NetworkFunction string                 `json:"networkFunction"`
-		TargetCluster   string                 `json:"targetCluster"`
+		IntentName      string          `json:"intentName"`
+		NetworkFunction string          `json:"networkFunction"`
+		TargetCluster   string          `json:"targetCluster"`
 		Parameters      json.RawMessage `json:"parameters"`
 	}
 
@@ -1069,4 +1068,3 @@ spec:
 		strings.ToLower(networkFunction),
 		strings.ToLower(networkFunction))
 }
-

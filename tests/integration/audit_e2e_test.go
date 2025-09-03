@@ -3,7 +3,6 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -51,7 +50,7 @@ func TestE2EAuditTestSuite(t *testing.T) {
 func (suite *E2EAuditTestSuite) SetupSuite() {
 	// Setup temporary directory
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "e2e_audit_test")
+	suite.tempDir, err = os.MkdirTemp("", "e2e_audit_test")
 	suite.Require().NoError(err)
 
 	// Setup HTTP server for webhook testing
@@ -60,7 +59,7 @@ func (suite *E2EAuditTestSuite) SetupSuite() {
 		defer suite.eventMutex.Unlock()
 
 		var event AuditEvent
-		_, err := ioutil.ReadAll(r.Body)
+		_, err := io.ReadAll(r.Body)
 		if err == nil {
 			// In a real implementation, we'd unmarshal the JSON
 			// For testing, we'll create a mock event
@@ -230,7 +229,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				Action:    "suspicious_activity",
 				Severity:  SeverityCritical,
 				Result:    ResultFailure,
-				Data: map[string]interface{}{},
+				Data:      map[string]interface{}{},
 			},
 		}
 
@@ -245,7 +244,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 
 		// Verify events were written to file
 		logFile := filepath.Join(suite.tempDir, "audit.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -602,7 +601,7 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 
 		// Verify backup file received events (webhook should fail but file should succeed)
 		backupFile := filepath.Join(suite.tempDir, "backup.log")
-		content, err := ioutil.ReadFile(backupFile)
+		content, err := os.ReadFile(backupFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 	})
@@ -710,7 +709,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 
 		// Verify compliance metadata was added
 		logFile := filepath.Join(suite.tempDir, "compliance.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -890,7 +889,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 
 		// Verify log file contains Kubernetes-specific fields
 		logFile := filepath.Join(suite.tempDir, "basic.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 
 		contentStr := string(content)
@@ -944,4 +943,3 @@ func (suite *E2EAuditTestSuite) TestScalabilityMetrics() {
 		fmt.Printf("Latency metrics: avg=%v, max=%v\n", avgLatency, maxLatency)
 	})
 }
-

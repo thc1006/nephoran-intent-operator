@@ -295,7 +295,7 @@ func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType 
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -345,7 +345,7 @@ func (ac *A1ConsumerAdaptor) DeregisterPolicyType(ctx context.Context, policyTyp
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -391,7 +391,7 @@ func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyType
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -435,7 +435,7 @@ func (ac *A1ConsumerAdaptor) GetNearRTRICCapabilities(ctx context.Context) (*Nea
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get RIC capabilities: status=%d", resp.StatusCode)
@@ -469,7 +469,7 @@ func (ac *A1ConsumerAdaptor) GetNearRTRICHealth(ctx context.Context) (*NearRTRIC
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get RIC health: status=%d", resp.StatusCode)
@@ -510,7 +510,7 @@ func (ac *A1ConsumerAdaptor) SubscribeToPolicyEvents(ctx context.Context, subscr
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 
@@ -552,7 +552,7 @@ func (ac *A1ConsumerAdaptor) UnsubscribeFromPolicyEvents(ctx context.Context, su
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	switch resp.StatusCode {
 

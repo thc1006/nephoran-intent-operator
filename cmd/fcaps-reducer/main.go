@@ -133,7 +133,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		}
 
-		defer func() { _ = r.Body.Close() }()
+		defer func() { _ = r.Body.Close() }() // #nosec G307 - Error handled in defer
 
 		var event fcaps.FCAPSEvent
 

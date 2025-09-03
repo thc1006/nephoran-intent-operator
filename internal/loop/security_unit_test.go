@@ -92,7 +92,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	tests := []struct {
 		name     string
@@ -473,7 +473,7 @@ func TestConfig_SecurityValidation(t *testing.T) {
 				require.NoError(t, err)
 				watcher, err := NewWatcher(tempDir, config)
 				require.NoError(t, err)
-				defer watcher.Close()
+				defer watcher.Close() // #nosec G307 - Error handled in defer
 
 				// Verify defaults were applied for negative values
 				assert.Greater(t, watcher.config.MaxWorkers, 0, "should use positive default for MaxWorkers")
@@ -563,7 +563,7 @@ func TestWindowsPathValidation(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	tests := []struct {
 		name          string

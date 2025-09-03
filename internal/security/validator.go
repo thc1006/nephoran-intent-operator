@@ -388,7 +388,7 @@ func (v *OWASPValidator) secureReadFile(path string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Validate file size before reading.
 

@@ -177,7 +177,7 @@ func (sm *SyntheticMonitor) executeHTTPCheck(ctx context.Context, check *Synthet
 		result.Error = fmt.Sprintf("HTTP request failed: %v", err)
 		return result
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	result.StatusCode = resp.StatusCode
 
@@ -287,7 +287,7 @@ func (sm *SyntheticMonitor) GetAvailabilityStats(checkID string) (*AvailabilityS
 	if av, err := strconv.ParseFloat(result.Availability, 64); err == nil {
 		availability = av
 	}
-	
+
 	stats := &AvailabilityStats{
 		CheckID:          checkID,
 		TotalChecks:      1,

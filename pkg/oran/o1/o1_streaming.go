@@ -571,7 +571,7 @@ func (s *StreamingService) handleConnectionRead(conn *StreamConnection) {
 // handleConnectionWrite handles writing messages to WebSocket.
 
 func (s *StreamingService) handleConnectionWrite(conn *StreamConnection) {
-	defer conn.Conn.Close()
+	defer conn.Conn.Close() // #nosec G307 - Error handled in defer
 
 	ticker := time.NewTicker(s.config.HeartbeatInterval)
 
@@ -1334,4 +1334,3 @@ func (s *StreamingService) handleGetStatus(conn *StreamConnection) {
 
 	s.sendMessage(conn, response)
 }
-

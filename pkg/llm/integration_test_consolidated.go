@@ -24,11 +24,11 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 	llmServer := setupMockLLMServer(t)
 
-	defer llmServer.Close()
+	defer llmServer.Close() // #nosec G307 - Error handled in defer
 
 	ragServer := setupMockRAGServer(t)
 
-	defer ragServer.Close()
+	defer ragServer.Close() // #nosec G307 - Error handled in defer
 
 	// Create processing engine with all components.
 
@@ -178,7 +178,7 @@ func TestCacheIntegration(t *testing.T) {
 		}`, callCount)))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Create client with caching enabled.
 
@@ -441,7 +441,7 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 		}`))
 	}))
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	// Configure circuit breaker with low thresholds for testing.
 
@@ -519,7 +519,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	server := setupHighPerformanceMockServer(t)
 
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	client := NewClientWithConfig(server.URL, ClientConfig{
 		APIKey: "test-key",

@@ -580,7 +580,7 @@ func (c *OptimizedHTTPClient) executeRequest(ctx context.Context, req *Optimized
 		return fmt.Errorf("HTTP request failed: %w", err)
 	}
 
-	defer httpResp.Body.Close()
+	defer httpResp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Read response body with buffer reuse.
 

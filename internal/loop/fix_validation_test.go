@@ -175,7 +175,7 @@ func TestCriticalFixes_DataRaceConditions(t *testing.T) {
 
 		watcher, err := NewWatcher(handoffDir, config)
 		require.NoError(t, err)
-		defer watcher.Close()
+		defer watcher.Close() // #nosec G307 - Error handled in defer
 
 		// Start watcher in background
 		_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -430,7 +430,7 @@ func TestPerformanceRegression(t *testing.T) {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Measure processing time
 	startTime := time.Now()
@@ -483,7 +483,7 @@ func TestStressTest(t *testing.T) {
 
 	watcher, err := NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

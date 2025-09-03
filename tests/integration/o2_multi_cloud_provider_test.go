@@ -565,7 +565,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					if err != nil {
 						return nil
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 					if resp.StatusCode != http.StatusOK {
 						return nil

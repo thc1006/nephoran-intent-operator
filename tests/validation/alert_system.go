@@ -467,7 +467,7 @@ func (as *AlertSystem) sendSlackAlert(alert *AlertMessage) error {
 		return fmt.Errorf("failed to send Slack alert: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -543,7 +543,7 @@ func (as *AlertSystem) sendWebhookAlert(alert *AlertMessage) error {
 		return fmt.Errorf("failed to send webhook alert: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 

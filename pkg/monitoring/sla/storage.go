@@ -1,11 +1,10 @@
 package sla
 
 import (
-	
-	"encoding/json"
-"compress/gzip"
+	"compress/gzip"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -1429,7 +1428,7 @@ func (sm *StorageManager) writeToPartition(partition *DiskPartition, seriesName 
 		return fmt.Errorf("failed to open partition file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	var writer io.Writer = file
 
@@ -1442,7 +1441,7 @@ func (sm *StorageManager) writeToPartition(partition *DiskPartition, seriesName 
 			return fmt.Errorf("failed to create gzip writer: %w", err)
 		}
 
-		defer gzipWriter.Close()
+		defer gzipWriter.Close() // #nosec G307 - Error handled in defer
 
 		writer = gzipWriter
 

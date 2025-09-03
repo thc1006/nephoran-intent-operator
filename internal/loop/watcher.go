@@ -904,18 +904,18 @@ func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Reques
 
 	response := map[string]interface{}{
 		"metrics": map[string]interface{}{
-			"files_processed_total": atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
-			"files_failed_total": atomic.LoadInt64(&w.metrics.FilesFailedTotal),
-			"throughput_files_per_sec": w.metrics.ThroughputFilesPerSecond,
-			"average_processing_time": w.metrics.AverageProcessingTime.String(),
+			"files_processed_total":     atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
+			"files_failed_total":        atomic.LoadInt64(&w.metrics.FilesFailedTotal),
+			"throughput_files_per_sec":  w.metrics.ThroughputFilesPerSecond,
+			"average_processing_time":   w.metrics.AverageProcessingTime.String(),
 			"validation_failures_total": atomic.LoadInt64(&w.metrics.ValidationFailuresTotal),
-			"retry_attempts_total": atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
-			"latency_percentiles": latencies,
+			"retry_attempts_total":      atomic.LoadInt64(&w.metrics.RetryAttemptsTotal),
+			"latency_percentiles":       latencies,
 		},
 		"resources": map[string]interface{}{},
-		"workers": map[string]interface{}{},
-		"errors": map[string]interface{}{},
-		"metadata": map[string]interface{}{},
+		"workers":   map[string]interface{}{},
+		"errors":    map[string]interface{}{},
+		"metadata":  map[string]interface{}{},
 	}
 
 	writer.Header().Set("Content-Type", "application/json")
@@ -1991,7 +1991,7 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Use limited reader to prevent memory exhaustion.
 
@@ -3293,4 +3293,3 @@ func (w *Watcher) isFileStable(filePath string) bool {
 
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
 }
-

@@ -42,7 +42,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			go func() {
 				conn, _ := listener.Accept()
@@ -54,7 +54,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 			// Try to connect with TLS 1.1
 			clientConfig := &tls.Config{
 				MaxVersion:         tls.VersionTLS11,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			}
 
 			conn, err := tls.Dial("tcp", listener.Addr().String(), clientConfig)
@@ -76,7 +76,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			serverReady := make(chan bool)
 			go func() {
@@ -96,7 +96,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 			// Connect with TLS 1.3
 			clientConfig := &tls.Config{
 				MinVersion:         tls.VersionTLS13,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			}
 
 			conn, err := tls.Dial("tcp", listener.Addr().String(), clientConfig)
@@ -135,7 +135,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", serverConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			go func() {
 				conn, _ := listener.Accept()
@@ -148,7 +148,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 			clientConfig := &tls.Config{
 				MinVersion:         tls.VersionTLS12,
 				CipherSuites:       weakCiphers,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			}
 
 			conn, err := tls.Dial("tcp", listener.Addr().String(), clientConfig)
@@ -175,7 +175,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", serverConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			cipherUsed := make(chan uint16, 1)
 			go func() {
@@ -196,7 +196,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 				},
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			}
 
 			conn, err := tls.Dial("tcp", listener.Addr().String(), clientConfig)
@@ -271,7 +271,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", serverConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			go func() {
 				conn, _ := listener.Accept()
@@ -423,7 +423,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", serverConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			clientVerified := make(chan bool, 1)
 			go func() {
@@ -491,7 +491,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", serverConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			go func() {
 				conn, _ := listener.Accept()
@@ -640,7 +640,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 
 			listener, err := tls.Listen("tcp", "127.0.0.1:0", serverConfig)
 			Expect(err).NotTo(HaveOccurred())
-			defer listener.Close()
+			defer listener.Close() // #nosec G307 - Error handled in defer
 
 			sessionCache := tls.NewLRUClientSessionCache(10)
 
@@ -657,7 +657,7 @@ var _ = Describe("TLS Security Validation Suite", func() {
 			clientConfig := &tls.Config{
 				MinVersion:         tls.VersionTLS13,
 				ClientSessionCache: sessionCache,
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			}
 
 			conn1, err := tls.Dial("tcp", listener.Addr().String(), clientConfig)

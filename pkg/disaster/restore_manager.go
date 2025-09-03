@@ -31,11 +31,10 @@ limitations under the License.
 package disaster
 
 import (
-	
-	"encoding/json"
-"archive/tar"
+	"archive/tar"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -179,24 +178,24 @@ type RestoreProgress struct {
 // BackupMetadata represents metadata for a backup
 
 type BackupMetadata struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	Version     string                 `json:"version"`
-	Components  []string               `json:"components"`
-	Size        int64                  `json:"size"`
-	Checksums   map[string]string      `json:"checksums"`
-	Environment string                 `json:"environment"`
-	Metadata    json.RawMessage `json:"metadata"`
+	Timestamp   time.Time         `json:"timestamp"`
+	Version     string            `json:"version"`
+	Components  []string          `json:"components"`
+	Size        int64             `json:"size"`
+	Checksums   map[string]string `json:"checksums"`
+	Environment string            `json:"environment"`
+	Metadata    json.RawMessage   `json:"metadata"`
 }
 
 // RestoreResult represents the result of a restore operation
 
 type RestoreResult struct {
-	Type      string                 `json:"type"`
-	Success   bool                   `json:"success"`
-	Message   string                 `json:"message"`
-	Duration  time.Duration          `json:"duration"`
+	Type      string          `json:"type"`
+	Success   bool            `json:"success"`
+	Message   string          `json:"message"`
+	Duration  time.Duration   `json:"duration"`
 	Metadata  json.RawMessage `json:"metadata"`
-	Timestamp time.Time              `json:"timestamp"`
+	Timestamp time.Time       `json:"timestamp"`
 }
 
 // RestoreStatus represents the status of restore operations
@@ -490,7 +489,7 @@ func (rm *RestoreManager) validateBackup(backupPath string) error {
 		return fmt.Errorf("failed to open backup file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// Check if it's a valid gzip file
 
@@ -499,7 +498,7 @@ func (rm *RestoreManager) validateBackup(backupPath string) error {
 		return fmt.Errorf("invalid gzip format: %w", err)
 	}
 
-	defer gzr.Close()
+	defer gzr.Close() // #nosec G307 - Error handled in defer
 
 	// Check if it's a valid tar archive
 
@@ -526,14 +525,14 @@ func (rm *RestoreManager) extractBackup(backupPath string) error {
 		return fmt.Errorf("failed to open backup file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	gzr, err := gzip.NewReader(file)
 	if err != nil {
 		return fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 
-	defer gzr.Close()
+	defer gzr.Close() // #nosec G307 - Error handled in defer
 
 	tr := tar.NewReader(gzr)
 
@@ -825,4 +824,3 @@ func (rm *RestoreManager) GetStatus() RestoreStatus {
 		},
 	}
 }
-

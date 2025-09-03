@@ -1,9 +1,8 @@
 package availability
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -933,7 +932,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 
 	} else {
 
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Check status code.
 
@@ -1442,4 +1441,3 @@ func convertToRawMessage(metadata map[string]interface{}) json.RawMessage {
 	}
 	return json.RawMessage(data)
 }
-

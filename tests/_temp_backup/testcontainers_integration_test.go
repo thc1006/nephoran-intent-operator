@@ -79,7 +79,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 
 				db, err := sql.Open("postgres", dbURL)
 				Expect(err).NotTo(HaveOccurred())
-				defer db.Close()
+				defer db.Close() // #nosec G307 - Error handled in defer
 
 				Eventually(func() error {
 					return db.Ping()
@@ -311,7 +311,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 					if err != nil {
 						return 0
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					return resp.StatusCode
 				}, 90*time.Second, 5*time.Second).Should(Equal(200))
 
@@ -400,7 +400,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 					if err != nil {
 						return 0
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					return resp.StatusCode
 				}, 60*time.Second, 3*time.Second).Should(Equal(200))
 

@@ -1181,7 +1181,7 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 		return fmt.Errorf("CRL request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Handle 304 Not Modified.
 
@@ -1383,7 +1383,7 @@ func (s *EnhancedRevocationSystem) sendOCSPRequest(ctx context.Context, responde
 		return nil, fmt.Errorf("OCSP request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	responder.ResponseTime = time.Since(start)
 

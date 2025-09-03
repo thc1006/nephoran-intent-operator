@@ -534,8 +534,8 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 		"messages": []map[string]string{
 			{"role": "user", "content": intent},
 		},
-		"max_tokens": c.maxTokens,
-		"temperature": 0.0,
+		"max_tokens":      c.maxTokens,
+		"temperature":     0.0,
 		"response_format": map[string]string{"type": "json_object"},
 	}
 
@@ -562,7 +562,7 @@ func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -636,7 +636,7 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

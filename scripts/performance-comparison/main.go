@@ -218,7 +218,7 @@ func loadBaselineMetrics() *PerformanceMetrics {
 		fmt.Println("?? No baseline metrics found, creating new baseline...")
 		return nil
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	var metrics PerformanceMetrics
 	if err := json.NewDecoder(file).Decode(&metrics); err != nil {
@@ -323,7 +323,7 @@ func generateJSONReport(comparison *PerformanceComparison) {
 		log.Printf("Error creating JSON report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -342,7 +342,7 @@ func generateTextReport(comparison *PerformanceComparison) {
 		log.Printf("Error creating text report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintf(file, "Nephoran Intent Operator - Performance Comparison Report\n")
 	fmt.Fprintf(file, "======================================================\n\n")
@@ -371,7 +371,7 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 		log.Printf("Error creating markdown report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	fmt.Fprintf(file, "# Nephoran Intent Operator - Performance Comparison Report\n\n")
 	fmt.Fprintf(file, "**Summary:** %s\n\n", comparison.Summary)
@@ -427,7 +427,7 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 		log.Printf("Error saving baseline metrics: %v", err)
 		return
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")

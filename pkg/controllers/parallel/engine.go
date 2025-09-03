@@ -17,9 +17,8 @@ limitations under the License.
 package parallel
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"sync"
 	"time"
@@ -618,8 +617,11 @@ func (e *ParallelProcessingEngine) ProcessIntentWorkflow(ctx context.Context, in
 	// Collect results from completed tasks
 	for _, task := range tasks {
 		if task.OutputData != nil {
-			for k, v := range task.OutputData {
-				result.Results[fmt.Sprintf("%s.%s", task.Type, k)] = v
+			var outputMap map[string]interface{}
+			if err := json.Unmarshal(task.OutputData, &outputMap); err == nil {
+				for k, v := range outputMap {
+					result.Results[fmt.Sprintf("%s.%s", task.Type, k)] = v
+				}
 			}
 		}
 	}

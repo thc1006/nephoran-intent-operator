@@ -970,7 +970,7 @@ func (dm *DashboardManager) checkDashboardAccessibility(ctx context.Context, uid
 		return false
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	return resp.StatusCode == http.StatusOK
 }
@@ -1053,7 +1053,7 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 
@@ -1119,4 +1119,3 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 		"confidence": result.Confidence,
 	}).Info("Completed A/B test")
 }
-

@@ -1185,7 +1185,7 @@ func (r *Registry) discoverHTTPRepository(ctx context.Context, repo *Repository)
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)

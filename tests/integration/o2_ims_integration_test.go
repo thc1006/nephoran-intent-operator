@@ -588,7 +588,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 							errors <- err
 							return
 						}
-						defer resp.Body.Close()
+						defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 						if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
 							successes <- poolID

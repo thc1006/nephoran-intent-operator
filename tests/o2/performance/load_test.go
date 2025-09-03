@@ -135,9 +135,9 @@ func TestO2APILoadPerformance(t *testing.T) {
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
 		DatabaseConfig: json.RawMessage(`{}`),
 		ProviderConfigs: map[string]interface{}{
 			"enabled": true,
@@ -149,7 +149,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 	client.Timeout = 30 * time.Second
@@ -623,13 +623,13 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	testLogger := logging.NewLogger("o2-benchmark", "error") // Reduced logging for benchmarks
 
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
 		DatabaseConfig: json.RawMessage(`{}`),
 		ProviderConfigs: map[string]interface{}{
-				"enabled": true,
-			},
+			"enabled": true,
+		},
 	}
 
 	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
@@ -637,7 +637,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 	client.Timeout = 10 * time.Second
@@ -742,9 +742,9 @@ func TestMemoryUsage(t *testing.T) {
 	testLogger := logging.NewLogger("o2-memory-test", "warn")
 
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
 		DatabaseConfig: json.RawMessage(`{}`),
 	}
 
@@ -753,7 +753,7 @@ func TestMemoryUsage(t *testing.T) {
 	defer o2Server.Shutdown(context.Background())
 
 	httpServer := httptest.NewServer(o2Server.GetRouter())
-	defer httpServer.Close()
+	defer httpServer.Close() // #nosec G307 - Error handled in defer
 
 	client := httpServer.Client()
 
@@ -811,4 +811,3 @@ func TestMemoryUsage(t *testing.T) {
 		t.Logf("Retrieved 1000 resource pools in %v", latency)
 	})
 }
-

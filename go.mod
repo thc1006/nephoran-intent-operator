@@ -2,6 +2,9 @@ module github.com/thc1006/nephoran-intent-operator
 
 go 1.25
 
+// Build optimization toolchain directive
+toolchain go1.25.0
+
 require (
 	cloud.google.com/go/compute v1.44.0
 	cloud.google.com/go/container v1.43.0

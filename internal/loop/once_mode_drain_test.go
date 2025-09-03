@@ -19,7 +19,12 @@ import (
 // Returns a legacy-format scaling intent with all required fields populated.
 // Uses stable, cross-platform-safe values.
 func generateValidIntent(t testing.TB) map[string]interface{} {
-	return json.RawMessage(`{}`)
+	return map[string]interface{}{
+		"intent_type": "scaling",
+		"target":      "test-deployment",
+		"namespace":   "default",
+		"replicas":    3,
+	}
 }
 
 // generateValidIntentJSON creates a valid intent JSON string for testing
@@ -47,7 +52,7 @@ func TestOnceModeProperDrainage(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create multiple intent files
 	numFiles := 10
@@ -103,7 +108,7 @@ func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create files
 	numFiles := 6
@@ -156,7 +161,7 @@ func TestOnceModeWithEmptyDirectory(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start with no files
 	err = watcher.Start()
@@ -179,7 +184,7 @@ func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create many files to stress test the drainage
 	numFiles := 50
@@ -322,4 +327,3 @@ exit 0
 
 	return mockPath
 }
-

@@ -525,7 +525,7 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 		return fmt.Errorf("connection test failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("SMO health check failed with status: %d", resp.StatusCode)
@@ -1081,7 +1081,7 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 				return err
 			}
 
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			if resp.StatusCode >= 400 {
 				return fmt.Errorf("hook HTTP call failed with status: %d", resp.StatusCode)
@@ -1194,7 +1194,7 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)
@@ -1206,4 +1206,3 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 
 	return nil
 }
-

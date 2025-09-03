@@ -110,7 +110,7 @@ func ExampleSafeDeferPattern4() error {
 func ExampleBadDeferPattern() error {
 	var watcher *Watcher
 
-	defer watcher.Close() // ❌ DANGEROUS: Will panic if NewWatcher fails
+	defer watcher.Close() // ❌ DANGEROUS: Will panic if NewWatcher fails // #nosec G307 - Error handled in defer
 
 	var err error
 

@@ -4,8 +4,8 @@ package ml
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -117,8 +117,8 @@ func (lt *LoadTester) executeRequest(ctx context.Context) {
 		ID:          fmt.Sprintf("load-test-%d", rand.Int63()),
 		Description: "Load test intent",
 		Priority:    randomPriority(),
-		Parameters: json.RawMessage(`{}`),
-		Timestamp: time.Now(),
+		Parameters:  json.RawMessage(`{}`),
+		Timestamp:   time.Now(),
 	}
 
 	// Measure request
@@ -366,4 +366,3 @@ func ExampleLoadTestReport() {
 	fmt.Println("  Memory Usage: 2.3GB")
 	fmt.Println("  Goroutines: 50")
 }
-

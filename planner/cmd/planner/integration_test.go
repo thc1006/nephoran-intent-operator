@@ -33,7 +33,7 @@ func TestEndToEndScenario(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(kmpData)
 	}))
-	defer metricsServer.Close()
+	defer metricsServer.Close() // #nosec G307 - Error handled in defer
 
 	// Create temporary directories for output and state
 	tmpDir := t.TempDir()
@@ -278,7 +278,7 @@ func TestHTTPClientErrorRecovery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverBehavior))
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			_, err := fetchKPMMetrics(server.URL, security.NewValidator(security.DefaultValidationConfig()))
 

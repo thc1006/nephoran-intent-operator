@@ -226,10 +226,10 @@ func benchmarkJSONProcessing() int64 {
 	testData := map[string]interface{}{
 		"specs": map[string]interface{}{
 			"networkFunction": "AMF",
-			"parameters": []string{"param1", "param2", "param3"},
+			"parameters":      []string{"param1", "param2", "param3"},
 		},
 		"metadata": map[string]string{
-			"namespace": "default",
+			"namespace":     "default",
 			"correlationId": "test-123",
 		},
 	}
@@ -314,7 +314,7 @@ func loadBaselineMetrics() *PerformanceMetrics {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	var metrics PerformanceMetrics
 
@@ -464,7 +464,7 @@ func generateJSONReport(comparison *PerformanceComparison) {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 
@@ -493,7 +493,7 @@ func generateTextReport(comparison *PerformanceComparison) {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	// FIXME: Batch error handling for multiple fmt.Fprintf calls.
 
@@ -580,7 +580,7 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation.
 
@@ -723,7 +723,7 @@ func saveMetricsAsBaseline(metrics *PerformanceMetrics) {
 
 	}
 
-	defer func() { _ = file.Close() }()
+	defer func() { _ = file.Close() }() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 

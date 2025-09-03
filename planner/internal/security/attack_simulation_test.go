@@ -663,7 +663,7 @@ func TestHTTPHeaderInjection(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(json.RawMessage(`{}`))
 	}))
-	defer server.Close()
+	defer server.Close() // #nosec G307 - Error handled in defer
 
 	headerInjectionTests := []struct {
 		name        string
@@ -896,4 +896,3 @@ func TestConcurrentAttacks(t *testing.T) {
 		}
 	})
 }
-

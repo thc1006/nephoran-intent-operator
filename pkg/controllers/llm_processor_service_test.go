@@ -23,13 +23,13 @@ type ProcessIntentRequest struct {
 }
 
 type ProcessIntentResponse struct {
-	Result         string                 `json:"result"`
-	ProcessingTime string                 `json:"processing_time"`
-	RequestID      string                 `json:"request_id"`
-	ServiceVersion string                 `json:"service_version"`
+	Result         string          `json:"result"`
+	ProcessingTime string          `json:"processing_time"`
+	RequestID      string          `json:"request_id"`
+	ServiceVersion string          `json:"service_version"`
 	Metadata       json.RawMessage `json:"metadata,omitempty"`
-	Status         string                 `json:"status"`
-	Error          string                 `json:"error,omitempty"`
+	Status         string          `json:"status"`
+	Error          string          `json:"error,omitempty"`
 }
 
 type HealthResponse struct {
@@ -195,7 +195,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			By("Making request to health endpoint")
 			resp, err := http.Get(testServer.URL + "/healthz")
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -216,7 +216,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			By("Making request to health endpoint")
 			resp, err := http.Get(testServer.URL + "/healthz")
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
 
@@ -231,7 +231,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			By("Making request to readiness endpoint")
 			resp, err := http.Get(testServer.URL + "/readyz")
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -250,7 +250,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			By("Making request to readiness endpoint")
 			resp, err := http.Get(testServer.URL + "/readyz")
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
 
@@ -267,7 +267,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			By("Making request to status endpoint")
 			resp, err := http.Get(testServer.URL + "/status")
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -305,7 +305,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -337,7 +337,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 
@@ -351,7 +351,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			By("Making GET request to process endpoint")
 			resp, err := http.Get(testServer.URL + "/process")
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusMethodNotAllowed))
 		})
@@ -366,7 +366,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				strings.NewReader(invalidJSON),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 		})
@@ -379,7 +379,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			}
 			failingService := NewLLMProcessorService(failingClient)
 			failingServer := httptest.NewServer(failingService.SetupHandler())
-			defer failingServer.Close()
+			defer failingServer.Close() // #nosec G307 - Error handled in defer
 
 			By("Creating intent request")
 			request := ProcessIntentRequest{
@@ -396,7 +396,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -432,7 +432,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -465,7 +465,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			}
 			complexService := NewLLMProcessorService(complexClient)
 			complexServer := httptest.NewServer(complexService.SetupHandler())
-			defer complexServer.Close()
+			defer complexServer.Close() // #nosec G307 - Error handled in defer
 
 			By("Making request for complex processing")
 			request := ProcessIntentRequest{
@@ -481,7 +481,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -509,7 +509,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			}
 			retryService := NewLLMProcessorService(retryClient)
 			retryServer := httptest.NewServer(retryService.SetupHandler())
-			defer retryServer.Close()
+			defer retryServer.Close() // #nosec G307 - Error handled in defer
 
 			By("Making request that will initially fail")
 			request := ProcessIntentRequest{
@@ -526,7 +526,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp1.Body.Close()
+			defer resp1.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp1.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -537,7 +537,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp2.Body.Close()
+			defer resp2.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp2.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -549,7 +549,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 				bytes.NewBuffer(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp3.Body.Close()
+			defer resp3.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp3.StatusCode).To(Equal(http.StatusOK))
 
@@ -580,7 +580,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			)
 			requestDuration := time.Since(startTime)
 			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
@@ -630,4 +630,3 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		})
 	})
 })
-

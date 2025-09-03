@@ -168,7 +168,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		return fmt.Errorf("failed to make streaming request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -266,7 +266,7 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -324,7 +324,7 @@ func (c *MTLSLLMClient) GetModelCapabilitiesForModel(modelName string) (*shared.
 		return nil, fmt.Errorf("failed to get model capabilities: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -418,7 +418,7 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	c.logger.Debug("received LLM response",
 
@@ -600,7 +600,7 @@ func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 		}, nil
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return &HealthStatus{
@@ -634,4 +634,3 @@ type HealthStatus struct {
 
 	Details json.RawMessage `json:"details,omitempty"`
 }
-

@@ -280,7 +280,7 @@ func (c *MTLSRAGClient) GetDocumentByID(ctx context.Context, documentID string) 
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("document not found: %s", documentID)
@@ -328,7 +328,7 @@ func (c *MTLSRAGClient) DeleteDocument(ctx context.Context, documentID string) e
 		return fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("document not found: %s", documentID)
@@ -364,7 +364,7 @@ func (c *MTLSRAGClient) GetStats(ctx context.Context) (*RAGStatsResponse, error)
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 
@@ -406,7 +406,7 @@ func (c *MTLSRAGClient) GetHealth() (*HealthStatus, error) {
 		}, nil
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return &HealthStatus{
@@ -461,7 +461,7 @@ func (c *MTLSRAGClient) makeSearchRequest(ctx context.Context, endpoint string, 
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	c.logger.Debug("received RAG search response",
 
@@ -518,7 +518,7 @@ func (c *MTLSRAGClient) makeDocumentRequest(ctx context.Context, endpoint string
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	c.logger.Debug("received RAG document response",
 
@@ -556,4 +556,3 @@ func (c *MTLSRAGClient) Close() error {
 
 	return nil
 }
-

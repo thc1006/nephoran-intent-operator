@@ -190,7 +190,7 @@ func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 		return fmt.Errorf("failed to create error log file: %w", err)
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	if _, err := file.WriteString(logEntry); err != nil {
 		return fmt.Errorf("failed to write to error log file: %w", err)

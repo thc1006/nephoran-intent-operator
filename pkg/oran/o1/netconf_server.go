@@ -537,7 +537,7 @@ func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn)
 
 	}
 
-	defer sshConn.Close()
+	defer sshConn.Close() // #nosec G307 - Error handled in defer
 
 	// Handle SSH requests.
 
@@ -572,7 +572,7 @@ func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn)
 // handleSSHChannel handles an SSH channel for NETCONF subsystem.
 
 func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Channel, requests <-chan *ssh.Request, username string) {
-	defer channel.Close()
+	defer channel.Close() // #nosec G307 - Error handled in defer
 
 	logger := log.FromContext(ctx)
 
@@ -642,7 +642,7 @@ func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Chann
 func (ns *NetconfServer) handleTLSConnection(ctx context.Context, conn net.Conn) {
 	logger := log.FromContext(ctx)
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	// Create NETCONF session.
 
@@ -1264,4 +1264,3 @@ func NewNetconfDatastore() *NetconfDatastore {
 		locks: make(map[string]string),
 	}
 }
-

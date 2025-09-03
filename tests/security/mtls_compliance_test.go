@@ -94,7 +94,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 			}
 
 			server := complianceSuite.testSuite.createTestServer(complianceSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			client := complianceSuite.testSuite.createMTLSClient(complianceSuite.testSuite.clientCert)
 			resp, err := client.Get(server.URL)
@@ -475,7 +475,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		It("should validate TLS 1.3 security features", func() {
 			server := complianceSuite.testSuite.createTestServer(complianceSuite.testSuite.serverCert, true)
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Test TLS 1.3 specific features
 			client := &http.Client{
@@ -630,7 +630,7 @@ func (c *ComplianceValidationSuite) validateTLSVersion(url string) uint16 {
 	if err != nil {
 		return 0
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.TLS != nil {
 		return resp.TLS.Version

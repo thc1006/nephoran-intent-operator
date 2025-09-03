@@ -45,8 +45,7 @@ func createTestPolicyInstance() *PolicyInstance {
 		PolicyID:     "test-policy-1",
 		PolicyTypeID: 1,
 		PolicyData: map[string]interface{}{
-				"ue_id": "test-ue-123",
-			},
+			"ue_id":     "test-ue-123",
 			"statement": json.RawMessage(`{}`),
 		},
 		PolicyInfo: PolicyInstanceInfo{

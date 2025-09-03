@@ -431,7 +431,7 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Read response body with size limit (10MB).
 

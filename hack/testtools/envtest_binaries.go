@@ -384,7 +384,7 @@ func (ebm *EnvtestBinaryManager) regularCopy(src, dest string) error {
 
 	}
 
-	defer sourceFile.Close()
+	defer sourceFile.Close() // #nosec G307 - Error handled in defer
 
 	destFile, err := os.Create(dest)
 
@@ -394,7 +394,7 @@ func (ebm *EnvtestBinaryManager) regularCopy(src, dest string) error {
 
 	}
 
-	defer destFile.Close()
+	defer destFile.Close() // #nosec G307 - Error handled in defer
 
 	_, err = destFile.ReadFrom(sourceFile)
 

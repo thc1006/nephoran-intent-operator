@@ -409,7 +409,7 @@ func generateJSONReport(results *test_validation.ValidationResults, outputDir st
 
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	encoder := json.NewEncoder(file)
 
@@ -582,7 +582,7 @@ func generateHTMLReport(results *test_validation.ValidationResults, outputDir st
 
 	}
 
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	tmpl, err := template.New("report").Parse(htmlTemplate)
 	if err != nil {

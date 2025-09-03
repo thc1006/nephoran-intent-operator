@@ -56,7 +56,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Create intent files that will be processed
 	intentFiles := []string{
@@ -169,7 +169,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Test different error scenarios
 	testCases := []struct {
@@ -216,7 +216,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create new watcher: %v", err)
 			}
-			defer newWatcher.Close()
+			defer newWatcher.Close() // #nosec G307 - Error handled in defer
 
 			// Set graceful shutdown state if needed
 			if tc.gracefulShutdown {

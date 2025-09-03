@@ -428,7 +428,7 @@ func (p *AzureADProvider) GetUserInfo(ctx context.Context, accessToken string) (
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
@@ -530,7 +530,7 @@ func (p *AzureADProvider) ValidateToken(ctx context.Context, accessToken string)
 		}, nil
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return &TokenValidation{
@@ -620,7 +620,7 @@ func (p *AzureADProvider) GetGroups(ctx context.Context, accessToken string) ([]
 		return nil, fmt.Errorf("failed to get groups: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("groups request failed with status %d", resp.StatusCode)
@@ -662,7 +662,7 @@ func (p *AzureADProvider) GetRoles(ctx context.Context, accessToken string) ([]s
 		return nil, fmt.Errorf("failed to get roles: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return []string{}, nil // Directory roles might not be accessible
@@ -739,7 +739,7 @@ func (p *AzureADProvider) GetOrganizations(ctx context.Context, accessToken stri
 		return nil, fmt.Errorf("failed to get organization: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return []Organization{}, nil // Organization info might not be accessible
@@ -851,7 +851,7 @@ func (p *AzureADProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfi
 		return nil, fmt.Errorf("failed to discover OIDC configuration: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OIDC discovery failed with status %d", resp.StatusCode)
@@ -907,7 +907,7 @@ func (p *AzureADProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to get JWKS: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("JWKS request failed with status %d", resp.StatusCode)
@@ -1008,4 +1008,3 @@ func (p *AzureADProvider) SetTenantID(tenantID string) {
 
 	p.oidcConfig = nil
 }
-

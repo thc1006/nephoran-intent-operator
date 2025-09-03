@@ -147,13 +147,13 @@ func TestValidateIntentMap(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "Valid Intent Map",
-			intentMap: json.RawMessage(`{}`),
+			name:        "Valid Intent Map",
+			intentMap:   map[string]interface{}{"valid": "intent"},
 			expectError: false,
 		},
 		{
-			name: "Invalid Intent Map",
-			intentMap: json.RawMessage(`{}`),
+			name:        "Invalid Intent Map",
+			intentMap:   map[string]interface{}{"invalid": nil},
 			expectError: true,
 		},
 	}

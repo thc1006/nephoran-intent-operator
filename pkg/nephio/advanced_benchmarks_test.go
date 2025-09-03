@@ -745,7 +745,6 @@ func generateResourceSpec(sizeBytes int) map[string]interface{} {
 						"ports": []json.RawMessage{json.RawMessage(`{}`)},
 					},
 				},
-				},
 			},
 		},
 	}

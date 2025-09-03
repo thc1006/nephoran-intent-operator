@@ -31,9 +31,8 @@ limitations under the License.
 package krm
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"io"
 	"os"
@@ -1325,7 +1324,7 @@ func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req
 		}
 
 		go func() {
-			defer stdin.Close()
+			defer stdin.Close() // #nosec G307 - Error handled in defer
 
 			stdin.Write(req.Stdin)
 		}()

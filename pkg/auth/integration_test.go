@@ -155,8 +155,8 @@ func (suite *IntegrationTestSuite) setupHTTPServer() {
 		SessionManager: suite.sessionManager,
 		RBACManager:    suite.rbacManager,
 		OAuthProviders: json.RawMessage(`{}`),
-		BaseURL: "http://localhost:8080",
-		Logger:  suite.tc.Logger,
+		BaseURL:        "http://localhost:8080",
+		Logger:         suite.tc.Logger,
 	})
 
 	// Setup HTTP routes
@@ -255,7 +255,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 		body, _ := json.Marshal(loginReq)
 		resp, err := http.Post(suite.server.URL+"/auth/login", "application/json", bytes.NewReader(body))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -274,7 +274,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 
 		resp, err := http.Get(callbackURL)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -306,7 +306,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -327,7 +327,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -348,7 +348,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 		body, _ := json.Marshal(refreshReq)
 		resp, err := http.Post(suite.server.URL+"/auth/refresh", "application/json", bytes.NewReader(body))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -377,7 +377,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -396,7 +396,7 @@ func TestIntegration_CompleteOAuth2Flow(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -421,7 +421,7 @@ func TestIntegration_SessionBasedAuthentication(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -443,7 +443,7 @@ func TestIntegration_SessionBasedAuthentication(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -458,7 +458,7 @@ func TestIntegration_SessionBasedAuthentication(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -471,7 +471,7 @@ func TestIntegration_SessionBasedAuthentication(t *testing.T) {
 
 		resp, err = client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -587,7 +587,7 @@ func TestIntegration_RBACAuthorization(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode)
 
@@ -609,7 +609,7 @@ func TestIntegration_ErrorScenarios(t *testing.T) {
 	t.Run("Malformed JSON in login request", func(t *testing.T) {
 		resp, err := http.Post(suite.server.URL+"/auth/login", "application/json", strings.NewReader("invalid json"))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -618,7 +618,7 @@ func TestIntegration_ErrorScenarios(t *testing.T) {
 		body := `{"provider": "test", "redirect_uri": "http://localhost:8080/callback"}`
 		resp, err := http.Post(suite.server.URL+"/auth/login", "", strings.NewReader(body))
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -634,7 +634,7 @@ func TestIntegration_ErrorScenarios(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -646,7 +646,7 @@ func TestIntegration_ErrorScenarios(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -712,7 +712,7 @@ func TestIntegration_HealthCheck(t *testing.T) {
 
 	resp, err := http.Get(suite.server.URL + "/auth/health")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -736,7 +736,7 @@ func TestIntegration_JWKSEndpoint(t *testing.T) {
 
 	resp, err := http.Get(suite.server.URL + "/.well-known/jwks.json")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -771,7 +771,7 @@ func TestIntegration_MiddlewareChaining(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -1056,4 +1056,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-

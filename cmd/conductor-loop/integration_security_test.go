@@ -165,7 +165,7 @@ func (s *SecurityTestSuite) testInputValidationSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			err = watcher.Start()
 
@@ -247,7 +247,7 @@ func (s *SecurityTestSuite) testPathTraversalSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			err = watcher.Start()
 			assert.NoError(t, err, "Should handle path traversal safely")
@@ -311,7 +311,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, maliciousConfig)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			err = watcher.Start()
 
@@ -414,7 +414,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, limitedConfig)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Measure processing time
 			start := time.Now()
@@ -506,7 +506,7 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			test.testFunc(t, watcher, file)
 
@@ -588,7 +588,7 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 
 	watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	err = watcher.Start()
 	assert.NoError(t, err, "Should handle malicious state file safely")

@@ -19,7 +19,7 @@ func TestIsProcessedRobustToENOENT(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("NonExistentFileReturnsNotProcessedNoError", func(t *testing.T) {
 		// When checking a file that doesn't exist and has no state entry,

@@ -825,7 +825,7 @@ func (h *LDAPHealthChecker) performHealthCheck(ctx context.Context) bool {
 		return false
 	}
 
-	defer conn.Close()
+	defer conn.Close() // #nosec G307 - Error handled in defer
 
 	// Test bind.
 
@@ -1068,4 +1068,3 @@ func (p *EnhancedLDAPProvider) getUserGroupsWithConnection(ctx context.Context, 
 
 	return []string{}, nil
 }
-

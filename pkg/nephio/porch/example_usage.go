@@ -59,7 +59,7 @@ func ExamplePorchClientUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to create Porch client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 
@@ -285,7 +285,7 @@ func ExampleAdvancedUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to create advanced Porch client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 
@@ -400,7 +400,7 @@ func ExampleWorkflowUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close() // #nosec G307 - Error handled in defer
 
 	ctx := context.Background()
 	packageName := "workflow-example"

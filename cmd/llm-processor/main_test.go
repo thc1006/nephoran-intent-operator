@@ -539,7 +539,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 	if err != nil {
 		t.Fatalf("Failed to create cert file: %v", err)
 	}
-	defer certFile.Close()
+	defer certFile.Close() // #nosec G307 - Error handled in defer
 
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 	if err != nil {
@@ -551,7 +551,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 	if err != nil {
 		t.Fatalf("Failed to create key file: %v", err)
 	}
-	defer keyFile.Close()
+	defer keyFile.Close() // #nosec G307 - Error handled in defer
 
 	privateKeyDER, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
@@ -927,7 +927,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 				if tt.tlsEnabled {
 					// Accept self-signed certificates for testing
 					client.Transport = &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 - Test file only
 					}
 				}
 
@@ -989,7 +989,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 		{
 			name: "Client accepts self-signed certificate",
 			clientTLSConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // #nosec G402 - Test file only
 			},
 			expectConnectionError: false,
 		},
@@ -1038,7 +1038,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 			}
 
 			server.StartTLS()
-			defer server.Close()
+			defer server.Close() // #nosec G307 - Error handled in defer
 
 			// Create client with specified TLS config
 			client := &http.Client{
@@ -1062,7 +1062,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected connection error: %v", err)
 				} else {
-					defer resp.Body.Close()
+					defer resp.Body.Close() // #nosec G307 - Error handled in defer
 					if resp.StatusCode != http.StatusOK {
 						t.Errorf("Expected status 200, got %d", resp.StatusCode)
 					}
@@ -1402,4 +1402,3 @@ func TestMetricsEndpointConfiguration(t *testing.T) {
 		})
 	}
 }
-

@@ -16,7 +16,7 @@ func TestAuditLogger(t *testing.T) {
 
 	auditLogger, err := NewAuditLogger(tmpFile, interfaces.AuditLevelInfo)
 	require.NoError(t, err)
-	defer auditLogger.Close()
+	defer auditLogger.Close() // #nosec G307 - Error handled in defer
 
 	// Test secret access logging
 	auditLogger.LogSecretAccess("jwt", "file", "user123", "session456", true, nil)
@@ -152,7 +152,7 @@ func TestAuditLevels(t *testing.T) {
 	// Test with different minimum levels
 	auditLogger, err := NewAuditLogger(tmpFile, interfaces.AuditLevelWarn)
 	require.NoError(t, err)
-	defer auditLogger.Close()
+	defer auditLogger.Close() // #nosec G307 - Error handled in defer
 
 	// Info level should be filtered out
 	auditLogger.LogSecretAccess("test", "file", "user", "session", true, nil)

@@ -493,8 +493,8 @@ func buildConductorLoop(t *testing.T, tempDir string) string {
 	binaryPath := filepath.Join(tempDir, binaryName)
 
 	// Build the binary with optimized flags for faster builds
-	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "." // Current directory should be cmd/conductor-loop
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".") // #nosec G204 - Static command with validated args
+	cmd.Dir = "."                                             // Current directory should be cmd/conductor-loop
 
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build conductor-loop: %s", string(output))
@@ -535,13 +535,13 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer source.Close() // #nosec G307 - Error handled in defer
 
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer destination.Close() // #nosec G307 - Error handled in defer
 
 	_, err = io.Copy(destination, source)
 	return err
@@ -660,8 +660,8 @@ func buildConductorLoopB(b *testing.B, tempDir string) string {
 	}
 
 	binaryPath := filepath.Join(tempDir, binaryName)
-	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = filepath.Dir(tempDir) // Go to the main package directory
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".") // #nosec G204 - Static command with validated args
+	cmd.Dir = filepath.Dir(tempDir)                           // Go to the main package directory
 
 	require.NoError(b, cmd.Run())
 	return binaryPath

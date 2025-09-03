@@ -18,6 +18,7 @@ package parallel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sync"

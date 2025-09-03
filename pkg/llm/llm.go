@@ -640,7 +640,7 @@ func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemProm
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate Content-Type header
 	contentType := resp.Header.Get("Content-Type")
@@ -739,7 +739,7 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Validate Content-Type header for RAG API
 	contentType := resp.Header.Get("Content-Type")

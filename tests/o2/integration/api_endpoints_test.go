@@ -45,9 +45,9 @@ func (suite *O2APITestSuite) SetupSuite() {
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
-		ServerAddress: "127.0.0.1",
-		ServerPort:    0,
-		TLSEnabled:    false,
+		ServerAddress:  "127.0.0.1",
+		ServerPort:     0,
+		TLSEnabled:     false,
 		DatabaseConfig: json.RawMessage(`{}`),
 		ProviderConfigs: map[string]interface{}{
 			"enabled": true,
@@ -277,7 +277,7 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL"},
-			Capabilities: json.RawMessage(`{}`),
+			Capabilities:     json.RawMessage(`{}`),
 		}
 
 		typeJSON, err := json.Marshal(resourceType)
@@ -367,7 +367,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 			OperationalStatus:    "ENABLED",
 			AdministrativeStatus: "UNLOCKED",
 			UsageStatus:          "ACTIVE",
-			Metadata: json.RawMessage(`{}`),
+			Metadata:             json.RawMessage(`{}`),
 		}
 
 		instanceJSON, err := json.Marshal(instance)
@@ -653,7 +653,7 @@ func (suite *O2APITestSuite) TestConcurrentOperations() {
 					errors <- err
 					return
 				}
-				defer resp.Body.Close()
+				defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 				if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
 					successes <- poolID
@@ -685,4 +685,3 @@ func (suite *O2APITestSuite) TestConcurrentOperations() {
 func TestO2APIIntegration(t *testing.T) {
 	suite.Run(t, new(O2APITestSuite))
 }
-

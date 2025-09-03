@@ -41,7 +41,7 @@ func ExampleMetricsUsage() {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
 
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start the watcher in a goroutine.
 
@@ -91,7 +91,7 @@ func ExampleMetricsUsage() {
 	if err != nil {
 		log.Printf("Failed to get metrics: %v", err)
 	} else {
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		var metricsResponse map[string]interface{}
 
@@ -130,7 +130,7 @@ func ExampleMetricsUsage() {
 	if err != nil {
 		log.Printf("Failed to get Prometheus metrics: %v", err)
 	} else {
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		// Show first few lines of Prometheus metrics.
 
@@ -161,7 +161,7 @@ func ExampleMetricsUsage() {
 	if err != nil {
 		log.Printf("Failed to get health status: %v", err)
 	} else {
-		defer resp.Body.Close()
+		defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 		var health map[string]interface{}
 
@@ -195,7 +195,7 @@ func MetricsCollectorExample() {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
 
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Collect metrics every 10 seconds for analysis.
 

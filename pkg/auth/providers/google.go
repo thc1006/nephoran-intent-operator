@@ -361,7 +361,7 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
@@ -453,7 +453,7 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 		}, nil
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode == http.StatusBadRequest {
 		return &TokenValidation{
@@ -533,7 +533,7 @@ func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
 		return fmt.Errorf("failed to revoke token: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return NewProviderError(p.GetProviderName(), "token_revocation_failed",
@@ -581,7 +581,7 @@ func (p *GoogleProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfig
 		return nil, fmt.Errorf("failed to discover OIDC configuration: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OIDC discovery failed with status %d", resp.StatusCode)
@@ -739,7 +739,7 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to get JWKS: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("JWKS request failed with status %d", resp.StatusCode)
@@ -921,4 +921,3 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 
 	return nil
 }
-

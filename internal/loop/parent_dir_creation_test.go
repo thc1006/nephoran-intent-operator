@@ -26,7 +26,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		// Create StateManager with the nested path
 		sm, err := NewStateManager(nestedDir)
 		require.NoError(t, err, "StateManager creation should succeed")
-		defer sm.Close()
+		defer sm.Close() // #nosec G307 - Error handled in defer
 
 		// Create the directory first and then create a test file
 		require.NoError(t, os.MkdirAll(nestedDir, 0o755))
@@ -64,7 +64,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		// Create watcher
 		watcher, err := NewWatcher(watchDir, config)
 		require.NoError(t, err, "Watcher creation should succeed")
-		defer watcher.Close()
+		defer watcher.Close() // #nosec G307 - Error handled in defer
 
 		// Create an intent file that will trigger status file creation
 		intentFile := filepath.Join(watchDir, "test-intent.json")

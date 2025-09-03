@@ -31,9 +31,8 @@ limitations under the License.
 package disaster
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -946,7 +945,7 @@ func (h *HTTPHealthChecker) CheckHealth(ctx context.Context) error {
 		return fmt.Errorf("failed to perform health check: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("health check failed with status %d", resp.StatusCode)
@@ -1273,4 +1272,3 @@ func (drm *DisasterRecoveryManager) waitForStatefulSetReady(ctx context.Context,
 
 	}
 }
-

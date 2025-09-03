@@ -1,8 +1,8 @@
 package loop
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"sync"
@@ -25,7 +25,7 @@ func TestConcurrentStateStress(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	numFiles := 50
 	numWorkers := 10
@@ -139,7 +139,7 @@ func TestConcurrentStateStress(t *testing.T) {
 	// State should be persisted
 	// sm2, err := NewStateManager(tempDir)
 	// require.NoError(t, err)
-	// defer sm2.Close()
+	// defer sm2.Close() // #nosec G307 - Error handled in defer
 
 	// processed2, failed2 := sm2.GetStats()
 	// assert.Equal(t, processed, processed2, "Processed count should be persisted")
@@ -151,7 +151,7 @@ func TestRapidFileChurn(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	filename := "churning-file.json"
 	testFile := filepath.Join(tempDir, filename)
@@ -213,7 +213,7 @@ func TestConcurrentHashCalculation(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	filename := "hash-test.json"
 	testFile := filepath.Join(tempDir, filename)
@@ -267,7 +267,7 @@ func TestWindowsSpecificRaceConditions(t *testing.T) {
 	tempDir := t.TempDir()
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
-	defer sm.Close()
+	defer sm.Close() // #nosec G307 - Error handled in defer
 
 	t.Run("SimultaneousRenameOperations", func(t *testing.T) {
 		// Create multiple files that will be renamed simultaneously

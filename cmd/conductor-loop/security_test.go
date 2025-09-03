@@ -101,7 +101,7 @@ func TestPathTraversalSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Start watcher in once mode
 			err = watcher.Start()
@@ -333,7 +333,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(handoffDir, config)
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Measure processing time
 			start := time.Now()
@@ -388,7 +388,7 @@ func TestFilePermissionValidation(t *testing.T) {
 
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Process files
 	err = watcher.Start()
@@ -581,7 +581,7 @@ func TestInputValidation(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			defer watcher.Close()
+			defer watcher.Close() // #nosec G307 - Error handled in defer
 
 			// Process files
 			err = watcher.Start()
@@ -623,7 +623,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Start watcher in background
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)

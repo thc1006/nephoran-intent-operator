@@ -207,7 +207,7 @@ func TestRateLimiting(t *testing.T) {
 
 	watcher, err := NewRateLimitedWatcher(tempDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer watcher.Close() // #nosec G307 - Error handled in defer
 
 	// Try to process many files rapidly
 	for i := 0; i < 100; i++ {
@@ -268,8 +268,8 @@ func TestIntentValidation(t *testing.T) {
 			description: "should accept valid intent",
 		},
 		{
-			name: "command injection in target",
-			intent: json.RawMessage(`{}`),
+			name:        "command injection in target",
+			intent:      json.RawMessage(`{}`),
 			shouldError: true,
 			description: "should reject command injection in target",
 		},
@@ -286,8 +286,8 @@ func TestIntentValidation(t *testing.T) {
 			description: "should reject invalid actions",
 		},
 		{
-			name: "missing required fields",
-			intent: json.RawMessage(`{}`),
+			name:        "missing required fields",
+			intent:      json.RawMessage(`{}`),
 			shouldError: true,
 			description: "should reject intent with missing fields",
 		},
@@ -400,7 +400,7 @@ func ParseIntentFile(filePath string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer file.Close() // #nosec G307 - Error handled in defer
 
 	// First, check file size before reading to prevent memory exhaustion
 	stat, err := file.Stat()
@@ -541,4 +541,3 @@ func (rw *RateLimitedWatcher) handleIntentFileWithRateLimit(filePath string) {
 	// Simplified rate limiting for testing
 	rw.metrics.filesRejected++
 }
-

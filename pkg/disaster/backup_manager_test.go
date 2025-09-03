@@ -256,7 +256,7 @@ func (suite *BackupManagerTestSuite) TestBackupResourceType_ConfigMap() {
 	// Create a real tar writer with buffer for testing
 	var buf bytes.Buffer
 	tarWriter := tar.NewWriter(&buf)
-	defer tarWriter.Close()
+	defer tarWriter.Close() // #nosec G307 - Error handled in defer
 
 	resourceType := ResourceType{
 		APIVersion: "v1",
@@ -281,7 +281,7 @@ func (suite *BackupManagerTestSuite) TestBackupResourceType_Secret_WithMasking()
 	// Create a real tar writer with buffer for testing
 	var buf bytes.Buffer
 	tarWriter := tar.NewWriter(&buf)
-	defer tarWriter.Close()
+	defer tarWriter.Close() // #nosec G307 - Error handled in defer
 
 	resourceType := ResourceType{
 		APIVersion: "v1",
@@ -306,7 +306,7 @@ func (suite *BackupManagerTestSuite) TestBackupResourceType_Secret_WithoutSecret
 	// Create a real tar writer with buffer for testing
 	var buf bytes.Buffer
 	tarWriter := tar.NewWriter(&buf)
-	defer tarWriter.Close()
+	defer tarWriter.Close() // #nosec G307 - Error handled in defer
 
 	resourceType := ResourceType{
 		APIVersion: "v1",

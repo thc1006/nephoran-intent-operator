@@ -32,7 +32,7 @@ func TestProviderFactory(t *testing.T) {
 
 	// Test creating provider
 	config := ProviderConfig{
-		Type: "test",
+		Type:   "test",
 		Config: json.RawMessage(`{}`),
 	}
 
@@ -70,7 +70,7 @@ func TestMockProvider(t *testing.T) {
 
 	// Initialize provider
 	config := ProviderConfig{
-		Type: "mock",
+		Type:   "mock",
 		Config: json.RawMessage(`{}`),
 	}
 
@@ -92,7 +92,7 @@ func TestResourceOperations(t *testing.T) {
 
 	// Initialize provider
 	config := ProviderConfig{
-		Type: "mock",
+		Type:   "mock",
 		Config: json.RawMessage(`{}`),
 	}
 
@@ -100,7 +100,7 @@ func TestResourceOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize provider: %v", err)
 	}
-	defer provider.Close()
+	defer provider.Close() // #nosec G307 - Error handled in defer
 
 	// Test CreateResource
 	req := ResourceRequest{
@@ -232,7 +232,7 @@ func TestProviderRegistry(t *testing.T) {
 
 	// Test CreateAndRegisterProvider
 	config := ProviderConfig{
-		Type: "mock",
+		Type:   "mock",
 		Config: json.RawMessage(`{}`),
 	}
 
@@ -361,7 +361,7 @@ func TestGlobalFactory(t *testing.T) {
 
 	// Test creating provider using global factory
 	config := ProviderConfig{
-		Type: "mock",
+		Type:   "mock",
 		Config: json.RawMessage(`{}`),
 	}
 
@@ -377,4 +377,3 @@ func TestGlobalFactory(t *testing.T) {
 	// Clean up
 	provider.Close()
 }
-

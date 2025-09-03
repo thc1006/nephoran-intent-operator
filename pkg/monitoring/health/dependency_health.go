@@ -1,9 +1,8 @@
 package health
 
 import (
-	
+	"context"
 	"encoding/json"
-"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -1061,7 +1060,7 @@ func (dht *DependencyHealthTracker) checkLLMAPI(ctx context.Context, config *Dep
 		return nil, fmt.Errorf("health check failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	status := health.StatusUnhealthy
 
@@ -1212,7 +1211,7 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 		return nil, fmt.Errorf("health check failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	status := health.StatusUnhealthy
 

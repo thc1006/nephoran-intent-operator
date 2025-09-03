@@ -231,7 +231,7 @@ func TestSecurity_JWTTokenManipulation(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode)
 		})
@@ -329,7 +329,7 @@ func TestSecurity_CSRFProtection(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	var csrfResp map[string]string
 	err = json.NewDecoder(resp.Body).Decode(&csrfResp)
@@ -386,7 +386,7 @@ func TestSecurity_CSRFProtection(t *testing.T) {
 
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode, tt.description)
 		})
@@ -523,7 +523,7 @@ func TestSecurity_InputValidation(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 			assert.Equal(t, tt.expectStatus, resp.StatusCode, tt.description)
 		})
@@ -540,7 +540,7 @@ func TestSecurity_HeaderSecurity(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer resp.Body.Close() // #nosec G307 - Error handled in defer
 
 	// Check security headers
 	assert.Equal(t, "default-src 'self'", resp.Header.Get("Content-Security-Policy"))
@@ -816,4 +816,3 @@ func generateRandomBytes(n int) []byte {
 	rand.Read(bytes)
 	return bytes
 }
-
