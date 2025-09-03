@@ -191,7 +191,7 @@ permissions:
 ### Security Scanning Integration
 ```yaml
 - name: Security scan - gosec
-  uses: securecodewarrior/github-action-gosec@master
+  uses: securego/gosec@master
   with:
     args: '-fmt sarif -out gosec.sarif ./...'
 
