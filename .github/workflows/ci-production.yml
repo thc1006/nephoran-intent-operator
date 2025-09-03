@@ -283,16 +283,50 @@ jobs:
           retention-days: 7
 
   # =============================================================================
-  # STAGE 4: Full Build (conditional, parallel by component type)
+  # STAGE 4: Full Build Check (always reports status)
   # =============================================================================
-  full-build:
-    name: "🏗️ Full Build (${{ matrix.build-target }})"
+  full-build-check:
+    name: "🏗️ Full Build Check"
     needs: [preflight, test-matrix]
     runs-on: ubuntu-latest
+    timeout-minutes: 1
+    if: always() && needs.preflight.outputs.should-build == 'true'
+    
+    steps:
+      - name: Determine full build requirement
+        run: |
+          SHOULD_BUILD_FULL="false"
+          if [ "${{ github.event.inputs.build_mode }}" = "full" ] || \
+             [ "${{ github.ref }}" = "refs/heads/main" ] || \
+             [[ "${{ github.ref }}" == *"integrate/"* ]]; then
+            SHOULD_BUILD_FULL="true"
+          fi
+          
+          echo "should_build_full=${SHOULD_BUILD_FULL}" >> $GITHUB_OUTPUT
+          
+          if [ "$SHOULD_BUILD_FULL" = "true" ]; then
+            echo "✅ Full build will be executed for this branch/trigger"
+            echo "**Full Build**: Required for main/integrate branches" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚡ Full build skipped - feature branch optimization enabled"
+            echo "**Full Build**: Skipped (feature branch optimization)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💡 **Note**: Full builds are executed only for:" >> $GITHUB_STEP_SUMMARY
+            echo "- main branch pushes" >> $GITHUB_STEP_SUMMARY
+            echo "- integrate/* branch pushes" >> $GITHUB_STEP_SUMMARY
+            echo "- Manual workflows with build_mode=full" >> $GITHUB_STEP_SUMMARY
+          fi
+        id: build-check
+        
+    outputs:
+      should_build_full: ${{ steps.build-check.outputs.should_build_full }}
+
+  full-build:
+    name: "🏗️ Full Build (${{ matrix.build-target }})"
+    needs: [full-build-check]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: |
-      needs.preflight.outputs.should-build == 'true' && 
-      (github.event.inputs.build_mode == 'full' || github.ref == 'refs/heads/main' || contains(github.ref, 'integrate/'))
+    if: needs.full-build-check.outputs.should_build_full == 'true'
     
     strategy:
       fail-fast: false
@@ -440,7 +474,7 @@ jobs:
   # =============================================================================
   ci-status:
     name: "📊 CI Status Report"
-    needs: [preflight, fast-validation, test-matrix, integration-check]
+    needs: [preflight, fast-validation, test-matrix, integration-check, full-build-check]
     runs-on: ubuntu-latest
     if: always()
     
@@ -460,6 +494,7 @@ jobs:
           echo "- Fast Validation: ${{ needs.fast-validation.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Test Matrix: ${{ needs.test-matrix.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Integration: ${{ needs.integration-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Full Build Check: ${{ needs.full-build-check.result }}" >> $GITHUB_STEP_SUMMARY
           
       - name: Determine final status
         run: |
@@ -467,13 +502,15 @@ jobs:
           if [ "${{ needs.preflight.result }}" = "failure" ] || \
              [ "${{ needs.fast-validation.result }}" = "failure" ] || \
              [ "${{ needs.test-matrix.result }}" = "failure" ] || \
-             [ "${{ needs.integration-check.result }}" = "failure" ]; then
+             [ "${{ needs.integration-check.result }}" = "failure" ] || \
+             [ "${{ needs.full-build-check.result }}" = "failure" ]; then
             echo "💥 CI Pipeline Failed - Check job results above"
             echo "**Status: FAILED** ❌" >> $GITHUB_STEP_SUMMARY
             exit 1
           elif [ "${{ needs.fast-validation.result }}" = "success" ] && \
                [ "${{ needs.test-matrix.result }}" = "success" ] && \
-               [ "${{ needs.integration-check.result }}" = "success" ]; then
+               [ "${{ needs.integration-check.result }}" = "success" ] && \
+               [ "${{ needs.full-build-check.result }}" = "success" ]; then
             echo "✅ CI Pipeline Passed Successfully!"
             echo "**Status: PASSED** ✅" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -482,6 +519,11 @@ jobs:
             echo "- ✅ All test suites passed" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Build optimization prevented timeouts" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ needs.full-build-check.outputs.should_build_full }}" = "true" ]; then
+              echo "- 🏗️ Full build executed for production branch" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ⚡ Fast build used for feature branch" >> $GITHUB_STEP_SUMMARY
+            fi
           else
             echo "⚠️  CI Pipeline completed with warnings"
             echo "**Status: PARTIAL** ⚠️" >> $GITHUB_STEP_SUMMARY
