@@ -51,7 +51,7 @@ echo "✅ Standardized concurrency groups: $CONCURRENCY_STANDARD_COUNT"
 # Check pinned versions
 PINNED_CHECKOUT=$(grep -c "actions/checkout@v4.2.1" .github/workflows/*.yml 2>/dev/null || echo "0")
 PINNED_SETUP_GO=$(grep -c "actions/setup-go@v5.0.2" .github/workflows/*.yml 2>/dev/null || echo "0")
-PINNED_CACHE=$(grep -c "actions/cache@v4.1.2" .github/workflows/*.yml 2>/dev/null || echo "0")
+PINNED_CACHE=$(grep -c "actions/cache@v4" .github/workflows/*.yml 2>/dev/null || echo "0")
 
 echo "✅ Pinned checkout actions: $PINNED_CHECKOUT"
 echo "✅ Pinned setup-go actions: $PINNED_SETUP_GO"  

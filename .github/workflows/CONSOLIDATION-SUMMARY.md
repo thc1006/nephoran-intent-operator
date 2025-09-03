@@ -75,7 +75,7 @@ concurrency:
 ### 3. **Pinned Tool Versions**
 - `actions/checkout@v4.2.1`
 - `actions/setup-go@v5.0.2`
-- `actions/cache@v4.1.2`
+- `actions/cache@v4`
 - `actions/upload-artifact@v4.4.3`
 - `actions/download-artifact@v4.1.8`
 

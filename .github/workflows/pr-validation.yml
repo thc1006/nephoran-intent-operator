@@ -93,7 +93,7 @@ jobs:
           echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
 
       - name: Cache Go modules and build cache (STANDARDIZED)
-        uses: actions/cache@v4.1.2  # PINNED VERSION
+        uses: actions/cache@v4  # LATEST STABLE VERSION
         with:
           path: |
             ~/.cache/go-build
