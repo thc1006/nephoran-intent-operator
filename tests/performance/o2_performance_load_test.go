@@ -105,15 +105,23 @@ func (pm *PerformanceMetrics) GetStatistics() map[string]interface{} {
 	p95 := sortedDurations[count*95/100]
 	p99 := sortedDurations[count*99/100]
 
+	meanDuration := time.Duration(atomic.LoadInt64(&pm.totalDuration) / int64(count))
+	minDuration := time.Duration(pm.minDuration)
+	maxDuration := time.Duration(pm.maxDuration)
+	
+	// Calculate error rate
+	errorRate := float64(atomic.LoadInt64(&pm.errorCount)) / float64(count) * 100
+
 	return map[string]interface{}{
-		"count": count,
-		"mean":  mean,
-		"min":   min,
-		"max":   max,
-		"p50":   p50,
-		"p95":   p95,
-		"p99":   p99,
-		"errors": atomic.LoadInt64(&pm.errorCount),
+		"requestCount":  int64(count),
+		"avgDuration":   meanDuration,
+		"minDuration":   minDuration,
+		"maxDuration":   maxDuration,
+		"p50Duration":   p50,
+		"p95Duration":   p95,
+		"p99Duration":   p99,
+		"errorCount":    atomic.LoadInt64(&pm.errorCount),
+		"errorRate":     errorRate,
 	}
 }
 
@@ -245,7 +253,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								Utilization: 20.0,
 							},
 						},
-						Extensions: json.RawMessage(`{}`),
+						Extensions: map[string]interface{}{},
 					}
 
 					poolJSON, err := json.Marshal(pool)
@@ -718,7 +726,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 							Name:           fmt.Sprintf("Intent Pool %d", intentID),
 							Provider:       "kubernetes",
 							OCloudID:       "scalability-test-ocloud",
-							Extensions: json.RawMessage(`{}`),
+							Extensions: map[string]interface{}{},
 						}
 
 						poolJSON, err := json.Marshal(pool)

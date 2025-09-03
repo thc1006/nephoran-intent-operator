@@ -149,7 +149,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 	b.Run("BudgetCalculation", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				_, err := tokenManager.CalculateTokenBudget(
+				budget, err := tokenManager.CalculateTokenBudget(
 					context.Background(),
 					"gpt-4o-mini",
 					"System prompt for network automation",
@@ -159,6 +159,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 				if err != nil {
 					b.Errorf("Budget calculation failed: %v", err)
 				}
+				_ = budget // Use the result to prevent optimization
 			}
 		})
 	})

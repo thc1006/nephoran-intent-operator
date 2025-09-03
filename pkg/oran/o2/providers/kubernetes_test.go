@@ -76,7 +76,7 @@ func TestKubernetesProviderGetDeployment(t *testing.T) {
 	kProvider := provider.(*KubernetesProvider)
 
 	// Test getDeployment
-	response, err := kProvider.GetDeployment(context.Background(), "default", "test-deployment")
+	response, err := kProvider.GetDeployment(context.Background(), "default/test-deployment")
 	if err != nil {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}

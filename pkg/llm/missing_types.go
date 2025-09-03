@@ -3,6 +3,7 @@ package llm
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -10,6 +11,65 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	types "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
+
+// Config represents the configuration for LLM clients.
+type Config struct {
+	Provider    string        `json:"provider"`
+	Model       string        `json:"model"`
+	APIKey      string        `json:"api_key"`
+	MaxTokens   int           `json:"max_tokens"`
+	Temperature float64       `json:"temperature"`
+	Timeout     time.Duration `json:"timeout"`
+}
+
+// EnhancedClient is an alias for EnhancedPerformanceClient for backward compatibility.
+type EnhancedClient = EnhancedPerformanceClient
+
+// NewEnhancedClient creates a new enhanced client from a simple config.
+func NewEnhancedClient(config *Config) (*EnhancedClient, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
+
+	// Convert simple config to enhanced config
+	enhancedConfig := &EnhancedClientConfig{
+		BaseConfig: ClientConfig{
+			APIKey:      config.APIKey,
+			ModelName:   config.Model,
+			MaxTokens:   config.MaxTokens,
+			BackendType: config.Provider,
+			Timeout:     config.Timeout,
+		},
+		PerformanceConfig:   getDefaultPerformanceConfig(),
+		RetryConfig:         getDefaultRetryConfig(),
+		BatchConfig:         getDefaultBatchConfig(),
+		CircuitBreakerConfig: *getDefaultCircuitBreakerConfig(),
+	}
+
+	return NewEnhancedPerformanceClient(enhancedConfig)
+}
+
+
+// getDefaultRetryConfig returns a default retry configuration.
+func getDefaultRetryConfig() RetryEngineConfig {
+	return RetryEngineConfig{
+		DefaultStrategy: "exponential",
+		MaxRetries:      3,
+		BaseDelay:       100 * time.Millisecond,
+		MaxDelay:        5 * time.Second,
+		JitterEnabled:   true,
+	}
+}
+
+// getDefaultBatchConfig returns a default batch configuration.
+func getDefaultBatchConfig() BatchConfig {
+	return BatchConfig{
+		MaxBatchSize:      10,
+		BatchTimeout:      1 * time.Second,
+		ConcurrentBatches: 5,
+	}
+}
+
 
 // Task types
 const (

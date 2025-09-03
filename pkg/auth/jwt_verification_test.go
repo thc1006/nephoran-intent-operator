@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"testing"
 	"time"
@@ -225,7 +224,7 @@ func TestJWTManagerBackwardCompatibility(t *testing.T) {
 	}
 
 	// Test legacy GenerateToken method
-	customClaims := json.RawMessage(`{}`)
+	customClaims := map[string]interface{}{}
 
 	tokenString, err := manager.GenerateToken(userInfo, customClaims)
 	require.NoError(t, err)

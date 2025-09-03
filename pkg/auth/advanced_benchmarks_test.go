@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
 	"runtime"
 	"sync/atomic"
@@ -1225,7 +1224,8 @@ func (a *EnhancedAuthSystem) Cleanup() {}
 
 func (a *EnhancedAuthSystem) ValidateJWTToken(ctx context.Context, token string) (*JWTValidationResult, error) {
 	time.Sleep(100 * time.Microsecond) // Simulate validation time
-	return &JWTValidationResult{Valid: true, Claims: json.RawMessage(`{"sub":"test"}`)}, nil
+	claims := map[string]interface{}{"sub": "test"}
+	return &JWTValidationResult{Valid: true, Claims: claims}, nil
 }
 
 func (a *EnhancedAuthSystem) ValidateJWTTokenCached(ctx context.Context, token string) (*JWTValidationResult, error) {

@@ -1,14 +1,15 @@
 package compliance
 
 import (
+	"encoding/json"
+	"log/slog"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/client-go/rest"
-	"log/slog"
-	"os"
 )
 
 // TestComprehensiveComplianceFramework validates the main compliance framework
@@ -63,27 +64,27 @@ func TestAutomatedComplianceMonitor(t *testing.T) {
 func TestOPACompliancePolicyEngine(t *testing.T) {
 	// Test OPA engine structure
 	engine := &OPACompliancePolicyEngine{
-		enabled:                 true,
-		policyBundleURL:         "https://example.com/policies",
-		policyDecisionTimeout:   5 * time.Second,
-		evaluationCacheEnabled:  true,
-		policyValidationMode:    "strict",
-		realTimeEvaluation:      true,
-		continuousMonitoring:    true,
-		automaticRemediation:    false,
-		policyViolationHandling: "block",
-		auditLoggingEnabled:     true,
-		decisionLogsRetention:   30 * 24 * time.Hour,
-		auditStorageBackend:     "local",
+		Enabled:                 true,
+		PolicyBundleURL:         "https://example.com/policies",
+		PolicyDecisionTimeout:   5 * time.Second,
+		EvaluationCacheEnabled:  true,
+		PolicyValidationMode:    "strict",
+		RealTimeEvaluation:      true,
+		ContinuousMonitoring:    true,
+		AutomaticRemediation:    false,
+		PolicyViolationHandling: "block",
+		AuditLoggingEnabled:     true,
+		DecisionLogsRetention:   30 * 24 * time.Hour,
+		AuditStorageBackend:     "local",
 	}
 
-	assert.True(t, engine.enabled)
-	assert.Equal(t, "https://example.com/policies", engine.policyBundleURL)
-	assert.Equal(t, 5*time.Second, engine.policyDecisionTimeout)
-	assert.True(t, engine.evaluationCacheEnabled)
-	assert.Equal(t, "strict", engine.policyValidationMode)
-	assert.True(t, engine.realTimeEvaluation)
-	assert.Equal(t, "block", engine.policyViolationHandling)
+	assert.True(t, engine.Enabled)
+	assert.Equal(t, "https://example.com/policies", engine.PolicyBundleURL)
+	assert.Equal(t, 5*time.Second, engine.PolicyDecisionTimeout)
+	assert.True(t, engine.EvaluationCacheEnabled)
+	assert.Equal(t, "strict", engine.PolicyValidationMode)
+	assert.True(t, engine.RealTimeEvaluation)
+	assert.Equal(t, "block", engine.PolicyViolationHandling)
 }
 
 // TestComplianceStatus validates compliance status structure
@@ -259,20 +260,20 @@ func TestRemediationAction(t *testing.T) {
 func TestPolicyTestCase(t *testing.T) {
 	// Test policy test case structure
 	testCase := PolicyTestCase{
-		testID:      "test-001",
-		name:        "Test Pod Security",
-		description: "Test that pods without security context are flagged",
-		input: json.RawMessage(`{}`),
-		expectedOutput:    "violation",
-		expectedViolation: true,
+		TestID:      "test-001",
+		Name:        "Test Pod Security",
+		Description: "Test that pods without security context are flagged",
+		Input: json.RawMessage(`{}`),
+		ExpectedOutput:    "violation",
+		ExpectedViolation: true,
 	}
 
-	assert.Equal(t, "test-001", testCase.testID)
-	assert.Equal(t, "Test Pod Security", testCase.name)
-	assert.NotEmpty(t, testCase.description)
-	assert.NotNil(t, testCase.input)
-	assert.Equal(t, "violation", testCase.expectedOutput)
-	assert.True(t, testCase.expectedViolation)
+	assert.Equal(t, "test-001", testCase.TestID)
+	assert.Equal(t, "Test Pod Security", testCase.Name)
+	assert.NotEmpty(t, testCase.Description)
+	assert.NotNil(t, testCase.Input)
+	assert.Equal(t, "violation", testCase.ExpectedOutput)
+	assert.True(t, testCase.ExpectedViolation)
 }
 
 // BenchmarkComplianceCheck benchmarks the performance of compliance status creation

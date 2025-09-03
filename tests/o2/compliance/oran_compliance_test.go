@@ -705,7 +705,7 @@ func (suite *ORANComplianceTestSuite) TestORANDataModelConsistency() {
 						Total: "1Ti", Available: "800Gi", Used: "200Gi", Unit: "bytes", Utilization: 20.0,
 					},
 				},
-				Extensions: json.RawMessage(`{}`),
+				Extensions: map[string]interface{}{},
 			}
 
 			poolJSON, err := json.Marshal(pool)

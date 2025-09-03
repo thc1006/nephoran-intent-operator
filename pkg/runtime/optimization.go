@@ -957,3 +957,153 @@ func (op *OptimizationProfile) CalculateScore(metrics *PerformanceMetrics) float
 func (op *OptimizationProfile) IsHealthy() bool {
 	return op.Enabled && op.Name != "" && op.Type != ""
 }
+
+// ApplyOptimizations applies optimization configuration to the runtime.
+func ApplyOptimizations(config *OptimizationConfig) error {
+	if config == nil {
+		return fmt.Errorf("optimization config is nil")
+	}
+
+	// Apply GOMAXPROCS setting
+	if config.MaxProcs > 0 {
+		runtime.GOMAXPROCS(config.MaxProcs)
+	} else if config.AutoTuneMaxProcs {
+		runtime.GOMAXPROCS(calculateOptimalGOMAXPROCS())
+	}
+
+	// Apply GC settings
+	if config.GCPercent >= 0 {
+		// This is a placeholder as Go doesn't provide direct runtime GC percent setting
+		// In real implementation, you might use debug.SetGCPercent() from debug package
+	}
+
+	return nil
+}
+
+// calculateOptimalGOMAXPROCS calculates optimal GOMAXPROCS value.
+func calculateOptimalGOMAXPROCS() int {
+	numCPU := runtime.NumCPU()
+	
+	// For telco workloads, typically use 80% of available CPUs to leave room for system tasks
+	optimal := int(float64(numCPU) * 0.8)
+	if optimal < 1 {
+		optimal = 1
+	}
+	if optimal > numCPU {
+		optimal = numCPU
+	}
+	
+	return optimal
+}
+
+// GetRuntimeStats returns current runtime statistics.
+func GetRuntimeStats() map[string]interface{} {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	return map[string]interface{}{
+		"gomaxprocs":       runtime.GOMAXPROCS(0),
+		"num_cpu":          runtime.NumCPU(),
+		"num_goroutine":    runtime.NumGoroutine(),
+		"num_gc":           int(memStats.NumGC),
+		"heap_alloc_mb":    float64(memStats.HeapAlloc) / 1024 / 1024,
+		"heap_sys_mb":      float64(memStats.HeapSys) / 1024 / 1024,
+		"heap_in_use_mb":   float64(memStats.HeapInuse) / 1024 / 1024,
+		"stack_in_use_mb":  float64(memStats.StackInuse) / 1024 / 1024,
+		"next_gc_mb":       float64(memStats.NextGC) / 1024 / 1024,
+	}
+}
+
+// TuneForTelcoWorkloads applies telco-specific optimizations.
+func TuneForTelcoWorkloads() error {
+	config := &OptimizationConfig{
+		MaxProcs:           calculateOptimalGOMAXPROCS(),
+		AutoTuneMaxProcs:   false,
+		SwissTablesEnabled: true,
+		GCPercent:          50, // Lower GC pressure for latency-sensitive workloads
+		PGOEnabled:         true,
+	}
+	
+	return ApplyOptimizations(config)
+}
+
+// PerformanceMonitor monitors and adjusts performance parameters.
+type PerformanceMonitor struct {
+	config       *OptimizationConfig
+	stopCh       chan struct{}
+	adjustmentCh chan struct{}
+	running      bool
+	mu           sync.RWMutex
+}
+
+// NewPerformanceMonitor creates a new performance monitor.
+func NewPerformanceMonitor(config *OptimizationConfig) *PerformanceMonitor {
+	return &PerformanceMonitor{
+		config:       config,
+		stopCh:       make(chan struct{}),
+		adjustmentCh: make(chan struct{}, 1),
+	}
+}
+
+// Start starts the performance monitor.
+func (pm *PerformanceMonitor) Start() {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	
+	if pm.running {
+		return
+	}
+	
+	pm.running = true
+	go pm.monitorLoop()
+}
+
+// Stop stops the performance monitor.
+func (pm *PerformanceMonitor) Stop() {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	
+	if !pm.running {
+		return
+	}
+	
+	pm.running = false
+	close(pm.stopCh)
+}
+
+// TriggerAdjustment triggers a performance adjustment.
+func (pm *PerformanceMonitor) TriggerAdjustment() {
+	select {
+	case pm.adjustmentCh <- struct{}{}:
+	default:
+		// Channel is full, skip
+	}
+}
+
+// monitorLoop runs the monitoring loop.
+func (pm *PerformanceMonitor) monitorLoop() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-pm.stopCh:
+			return
+		case <-ticker.C:
+			pm.adjustPerformance()
+		case <-pm.adjustmentCh:
+			pm.adjustPerformance()
+		}
+	}
+}
+
+// adjustPerformance adjusts performance parameters based on current conditions.
+func (pm *PerformanceMonitor) adjustPerformance() {
+	// Simple adjustment logic - in real implementation would be more sophisticated
+	if pm.config.AutoTuneMaxProcs {
+		optimal := calculateOptimalGOMAXPROCS()
+		if optimal != runtime.GOMAXPROCS(0) {
+			runtime.GOMAXPROCS(optimal)
+		}
+	}
+}

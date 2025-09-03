@@ -88,6 +88,16 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 // StreamingProcessor provides a stub implementation
 type StreamingProcessor struct{}
 
+// GetMetrics returns metrics for the streaming processor
+func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"active_streams":    0,
+		"completed_streams": 0,
+		"failed_streams":    0,
+		"throughput":        0.0,
+	}
+}
+
 // InMemoryStreamingContextManager is a stub implementation
 type InMemoryStreamingContextManager struct{}
 
