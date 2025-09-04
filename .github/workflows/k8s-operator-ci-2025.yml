@@ -42,7 +42,7 @@ concurrency:
 
 env:
   # 2025 Kubernetes and Go versions  
-  GO_VERSION: "1.23.3"
+  GO_VERSION: "1.24.6"
   ACTIONS_STEP_DEBUG: true  # Enable verbose step logging for troubleshooting
   KUBERNETES_VERSION: "1.31.1"
   CONTROLLER_RUNTIME_VERSION: "v0.19.1"
@@ -55,7 +55,7 @@ env:
   GOARCH: "amd64"
   GOMAXPROCS: "4"
   GOMEMLIMIT: "4GiB"
-  GOTOOLCHAIN: "go1.23.3"
+  GOTOOLCHAIN: "go1.24.6"
   
   # Cache configuration
   GOCACHE: "/tmp/go-cache"
@@ -73,7 +73,7 @@ jobs:
   preflight:
     name: "🚀 Pre-flight Setup"
     runs-on: ubuntu-24.04  # 2025 Ubuntu LTS
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
       go-cache-key: ${{ steps.cache-setup.outputs.cache-key }}
       should-build: ${{ steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true' }}
@@ -196,7 +196,7 @@ jobs:
     name: "☸️ Kubernetes Validation"
     needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     if: needs.preflight.outputs.should-build == 'true'
     
     steps:
