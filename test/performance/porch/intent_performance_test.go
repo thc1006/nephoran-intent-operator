@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
@@ -109,28 +109,19 @@ func generateTestIntent(
 	index, 
 	networkFunctionsCount int,
 ) *networkintentv1alpha1.NetworkIntent {
-	networkFunctions := make([]networkintentv1alpha1.NetworkFunction, networkFunctionsCount)
-	for i := 0; i < networkFunctionsCount; i++ {
-		networkFunctions[i] = networkintentv1alpha1.NetworkFunction{
-			Name: fmt.Sprintf("nf-%d-%d", index, i),
-			Type: "CNF",
-			Config: map[string]string{
-				"key": fmt.Sprintf("value-%d", i),
-			},
-		}
-	}
-
 	return &networkintentv1alpha1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("performance-test-intent-%d", index),
 			Namespace: "performance-test",
 		},
 		Spec: networkintentv1alpha1.NetworkIntentSpec{
-			Deployment: networkintentv1alpha1.DeploymentSpec{
-				ClusterSelector: map[string]string{
-					"performance-test": "true",
-				},
-				NetworkFunctions: networkFunctions,
+			Source:     "performance-test",
+			IntentType: "scaling",
+			Target:     fmt.Sprintf("test-target-%d", index),
+			Namespace:  "performance-test",
+			Replicas:   int32(networkFunctionsCount),
+			ScalingParameters: networkintentv1alpha1.ScalingConfig{
+				Replicas: int32(networkFunctionsCount),
 			},
 		},
 	}
@@ -163,9 +154,11 @@ func createPackageFromIntent(
 
 // OpenTelemetry metrics collection (stub)
 func collectPerformanceMetrics(metrics []PerformanceMetrics) {
-	tracer := trace.NewNoopTracerProvider().Tracer("nephio/porch-performance")
-	meter := metric.NewNoopMeterProvider().Meter("nephio/porch-performance")
-
+	_ = trace.NewNoopTracerProvider().Tracer("nephio/porch-performance")
+	// TODO: implement proper metrics collection
+	
 	// Implement metric collection logic
-	// Use tracer and meter to record spans and metrics
+	for _, m := range metrics {
+		_ = m // Use the metrics to avoid unused variable error
+	}
 }

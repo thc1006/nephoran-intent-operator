@@ -29,7 +29,7 @@ var _ = Describe("NetworkIntent Controller", Ordered, func() {
 		)
 
 		BeforeAll(func() {
-			testCtx, testCancel = TestContext()
+			testCtx, testCancel = CreateTestContext(nil)
 			testNamespace = "default" // Use default namespace for simplicity
 			networkIntentName = "test-network-intent"
 
