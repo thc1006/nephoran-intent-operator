@@ -500,7 +500,7 @@ RUN set -ex; \
     done
 
 # Ubuntu minimal fallback for extreme cases
-FROM --platform=$TARGETPLATFORM ubuntu:22.04 AS go-runtime-ubuntu-emergency
+FROM --platform=$TARGETPLATFORM ubuntu:24.04 AS go-runtime-ubuntu-emergency
 RUN set -ex; \
     export DEBIAN_FRONTEND=noninteractive; \
     max_attempts=3; \
@@ -641,7 +641,7 @@ RUN set -ex; \
     done
 
 # Ubuntu Python fallback for maximum compatibility
-FROM --platform=$TARGETPLATFORM ubuntu:22.04 AS python-runtime-ubuntu-emergency
+FROM --platform=$TARGETPLATFORM ubuntu:24.04 AS python-runtime-ubuntu-emergency
 RUN set -ex; \
     export DEBIAN_FRONTEND=noninteractive; \
     max_attempts=3; \
