@@ -12,8 +12,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
-	porchv1alpha1 "github.com/nephio-project/nephio/api/porch/v1alpha1"
-	networkintentv1alpha1 "github.com/nephio-project/nephio/api/intent/v1alpha1"
+	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 type PerformanceMetrics struct {

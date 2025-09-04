@@ -256,7 +256,7 @@ func AssertResourceEventuallyDeleted(ctx context.Context, client client.Client, 
 }
 
 // TestContext provides a context for individual tests with timeout
-func TestContext() (context.Context, context.CancelFunc) {
+func TestContext(t *testing.T) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, timeout)
 }
 

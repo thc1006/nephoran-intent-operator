@@ -10,9 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	porchv1alpha1 "github.com/nephio-project/nephio/api/porch/v1alpha1"
-	networkintentv1alpha1 "github.com/nephio-project/nephio/api/intent/v1alpha1"
-	"github.com/nephio-project/nephio/pkg/controllers/pkg/reconcilers"
+	networkintentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 )
 
 var _ = Describe("Porch Intent Reconciliation", func() {

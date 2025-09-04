@@ -14,9 +14,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	porchv1alpha1 "github.com/nephio-project/nephio/api/porch/v1alpha1"
-	porchclient "github.com/nephio-project/nephio/pkg/client/porch"
-	"github.com/nephio-project/nephio/pkg/nephio/intent"
+	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
 const (

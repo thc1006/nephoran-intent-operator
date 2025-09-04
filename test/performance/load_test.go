@@ -13,8 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	porchv1alpha1 "github.com/nephio-project/nephio/api/porch/v1alpha1"
-	porchclient "github.com/nephio-project/nephio/pkg/client/porch"
+	porchclient "github.com/thc1006/nephoran-intent-operator/pkg/porch"
 )
 
 const (
