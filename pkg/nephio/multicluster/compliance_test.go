@@ -37,14 +37,30 @@ import (
 
 // Stub types to replace missing external dependencies
 type porchv1alpha1PackageRevision struct {
-	Name      string
-	Namespace string
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	
+	Spec   porchv1alpha1PackageRevisionSpec   `json:"spec,omitempty"`
+	Status porchv1alpha1PackageRevisionStatus `json:"status,omitempty"`
 }
 
-type nephiov1alpha1ClusterDeploymentStatus struct {
-	Phase   string
-	Message string
+type porchv1alpha1PackageRevisionSpec struct {
+	PackageName string                                   `json:"packageName,omitempty"`
+	Revision    string                                   `json:"revision,omitempty"`
+	Lifecycle   porchv1alpha1PackageRevisionLifecycle   `json:"lifecycle,omitempty"`
 }
+
+type porchv1alpha1PackageRevisionStatus struct {
+	// Add status fields if needed
+}
+
+type porchv1alpha1PackageRevisionLifecycle string
+
+const (
+	porchv1alpha1PackageRevisionLifecycleDraft = porchv1alpha1PackageRevisionLifecycle("Draft")
+)
+
+// nephiov1alpha1ClusterDeploymentStatus is defined in chaos_resilience_test.go
 
 // O-RAN Network Function Types
 type ORanFunctionType string

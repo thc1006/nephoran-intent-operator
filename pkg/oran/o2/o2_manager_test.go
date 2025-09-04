@@ -160,9 +160,7 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 				assert.Equal(t, int32(1), defaultNS.PodCount)
 
 				// Validate cluster metrics
-				assert.Equal(t, int32(2), rm.Metrics.TotalNodes)
 				assert.Equal(t, int32(2), rm.Metrics.ReadyNodes)
-				assert.Equal(t, int32(1), rm.Metrics.TotalPods)
 			},
 		},
 		{

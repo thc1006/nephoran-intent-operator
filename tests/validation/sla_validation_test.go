@@ -21,8 +21,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/sla"
 )
 
-// SLAValidationTestSuite validates the accuracy of SLA claims with statistical precision
-type SLAValidationTestSuite struct {
+// SLAValidationTestSuiteImpl validates the accuracy of SLA claims with statistical precision
+type SLAValidationTestSuiteImpl struct {
 	suite.Suite
 
 	// Test infrastructure
@@ -357,7 +357,7 @@ type AuthenticitySeal struct {
 }
 
 // SetupTest initializes the validation test suite
-func (s *SLAValidationTestSuite) SetupTest() {
+func (s *SLAValidationTestSuiteImpl) SetupTest() {
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), 2*time.Hour)
 
 	// Initialize validation configuration
@@ -440,7 +440,7 @@ func (s *SLAValidationTestSuite) SetupTest() {
 }
 
 // TearDownTest cleans up after validation tests
-func (s *SLAValidationTestSuite) TearDownTest() {
+func (s *SLAValidationTestSuiteImpl) TearDownTest() {
 	if s.slaService != nil {
 		err := s.slaService.Stop(s.ctx)
 		s.Assert().NoError(err, "Failed to stop SLA service")
@@ -452,7 +452,7 @@ func (s *SLAValidationTestSuite) TearDownTest() {
 }
 
 // TestAvailabilityClaimAccuracy validates the 99.95% availability claim with precision
-func (s *SLAValidationTestSuite) TestAvailabilityClaimAccuracy() {
+func (s *SLAValidationTestSuiteImpl) TestAvailabilityClaimAccuracy() {
 	s.T().Log("Validating 99.95% availability claim with statistical precision")
 
 	ctx, cancel := context.WithTimeout(s.ctx, s.config.ValidationDuration)
@@ -504,7 +504,7 @@ func (s *SLAValidationTestSuite) TestAvailabilityClaimAccuracy() {
 }
 
 // TestLatencyClaimAccuracy validates the sub-2-second P95 latency claim with precision
-func (s *SLAValidationTestSuite) TestLatencyClaimAccuracy() {
+func (s *SLAValidationTestSuiteImpl) TestLatencyClaimAccuracy() {
 	s.T().Log("Validating sub-2-second P95 latency claim with precision")
 
 	ctx, cancel := context.WithTimeout(s.ctx, s.config.ValidationDuration)
@@ -567,7 +567,7 @@ func (s *SLAValidationTestSuite) TestLatencyClaimAccuracy() {
 }
 
 // TestThroughputClaimAccuracy validates the 45 intents/minute throughput claim
-func (s *SLAValidationTestSuite) TestThroughputClaimAccuracy() {
+func (s *SLAValidationTestSuiteImpl) TestThroughputClaimAccuracy() {
 	s.T().Log("Validating 45 intents/minute throughput claim with precision")
 
 	ctx, cancel := context.WithTimeout(s.ctx, s.config.ValidationDuration)
@@ -621,7 +621,7 @@ func (s *SLAValidationTestSuite) TestThroughputClaimAccuracy() {
 }
 
 // TestErrorBudgetAccuracy validates error budget calculation accuracy
-func (s *SLAValidationTestSuite) TestErrorBudgetAccuracy() {
+func (s *SLAValidationTestSuiteImpl) TestErrorBudgetAccuracy() {
 	s.T().Log("Validating error budget calculation accuracy")
 
 	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Minute)
@@ -650,7 +650,7 @@ func (s *SLAValidationTestSuite) TestErrorBudgetAccuracy() {
 }
 
 // TestBurnRateCalculationAccuracy validates multi-window burn rate calculation accuracy
-func (s *SLAValidationTestSuite) TestBurnRateCalculationAccuracy() {
+func (s *SLAValidationTestSuiteImpl) TestBurnRateCalculationAccuracy() {
 	s.T().Log("Validating multi-window burn rate calculation accuracy")
 
 	ctx, cancel := context.WithTimeout(s.ctx, 45*time.Minute)
@@ -670,7 +670,7 @@ func (s *SLAValidationTestSuite) TestBurnRateCalculationAccuracy() {
 }
 
 // TestCompositeSLAAccuracy validates composite SLA score accuracy
-func (s *SLAValidationTestSuite) TestCompositeSLAAccuracy() {
+func (s *SLAValidationTestSuiteImpl) TestCompositeSLAAccuracy() {
 	s.T().Log("Validating composite SLA score calculation accuracy")
 
 	ctx, cancel := context.WithTimeout(s.ctx, 1*time.Hour)
@@ -704,7 +704,7 @@ func (s *SLAValidationTestSuite) TestCompositeSLAAccuracy() {
 // Helper methods for different measurement approaches
 
 // sampleDirectAvailability samples availability directly
-func (s *SLAValidationTestSuite) sampleDirectAvailability() float64 {
+func (s *SLAValidationTestSuiteImpl) sampleDirectAvailability() float64 {
 	// Query Prometheus for service uptime
 	query := `avg_over_time(up{job="nephoran-intent-operator"}[1m]) * 100`
 	result, _, err := s.prometheusClient.Query(context.Background(), query, time.Now())
@@ -761,7 +761,7 @@ func NewClaimVerifier() *ClaimVerifier {
 // Additional helper methods for calibration and validation...
 
 // calculateMeasurementStatistics calculates statistics for a measurement set
-func (s *SLAValidationTestSuite) calculateMeasurementStatistics(measurements *MeasurementSet) {
+func (s *SLAValidationTestSuiteImpl) calculateMeasurementStatistics(measurements *MeasurementSet) {
 	if len(measurements.Values) == 0 {
 		return
 	}
@@ -803,7 +803,7 @@ func (s *SLAValidationTestSuite) calculateMeasurementStatistics(measurements *Me
 }
 
 // SetupSuite initializes the test suite
-func (s *SLAValidationTestSuite) SetupSuite() {
+func (s *SLAValidationTestSuiteImpl) SetupSuite() {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
 	// Initialize logger
@@ -848,7 +848,7 @@ func (s *SLAValidationTestSuite) SetupSuite() {
 }
 
 // TearDownSuite cleans up after the test suite
-func (s *SLAValidationTestSuite) TearDownSuite() {
+func (s *SLAValidationTestSuiteImpl) TearDownSuite() {
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -861,5 +861,5 @@ func (s *SLAValidationTestSuite) TearDownSuite() {
 
 // TestSuite runner function
 func TestSLAValidationTestSuite(t *testing.T) {
-	suite.Run(t, new(SLAValidationTestSuite))
+	suite.Run(t, new(SLAValidationTestSuiteImpl))
 }

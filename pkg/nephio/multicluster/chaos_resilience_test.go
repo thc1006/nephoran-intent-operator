@@ -38,10 +38,7 @@ import (
 )
 
 // Stub types to replace missing external dependencies
-type porchv1alpha1PackageRevision struct {
-	Name      string
-	Namespace string
-}
+// porchv1alpha1PackageRevision is defined in compliance_test.go
 
 type nephiov1alpha1ClusterDeploymentStatus struct {
 	Phase   string

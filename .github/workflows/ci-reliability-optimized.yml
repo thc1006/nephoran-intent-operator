@@ -2,7 +2,7 @@
 # CI Reliability Optimized Pipeline - DevOps Best Practices 2025
 # =============================================================================
 # Purpose: Ultra-reliable CI with optimized caching, Go 1.25.x compatibility,
-#          and enterprise-grade timeout management
+#          Ginkgo v2 test framework support, and enterprise-grade timeout management
 # =============================================================================
 
 name: CI Reliability Optimized
@@ -336,6 +336,12 @@ jobs:
             nephoran-reliability-v3-${{ runner.os }}-go1.25
           fail-on-cache-miss: false
           
+      - name: Install Ginkgo CLI
+        run: |
+          echo "Installing Ginkgo CLI for 2025 best practices..."
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          ginkgo version
+          
       - name: Setup test environment
         if: contains(matrix.test-suite.pattern, './controllers/') || contains(matrix.test-suite.pattern, './api/')
         run: |
@@ -351,31 +357,56 @@ jobs:
           KUBEBUILDER_ASSETS: ${{ env.KUBEBUILDER_ASSETS }}
           CGO_ENABLED: 1  # Required for -race flag
         run: |
-          echo "Running ${{ matrix.test-suite.name }} tests..."
+          echo "Running ${{ matrix.test-suite.name }} tests with Ginkgo CLI..."
           
           # Create results directory
           mkdir -p test-results
           
-          # Configure test flags
-          TEST_FLAGS="-v -timeout=5m -parallel=4"
+          # Configure Ginkgo flags for 2025 best practices
+          GINKGO_FLAGS="--procs=2 --randomize-all --randomize-suites --timeout=5m --poll-progress-after=30s --poll-progress-interval=10s"
           
           # Add coverage if requested
           if [ "${{ matrix.test-suite.coverage }}" = "true" ]; then
-            TEST_FLAGS="$TEST_FLAGS -coverprofile=test-results/coverage-${{ matrix.test-suite.name }}.out -covermode=atomic"
+            GINKGO_FLAGS="$GINKGO_FLAGS --coverprofile=test-results/coverage-${{ matrix.test-suite.name }}.out --covermode=atomic"
           fi
           
           # Add race detection for critical tests
           if [ "${{ matrix.test-suite.name }}" = "unit-critical" ]; then
-            TEST_FLAGS="$TEST_FLAGS -race"
+            GINKGO_FLAGS="$GINKGO_FLAGS --race"
           fi
+          
+          # Convert go test patterns to directories for Ginkgo
+          TEST_DIRS=$(echo "${{ matrix.test-suite.pattern }}" | sed 's|/\.\.\.|/|g' | sed 's|\./||g')
           
           # Run tests with retry on failure (network issues)
           for attempt in 1 2; do
-            echo "Test attempt $attempt/2"
-            if go test $TEST_FLAGS ${{ matrix.test-suite.pattern }}; then
-              echo "✅ Tests passed successfully"
-              break
-            elif [ $attempt -eq 2 ]; then
+            echo "Ginkgo test attempt $attempt/2"
+            echo "Running: ginkgo $GINKGO_FLAGS $TEST_DIRS"
+            
+            # Check if directories exist and have tests
+            has_tests=false
+            for dir in $TEST_DIRS; do
+              if find "$dir" -name "*_test.go" -o -name "*_suite_test.go" 2>/dev/null | grep -q .; then
+                has_tests=true
+                break
+              fi
+            done
+            
+            if [ "$has_tests" = "false" ]; then
+              echo "⏭️ No Ginkgo test files found in: $TEST_DIRS"
+              echo "Falling back to standard go test..."
+              if go test -v -timeout=5m -parallel=4 ${{ matrix.test-suite.pattern }}; then
+                echo "✅ Tests passed successfully (go test fallback)"
+                break
+              fi
+            else
+              if ginkgo $GINKGO_FLAGS $TEST_DIRS; then
+                echo "✅ Ginkgo tests passed successfully"
+                break
+              fi
+            fi
+            
+            if [ $attempt -eq 2 ]; then
               echo "❌ Tests failed after 2 attempts"
               exit 1
             else
@@ -499,7 +530,7 @@ jobs:
           echo "- Go Version: ${{ needs.reliability-setup.outputs.go-version || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
           echo "- Cache Strategy: Hierarchical with fallbacks" >> $GITHUB_STEP_SUMMARY
           echo "- Build Strategy: Intelligent chunking with timeout protection" >> $GITHUB_STEP_SUMMARY
-          echo "- Test Strategy: Parallel execution with retry logic" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Strategy: Ginkgo v2 with parallel execution and retry logic" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "**Job Results:**" >> $GITHUB_STEP_SUMMARY
@@ -547,7 +578,7 @@ jobs:
             echo "- ✅ Optimized Go 1.25.x compatibility" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Enhanced cache reliability with fallbacks" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Intelligent build chunking prevents timeouts" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Parallel testing with retry logic" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Ginkgo v2 parallel testing with retry logic and randomization" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Comprehensive integration validation" >> $GITHUB_STEP_SUMMARY
             echo "✅ Reliability-optimized CI completed successfully!"
           fi

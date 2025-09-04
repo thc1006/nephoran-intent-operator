@@ -19,6 +19,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
 )
 
 // fakeO1Adaptor implements O1Adaptor for testing
@@ -36,6 +37,36 @@ func (f *fakeO1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.M
 
 	if f.shouldFail {
 		return fmt.Errorf("fake O1 configuration failure")
+	}
+	return nil
+}
+
+func (f *fakeO1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElement, alarmID string) error {
+	f.callCount++
+	f.lastManagedElem = me
+
+	if f.shouldFail {
+		return fmt.Errorf("fake O1 alarm clear failure")
+	}
+	return nil
+}
+
+func (f *fakeO1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) error {
+	f.callCount++
+	f.lastManagedElem = me
+	
+	if f.shouldFail {
+		return fmt.Errorf("fake O1 connection failure")
+	}
+	return nil
+}
+
+func (f *fakeO1Adaptor) Disconnect(ctx context.Context, me *nephoranv1.ManagedElement) error {
+	f.callCount++
+	f.lastManagedElem = me
+	
+	if f.shouldFail {
+		return fmt.Errorf("fake O1 disconnect failure")
 	}
 	return nil
 }
@@ -62,6 +93,42 @@ func (f *fakeA1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedE
 
 	if f.shouldFail {
 		return fmt.Errorf("fake A1 policy application failure")
+	}
+	return nil
+}
+
+func (f *fakeA1Adaptor) CreatePolicyInstance(ctx context.Context, policyTypeID int, instance *a1.A1PolicyInstance) error {
+	f.callCount++
+	
+	if f.shouldFail {
+		return fmt.Errorf("fake A1 policy instance creation failure")
+	}
+	return nil
+}
+
+func (f *fakeA1Adaptor) CreatePolicyType(ctx context.Context, policyType *a1.A1PolicyType) error {
+	f.callCount++
+	
+	if f.shouldFail {
+		return fmt.Errorf("fake A1 policy type creation failure")
+	}
+	return nil
+}
+
+func (f *fakeA1Adaptor) DeletePolicyInstance(ctx context.Context, policyTypeID int, instanceID string) error {
+	f.callCount++
+	
+	if f.shouldFail {
+		return fmt.Errorf("fake A1 policy instance deletion failure")
+	}
+	return nil
+}
+
+func (f *fakeA1Adaptor) DeletePolicyType(ctx context.Context, policyTypeID int) error {
+	f.callCount++
+	
+	if f.shouldFail {
+		return fmt.Errorf("fake A1 policy type deletion failure")
 	}
 	return nil
 }

@@ -151,11 +151,12 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
 				budget, err := tokenManager.CalculateTokenBudget(
-					context.Background(),
-					"gpt-4o-mini",
-					"System prompt for network automation",
-					"Deploy network function",
-					"Context from knowledge base...",
+					"Deploy network function with context",
+					map[string]interface{}{
+						"model": "gpt-4o-mini",
+						"system_prompt": "System prompt for network automation",
+						"context": "Context from knowledge base...",
+					},
 				)
 				if err != nil {
 					b.Errorf("Budget calculation failed: %v", err)

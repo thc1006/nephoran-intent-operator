@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -62,7 +63,7 @@ func (mc *MockCache) GetInformer(ctx context.Context, obj client.Object, opts ..
 	return nil, nil
 }
 
-func (mc *MockCache) GetInformerForKind(ctx context.Context, gvk runtime.Object) (cache.Informer, error) {
+func (mc *MockCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind, opts ...cache.InformerGetOption) (cache.Informer, error) {
 	return nil, nil
 }
 
@@ -75,6 +76,10 @@ func (mc *MockCache) WaitForCacheSync(ctx context.Context) bool {
 }
 
 func (mc *MockCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
+	return nil
+}
+
+func (mc *MockCache) RemoveInformer(ctx context.Context, obj client.Object) error {
 	return nil
 }
 

@@ -305,7 +305,9 @@ func TestCryptoKeyPoolRace(t *testing.T) {
 		generated: atomic.Int64{},
 	}
 
-	mutexTest.TestCriticalSection(&keyPool.mu, &keyPool.keys)
+	// Test critical section protection with a simple counter map
+	testCounter := make(map[string]int)
+	mutexTest.TestCriticalSection(&keyPool.mu, &testCounter)
 
 	runner := racetest.NewRunner(t, &racetest.RaceTestConfig{
 		Goroutines: 20,

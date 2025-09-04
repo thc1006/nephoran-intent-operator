@@ -1037,8 +1037,8 @@ type MockA1Validator struct {
 }
 
 // MockA1Service implementations
-func (m *MockA1Service) CreatePolicyType(ctx context.Context, policyType *PolicyType) error {
-	args := m.Called(ctx, policyType)
+func (m *MockA1Service) CreatePolicyType(ctx context.Context, policyTypeID int, policyType *PolicyType) error {
+	args := m.Called(ctx, policyTypeID, policyType)
 	return args.Error(0)
 }
 
@@ -1084,6 +1084,11 @@ func (m *MockA1Service) GetPolicyStatus(ctx context.Context, policyTypeID int, p
 
 func (m *MockA1Service) RegisterConsumer(ctx context.Context, consumer *Consumer) error {
 	args := m.Called(ctx, consumer)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) DeleteEIJob(ctx context.Context, eiJobID string) error {
+	args := m.Called(ctx, eiJobID)
 	return args.Error(0)
 }
 

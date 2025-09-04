@@ -238,9 +238,11 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 			{
 				Name:        "basic-labels",
 				Description: "Set basic labels on resources",
-				Config: &FunctionConfig{
-					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-					ConfigMap: json.RawMessage(`{}`),
+				Config: map[string]interface{}{
+					"image": "gcr.io/kpt-fn/set-labels:v0.2.0",
+					"labels": map[string]interface{}{
+						"app": "test-app",
+					},
 				},
 				Input: []KRMResource{
 					generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),

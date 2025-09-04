@@ -108,7 +108,7 @@ func TestO1Adaptor_GetElementStatus(t *testing.T) {
 		t.Errorf("Expected phase 'Ready', got '%s'", status.Phase)
 	}
 
-	if status.ConnectionStatus != "Connected" {
-		t.Errorf("Expected connection status 'Connected', got '%s'", status.ConnectionStatus)
+	if !status.Ready {
+		t.Errorf("Expected status Ready to be true, got %v", status.Ready)
 	}
 }
