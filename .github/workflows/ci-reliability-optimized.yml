@@ -238,8 +238,9 @@ jobs:
           
           mkdir -p bin/
           
-          # Optimized build flags for reliability
-          BUILD_FLAGS="-v -trimpath -ldflags='-s -w -X main.version=${{ github.sha }}'"
+          # Optimized build flags for reliability - FIXED: Corrected ldflags syntax
+          BUILD_FLAGS="-v -trimpath"
+          LDFLAGS="-s -w -X main.version=${{ github.sha }}"
           BUILD_TAGS="netgo,osusergo"
           
           # Build each component with individual timeout protection
@@ -252,7 +253,7 @@ jobs:
               echo "Building $component..."
               cmd_name=$(basename "$component")
               
-              if timeout 120s go build $BUILD_FLAGS -tags="$BUILD_TAGS" \
+              if timeout 120s go build $BUILD_FLAGS -ldflags="$LDFLAGS" -tags="$BUILD_TAGS" \
                  -o "bin/$cmd_name" "./$component"; then
                 echo "✅ $cmd_name: Build successful"
                 SUCCESSFUL=$((SUCCESSFUL + 1))
