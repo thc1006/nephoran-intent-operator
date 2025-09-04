@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/golang-jwt/jwt/v5"
 	
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	authtestutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
@@ -186,15 +187,15 @@ func TestRBACMiddleware(t *testing.T) {
 	ctx := context.Background()
 
 	// Create permissions
-	readPerm := pf.CreateResourcePermissions("api", []string{"read"})[0]
+	readPerm := pf.CreatePermission("api", "read", "resource")
 	createdReadPerm, err := rbacManager.CreatePermission(ctx, readPerm)
 	require.NoError(t, err)
 
-	writePerm := pf.CreateResourcePermissions("api", []string{"write"})[0]
+	writePerm := pf.CreatePermission("api", "write", "resource")
 	createdWritePerm, err := rbacManager.CreatePermission(ctx, writePerm)
 	require.NoError(t, err)
 
-	adminPerm := pf.CreateResourcePermissions("admin", []string{"*"})[0]
+	adminPerm := pf.CreatePermission("admin", "*", "resource")
 	createdAdminPerm, err := rbacManager.CreatePermission(ctx, adminPerm)
 	require.NoError(t, err)
 
@@ -679,7 +680,7 @@ func TestChainMiddlewares(t *testing.T) {
 	pf := authtestutil.NewPermissionFactory()
 	rf := authtestutil.NewRoleFactory()
 
-	perm := pf.CreateResourcePermissions("api", []string{"read"})[0]
+	perm := pf.CreatePermission("api", "read", "resource")
 	createdPerm, err := rbacManager.CreatePermission(ctx, perm)
 	require.NoError(t, err)
 

@@ -30,10 +30,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 )
 
-// Test constants
-const (
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
-)
+// TODO: Remove duplicate constant - use configPkg.Constants.NetworkIntentFinalizer instead
 
 // MockDependenciesComprehensive implements Dependencies interface for testing
 type MockDependenciesComprehensive struct {

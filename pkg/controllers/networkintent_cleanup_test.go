@@ -20,10 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Constants used in cleanup tests
-const (
-	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
-)
+// TODO: Remove duplicate constant - use configPkg.Constants.NetworkIntentFinalizer instead
 
 var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 	const (
