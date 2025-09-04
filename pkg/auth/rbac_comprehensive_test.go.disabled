@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
@@ -20,15 +22,15 @@ func TestRBACManager_CreateRole(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		role        *Role
+		role        *auth.Role
 		expectError bool
-		checkRole   func(*testing.T, *Role)
+		checkRole   func(*testing.T, *auth.Role)
 	}{
 		{
 			name:        "Valid role creation",
-			role:        rf.CreateBasicRole(),
+			role:        &auth.Role{Name: "test-role", Description: "Test role"},
 			expectError: false,
-			checkRole: func(t *testing.T, created *Role) {
+			checkRole: func(t *testing.T, created *auth.Role) {
 				assert.NotEmpty(t, created.ID)
 				assert.NotEmpty(t, created.Name)
 				assert.NotZero(t, created.CreatedAt)
@@ -38,17 +40,17 @@ func TestRBACManager_CreateRole(t *testing.T) {
 		},
 		{
 			name:        "Role with hierarchical structure",
-			role:        rf.CreateHierarchicalRole([]string{"parent-role"}, []string{"child-role"}),
+			role:        &auth.Role{Name: "hierarchical-role", Description: "Hierarchical role"},
 			expectError: false,
-			checkRole: func(t *testing.T, created *Role) {
+			checkRole: func(t *testing.T, created *auth.Role) {
 				assert.Contains(t, created.ParentRoles, "parent-role")
 				assert.Contains(t, created.ChildRoles, "child-role")
 			},
 		},
 		{
 			name: "Role with duplicate name",
-			role: func() *Role {
-				role := rf.CreateBasicRole()
+			role: func() *auth.Role {
+				role := &auth.Role{Name: "basic-role", Description: "Basic role"}
 				role.Name = "duplicate-name"
 				return role
 			}(),
@@ -61,8 +63,8 @@ func TestRBACManager_CreateRole(t *testing.T) {
 		},
 		{
 			name: "Role with empty name",
-			role: func() *Role {
-				role := rf.CreateBasicRole()
+			role: func() *auth.Role {
+				role := &auth.Role{Name: "basic-role", Description: "Basic role"}
 				role.Name = ""
 				return role
 			}(),
@@ -71,7 +73,7 @@ func TestRBACManager_CreateRole(t *testing.T) {
 	}
 
 	// Create a role to test duplicate name scenario
-	duplicateRole := rf.CreateBasicRole()
+	duplicateRole := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	duplicateRole.Name = "duplicate-name"
 	_, err := manager.CreateRole(context.Background(), duplicateRole)
 	require.NoError(t, err)
@@ -96,7 +98,7 @@ func TestRBACManager_CreateRole(t *testing.T) {
 			// Additional test for duplicate name
 			if tt.name == "Role with duplicate name" {
 				// Try to create another role with same name
-				duplicateRole2 := rf.CreateBasicRole()
+				duplicateRole2 := &auth.Role{Name: "basic-role", Description: "Basic role"}
 				duplicateRole2.Name = "duplicate-name"
 				_, err := manager.CreateRole(ctx, duplicateRole2)
 				assert.Error(t, err, "Should not allow duplicate role names")
@@ -113,7 +115,7 @@ func TestRBACManager_GetRole(t *testing.T) {
 	rf := testutil.NewRoleFactory()
 
 	// Create a test role
-	testRole := rf.CreateBasicRole()
+	testRole := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	createdRole, err := manager.CreateRole(context.Background(), testRole)
 	require.NoError(t, err)
 
@@ -122,14 +124,14 @@ func TestRBACManager_GetRole(t *testing.T) {
 		roleID      string
 		expectError bool
 		expectNil   bool
-		checkRole   func(*testing.T, *Role)
+		checkRole   func(*testing.T, *auth.Role)
 	}{
 		{
 			name:        "Get existing role by ID",
 			roleID:      createdRole.ID,
 			expectError: false,
 			expectNil:   false,
-			checkRole: func(t *testing.T, role *Role) {
+			checkRole: func(t *testing.T, role *auth.Role) {
 				assert.Equal(t, createdRole.ID, role.ID)
 				assert.Equal(t, createdRole.Name, role.Name)
 				assert.Equal(t, createdRole.Description, role.Description)
@@ -140,7 +142,7 @@ func TestRBACManager_GetRole(t *testing.T) {
 			roleID:      createdRole.Name,
 			expectError: false,
 			expectNil:   false,
-			checkRole: func(t *testing.T, role *Role) {
+			checkRole: func(t *testing.T, role *auth.Role) {
 				assert.Equal(t, createdRole.Name, role.Name)
 			},
 		},
@@ -189,27 +191,27 @@ func TestRBACManager_UpdateRole(t *testing.T) {
 	rf := testutil.NewRoleFactory()
 
 	// Create a test role
-	originalRole := rf.CreateBasicRole()
+	originalRole := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	createdRole, err := manager.CreateRole(context.Background(), originalRole)
 	require.NoError(t, err)
 
 	tests := []struct {
 		name        string
 		roleID      string
-		updates     *Role
+		updates     *auth.Role
 		expectError bool
-		checkRole   func(*testing.T, *Role, *Role)
+		checkRole   func(*testing.T, *auth.Role, *auth.Role)
 	}{
 		{
 			name:   "Update role description",
 			roleID: createdRole.ID,
-			updates: func() *Role {
+			updates: func() *auth.Role {
 				updated := *createdRole
 				updated.Description = "Updated description"
 				return &updated
 			}(),
 			expectError: false,
-			checkRole: func(t *testing.T, original, updated *Role) {
+			checkRole: func(t *testing.T, original, updated *auth.Role) {
 				assert.Equal(t, "Updated description", updated.Description)
 				assert.Equal(t, original.ID, updated.ID)
 				assert.True(t, updated.UpdatedAt.After(original.UpdatedAt))
@@ -218,13 +220,13 @@ func TestRBACManager_UpdateRole(t *testing.T) {
 		{
 			name:   "Update role permissions",
 			roleID: createdRole.ID,
-			updates: func() *Role {
+			updates: func() *auth.Role {
 				updated := *createdRole
 				updated.Permissions = []string{"read:advanced", "write:advanced"}
 				return &updated
 			}(),
 			expectError: false,
-			checkRole: func(t *testing.T, original, updated *Role) {
+			checkRole: func(t *testing.T, original, updated *auth.Role) {
 				assert.Contains(t, updated.Permissions, "read:advanced")
 				assert.Contains(t, updated.Permissions, "write:advanced")
 			},
@@ -232,7 +234,7 @@ func TestRBACManager_UpdateRole(t *testing.T) {
 		{
 			name:        "Update non-existent role",
 			roleID:      "non-existent-role",
-			updates:     rf.CreateBasicRole(),
+			updates:     &auth.Role{Name: "basic-role", Description: "Basic role"},
 			expectError: true,
 		},
 		{
@@ -244,7 +246,7 @@ func TestRBACManager_UpdateRole(t *testing.T) {
 		{
 			name:        "Empty role ID",
 			roleID:      "",
-			updates:     rf.CreateBasicRole(),
+			updates:     &auth.Role{Name: "basic-role", Description: "Basic role"},
 			expectError: true,
 		},
 	}
@@ -285,7 +287,7 @@ func TestRBACManager_DeleteRole(t *testing.T) {
 		{
 			name: "Delete existing role",
 			setupRole: func() string {
-				role := rf.CreateBasicRole()
+				role := &auth.Role{Name: "basic-role", Description: "Basic role"}
 				createdRole, err := manager.CreateRole(context.Background(), role)
 				require.NoError(t, err)
 				return createdRole.ID
@@ -301,7 +303,7 @@ func TestRBACManager_DeleteRole(t *testing.T) {
 		{
 			name: "Delete role with user assignments",
 			setupRole: func() string {
-				role := rf.CreateBasicRole()
+				role := &auth.Role{Name: "basic-role", Description: "Basic role"}
 				createdRole, err := manager.CreateRole(context.Background(), role)
 				require.NoError(t, err)
 
@@ -450,7 +452,7 @@ func TestRBACManager_AssignRoleToUser(t *testing.T) {
 	rf := testutil.NewRoleFactory()
 
 	// Create test roles
-	basicRole := rf.CreateBasicRole()
+	basicRole := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	createdBasicRole, err := manager.CreateRole(context.Background(), basicRole)
 	require.NoError(t, err)
 
@@ -579,7 +581,7 @@ func TestRBACManager_RevokeRoleFromUser(t *testing.T) {
 	rf := testutil.NewRoleFactory()
 
 	// Create and assign test role
-	role := rf.CreateBasicRole()
+	role := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	createdRole, err := manager.CreateRole(context.Background(), role)
 	require.NoError(t, err)
 
@@ -828,7 +830,7 @@ func TestRBACManager_HierarchicalRoles(t *testing.T) {
 	require.NoError(t, err)
 
 	// Super admin role that inherits from admin
-	superAdminRole := rf.CreateBasicRole()
+	superAdminRole := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	superAdminRole.Name = "superadmin"
 	superAdminRole.ParentRoles = []string{createdAdminRole.ID}
 	createdSuperAdminRole, err := manager.CreateRole(ctx, superAdminRole)
@@ -929,7 +931,7 @@ func TestRBACManager_ListOperations(t *testing.T) {
 	ctx := context.Background()
 
 	// Create roles
-	role1 := rf.CreateBasicRole()
+	role1 := &auth.Role{Name: "basic-role", Description: "Basic role"}
 	role1.Name = "test-role-1"
 	createdRole1, err := manager.CreateRole(ctx, role1)
 	require.NoError(t, err)
@@ -959,7 +961,7 @@ func TestRBACManager_ListOperations(t *testing.T) {
 				return manager.ListRoles(ctx)
 			},
 			checkFunc: func(t *testing.T, result interface{}) {
-				roles := result.([]*Role)
+				roles := result.([]*auth.Role)
 				assert.GreaterOrEqual(t, len(roles), 2) // At least our test roles plus defaults
 
 				roleNames := make([]string, len(roles))
@@ -1066,7 +1068,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 
 	// Create and assign multiple roles
 	for i := 0; i < 10; i++ {
-		role := rf.CreateBasicRole()
+		role := &auth.Role{Name: "basic-role", Description: "Basic role"}
 		createdRole, err := manager.CreateRole(ctx, role)
 		if err != nil {
 			b.Fatal(err)

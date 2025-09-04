@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -96,7 +96,7 @@ func getMemoryUsage() float64 {
 }
 
 func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterManager {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -130,7 +130,7 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 
 // Benchmark Tests
 func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -224,7 +224,7 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 }
 
 func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -256,7 +256,7 @@ func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 }
 
 func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -362,7 +362,7 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 }
 
 func TestPerformance_HealthMonitoringScalability(t *testing.T) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -428,7 +428,7 @@ func TestPerformance_HealthMonitoringScalability(t *testing.T) {
 }
 
 func TestPerformance_AlertProcessingThroughput(t *testing.T) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
@@ -525,7 +525,7 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 }
 
 func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()

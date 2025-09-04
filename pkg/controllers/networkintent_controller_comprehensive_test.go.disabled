@@ -22,8 +22,10 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 // fakeLLMClient implements shared.ClientInterface for testing
@@ -51,6 +53,49 @@ func (f *fakeLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	}
 	// Default successful response
 	return `{"deployment_type": "5g", "latency_requirement": "1ms", "bandwidth": "1Gbps"}`, nil
+}
+
+// Implement remaining ClientInterface methods
+func (f *fakeLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	f.callCount++
+	if f.shouldFail {
+		return nil, fmt.Errorf("fake LLM processing failure")
+	}
+	return &shared.LLMResponse{Content: "fake response"}, nil
+}
+
+func (f *fakeLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	f.callCount++
+	if f.shouldFail {
+		return nil, fmt.Errorf("fake streaming failure")
+	}
+	ch := make(chan *shared.StreamingChunk, 1)
+	ch <- &shared.StreamingChunk{Content: "fake stream"}
+	close(ch)
+	return ch, nil
+}
+
+func (f *fakeLLMClient) HealthCheck(ctx context.Context) error {
+	if f.shouldFail {
+		return fmt.Errorf("fake health check failure")
+	}
+	return nil
+}
+
+func (f *fakeLLMClient) GetStatus() shared.ClientStatus {
+	return shared.ClientStatusHealthy
+}
+
+func (f *fakeLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{MaxTokens: 4096}
+}
+
+func (f *fakeLLMClient) GetEndpoint() string {
+	return "fake://endpoint"
+}
+
+func (f *fakeLLMClient) Close() error {
+	return nil
 }
 
 func (f *fakeLLMClient) Reset() {
@@ -140,6 +185,14 @@ func (f *fakeDependencies) GetHTTPClient() *http.Client {
 
 func (f *fakeDependencies) GetEventRecorder() record.EventRecorder {
 	return f.eventRecorder
+}
+
+func (f *fakeDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return nil  // Return nil for testing
+}
+
+func (f *fakeDependencies) GetMetricsCollector() monitoring.MetricsCollector {
+	return nil  // Return nil for testing
 }
 
 func (f *fakeDependencies) Reset() {

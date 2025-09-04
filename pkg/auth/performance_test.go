@@ -2,13 +2,8 @@ package auth_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"runtime"
 	"testing"
-	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"

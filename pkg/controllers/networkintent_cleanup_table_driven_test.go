@@ -106,8 +106,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 				// Set up Git client mock expectations
 				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-				expectedPath := fmt.Sprintf("%s/%s-%s", reconciler.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
-				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
+				_ = fmt.Sprintf("%s/%s-%s", reconciler.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name) // expectedPath
+				_ = fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)    // expectedMessage
 
 				// Set up mock errors if needed
 				if tc.removeDirectoryError != nil {
@@ -486,8 +486,8 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				)
 
 				mockGitClient := mockDeps.GetGitClient().(*testutils.MockGitClient)
-				expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
-				expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
+				_ = fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)         // expectedPath
+				_ = fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name) // expectedMessage
 
 				// Set up mock error based on operation
 				mockGitClient.SetCommitPushError(tc.error)

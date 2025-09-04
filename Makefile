@@ -317,7 +317,7 @@ IMG ?= nephoran-operator:latest
 docker-build: manager ## Build docker image with the manager
 	@echo "Building Docker image: $(IMG)"
 	@echo "Creating multi-stage Dockerfile for Kubernetes operator..."
-	@cat > Dockerfile.operator <<EOF
+	@cat > Dockerfile.operator <<'EOF'
 # Build stage
 FROM golang:1.24-alpine AS builder
 WORKDIR /workspace
@@ -355,7 +355,7 @@ docker-push: ## Push docker image with the manager
 docker-buildx: manager ## Build and push docker image for multiple platforms
 	@echo "Building multi-arch Docker image: $(IMG)"
 	@echo "Creating multi-stage Dockerfile for multi-arch build..."
-	@cat > Dockerfile.multiarch <<EOF
+	@cat > Dockerfile.multiarch <<'EOF'
 # Build stage
 FROM golang:1.24-alpine AS builder
 WORKDIR /workspace
