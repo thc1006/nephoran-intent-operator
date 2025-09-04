@@ -119,8 +119,8 @@ func TestValidateAndLimitJSON_LargeFile(t *testing.T) {
 	defer os.Remove(tempFile.Name())
 	defer tempFile.Close() // #nosec G307 - Error handled in defer
 
-	// Write 2MB of content
-	largeContent := strings.Repeat("a", 2*1024*1024)
+	// Write 6MB of content (larger than MaxJSONBytes = 5MB)
+	largeContent := strings.Repeat("a", 6*1024*1024)
 	_, err = tempFile.WriteString(largeContent)
 	require.NoError(t, err)
 

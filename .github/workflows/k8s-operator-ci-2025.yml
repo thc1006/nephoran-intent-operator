@@ -45,7 +45,7 @@ env:
   GO_VERSION: "1.25.0"
   KUBERNETES_VERSION: "1.32.1"
   CONTROLLER_RUNTIME_VERSION: "v0.19.1"
-  KUBEBUILDER_VERSION: "4.7.1"
+  KUBEBUILDER_VERSION: "4.8.0"
   ENVTEST_KUBERNETES_VERSION: "1.32.1"
   
   # Build optimizations for 2025
@@ -200,56 +200,33 @@ jobs:
           
           # Download kubebuilder archive with proper error handling
           echo "📥 Downloading kubebuilder archive..."
-          DOWNLOAD_URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64.tar.gz"
+          DOWNLOAD_URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{ env.KUBEBUILDER_VERSION }}/kubebuilder_linux_amd64"
           echo "Download URL: $DOWNLOAD_URL"
           
-          if ! curl -L -f -o kubebuilder.tar.gz "$DOWNLOAD_URL"; then
-            echo "❌ Failed to download kubebuilder archive"
+          if ! curl -L -f -o kubebuilder "$DOWNLOAD_URL"; then
+            echo "❌ Failed to download kubebuilder binary"
             echo "🔍 Checking available releases..."
             curl -s "https://api.github.com/repos/kubernetes-sigs/kubebuilder/releases" | grep -o '"tag_name": "[^"]*"' | head -5
             exit 1
           fi
           
-          # Verify download size (should be > 1MB for a valid archive)
+          # Verify download size (should be > 1MB for a valid binary)
           echo "📏 Checking downloaded file size..."
-          ls -lh kubebuilder.tar.gz
-          if [[ $(stat -c%s kubebuilder.tar.gz) -lt 1000000 ]]; then
+          ls -lh kubebuilder
+          if [[ $(stat -c%s kubebuilder) -lt 1000000 ]]; then
             echo "❌ Downloaded file is too small, likely an error page"
-            head -20 kubebuilder.tar.gz
+            head -20 kubebuilder
             exit 1
           fi
           
-          # Check file format and extract accordingly
-          echo "🔍 Checking archive format..."
-          file kubebuilder.tar.gz
+          # Check file format
+          echo "🔍 Checking binary format..."
+          file kubebuilder
           
-          # Extract archive with proper format detection
-          if file kubebuilder.tar.gz | grep -q "gzip compressed"; then
-            echo "📦 Extracting gzip compressed archive..."
-            tar -zxvf kubebuilder.tar.gz
-          elif file kubebuilder.tar.gz | grep -q "POSIX tar archive"; then
-            echo "📦 Extracting plain tar archive..."
-            tar -xvf kubebuilder.tar.gz
-          else
-            echo "❌ Unsupported archive format"
-            file kubebuilder.tar.gz
-            hexdump -C kubebuilder.tar.gz | head -5
-            exit 1
-          fi
-          
-          # Find and move kubebuilder binary to system path
-          echo "📁 Finding kubebuilder binary..."
-          find . -name "kubebuilder" -type f -executable
-          
-          if [[ -f "kubebuilder/bin/kubebuilder" ]]; then
-            sudo mv kubebuilder/bin/kubebuilder /usr/local/bin/kubebuilder
-          elif [[ -f "kubebuilder" ]]; then
-            sudo mv kubebuilder /usr/local/bin/kubebuilder
-          else
-            echo "❌ Could not find kubebuilder binary"
-            find . -name "*kubebuilder*" -type f
-            exit 1
-          fi
+          # Move kubebuilder binary to system path
+          echo "📁 Installing kubebuilder binary..."
+          chmod +x kubebuilder
+          sudo mv kubebuilder /usr/local/bin/kubebuilder
           
           # Verify installation
           file /usr/local/bin/kubebuilder
@@ -462,11 +439,63 @@ jobs:
             
           echo "✅ Container image security scan completed"
           
-      - name: Upload security scan results
-        uses: github/codeql-action/upload-sarif@v3
+      # ===============================================================================
+      # IMPORTANT: Each SARIF upload MUST have a unique category to avoid GitHub errors
+      # The CodeQL Action v3 (2025) requires unique categories for each SARIF upload
+      # Reference: https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning
+      # ===============================================================================
+      - name: Validate SARIF files
         if: always()
+        run: |
+          echo "🔍 Validating SARIF output files..."
+          
+          # Check each SARIF file exists and is valid JSON
+          for sarif_file in trivy-fs-results.sarif trivy-k8s-results.sarif trivy-image-results.sarif; do
+            if [[ -f "$sarif_file" ]]; then
+              echo "📋 Validating $sarif_file..."
+              if jq empty "$sarif_file" 2>/dev/null; then
+                echo "✅ $sarif_file is valid JSON"
+                # Check for SARIF schema version
+                if jq -r '.version' "$sarif_file" 2>/dev/null | grep -q "2.1"; then
+                  echo "✅ $sarif_file has valid SARIF version"
+                else
+                  echo "⚠️ Warning: $sarif_file may have incorrect SARIF version"
+                fi
+              else
+                echo "❌ $sarif_file is not valid JSON, removing..."
+                rm -f "$sarif_file"
+              fi
+            else
+              echo "📝 $sarif_file not found (scan may have been skipped)"
+            fi
+          done
+          
+      - name: Upload filesystem security scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
+        continue-on-error: true
         with:
-          sarif_file: '.'
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-filesystem'
+          wait-for-processing: true
+          
+      - name: Upload Kubernetes configuration scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-k8s-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-k8s-results.sarif'
+          category: 'trivy-kubernetes-config'
+          wait-for-processing: true
+          
+      - name: Upload container image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-image-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+          category: 'trivy-container-image'
+          wait-for-processing: true
           
       - name: Security scan summary
         if: always()

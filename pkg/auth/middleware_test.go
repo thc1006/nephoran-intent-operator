@@ -200,29 +200,35 @@ func TestRBACMiddleware(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create roles
-	readerRole := rf.CreateRoleWithPermissions([]string{createdReadPerm.ID})
+	createdReadPermTyped := createdReadPerm.(*authtestutil.TestPermission)
+	readerRole := rf.CreateRoleWithPermissions([]string{createdReadPermTyped.ID})
 	readerRole.Name = "reader"
 	createdReaderRole, err := rbacManager.CreateRole(ctx, readerRole)
 	require.NoError(t, err)
 
-	writerRole := rf.CreateRoleWithPermissions([]string{createdReadPerm.ID, createdWritePerm.ID})
+	createdWritePermTyped := createdWritePerm.(*authtestutil.TestPermission)
+	writerRole := rf.CreateRoleWithPermissions([]string{createdReadPermTyped.ID, createdWritePermTyped.ID})
 	writerRole.Name = "writer"
 	createdWriterRole, err := rbacManager.CreateRole(ctx, writerRole)
 	require.NoError(t, err)
 
-	adminRole := rf.CreateRoleWithPermissions([]string{createdAdminPerm.ID})
+	createdAdminPermTyped := createdAdminPerm.(*authtestutil.TestPermission)
+	adminRole := rf.CreateRoleWithPermissions([]string{createdAdminPermTyped.ID})
 	adminRole.Name = "admin"
 	createdAdminRole, err := rbacManager.CreateRole(ctx, adminRole)
 	require.NoError(t, err)
 
 	// Assign roles to users
-	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRole.ID)
+	createdReaderRoleTyped := createdReaderRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "reader-user", createdReaderRoleTyped.ID)
 	require.NoError(t, err)
 
-	err = rbacManager.AssignRoleToUser(ctx, "writer-user", createdWriterRole.ID)
+	createdWriterRoleTyped := createdWriterRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "writer-user", createdWriterRoleTyped.ID)
 	require.NoError(t, err)
 
-	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRole.ID)
+	createdAdminRoleTyped := createdAdminRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, "admin-user", createdAdminRoleTyped.ID)
 	require.NoError(t, err)
 
 	// Create RBAC middleware - using a simple test handler for now
@@ -684,11 +690,13 @@ func TestChainMiddlewares(t *testing.T) {
 	createdPerm, err := rbacManager.CreatePermission(ctx, perm)
 	require.NoError(t, err)
 
-	role := rf.CreateRoleWithPermissions([]string{createdPerm.ID})
+	createdPermTyped := createdPerm.(*authtestutil.TestPermission)
+	role := rf.CreateRoleWithPermissions([]string{createdPermTyped.ID})
 	createdRole, err := rbacManager.CreateRole(ctx, role)
 	require.NoError(t, err)
 
-	err = rbacManager.AssignRoleToUser(ctx, user.Subject, createdRole.ID)
+	createdRoleTyped := createdRole.(*authtestutil.TestRole)
+	err = rbacManager.AssignRoleToUser(ctx, user.Subject, createdRoleTyped.ID)
 	require.NoError(t, err)
 
 	// TODO: Fix type compatibility - mock types don't match expected concrete types

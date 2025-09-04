@@ -54,7 +54,14 @@ func (suite *BenchmarkSuite) setupTestData() {
 
 	// Create test users
 	for i := 0; i < 1000; i++ {
-		user := uf.CreateBasicUser()
+		testUser := uf.CreateBasicUser()
+		// Convert TestUser to providers.UserInfo
+		user := &providers.UserInfo{
+			Subject:       testUser.Subject,
+			Email:         testUser.Email,
+			EmailVerified: testUser.EmailVerified,
+			Name:          testUser.Name,
+		}
 		suite.testUsers = append(suite.testUsers, user)
 
 		// Generate tokens for users
@@ -63,7 +70,14 @@ func (suite *BenchmarkSuite) setupTestData() {
 		}
 
 		// Create sessions for users
-		if session, err := suite.sessionManager.CreateSession(ctx, user, nil); err == nil {
+		sessionData := &auth.SessionData{
+			UserID:      user.Subject,
+			Username:    user.Name,
+			Email:       user.Email,
+			DisplayName: user.Name,
+			Provider:    "test",
+		}
+		if session, err := suite.sessionManager.CreateSession(ctx, sessionData); err == nil {
 			suite.testSessions = append(suite.testSessions, session)
 		}
 	}
@@ -74,9 +88,17 @@ func (suite *BenchmarkSuite) setupTestData() {
 
 	for _, resource := range resources {
 		for _, action := range actions {
-			perms := pf.CreateResourcePermissions(resource, []string{action})
-			if createdPerm, err := suite.rbacManager.CreatePermission(ctx, perms[0]); err == nil {
-				suite.testPerms = append(suite.testPerms, createdPerm)
+			perm := pf.CreatePermission(resource, action, "default")
+			if createdPerm, err := suite.rbacManager.CreatePermission(ctx, perm); err == nil {
+				// Cast to correct type
+				permTyped := createdPerm.(*authtestutil.TestPermission)
+				// Convert to auth.Permission for storage
+				authPerm := &auth.Permission{
+					ID:          permTyped.ID,
+					Name:        permTyped.Name,
+					Description: permTyped.Description,
+				}
+				suite.testPerms = append(suite.testPerms, authPerm)
 			}
 		}
 	}

@@ -379,7 +379,12 @@ data:
 
 `
 
-	tmpl, err = template.New("configmap").Parse(configMapTmpl)
+	tmpl, err = template.New("configmap").Funcs(template.FuncMap{
+		"indent": func(n int, s string) string {
+			pad := strings.Repeat(" ", n)
+			return pad + strings.ReplaceAll(s, "\n", "\n"+pad)
+		},
+	}).Parse(configMapTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to parse configmap template: %w", err)
 	}
@@ -463,7 +468,17 @@ data:
 // generateKptfile generates the Kptfile for the package.
 
 func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, error) {
-	data := json.RawMessage(`{}`)
+	data := struct {
+		Name        string
+		Namespace   string
+		Intent      string
+		Description string
+	}{
+		Name:        intent.Name,
+		Namespace:   intent.Namespace,
+		Intent:      intent.Spec.Intent,
+		Description: fmt.Sprintf("Nephio package generated from NetworkIntent '%s' in namespace '%s'", intent.Name, intent.Namespace),
+	}
 
 	var buf bytes.Buffer
 

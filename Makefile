@@ -41,6 +41,12 @@ $(DEMO_HANDOFF_DIR):
 .PHONY: build
 build: build-all
 
+.PHONY: manager
+manager: $(BIN_DIR) ## Build manager binary for Kubernetes operator
+	@echo "Building Kubernetes operator manager..."
+	$(GO) build -o $(BIN_DIR)/manager ./cmd/main.go
+	@echo "[SUCCESS] Manager binary built"
+
 .PHONY: build-all
 build-all: $(BIN_DIR)
 	@echo "Building all components..."
@@ -259,6 +265,159 @@ ci-full: ci-lint ci-test validate-all
 	@echo "[SUCCESS] Full CI pipeline completed"
 
 # =============================================================================
+# Docker Build Targets (Kubernetes Operator Convention)
+# =============================================================================
+
+# Image URL to use all building/pushing image targets
+IMG ?= nephoran-operator:latest
+
+.PHONY: docker-build
+docker-build: manager ## Build docker image with the manager
+	@echo "Building Docker image: $(IMG)"
+	@echo "Creating multi-stage Dockerfile for Kubernetes operator..."
+	@cat > Dockerfile.operator <<EOF
+# Build stage
+FROM golang:1.24-alpine AS builder
+WORKDIR /workspace
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the manager binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager ./cmd/main.go
+
+# Runtime stage
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/manager .
+USER 65532:65532
+
+ENTRYPOINT ["/manager"]
+EOF
+	@echo "Building Docker image with multi-stage build..."
+	docker build -f Dockerfile.operator -t $(IMG) .
+	@echo "✅ Docker image built: $(IMG)"
+	@rm -f Dockerfile.operator
+
+.PHONY: docker-push
+docker-push: ## Push docker image with the manager
+	@echo "Pushing Docker image: $(IMG)"
+	docker push $(IMG)
+	@echo "✅ Docker image pushed: $(IMG)"
+
+.PHONY: docker-buildx
+docker-buildx: manager ## Build and push docker image for multiple platforms
+	@echo "Building multi-arch Docker image: $(IMG)"
+	@echo "Creating multi-stage Dockerfile for multi-arch build..."
+	@cat > Dockerfile.multiarch <<EOF
+# Build stage
+FROM golang:1.24-alpine AS builder
+WORKDIR /workspace
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the manager binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o manager ./cmd/main.go
+
+# Runtime stage
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/manager .
+USER 65532:65532
+
+ENTRYPOINT ["/manager"]
+EOF
+	docker buildx create --use --name=crossplat --node=crossplat || true
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-t $(IMG) \
+		-f Dockerfile.multiarch \
+		--push .
+	@echo "✅ Multi-arch Docker image built and pushed: $(IMG)"
+	@rm -f Dockerfile.multiarch
+
+# =============================================================================
+# Kubernetes Operator Targets (Kubebuilder Convention)
+# =============================================================================
+
+.PHONY: manifests
+manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects
+	@echo "Generating manifests..."
+	@if command -v controller-gen >/dev/null 2>&1; then \
+		controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
+		echo "✅ Manifests generated"; \
+	else \
+		echo "⚠️ controller-gen not found, skipping manifest generation"; \
+		echo "Install with: go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest"; \
+	fi
+
+.PHONY: generate
+generate: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations
+	@echo "Generating code..."
+	@if command -v controller-gen >/dev/null 2>&1; then \
+		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."; \
+		echo "✅ Code generated"; \
+	else \
+		echo "⚠️ controller-gen not found, skipping code generation"; \
+		echo "Install with: go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest"; \
+	fi
+
+.PHONY: install
+install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config
+	@echo "Installing CRDs..."
+	@if command -v kustomize >/dev/null 2>&1; then \
+		kustomize build config/crd | kubectl apply -f -; \
+		echo "✅ CRDs installed"; \
+	else \
+		echo "❌ kustomize not found"; \
+		echo "Install with: go install sigs.k8s.io/kustomize/kustomize/v5@latest"; \
+		exit 1; \
+	fi
+
+.PHONY: uninstall
+uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config
+	@echo "Uninstalling CRDs..."
+	@if command -v kustomize >/dev/null 2>&1; then \
+		kustomize build config/crd | kubectl delete --ignore-not-found=true -f -; \
+		echo "✅ CRDs uninstalled"; \
+	else \
+		echo "❌ kustomize not found"; \
+		exit 1; \
+	fi
+
+.PHONY: deploy
+deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config
+	@echo "Deploying controller to cluster..."
+	@if command -v kustomize >/dev/null 2>&1; then \
+		cd config/manager && kustomize edit set image controller=$(IMG); \
+		kustomize build config/default | kubectl apply -f -; \
+		echo "✅ Controller deployed with image: $(IMG)"; \
+	else \
+		echo "❌ kustomize not found"; \
+		exit 1; \
+	fi
+
+.PHONY: undeploy
+undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config
+	@echo "Undeploying controller from cluster..."
+	@if command -v kustomize >/dev/null 2>&1; then \
+		kustomize build config/default | kubectl delete --ignore-not-found=true -f -; \
+		echo "✅ Controller undeployed"; \
+	else \
+		echo "❌ kustomize not found"; \
+		exit 1; \
+	fi
+
+# =============================================================================
 # Development Utilities
 # =============================================================================
 
@@ -287,6 +446,7 @@ help:
 	@echo ""
 	@echo "Build Targets:"
 	@echo "  build                 - Build all components"
+	@echo "  manager               - Build Kubernetes operator manager"
 	@echo "  build-llm-processor   - Build LLM processor only"
 	@echo "  build-intent-ingest   - Build intent ingest service only"
 	@echo ""
@@ -321,6 +481,19 @@ help:
 	@echo "  ci-test               - CI test suite"
 	@echo "  ci-lint               - CI linting"
 	@echo "  ci-full               - Full CI pipeline"
+	@echo ""
+	@echo "Docker Build Targets:"
+	@echo "  docker-build IMG=<image> - Build Docker image (default: nephoran-operator:latest)"
+	@echo "  docker-push IMG=<image>  - Push Docker image"
+	@echo "  docker-buildx IMG=<image> - Build multi-arch Docker image"
+	@echo ""
+	@echo "Kubernetes Operator Targets:"
+	@echo "  manifests             - Generate CRDs, RBAC, and webhook configurations"
+	@echo "  generate              - Generate DeepCopy methods and other code"
+	@echo "  install               - Install CRDs to cluster"
+	@echo "  uninstall             - Uninstall CRDs from cluster"
+	@echo "  deploy IMG=<image>    - Deploy operator to cluster"
+	@echo "  undeploy              - Remove operator from cluster"
 	@echo ""
 	@echo "Development:"
 	@echo "  dev-setup             - Setup development environment"

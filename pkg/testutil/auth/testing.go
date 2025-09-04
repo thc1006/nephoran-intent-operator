@@ -164,13 +164,19 @@ func NewRBACManagerMock() *RBACManagerMock {
 }
 
 // CreateRole creates a new role (mock implementation)
-func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) error {
-	// Mock implementation - just return success
-	return nil
+func (rbac *RBACManagerMock) CreateRole(ctx context.Context, role interface{}) (interface{}, error) {
+	// Mock implementation - return a test role and success
+	return &TestRole{ID: "test-role-id"}, nil
 }
 
 // CreatePermission creates a new permission (mock implementation)  
-func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) error {
+func (rbac *RBACManagerMock) CreatePermission(ctx context.Context, permission interface{}) (interface{}, error) {
+	// Mock implementation - return a test permission and success
+	return &TestPermission{ID: "test-permission-id"}, nil
+}
+
+// AssignRoleToUser assigns a role to a user (mock implementation)
+func (rbac *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
 	// Mock implementation - just return success
 	return nil
 }
@@ -946,6 +952,18 @@ func (rf *RoleFactory) CreateRole(name, description string, permissions []string
 		ID:          fmt.Sprintf("role-%s", name),
 		Name:        name,
 		Description: description,
+		Permissions: permissions,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+}
+
+// CreateRoleWithPermissions creates a role with specific permissions
+func (rf *RoleFactory) CreateRoleWithPermissions(permissions []string) *TestRole {
+	return &TestRole{
+		ID:          fmt.Sprintf("role-%d", time.Now().UnixNano()),
+		Name:        fmt.Sprintf("test-role-%d", time.Now().UnixNano()%1000),
+		Description: "Test role with permissions",
 		Permissions: permissions,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),

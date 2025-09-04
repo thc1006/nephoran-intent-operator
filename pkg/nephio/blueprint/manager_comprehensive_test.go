@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 
 	"github.com/go-logr/logr"
-	"github.com/rogpeppe/go-internal/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -37,6 +36,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -46,6 +46,37 @@ import (
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
+
+// MockCache implements a simple cache.Cache for testing
+type MockCache struct{}
+
+func (mc *MockCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return nil
+}
+
+func (mc *MockCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return nil
+}
+
+func (mc *MockCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
+	return nil, nil
+}
+
+func (mc *MockCache) GetInformerForKind(ctx context.Context, gvk runtime.Object) (cache.Informer, error) {
+	return nil, nil
+}
+
+func (mc *MockCache) Start(ctx context.Context) error {
+	return nil
+}
+
+func (mc *MockCache) WaitForCacheSync(ctx context.Context) bool {
+	return true
+}
+
+func (mc *MockCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
+	return nil
+}
 
 // MockManager implements the controller-runtime manager interface for testing
 type MockManager struct {
@@ -74,17 +105,22 @@ func (m *MockManager) GetLogger() logr.Logger {
 // Implement other manager.Manager interface methods as no-ops for testing
 func (m *MockManager) Add(manager.Runnable) error                        { return nil }
 func (m *MockManager) AddMetricsExtraHandler(string, http.Handler) error { return nil }
+func (m *MockManager) AddMetricsServerExtraHandler(string, http.Handler) error { return nil }
 func (m *MockManager) AddHealthzCheck(string, healthz.Checker) error     { return nil }
 func (m *MockManager) AddReadyzCheck(string, healthz.Checker) error      { return nil }
 func (m *MockManager) Start(context.Context) error                       { return nil }
 func (m *MockManager) GetWebhookServer() *webhook.Server                 { return nil }
 func (m *MockManager) GetAPIReader() client.Reader                       { return m.client }
-func (m *MockManager) GetCache() cache.Cache                             { return nil }
+func (m *MockManager) GetCache() cache.Cache                             { 
+	// Return a mock cache implementation - create a simple one
+	mockCache := &MockCache{}
+	return mockCache
+}
 func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
 func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
-func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
-	return v1alpha1.ControllerConfigurationSpec{}
+func (m *MockManager) GetControllerOptions() config.Controller {
+	return config.Controller{}
 }
 
 // Helper function to create a mock manager
@@ -256,7 +292,15 @@ func (v *MockValidator) ValidateBlueprint(ctx context.Context, intent *v1.Networ
 	}
 
 	if v.shouldReject {
-		result.Errors = []string{"validation failed: missing required field"}
+		result.Errors = []ValidationError{
+			{
+				Code:     "MISSING_FIELD",
+				Severity: SeverityError,
+				Message:  "validation failed: missing required field",
+				Field:    "spec.parameters",
+				Source:   "test",
+			},
+		}
 	}
 
 	return result, nil
@@ -305,8 +349,15 @@ func generateDeployment(intent *v1.NetworkIntent) string {
 	}
 
 	replicas := "1"
-	if r, exists := intent.Spec.Parameters["replicas"]; exists {
-		replicas = r
+	if intent.Spec.Parameters != nil && intent.Spec.Parameters.Raw != nil {
+		var params map[string]interface{}
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err == nil {
+			if r, exists := params["replicas"]; exists {
+				if replicaStr, ok := r.(string); ok {
+					replicas = replicaStr
+				}
+			}
+		}
 	}
 
 	return fmt.Sprintf(`apiVersion: apps/v1
@@ -379,17 +430,16 @@ func createTestNetworkIntent(name string) *v1.NetworkIntent {
 		},
 		Spec: v1.NetworkIntentSpec{
 			IntentType: v1.IntentTypeDeployment,
-			Priority:   v1.PriorityMedium,
-			TargetComponents: []v1.ComponentType{
-				v1.ComponentTypeAMF,
+			Priority:   v1.NetworkPriorityNormal,
+			TargetComponents: []v1.NetworkTargetComponent{
+				v1.NetworkTargetComponentAMF,
 			},
-			Parameters: map[string]string{
-				"replicas": "3",
-				"region":   "us-east-1",
+			Parameters: &runtime.RawExtension{
+				Raw: []byte(`{"replicas": "3", "region": "us-east-1"}`),
 			},
 		},
 		Status: v1.NetworkIntentStatus{
-			Phase: v1.PhaseProcessing,
+			Phase: v1.NetworkIntentPhaseProcessing,
 		},
 	}
 }
@@ -647,14 +697,14 @@ func TestBlueprintTemplates(t *testing.T) {
 	testCases := []struct {
 		name          string
 		intentType    v1.IntentType
-		components    []v1.ComponentType
+		components    []v1.NetworkTargetComponent
 		parameters    map[string]string
 		validateFiles func(map[string]string)
 	}{
 		{
 			name:       "amf_deployment",
 			intentType: v1.IntentTypeDeployment,
-			components: []v1.ComponentType{v1.ComponentTypeAMF},
+			components: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF},
 			parameters: map[string]string{
 				"replicas": "3",
 				"region":   "us-east-1",
@@ -671,7 +721,7 @@ func TestBlueprintTemplates(t *testing.T) {
 		{
 			name:       "smf_deployment",
 			intentType: v1.IntentTypeDeployment,
-			components: []v1.ComponentType{v1.ComponentTypeSMF},
+			components: []v1.NetworkTargetComponent{v1.NetworkTargetComponentSMF},
 			parameters: map[string]string{
 				"replicas": "2",
 				"region":   "us-west-2",
@@ -685,7 +735,7 @@ func TestBlueprintTemplates(t *testing.T) {
 		{
 			name:       "upf_deployment",
 			intentType: v1.IntentTypeDeployment,
-			components: []v1.ComponentType{v1.ComponentTypeUPF},
+			components: []v1.NetworkTargetComponent{v1.NetworkTargetComponentUPF},
 			parameters: map[string]string{
 				"replicas": "1",
 				"region":   "eu-central-1",
@@ -1143,13 +1193,13 @@ func TestComplexScenarios(t *testing.T) {
 		// Create intents for complete 5G core
 		components := []struct {
 			name      string
-			component v1.ComponentType
+			component v1.NetworkTargetComponent
 			replicas  string
 		}{
-			{"5g-amf", v1.ComponentTypeAMF, "3"},
-			{"5g-smf", v1.ComponentTypeSMF, "2"},
-			{"5g-upf", v1.ComponentTypeUPF, "2"},
-			{"5g-nssf", v1.ComponentTypeNSSF, "1"},
+			{"5g-amf", v1.NetworkTargetComponentAMF, "3"},
+			{"5g-smf", v1.NetworkTargetComponentSMF, "2"},
+			{"5g-upf", v1.NetworkTargetComponentUPF, "2"},
+			{"5g-nssf", v1.NetworkTargetComponentNSSF, "1"},
 		}
 
 		results := make([]*BlueprintResult, len(components))
@@ -1162,12 +1212,10 @@ func TestComplexScenarios(t *testing.T) {
 				},
 				Spec: v1.NetworkIntentSpec{
 					IntentType:       v1.IntentTypeDeployment,
-					Priority:         v1.PriorityHigh,
-					TargetComponents: []v1.ComponentType{comp.component},
-					Parameters: map[string]string{
-						"replicas":    comp.replicas,
-						"region":      "us-east-1",
-						"environment": "production",
+					Priority:         v1.NetworkPriorityHigh,
+					TargetComponents: []v1.NetworkTargetComponent{comp.component},
+					Parameters: &runtime.RawExtension{
+						Raw: []byte(fmt.Sprintf(`{"replicas": "%s", "region": "us-east-1", "environment": "production"}`, comp.replicas)),
 					},
 				},
 			}
@@ -1199,12 +1247,10 @@ func TestComplexScenarios(t *testing.T) {
 				},
 				Spec: v1.NetworkIntentSpec{
 					IntentType:       v1.IntentTypeDeployment,
-					Priority:         v1.PriorityMedium,
-					TargetComponents: []v1.ComponentType{v1.ComponentTypeAMF},
-					Parameters: map[string]string{
-						"replicas": "2",
-						"region":   region,
-						"zone":     region + "a",
+					Priority:         v1.NetworkPriorityNormal,
+					TargetComponents: []v1.NetworkTargetComponent{v1.NetworkTargetComponentAMF},
+					Parameters: &runtime.RawExtension{
+						Raw: []byte(fmt.Sprintf(`{"replicas": "2", "region": "%s", "zone": "%sa"}`, region, region)),
 					},
 				},
 			}

@@ -108,22 +108,35 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 
 	// Validate intentType
 	if r.Spec.IntentType != "scaling" {
-		allErrs = append(allErrs, fmt.Errorf("spec.intentType must be 'scaling', got: %s", r.Spec.IntentType))
+		allErrs = append(allErrs, fmt.Errorf("only 'scaling' supported"))
 	}
 
 	// Validate target is not empty
 	if r.Spec.Target == "" {
-		allErrs = append(allErrs, fmt.Errorf("spec.target cannot be empty"))
+		allErrs = append(allErrs, fmt.Errorf("target must be non-empty"))
 	}
 
 	// Validate namespace is not empty
 	if r.Spec.Namespace == "" {
-		allErrs = append(allErrs, fmt.Errorf("spec.namespace cannot be empty"))
+		allErrs = append(allErrs, fmt.Errorf("namespace must be non-empty"))
 	}
 
 	// Validate replicas is non-negative
 	if r.Spec.Replicas < 0 {
-		allErrs = append(allErrs, fmt.Errorf("spec.replicas must be non-negative, got: %d", r.Spec.Replicas))
+		allErrs = append(allErrs, fmt.Errorf("replicas must be >= 0"))
+	}
+
+	// Validate source
+	validSources := []string{"user", "planner", "test"}
+	validSource := false
+	for _, validSrc := range validSources {
+		if r.Spec.Source == validSrc {
+			validSource = true
+			break
+		}
+	}
+	if !validSource {
+		allErrs = append(allErrs, fmt.Errorf("source must be 'user', 'planner', or 'test'"))
 	}
 
 	// Add warning if replicas is very high
@@ -132,7 +145,7 @@ func (r *NetworkIntent) validateNetworkIntent() (admission.Warnings, error) {
 	}
 
 	if len(allErrs) > 0 {
-		return warnings, fmt.Errorf("validation failed: %v", allErrs)
+		return nil, fmt.Errorf("validation failed: %v", allErrs)
 	}
 
 	return warnings, nil
