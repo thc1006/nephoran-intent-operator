@@ -367,7 +367,7 @@ jobs:
           }
 
       - name: Security scan with gosec
-        uses: securecodewarrior/github-action-gosec@master
+        uses: securego/gosec-action@v2
         with:
           args: '-fmt sarif -out gosec.sarif ./...'
 
