@@ -106,12 +106,7 @@ jobs:
           if [[ "${{ inputs.build_mode }}" == "fast" ]]; then
             STRATEGY='{"include":[{"name":"critical","pattern":"./api/... ./controllers/... ./pkg/nephio/..."}]}'
           else
-            STRATEGY='{"include":[
-              {"name":"critical","pattern":"./api/... ./controllers/... ./pkg/nephio/..."},
-              {"name":"simulators","pattern":"./sim/... ./internal/sim/..."},
-              {"name":"internal","pattern":"./internal/... ./cmd/..."},
-              {"name":"tools","pattern":"./tools/... ./scripts/..."}
-            ]}'
+            STRATEGY='{"include":[{"name":"critical","pattern":"./api/... ./controllers/... ./pkg/nephio/..."},{"name":"simulators","pattern":"./sim/... ./internal/sim/..."},{"name":"internal","pattern":"./internal/... ./cmd/..."},{"name":"tools","pattern":"./tools/... ./scripts/..."}]}'
           fi
           echo "strategy=$STRATEGY" >> $GITHUB_OUTPUT
           echo "Matrix strategy: $STRATEGY"
