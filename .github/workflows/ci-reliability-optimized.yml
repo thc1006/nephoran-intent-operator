@@ -429,10 +429,22 @@ jobs:
         run: |
           echo "Running integration smoke tests..."
           
-          # Prepare binaries
+          # Prepare binaries - FIXED: Handle downloaded artifacts properly
           mkdir -p bin/
-          find artifacts/ -type f -executable -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Debug: List what was actually downloaded
+          echo "Downloaded artifacts:"
+          find artifacts/ -type f | head -10
+          ls -la artifacts/ 2>/dev/null || true
+          
+          # Copy all files from artifacts (downloaded binaries aren't marked executable initially)
+          find artifacts/ -type f -exec cp {} bin/ \; 2>/dev/null || true
+          
+          # Make all files in bin/ executable
           chmod +x bin/* 2>/dev/null || true
+          
+          echo "Prepared binaries:"
+          ls -la bin/ 2>/dev/null || true
           
           # Test each binary
           tested=0
