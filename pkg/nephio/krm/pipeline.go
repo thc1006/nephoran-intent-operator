@@ -1472,12 +1472,11 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 		FunctionConfig: porch.FunctionConfig{
 			Image: function.Image,
 
-			ConfigMap: func() json.RawMessage {
+			ConfigMap: func() map[string]interface{} {
 				if function.Config != nil {
-					data, _ := json.Marshal(function.Config)
-					return json.RawMessage(data)
+					return function.Config
 				}
-				return json.RawMessage(`{}`)
+				return make(map[string]interface{})
 			}(),
 
 			Selectors: convertResourceSelectors(function.Selectors),
@@ -1897,11 +1896,8 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 		for _, resource := range resources {
 			if resource.APIVersion == apiVersion && resource.Kind == kind {
 				// Extract name from Metadata
-				var metadata map[string]interface{}
-				if err := json.Unmarshal(resource.Metadata, &metadata); err == nil {
-					if resourceName, ok := metadata["name"].(string); ok && resourceName == name {
-						return !condition.Negate
-					}
+				if resourceName, ok := resource.Metadata["name"].(string); ok && resourceName == name {
+					return !condition.Negate
 				}
 			}
 		}
@@ -1944,20 +1940,14 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 		return false
 	}
 
-	// Unmarshal metadata once
-	var metadata map[string]interface{}
-	if err := json.Unmarshal(resource.Metadata, &metadata); err != nil {
-		return false
-	}
-
 	if selector.Name != "" {
-		if name, ok := metadata["name"].(string); !ok || name != selector.Name {
+		if name, ok := resource.Metadata["name"].(string); !ok || name != selector.Name {
 			return false
 		}
 	}
 
 	if selector.Namespace != "" {
-		if namespace, ok := metadata["namespace"].(string); !ok || namespace != selector.Namespace {
+		if namespace, ok := resource.Metadata["namespace"].(string); !ok || namespace != selector.Namespace {
 			return false
 		}
 	}
@@ -1965,7 +1955,7 @@ func (p *Pipeline) resourceMatches(resource porch.KRMResource, selector Resource
 	// Check labels.
 
 	for key, value := range selector.Labels {
-		if labels, ok := metadata["labels"].(map[string]interface{}); ok {
+		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
 				return false
 			}
