@@ -115,7 +115,8 @@ jobs:
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
         id: cache-setup
         run: |
-          # Generate comprehensive cache key for 2025 standards
+          # Generate cache key with version suffix to force refresh
+          CACHE_VERSION="v2" # bump this to force new cache
           GO_SUM_HASH="${{ hashFiles('**/go.sum') }}"
           GO_MOD_HASH="${{ hashFiles('go.mod') }}"
           CONFIG_HASH="${{ hashFiles('config/**/*.yaml', 'PROJECT') }}"
@@ -125,7 +126,7 @@ jobs:
           if [[ -z "$GO_MOD_HASH" ]]; then GO_MOD_HASH="${{ github.sha }}"; fi
           if [[ -z "$CONFIG_HASH" ]]; then CONFIG_HASH="${{ github.sha }}"; fi
           
-          CACHE_KEY="nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
+          CACHE_KEY="nephoran-k8s-op-v3-${CACHE_VERSION}-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-${GO_SUM_HASH}-${GO_MOD_HASH}-${CONFIG_HASH}"
           echo "cache-key=${CACHE_KEY}" >> $GITHUB_OUTPUT
           echo "Generated cache key: $CACHE_KEY"
           
@@ -144,9 +145,16 @@ jobs:
             ${{ env.GOMODCACHE }}
           key: ${{ steps.cache-setup.outputs.cache-key }}
           restore-keys: |
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
-            nephoran-k8s-op-v3-${{ runner.os }}-go${{ env.GO_VERSION }}-
+            nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-k8s${{ env.KUBERNETES_VERSION }}-
+            nephoran-k8s-op-v3-v2-${{ runner.os }}-go${{ env.GO_VERSION }}-
           fail-on-cache-miss: true
+            
+      - name: Smoke test Go cache
+        if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
+        run: |
+          echo "Smoke test: checking cache directories"
+          ls -la ${{ env.GOCACHE }} || exit 1
+          ls -la ${{ env.GOMODCACHE }} || exit 1
             
       - name: Download dependencies
         if: steps.changes.outputs.go == 'true' || steps.changes.outputs.k8s == 'true'
