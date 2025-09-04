@@ -398,8 +398,10 @@ manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefin
 		controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
 		echo "✅ Manifests generated"; \
 	else \
-		echo "⚠️ controller-gen not found, skipping manifest generation"; \
-		echo "Install with: go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest"; \
+		echo "Installing controller-gen..."; \
+		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
+		controller-gen rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases; \
+		echo "✅ Manifests generated"; \
 	fi
 
 .PHONY: generate
@@ -409,8 +411,10 @@ generate: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject
 		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."; \
 		echo "✅ Code generated"; \
 	else \
-		echo "⚠️ controller-gen not found, skipping code generation"; \
-		echo "Install with: go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest"; \
+		echo "Installing controller-gen..."; \
+		$(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
+		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."; \
+		echo "✅ Code generated"; \
 	fi
 
 .PHONY: install
@@ -420,9 +424,10 @@ install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/con
 		kustomize build config/crd | kubectl apply -f -; \
 		echo "✅ CRDs installed"; \
 	else \
-		echo "❌ kustomize not found"; \
-		echo "Install with: go install sigs.k8s.io/kustomize/kustomize/v5@latest"; \
-		exit 1; \
+		echo "Installing kustomize..."; \
+		$(GO) install sigs.k8s.io/kustomize/kustomize/v5@latest; \
+		kustomize build config/crd | kubectl apply -f -; \
+		echo "✅ CRDs installed"; \
 	fi
 
 .PHONY: uninstall
@@ -444,8 +449,11 @@ deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/c
 		kustomize build config/default | kubectl apply -f -; \
 		echo "✅ Controller deployed with image: $(IMG)"; \
 	else \
-		echo "❌ kustomize not found"; \
-		exit 1; \
+		echo "Installing kustomize..."; \
+		$(GO) install sigs.k8s.io/kustomize/kustomize/v5@latest; \
+		cd config/manager && kustomize edit set image controller=$(IMG); \
+		kustomize build config/default | kubectl apply -f -; \
+		echo "✅ Controller deployed with image: $(IMG)"; \
 	fi
 
 .PHONY: undeploy

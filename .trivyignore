@@ -1,0 +1,64 @@
+# =============================================================================
+# Trivy Ignore File - Security Scanning Exclusions
+# =============================================================================
+# This file contains vulnerability IDs and paths to ignore during Trivy scans
+# Only add items here after careful security review
+# =============================================================================
+
+# Format:
+# - CVE-YYYY-NNNNN: Ignore specific CVE
+# - GHSA-xxxx-xxxx-xxxx: Ignore GitHub Security Advisory
+# - path/to/file: Ignore vulnerabilities in specific file
+# - exp:YYYY-MM-DD: Set expiration date for ignore rule
+
+# =============================================================================
+# Go Vulnerabilities - False Positives or Accepted Risks
+# =============================================================================
+
+# Example: Old etcd client library - not used in production paths
+# CVE-2023-39325 exp:2025-06-01
+# CVE-2023-44487 exp:2025-06-01
+
+# =============================================================================
+# Container/OS Vulnerabilities - Base Image Issues
+# =============================================================================
+
+# Distroless base image - these are often false positives
+# due to stripped binaries and minimal attack surface
+
+# =============================================================================
+# Test Dependencies - Not in Production
+# =============================================================================
+
+# Vulnerabilities in test-only dependencies
+# These don't affect production deployments
+test/
+testdata/
+*_test.go
+vendor/github.com/stretchr/testify
+
+# =============================================================================
+# Development Tools - Not in Production Container
+# =============================================================================
+
+# Build tools and linters
+.golangci.yml
+Makefile
+hack/
+scripts/
+
+# =============================================================================
+# Documentation - No executable code
+# =============================================================================
+
+*.md
+docs/
+LICENSE
+NOTICE
+
+# =============================================================================
+# Temporary Ignores - Review Monthly
+# =============================================================================
+
+# Add temporary ignores here with expiration dates
+# Review and remove when patches are available

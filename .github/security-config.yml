@@ -1,0 +1,372 @@
+# =============================================================================
+# GitHub Security Configuration - 2025 Best Practices
+# =============================================================================
+# Central security configuration for all security scanning tools
+# Defines security policies, tool configurations, and severity thresholds
+# =============================================================================
+
+# Security scanning configuration
+security:
+  # Version of this configuration
+  version: "2.1.0"
+  
+  # Last updated
+  updated: "2025-01-04"
+  
+  # Security contact
+  contact: "security@nephoran.io"
+
+# Vulnerability scanning configuration
+vulnerability_scanning:
+  # Enable vulnerability scanning
+  enabled: true
+  
+  # Scan frequency
+  schedule:
+    daily: false
+    weekly: true
+    on_push: true
+    on_pr: true
+  
+  # Severity levels to report
+  severity_levels:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+  
+  # Ignore unfixed vulnerabilities
+  ignore_unfixed: true
+  
+  # Vulnerability databases
+  databases:
+    - name: "NVD"
+      enabled: true
+    - name: "GitHub Advisory"
+      enabled: true
+    - name: "OSV"
+      enabled: true
+    - name: "Go Vulnerability Database"
+      enabled: true
+
+# Tool-specific configurations
+tools:
+  # Trivy configuration
+  trivy:
+    enabled: true
+    version: "0.58.1"
+    timeout: "30m"
+    scanners:
+      - vuln
+      - misconfig
+      - secret
+      - license
+    ignore_files:
+      - ".trivyignore"
+    skip_dirs:
+      - "vendor"
+      - "node_modules"
+      - ".git"
+      - "test/fixtures"
+  
+  # govulncheck configuration
+  govulncheck:
+    enabled: true
+    version: "v1.1.3"
+    mode: "source"
+    timeout: "20m"
+    check_indirect: true
+  
+  # gosec configuration
+  gosec:
+    enabled: true
+    version: "2.21.4"
+    confidence: "medium"
+    severity: "medium"
+    tests: true
+    exclude_generated: true
+    rules:
+      - G101  # Hardcoded credentials
+      - G102  # Bind to all interfaces
+      - G103  # Audit the use of unsafe
+      - G104  # Audit errors not checked
+      - G106  # Audit use of ssh.InsecureIgnoreHostKey
+      - G107  # Url provided to HTTP request as taint
+      - G108  # Profiling endpoint automatically exposed
+      - G109  # Potential Integer overflow
+      - G110  # Potential DoS vulnerability
+      - G201  # SQL query construction using format
+      - G202  # SQL query construction using string concatenation
+      - G203  # Use of unescaped data in HTML
+      - G204  # Audit use of command execution
+      - G301  # Poor file permissions
+      - G302  # Poor file permissions (chmod)
+      - G303  # Creating tempfile using predictable path
+      - G304  # File path provided as taint
+      - G305  # File path traversal
+      - G306  # Poor file permissions (WriteFile)
+      - G307  # Deferring unsafe functions
+      - G401  # Use of weak crypto (DES)
+      - G402  # TLS InsecureSkipVerify
+      - G403  # RSA key size
+      - G404  # Use of weak random
+      - G501  # Blacklisted imports (crypto/md5)
+      - G502  # Blacklisted imports (crypto/des)
+      - G503  # Blacklisted imports (crypto/rc4)
+      - G504  # Blacklisted imports (net/http/cgi)
+      - G601  # Implicit memory aliasing
+  
+  # Nancy configuration
+  nancy:
+    enabled: true
+    version: "v1.0.46"
+    exclude_vulnerability:
+      - "CVE-2020-0000"  # Example exclusion
+  
+  # Grype configuration
+  grype:
+    enabled: true
+    version: "0.84.0"
+    only_fixed: true
+    fail_on: "high"
+    ignore:
+      - vulnerability: "CVE-2020-0000"
+        reason: "False positive - not applicable to our use case"
+  
+  # CodeQL configuration
+  codeql:
+    enabled: true
+    languages:
+      - go
+    queries:
+      - security-extended
+      - security-and-quality
+    paths_ignore:
+      - "test/**"
+      - "vendor/**"
+      - "**/*_test.go"
+
+# Secret scanning configuration
+secret_scanning:
+  enabled: true
+  
+  # Custom patterns for secret detection
+  custom_patterns:
+    - pattern: 'api[_-]?key\s*[:=]\s*["\']([^"\']+)["\']'
+      name: "API Key"
+      severity: "HIGH"
+    - pattern: 'token\s*[:=]\s*["\']([^"\']+)["\']'
+      name: "Token"
+      severity: "HIGH"
+    - pattern: 'password\s*[:=]\s*["\']([^"\']+)["\']'
+      name: "Password"
+      severity: "CRITICAL"
+    - pattern: 'secret\s*[:=]\s*["\']([^"\']+)["\']'
+      name: "Secret"
+      severity: "HIGH"
+    - pattern: 'private[_-]?key\s*[:=]\s*["\']([^"\']+)["\']'
+      name: "Private Key"
+      severity: "CRITICAL"
+  
+  # Files to exclude from secret scanning
+  exclude_files:
+    - "**/*.md"
+    - "**/testdata/**"
+    - "**/*.test"
+    - "**/*_test.go"
+
+# Dependency scanning configuration
+dependency_scanning:
+  enabled: true
+  
+  # Check for updates
+  check_updates: true
+  
+  # Auto-update configuration
+  auto_update:
+    enabled: false
+    frequency: "weekly"
+    types:
+      - "patch"
+      - "minor"
+    exclude:
+      - "github.com/example/legacy-lib"
+  
+  # License scanning
+  license_check:
+    enabled: true
+    allowed_licenses:
+      - "MIT"
+      - "Apache-2.0"
+      - "BSD-3-Clause"
+      - "BSD-2-Clause"
+      - "ISC"
+      - "MPL-2.0"
+    forbidden_licenses:
+      - "GPL-2.0"
+      - "GPL-3.0"
+      - "AGPL-3.0"
+      - "LGPL-2.1"
+      - "LGPL-3.0"
+
+# Container scanning configuration
+container_scanning:
+  enabled: true
+  
+  # Base image requirements
+  base_images:
+    allowed:
+      - "gcr.io/distroless/*"
+      - "alpine:*"
+      - "ubuntu:22.04"
+      - "ubuntu:24.04"
+      - "golang:1.22*"
+      - "golang:1.23*"
+    forbidden:
+      - "*:latest"
+      - "ubuntu:18.04"
+      - "ubuntu:20.04"
+  
+  # Security requirements
+  requirements:
+    - "non-root-user"
+    - "no-new-privileges"
+    - "read-only-root-filesystem"
+    - "security-opt=no-new-privileges"
+    - "cap-drop=ALL"
+
+# SBOM (Software Bill of Materials) configuration
+sbom:
+  enabled: true
+  
+  # SBOM formats to generate
+  formats:
+    - "spdx-json"
+    - "cyclonedx-json"
+    - "syft-json"
+  
+  # Include in SBOM
+  include:
+    - "dependencies"
+    - "system-packages"
+    - "go-modules"
+  
+  # Sign SBOM
+  sign: false
+
+# Security policies
+policies:
+  # Fail build on security issues
+  fail_on_issues: false
+  
+  # Block merge on critical issues
+  block_merge_on_critical: true
+  
+  # Required security checks for merge
+  required_checks:
+    - "vulnerability-scan"
+    - "secret-scan"
+    - "dependency-check"
+  
+  # Security review required for
+  require_review_for:
+    - "security/**"
+    - ".github/workflows/*security*"
+    - "Dockerfile*"
+    - "go.mod"
+    - "go.sum"
+
+# Reporting configuration
+reporting:
+  # SARIF upload configuration
+  sarif:
+    enabled: true
+    wait_for_processing: true
+    categories:
+      govulncheck: "security-govulncheck"
+      trivy_fs: "security-trivy-filesystem"
+      trivy_container: "security-trivy-container"
+      gosec: "security-gosec"
+      grype: "security-grype"
+      codeql: "security-codeql"
+      nancy: "security-nancy"
+  
+  # Issue creation
+  create_issues:
+    enabled: false
+    severity_threshold: "CRITICAL"
+    labels:
+      - "security"
+      - "vulnerability"
+  
+  # Notifications
+  notifications:
+    enabled: false
+    channels:
+      - type: "slack"
+        webhook: "${SLACK_SECURITY_WEBHOOK}"
+        severity: ["CRITICAL", "HIGH"]
+      - type: "email"
+        recipients: ["security@nephoran.io"]
+        severity: ["CRITICAL"]
+
+# Compliance configuration
+compliance:
+  # Standards to comply with
+  standards:
+    - "OWASP Top 10"
+    - "CIS Benchmarks"
+    - "NIST Cybersecurity Framework"
+    - "PCI DSS"
+    - "SOC 2"
+  
+  # Audit logging
+  audit_logging:
+    enabled: true
+    retention_days: 90
+  
+  # Regular assessments
+  assessments:
+    frequency: "quarterly"
+    external_audit: false
+
+# Security headers for web applications
+security_headers:
+  "X-Frame-Options": "DENY"
+  "X-Content-Type-Options": "nosniff"
+  "X-XSS-Protection": "1; mode=block"
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+  "Content-Security-Policy": "default-src 'self'"
+  "Referrer-Policy": "strict-origin-when-cross-origin"
+  "Permissions-Policy": "geolocation=(), microphone=(), camera=()"
+
+# Timeout configurations (in minutes)
+timeouts:
+  default: 30
+  vulnerability_scan: 45
+  container_scan: 30
+  codeql_analysis: 60
+  dependency_check: 20
+  secret_scan: 15
+
+# Cache configuration
+cache:
+  enabled: true
+  
+  # Cache vulnerability databases
+  vulnerability_db:
+    enabled: true
+    ttl: "24h"
+    max_size: "500MB"
+  
+  # Cache scan results
+  scan_results:
+    enabled: true
+    ttl: "6h"
+    max_size: "100MB"
+
+# Debug configuration
+debug:
+  enabled: false
+  verbose: false
+  save_artifacts: true
+  log_level: "INFO"

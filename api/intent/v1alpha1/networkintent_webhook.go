@@ -36,7 +36,7 @@ func (r *NetworkIntent) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-intent-nephoran-com-v1alpha1-networkintent,mutating=true,failurePolicy=fail,sideEffects=None,groups=intent.nephoran.com,resources=networkintents,verbs=create;update,versions=v1alpha1,name=mnetworkintent.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-intent-nephio-org-v1alpha1-networkintent,mutating=true,failurePolicy=fail,sideEffects=None,groups=intent.nephio.org,resources=networkintents,verbs=create;update,versions=v1alpha1,name=mnetworkintent.kb.io,admissionReviewVersions=v1
 
 var _ admission.CustomDefaulter = &NetworkIntent{}
 
@@ -62,7 +62,7 @@ func (r *NetworkIntent) Default(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-intent-nephoran-com-v1alpha1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=intent.nephoran.com,resources=networkintents,verbs=create;update,versions=v1alpha1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-intent-nephio-org-v1alpha1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=intent.nephio.org,resources=networkintents,verbs=create;update,versions=v1alpha1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
 
 var _ admission.CustomValidator = &NetworkIntent{}
 
